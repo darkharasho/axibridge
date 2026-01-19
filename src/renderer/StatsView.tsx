@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Trophy, Share2, Swords, Shield, Zap, Skull, Activity, Flame, HelpingHand } from 'lucide-react';
+import { ArrowLeft, Trophy, Share2, Swords, Shield, Zap, Activity, Flame, HelpingHand, Hammer, ShieldCheck, Crosshair } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { calculateAllStability, calculateSquadBarrier, calculateSquadHealing, calculateOutCC, calculateDownContribution } from '../shared/plenbot';
 import { Player } from '../shared/dpsReportTypes';
@@ -334,25 +334,39 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
         setTimeout(() => setSharing(false), 2000);
     };
 
-    const LeaderCard = ({ icon: Icon, title, data, color, unit = '' }: any) => (
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3 group hover:bg-white/10 transition-colors">
-            <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-lg bg-${color}-500/20 text-${color}-400 shrink-0`}>
-                    <Icon className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                    <div className="text-gray-400 text-xs font-bold uppercase tracking-wider truncate">{title}</div>
-                    <div className="text-2xl font-bold text-white mt-0.5 break-words">
-                        {Math.round(data.value).toLocaleString()} <span className="text-sm font-normal text-gray-500">{unit}</span>
+    const colorClasses: Record<string, { bg: string; text: string }> = {
+        red: { bg: 'bg-red-500/20', text: 'text-red-400' },
+        yellow: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+        green: { bg: 'bg-green-500/20', text: 'text-green-400' },
+        purple: { bg: 'bg-purple-500/20', text: 'text-purple-400' },
+        blue: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+        pink: { bg: 'bg-pink-500/20', text: 'text-pink-400' },
+        cyan: { bg: 'bg-cyan-500/20', text: 'text-cyan-400' },
+        indigo: { bg: 'bg-indigo-500/20', text: 'text-indigo-400' },
+    };
+
+    const LeaderCard = ({ icon: Icon, title, data, color, unit = '' }: any) => {
+        const classes = colorClasses[color] || colorClasses.blue;
+        return (
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3 group hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-lg ${classes.bg} ${classes.text} shrink-0`}>
+                        <Icon className="w-6 h-6" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="text-gray-400 text-xs font-bold uppercase tracking-wider truncate">{title}</div>
+                        <div className="text-2xl font-bold text-white mt-0.5 break-words">
+                            {Math.round(data.value).toLocaleString()} <span className="text-sm font-normal text-gray-500">{unit}</span>
+                        </div>
                     </div>
                 </div>
+                <div className="flex flex-col border-t border-white/5 pt-2">
+                    <div className="text-sm font-medium text-blue-300 truncate">{data.player || '-'}</div>
+                    <div className="text-xs text-gray-500 truncate">{data.count ? `${data.count} logs` : '-'}</div>
+                </div>
             </div>
-            <div className="flex flex-col border-t border-white/5 pt-2">
-                <div className="text-sm font-medium text-blue-300 truncate">{data.player || '-'}</div>
-                <div className="text-xs text-gray-500 truncate">{data.count ? `${data.count} logs` : '-'}</div>
-            </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="h-full flex flex-col p-8 w-full max-w-6xl mx-auto overflow-hidden">
@@ -433,9 +447,9 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
                         <LeaderCard icon={Activity} title="Total Healing" data={stats.maxHealing} color="green" />
                         <LeaderCard icon={Zap} title="Total Strips" data={stats.maxStrips} color="purple" />
                         <LeaderCard icon={Flame} title="Total Cleanses" data={stats.maxCleanses} color="blue" />
-                        <LeaderCard icon={Skull} title="Total CC" data={stats.maxCC} color="pink" />
-                        <LeaderCard icon={Shield} title="Total Stab Gen" data={stats.maxStab} color="cyan" />
-                        <LeaderCard icon={Shield} title="Closest to Tag" data={stats.closestToTag} color="indigo" unit="dist" />
+                        <LeaderCard icon={Hammer} title="Total CC" data={stats.maxCC} color="pink" />
+                        <LeaderCard icon={ShieldCheck} title="Total Stab Gen" data={stats.maxStab} color="cyan" />
+                        <LeaderCard icon={Crosshair} title="Closest to Tag" data={stats.closestToTag} color="indigo" unit="dist" />
                     </div>
                 </div>
 
