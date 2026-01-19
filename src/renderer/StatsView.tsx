@@ -815,6 +815,7 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
                                         verticalAlign="middle"
                                         align="right"
                                         wrapperStyle={{ fontSize: '12px' }}
+                                        // @ts-ignore
                                         payload={stats.squadClassData.map(item => ({
                                             id: item.name,
                                             type: 'square',
@@ -864,6 +865,7 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
                                         verticalAlign="middle"
                                         align="right"
                                         wrapperStyle={{ fontSize: '12px' }}
+                                        // @ts-ignore
                                         payload={stats.enemyClassData.map(item => ({
                                             id: item.name,
                                             type: 'square',
@@ -912,6 +914,7 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
                                 <ChartLegend
                                     verticalAlign="bottom"
                                     height={36}
+                                    // @ts-ignore
                                     payload={stats.mapData.map(item => ({
                                         id: item.name,
                                         type: 'square',
