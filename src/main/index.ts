@@ -7,6 +7,17 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { DesktopIntegrator } from './integration';
 
+// Handle EPIPE errors gracefully - these occur when stdout/stderr pipes close
+// (e.g., when running as AppImage without a terminal)
+process.stdout?.on?.('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EPIPE') return; // Silently ignore EPIPE errors
+    throw err;
+});
+process.stderr?.on?.('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EPIPE') return; // Silently ignore EPIPE errors
+    throw err;
+});
+
 // Configure autoUpdater logger
 log.transports.file.level = 'info';
 autoUpdater.logger = log;
@@ -120,46 +131,61 @@ function createWindow() {
         const fileId = path.basename(filePath);
         win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
 
-        const result = await uploader?.upload(filePath);
+        try {
+            const result = await uploader?.upload(filePath);
 
-        if (result && !result.error) {
-            console.log(`[Main] Upload successful: ${result.permalink}. Fetching details...`);
-            let jsonDetails = await uploader?.fetchDetailedJson(result.permalink);
+            if (result && !result.error) {
+                console.log(`[Main] Upload successful: ${result.permalink}. Fetching details...`);
+                let jsonDetails = await uploader?.fetchDetailedJson(result.permalink);
 
-            if (!jsonDetails || jsonDetails.error) {
-                console.log('[Main] Retrying JSON fetch in 2 seconds...');
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                jsonDetails = await uploader?.fetchDetailedJson(result.permalink);
+                if (!jsonDetails || jsonDetails.error) {
+                    console.log('[Main] Retrying JSON fetch in 2 seconds...');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    jsonDetails = await uploader?.fetchDetailedJson(result.permalink);
+                }
+
+                win?.webContents.send('upload-status', {
+                    id: fileId,
+                    filePath,
+                    status: 'discord',
+                    permalink: result.permalink,
+                    uploadTime: result.uploadTime,
+                    encounterDuration: result.encounterDuration,
+                    fightName: result.fightName
+                });
+
+                const notificationType = store.get('discordNotificationType', 'image');
+                console.log(`[Main] Preparing Discord delivery. Configured type: ${notificationType}`);
+
+                try {
+                    if (notificationType === 'image') {
+                        pendingDiscordLogs.set(result.id, { result: { ...result, filePath }, jsonDetails });
+                        win?.webContents.send('request-screenshot', { ...result, filePath, details: jsonDetails });
+                    } else {
+                        await discord?.sendLog({ ...result, filePath, mode: 'embed' }, jsonDetails);
+                    }
+                } catch (discordError: any) {
+                    console.error('[Main] Discord notification failed:', discordError?.message || discordError);
+                    // Still mark as success since upload worked, but log the Discord failure
+                }
+
+                win?.webContents.send('upload-complete', {
+                    ...result,
+                    filePath,
+                    status: 'success',
+                    details: jsonDetails
+                });
+            } else {
+                win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
             }
-
-            win?.webContents.send('upload-status', {
+        } catch (error: any) {
+            console.error('[Main] Log processing failed:', error?.message || error);
+            win?.webContents.send('upload-complete', {
                 id: fileId,
                 filePath,
-                status: 'discord',
-                permalink: result.permalink,
-                uploadTime: result.uploadTime,
-                encounterDuration: result.encounterDuration,
-                fightName: result.fightName
+                status: 'error',
+                error: error?.message || 'Unknown error during processing'
             });
-
-            const notificationType = store.get('discordNotificationType', 'image');
-            console.log(`[Main] Preparing Discord delivery. Configured type: ${notificationType}`);
-
-            if (notificationType === 'image') {
-                pendingDiscordLogs.set(result.id, { result: { ...result, filePath }, jsonDetails });
-                win?.webContents.send('request-screenshot', { ...result, filePath, details: jsonDetails });
-            } else {
-                await discord?.sendLog({ ...result, filePath, mode: 'embed' }, jsonDetails);
-            }
-
-            win?.webContents.send('upload-complete', {
-                ...result,
-                filePath,
-                status: 'success',
-                details: jsonDetails
-            });
-        } else {
-            win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
         }
     });
 
