@@ -291,11 +291,13 @@ if (!gotTheLock) {
                 return;
             }
 
-            // On Linux, require APPIMAGE env to be set for AppImage updates
-            if (process.platform === 'linux' && !process.env.APPIMAGE) {
-                log.info('[AutoUpdater] Skipping update check - not running as AppImage');
-                win?.webContents.send('update-not-available', { version: app.getVersion() });
-                return;
+            // Log the package type for debugging
+            if (process.platform === 'linux') {
+                if (process.env.APPIMAGE) {
+                    log.info('[AutoUpdater] Running as AppImage:', process.env.APPIMAGE);
+                } else {
+                    log.info('[AutoUpdater] Running as installed package (deb/rpm)');
+                }
             }
 
             try {
@@ -317,13 +319,6 @@ if (!gotTheLock) {
             // Skip auto-update in development mode
             if (!app.isPackaged) {
                 log.info('[AutoUpdater] Manual check skipped in development mode');
-                win?.webContents.send('update-not-available', { version: app.getVersion() });
-                return;
-            }
-
-            // On Linux, require APPIMAGE env to be set for AppImage updates
-            if (process.platform === 'linux' && !process.env.APPIMAGE) {
-                log.info('[AutoUpdater] Manual check skipped - not running as AppImage');
                 win?.webContents.send('update-not-available', { version: app.getVersion() });
                 return;
             }

@@ -393,16 +393,16 @@ function App() {
                                     <div className="text-2xl font-bold text-white">{totalUploads}</div>
                                 </div>
                                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4">
+                                    <div className="text-gray-400 text-xs font-medium mb-1 uppercase tracking-wider">Success Rate</div>
+                                    <div className="text-2xl font-bold text-green-400">{successRate}%</div>
+                                </div>
+                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4">
                                     <div className="text-gray-400 text-xs font-medium mb-1 uppercase tracking-wider">Avg Squad</div>
                                     <div className="text-2xl font-bold text-gray-200">{avgSquadSize}</div>
                                 </div>
                                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4">
                                     <div className="text-gray-400 text-xs font-medium mb-1 uppercase tracking-wider">Avg Enemies</div>
                                     <div className="text-2xl font-bold text-gray-200">{avgEnemies}</div>
-                                </div>
-                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4">
-                                    <div className="text-gray-400 text-xs font-medium mb-1 uppercase tracking-wider">Success Rate</div>
-                                    <div className="text-2xl font-bold text-green-400">{successRate}%</div>
                                 </div>
                             </motion.div>
                         </div>
