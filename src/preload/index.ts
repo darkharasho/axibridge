@@ -66,5 +66,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('update-downloaded', (_event, value) => callback(value))
         return () => ipcRenderer.removeAllListeners('update-downloaded')
     },
-    sendStatsScreenshot: (buffer: Uint8Array) => ipcRenderer.send('send-stats-screenshot', buffer)
+    sendStatsScreenshot: (buffer: Uint8Array) => ipcRenderer.send('send-stats-screenshot', buffer),
+    getAppVersion: () => ipcRenderer.invoke('get-app-version')
 })

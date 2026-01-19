@@ -25,6 +25,7 @@ export interface IElectronAPI {
     onDownloadProgress: (callback: (progress: any) => void) => () => void;
     onUpdateDownloaded: (callback: (info: any) => void) => () => void;
     sendStatsScreenshot: (buffer: Uint8Array) => void;
+    getAppVersion: () => Promise<string>;
 }
 
 declare global {

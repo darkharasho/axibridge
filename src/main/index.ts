@@ -277,17 +277,43 @@ if (!gotTheLock) {
         // Check for updates
         setupAutoUpdater();
 
+        // Disable auto-download to give more control
+        autoUpdater.autoDownload = true;
+        autoUpdater.autoInstallOnAppQuit = true;
+
         // Check for updates after a short delay to ensure window is ready
-        setTimeout(() => {
-            autoUpdater.checkForUpdates();
+        // Wrap in try-catch with timeout to prevent hanging
+        setTimeout(async () => {
+            try {
+                log.info('[AutoUpdater] Starting update check...');
+                const result = await Promise.race([
+                    autoUpdater.checkForUpdates(),
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Update check timed out after 30s')), 30000)
+                    )
+                ]);
+                log.info('[AutoUpdater] Update check completed:', result);
+            } catch (err: any) {
+                log.error('[AutoUpdater] Update check failed:', err?.message || err);
+                win?.webContents.send('update-error', { message: err?.message || 'Update check failed' });
+            }
         }, 3000);
 
-        ipcMain.on('check-for-updates', () => {
-            autoUpdater.checkForUpdates();
+        ipcMain.on('check-for-updates', async () => {
+            try {
+                await autoUpdater.checkForUpdates();
+            } catch (err: any) {
+                log.error('[AutoUpdater] Manual check failed:', err?.message || err);
+                win?.webContents.send('update-error', { message: err?.message || 'Update check failed' });
+            }
         });
 
         ipcMain.on('restart-app', () => {
             autoUpdater.quitAndInstall();
+        });
+
+        ipcMain.handle('get-app-version', () => {
+            return app.getVersion();
         });
 
         ipcMain.handle('get-settings', () => {

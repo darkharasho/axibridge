@@ -24,6 +24,9 @@ function App() {
     // View State
     const [view, setView] = useState<'dashboard' | 'stats'>('dashboard');
 
+    // App Version
+    const [appVersion, setAppVersion] = useState<string>('...');
+
     // Persistence removed
 
 
@@ -54,6 +57,10 @@ function App() {
             if (settings.discordNotificationType) {
                 setNotificationType(settings.discordNotificationType);
             }
+
+            // Load app version
+            const version = await window.electronAPI.getAppVersion();
+            setAppVersion(version);
         };
         loadSettings();
 
@@ -243,7 +250,7 @@ function App() {
                             animate={{ opacity: 1, x: 0 }}
                             className="text-xs font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10"
                         >
-                            v1.0.0
+                            v{appVersion}
                         </motion.div>
                         <button
                             onClick={() => setView(view === 'dashboard' ? 'stats' : 'dashboard')}
