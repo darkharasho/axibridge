@@ -281,6 +281,11 @@ if (!gotTheLock) {
         autoUpdater.autoDownload = true;
         autoUpdater.autoInstallOnAppQuit = true;
 
+        if (process.platform === 'linux' && !process.env.APPIMAGE) {
+            log.info('[AutoUpdater] Detected Linux non-AppImage run. Disabling auto-download to ensure detection works without download errors.');
+            autoUpdater.autoDownload = false;
+        }
+
         // Check for updates after a short delay to ensure window is ready
         // Only check for updates in packaged apps (not development)
         setTimeout(async () => {

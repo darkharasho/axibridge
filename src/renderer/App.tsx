@@ -5,6 +5,7 @@ import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { StatsView } from './StatsView';
 import { WebhookModal, Webhook } from './WebhookModal';
+import { UpdateErrorModal } from './UpdateErrorModal';
 
 function App() {
     const [logDirectory, setLogDirectory] = useState<string | null>(null);
@@ -20,6 +21,8 @@ function App() {
     const [updateProgress, setUpdateProgress] = useState<any>(null);
     const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
     const [updateDownloaded, setUpdateDownloaded] = useState<boolean>(false);
+    const [showUpdateErrorModal, setShowUpdateErrorModal] = useState(false);
+    const [updateError, setUpdateError] = useState<string | null>(null);
 
     // View State
     const [view, setView] = useState<'dashboard' | 'stats'>('dashboard');
@@ -147,14 +150,17 @@ function App() {
         const cleanupMessage = window.electronAPI.onUpdateMessage((message) => setUpdateStatus(message));
         const cleanupAvailable = window.electronAPI.onUpdateAvailable(() => {
             setUpdateAvailable(true);
-            setUpdateStatus('Update available. Downloading...');
+            setUpdateStatus('Update available.');
         });
         const cleanupNotAvailable = window.electronAPI.onUpdateNotAvailable(() => {
             setUpdateStatus('App is up to date.');
             setTimeout(() => setUpdateStatus(''), 5000);
         });
         const cleanupError = window.electronAPI.onUpdateError((err) => {
-            setUpdateStatus('Error: ' + (err.message || err));
+            const errorMessage = err.message || (typeof err === 'string' ? err : 'Unknown update error');
+            setUpdateStatus('Error: ' + errorMessage);
+            setUpdateError(errorMessage);
+            setShowUpdateErrorModal(true);
             setUpdateAvailable(false); // Reset so spinner stops
             setUpdateProgress(null);
         });
@@ -230,8 +236,9 @@ function App() {
                     </motion.div>
                     <div className="flex items-center gap-3">
                         <AnimatePresence mode="wait">
-                            {(updateAvailable || updateDownloaded) && (
+                            {(updateAvailable || updateDownloaded) ? (
                                 <motion.div
+                                    key="updating"
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 20 }}
@@ -252,12 +259,30 @@ function App() {
                                         </div>
                                     )}
                                 </motion.div>
+                            ) : (
+                                updateStatus && (
+                                    <motion.div
+                                        key="status"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20 }}
+                                        className={`flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border ${updateStatus.includes('Error')
+                                            ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                            : 'bg-white/5 text-gray-400 border-white/10'
+                                            }`}
+                                    >
+                                        <RefreshCw className={`w-3 h-3 ${updateStatus.includes('Checking') ? 'animate-spin' : ''}`} />
+                                        <span>{updateStatus}</span>
+                                    </motion.div>
+                                )
                             )}
                         </AnimatePresence>
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="text-xs font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10"
+                            className="text-xs font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                            onClick={() => window.electronAPI.checkForUpdates()}
+                            title="Check for updates"
                         >
                             v{appVersion}
                         </motion.div>
@@ -517,6 +542,13 @@ function App() {
                         handleUpdateSettings({ selectedWebhookId: null });
                     }
                 }}
+            />
+
+            {/* Update Error Modal */}
+            <UpdateErrorModal
+                isOpen={showUpdateErrorModal}
+                onClose={() => setShowUpdateErrorModal(false)}
+                error={updateError}
             />
         </div >
     );
