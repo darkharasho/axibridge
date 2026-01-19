@@ -155,6 +155,8 @@ function App() {
         });
         const cleanupError = window.electronAPI.onUpdateError((err) => {
             setUpdateStatus('Error: ' + (err.message || err));
+            setUpdateAvailable(false); // Reset so spinner stops
+            setUpdateProgress(null);
         });
         const cleanupProgress = window.electronAPI.onDownloadProgress((progress) => {
             setUpdateProgress(progress);

@@ -282,8 +282,22 @@ if (!gotTheLock) {
         autoUpdater.autoInstallOnAppQuit = true;
 
         // Check for updates after a short delay to ensure window is ready
-        // Wrap in try-catch with timeout to prevent hanging
+        // Only check for updates in packaged apps (not development)
         setTimeout(async () => {
+            // Skip auto-update in development mode
+            if (!app.isPackaged) {
+                log.info('[AutoUpdater] Skipping update check in development mode');
+                win?.webContents.send('update-not-available', { version: app.getVersion() });
+                return;
+            }
+
+            // On Linux, require APPIMAGE env to be set for AppImage updates
+            if (process.platform === 'linux' && !process.env.APPIMAGE) {
+                log.info('[AutoUpdater] Skipping update check - not running as AppImage');
+                win?.webContents.send('update-not-available', { version: app.getVersion() });
+                return;
+            }
+
             try {
                 log.info('[AutoUpdater] Starting update check...');
                 const result = await Promise.race([
@@ -300,6 +314,20 @@ if (!gotTheLock) {
         }, 3000);
 
         ipcMain.on('check-for-updates', async () => {
+            // Skip auto-update in development mode
+            if (!app.isPackaged) {
+                log.info('[AutoUpdater] Manual check skipped in development mode');
+                win?.webContents.send('update-not-available', { version: app.getVersion() });
+                return;
+            }
+
+            // On Linux, require APPIMAGE env to be set for AppImage updates
+            if (process.platform === 'linux' && !process.env.APPIMAGE) {
+                log.info('[AutoUpdater] Manual check skipped - not running as AppImage');
+                win?.webContents.send('update-not-available', { version: app.getVersion() });
+                return;
+            }
+
             try {
                 await autoUpdater.checkForUpdates();
             } catch (err: any) {
