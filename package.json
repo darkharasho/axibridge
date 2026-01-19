@@ -1,7 +1,7 @@
 {
     "name": "gw2-arc-log-uploader",
     "private": true,
-    "version": "1.2.6",
+    "version": "1.2.7",
     "description": "Guild Wars 2 arcDPS Log Uploader",
     "author": {
         "name": "darkharasho",
@@ -67,6 +67,7 @@
         "directories": {
             "output": "dist_out"
         },
+        "artifactName": "GW2.Arc.Log.Uploader-${version}.${ext}",
         "publish": {
             "provider": "github",
             "owner": "darkharasho",
