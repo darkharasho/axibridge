@@ -1,6 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import FormData from 'form-data';
+import https from 'https';
 
 export interface UploadResult {
     id: string;
@@ -15,6 +16,8 @@ export interface UploadResult {
 
 export class Uploader {
     private static API_URL = 'https://dps.report/uploadContent';
+    private static BACKUP_API_URL = 'https://b.dps.report/uploadContent';
+    private httpsAgent = new https.Agent({ keepAlive: true });
     private uploadQueue: { filePath: string; resolve: (value: UploadResult) => void }[] = [];
     private isUploading = false;
 
@@ -77,15 +80,18 @@ export class Uploader {
                 formData.append('detailedwvw', 'true');
                 formData.append('file', fs.createReadStream(filePath));
 
-                console.log(`Uploading ${filePath} to dps.report... (Attempt ${attempt}/${maxRetries})`);
+                // Toggle between main and backup URL after 2 failures
+                const url = (attempt > 2 && attempt % 2 !== 0) ? Uploader.BACKUP_API_URL : Uploader.API_URL;
+                console.log(`Uploading ${filePath} to ${url}... (Attempt ${attempt}/${maxRetries})`);
 
-                const response = await axios.post(Uploader.API_URL, formData, {
+                const response = await axios.post(url, formData, {
                     headers: {
                         ...formData.getHeaders(),
                     },
+                    httpsAgent: this.httpsAgent,
                     maxContentLength: Infinity,
                     maxBodyLength: Infinity,
-                    timeout: 120000 // 2 minute timeout per request
+                    timeout: 900000 // 15 minute timeout per request (recommended by dps.report)
                 });
 
                 const data = response.data;
