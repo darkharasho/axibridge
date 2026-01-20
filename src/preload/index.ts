@@ -38,6 +38,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
     sendScreenshot: (id: string, buffer: Uint8Array) => ipcRenderer.send('send-screenshot', id, buffer),
+    onConsoleLog: (callback: (log: any) => void) => {
+        ipcRenderer.on('console-log', (_event, value) => callback(value))
+        return () => ipcRenderer.removeAllListeners('console-log')
+    },
 
     // Auto Updater
     checkForUpdates: () => ipcRenderer.send('check-for-updates'),

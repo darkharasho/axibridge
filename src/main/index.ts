@@ -22,6 +22,40 @@ process.stderr?.on?.('error', (err: NodeJS.ErrnoException) => {
 log.transports.file.level = 'info';
 autoUpdater.logger = log;
 
+// Hook console logging to send to renderer
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+
+function formatLogArgs(args: any[]) {
+    return args.map(arg => {
+        if (arg instanceof Error) {
+            return arg.stack || arg.message;
+        }
+        if (typeof arg === 'object') {
+            try {
+                return JSON.stringify(arg);
+            } catch {
+                return String(arg);
+            }
+        }
+        return String(arg);
+    }).join(' ');
+}
+
+console.log = (...args) => {
+    originalConsoleLog(...args);
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('console-log', { type: 'info', message: formatLogArgs(args), timestamp: new Date().toISOString() });
+    }
+};
+
+console.error = (...args) => {
+    originalConsoleError(...args);
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('console-log', { type: 'error', message: formatLogArgs(args), timestamp: new Date().toISOString() });
+    }
+};
+
 const Store = require('electron-store');
 const store = new Store();
 

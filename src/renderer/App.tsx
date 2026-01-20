@@ -6,6 +6,8 @@ import { ExpandableLogCard } from './ExpandableLogCard';
 import { StatsView } from './StatsView';
 import { WebhookModal, Webhook } from './WebhookModal';
 import { UpdateErrorModal } from './UpdateErrorModal';
+import { Terminal } from './Terminal';
+import { Terminal as TerminalIcon } from 'lucide-react';
 
 function App() {
     const [logDirectory, setLogDirectory] = useState<string | null>(null);
@@ -23,6 +25,9 @@ function App() {
     const [updateDownloaded, setUpdateDownloaded] = useState<boolean>(false);
     const [showUpdateErrorModal, setShowUpdateErrorModal] = useState(false);
     const [updateError, setUpdateError] = useState<string | null>(null);
+
+    // Terminal State
+    const [showTerminal, setShowTerminal] = useState(false);
 
     // View State
     const [view, setView] = useState<'dashboard' | 'stats'>('dashboard');
@@ -293,6 +298,13 @@ function App() {
                         >
                             <Trophy className="w-5 h-5" />
                         </button>
+                        <button
+                            onClick={() => setShowTerminal(!showTerminal)}
+                            className={`p-2 rounded-xl transition-all ${showTerminal ? 'bg-gray-700/50 text-white border-gray-600' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
+                            title="Toggle Terminal"
+                        >
+                            <TerminalIcon className="w-5 h-5" />
+                        </button>
                     </div>
                 </header>
 
@@ -550,6 +562,9 @@ function App() {
                 onClose={() => setShowUpdateErrorModal(false)}
                 error={updateError}
             />
+
+            {/* Terminal */}
+            <Terminal isOpen={showTerminal} onClose={() => setShowTerminal(false)} />
         </div >
     );
 }

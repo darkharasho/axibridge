@@ -17,7 +17,7 @@ export interface UploadResult {
 export class Uploader {
     private static API_URL = 'https://dps.report/uploadContent';
     private static BACKUP_API_URL = 'https://b.dps.report/uploadContent';
-    private httpsAgent = new https.Agent({ keepAlive: true });
+    private httpsAgent = new https.Agent({ keepAlive: false });
     private uploadQueue: { filePath: string; resolve: (value: UploadResult) => void }[] = [];
     private isUploading = false;
 
@@ -72,6 +72,13 @@ export class Uploader {
         let lastError: any;
         const maxRetries = 10; // Increase retries significantly
 
+        try {
+            const stats = fs.statSync(filePath);
+            console.log(`[Uploader] Processing file: ${filePath} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+        } catch (e) {
+            console.error(`[Uploader] Failed to get file stats:`, e);
+        }
+
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 const formData = new FormData();
@@ -80,13 +87,16 @@ export class Uploader {
                 formData.append('detailedwvw', 'true');
                 formData.append('file', fs.createReadStream(filePath));
 
-                // Toggle between main and backup URL after 2 failures
-                const url = (attempt > 2 && attempt % 2 !== 0) ? Uploader.BACKUP_API_URL : Uploader.API_URL;
-                console.log(`Uploading ${filePath} to ${url}... (Attempt ${attempt}/${maxRetries})`);
+                // Alternate between main and backup URL on every retry
+                const url = (attempt % 2 === 0) ? Uploader.BACKUP_API_URL : Uploader.API_URL;
+                console.log(`[Uploader] Uploading ${filePath} to ${url}... (Attempt ${attempt}/${maxRetries})`);
 
                 const response = await axios.post(url, formData, {
                     headers: {
                         ...formData.getHeaders(),
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Origin': 'https://dps.report',
+                        'Referer': 'https://dps.report/'
                     },
                     httpsAgent: this.httpsAgent,
                     maxContentLength: Infinity,
@@ -107,7 +117,8 @@ export class Uploader {
 
             } catch (error: any) {
                 lastError = error;
-                console.error(`Upload attempt ${attempt} failed:`, error.message || error);
+                const statusCode = error.response?.status;
+                console.error(`[Uploader] Upload attempt ${attempt} failed with status ${statusCode || 'unknown'}:`, error.message || error);
 
                 if (attempt < maxRetries) {
                     let backoff = 1000 * Math.pow(2, attempt - 1);

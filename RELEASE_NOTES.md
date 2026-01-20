@@ -1,12 +1,16 @@
-# Release Notes v1.3.1
+# Release Notes v1.3.2
+
+## ✨ New Features
+
+### 🖥️ In-App Terminal
+- Added a new, slick slide-up **Terminal UI**!
+- View application logs, upload progress, and errors directly within the app.
+- Toggle it anytime by clicking the terminal icon in the header.
 
 ## 🛠 Improvements & Fixes
 
-### 🚀 Upload Reliability
-Major improvements to the stability and success rate of log uploads to dps.report:
-- **Backup API Support**: The uploader now automatically tries a backup API URL if the primary one fails.
-- **Enhanced Connection Handling**: Implemented a persistent HTTPS keep-alive agent to reduce connection drops.
-- **Extended Timeouts**: Increased the default timeout limit to handle larger files and slower network conditions, resolving the "120000ms exceeded" errors.
-
-### 🐛 Internal Fixes
-- **Codebase Stability**: Resolved TypeScript errors in chart components for smoother development builds.
+### 🚀 Upload Reliability v2
+Further hardening of the upload process to combat 523/502 errors from dps.report:
+- **Smarter Retries**: Now alternates between main and backup servers on *every* retry attempt.
+- **Browser Mimicry**: Requests now look more like a standard browser to bypass aggressive Cloudflare filters.
+- **Better Diagnostics**: The new terminal shows exact status codes and file sizes to help debug issues.
