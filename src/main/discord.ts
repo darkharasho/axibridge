@@ -238,14 +238,34 @@ export class DiscordNotifier {
                     // --- Top Lists Helper ---
                     const addTopList = (title: string, sortFn: (a: any, b: any) => number, valFn: (p: any) => any, fmtVal: (v: any) => string) => {
                         const top = [...players].sort(sortFn).slice(0, 10);
+
+                        // Calculate the maximum value width for this specific list
+                        let maxValueWidth = 0;
+                        const formattedValues: string[] = [];
+                        top.forEach(p => {
+                            const val = valFn(p);
+                            const formatted = fmtVal(val);
+                            formattedValues.push(formatted);
+                            maxValueWidth = Math.max(maxValueWidth, formatted.length);
+                        });
+
+                        // Discord embed inline field max width is ~25 chars in monospace
+                        // Format: "RR NAME... VALUE" where RR=rank (2 chars + 1 space)
+                        const MAX_LINE_WIDTH = 26
+                        const RANK_WIDTH = 3; // "10 " = 3 chars
+                        const MIN_SEPARATOR = 1; // At least 1 space between name and value
+                        const availableWidth = MAX_LINE_WIDTH - RANK_WIDTH - MIN_SEPARATOR;
+                        const nameWidth = availableWidth - maxValueWidth;
+
                         let str = "";
                         top.forEach((p, i) => {
                             const val = valFn(p);
                             if (val > 0 || (typeof val === 'string' && val !== '0' && val !== '')) {
                                 const rank = (i + 1).toString().padEnd(2);
-                                const name = (p.name || p.character_name || p.account || 'Unknown').substring(0, 12).padEnd(13);
-                                const vStr = fmtVal(val).padStart(7);
-                                str += `${rank} ${name}${vStr}\n`;
+                                const fullName = p.name || p.character_name || p.account || 'Unknown';
+                                const name = fullName.substring(0, nameWidth).padEnd(nameWidth);
+                                const vStr = formattedValues[i].padStart(maxValueWidth);
+                                str += `${rank} ${name} ${vStr}\n`;
                             }
                         });
                         if (!str) str = "No Data\n";
