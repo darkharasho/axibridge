@@ -143,11 +143,18 @@ function createWindow() {
         store.set('windowBounds', { width, height });
     });
 
-    // Handle close event to hide instead of close
+    // Handle close event based on user preference
     win.on('close', (event) => {
         if (!isQuitting) {
-            event.preventDefault();
-            win?.hide();
+            const closeBehavior = store.get('closeBehavior', 'minimize');
+            if (closeBehavior === 'minimize') {
+                event.preventDefault();
+                win?.hide();
+            } else {
+                // closeBehavior === 'quit', fully quit the application
+                isQuitting = true;
+                app.quit();
+            }
         }
     });
 
@@ -159,6 +166,12 @@ function createWindow() {
     const webhookUrl = store.get('discordWebhookUrl');
     if (webhookUrl && typeof webhookUrl === 'string') {
         discord.setWebhookUrl(webhookUrl);
+    }
+
+    // Initialize dps.report token
+    const dpsReportToken = store.get('dpsReportToken');
+    if (dpsReportToken && typeof dpsReportToken === 'string') {
+        uploader.setUserToken(dpsReportToken);
     }
 
     watcher.on('log-detected', async (filePath: string) => {
@@ -384,7 +397,9 @@ if (!gotTheLock) {
                 discordWebhookUrl: store.get('discordWebhookUrl', null),
                 discordNotificationType: store.get('discordNotificationType', 'image'),
                 webhooks: store.get('webhooks', []),
-                selectedWebhookId: store.get('selectedWebhookId', null)
+                selectedWebhookId: store.get('selectedWebhookId', null),
+                dpsReportToken: store.get('dpsReportToken', null),
+                closeBehavior: store.get('closeBehavior', 'minimize')
             };
         });
 
@@ -396,7 +411,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'embed', webhooks?: any[], selectedWebhookId?: string | null }) => {
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit' }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -420,6 +435,13 @@ if (!gotTheLock) {
                     store.set('discordWebhookUrl', selected.url);
                     discord?.setWebhookUrl(selected.url);
                 }
+            }
+            if (settings.dpsReportToken !== undefined) {
+                store.set('dpsReportToken', settings.dpsReportToken);
+                uploader?.setUserToken(settings.dpsReportToken);
+            }
+            if (settings.closeBehavior !== undefined) {
+                store.set('closeBehavior', settings.closeBehavior);
             }
         });
 

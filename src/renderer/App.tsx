@@ -4,6 +4,7 @@ import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as
 import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { StatsView } from './StatsView';
+import { SettingsView } from './SettingsView';
 import { WebhookModal, Webhook } from './WebhookModal';
 import { UpdateErrorModal } from './UpdateErrorModal';
 import { Terminal } from './Terminal';
@@ -30,7 +31,7 @@ function App() {
     const [showTerminal, setShowTerminal] = useState(false);
 
     // View State
-    const [view, setView] = useState<'dashboard' | 'stats'>('dashboard');
+    const [view, setView] = useState<'dashboard' | 'stats' | 'settings'>('dashboard');
 
     // App Version
     const [appVersion, setAppVersion] = useState<string>('...');
@@ -299,6 +300,13 @@ function App() {
                             <Trophy className="w-5 h-5" />
                         </button>
                         <button
+                            onClick={() => setView('settings')}
+                            className={`p-2 rounded-xl transition-all ${view === 'settings' ? 'bg-purple-500/20 text-purple-500 border border-purple-500/30' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
+                            title="Settings"
+                        >
+                            <Settings className="w-5 h-5" />
+                        </button>
+                        <button
                             onClick={() => setShowTerminal(!showTerminal)}
                             className={`p-2 rounded-xl transition-all ${showTerminal ? 'bg-gray-700/50 text-white border-gray-600' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
                             title="Toggle Terminal"
@@ -310,6 +318,8 @@ function App() {
 
                 {view === 'stats' ? (
                     <StatsView logs={logs} onBack={() => setView('dashboard')} />
+                ) : view === 'settings' ? (
+                    <SettingsView onBack={() => setView('dashboard')} />
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-hidden">
                         <div className="space-y-6 overflow-y-auto pr-2">

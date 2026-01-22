@@ -20,6 +20,13 @@ export class Uploader {
     private httpsAgent = new https.Agent({ keepAlive: false });
     private uploadQueue: { filePath: string; resolve: (value: UploadResult) => void }[] = [];
     private isUploading = false;
+    private userToken: string | null = null;
+
+    // Set user token for authenticated uploads
+    public setUserToken(token: string | null) {
+        this.userToken = token;
+        console.log(`[Uploader] User token ${token ? 'set' : 'cleared'}`);
+    }
 
     // Direct public method returns a promise that resolves when THIS specific file is done
     public upload(filePath: string): Promise<UploadResult> {
@@ -85,6 +92,12 @@ export class Uploader {
                 formData.append('json', '1');
                 formData.append('generator', 'ei');
                 formData.append('detailedwvw', 'true');
+
+                // Include user token if available
+                if (this.userToken) {
+                    formData.append('userToken', this.userToken);
+                }
+
                 formData.append('file', fs.createReadStream(filePath));
 
                 // Alternate between main and backup URL on every retry

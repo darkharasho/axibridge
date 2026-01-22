@@ -18,6 +18,8 @@ export interface IElectronAPI {
         discordNotificationType: 'image' | 'embed';
         webhooks: IWebhook[];
         selectedWebhookId: string | null;
+        dpsReportToken: string | null;
+        closeBehavior: 'minimize' | 'quit';
     }>;
     manualUpload: (path: string) => void;
     manualUploadBatch: (paths: string[]) => void;
@@ -27,6 +29,8 @@ export interface IElectronAPI {
         discordNotificationType?: 'image' | 'embed';
         webhooks?: IWebhook[];
         selectedWebhookId?: string | null;
+        dpsReportToken?: string | null;
+        closeBehavior?: 'minimize' | 'quit';
     }) => void;
     onRequestScreenshot: (callback: (data: any) => void) => () => void;
     openExternal: (url: string) => Promise<{ success: boolean, error?: string }>;
