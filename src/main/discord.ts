@@ -243,8 +243,8 @@ export class DiscordNotifier {
                             const val = valFn(p);
                             if (val > 0 || (typeof val === 'string' && val !== '0' && val !== '')) {
                                 const rank = (i + 1).toString().padEnd(2);
-                                const name = (p.name || p.character_name || p.account || 'Unknown').substring(0, 14).padEnd(15);
-                                const vStr = fmtVal(val).padStart(8);
+                                const name = (p.name || p.character_name || p.account || 'Unknown').substring(0, 12).padEnd(13);
+                                const vStr = fmtVal(val).padStart(7);
                                 str += `${rank} ${name}${vStr}\n`;
                             }
                         });
