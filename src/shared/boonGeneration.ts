@@ -159,11 +159,15 @@ export const formatBoonMetricDisplay = (
     metric: BoonMetric,
 ) => {
     const value = getBoonMetricValue(row, category, stacking, metric);
+    const formatted = value.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 
     if (metric === 'uptime' && !stacking) {
-        return `${value.toFixed(2)}%`;
+        return `${formatted}%`;
     }
-    return value.toFixed(2);
+    return formatted;
 };
 
 export const buildBoonTables = (logs: Array<{ details?: any }>) => {

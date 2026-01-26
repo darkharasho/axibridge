@@ -48,6 +48,35 @@ const OFFENSE_METRICS: Array<{
     { id: 'appliedCrowdControlDurationDownContribution', label: 'Applied CC Duration Down Contribution', field: 'appliedCrowdControlDurationDownContribution', source: 'statsTargets' }
 ];
 
+const DEFENSE_METRICS: Array<{
+    id: string;
+    label: string;
+    field: string;
+    isTimeMs?: boolean;
+}> = [
+    { id: 'damageTaken', label: 'Damage Taken', field: 'damageTaken' },
+    { id: 'damageTakenCount', label: 'Damage Taken Count', field: 'damageTakenCount' },
+    { id: 'conditionDamageTaken', label: 'Condition Damage Taken', field: 'conditionDamageTaken' },
+    { id: 'conditionDamageTakenCount', label: 'Condition Damage Taken Count', field: 'conditionDamageTakenCount' },
+    { id: 'powerDamageTaken', label: 'Power Damage Taken', field: 'powerDamageTaken' },
+    { id: 'powerDamageTakenCount', label: 'Power Damage Taken Count', field: 'powerDamageTakenCount' },
+    { id: 'downedDamageTaken', label: 'Downed Damage Taken', field: 'downedDamageTaken' },
+    { id: 'downedDamageTakenCount', label: 'Downed Damage Taken Count', field: 'downedDamageTakenCount' },
+    { id: 'damageBarrier', label: 'Damage Barrier', field: 'damageBarrier' },
+    { id: 'damageBarrierCount', label: 'Damage Barrier Count', field: 'damageBarrierCount' },
+    { id: 'blockedCount', label: 'Blocked Count', field: 'blockedCount' },
+    { id: 'evadedCount', label: 'Evaded Count', field: 'evadedCount' },
+    { id: 'missedCount', label: 'Missed Count', field: 'missedCount' },
+    { id: 'dodgeCount', label: 'Dodge Count', field: 'dodgeCount' },
+    { id: 'invulnedCount', label: 'Invulnerable Count', field: 'invulnedCount' },
+    { id: 'interruptedCount', label: 'Interrupted Count', field: 'interruptedCount' },
+    { id: 'downCount', label: 'Down Count', field: 'downCount' },
+    { id: 'deadCount', label: 'Death Count', field: 'deadCount' },
+    { id: 'boonStrips', label: 'Boon Strips (Incoming)', field: 'boonStrips' },
+    { id: 'conditionCleanses', label: 'Cleanses (Incoming)', field: 'conditionCleanses' },
+    { id: 'receivedCrowdControl', label: 'Crowd Control (Incoming)', field: 'receivedCrowdControl' }
+];
+
 export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
     const [sharing, setSharing] = useState(false);
     const [expandedLeader, setExpandedLeader] = useState<string | null>(null);
@@ -57,7 +86,18 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
     const [boonSearch, setBoonSearch] = useState('');
     const [activeSpecialTab, setActiveSpecialTab] = useState<string | null>(null);
     const [specialSearch, setSpecialSearch] = useState('');
+    const [offenseSearch, setOffenseSearch] = useState('');
+    const [defenseSearch, setDefenseSearch] = useState('');
     const [activeOffenseStat, setActiveOffenseStat] = useState<string>('damage');
+    const [activeDefenseStat, setActiveDefenseStat] = useState<string>('damageTaken');
+    const [offenseViewMode, setOffenseViewMode] = useState<'total' | 'per1s' | 'per60s'>('total');
+    const [defenseViewMode, setDefenseViewMode] = useState<'total' | 'per1s' | 'per60s'>('total');
+
+    const formatWithCommas = (value: number, decimals = 2) =>
+        value.toLocaleString(undefined, {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
 
     const stats = useMemo(() => {
         const validLogs = logs.filter(l => (l.status === 'success' || l.status === 'discord') && l.details);
@@ -87,6 +127,8 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
             totalFightMs: number;
             offenseTotals: Record<string, number>;
             offenseRateWeights: Record<string, number>;
+            defenseActiveMs: number;
+            defenseTotals: Record<string, number>;
             profession: string;
             damage: number;
             dps: number;
@@ -206,6 +248,8 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                         totalFightMs: 0,
                         offenseTotals: {},
                         offenseRateWeights: {},
+                        defenseActiveMs: 0,
+                        defenseTotals: {},
                         profession: p.profession || 'Unknown',
                         damage: 0,
                         dps: 0,
@@ -269,6 +313,19 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
 
                 if (details.durationMS) {
                     s.totalFightMs += details.durationMS;
+                }
+                const activeMs = Array.isArray(p.activeTimes) && typeof p.activeTimes[0] === 'number'
+                    ? p.activeTimes[0]
+                    : details.durationMS || 0;
+                s.defenseActiveMs += activeMs;
+
+                if (p.defenses && p.defenses.length > 0) {
+                    const defenses = p.defenses[0] as any;
+                    DEFENSE_METRICS.forEach((metric) => {
+                        const value = Number(defenses[metric.field] ?? 0);
+                        if (!Number.isFinite(value)) return;
+                        s.defenseTotals[metric.id] = (s.defenseTotals[metric.id] || 0) + value;
+                    });
                 }
 
                 const statsTargetsList = Array.isArray(p.statsTargets) ? p.statsTargets : [];
@@ -448,6 +505,12 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
             offenseRateWeights: stat.offenseRateWeights,
             downs: stat.downs,
             downContribution: stat.offenseTotals?.downContribution || 0
+        }));
+        const defensePlayers = playerEntries.map(({ stat }) => ({
+            account: stat.account,
+            profession: stat.profession || 'Unknown',
+            activeMs: stat.defenseActiveMs || 0,
+            defenseTotals: stat.defenseTotals
         }));
 
         playerEntries.forEach(({ stat }) => {
@@ -1006,6 +1069,7 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
             boonTables,
             specialTables,
             offensePlayers,
+            defensePlayers,
 
             maxDodges,
             mvp,
@@ -1759,7 +1823,7 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                 {filteredBoonTables.length === 0 ? (
                                     <div className="text-center text-gray-500 italic py-8">No boons match this filter</div>
                                 ) : (
-                                    <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4">
+                                    <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
                                         <div className="bg-black/20 border border-white/5 rounded-xl p-3">
                                             <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Boons</div>
                                             <input
@@ -1793,7 +1857,7 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                                                 {`${activeBoonCategory.replace('Buffs', '')} • ${activeBoonMetric === 'total' ? 'Total Gen' : activeBoonMetric === 'average' ? 'Gen/Sec' : 'Uptime'}`}
                                                             </div>
                                                         </div>
-                                                        <div className="grid grid-cols-[1.5fr_1fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                                        <div className="grid grid-cols-[1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                             <div>Player</div>
                                                             <div className="text-right">
                                                                 {activeBoonMetric === 'total'
@@ -1802,6 +1866,7 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                                                         ? 'Gen/Sec'
                                                                         : 'Uptime'}
                                                             </div>
+                                                            <div className="text-right">Fight Time</div>
                                                         </div>
                                                         <div className="max-h-64 overflow-y-auto">
                                                             {[...boon.rows]
@@ -1810,7 +1875,7 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                                                     - getBoonMetricValue(a, activeBoonCategory, boon.stacking, activeBoonMetric)
                                                                 ))
                                                                 .map((row: any, idx: number) => (
-                                                                <div key={`${boon.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                                <div key={`${boon.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
                                                                     <div className="flex items-center gap-2 min-w-0">
                                                                         {getProfessionIconPath(row.profession) && (
                                                                             <img
@@ -1821,12 +1886,15 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                                                         )}
                                                                         <span className="truncate">{row.account}</span>
                                                                     </div>
-                                                                    <div className="text-right font-mono text-gray-300">
-                                                                        {formatBoonMetricDisplay(row, activeBoonCategory, boon.stacking, activeBoonMetric)}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
+                                                        <div className="text-right font-mono text-gray-300">
+                                                            {formatBoonMetricDisplay(row, activeBoonCategory, boon.stacking, activeBoonMetric)}
                                                         </div>
+                                                        <div className="text-right font-mono text-gray-400">
+                                                            {row.activeTimeMs ? `${(row.activeTimeMs / 1000).toFixed(1)}s` : '-'}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                                     </div>
                                                 ) : null
                                             ))}
@@ -1850,8 +1918,16 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
                             <div className="bg-black/20 border border-white/5 rounded-xl p-3">
                                 <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Offensive Tabs</div>
+                                <input
+                                    value={offenseSearch}
+                                    onChange={(e) => setOffenseSearch(e.target.value)}
+                                    placeholder="Search..."
+                                    className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                                />
                                 <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
-                                    {OFFENSE_METRICS.map((metric) => (
+                                    {OFFENSE_METRICS.filter((metric) =>
+                                        metric.label.toLowerCase().includes(offenseSearch.trim().toLowerCase())
+                                    ).map((metric) => (
                                         <button
                                             key={metric.id}
                                             onClick={() => setActiveOffenseStat(metric.id)}
@@ -1882,7 +1958,10 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                         }
                                         return row.offenseTotals?.[metric.id] || 0;
                                     };
-                                    const formatValue = (val: number) => metric.isPercent ? `${val.toFixed(2)}%` : val.toLocaleString();
+                                    const formatValue = (val: number) => {
+                                        const formatted = formatWithCommas(val, 2);
+                                        return metric.isPercent ? `${formatted}%` : formatted;
+                                    };
                                     const rows = [...stats.offensePlayers]
                                         .map((row: any) => ({
                                             ...row,
@@ -1898,15 +1977,34 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                                 <div className="text-sm font-semibold text-gray-200">{metric.label}</div>
                                                 <div className="text-xs uppercase tracking-widest text-gray-500">Offensive</div>
                                             </div>
-                                            <div className="grid grid-cols-[1.5fr_0.9fr_0.9fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                            <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
+                                                {([
+                                                    { value: 'total', label: 'Total' },
+                                                    { value: 'per1s', label: 'Stat/1s' },
+                                                    { value: 'per60s', label: 'Stat/60s' }
+                                                ] as const).map((option) => (
+                                                    <button
+                                                        key={option.value}
+                                                        onClick={() => setOffenseViewMode(option.value)}
+                                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${offenseViewMode === option.value
+                                                            ? 'bg-rose-500/20 text-rose-200 border-rose-500/40'
+                                                            : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                            }`}
+                                                    >
+                                                        {option.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="grid grid-cols-[1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                 <div>Player</div>
-                                                <div className="text-right">Total</div>
-                                                <div className="text-right">Stat/1s</div>
-                                                <div className="text-right">Stat/60s</div>
+                                                <div className="text-right">
+                                                    {offenseViewMode === 'total' ? 'Total' : offenseViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
+                                                </div>
+                                                <div className="text-right">Fight Time</div>
                                             </div>
                                             <div className="max-h-80 overflow-y-auto">
                                                 {rows.map((row: any, idx: number) => (
-                                                    <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_0.9fr_0.9fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                    <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
                                                         <div className="flex items-center gap-2 min-w-0">
                                                             {getProfessionIconPath(row.profession) && (
                                                                 <img
@@ -1918,13 +2016,133 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                                             <span className="truncate">{row.account}</span>
                                                         </div>
                                                         <div className="text-right font-mono text-gray-300">
-                                                            {formatValue(row.total)}
+                                                            {(() => {
+                                                                const value = offenseViewMode === 'total'
+                                                                    ? row.total
+                                                                    : offenseViewMode === 'per1s'
+                                                                        ? row.per1s
+                                                                        : row.per60s;
+                                                                return formatValue(value);
+                                                            })()}
+                                                        </div>
+                                                        <div className="text-right font-mono text-gray-400">
+                                                            {row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '-'}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Defenses - Detailed Table */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude">
+                    <h3 className="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
+                        <Shield className="w-5 h-5 text-sky-300" />
+                        Defenses - Detailed
+                    </h3>
+                    {stats.defensePlayers.length === 0 ? (
+                        <div className="text-center text-gray-500 italic py-8">No defensive stats available</div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
+                            <div className="bg-black/20 border border-white/5 rounded-xl p-3">
+                                <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Defensive Tabs</div>
+                                <input
+                                    value={defenseSearch}
+                                    onChange={(e) => setDefenseSearch(e.target.value)}
+                                    placeholder="Search..."
+                                    className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                                />
+                                <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
+                                    {DEFENSE_METRICS.filter((metric) =>
+                                        metric.label.toLowerCase().includes(defenseSearch.trim().toLowerCase())
+                                    ).map((metric) => (
+                                        <button
+                                            key={metric.id}
+                                            onClick={() => setActiveDefenseStat(metric.id)}
+                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeDefenseStat === metric.id
+                                                ? 'bg-sky-500/20 text-sky-200 border-sky-500/40'
+                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                }`}
+                                        >
+                                            {metric.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                                {(() => {
+                                    const metric = DEFENSE_METRICS.find((entry) => entry.id === activeDefenseStat) || DEFENSE_METRICS[0];
+                                    const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
+                                    const rows = [...stats.defensePlayers]
+                                        .map((row: any) => ({
+                                            ...row,
+                                            total: row.defenseTotals?.[metric.id] || 0,
+                                            per1s: (row.defenseTotals?.[metric.id] || 0) / totalSeconds(row),
+                                            per60s: ((row.defenseTotals?.[metric.id] || 0) * 60) / totalSeconds(row)
+                                        }))
+                                        .sort((a, b) => b.total - a.total || a.account.localeCompare(b.account));
+
+                                    return (
+                                        <>
+                                            <div className="flex items-center justify-between px-4 py-3 bg-white/5">
+                                                <div className="text-sm font-semibold text-gray-200">{metric.label}</div>
+                                                <div className="text-xs uppercase tracking-widest text-gray-500">Defensive</div>
+                                            </div>
+                                            <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
+                                                {([
+                                                    { value: 'total', label: 'Total' },
+                                                    { value: 'per1s', label: 'Stat/1s' },
+                                                    { value: 'per60s', label: 'Stat/60s' }
+                                                ] as const).map((option) => (
+                                                    <button
+                                                        key={option.value}
+                                                        onClick={() => setDefenseViewMode(option.value)}
+                                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${defenseViewMode === option.value
+                                                            ? 'bg-sky-500/20 text-sky-200 border-sky-500/40'
+                                                            : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                            }`}
+                                                    >
+                                                        {option.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="grid grid-cols-[1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                                <div>Player</div>
+                                                <div className="text-right">
+                                                    {defenseViewMode === 'total' ? 'Total' : defenseViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
+                                                </div>
+                                                <div className="text-right">Fight Time</div>
+                                            </div>
+                                            <div className="max-h-80 overflow-y-auto">
+                                                {rows.map((row: any, idx: number) => (
+                                                    <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            {getProfessionIconPath(row.profession) && (
+                                                                <img
+                                                                    src={getProfessionIconPath(row.profession) as string}
+                                                                    alt={row.profession}
+                                                                    className="w-4 h-4 shrink-0"
+                                                                />
+                                                            )}
+                                                            <span className="truncate">{row.account}</span>
                                                         </div>
                                                         <div className="text-right font-mono text-gray-300">
-                                                            {metric.isPercent ? formatValue(row.per1s) : row.per1s.toFixed(2)}
+                                                            {(() => {
+                                                                const value = defenseViewMode === 'total'
+                                                                    ? row.total
+                                                                    : defenseViewMode === 'per1s'
+                                                                        ? row.per1s
+                                                                        : row.per60s;
+                                                                return formatWithCommas(value, 2);
+                                                            })()}
                                                         </div>
-                                                        <div className="text-right font-mono text-gray-300">
-                                                            {metric.isPercent ? formatValue(row.per60s) : row.per60s.toFixed(2)}
+                                                        <div className="text-right font-mono text-gray-400">
+                                                            {row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}
                                                         </div>
                                                     </div>
                                                 ))}
@@ -1950,7 +2168,7 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                             {filteredSpecialTables.length === 0 ? (
                                 <div className="text-center text-gray-500 italic py-8">No special buffs match this filter</div>
                             ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4">
+                                <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
                                     <div className="bg-black/20 border border-white/5 rounded-xl p-3">
                                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Special Buffs</div>
                                         <input
@@ -1982,14 +2200,15 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                                         <div className="text-sm font-semibold text-gray-200">{buff.name}</div>
                                                         <div className="text-xs uppercase tracking-widest text-gray-500">Totals</div>
                                                     </div>
-                                                    <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                                    <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                         <div>Player</div>
                                                         <div className="text-right">Total</div>
                                                         <div className="text-right">Per Sec</div>
+                                                        <div className="text-right">Fight Time</div>
                                                     </div>
                                                     <div className="max-h-64 overflow-y-auto">
                                                         {buff.rows.map((row: any, idx: number) => (
-                                                            <div key={`${buff.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                            <div key={`${buff.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                     {getProfessionIconPath(row.profession) && (
                                                                         <img
@@ -2004,7 +2223,10 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                                                     {Math.round(row.total).toLocaleString()}
                                                                 </div>
                                                                 <div className="text-right font-mono text-gray-300">
-                                                                    {row.perSecond.toFixed(1)}
+                                                                    {formatWithCommas(row.perSecond, 1)}
+                                                                </div>
+                                                                <div className="text-right font-mono text-gray-400">
+                                                                    {row.duration ? `${row.duration.toFixed(1)}s` : '-'}
                                                                 </div>
                                                             </div>
                                                         ))}
