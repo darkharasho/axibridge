@@ -14,6 +14,40 @@ interface StatsViewProps {
     mvpWeights?: IMvpWeights;
 }
 
+const OFFENSE_METRICS: Array<{
+    id: string;
+    label: string;
+    field?: string;
+    isRate?: boolean;
+    isPercent?: boolean;
+    weightField?: string;
+    denomField?: string;
+    source?: 'statsTargets' | 'dpsTargets' | 'statsAll';
+}> = [
+    { id: 'damage', label: 'Damage', field: 'totalDmg', source: 'statsTargets' },
+    { id: 'directDmg', label: 'Direct Damage', field: 'directDmg', source: 'statsTargets' },
+    { id: 'connectedDamageCount', label: 'Connected Damage Count', field: 'connectedDamageCount', source: 'statsTargets' },
+    { id: 'connectedDirectDamageCount', label: 'Connected Direct Damage Count', field: 'connectedDirectDamageCount', source: 'statsTargets' },
+    { id: 'criticalRate', label: 'Critical Rate', field: 'criticalRate', isRate: true, isPercent: true, denomField: 'critableDirectDamageCount', source: 'statsTargets' },
+    { id: 'criticalDmg', label: 'Critical Damage', field: 'criticalDmg', source: 'statsTargets' },
+    { id: 'flankingRate', label: 'Flanking Rate', field: 'flankingRate', isRate: true, isPercent: true, denomField: 'connectedDirectDamageCount', source: 'statsTargets' },
+    { id: 'glanceRate', label: 'Glance Rate', field: 'glanceRate', isRate: true, isPercent: true, denomField: 'connectedDirectDamageCount', source: 'statsTargets' },
+    { id: 'missed', label: 'Missed', field: 'missed', source: 'statsTargets' },
+    { id: 'evaded', label: 'Evaded (enemy)', field: 'evaded', source: 'statsTargets' },
+    { id: 'blocked', label: 'Blocked (enemy)', field: 'blocked', source: 'statsTargets' },
+    { id: 'interrupts', label: 'Interrupts', field: 'interrupts', source: 'statsTargets' },
+    { id: 'invulned', label: 'Invulned', field: 'invulned', source: 'statsTargets' },
+    { id: 'killed', label: 'Killed', field: 'killed', source: 'statsTargets' },
+    { id: 'downed', label: 'Downed', field: 'downed', source: 'statsTargets' },
+    { id: 'downContribution', label: 'Down Contribution', field: 'downContribution', source: 'statsTargets' },
+    { id: 'downContributionPercent', label: 'Down Contribution %', isRate: true, isPercent: true },
+    { id: 'againstDownedDamage', label: 'Against Downed Damage', field: 'againstDownedDamage', source: 'statsTargets' },
+    { id: 'appliedCrowdControl', label: 'Applied CC', field: 'appliedCrowdControl', source: 'statsTargets' },
+    { id: 'appliedCrowdControlDuration', label: 'Applied CC Duration', field: 'appliedCrowdControlDuration', source: 'statsTargets' },
+    { id: 'appliedCrowdControlDownContribution', label: 'Applied CC Down Contribution', field: 'appliedCrowdControlDownContribution', source: 'statsTargets' },
+    { id: 'appliedCrowdControlDurationDownContribution', label: 'Applied CC Duration Down Contribution', field: 'appliedCrowdControlDurationDownContribution', source: 'statsTargets' }
+];
+
 export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
     const [sharing, setSharing] = useState(false);
     const [expandedLeader, setExpandedLeader] = useState<string | null>(null);
@@ -23,6 +57,7 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
     const [boonSearch, setBoonSearch] = useState('');
     const [activeSpecialTab, setActiveSpecialTab] = useState<string | null>(null);
     const [specialSearch, setSpecialSearch] = useState('');
+    const [activeOffenseStat, setActiveOffenseStat] = useState<string>('damage');
 
     const stats = useMemo(() => {
         const validLogs = logs.filter(l => (l.status === 'success' || l.status === 'discord') && l.details);
@@ -47,6 +82,11 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
             totalDist: number;
             distCount: number;
             dodges: number;
+            downs: number;
+            deaths: number;
+            totalFightMs: number;
+            offenseTotals: Record<string, number>;
+            offenseRateWeights: Record<string, number>;
             profession: string;
             damage: number;
             dps: number;
@@ -161,6 +201,11 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                         totalDist: 0,
                         distCount: 0,
                         dodges: 0,
+                        downs: 0,
+                        deaths: 0,
+                        totalFightMs: 0,
+                        offenseTotals: {},
+                        offenseRateWeights: {},
                         profession: p.profession || 'Unknown',
                         damage: 0,
                         dps: 0,
@@ -218,7 +263,91 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                 // Dodges
                 if (p.defenses && p.defenses.length > 0) {
                     s.dodges += p.defenses[0].dodgeCount || 0;
+                    s.downs += p.defenses[0].downCount || 0;
+                    s.deaths += p.defenses[0].deadCount || 0;
                 }
+
+                if (details.durationMS) {
+                    s.totalFightMs += details.durationMS;
+                }
+
+                const statsTargetsList = Array.isArray(p.statsTargets) ? p.statsTargets : [];
+                const dpsTargetsList = Array.isArray(p.dpsTargets) ? p.dpsTargets : [];
+                const statsAll = (p.statsAll && p.statsAll.length > 0) ? (p.statsAll[0] as any) : null;
+
+                OFFENSE_METRICS.forEach((metric) => {
+                    if (metric.id === 'downContributionPercent') {
+                        return;
+                    }
+                    if (!metric.field) return;
+                    const source = metric.source || 'statsTargets';
+                    if (source === 'statsAll') {
+                        if (!statsAll) return;
+                        let value = Number(statsAll[metric.field] ?? 0);
+                        if (!Number.isFinite(value)) return;
+                        if (metric.isRate) {
+                            const denomField = metric.denomField || metric.weightField;
+                            const denom = Number(statsAll[denomField || 'connectedDamageCount'] ?? 0);
+                            if (denom > 0) {
+                                s.offenseTotals[metric.id] = (s.offenseTotals[metric.id] || 0) + value;
+                                s.offenseRateWeights[metric.id] = (s.offenseRateWeights[metric.id] || 0) + denom;
+                            }
+                            return;
+                        }
+                        s.offenseTotals[metric.id] = (s.offenseTotals[metric.id] || 0) + value;
+                        return;
+                    }
+                    if (source === 'dpsTargets') {
+                        if (dpsTargetsList.length === 0 && statsAll) {
+                            const fallbackValue = Number(statsAll[metric.field] ?? 0);
+                            if (Number.isFinite(fallbackValue)) {
+                                s.offenseTotals[metric.id] = (s.offenseTotals[metric.id] || 0) + fallbackValue;
+                            }
+                            return;
+                        }
+                        dpsTargetsList.forEach((targetEntry: any) => {
+                            const target = targetEntry?.[0];
+                            if (!target) return;
+                            const value = Number(target[metric.field] ?? 0);
+                            if (!Number.isFinite(value)) return;
+                            s.offenseTotals[metric.id] = (s.offenseTotals[metric.id] || 0) + value;
+                        });
+                        return;
+                    }
+
+                    if (statsTargetsList.length === 0 && statsAll) {
+                        let value = Number(statsAll[metric.field] ?? 0);
+                        if (!Number.isFinite(value)) return;
+                        if (metric.isRate) {
+                            const denomField = metric.denomField || metric.weightField;
+                            const denom = Number(statsAll[denomField || 'connectedDamageCount'] ?? 0);
+                            if (denom > 0) {
+                                s.offenseTotals[metric.id] = (s.offenseTotals[metric.id] || 0) + value;
+                                s.offenseRateWeights[metric.id] = (s.offenseRateWeights[metric.id] || 0) + denom;
+                            }
+                            return;
+                        }
+                        s.offenseTotals[metric.id] = (s.offenseTotals[metric.id] || 0) + value;
+                        return;
+                    }
+
+                    statsTargetsList.forEach((targetEntry: any) => {
+                        const target = targetEntry?.[0];
+                        if (!target) return;
+                        let value = Number(target[metric.field] ?? 0);
+                        if (!Number.isFinite(value)) return;
+                        if (metric.isRate) {
+                            const denomField = metric.denomField || metric.weightField;
+                            const denom = Number(target[denomField || 'connectedDamageCount'] ?? 0);
+                            if (denom > 0) {
+                                s.offenseTotals[metric.id] = (s.offenseTotals[metric.id] || 0) + value;
+                                s.offenseRateWeights[metric.id] = (s.offenseRateWeights[metric.id] || 0) + denom;
+                            }
+                            return;
+                        }
+                        s.offenseTotals[metric.id] = (s.offenseTotals[metric.id] || 0) + value;
+                    });
+                });
 
                 s.revives += p.support?.[0]?.resurrects || 0;
 
@@ -311,6 +440,15 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
         let maxRevives = { ...emptyLeader };
 
         const playerEntries = Array.from(playerStats.entries()).map(([key, stat]) => ({ key, stat }));
+        const offensePlayers = playerEntries.map(({ stat }) => ({
+            account: stat.account,
+            profession: stat.profession || 'Unknown',
+            totalFightMs: stat.totalFightMs || 0,
+            offenseTotals: stat.offenseTotals,
+            offenseRateWeights: stat.offenseRateWeights,
+            downs: stat.downs,
+            downContribution: stat.offenseTotals?.downContribution || 0
+        }));
 
         playerEntries.forEach(({ stat }) => {
             const pInfo = { player: stat.account, count: stat.logsJoined, profession: stat.profession || 'Unknown' };
@@ -867,6 +1005,7 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
             timelineData,
             boonTables,
             specialTables,
+            offensePlayers,
 
             maxDodges,
             mvp,
@@ -1696,6 +1835,105 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                 )}
                             </div>
                         </>
+                    )}
+                </div>
+
+                {/* Offensive - Detailed Table */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude">
+                    <h3 className="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
+                        <Swords className="w-5 h-5 text-rose-300" />
+                        Offenses - Detailed
+                    </h3>
+                    {stats.offensePlayers.length === 0 ? (
+                        <div className="text-center text-gray-500 italic py-8">No offensive stats available</div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
+                            <div className="bg-black/20 border border-white/5 rounded-xl p-3">
+                                <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Offensive Tabs</div>
+                                <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
+                                    {OFFENSE_METRICS.map((metric) => (
+                                        <button
+                                            key={metric.id}
+                                            onClick={() => setActiveOffenseStat(metric.id)}
+                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeOffenseStat === metric.id
+                                                ? 'bg-rose-500/20 text-rose-200 border-rose-500/40'
+                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                }`}
+                                        >
+                                            {metric.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                                {(() => {
+                                    const metric = OFFENSE_METRICS.find((entry) => entry.id === activeOffenseStat) || OFFENSE_METRICS[0];
+                                    const totalSeconds = (row: any) => Math.max(1, (row.totalFightMs || 0) / 1000);
+                                    const totalValue = (row: any) => {
+                                        if (metric.id === 'downContributionPercent') {
+                                            const downContribution = row.offenseTotals?.downContribution || 0;
+                                            const totalDamage = row.offenseTotals?.damage || 0;
+                                            return totalDamage > 0 ? (downContribution / totalDamage) * 100 : 0;
+                                        }
+                                        if (metric.isRate) {
+                                            const denom = row.offenseRateWeights?.[metric.id] || 0;
+                                            const numer = row.offenseTotals?.[metric.id] || 0;
+                                            return denom > 0 ? (numer / denom) * 100 : 0;
+                                        }
+                                        return row.offenseTotals?.[metric.id] || 0;
+                                    };
+                                    const formatValue = (val: number) => metric.isPercent ? `${val.toFixed(2)}%` : val.toLocaleString();
+                                    const rows = [...stats.offensePlayers]
+                                        .map((row: any) => ({
+                                            ...row,
+                                            total: totalValue(row),
+                                            per1s: metric.isPercent || metric.isRate ? totalValue(row) : totalValue(row) / totalSeconds(row),
+                                            per60s: metric.isPercent || metric.isRate ? totalValue(row) : (totalValue(row) * 60) / totalSeconds(row)
+                                        }))
+                                        .sort((a, b) => b.total - a.total || a.account.localeCompare(b.account));
+
+                                    return (
+                                        <>
+                                            <div className="flex items-center justify-between px-4 py-3 bg-white/5">
+                                                <div className="text-sm font-semibold text-gray-200">{metric.label}</div>
+                                                <div className="text-xs uppercase tracking-widest text-gray-500">Offensive</div>
+                                            </div>
+                                            <div className="grid grid-cols-[1.5fr_0.9fr_0.9fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                                <div>Player</div>
+                                                <div className="text-right">Total</div>
+                                                <div className="text-right">Stat/1s</div>
+                                                <div className="text-right">Stat/60s</div>
+                                            </div>
+                                            <div className="max-h-80 overflow-y-auto">
+                                                {rows.map((row: any, idx: number) => (
+                                                    <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_0.9fr_0.9fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            {getProfessionIconPath(row.profession) && (
+                                                                <img
+                                                                    src={getProfessionIconPath(row.profession) as string}
+                                                                    alt={row.profession}
+                                                                    className="w-4 h-4 shrink-0"
+                                                                />
+                                                            )}
+                                                            <span className="truncate">{row.account}</span>
+                                                        </div>
+                                                        <div className="text-right font-mono text-gray-300">
+                                                            {formatValue(row.total)}
+                                                        </div>
+                                                        <div className="text-right font-mono text-gray-300">
+                                                            {metric.isPercent ? formatValue(row.per1s) : row.per1s.toFixed(2)}
+                                                        </div>
+                                                        <div className="text-right font-mono text-gray-300">
+                                                            {metric.isPercent ? formatValue(row.per60s) : row.per60s.toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </div>
                     )}
                 </div>
 
