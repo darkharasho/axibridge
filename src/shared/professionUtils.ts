@@ -191,11 +191,11 @@ export function getProfessionIconPath(profession: string): string | null {
     if (!profession) return null;
     const direct = PROFESSION_COLORS[profession] ? profession : null;
     if (direct && direct !== 'Unknown') {
-        return `/img/class-icons/${direct}.png`;
+        return `./img/class-icons/${direct}.png`;
     }
     const base = getProfessionBase(profession);
     if (base && base !== 'Unknown') {
-        return `/img/class-icons/${base}.png`;
+        return `./img/class-icons/${base}.png`;
     }
     return null;
 }

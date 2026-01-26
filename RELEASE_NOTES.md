@@ -1,3 +1,15 @@
+# Release Notes v1.4.2
+
+## 🛠 Improvements & Fixes
+
+### 🎨 Class Icons
+- Fixed class icon rendering in packaged builds for stats dashboard and image/tiled modes
+
+### 🧊 What’s New Modal
+- Now shows all release notes between your last seen version and the current update when jumping versions
+
+---
+
 # Release Notes v1.4.1
 
 ## 🛠 Improvements & Fixes

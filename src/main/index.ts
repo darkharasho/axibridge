@@ -74,9 +74,29 @@ const pendingDiscordLogs = new Map<string, { result: any, jsonDetails: any }>();
 
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
 
-const fetchGithubReleaseNotes = (version: string): Promise<string | null> => {
-    const tag = version.startsWith('v') ? version : `v${version}`;
-    const url = `https://api.github.com/repos/darkharasho/gw2_arc_log_uploader/releases/tags/${tag}`;
+const parseVersion = (value: string | null): number[] | null => {
+    if (!value) return null;
+    const cleaned = value.trim().replace(/^v/i, '');
+    const parts = cleaned.split('.').map((part) => Number.parseInt(part, 10));
+    if (parts.some((num) => Number.isNaN(num))) {
+        return null;
+    }
+    return [parts[0] || 0, parts[1] || 0, parts[2] || 0];
+};
+
+const compareVersion = (a: number[], b: number[]) => {
+    for (let i = 0; i < 3; i += 1) {
+        if (a[i] !== b[i]) return a[i] - b[i];
+    }
+    return 0;
+};
+
+const fetchGithubReleaseNotesRange = async (currentVersion: string, lastSeenVersion: string | null): Promise<string | null> => {
+    const current = parseVersion(currentVersion);
+    if (!current) return null;
+    const lastSeen = parseVersion(lastSeenVersion);
+    const url = 'https://api.github.com/repos/darkharasho/gw2_arc_log_uploader/releases?per_page=100';
+
     return new Promise((resolve) => {
         const req = https.get(
             url,
@@ -99,8 +119,43 @@ const fetchGithubReleaseNotes = (version: string): Promise<string | null> => {
                 });
                 res.on('end', () => {
                     try {
-                        const parsed = JSON.parse(data);
-                        resolve(parsed?.body || null);
+                        const releases = JSON.parse(data);
+                        if (!Array.isArray(releases)) {
+                            resolve(null);
+                            return;
+                        }
+                        const selected = releases
+                            .map((release) => {
+                                const tag = String(release?.tag_name || '');
+                                const version = parseVersion(tag);
+                                return {
+                                    tag,
+                                    version,
+                                    body: release?.body || ''
+                                };
+                            })
+                            .filter((release) => {
+                                if (!release.version) return false;
+                                if (compareVersion(release.version, current) > 0) return false;
+                                if (lastSeen && compareVersion(release.version, lastSeen) <= 0) return false;
+                                return true;
+                            })
+                            .sort((a, b) => compareVersion(a.version!, b.version!));
+
+                        if (selected.length === 0) {
+                            resolve(null);
+                            return;
+                        }
+
+                        const combined = selected
+                            .map((release) => {
+                                const header = `# Release Notes ${release.tag.startsWith('v') ? release.tag : `v${release.tag}`}`;
+                                const body = release.body?.trim() || '';
+                                return `${header}\n\n${body}`.trim();
+                            })
+                            .join('\n\n---\n\n');
+
+                        resolve(combined || null);
                     } catch (err) {
                         resolve(null);
                     }
@@ -444,7 +499,7 @@ if (!gotTheLock) {
             const version = app.getVersion();
             const lastSeenVersion = store.get('lastSeenVersion', null) as string | null;
             let releaseNotes: string | null = null;
-            releaseNotes = await fetchGithubReleaseNotes(version);
+            releaseNotes = await fetchGithubReleaseNotesRange(version, lastSeenVersion);
             if (!releaseNotes) {
                 const basePath = app.isPackaged ? process.resourcesPath : process.cwd();
                 const notesPath = path.join(basePath, 'RELEASE_NOTES.md');
