@@ -16,7 +16,7 @@ interface ExpandableLogCardProps {
         count?: number;
         showHeader?: boolean;
         tileKind?: 'summary' | 'incoming' | 'toplist';
-        tileId?: 'squad' | 'enemy' | 'incoming-attacks' | 'incoming-cc' | 'incoming-strips';
+        tileId?: 'squad' | 'enemy' | 'incoming-attacks' | 'incoming-cc' | 'incoming-strips' | 'incoming-blank';
         tileIndex?: number;
     };
 }

@@ -89,8 +89,9 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                                                 {children}
                                             </td>
                                         ),
-                                        code: ({ inline, children }) => (
-                                            inline ? (
+                                        code: (props: any) => {
+                                            const { inline, children } = props;
+                                            return inline ? (
                                                 <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
                                                     {children}
                                                 </code>
@@ -98,8 +99,8 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                                                 <code className="block whitespace-pre-wrap rounded-xl bg-black/40 p-4 text-xs text-blue-100">
                                                     {children}
                                                 </code>
-                                            )
-                                        )
+                                            );
+                                        }
                                     }}
                                 >
                                     {releaseNotes || 'Release notes unavailable.'}

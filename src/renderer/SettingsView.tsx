@@ -103,10 +103,6 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew 
         }, 500);
     };
 
-    const handleSave = async () => {
-        saveSettings();
-    };
-
     useEffect(() => {
         if (!hasLoaded) return;
         const timeout = setTimeout(() => {
