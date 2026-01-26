@@ -146,8 +146,8 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
                 // Down Contribution
                 s.downContrib += calculateDownContribution(p);
 
-                // Support: Cleanses and Strips
-                s.cleanses += p.support?.[0]?.condiCleanse || 0;
+                // Support: Cleanses and Strips (PlenBot uses condiCleanse + condiCleanseSelf)
+                s.cleanses += (p.support?.[0]?.condiCleanse || 0) + (p.support?.[0]?.condiCleanseSelf || 0);
                 s.strips += p.support?.[0]?.boonStrips || 0;
 
                 // PlenBot calcs

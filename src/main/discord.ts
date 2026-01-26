@@ -302,10 +302,10 @@ export class DiscordNotifier {
                     );
                     embedFields.push({ name: '\u200b', value: '\u200b', inline: false });
 
-                    // Line 5: Cleanses | Boon Strips
+                    // Line 5: Cleanses | Boon Strips (PlenBot uses condiCleanse + condiCleanseSelf)
                     addTopList("Cleanses",
-                        (a, b) => (b.support?.[0]?.condiCleanse || 0) - (a.support?.[0]?.condiCleanse || 0),
-                        p => p.support?.[0]?.condiCleanse || 0,
+                        (a, b) => ((b.support?.[0]?.condiCleanse || 0) + (b.support?.[0]?.condiCleanseSelf || 0)) - ((a.support?.[0]?.condiCleanse || 0) + (a.support?.[0]?.condiCleanseSelf || 0)),
+                        p => (p.support?.[0]?.condiCleanse || 0) + (p.support?.[0]?.condiCleanseSelf || 0),
                         v => v.toString()
                     );
                     addTopList("Boon Strips",

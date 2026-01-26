@@ -225,7 +225,7 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode }:
                         <TopList title="Down Contribution" sortFn={(a, b) => calculateDownContribution(b) - calculateDownContribution(a)} valFn={p => calculateDownContribution(p)} fmtVal={v => v.toLocaleString()} />
                         <TopList title="Healing" sortFn={(a, b) => calculateSquadHealing(b) - calculateSquadHealing(a)} valFn={p => calculateSquadHealing(p)} fmtVal={v => v.toLocaleString()} />
                         <TopList title="Barrier" sortFn={(a, b) => calculateSquadBarrier(b) - calculateSquadBarrier(a)} valFn={p => calculateSquadBarrier(p)} fmtVal={v => v.toLocaleString()} />
-                        <TopList title="Cleanses" sortFn={(a, b) => (b.support?.[0]?.condiCleanse || 0) - (a.support?.[0]?.condiCleanse || 0)} valFn={p => p.support?.[0]?.condiCleanse || 0} fmtVal={v => v.toString()} />
+                        <TopList title="Cleanses" sortFn={(a, b) => ((b.support?.[0]?.condiCleanse || 0) + (b.support?.[0]?.condiCleanseSelf || 0)) - ((a.support?.[0]?.condiCleanse || 0) + (a.support?.[0]?.condiCleanseSelf || 0))} valFn={p => (p.support?.[0]?.condiCleanse || 0) + (p.support?.[0]?.condiCleanseSelf || 0)} fmtVal={v => v.toString()} />
                         <TopList title="Strips" sortFn={(a, b) => (b.support?.[0]?.boonStrips || 0) - (a.support?.[0]?.boonStrips || 0)} valFn={p => p.support?.[0]?.boonStrips || 0} fmtVal={v => v.toString()} />
                         <TopList title="CC" sortFn={(a, b) => calculateOutCC(b) - calculateOutCC(a)} valFn={p => calculateOutCC(p)} fmtVal={v => v.toLocaleString()} />
                         <TopList title="Stability" sortFn={(a, b) => (b.stabGeneration || 0) - (a.stabGeneration || 0)} valFn={p => p.stabGeneration || 0} fmtVal={v => v.toLocaleString()} />
@@ -371,8 +371,8 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode }:
                                 />
                                 <TopList
                                     title="Cleanses"
-                                    sortFn={(a, b) => (b.support?.[0]?.condiCleanse || 0) - (a.support?.[0]?.condiCleanse || 0)}
-                                    valFn={p => p.support?.[0]?.condiCleanse || 0}
+                                    sortFn={(a, b) => ((b.support?.[0]?.condiCleanse || 0) + (b.support?.[0]?.condiCleanseSelf || 0)) - ((a.support?.[0]?.condiCleanse || 0) + (a.support?.[0]?.condiCleanseSelf || 0))}
+                                    valFn={p => (p.support?.[0]?.condiCleanse || 0) + (p.support?.[0]?.condiCleanseSelf || 0)}
                                     fmtVal={v => v.toString()}
                                 />
                                 <TopList
