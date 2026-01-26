@@ -61,6 +61,15 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
             if (!details) return;
             const players = details.players as unknown as Player[];
             const targets = details.targets || [];
+            const getDistanceToTag = (p: any) => {
+                const stats = p.statsAll?.[0];
+                const distToCom = stats?.distToCom;
+                if (distToCom !== undefined && distToCom !== null) {
+                    return distToCom;
+                }
+                const stackDist = stats?.stackDist;
+                return stackDist || 0;
+            };
 
             // Squad/Enemy Counts
             const squadCount = players.filter(p => !p.notInSquad).length;
@@ -159,8 +168,8 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
                 // Stack Distance (Distance to Tag)
                 // statsAll[0] contains the stackDist field in Elite Insights JSON
                 if (p.statsAll && p.statsAll.length > 0) {
-                    const dist = p.statsAll[0].stackDist;
-                    if (dist !== undefined && dist > 0) {
+                    const dist = getDistanceToTag(p);
+                    if (dist > 0) {
                         s.totalDist += dist;
                         s.distCount++;
                     }

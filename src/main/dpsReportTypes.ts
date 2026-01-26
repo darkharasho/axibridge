@@ -57,6 +57,8 @@ export interface StatsAll {
     damage: number;
     breakbarDamage: number;
     downContribution?: number; // Added back as optional
+    stackDist?: number;
+    distToCom?: number;
 }
 
 // Correct Defenses interface based on standard Elite Insights JSON
@@ -130,4 +132,3 @@ export interface Support {
     boonStrips: number;
     resurrects: number;
 }
-

@@ -3,14 +3,70 @@ import FormData from 'form-data';
 import { calculateAllStability, calculateDownContribution, calculateIncomingStats, calculateOutCC, calculateSquadBarrier, calculateSquadHealing } from '../shared/plenbot';
 import { Player } from '../shared/dpsReportTypes';
 
+// Embed stat settings interface
+export interface IEmbedStatSettings {
+    showSquadSummary: boolean;
+    showEnemySummary: boolean;
+    showIncomingStats: boolean;
+    showDamage: boolean;
+    showDownContribution: boolean;
+    showHealing: boolean;
+    showBarrier: boolean;
+    showCleanses: boolean;
+    showBoonStrips: boolean;
+    showCC: boolean;
+    showStability: boolean;
+    showResurrects: boolean;
+    showDistanceToTag: boolean;
+    showKills: boolean;
+    showDowns: boolean;
+    showBreakbarDamage: boolean;
+    showDamageTaken: boolean;
+    showDeaths: boolean;
+    showDodges: boolean;
+}
+
+// Default settings - all enabled except additional stats
+const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
+    showSquadSummary: true,
+    showEnemySummary: true,
+    showIncomingStats: true,
+    showDamage: true,
+    showDownContribution: true,
+    showHealing: true,
+    showBarrier: true,
+    showCleanses: true,
+    showBoonStrips: true,
+    showCC: true,
+    showStability: true,
+    showResurrects: false,
+    showDistanceToTag: false,
+    showKills: false,
+    showDowns: false,
+    showBreakbarDamage: false,
+    showDamageTaken: false,
+    showDeaths: false,
+    showDodges: false,
+};
+
+// Discord embed limits
+const DISCORD_EMBED_CHAR_LIMIT = 6000;
+const DISCORD_EMBED_FIELD_LIMIT = 25;
+const DISCORD_MAX_EMBEDS = 10;
+
 export class DiscordNotifier {
     private webhookUrl: string | null = null;
+    private embedStatSettings: IEmbedStatSettings = DEFAULT_EMBED_STATS;
 
     constructor() {
     }
 
     public setWebhookUrl(url: string | null) {
         this.webhookUrl = url;
+    }
+
+    public setEmbedStatSettings(settings: IEmbedStatSettings) {
+        this.embedStatSettings = { ...DEFAULT_EMBED_STATS, ...settings };
     }
 
     public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, mode?: 'image' | 'embed' }, jsonDetails?: any) {
@@ -27,7 +83,7 @@ export class DiscordNotifier {
                 // IMAGE MODE: Plain text with suppression + PNG attachment
                 const form = new FormData();
 
-                // User Request: 
+                // User Request:
                 // 1. Stats Share (id='stats-dashboard'): Image ONLY.
                 // 2. Individual Logs: Image + dps.report Link.
 
@@ -60,6 +116,7 @@ export class DiscordNotifier {
                 if (jsonDetails && (jsonDetails.evtc || jsonDetails.players)) {
                     console.log('[Discord] Building Complex Rich Embed...');
                     const players: Player[] = jsonDetails.players || [];
+                    const settings = this.embedStatSettings;
 
                     // Pre-calculate stability
                     calculateAllStability(players);
@@ -183,57 +240,70 @@ export class DiscordNotifier {
                     const squadPlayers = players.filter((p: any) => !p.notInSquad);
                     const nonSquadPlayers = players.filter((p: any) => p.notInSquad);
 
-                    const squadSummaryLines = [
-                        formatStatLine('Count:', nonSquadPlayers.length > 0 ? `${squadPlayers.length} (+${nonSquadPlayers.length})` : squadPlayers.length),
-                        formatStatLine('DMG:', fmtNum(squadDmg)),
-                        formatStatLine('DPS:', fmtNum(squadDps)),
-                        formatStatLine('Downs:', squadDowns),
-                        formatStatLine('Deaths:', squadDeaths)
-                    ].join('\n');
-
-                    const enemySummaryLines = [
-                        formatStatLine('Count:', enemyCount),
-                        formatStatLine('DMG:', fmtNum(totalDmgTaken)),
-                        formatStatLine('DPS:', fmtNum(totalIncomingDps)),
-                        formatStatLine('Downs:', enemyDowns),
-                        formatStatLine('Kills:', enemyDeaths)
-                    ].join('\n');
-
-                    embedFields.push({
-                        name: "Squad Summary:",
-                        value: `\`\`\`\n${squadSummaryLines}\n\`\`\``,
-                        inline: true
-                    });
-                    embedFields.push({
-                        name: "Enemy Summary:",
-                        value: `\`\`\`\n${enemySummaryLines}\n\`\`\``,
-                        inline: true
-                    });
-                    embedFields.push({ name: '\u200b', value: '\u200b', inline: false });
-
-                    // Line 2: Incoming Attacks | Incoming CC | Incoming Strips
-                    const formatIncoming = (val1: number, val2: number, total: number) => {
-                        return [
-                            `Miss/Blk:  ${(val1 + val2).toString().padStart(6)}`,
-                            `Total:     ${total.toString().padStart(6)}`
+                    // Squad Summary (conditionally shown)
+                    if (settings.showSquadSummary) {
+                        const squadSummaryLines = [
+                            formatStatLine('Count:', nonSquadPlayers.length > 0 ? `${squadPlayers.length} (+${nonSquadPlayers.length})` : squadPlayers.length),
+                            formatStatLine('DMG:', fmtNum(squadDmg)),
+                            formatStatLine('DPS:', fmtNum(squadDps)),
+                            formatStatLine('Downs:', squadDowns),
+                            formatStatLine('Deaths:', squadDeaths)
                         ].join('\n');
-                    };
 
-                    embedFields.push({
-                        name: "Incoming Attacks:",
-                        value: `\`\`\`\n${formatIncoming(totalMiss, totalBlock, totalMiss + totalBlock + totalEvade + totalDodge)}\n\`\`\``,
-                        inline: true
-                    });
-                    embedFields.push({
-                        name: "Incoming CC:",
-                        value: `\`\`\`\n${formatIncoming(totalCCMissed, totalCCBlocked, totalCCTaken)}\n\`\`\``,
-                        inline: true
-                    });
-                    embedFields.push({
-                        name: "Incoming Strips:",
-                        value: `\`\`\`\n${formatIncoming(totalStripsMissed, totalStripsBlocked, totalStripsTaken)}\n\`\`\``,
-                        inline: true
-                    });
+                        embedFields.push({
+                            name: "Squad Summary:",
+                            value: `\`\`\`\n${squadSummaryLines}\n\`\`\``,
+                            inline: true
+                        });
+                    }
+
+                    // Enemy Summary (conditionally shown)
+                    if (settings.showEnemySummary) {
+                        const enemySummaryLines = [
+                            formatStatLine('Count:', enemyCount),
+                            formatStatLine('DMG:', fmtNum(totalDmgTaken)),
+                            formatStatLine('DPS:', fmtNum(totalIncomingDps)),
+                            formatStatLine('Downs:', enemyDowns),
+                            formatStatLine('Kills:', enemyDeaths)
+                        ].join('\n');
+
+                        embedFields.push({
+                            name: "Enemy Summary:",
+                            value: `\`\`\`\n${enemySummaryLines}\n\`\`\``,
+                            inline: true
+                        });
+                    }
+
+                    // Add spacer if we showed summary sections
+                    if (settings.showSquadSummary || settings.showEnemySummary) {
+                        embedFields.push({ name: '\u200b', value: '\u200b', inline: false });
+                    }
+
+                    // Line 2: Incoming Attacks | Incoming CC | Incoming Strips (conditionally shown)
+                    if (settings.showIncomingStats) {
+                        const formatIncoming = (val1: number, val2: number, total: number) => {
+                            return [
+                                `Miss/Blk:  ${(val1 + val2).toString().padStart(6)}`,
+                                `Total:     ${total.toString().padStart(6)}`
+                            ].join('\n');
+                        };
+
+                        embedFields.push({
+                            name: "Incoming Attacks:",
+                            value: `\`\`\`\n${formatIncoming(totalMiss, totalBlock, totalMiss + totalBlock + totalEvade + totalDodge)}\n\`\`\``,
+                            inline: true
+                        });
+                        embedFields.push({
+                            name: "Incoming CC:",
+                            value: `\`\`\`\n${formatIncoming(totalCCMissed, totalCCBlocked, totalCCTaken)}\n\`\`\``,
+                            inline: true
+                        });
+                        embedFields.push({
+                            name: "Incoming Strips:",
+                            value: `\`\`\`\n${formatIncoming(totalStripsMissed, totalStripsBlocked, totalStripsTaken)}\n\`\`\``,
+                            inline: true
+                        });
+                    }
 
                     // --- Top Lists Helper ---
                     const addTopList = (title: string, sortFn: (a: any, b: any) => number, valFn: (p: any) => any, fmtVal: (v: any) => string) => {
@@ -276,56 +346,171 @@ export class DiscordNotifier {
                         });
                     };
 
-                    // Line 3: Damage | Down Contribution
-                    addTopList("Damage",
-                        (a, b) => (b.dpsAll?.[0]?.damage || 0) - (a.dpsAll?.[0]?.damage || 0),
-                        p => p.dpsAll?.[0]?.damage || 0,
-                        v => v.toLocaleString()
-                    );
-                    addTopList("Down Contribution",
-                        (a, b) => calculateDownContribution(b) - calculateDownContribution(a),
-                        p => calculateDownContribution(p),
-                        v => v.toLocaleString()
-                    );
-                    embedFields.push({ name: '\u200b', value: '\u200b', inline: false });
+                    const getTargetStatTotal = (p: any, key: 'killed' | 'downed') => {
+                        if (!p.statsTargets) return 0;
+                        return p.statsTargets.reduce((sum: number, targetStats: any) => {
+                            if (!targetStats || targetStats.length === 0) return sum;
+                            const st = targetStats[0];
+                            return sum + (st?.[key] || 0);
+                        }, 0);
+                    };
 
-                    // Line 4: Healing | Barrier
-                    addTopList("Healing",
-                        (a, b) => calculateSquadHealing(b) - calculateSquadHealing(a),
-                        p => calculateSquadHealing(p),
-                        v => v.toLocaleString()
-                    );
-                    addTopList("Barrier",
-                        (a, b) => calculateSquadBarrier(b) - calculateSquadBarrier(a),
-                        p => calculateSquadBarrier(p),
-                        v => v.toLocaleString()
-                    );
-                    embedFields.push({ name: '\u200b', value: '\u200b', inline: false });
+                    const getDistanceToTag = (p: any) => {
+                        const stats = p.statsAll?.[0];
+                        const distToCom = stats?.distToCom;
+                        if (distToCom !== undefined && distToCom !== null) {
+                            return distToCom;
+                        }
+                        const stackDist = stats?.stackDist;
+                        return stackDist || 0;
+                    };
+                    const getResurrects = (p: any) => p.support?.[0]?.resurrects || 0;
+                    const getBreakbarDamage = (p: any) => p.dpsAll?.[0]?.breakbarDamage || 0;
+                    const getDamageTaken = (p: any) => p.defenses?.[0]?.damageTaken || 0;
+                    const getDeaths = (p: any) => p.defenses?.[0]?.deadCount || 0;
+                    const getDodges = (p: any) => p.defenses?.[0]?.dodgeCount || 0;
 
-                    // Line 5: Cleanses | Boon Strips (PlenBot uses condiCleanse + condiCleanseSelf)
-                    addTopList("Cleanses",
-                        (a, b) => ((b.support?.[0]?.condiCleanse || 0) + (b.support?.[0]?.condiCleanseSelf || 0)) - ((a.support?.[0]?.condiCleanse || 0) + (a.support?.[0]?.condiCleanseSelf || 0)),
-                        p => (p.support?.[0]?.condiCleanse || 0) + (p.support?.[0]?.condiCleanseSelf || 0),
-                        v => v.toString()
-                    );
-                    addTopList("Boon Strips",
-                        (a, b) => (b.support?.[0]?.boonStrips || 0) - (a.support?.[0]?.boonStrips || 0),
-                        p => p.support?.[0]?.boonStrips || 0,
-                        v => v.toString()
-                    );
-                    embedFields.push({ name: '\u200b', value: '\u200b', inline: false });
+                    const topListItems: Array<{
+                        enabled: boolean;
+                        title: string;
+                        sortFn: (a: any, b: any) => number;
+                        valFn: (p: any) => any;
+                        fmtVal: (v: any) => string;
+                    }> = [
+                            {
+                                enabled: settings.showDamage,
+                                title: "Damage",
+                                sortFn: (a: any, b: any) => (b.dpsAll?.[0]?.damage || 0) - (a.dpsAll?.[0]?.damage || 0),
+                                valFn: (p: any) => p.dpsAll?.[0]?.damage || 0,
+                                fmtVal: (v: any) => v.toLocaleString()
+                            },
+                            {
+                                enabled: settings.showDownContribution,
+                                title: "Down Contribution",
+                                sortFn: (a: any, b: any) => calculateDownContribution(b) - calculateDownContribution(a),
+                                valFn: (p: any) => calculateDownContribution(p),
+                                fmtVal: (v: any) => v.toLocaleString()
+                            },
+                            {
+                                enabled: settings.showHealing,
+                                title: "Healing",
+                                sortFn: (a: any, b: any) => calculateSquadHealing(b) - calculateSquadHealing(a),
+                                valFn: (p: any) => calculateSquadHealing(p),
+                                fmtVal: (v: any) => v.toLocaleString()
+                            },
+                            {
+                                enabled: settings.showBarrier,
+                                title: "Barrier",
+                                sortFn: (a: any, b: any) => calculateSquadBarrier(b) - calculateSquadBarrier(a),
+                                valFn: (p: any) => calculateSquadBarrier(p),
+                                fmtVal: (v: any) => v.toLocaleString()
+                            },
+                            {
+                                enabled: settings.showCleanses,
+                                title: "Cleanses",
+                                sortFn: (a: any, b: any) => ((b.support?.[0]?.condiCleanse || 0) + (b.support?.[0]?.condiCleanseSelf || 0)) - ((a.support?.[0]?.condiCleanse || 0) + (a.support?.[0]?.condiCleanseSelf || 0)),
+                                valFn: (p: any) => (p.support?.[0]?.condiCleanse || 0) + (p.support?.[0]?.condiCleanseSelf || 0),
+                                fmtVal: (v: any) => v.toString()
+                            },
+                            {
+                                enabled: settings.showBoonStrips,
+                                title: "Boon Strips",
+                                sortFn: (a: any, b: any) => (b.support?.[0]?.boonStrips || 0) - (a.support?.[0]?.boonStrips || 0),
+                                valFn: (p: any) => p.support?.[0]?.boonStrips || 0,
+                                fmtVal: (v: any) => v.toString()
+                            },
+                            {
+                                enabled: settings.showCC,
+                                title: "CC",
+                                sortFn: (a: any, b: any) => calculateOutCC(b) - calculateOutCC(a),
+                                valFn: (p: any) => calculateOutCC(p),
+                                fmtVal: (v: any) => v.toLocaleString()
+                            },
+                            {
+                                enabled: settings.showStability,
+                                title: "Stability",
+                                sortFn: (a: any, b: any) => (b.stabGeneration || 0) - (a.stabGeneration || 0),
+                                valFn: (p: any) => p.stabGeneration || 0,
+                                fmtVal: (v: any) => v.toLocaleString()
+                            },
+                            {
+                                enabled: settings.showResurrects,
+                                title: "Resurrects",
+                                sortFn: (a: any, b: any) => getResurrects(b) - getResurrects(a),
+                                valFn: (p: any) => getResurrects(p),
+                                fmtVal: (v: any) => v.toString()
+                            },
+                            {
+                                enabled: settings.showDistanceToTag,
+                                title: "Distance to Tag",
+                                sortFn: (a: any, b: any) => getDistanceToTag(a) - getDistanceToTag(b),
+                                valFn: (p: any) => getDistanceToTag(p),
+                                fmtVal: (v: any) => v.toFixed(1)
+                            },
+                            {
+                                enabled: settings.showKills,
+                                title: "Kills",
+                                sortFn: (a: any, b: any) => getTargetStatTotal(b, 'killed') - getTargetStatTotal(a, 'killed'),
+                                valFn: (p: any) => getTargetStatTotal(p, 'killed'),
+                                fmtVal: (v: any) => v.toString()
+                            },
+                            {
+                                enabled: settings.showDowns,
+                                title: "Downs",
+                                sortFn: (a: any, b: any) => getTargetStatTotal(b, 'downed') - getTargetStatTotal(a, 'downed'),
+                                valFn: (p: any) => getTargetStatTotal(p, 'downed'),
+                                fmtVal: (v: any) => v.toString()
+                            },
+                            {
+                                enabled: settings.showBreakbarDamage,
+                                title: "Breakbar Damage",
+                                sortFn: (a: any, b: any) => getBreakbarDamage(b) - getBreakbarDamage(a),
+                                valFn: (p: any) => getBreakbarDamage(p),
+                                fmtVal: (v: any) => v.toLocaleString()
+                            },
+                            {
+                                enabled: settings.showDamageTaken,
+                                title: "Damage Taken",
+                                sortFn: (a: any, b: any) => getDamageTaken(b) - getDamageTaken(a),
+                                valFn: (p: any) => getDamageTaken(p),
+                                fmtVal: (v: any) => v.toLocaleString()
+                            },
+                            {
+                                enabled: settings.showDeaths,
+                                title: "Deaths",
+                                sortFn: (a: any, b: any) => getDeaths(b) - getDeaths(a),
+                                valFn: (p: any) => getDeaths(p),
+                                fmtVal: (v: any) => v.toString()
+                            },
+                            {
+                                enabled: settings.showDodges,
+                                title: "Dodges",
+                                sortFn: (a: any, b: any) => getDodges(b) - getDodges(a),
+                                valFn: (p: any) => getDodges(p),
+                                fmtVal: (v: any) => v.toString()
+                            }
+                        ];
 
-                    // Line 6: CC
-                    addTopList("CC",
-                        (a, b) => calculateOutCC(b) - calculateOutCC(a),
-                        p => calculateOutCC(p),
-                        v => v.toLocaleString()
-                    );
-                    addTopList("Stability",
-                        (a, b) => (b.stabGeneration || 0) - (a.stabGeneration || 0),
-                        p => p.stabGeneration || 0,
-                        v => v.toLocaleString()
-                    );
+                    const enabledTopLists = topListItems.filter(item => item.enabled);
+                    if (enabledTopLists.length > 0) {
+                        const lastField = embedFields[embedFields.length - 1];
+                        if (lastField?.inline) {
+                            embedFields.push({ name: '\u200b', value: '\u200b', inline: false });
+                        }
+
+                        let rowCount = 0;
+                        enabledTopLists.forEach((item, index) => {
+                            addTopList(item.title, item.sortFn, item.valFn, item.fmtVal);
+                            rowCount += 1;
+                            const isRowEnd = rowCount === 2;
+                            const isLast = index === enabledTopLists.length - 1;
+                            if (isRowEnd && !isLast) {
+                                embedFields.push({ name: '\u200b', value: '\u200b', inline: false });
+                                rowCount = 0;
+                            }
+                        });
+
+                    }
 
                     // Determine embed color based on borderland
                     // WvW map names: "Detailed WvW - Red Desert Borderlands", "Detailed WvW - Blue Alpine Borderlands", etc.
@@ -347,19 +532,80 @@ export class DiscordNotifier {
                         return jsonDetails.success ? 0x2ECC71 : 0xE74C3C;
                     };
 
+                    const baseEmbed = {
+                        title: `${jsonDetails.fightName || 'Log Uploaded'}`,
+                        url: logData.permalink,
+                        description: desc,
+                        color: getEmbedColor(jsonDetails.fightName),
+                        timestamp: new Date().toISOString(),
+                        footer: {
+                            text: `GW2 Arc Log Uploader • ${new Date().toLocaleTimeString()}`
+                        }
+                    };
+
+                    const getEmbedBaseCharCount = (embed: typeof baseEmbed) => {
+                        return (embed.title?.length || 0)
+                            + (embed.description?.length || 0)
+                            + (embed.footer?.text?.length || 0);
+                    };
+
+                    const getFieldCharCount = (field: { name?: string; value?: string }) => {
+                        return (field.name?.length || 0) + (field.value?.length || 0);
+                    };
+
+                    const buildEmbeds = (fields: any[]) => {
+                        if (fields.length === 0) {
+                            return [{ ...baseEmbed, fields: [] }];
+                        }
+                        const embeds: any[] = [];
+                        const baseCharCount = getEmbedBaseCharCount(baseEmbed);
+                        let currentFields: any[] = [];
+                        let currentCharCount = baseCharCount;
+
+                        const flush = () => {
+                            if (currentFields.length === 0) return;
+                            embeds.push({ ...baseEmbed, fields: currentFields });
+                            currentFields = [];
+                            currentCharCount = baseCharCount;
+                        };
+
+                        const pushField = (field: any) => {
+                            const isBlank = field.name === '\u200b' && field.value === '\u200b';
+                            const fieldCharCount = getFieldCharCount(field);
+                            const wouldExceedFieldLimit = currentFields.length >= DISCORD_EMBED_FIELD_LIMIT;
+                            const wouldExceedCharLimit = currentCharCount + fieldCharCount > DISCORD_EMBED_CHAR_LIMIT;
+
+                            if ((wouldExceedFieldLimit || wouldExceedCharLimit) && currentFields.length > 0) {
+                                flush();
+                            }
+
+                            if (isBlank && currentFields.length === 0) {
+                                return;
+                            }
+
+                            currentFields.push(field);
+                            currentCharCount += fieldCharCount;
+                        };
+
+                        for (const field of fields) {
+                            pushField(field);
+                        }
+
+                        flush();
+
+                        if (embeds.length > DISCORD_MAX_EMBEDS) {
+                            console.warn(`[Discord] Truncating embeds from ${embeds.length} to ${DISCORD_MAX_EMBEDS} due to Discord limits.`);
+                            return embeds.slice(0, DISCORD_MAX_EMBEDS);
+                        }
+
+                        return embeds;
+                    };
+
+                    const embeds = buildEmbeds(embedFields);
+
                     await axios.post(this.webhookUrl, {
                         username: "GW2 Arc Log Uploader",
-                        embeds: [{
-                            title: `${jsonDetails.fightName || 'Log Uploaded'}`,
-                            url: logData.permalink,
-                            description: desc,
-                            color: getEmbedColor(jsonDetails.fightName),
-                            timestamp: new Date().toISOString(),
-                            footer: {
-                                text: `GW2 Arc Log Uploader • ${new Date().toLocaleTimeString()}`
-                            },
-                            fields: embedFields
-                        }]
+                        embeds
                     });
                     console.log("Sent complex Discord notification.");
                 } else {

@@ -2,18 +2,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { calculateAllStability, calculateDownContribution, calculateIncomingStats, calculateOutCC, calculateSquadBarrier, calculateSquadHealing } from '../shared/plenbot';
 import { Player } from '../shared/dpsReportTypes';
+import { DEFAULT_EMBED_STATS, IEmbedStatSettings } from './global.d';
 
 interface ExpandableLogCardProps {
     log: any;
     isExpanded: boolean;
     onToggle: () => void;
     screenshotMode?: boolean;
+    embedStatSettings?: IEmbedStatSettings;
 }
 
-export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode }: ExpandableLogCardProps) {
+export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, embedStatSettings }: ExpandableLogCardProps) {
     const details = log.details || {};
     const players: Player[] = details.players || [];
     const targets = details.targets || [];
+    const settings = embedStatSettings || DEFAULT_EMBED_STATS;
     calculateAllStability(players);
     const squadPlayers = players.filter((p: any) => !p.notInSquad);
     const nonSquadPlayers = players.filter((p: any) => p.notInSquad);
@@ -118,6 +121,30 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode }:
     const durationSec = (details.durationMS || 0) / 1000 || 1;
     const enemyDps = Math.round(totalDmgTaken / durationSec);
 
+    const getTargetStatTotal = (p: any, key: 'killed' | 'downed') => {
+        if (!p.statsTargets) return 0;
+        return p.statsTargets.reduce((sum: number, targetStats: any) => {
+            if (!targetStats || targetStats.length === 0) return sum;
+            const st = targetStats[0];
+            return sum + (st?.[key] || 0);
+        }, 0);
+    };
+
+    const getDistanceToTag = (p: any) => {
+        const stats = p.statsAll?.[0];
+        const distToCom = stats?.distToCom;
+        if (distToCom !== undefined && distToCom !== null) {
+            return distToCom;
+        }
+        const stackDist = stats?.stackDist;
+        return stackDist || 0;
+    };
+    const getResurrects = (p: any) => p.support?.[0]?.resurrects || 0;
+    const getBreakbarDamage = (p: any) => p.dpsAll?.[0]?.breakbarDamage || 0;
+    const getDamageTaken = (p: any) => p.defenses?.[0]?.damageTaken || 0;
+    const getDeaths = (p: any) => p.defenses?.[0]?.deadCount || 0;
+    const getDodges = (p: any) => p.defenses?.[0]?.dodgeCount || 0;
+
     // Helper for rendering top lists
     const TopList = ({ title, sortFn, valFn, fmtVal }: { title: string, sortFn: (a: any, b: any) => number, valFn: (p: any) => any, fmtVal: (v: any) => string }) => {
         const top = [...players].sort(sortFn).slice(0, 5);
@@ -152,6 +179,123 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode }:
         );
     };
 
+    const topListItems = [
+        {
+            enabled: settings.showDamage,
+            title: "Damage",
+            sortFn: (a: any, b: any) => (b.dpsAll?.[0]?.damage || 0) - (a.dpsAll?.[0]?.damage || 0),
+            valFn: (p: any) => p.dpsAll?.[0]?.damage || 0,
+            fmtVal: (v: number) => v.toLocaleString()
+        },
+        {
+            enabled: settings.showDownContribution,
+            title: "Down Contribution",
+            sortFn: (a: any, b: any) => calculateDownContribution(b) - calculateDownContribution(a),
+            valFn: (p: any) => calculateDownContribution(p),
+            fmtVal: (v: number) => v.toLocaleString()
+        },
+        {
+            enabled: settings.showHealing,
+            title: "Healing",
+            sortFn: (a: any, b: any) => calculateSquadHealing(b) - calculateSquadHealing(a),
+            valFn: (p: any) => calculateSquadHealing(p),
+            fmtVal: (v: number) => v.toLocaleString()
+        },
+        {
+            enabled: settings.showBarrier,
+            title: "Barrier",
+            sortFn: (a: any, b: any) => calculateSquadBarrier(b) - calculateSquadBarrier(a),
+            valFn: (p: any) => calculateSquadBarrier(p),
+            fmtVal: (v: number) => v.toLocaleString()
+        },
+        {
+            enabled: settings.showCleanses,
+            title: "Cleanses",
+            sortFn: (a: any, b: any) => ((b.support?.[0]?.condiCleanse || 0) + (b.support?.[0]?.condiCleanseSelf || 0)) - ((a.support?.[0]?.condiCleanse || 0) + (a.support?.[0]?.condiCleanseSelf || 0)),
+            valFn: (p: any) => (p.support?.[0]?.condiCleanse || 0) + (p.support?.[0]?.condiCleanseSelf || 0),
+            fmtVal: (v: number) => v.toString()
+        },
+        {
+            enabled: settings.showBoonStrips,
+            title: "Strips",
+            sortFn: (a: any, b: any) => (b.support?.[0]?.boonStrips || 0) - (a.support?.[0]?.boonStrips || 0),
+            valFn: (p: any) => p.support?.[0]?.boonStrips || 0,
+            fmtVal: (v: number) => v.toString()
+        },
+        {
+            enabled: settings.showCC,
+            title: "CC",
+            sortFn: (a: any, b: any) => calculateOutCC(b) - calculateOutCC(a),
+            valFn: (p: any) => calculateOutCC(p),
+            fmtVal: (v: number) => v.toLocaleString()
+        },
+        {
+            enabled: settings.showStability,
+            title: "Stability",
+            sortFn: (a: any, b: any) => (b.stabGeneration || 0) - (a.stabGeneration || 0),
+            valFn: (p: any) => p.stabGeneration || 0,
+            fmtVal: (v: number) => v.toLocaleString()
+        },
+        {
+            enabled: settings.showResurrects,
+            title: "Resurrects",
+            sortFn: (a: any, b: any) => getResurrects(b) - getResurrects(a),
+            valFn: (p: any) => getResurrects(p),
+            fmtVal: (v: number) => v.toString()
+        },
+        {
+            enabled: settings.showDistanceToTag,
+            title: "Distance to Tag",
+            sortFn: (a: any, b: any) => getDistanceToTag(a) - getDistanceToTag(b),
+            valFn: (p: any) => getDistanceToTag(p),
+            fmtVal: (v: number) => v.toFixed(1)
+        },
+        {
+            enabled: settings.showKills,
+            title: "Kills",
+            sortFn: (a: any, b: any) => getTargetStatTotal(b, 'killed') - getTargetStatTotal(a, 'killed'),
+            valFn: (p: any) => getTargetStatTotal(p, 'killed'),
+            fmtVal: (v: number) => v.toString()
+        },
+        {
+            enabled: settings.showDowns,
+            title: "Downs",
+            sortFn: (a: any, b: any) => getTargetStatTotal(b, 'downed') - getTargetStatTotal(a, 'downed'),
+            valFn: (p: any) => getTargetStatTotal(p, 'downed'),
+            fmtVal: (v: number) => v.toString()
+        },
+        {
+            enabled: settings.showBreakbarDamage,
+            title: "Breakbar Damage",
+            sortFn: (a: any, b: any) => getBreakbarDamage(b) - getBreakbarDamage(a),
+            valFn: (p: any) => getBreakbarDamage(p),
+            fmtVal: (v: number) => v.toLocaleString()
+        },
+        {
+            enabled: settings.showDamageTaken,
+            title: "Damage Taken",
+            sortFn: (a: any, b: any) => getDamageTaken(b) - getDamageTaken(a),
+            valFn: (p: any) => getDamageTaken(p),
+            fmtVal: (v: number) => v.toLocaleString()
+        },
+        {
+            enabled: settings.showDeaths,
+            title: "Deaths",
+            sortFn: (a: any, b: any) => getDeaths(b) - getDeaths(a),
+            valFn: (p: any) => getDeaths(p),
+            fmtVal: (v: number) => v.toString()
+        },
+        {
+            enabled: settings.showDodges,
+            title: "Dodges",
+            sortFn: (a: any, b: any) => getDodges(b) - getDodges(a),
+            valFn: (p: any) => getDodges(p),
+            fmtVal: (v: number) => v.toString()
+        }
+    ];
+
+    const visibleTopLists = topListItems.filter(item => item.enabled);
+
     if (screenshotMode) {
         return (
             <div id={`log-screenshot-${log.id || log.filePath}`} className="bg-slate-900 border border-white/20 rounded-2xl overflow-hidden w-[900px] shadow-2xl p-0 m-0">
@@ -172,64 +316,75 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode }:
                     </div>
                 </div>
                 <div className="p-6 space-y-6 bg-black/40">
-                    <div className="grid grid-cols-2 gap-4 text-base">
-                        <div className="bg-white/5 rounded-xl p-4 border border-white/10 shadow-lg">
-                            <h5 className="font-black text-green-400 mb-3 uppercase tracking-widest text-xs border-b border-green-400/20 pb-2">Squad Summary</h5>
-                            <div className="font-mono text-gray-200 space-y-2 text-left text-sm">
-                                <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{squadPlayers.length} {nonSquadPlayers.length > 0 ? `(+${nonSquadPlayers.length})` : ''}</span></div>
-                                <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{squadDmg.toLocaleString()}</span></div>
-                                <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{Math.round(squadDps).toLocaleString()}</span></div>
-                                <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{squadDowns}</span></div>
-                                <div className="flex justify-between"><span>Deaths:</span> <span className="text-white font-bold">{squadDeaths}</span></div>
+                    {(settings.showSquadSummary || settings.showEnemySummary) && (
+                        <div className="grid grid-cols-2 gap-4 text-base">
+                            {settings.showSquadSummary && (
+                                <div className="bg-white/5 rounded-xl p-4 border border-white/10 shadow-lg">
+                                    <h5 className="font-black text-green-400 mb-3 uppercase tracking-widest text-xs border-b border-green-400/20 pb-2">Squad Summary</h5>
+                                    <div className="font-mono text-gray-200 space-y-2 text-left text-sm">
+                                        <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{squadPlayers.length} {nonSquadPlayers.length > 0 ? `(+${nonSquadPlayers.length})` : ''}</span></div>
+                                        <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{squadDmg.toLocaleString()}</span></div>
+                                        <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{Math.round(squadDps).toLocaleString()}</span></div>
+                                        <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{squadDowns}</span></div>
+                                        <div className="flex justify-between"><span>Deaths:</span> <span className="text-white font-bold">{squadDeaths}</span></div>
+                                    </div>
+                                </div>
+                            )}
+                            {settings.showEnemySummary && (
+                                <div className="bg-white/5 rounded-xl p-4 border border-white/10 shadow-lg">
+                                    <h5 className="font-black text-red-400 mb-3 uppercase tracking-widest text-xs border-b border-red-400/20 pb-2">Enemy Summary</h5>
+                                    <div className="font-mono text-gray-200 space-y-2 text-left text-sm">
+                                        <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{enemyCount}</span></div>
+                                        <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{totalDmgTaken.toLocaleString()}</span></div>
+                                        <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{enemyDps.toLocaleString()}</span></div>
+                                        <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{enemyDowns}</span></div>
+                                        <div className="flex justify-between"><span>Kills:</span> <span className="text-white font-bold">{enemyDeaths}</span></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {settings.showIncomingStats && (
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                                <h5 className="font-bold text-blue-400 mb-2 uppercase tracking-tight text-[10px]">Incoming Attack</h5>
+                                <div className="font-mono text-xs text-gray-300 text-left space-y-1">
+                                    <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-blue-200">{totalMiss}</span></div>
+                                    <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-blue-200">{totalBlock}</span></div>
+                                    <div className="flex justify-between text-white font-bold pt-1 border-t border-white/5"><span>Total:</span> <span>{totalMiss + totalBlock + totalEvade + totalDodge}</span></div>
+                                </div>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                                <h5 className="font-bold text-purple-400 mb-2 uppercase tracking-tight text-[10px]">Incoming CC</h5>
+                                <div className="font-mono text-xs text-gray-300 text-left space-y-1">
+                                    <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-purple-200">{totalCCMissed}</span></div>
+                                    <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-purple-200">{totalCCBlocked}</span></div>
+                                    <div className="flex justify-between text-white font-bold pt-1 border-t border-white/5"><span>Total:</span> <span>{totalCCTaken}</span></div>
+                                </div>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                                <h5 className="font-bold text-orange-400 mb-2 uppercase tracking-tight text-[10px]">Incoming Strips</h5>
+                                <div className="font-mono text-xs text-gray-300 text-left space-y-1">
+                                    <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-orange-200">{totalStripsMissed}</span></div>
+                                    <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-orange-200">{totalStripsBlocked}</span></div>
+                                    <div className="flex justify-between text-white font-bold pt-1 border-t border-white/5"><span>Total:</span> <span>{totalStripsTaken}</span></div>
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-white/5 rounded-xl p-4 border border-white/10 shadow-lg">
-                            <h5 className="font-black text-red-400 mb-3 uppercase tracking-widest text-xs border-b border-red-400/20 pb-2">Enemy Summary</h5>
-                            <div className="font-mono text-gray-200 space-y-2 text-left text-sm">
-                                <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{enemyCount}</span></div>
-                                <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{totalDmgTaken.toLocaleString()}</span></div>
-                                <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{enemyDps.toLocaleString()}</span></div>
-                                <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{enemyDowns}</span></div>
-                                <div className="flex justify-between"><span>Kills:</span> <span className="text-white font-bold">{enemyDeaths}</span></div>
-                            </div>
+                    )}
+                    {visibleTopLists.length > 0 && (
+                        <div className="grid grid-cols-2 gap-4">
+                            {visibleTopLists.map(item => (
+                                <TopList
+                                    key={item.title}
+                                    title={item.title}
+                                    sortFn={item.sortFn}
+                                    valFn={item.valFn}
+                                    fmtVal={item.fmtVal}
+                                />
+                            ))}
                         </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                            <h5 className="font-bold text-blue-400 mb-2 uppercase tracking-tight text-[10px]">Incoming Attack</h5>
-                            <div className="font-mono text-xs text-gray-300 text-left space-y-1">
-                                <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-blue-200">{totalMiss}</span></div>
-                                <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-blue-200">{totalBlock}</span></div>
-                                <div className="flex justify-between text-white font-bold pt-1 border-t border-white/5"><span>Total:</span> <span>{totalMiss + totalBlock + totalEvade + totalDodge}</span></div>
-                            </div>
-                        </div>
-                        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                            <h5 className="font-bold text-purple-400 mb-2 uppercase tracking-tight text-[10px]">Incoming CC</h5>
-                            <div className="font-mono text-xs text-gray-300 text-left space-y-1">
-                                <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-purple-200">{totalCCMissed}</span></div>
-                                <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-purple-200">{totalCCBlocked}</span></div>
-                                <div className="flex justify-between text-white font-bold pt-1 border-t border-white/5"><span>Total:</span> <span>{totalCCTaken}</span></div>
-                            </div>
-                        </div>
-                        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                            <h5 className="font-bold text-orange-400 mb-2 uppercase tracking-tight text-[10px]">Incoming Strips</h5>
-                            <div className="font-mono text-xs text-gray-300 text-left space-y-1">
-                                <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-orange-200">{totalStripsMissed}</span></div>
-                                <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-orange-200">{totalStripsBlocked}</span></div>
-                                <div className="flex justify-between text-white font-bold pt-1 border-t border-white/5"><span>Total:</span> <span>{totalStripsTaken}</span></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <TopList title="Damage" sortFn={(a, b) => (b.dpsAll?.[0]?.damage || 0) - (a.dpsAll?.[0]?.damage || 0)} valFn={p => p.dpsAll?.[0]?.damage || 0} fmtVal={v => v.toLocaleString()} />
-                        <TopList title="Down Contribution" sortFn={(a, b) => calculateDownContribution(b) - calculateDownContribution(a)} valFn={p => calculateDownContribution(p)} fmtVal={v => v.toLocaleString()} />
-                        <TopList title="Healing" sortFn={(a, b) => calculateSquadHealing(b) - calculateSquadHealing(a)} valFn={p => calculateSquadHealing(p)} fmtVal={v => v.toLocaleString()} />
-                        <TopList title="Barrier" sortFn={(a, b) => calculateSquadBarrier(b) - calculateSquadBarrier(a)} valFn={p => calculateSquadBarrier(p)} fmtVal={v => v.toLocaleString()} />
-                        <TopList title="Cleanses" sortFn={(a, b) => ((b.support?.[0]?.condiCleanse || 0) + (b.support?.[0]?.condiCleanseSelf || 0)) - ((a.support?.[0]?.condiCleanse || 0) + (a.support?.[0]?.condiCleanseSelf || 0))} valFn={p => (p.support?.[0]?.condiCleanse || 0) + (p.support?.[0]?.condiCleanseSelf || 0)} fmtVal={v => v.toString()} />
-                        <TopList title="Strips" sortFn={(a, b) => (b.support?.[0]?.boonStrips || 0) - (a.support?.[0]?.boonStrips || 0)} valFn={p => p.support?.[0]?.boonStrips || 0} fmtVal={v => v.toString()} />
-                        <TopList title="CC" sortFn={(a, b) => calculateOutCC(b) - calculateOutCC(a)} valFn={p => calculateOutCC(p)} fmtVal={v => v.toLocaleString()} />
-                        <TopList title="Stability" sortFn={(a, b) => (b.stabGeneration || 0) - (a.stabGeneration || 0)} valFn={p => p.stabGeneration || 0} fmtVal={v => v.toLocaleString()} />
-                    </div>
+                    )}
                 </div>
             </div>
         );
@@ -289,111 +444,78 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode }:
                         className="border-t border-white/10 bg-black/40 shadow-inner"
                     >
                         <div className="p-4 space-y-4">
-                            {/* Summaries Row */}
-                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                <div className="bg-white/5 rounded-lg p-3 border border-white/5">
-                                    <h5 className="font-semibold text-green-400 mb-2 uppercase tracking-wider text-[10px]">Squad Summary</h5>
-                                    <div className="font-mono text-gray-300 space-y-1">
-                                        <div className="flex justify-between"><span>Count:</span> <span>{squadPlayers.length} {nonSquadPlayers.length > 0 ? `(+${nonSquadPlayers.length})` : ''}</span></div>
-                                        <div className="flex justify-between"><span>DMG:</span> <span>{squadDmg.toLocaleString()}</span></div>
-                                        <div className="flex justify-between"><span>DPS:</span> <span>{Math.round(squadDps).toLocaleString()}</span></div>
-                                        <div className="flex justify-between"><span>Downs:</span> <span>{squadDowns}</span></div>
-                                        <div className="flex justify-between"><span>Deaths:</span> <span>{squadDeaths}</span></div>
-                                    </div>
+                            {(settings.showSquadSummary || settings.showEnemySummary) && (
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                    {settings.showSquadSummary && (
+                                        <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                                            <h5 className="font-semibold text-green-400 mb-2 uppercase tracking-wider text-[10px]">Squad Summary</h5>
+                                            <div className="font-mono text-gray-300 space-y-1">
+                                                <div className="flex justify-between"><span>Count:</span> <span>{squadPlayers.length} {nonSquadPlayers.length > 0 ? `(+${nonSquadPlayers.length})` : ''}</span></div>
+                                                <div className="flex justify-between"><span>DMG:</span> <span>{squadDmg.toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>DPS:</span> <span>{Math.round(squadDps).toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>Downs:</span> <span>{squadDowns}</span></div>
+                                                <div className="flex justify-between"><span>Deaths:</span> <span>{squadDeaths}</span></div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {settings.showEnemySummary && (
+                                        <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                                            <h5 className="font-semibold text-red-400 mb-2 uppercase tracking-wider text-[10px]">Enemy Summary</h5>
+                                            <div className="font-mono text-gray-300 space-y-1">
+                                                <div className="flex justify-between"><span>Count:</span> <span>{enemyCount}</span></div>
+                                                <div className="flex justify-between"><span>DMG:</span> <span>{totalDmgTaken.toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>DPS:</span> <span>{enemyDps.toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>Downs:</span> <span>{enemyDowns}</span></div>
+                                                <div className="flex justify-between"><span>Kills:</span> <span>{enemyDeaths}</span></div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="bg-white/5 rounded-lg p-3 border border-white/5">
-                                    <h5 className="font-semibold text-red-400 mb-2 uppercase tracking-wider text-[10px]">Enemy Summary</h5>
-                                    <div className="font-mono text-gray-300 space-y-1">
-                                        <div className="flex justify-between"><span>Count:</span> <span>{enemyCount}</span></div>
-                                        <div className="flex justify-between"><span>DMG:</span> <span>{totalDmgTaken.toLocaleString()}</span></div>
-                                        <div className="flex justify-between"><span>DPS:</span> <span>{enemyDps.toLocaleString()}</span></div>
-                                        <div className="flex justify-between"><span>Downs:</span> <span>{enemyDowns}</span></div>
-                                        <div className="flex justify-between"><span>Kills:</span> <span>{enemyDeaths}</span></div>
-                                    </div>
-                                </div>
-                            </div>
+                            )}
 
-                            {/* Incoming Stats Row */}
-                            <div className="grid grid-cols-3 gap-2">
-                                <div className="bg-white/5 rounded-lg p-2 border border-white/5">
-                                    <h5 className="font-semibold text-blue-400 mb-1 uppercase tracking-wider text-[9px]">Incoming Attack</h5>
-                                    <div className="font-mono text-[10px] text-gray-300">
-                                        <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalMiss}</span></div>
-                                        <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-gray-300">{totalBlock}</span></div>
-                                        <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalMiss + totalBlock + totalEvade + totalDodge}</span></div>
+                            {settings.showIncomingStats && (
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                                        <h5 className="font-semibold text-blue-400 mb-1 uppercase tracking-wider text-[9px]">Incoming Attack</h5>
+                                        <div className="font-mono text-[10px] text-gray-300">
+                                            <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalMiss}</span></div>
+                                            <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-gray-300">{totalBlock}</span></div>
+                                            <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalMiss + totalBlock + totalEvade + totalDodge}</span></div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                                        <h5 className="font-semibold text-purple-400 mb-1 uppercase tracking-wider text-[9px]">Incoming CC</h5>
+                                        <div className="font-mono text-[10px] text-gray-300">
+                                            <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalCCMissed}</span></div>
+                                            <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-gray-300">{totalCCBlocked}</span></div>
+                                            <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalCCTaken}</span></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                                        <h5 className="font-semibold text-orange-400 mb-1 uppercase tracking-wider text-[9px]">Incoming Strips</h5>
+                                        <div className="font-mono text-[10px] text-gray-300">
+                                            <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalStripsMissed}</span></div>
+                                            <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-gray-300">{totalStripsBlocked}</span></div>
+                                            <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalStripsTaken}</span></div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="bg-white/5 rounded-lg p-2 border border-white/5">
-                                    <h5 className="font-semibold text-purple-400 mb-1 uppercase tracking-wider text-[9px]">Incoming CC</h5>
-                                    <div className="font-mono text-[10px] text-gray-300">
-                                        <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalCCMissed}</span></div>
-                                        <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-gray-300">{totalCCBlocked}</span></div>
-                                        <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalCCTaken}</span></div>
-                                    </div>
+                            )}
+
+                            {visibleTopLists.length > 0 && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    {visibleTopLists.map(item => (
+                                        <TopList
+                                            key={item.title}
+                                            title={item.title}
+                                            sortFn={item.sortFn}
+                                            valFn={item.valFn}
+                                            fmtVal={item.fmtVal}
+                                        />
+                                    ))}
                                 </div>
-
-                                <div className="bg-white/5 rounded-lg p-2 border border-white/5">
-                                    <h5 className="font-semibold text-orange-400 mb-1 uppercase tracking-wider text-[9px]">Incoming Strips</h5>
-                                    <div className="font-mono text-[10px] text-gray-300">
-                                        <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalStripsMissed}</span></div>
-                                        <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-gray-300">{totalStripsBlocked}</span></div>
-                                        <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalStripsTaken}</span></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Top Lists Sections */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <TopList
-                                    title="Damage"
-                                    sortFn={(a, b) => (b.dpsAll?.[0]?.damage || 0) - (a.dpsAll?.[0]?.damage || 0)}
-                                    valFn={p => p.dpsAll?.[0]?.damage || 0}
-                                    fmtVal={v => v.toLocaleString()}
-                                />
-                                <TopList
-                                    title="Down Contribution"
-                                    sortFn={(a, b) => calculateDownContribution(b) - calculateDownContribution(a)}
-                                    valFn={p => calculateDownContribution(p)}
-                                    fmtVal={v => v.toLocaleString()}
-                                />
-
-                                <TopList
-                                    title="Healing"
-                                    sortFn={(a, b) => calculateSquadHealing(b) - calculateSquadHealing(a)}
-                                    valFn={p => calculateSquadHealing(p)}
-                                    fmtVal={v => v.toLocaleString()}
-                                />
-                                <TopList
-                                    title="Barrier"
-                                    sortFn={(a, b) => calculateSquadBarrier(b) - calculateSquadBarrier(a)}
-                                    valFn={p => calculateSquadBarrier(p)}
-                                    fmtVal={v => v.toLocaleString()}
-                                />
-                                <TopList
-                                    title="Cleanses"
-                                    sortFn={(a, b) => ((b.support?.[0]?.condiCleanse || 0) + (b.support?.[0]?.condiCleanseSelf || 0)) - ((a.support?.[0]?.condiCleanse || 0) + (a.support?.[0]?.condiCleanseSelf || 0))}
-                                    valFn={p => (p.support?.[0]?.condiCleanse || 0) + (p.support?.[0]?.condiCleanseSelf || 0)}
-                                    fmtVal={v => v.toString()}
-                                />
-                                <TopList
-                                    title="Strips"
-                                    sortFn={(a, b) => (b.support?.[0]?.boonStrips || 0) - (a.support?.[0]?.boonStrips || 0)}
-                                    valFn={p => p.support?.[0]?.boonStrips || 0}
-                                    fmtVal={v => v.toString()}
-                                />
-                                <TopList
-                                    title="CC"
-                                    sortFn={(a, b) => calculateOutCC(b) - calculateOutCC(a)}
-                                    valFn={p => calculateOutCC(p)}
-                                    fmtVal={v => v.toLocaleString()}
-                                />
-                                <TopList
-                                    title="Stability"
-                                    sortFn={(a, b) => (b.stabGeneration || 0) - (a.stabGeneration || 0)}
-                                    valFn={p => p.stabGeneration || 0}
-                                    fmtVal={v => v.toLocaleString()}
-                                />
-                            </div>
+                            )}
 
                             <button
                                 onClick={async (e) => {

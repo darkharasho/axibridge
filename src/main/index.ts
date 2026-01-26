@@ -168,6 +168,12 @@ function createWindow() {
         discord.setWebhookUrl(webhookUrl);
     }
 
+    // Initialize embed stat settings
+    const embedStatSettings = store.get('embedStatSettings');
+    if (embedStatSettings) {
+        discord.setEmbedStatSettings(embedStatSettings as any);
+    }
+
     // Initialize dps.report token
     const dpsReportToken = store.get('dpsReportToken');
     if (dpsReportToken && typeof dpsReportToken === 'string') {
@@ -391,6 +397,29 @@ if (!gotTheLock) {
             return app.getVersion();
         });
 
+        // Default embed stat settings
+        const DEFAULT_EMBED_STATS = {
+            showSquadSummary: true,
+            showEnemySummary: true,
+            showIncomingStats: true,
+            showDamage: true,
+            showDownContribution: true,
+            showHealing: true,
+            showBarrier: true,
+            showCleanses: true,
+            showBoonStrips: true,
+            showCC: true,
+            showStability: true,
+            showResurrects: false,
+            showDistanceToTag: false,
+            showKills: false,
+            showDowns: false,
+            showBreakbarDamage: false,
+            showDamageTaken: false,
+            showDeaths: false,
+            showDodges: false,
+        };
+
         ipcMain.handle('get-settings', () => {
             return {
                 logDirectory: store.get('logDirectory', null),
@@ -399,7 +428,8 @@ if (!gotTheLock) {
                 webhooks: store.get('webhooks', []),
                 selectedWebhookId: store.get('selectedWebhookId', null),
                 dpsReportToken: store.get('dpsReportToken', null),
-                closeBehavior: store.get('closeBehavior', 'minimize')
+                closeBehavior: store.get('closeBehavior', 'minimize'),
+                embedStatSettings: store.get('embedStatSettings', DEFAULT_EMBED_STATS)
             };
         });
 
@@ -411,7 +441,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit' }) => {
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -442,6 +472,10 @@ if (!gotTheLock) {
             }
             if (settings.closeBehavior !== undefined) {
                 store.set('closeBehavior', settings.closeBehavior);
+            }
+            if (settings.embedStatSettings !== undefined) {
+                store.set('embedStatSettings', settings.embedStatSettings);
+                discord?.setEmbedStatSettings(settings.embedStatSettings);
             }
         });
 

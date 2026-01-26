@@ -9,6 +9,7 @@ import { WebhookModal, Webhook } from './WebhookModal';
 import { UpdateErrorModal } from './UpdateErrorModal';
 import { Terminal } from './Terminal';
 import { Terminal as TerminalIcon } from 'lucide-react';
+import { DEFAULT_EMBED_STATS, IEmbedStatSettings } from './global.d';
 
 function App() {
     const [logDirectory, setLogDirectory] = useState<string | null>(null);
@@ -16,6 +17,7 @@ function App() {
     const [logs, setLogs] = useState<ILogData[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+    const [embedStatSettings, setEmbedStatSettings] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
 
     const [screenshotData, setScreenshotData] = useState<ILogData | null>(null);
 
@@ -72,6 +74,9 @@ function App() {
             }
             if (settings.selectedWebhookId) {
                 setSelectedWebhookId(settings.selectedWebhookId);
+            }
+            if (settings.embedStatSettings) {
+                setEmbedStatSettings(settings.embedStatSettings);
             }
 
             // Load app version
@@ -319,7 +324,10 @@ function App() {
                 {view === 'stats' ? (
                     <StatsView logs={logs} onBack={() => setView('dashboard')} />
                 ) : view === 'settings' ? (
-                    <SettingsView onBack={() => setView('dashboard')} />
+                    <SettingsView
+                        onBack={() => setView('dashboard')}
+                        onEmbedStatSettingsSaved={setEmbedStatSettings}
+                    />
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-hidden">
                         <div className="space-y-6 overflow-y-auto pr-2">
@@ -527,6 +535,7 @@ function App() {
                                                     log={log}
                                                     isExpanded={expandedLogId === log.filePath}
                                                     onToggle={() => setExpandedLogId(expandedLogId === log.filePath ? null : log.filePath)}
+                                                    embedStatSettings={embedStatSettings}
                                                 />
                                             ))
                                         )}
@@ -546,6 +555,7 @@ function App() {
                         isExpanded={true}
                         onToggle={() => { }}
                         screenshotMode={true}
+                        embedStatSettings={embedStatSettings}
                     />
                 )}
             </div>

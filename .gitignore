@@ -32,3 +32,6 @@ Thumbs.db
 
 # Local stores
 .electron-store/
+
+# Test Data
+testdata/

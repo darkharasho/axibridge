@@ -4,6 +4,58 @@ export interface IWebhook {
     url: string;
 }
 
+// Discord embed stat toggle settings
+export interface IEmbedStatSettings {
+    // Summary sections
+    showSquadSummary: boolean;
+    showEnemySummary: boolean;
+    showIncomingStats: boolean;
+
+    // Top 10 lists (default enabled)
+    showDamage: boolean;
+    showDownContribution: boolean;
+    showHealing: boolean;
+    showBarrier: boolean;
+    showCleanses: boolean;
+    showBoonStrips: boolean;
+    showCC: boolean;
+    showStability: boolean;
+
+    // Top 10 lists (default disabled)
+    showResurrects: boolean;
+    showDistanceToTag: boolean;
+    showKills: boolean;
+    showDowns: boolean;
+    showBreakbarDamage: boolean;
+    showDamageTaken: boolean;
+    showDeaths: boolean;
+    showDodges: boolean;
+}
+
+// Default embed stat settings
+export const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
+    showSquadSummary: true,
+    showEnemySummary: true,
+    showIncomingStats: true,
+    showDamage: true,
+    showDownContribution: true,
+    showHealing: true,
+    showBarrier: true,
+    showCleanses: true,
+    showBoonStrips: true,
+    showCC: true,
+    showStability: true,
+    // Default disabled - optional stats
+    showResurrects: false,
+    showDistanceToTag: false,
+    showKills: false,
+    showDowns: false,
+    showBreakbarDamage: false,
+    showDamageTaken: false,
+    showDeaths: false,
+    showDodges: false,
+};
+
 export interface IElectronAPI {
     selectDirectory: () => Promise<string | null>;
     startWatching: (path: string) => void;
@@ -20,6 +72,7 @@ export interface IElectronAPI {
         selectedWebhookId: string | null;
         dpsReportToken: string | null;
         closeBehavior: 'minimize' | 'quit';
+        embedStatSettings: IEmbedStatSettings;
     }>;
     manualUpload: (path: string) => void;
     manualUploadBatch: (paths: string[]) => void;
@@ -31,6 +84,7 @@ export interface IElectronAPI {
         selectedWebhookId?: string | null;
         dpsReportToken?: string | null;
         closeBehavior?: 'minimize' | 'quit';
+        embedStatSettings?: IEmbedStatSettings;
     }) => void;
     onRequestScreenshot: (callback: (data: any) => void) => () => void;
     openExternal: (url: string) => Promise<{ success: boolean, error?: string }>;
