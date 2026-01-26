@@ -15,6 +15,7 @@ interface StatsViewProps {
 
 export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
     const [sharing, setSharing] = useState(false);
+    const [expandedLeader, setExpandedLeader] = useState<string | null>(null);
 
     const stats = useMemo(() => {
         const validLogs = logs.filter(l => (l.status === 'success' || l.status === 'discord') && l.details);
@@ -305,6 +306,86 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
         });
 
         if (closestToTag.value === 999999) closestToTag.value = 0;
+
+        const buildLeaderboard = (items: Array<{ key: string; account: string; profession: string; value: number }>, higherIsBetter: boolean) => {
+            const filtered = items.filter(item => Number.isFinite(item.value) && item.value > 0);
+            const sorted = filtered.sort((a, b) => {
+                const diff = higherIsBetter ? b.value - a.value : a.value - b.value;
+                if (diff !== 0) return diff;
+                return a.account.localeCompare(b.account);
+            });
+            let lastValue: number | null = null;
+            let lastRank = 0;
+            return sorted.map((item, index) => {
+                if (lastValue === null || item.value !== lastValue) {
+                    lastRank = index + 1;
+                    lastValue = item.value;
+                }
+                return {
+                    rank: lastRank,
+                    account: item.account,
+                    profession: item.profession,
+                    value: item.value
+                };
+            });
+        };
+
+        const leaderboards = {
+            downContrib: buildLeaderboard(playerEntries.map(({ key, stat }) => ({
+                key,
+                account: stat.account,
+                profession: stat.profession,
+                value: stat.downContrib
+            })), true),
+            barrier: buildLeaderboard(playerEntries.map(({ key, stat }) => ({
+                key,
+                account: stat.account,
+                profession: stat.profession,
+                value: stat.barrier
+            })), true),
+            healing: buildLeaderboard(playerEntries.map(({ key, stat }) => ({
+                key,
+                account: stat.account,
+                profession: stat.profession,
+                value: stat.healing
+            })), true),
+            dodges: buildLeaderboard(playerEntries.map(({ key, stat }) => ({
+                key,
+                account: stat.account,
+                profession: stat.profession,
+                value: stat.dodges
+            })), true),
+            strips: buildLeaderboard(playerEntries.map(({ key, stat }) => ({
+                key,
+                account: stat.account,
+                profession: stat.profession,
+                value: stat.strips
+            })), true),
+            cleanses: buildLeaderboard(playerEntries.map(({ key, stat }) => ({
+                key,
+                account: stat.account,
+                profession: stat.profession,
+                value: stat.cleanses
+            })), true),
+            cc: buildLeaderboard(playerEntries.map(({ key, stat }) => ({
+                key,
+                account: stat.account,
+                profession: stat.profession,
+                value: stat.cc
+            })), true),
+            stability: buildLeaderboard(playerEntries.map(({ key, stat }) => ({
+                key,
+                account: stat.account,
+                profession: stat.profession,
+                value: stat.stab
+            })), true),
+            closestToTag: buildLeaderboard(playerEntries.map(({ key, stat }) => ({
+                key,
+                account: stat.account,
+                profession: stat.profession,
+                value: stat.distCount > 0 ? stat.totalDist / stat.distCount : Number.POSITIVE_INFINITY
+            })).filter(item => Number.isFinite(item.value)), false)
+        };
 
         const buildRankMap = (items: Array<{ key: string; value: number }>, higherIsBetter: boolean) => {
             const sorted = [...items].sort((a, b) => {
@@ -654,7 +735,8 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
             mvp,
             silver,
             bronze,
-            avgMvpScore
+            avgMvpScore,
+            leaderboards
         };
     }, [logs]);
 
@@ -707,11 +789,20 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
         indigo: { bg: 'bg-indigo-500/20', text: 'text-indigo-400' },
     };
 
-    const LeaderCard = ({ icon: Icon, title, data, color, unit = '' }: any) => {
+    const LeaderCard = ({ icon: Icon, title, data, color, unit = '', statKey }: any) => {
         const classes = colorClasses[color] || colorClasses.blue;
         const iconPath = getProfessionIconPath(data.profession || 'Unknown');
+        const expanded = expandedLeader === statKey;
+        const rows = stats.leaderboards?.[statKey] || [];
+        const formatValue = (value: number) => {
+            if (unit === 'dist') return Math.round(value).toLocaleString();
+            return Math.round(value).toLocaleString();
+        };
         return (
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3 group hover:bg-white/10 transition-colors">
+            <div
+                className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3 group hover:bg-white/10 transition-colors cursor-pointer"
+                onClick={() => setExpandedLeader(expanded ? null : statKey)}
+            >
                 <div className="flex items-center gap-4">
                     <div className={`p-3 rounded-lg ${classes.bg} ${classes.text} shrink-0`}>
                         <Icon className="w-6 h-6" />
@@ -732,6 +823,30 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                     </div>
                     <div className="text-xs text-gray-500 truncate">{data.count ? `${data.count} logs` : '-'}</div>
                 </div>
+                {expanded && (
+                    <div className="border-t border-white/5 pt-3 space-y-2">
+                        {rows.length === 0 ? (
+                            <div className="text-xs text-gray-500 italic">No data available</div>
+                        ) : (
+                            <div className="max-h-48 overflow-y-auto pr-1 space-y-1">
+                                {rows.map((row: any) => (
+                                    <div key={`${statKey}-${row.rank}-${row.account}`} className="flex items-center gap-2 text-xs text-gray-300">
+                                        <div className="w-6 text-right text-gray-500">{row.rank}</div>
+                                        {getProfessionIconPath(row.profession) && (
+                                            <img
+                                                src={getProfessionIconPath(row.profession) as string}
+                                                alt={row.profession}
+                                                className="w-4 h-4 shrink-0"
+                                            />
+                                        )}
+                                        <div className="flex-1 truncate">{row.account}</div>
+                                        <div className="text-gray-400 font-mono">{formatValue(row.value)}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         );
     };
@@ -947,15 +1062,15 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        <LeaderCard icon={HelpingHand} title="Down Contribution" data={stats.maxDownContrib} color="red" />
-                        <LeaderCard icon={Shield} title="Total Barrier" data={stats.maxBarrier} color="yellow" />
-                        <LeaderCard icon={Activity} title="Total Healing" data={stats.maxHealing} color="green" />
-                        <LeaderCard icon={Wind} title="Total Dodges" data={stats.maxDodges} color="cyan" />
-                        <LeaderCard icon={Zap} title="Total Strips" data={stats.maxStrips} color="purple" />
-                        <LeaderCard icon={Flame} title="Total Cleanses" data={stats.maxCleanses} color="blue" />
-                        <LeaderCard icon={Hammer} title="Total CC" data={stats.maxCC} color="pink" />
-                        <LeaderCard icon={ShieldCheck} title="Total Stab Gen" data={stats.maxStab} color="cyan" />
-                        <LeaderCard icon={Crosshair} title="Closest to Tag" data={stats.closestToTag} color="indigo" unit="dist" />
+                        <LeaderCard icon={HelpingHand} title="Down Contribution" data={stats.maxDownContrib} color="red" statKey="downContrib" />
+                        <LeaderCard icon={Shield} title="Total Barrier" data={stats.maxBarrier} color="yellow" statKey="barrier" />
+                        <LeaderCard icon={Activity} title="Total Healing" data={stats.maxHealing} color="green" statKey="healing" />
+                        <LeaderCard icon={Wind} title="Total Dodges" data={stats.maxDodges} color="cyan" statKey="dodges" />
+                        <LeaderCard icon={Zap} title="Total Strips" data={stats.maxStrips} color="purple" statKey="strips" />
+                        <LeaderCard icon={Flame} title="Total Cleanses" data={stats.maxCleanses} color="blue" statKey="cleanses" />
+                        <LeaderCard icon={Hammer} title="Total CC" data={stats.maxCC} color="pink" statKey="cc" />
+                        <LeaderCard icon={ShieldCheck} title="Total Stab Gen" data={stats.maxStab} color="cyan" statKey="stability" />
+                        <LeaderCard icon={Crosshair} title="Closest to Tag" data={stats.closestToTag} color="indigo" unit="dist" statKey="closestToTag" />
                     </div>
                 </div>
 
