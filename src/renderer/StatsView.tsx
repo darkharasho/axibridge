@@ -278,7 +278,9 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
         let maxDps = { ...emptyLeader };
         let maxRevives = { ...emptyLeader };
 
-        playerStats.forEach(stat => {
+        const playerEntries = Array.from(playerStats.entries()).map(([key, stat]) => ({ key, stat }));
+
+        playerEntries.forEach(({ stat }) => {
             const pInfo = { player: stat.account, count: stat.logsJoined, profession: stat.profession || 'Unknown' };
 
             if (stat.downContrib > maxDownContrib.value) maxDownContrib = { value: stat.downContrib, ...pInfo };
@@ -304,6 +306,43 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
 
         if (closestToTag.value === 999999) closestToTag.value = 0;
 
+        const buildRankMap = (items: Array<{ key: string; value: number }>, higherIsBetter: boolean) => {
+            const sorted = [...items].sort((a, b) => {
+                const diff = higherIsBetter ? b.value - a.value : a.value - b.value;
+                if (diff !== 0) return diff;
+                return a.key.localeCompare(b.key);
+            });
+            const ranks: Record<string, number> = {};
+            let lastValue: number | null = null;
+            let lastRank = 0;
+            sorted.forEach((item, index) => {
+                if (lastValue === null || item.value !== lastValue) {
+                    lastRank = index + 1;
+                    lastValue = item.value;
+                }
+                ranks[item.key] = lastRank;
+            });
+            return ranks;
+        };
+
+        const rankMaps = {
+            downContrib: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.downContrib })), true),
+            healing: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.healing })), true),
+            cleanses: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.cleanses })), true),
+            strips: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.strips })), true),
+            stability: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.stab })), true),
+            cc: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.cc })), true),
+            revives: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.revives })), true),
+            participation: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.logsJoined })), true),
+            dodging: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.dodges })), true),
+            dps: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.dps })), true),
+            damage: buildRankMap(playerEntries.map(({ key, stat }) => ({ key, value: stat.damage })), true),
+            distanceToTag: buildRankMap(playerEntries.map(({ key, stat }) => ({
+                key,
+                value: stat.distCount > 0 ? stat.totalDist / stat.distCount : Number.POSITIVE_INFINITY
+            })).filter(item => Number.isFinite(item.value)), false)
+        };
+
         // --- Calculate MVP ---
         // --- Calculate MVP ---
         let mvp = {
@@ -317,8 +356,16 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
         };
 
         let totalScoreSum = 0;
+        const scoreBreakdown: Array<{
+            player: string;
+            account: string;
+            profession: string;
+            score: number;
+            reason: string;
+            topStats: { name: string, val: string, ratio: number }[];
+        }> = [];
 
-        playerStats.forEach(stat => {
+        playerEntries.forEach(({ key, stat }) => {
             let score = 0;
             const contributions: { name: string, ratio: number, value: number, fmt: string, rank: number }[] = [];
 
@@ -335,72 +382,86 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
 
             const weights = mvpWeights || DEFAULT_MVP_WEIGHTS;
 
-            const check = (val: number, maxVal: number, name: string, weight = 1) => {
+            const check = (val: number, maxVal: number, name: string, weight = 1, rankMap?: Record<string, number>) => {
                 if (maxVal > 0) {
                     const ratio = val / maxVal;
                     score += ratio * weight;
-                    const rank = Math.round(1 / Math.max(ratio, 0.0001));
+                    const rank = rankMap?.[key] || 0;
                     contributions.push({ name, ratio, value: val, fmt: formatCompactNumber(val), rank });
                 }
             };
-            const checkLowerIsBetter = (val: number, bestVal: number, name: string, weight = 1) => {
+            const checkLowerIsBetter = (val: number, bestVal: number, name: string, weight = 1, rankMap?: Record<string, number>) => {
                 if (bestVal > 0 && val > 0) {
                     const ratio = bestVal / val;
                     score += ratio * weight;
-                    const rank = Math.round(1 / Math.max(ratio, 0.0001));
+                    const rank = rankMap?.[key] || 0;
                     contributions.push({ name, ratio, value: val, fmt: formatCompactNumber(val), rank });
                 }
             };
 
-            check(stat.downContrib, maxDownContrib.value, 'Down Contribution', weights.downContribution);
-            check(stat.healing, maxHealing.value, 'Healing', weights.healing);
-            check(stat.cleanses, maxCleanses.value, 'Cleanses', weights.cleanses);
-            check(stat.strips, maxStrips.value, 'Strips', weights.strips);
-            check(stat.stab, maxStab.value, 'Stability', weights.stability);
-            check(stat.cc, maxCC.value, 'CC', weights.cc);
-            check(stat.revives, maxRevives.value, 'Revives', weights.revives);
-            check(stat.logsJoined, maxLogsJoined, 'Participation', weights.participation);
-            check(stat.dodges, maxDodges.value, 'Dodging', weights.dodging);
-            check(stat.dps, maxDps.value, 'DPS', weights.dps);
-            check(stat.damage, maxDamage.value, 'Damage', weights.damage);
+            check(stat.downContrib, maxDownContrib.value, 'Down Contribution', weights.downContribution, rankMaps.downContrib);
+            check(stat.healing, maxHealing.value, 'Healing', weights.healing, rankMaps.healing);
+            check(stat.cleanses, maxCleanses.value, 'Cleanses', weights.cleanses, rankMaps.cleanses);
+            check(stat.strips, maxStrips.value, 'Strips', weights.strips, rankMaps.strips);
+            check(stat.stab, maxStab.value, 'Stability', weights.stability, rankMaps.stability);
+            check(stat.cc, maxCC.value, 'CC', weights.cc, rankMaps.cc);
+            check(stat.revives, maxRevives.value, 'Revives', weights.revives, rankMaps.revives);
+            check(stat.logsJoined, maxLogsJoined, 'Participation', weights.participation, rankMaps.participation);
+            check(stat.dodges, maxDodges.value, 'Dodging', weights.dodging, rankMaps.dodging);
+            check(stat.dps, maxDps.value, 'DPS', weights.dps, rankMaps.dps);
+            check(stat.damage, maxDamage.value, 'Damage', weights.damage, rankMaps.damage);
             if (stat.distCount > 0) {
                 const avgDist = stat.totalDist / stat.distCount;
-                checkLowerIsBetter(avgDist, closestToTag.value, 'Distance to Tag', weights.distanceToTag);
+                checkLowerIsBetter(avgDist, closestToTag.value, 'Distance to Tag', weights.distanceToTag, rankMaps.distanceToTag);
             }
 
             totalScoreSum += score;
 
-            if (score > mvp.score) {
-                // Determine reason based on top contributions
-                contributions.sort((a, b) => b.ratio - a.ratio);
-                const top3 = contributions.slice(0, 3);
+            contributions.sort((a, b) => b.ratio - a.ratio);
+            const top3 = contributions.slice(0, 3);
 
-                let reason = 'Consistent all-round performance';
-                if (top3.length > 0) {
-                    const best = top3[0];
-                    if (best.ratio >= 1) {
-                        reason = `Top Rank in ${best.name}`;
-                        if (top3.length > 1 && top3[1].ratio > 0.8) {
-                            reason += ` & High ${top3[1].name}`;
-                        }
-                    } else if (best.ratio > 0.8) {
-                        reason = `High ${best.name} & ${top3[1]?.name || 'Performance'}`;
-                    } else {
-                        reason = `Versatile: ${best.name}, ${top3[1]?.name}`;
+            let reason = 'Consistent all-round performance';
+            if (top3.length > 0) {
+                const best = top3[0];
+                if (best.ratio >= 1) {
+                    reason = `Top Rank in ${best.name}`;
+                    if (top3.length > 1 && top3[1].ratio > 0.8) {
+                        reason += ` & High ${top3[1].name}`;
                     }
+                } else if (best.ratio > 0.8) {
+                    reason = `High ${best.name} & ${top3[1]?.name || 'Performance'}`;
+                } else {
+                    reason = `Versatile: ${best.name}, ${top3[1]?.name}`;
                 }
-
-                mvp = {
-                    player: stat.name,
-                    account: stat.account,
-                    reason,
-                    score,
-                    profession: stat.profession,
-                    color: getProfessionColor(stat.profession),
-                    topStats: top3.map(c => ({ name: c.name, val: c.fmt, ratio: c.rank }))
-                };
             }
+
+            const summary = {
+                player: stat.name,
+                account: stat.account,
+                profession: stat.profession,
+                score,
+                reason,
+                topStats: top3.map(c => ({ name: c.name, val: c.fmt, ratio: c.rank }))
+            };
+
+            scoreBreakdown.push(summary);
         });
+
+        scoreBreakdown.sort((a, b) => b.score - a.score);
+        const silver = scoreBreakdown[1];
+        const bronze = scoreBreakdown[2];
+        if (scoreBreakdown[0]) {
+            const top = scoreBreakdown[0];
+            mvp = {
+                player: top.player,
+                account: top.account,
+                reason: top.reason,
+                score: top.score,
+                profession: top.profession,
+                color: getProfessionColor(top.profession),
+                topStats: top.topStats
+            };
+        }
 
         const avgMvpScore = playerStats.size > 0 ? totalScoreSum / playerStats.size : 0;
 
@@ -591,6 +652,8 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
 
             maxDodges,
             mvp,
+            silver,
+            bronze,
             avgMvpScore
         };
     }, [logs]);
@@ -820,6 +883,67 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        {[
+                            { label: 'Silver', data: stats.silver, color: 'from-slate-400/20 to-slate-700/10', accent: 'text-slate-200' },
+                            { label: 'Bronze', data: stats.bronze, color: 'from-orange-500/25 to-amber-900/15', accent: 'text-orange-200' }
+                        ].map((entry) => (
+                            <div
+                                key={entry.label}
+                                className={`bg-gradient-to-r ${entry.color} border border-white/10 rounded-2xl p-4`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className={`text-xs uppercase tracking-widest font-semibold ${entry.accent}`}>
+                                        {entry.label} MVP
+                                    </div>
+                                    <div className="text-xs text-gray-500 font-mono">
+                                        {entry.data?.score ? entry.data.score.toFixed(1) : '-'}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    {entry.data && getProfessionIconPath(entry.data.profession) && (
+                                        <img
+                                            src={getProfessionIconPath(entry.data.profession) as string}
+                                            alt={entry.data.profession}
+                                            className="w-6 h-6"
+                                        />
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-lg font-semibold text-white truncate">
+                                            {entry.data?.account || '—'}
+                                        </div>
+                                        <div className="text-xs text-gray-400 truncate">
+                                            {entry.data?.profession || 'Unknown'}
+                                        </div>
+                                    </div>
+                                    {entry.data?.topStats?.length ? (
+                                        <div className="flex flex-col items-end gap-1 text-[10px] text-gray-300">
+                                            {entry.data.topStats.map((stat: any, idx: number) => {
+                                                const rank = Math.max(1, Math.round(stat.ratio));
+                                                const mod100 = rank % 100;
+                                                const mod10 = rank % 10;
+                                                const suffix = mod100 >= 11 && mod100 <= 13
+                                                    ? 'th'
+                                                    : mod10 === 1
+                                                        ? 'st'
+                                                        : mod10 === 2
+                                                            ? 'nd'
+                                                            : mod10 === 3
+                                                                ? 'rd'
+                                                                : 'th';
+                                                return (
+                                                    <span key={idx} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+                                                        {stat.name} {rank}{suffix}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : null}
+                                </div>
+                            </div>
+                        ))}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
