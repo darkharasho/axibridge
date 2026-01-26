@@ -1,3 +1,30 @@
+# Release Notes v1.4.0
+
+## ✨ New Features
+
+### 🧊 What’s New Modal
+- New glassmorphic **What’s New** modal that appears knowing on first launch after an update
+- Full markdown renderer with tables and working links
+- Manual access via Settings → **What’s New**
+
+### 🖼️ Discord Notifications: Tiled (Beta)
+- New **Tiled** notification mode for Discord
+- Each stat table renders as its own image tile, optimized for Discord previews
+- Incoming stats grouped into a single post with a 2x2 grid
+
+### ⚙️ Top List Control
+- Add a **Max rows per list** setting (1–10) for top lists
+- Default-Disabled extra stats expanded (resurrects, distance to tag, kills, downs, breakbar damage, damage taken, deaths, dodges)
+
+## 🛠 Improvements & Fixes
+
+### 💬 Discord Embed Formatting
+- Smarter embed splitting so a top 10 list never gets split across embeds
+- Inline field padding to keep 2-column layout consistent
+- Distance to tag now uses commander distance when available for accuracy
+
+---
+
 # Release Notes v1.3.3
 
 ## ✨ New Features
