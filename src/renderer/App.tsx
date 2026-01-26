@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as ImageIcon, Layout, RefreshCw, Trophy, ChevronDown } from 'lucide-react';
+import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as ImageIcon, Layout, RefreshCw, Trophy, ChevronDown, Grid3X3 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { StatsView } from './StatsView';
@@ -13,7 +13,7 @@ import { DEFAULT_EMBED_STATS, IEmbedStatSettings } from './global.d';
 
 function App() {
     const [logDirectory, setLogDirectory] = useState<string | null>(null);
-    const [notificationType, setNotificationType] = useState<'image' | 'embed'>('image');
+    const [notificationType, setNotificationType] = useState<'image' | 'image-beta' | 'embed'>('image');
     const [logs, setLogs] = useState<ILogData[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
@@ -44,6 +44,25 @@ function App() {
     const [webhookModalOpen, setWebhookModalOpen] = useState(false);
 
     // Persistence removed
+
+    const enabledTopListCount = [
+        embedStatSettings.showDamage,
+        embedStatSettings.showDownContribution,
+        embedStatSettings.showHealing,
+        embedStatSettings.showBarrier,
+        embedStatSettings.showCleanses,
+        embedStatSettings.showBoonStrips,
+        embedStatSettings.showCC,
+        embedStatSettings.showStability,
+        embedStatSettings.showResurrects,
+        embedStatSettings.showDistanceToTag,
+        embedStatSettings.showKills,
+        embedStatSettings.showDowns,
+        embedStatSettings.showBreakbarDamage,
+        embedStatSettings.showDamageTaken,
+        embedStatSettings.showDeaths,
+        embedStatSettings.showDodges
+    ].filter(Boolean).length;
 
 
     // Stats calculation
@@ -76,7 +95,7 @@ function App() {
                 setSelectedWebhookId(settings.selectedWebhookId);
             }
             if (settings.embedStatSettings) {
-                setEmbedStatSettings(settings.embedStatSettings);
+                setEmbedStatSettings({ ...DEFAULT_EMBED_STATS, ...settings.embedStatSettings });
             }
 
             // Load app version
@@ -118,30 +137,92 @@ function App() {
 
             // Wait for render
             setTimeout(async () => {
-                const node = document.getElementById(`log-screenshot-${data.id || data.filePath}`);
-                if (node) {
+                const mode = (data as any)?.mode || 'image';
+                if (mode === 'image-beta') {
+                    const nodes = Array.from(document.querySelectorAll(`[data-screenshot-id="${data.id || data.filePath}"]`));
+                    if (nodes.length === 0) {
+                        console.error("Screenshot nodes not found");
+                        setScreenshotData(null);
+                        return;
+                    }
                     try {
-                        const dataUrl = await toPng(node, {
-                            backgroundColor: '#0f172a', // Match bg-slate-900
-                            quality: 0.95,
-                            pixelRatio: 2 // High quality
-                        });
-
-                        // Convert dataUrl to Uint8Array
-                        const resp = await fetch(dataUrl);
-                        const blob = await resp.blob();
-                        const arrayBuffer = await blob.arrayBuffer();
-                        const buffer = new Uint8Array(arrayBuffer);
-
-                        window.electronAPI.sendScreenshot(data.id, buffer);
-                        setScreenshotData(null); // Cleanup
+                        const buffers: { group: string; buffer: Uint8Array }[] = [];
+                        for (const node of nodes) {
+                            const transparent = (node as HTMLElement).dataset.screenshotTransparent === 'true';
+                            const dataUrl = await toPng(node as HTMLElement, {
+                                backgroundColor: transparent ? undefined : '#0f172a',
+                                quality: 0.95,
+                                pixelRatio: 3
+                            });
+                            const resp = await fetch(dataUrl);
+                            const blob = await resp.blob();
+                            const arrayBuffer = await blob.arrayBuffer();
+                            const group = (node as HTMLElement).dataset.screenshotGroup || 'default';
+                            buffers.push({ group, buffer: new Uint8Array(arrayBuffer) });
+                        }
+                        const groups: Uint8Array[][] = [];
+                        const incomingBuffers: Uint8Array[] = [];
+                        let currentPair: Uint8Array[] = [];
+                        let i = 0;
+                        while (i < buffers.length) {
+                            const entry = buffers[i];
+                            if (entry.group === 'incoming') {
+                                while (i < buffers.length && buffers[i].group === 'incoming') {
+                                    incomingBuffers.push(buffers[i].buffer);
+                                    i += 1;
+                                }
+                                if (currentPair.length > 0) {
+                                    groups.push(currentPair);
+                                    currentPair = [];
+                                }
+                                if (incomingBuffers.length > 0) {
+                                    groups.push([...incomingBuffers]);
+                                    incomingBuffers.length = 0;
+                                }
+                                continue;
+                            }
+                            currentPair.push(entry.buffer);
+                            if (currentPair.length === 2) {
+                                groups.push(currentPair);
+                                currentPair = [];
+                            }
+                            i += 1;
+                        }
+                        if (currentPair.length > 0) {
+                            groups.push(currentPair);
+                        }
+                        window.electronAPI.sendScreenshotsGroups(data.id, groups);
+                        setScreenshotData(null);
                     } catch (err) {
                         console.error("Screenshot failed:", err);
                         setScreenshotData(null);
                     }
                 } else {
-                    console.error("Screenshot node not found");
-                    setScreenshotData(null);
+                    const node = document.getElementById(`log-screenshot-${data.id || data.filePath}`);
+                    if (node) {
+                        try {
+                            const dataUrl = await toPng(node, {
+                                backgroundColor: '#0f172a', // Match bg-slate-900
+                                quality: 0.95,
+                                pixelRatio: 3 // Higher fidelity for Discord
+                            });
+
+                            // Convert dataUrl to Uint8Array
+                            const resp = await fetch(dataUrl);
+                            const blob = await resp.blob();
+                            const arrayBuffer = await blob.arrayBuffer();
+                            const buffer = new Uint8Array(arrayBuffer);
+
+                            window.electronAPI.sendScreenshot(data.id, buffer);
+                            setScreenshotData(null); // Cleanup
+                        } catch (err) {
+                            console.error("Screenshot failed:", err);
+                            setScreenshotData(null);
+                        }
+                    } else {
+                        console.error("Screenshot node not found");
+                        setScreenshotData(null);
+                    }
                 }
             }, 800);
         });
@@ -409,26 +490,41 @@ function App() {
 
                                     <div>
                                         <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 block">Notification Type</label>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setNotificationType('image');
+                                                        handleUpdateSettings({ discordNotificationType: 'image' });
+                                                    }}
+                                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'image' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                                                >
+                                                    <ImageIcon className="w-4 h-4" />
+                                                    <span className="text-sm font-medium">Image</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setNotificationType('embed');
+                                                        handleUpdateSettings({ discordNotificationType: 'embed' });
+                                                    }}
+                                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'embed' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                                                >
+                                                    <Layout className="w-4 h-4" />
+                                                    <span className="text-sm font-medium">Embed</span>
+                                                </button>
+                                            </div>
                                             <button
                                                 onClick={() => {
-                                                    setNotificationType('image');
-                                                    handleUpdateSettings({ discordNotificationType: 'image' });
+                                                    setNotificationType('image-beta');
+                                                    handleUpdateSettings({ discordNotificationType: 'image-beta' });
                                                 }}
-                                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'image' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'image-beta' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
                                             >
-                                                <ImageIcon className="w-4 h-4" />
-                                                <span className="text-sm font-medium">Image</span>
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setNotificationType('embed');
-                                                    handleUpdateSettings({ discordNotificationType: 'embed' });
-                                                }}
-                                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'embed' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
-                                            >
-                                                <Layout className="w-4 h-4" />
-                                                <span className="text-sm font-medium">Embed</span>
+                                                <Grid3X3 className="w-4 h-4" />
+                                                <span className="text-sm font-medium">Tiled</span>
+                                                <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40">
+                                                    Beta
+                                                </span>
                                             </button>
                                         </div>
                                     </div>
@@ -549,14 +645,86 @@ function App() {
 
             {/* Hidden Screenshot Container */}
             <div className="fixed top-[-9999px] left-[-9999px] pointer-events-none opacity-0 overflow-hidden">
-                {screenshotData && (
-                    <ExpandableLogCard
-                        log={screenshotData}
-                        isExpanded={true}
-                        onToggle={() => { }}
-                        screenshotMode={true}
-                        embedStatSettings={embedStatSettings}
-                    />
+                {screenshotData && (screenshotData as any).mode === 'image-beta' ? (
+                    <>
+                        {embedStatSettings.showSquadSummary && (
+                            <ExpandableLogCard
+                                log={screenshotData}
+                                isExpanded={true}
+                                onToggle={() => { }}
+                                screenshotMode={true}
+                                screenshotSection={{ type: 'tile', tileKind: 'summary', tileId: 'squad' }}
+                                embedStatSettings={embedStatSettings}
+                            />
+                        )}
+                        {embedStatSettings.showEnemySummary && (
+                            <ExpandableLogCard
+                                log={screenshotData}
+                                isExpanded={true}
+                                onToggle={() => { }}
+                                screenshotMode={true}
+                                screenshotSection={{ type: 'tile', tileKind: 'summary', tileId: 'enemy' }}
+                                embedStatSettings={embedStatSettings}
+                            />
+                        )}
+                        {embedStatSettings.showIncomingStats && (
+                            <>
+                                <ExpandableLogCard
+                                    log={screenshotData}
+                                    isExpanded={true}
+                                    onToggle={() => { }}
+                                    screenshotMode={true}
+                                    screenshotSection={{ type: 'tile', tileKind: 'incoming', tileId: 'incoming-attacks' }}
+                                    embedStatSettings={embedStatSettings}
+                                />
+                                <ExpandableLogCard
+                                    log={screenshotData}
+                                    isExpanded={true}
+                                    onToggle={() => { }}
+                                    screenshotMode={true}
+                                    screenshotSection={{ type: 'tile', tileKind: 'incoming', tileId: 'incoming-cc' }}
+                                    embedStatSettings={embedStatSettings}
+                                />
+                                <ExpandableLogCard
+                                    log={screenshotData}
+                                    isExpanded={true}
+                                    onToggle={() => { }}
+                                    screenshotMode={true}
+                                    screenshotSection={{ type: 'tile', tileKind: 'incoming', tileId: 'incoming-strips' }}
+                                    embedStatSettings={embedStatSettings}
+                                />
+                                <ExpandableLogCard
+                                    log={screenshotData}
+                                    isExpanded={true}
+                                    onToggle={() => { }}
+                                    screenshotMode={true}
+                                    screenshotSection={{ type: 'tile', tileKind: 'incoming', tileId: 'incoming-blank' }}
+                                    embedStatSettings={embedStatSettings}
+                                />
+                            </>
+                        )}
+                        {Array.from({ length: enabledTopListCount }, (_, index) => (
+                            <ExpandableLogCard
+                                key={`toplist-tile-${index}`}
+                                log={screenshotData}
+                                isExpanded={true}
+                                onToggle={() => { }}
+                                screenshotMode={true}
+                                screenshotSection={{ type: 'tile', tileKind: 'toplist', tileIndex: index }}
+                                embedStatSettings={embedStatSettings}
+                            />
+                        ))}
+                    </>
+                ) : (
+                    screenshotData && (
+                        <ExpandableLogCard
+                            log={screenshotData}
+                            isExpanded={true}
+                            onToggle={() => { }}
+                            screenshotMode={true}
+                            embedStatSettings={embedStatSettings}
+                        />
+                    )
                 )}
             </div>
 

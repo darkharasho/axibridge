@@ -130,7 +130,7 @@ function createWindow() {
             preload: path.join(__dirname, '../preload/index.js'),
         },
         width: bounds ? bounds.width : 1200,
-        height: bounds ? bounds.height : 800,
+        height: bounds ? bounds.height : 860,
         frame: false,
         titleBarStyle: 'hidden',
         backgroundColor: '#000000',
@@ -211,9 +211,9 @@ function createWindow() {
                 console.log(`[Main] Preparing Discord delivery. Configured type: ${notificationType}`);
 
                 try {
-                    if (notificationType === 'image') {
+                    if (notificationType === 'image' || notificationType === 'image-beta') {
                         pendingDiscordLogs.set(result.id, { result: { ...result, filePath }, jsonDetails });
-                        win?.webContents.send('request-screenshot', { ...result, filePath, details: jsonDetails });
+                        win?.webContents.send('request-screenshot', { ...result, filePath, details: jsonDetails, mode: notificationType });
                     } else {
                         await discord?.sendLog({ ...result, filePath, mode: 'embed' }, jsonDetails);
                     }
@@ -442,7 +442,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any }) => {
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -535,6 +535,30 @@ if (!gotTheLock) {
                 await discord.sendLog({ ...data.result, imageBuffer: buffer, mode: 'image' }, data.jsonDetails);
                 pendingDiscordLogs.delete(logId);
             }
+        });
+
+        ipcMain.on('send-screenshots', async (_event, logId: string, buffers: Uint8Array[]) => {
+            const data = pendingDiscordLogs.get(logId);
+            if (!data || !discord) return;
+            const chunks: Uint8Array[][] = [];
+            for (let i = 0; i < buffers.length; i += 2) {
+                chunks.push(buffers.slice(i, i + 2));
+            }
+            for (let i = 0; i < chunks.length; i += 1) {
+                const suppressContent = i > 0;
+                await discord.sendLog({ ...data.result, imageBuffers: chunks[i], mode: 'image', suppressContent }, data.jsonDetails);
+            }
+            pendingDiscordLogs.delete(logId);
+        });
+
+        ipcMain.on('send-screenshots-groups', async (_event, logId: string, groups: Uint8Array[][]) => {
+            const data = pendingDiscordLogs.get(logId);
+            if (!data || !discord) return;
+            for (let i = 0; i < groups.length; i += 1) {
+                const suppressContent = i > 0;
+                await discord.sendLog({ ...data.result, imageBuffers: groups[i], mode: 'image', suppressContent }, data.jsonDetails);
+            }
+            pendingDiscordLogs.delete(logId);
         });
 
         ipcMain.on('send-stats-screenshot', async (_event, buffer: Uint8Array) => {

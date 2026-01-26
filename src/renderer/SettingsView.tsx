@@ -79,7 +79,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved }: SettingsViewP
             const settings = await window.electronAPI.getSettings();
             setDpsReportToken(settings.dpsReportToken || '');
             setCloseBehavior(settings.closeBehavior || 'minimize');
-            setEmbedStats(settings.embedStatSettings || DEFAULT_EMBED_STATS);
+            setEmbedStats({ ...DEFAULT_EMBED_STATS, ...(settings.embedStatSettings || {}) });
             setHasLoaded(true);
         };
         loadSettings();

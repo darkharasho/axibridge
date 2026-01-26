@@ -10,9 +10,18 @@ interface ExpandableLogCardProps {
     onToggle: () => void;
     screenshotMode?: boolean;
     embedStatSettings?: IEmbedStatSettings;
+    screenshotSection?: {
+        type: 'summary' | 'toplists' | 'tile';
+        start?: number;
+        count?: number;
+        showHeader?: boolean;
+        tileKind?: 'summary' | 'incoming' | 'toplist';
+        tileId?: 'squad' | 'enemy' | 'incoming-attacks' | 'incoming-cc' | 'incoming-strips';
+        tileIndex?: number;
+    };
 }
 
-export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, embedStatSettings }: ExpandableLogCardProps) {
+export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, embedStatSettings, screenshotSection }: ExpandableLogCardProps) {
     const details = log.details || {};
     const players: Player[] = details.players || [];
     const targets = details.targets || [];
@@ -149,7 +158,7 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, e
     const maxTopRows = clampTopRows(settings.maxTopListRows ?? 5);
 
     // Helper for rendering top lists
-    const TopList = ({ title, sortFn, valFn, fmtVal }: { title: string, sortFn: (a: any, b: any) => number, valFn: (p: any) => any, fmtVal: (v: any) => string }) => {
+    const TopList = ({ title, sortFn, valFn, fmtVal, fullHeight }: { title: string, sortFn: (a: any, b: any) => number, valFn: (p: any) => any, fmtVal: (v: any) => string, fullHeight?: boolean }) => {
         const top = [...players].sort(sortFn).slice(0, maxTopRows);
         const hasData = top.some(p => {
             const val = valFn(p);
@@ -157,10 +166,10 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, e
         });
 
         return (
-            <div className="bg-white/5 rounded-lg p-3 border border-white/5 shadow-inner">
-                <h5 className="font-semibold text-gray-200 mb-2 border-b border-white/10 pb-1 text-[11px] uppercase tracking-tighter">{title}</h5>
+            <div className={`bg-white/5 rounded-lg p-3 border border-white/5 shadow-inner ${fullHeight ? 'h-full' : ''}`}>
+                <h5 className={`font-semibold text-gray-200 mb-2 border-b border-white/10 pb-1 uppercase tracking-tighter ${fullHeight ? 'text-sm' : 'text-[11px]'}`}>{title}</h5>
                 {hasData ? (
-                    <div className="font-mono text-[10px] space-y-1 text-gray-300">
+                    <div className={`font-mono space-y-1 text-gray-300 ${fullHeight ? 'text-base' : 'text-[10px]'}`}>
                         {top.map((p, i) => {
                             const val = valFn(p);
                             if (val <= 0 && (typeof val !== 'string' || val === '0')) return null;
@@ -298,28 +307,146 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, e
     ];
 
     const visibleTopLists = topListItems.filter(item => item.enabled);
+    const showSummarySection = settings.showSquadSummary || settings.showEnemySummary;
+    const showIncomingSection = settings.showIncomingStats;
+    const showHeader = screenshotSection?.showHeader ?? true;
+    const topListSliceStart = screenshotSection?.start || 0;
+    const topListSliceCount = screenshotSection?.count || visibleTopLists.length;
+    const topListSlice = visibleTopLists.slice(topListSliceStart, topListSliceStart + topListSliceCount);
+    const tileTopList = screenshotSection?.tileKind === 'toplist' && screenshotSection.tileIndex !== undefined
+        ? visibleTopLists[screenshotSection.tileIndex]
+        : undefined;
+
+    const renderSquadSummary = (compact?: boolean, fullHeight?: boolean) => (
+        <div className={`bg-white/5 rounded-xl ${compact ? 'p-3' : 'p-4'} border border-white/10 shadow-lg ${fullHeight ? 'h-full' : ''}`}>
+            <h5 className={`font-black text-green-400 mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'} border-b border-green-400/20 pb-2`}>Squad Summary</h5>
+            <div className={`font-mono text-gray-200 space-y-2 text-left ${fullHeight ? 'text-lg' : 'text-sm'}`}>
+                <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{squadPlayers.length} {nonSquadPlayers.length > 0 ? `(+${nonSquadPlayers.length})` : ''}</span></div>
+                <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{squadDmg.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{Math.round(squadDps).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{squadDowns}</span></div>
+                <div className="flex justify-between"><span>Deaths:</span> <span className="text-white font-bold">{squadDeaths}</span></div>
+            </div>
+        </div>
+    );
+
+    const renderEnemySummary = (compact?: boolean, fullHeight?: boolean) => (
+        <div className={`bg-white/5 rounded-xl ${compact ? 'p-3' : 'p-4'} border border-white/10 shadow-lg ${fullHeight ? 'h-full' : ''}`}>
+            <h5 className={`font-black text-red-400 mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'} border-b border-red-400/20 pb-2`}>Enemy Summary</h5>
+            <div className={`font-mono text-gray-200 space-y-2 text-left ${fullHeight ? 'text-lg' : 'text-sm'}`}>
+                <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{enemyCount}</span></div>
+                <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{totalDmgTaken.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{enemyDps.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{enemyDowns}</span></div>
+                <div className="flex justify-between"><span>Kills:</span> <span className="text-white font-bold">{enemyDeaths}</span></div>
+            </div>
+        </div>
+    );
+
+    const renderIncoming = (type: 'attacks' | 'cc' | 'strips', fullHeight?: boolean) => {
+        const label = type === 'attacks' ? 'Incoming Attack' : type === 'cc' ? 'Incoming CC' : 'Incoming Strips';
+        const miss = type === 'attacks' ? totalMiss : type === 'cc' ? totalCCMissed : totalStripsMissed;
+        const block = type === 'attacks' ? totalBlock : type === 'cc' ? totalCCBlocked : totalStripsBlocked;
+        const total = type === 'attacks' ? totalMiss + totalBlock + totalEvade + totalDodge : type === 'cc' ? totalCCTaken : totalStripsTaken;
+        const color = type === 'attacks' ? 'text-blue-400' : type === 'cc' ? 'text-purple-400' : 'text-orange-400';
+        return (
+            <div className={`bg-white/5 rounded-xl p-4 border border-white/10 ${fullHeight ? 'h-full' : ''}`}>
+                <h5 className={`font-bold ${color} mb-2 uppercase tracking-tight ${fullHeight ? 'text-[8px]' : 'text-[10px]'}`}>{label}</h5>
+                <div className={`font-mono text-gray-300 text-left space-y-1 ${fullHeight ? 'text-[9px]' : 'text-xs'}`}>
+                    <div className="flex justify-between text-gray-500"><span>Miss:</span> <span>{miss}</span></div>
+                    <div className="flex justify-between text-gray-500"><span>Block:</span> <span>{block}</span></div>
+                    <div className="flex justify-between text-white font-bold pt-1 border-t border-white/5"><span>Total:</span> <span>{total}</span></div>
+                </div>
+            </div>
+        );
+    };
 
     if (screenshotMode) {
-        return (
-            <div id={`log-screenshot-${log.id || log.filePath}`} className="bg-slate-900 border border-white/20 rounded-2xl overflow-hidden w-[900px] shadow-2xl p-0 m-0">
-                <div className="p-6 flex items-center gap-6 bg-white/5 border-b border-white/10">
-                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center border-2 ${hasError ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'}`}>
-                        <span className="font-bold text-lg uppercase">{hasError ? 'ERR' : 'LOG'}</span>
-                    </div>
-                    <div className="flex-1 min-w-0 text-left">
-                        <div className="flex justify-between items-start">
-                            <h4 className="text-2xl font-black text-white truncate leading-tight">{details.fightName || log.fightName || log.filePath.split(/[\\\/]/).pop()}</h4>
-                            <span className="text-lg text-blue-400 font-mono font-bold">{details.encounterDuration || log.encounterDuration || '--:--'}</span>
-                        </div>
-                        <div className="flex items-center gap-4 mt-2 text-sm font-medium text-gray-400">
-                            <span className="bg-white/5 px-2 py-0.5 rounded-md border border-white/10">{players.length} Players {nonSquadPlayers.length > 0 ? `(${squadPlayers.length} Squad + ${nonSquadPlayers.length} Others)` : ''}</span>
-                            <span className="text-gray-600">•</span>
-                            <span>{(log.uploadTime || details.uploadTime) ? new Date((log.uploadTime || details.uploadTime) * 1000).toLocaleTimeString() : 'Just now'}</span>
-                        </div>
+        if (screenshotSection?.type === 'tile') {
+            if (screenshotSection.tileKind === 'toplist' && !tileTopList) {
+                return null;
+            }
+            const tileContent = (() => {
+                if (screenshotSection.tileKind === 'summary') {
+                    if (screenshotSection.tileId === 'squad') return renderSquadSummary(true, true);
+                    if (screenshotSection.tileId === 'enemy') return renderEnemySummary(true, true);
+                }
+                if (screenshotSection.tileKind === 'incoming') {
+                    if (screenshotSection.tileId === 'incoming-attacks') return renderIncoming('attacks', true);
+                    if (screenshotSection.tileId === 'incoming-cc') return renderIncoming('cc', true);
+                    if (screenshotSection.tileId === 'incoming-strips') return renderIncoming('strips', true);
+                    if (screenshotSection.tileId === 'incoming-blank') {
+                        return (
+                            <img
+                                src="/img/Transparent.png"
+                                alt=""
+                                className="w-full h-full object-contain"
+                            />
+                        );
+                    }
+                }
+                if (screenshotSection.tileKind === 'toplist' && tileTopList) {
+                    return (
+                        <TopList
+                            title={tileTopList.title}
+                            sortFn={tileTopList.sortFn}
+                            valFn={tileTopList.valFn}
+                            fmtVal={tileTopList.fmtVal}
+                            fullHeight={true}
+                        />
+                    );
+                }
+                return null;
+            })();
+            if (!tileContent) return null;
+            const tileSizeClass = screenshotSection.tileKind === 'incoming'
+                ? 'w-[180px] h-[140px]'
+                : 'w-[360px] h-[360px]';
+            return (
+                <div
+                    data-screenshot-id={log.id || log.filePath}
+                    data-screenshot-group={screenshotSection.tileKind === 'incoming' ? 'incoming' : 'default'}
+                    data-screenshot-transparent={screenshotSection.tileId === 'incoming-blank' ? 'true' : undefined}
+                    className={`bg-transparent ${tileSizeClass} p-0 m-0`}
+                >
+                    <div className="w-full h-full">
+                        {tileContent}
                     </div>
                 </div>
+            );
+        }
+        if (screenshotSection?.type === 'summary' && !showSummarySection && !showIncomingSection) {
+            return null;
+        }
+        if (screenshotSection?.type === 'toplists' && topListSlice.length === 0) {
+            return null;
+        }
+        return (
+            <div
+                id={!screenshotSection ? `log-screenshot-${log.id || log.filePath}` : undefined}
+                data-screenshot-id={screenshotSection ? (log.id || log.filePath) : undefined}
+                className="bg-slate-900 border border-white/20 rounded-2xl overflow-hidden w-[1200px] shadow-2xl p-0 m-0"
+            >
+                {showHeader && (
+                    <div className="p-6 flex items-center gap-6 bg-white/5 border-b border-white/10">
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center border-2 ${hasError ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'}`}>
+                            <span className="font-bold text-lg uppercase">{hasError ? 'ERR' : 'LOG'}</span>
+                        </div>
+                        <div className="flex-1 min-w-0 text-left">
+                            <div className="flex justify-between items-start">
+                                <h4 className="text-2xl font-black text-white truncate leading-tight">{details.fightName || log.fightName || log.filePath.split(/[\\\/]/).pop()}</h4>
+                                <span className="text-lg text-blue-400 font-mono font-bold">{details.encounterDuration || log.encounterDuration || '--:--'}</span>
+                            </div>
+                            <div className="flex items-center gap-4 mt-2 text-sm font-medium text-gray-400">
+                                <span className="bg-white/5 px-2 py-0.5 rounded-md border border-white/10">{players.length} Players {nonSquadPlayers.length > 0 ? `(${squadPlayers.length} Squad + ${nonSquadPlayers.length} Others)` : ''}</span>
+                                <span className="text-gray-600">•</span>
+                                <span>{(log.uploadTime || details.uploadTime) ? new Date((log.uploadTime || details.uploadTime) * 1000).toLocaleTimeString() : 'Just now'}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <div className="p-6 space-y-6 bg-black/40">
-                    {(settings.showSquadSummary || settings.showEnemySummary) && (
+                    {(screenshotSection?.type !== 'toplists' && showSummarySection) && (
                         <div className="grid grid-cols-2 gap-4 text-base">
                             {settings.showSquadSummary && (
                                 <div className="bg-white/5 rounded-xl p-4 border border-white/10 shadow-lg">
@@ -347,7 +474,7 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, e
                             )}
                         </div>
                     )}
-                    {settings.showIncomingStats && (
+                    {(screenshotSection?.type !== 'toplists' && showIncomingSection) && (
                         <div className="grid grid-cols-3 gap-3">
                             <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                                 <h5 className="font-bold text-blue-400 mb-2 uppercase tracking-tight text-[10px]">Incoming Attack</h5>
@@ -375,9 +502,9 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, e
                             </div>
                         </div>
                     )}
-                    {visibleTopLists.length > 0 && (
+                    {(screenshotSection?.type !== 'summary' && topListSlice.length > 0) && (
                         <div className="grid grid-cols-2 gap-4">
-                            {visibleTopLists.map(item => (
+                            {topListSlice.map(item => (
                                 <TopList
                                     key={item.title}
                                     title={item.title}

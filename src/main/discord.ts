@@ -71,7 +71,7 @@ export class DiscordNotifier {
         this.embedStatSettings = { ...DEFAULT_EMBED_STATS, ...settings };
     }
 
-    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, mode?: 'image' | 'embed' }, jsonDetails?: any) {
+    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed' }, jsonDetails?: any) {
         if (!this.webhookUrl) {
             console.log("No webhook URL configured, skipping Discord notification.");
             return;
@@ -81,7 +81,7 @@ export class DiscordNotifier {
         console.log(`[Discord] sending log. Mode: ${mode}`);
 
         try {
-            if (mode === 'image' && logData.imageBuffer) {
+            if (mode === 'image' && (logData.imageBuffer || logData.imageBuffers)) {
                 // IMAGE MODE: Plain text with suppression + PNG attachment
                 const form = new FormData();
 
@@ -90,7 +90,7 @@ export class DiscordNotifier {
                 // 2. Individual Logs: Image + dps.report Link.
 
                 let content = '';
-                if (logData.id !== 'stats-dashboard') {
+                if (logData.id !== 'stats-dashboard' && !logData.suppressContent) {
                     content = `**${jsonDetails?.fightName || 'Log Uploaded'}**\n[dps.report](${logData.permalink})`;
                 }
 
@@ -104,10 +104,19 @@ export class DiscordNotifier {
 
                 form.append('payload_json', JSON.stringify(payload));
 
-                form.append('file', Buffer.from(logData.imageBuffer), {
-                    filename: 'log_summary.png',
-                    contentType: 'image/png'
-                });
+                if (logData.imageBuffers && logData.imageBuffers.length > 0) {
+                    logData.imageBuffers.forEach((buffer, index) => {
+                        form.append(`file${index + 1}`, Buffer.from(buffer), {
+                            filename: `log_summary_${index + 1}.png`,
+                            contentType: 'image/png'
+                        });
+                    });
+                } else if (logData.imageBuffer) {
+                    form.append('file', Buffer.from(logData.imageBuffer), {
+                        filename: 'log_summary.png',
+                        contentType: 'image/png'
+                    });
+                }
 
                 await axios.post(this.webhookUrl, form, {
                     headers: form.getHeaders()

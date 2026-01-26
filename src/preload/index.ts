@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
     sendScreenshot: (id: string, buffer: Uint8Array) => ipcRenderer.send('send-screenshot', id, buffer),
+    sendScreenshots: (id: string, buffers: Uint8Array[]) => ipcRenderer.send('send-screenshots', id, buffers),
+    sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => ipcRenderer.send('send-screenshots-groups', id, groups),
     onConsoleLog: (callback: (log: any) => void) => {
         ipcRenderer.on('console-log', (_event, value) => callback(value))
         return () => ipcRenderer.removeAllListeners('console-log')

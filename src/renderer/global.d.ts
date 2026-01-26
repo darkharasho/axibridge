@@ -69,7 +69,7 @@ export interface IElectronAPI {
     getSettings: () => Promise<{
         logDirectory: string | null;
         discordWebhookUrl: string | null;
-        discordNotificationType: 'image' | 'embed';
+        discordNotificationType: 'image' | 'image-beta' | 'embed';
         webhooks: IWebhook[];
         selectedWebhookId: string | null;
         dpsReportToken: string | null;
@@ -81,7 +81,7 @@ export interface IElectronAPI {
     saveSettings: (settings: {
         logDirectory?: string | null;
         discordWebhookUrl?: string | null;
-        discordNotificationType?: 'image' | 'embed';
+        discordNotificationType?: 'image' | 'image-beta' | 'embed';
         webhooks?: IWebhook[];
         selectedWebhookId?: string | null;
         dpsReportToken?: string | null;
@@ -91,6 +91,8 @@ export interface IElectronAPI {
     onRequestScreenshot: (callback: (data: any) => void) => () => void;
     openExternal: (url: string) => Promise<{ success: boolean, error?: string }>;
     sendScreenshot: (id: string, buffer: Uint8Array) => void;
+    sendScreenshots: (id: string, buffers: Uint8Array[]) => void;
+    sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => void;
     onConsoleLog: (callback: (log: { type: 'info' | 'error', message: string, timestamp: string }) => void) => () => void;
     getLogs: () => Promise<ILogData[]>;
     saveLogs: (logs: ILogData[]) => void;
