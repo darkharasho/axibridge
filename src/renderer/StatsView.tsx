@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Trophy, Share2, Swords, Shield, Zap, Activity, Flame, HelpingHand, Hammer, ShieldCheck, Crosshair, Map as MapIcon, Users, Skull, Wind, Crown, Sparkles, Star } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend as ChartLegend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { toPng } from 'html-to-image';
-import { calculateAllStability, calculateSquadBarrier, calculateSquadHealing, calculateOutCC, calculateDownContribution } from '../shared/plenbot';
+import { calculateSquadBarrier, calculateSquadHealing, calculateOutCC, calculateDownContribution } from '../shared/plenbot';
 import { Player, Target } from '../shared/dpsReportTypes';
 import { getProfessionColor, getProfessionIconPath } from '../shared/professionUtils';
 import { DEFAULT_MVP_WEIGHTS, IMvpWeights } from './global.d';
@@ -16,6 +16,8 @@ interface StatsViewProps {
 export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
     const [sharing, setSharing] = useState(false);
     const [expandedLeader, setExpandedLeader] = useState<string | null>(null);
+    const [activeBoonTab, setActiveBoonTab] = useState<string | null>(null);
+    const [activeSpecialTab, setActiveSpecialTab] = useState<string | null>(null);
 
     const stats = useMemo(() => {
         const validLogs = logs.filter(l => (l.status === 'success' || l.status === 'discord') && l.details);
@@ -67,6 +69,7 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
             if (!details) return;
             const players = details.players as unknown as Player[];
             const targets = details.targets || [];
+            const durationSec = details.durationMS ? details.durationMS / 1000 : 0;
             const getDistanceToTag = (p: any) => {
                 const stats = p.statsAll?.[0];
                 const distToCom = stats?.distToCom;
@@ -121,9 +124,6 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                 losses++;
             }
 
-            // Pre-calculate stab for this log's players
-            calculateAllStability(players);
-
             players.forEach(p => {
                 // Only process squad members, not allies
                 if (p.notInSquad) return;
@@ -172,7 +172,10 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                 s.healing += calculateSquadHealing(p);
                 s.barrier += calculateSquadBarrier(p);
                 s.cc += calculateOutCC(p);
-                s.stab += p.stabGeneration || 0;
+                const stabOut = (p.squadBuffVolumes || [])
+                    .filter((buff) => buff.id === 1122)
+                    .reduce((sum, buff) => sum + (buff?.buffVolumeData || []).reduce((acc, entry) => acc + (entry?.outgoing || 0), 0), 0);
+                s.stab += stabOut;
 
                 // Stack Distance (Distance to Tag)
                 // statsAll[0] contains the stackDist field in Elite Insights JSON
@@ -678,6 +681,152 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
             .map(([name, value]) => ({ name, value, color: mapColors[name] || '#64748b' }))
             .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
 
+        const getBuffInfo = (details: any, id: number) => {
+            const buff = details?.buffMap?.[`b${id}`];
+            if (buff?.name) {
+                return { name: buff.name as string, classification: buff.classification as string | undefined };
+            }
+            const skill = details?.skillMap?.[`b${id}`]
+                || details?.skillMap?.[`${id}`]
+                || details?.skillMap?.[`s${id}`];
+            if (skill?.name) {
+                return { name: skill.name as string, classification: undefined };
+            }
+            return { name: `Buff ${id}`, classification: undefined };
+        };
+
+        const shouldIncludeSpecial = (classification?: string, name?: string) => {
+            const allowList = ['Distortion'];
+            if (name && allowList.includes(name)) return true;
+            if (!classification) return true;
+            const lowered = classification.toLowerCase();
+            const excluded = ['condition', 'defensive', 'offensive', 'support', 'nourishment', 'consumable'];
+            return !excluded.includes(lowered);
+        };
+
+        const boonTotals: Record<string, { id: number; name: string; total: number; rows: Record<string, { account: string; profession: string; total: number; duration: number }> }> = {};
+        const specialTotals: Record<string, { id: number; name: string; total: number; rows: Record<string, { account: string; profession: string; total: number; duration: number }> }> = {};
+        validLogs.forEach(log => {
+            const details = log.details;
+            if (!details) return;
+            const durationSec = details.durationMS ? details.durationMS / 1000 : 0;
+            const players = details.players as unknown as Player[];
+
+            const sourceLookup = new Map<string, { account: string; profession: string }>();
+            players.forEach(player => {
+                if (player.name) {
+                    sourceLookup.set(player.name, { account: player.account || player.name, profession: player.profession || 'Unknown' });
+                }
+                if (player.character_name) {
+                    sourceLookup.set(player.character_name, { account: player.account || player.character_name, profession: player.profession || 'Unknown' });
+                }
+            });
+
+            const computeGeneration = (states: number[][]) => {
+                let lastState = 0;
+                let gen = 0;
+                for (const state of states) {
+                    if (state[1] > lastState) {
+                        gen += (state[1] - lastState);
+                    }
+                    lastState = state[1];
+                }
+                return gen;
+            };
+
+            // Boons: use squadBuffVolumes (total generation across allies)
+            players.forEach(player => {
+                if (player.notInSquad) return;
+                const account = player.account || player.name || 'Unknown';
+                const profession = player.profession || 'Unknown';
+                (player.squadBuffVolumes || []).forEach((buff) => {
+                    const outgoing = (buff?.buffVolumeData || []).reduce((sum, entry) => sum + (entry?.outgoing || 0), 0);
+                    if (!outgoing) return;
+                    const info = getBuffInfo(details, buff.id);
+                    if (info.classification !== 'Boon') return;
+                    const key = String(buff.id);
+                    if (!boonTotals[key]) {
+                        boonTotals[key] = {
+                            id: buff.id,
+                            name: info.name,
+                            total: 0,
+                            rows: {}
+                        };
+                    }
+                    boonTotals[key].total += outgoing;
+                    if (!boonTotals[key].rows[account]) {
+                        boonTotals[key].rows[account] = { account, profession, total: 0, duration: 0 };
+                    }
+                    boonTotals[key].rows[account].total += outgoing;
+                    boonTotals[key].rows[account].duration += durationSec;
+                });
+            });
+
+            // Special buffs: use buffUptimes statesPerSource when available (captures shared applications)
+            players.forEach(player => {
+                if (player.notInSquad) return;
+                (player.buffUptimes || []).forEach((buff) => {
+                    const info = getBuffInfo(details, buff.id);
+                    if (info.classification === 'Boon') return;
+                    if (!shouldIncludeSpecial(info.classification, info.name)) return;
+                    for (const [sourceName, states] of Object.entries(buff.statesPerSource || {})) {
+                        if (!sourceLookup.has(sourceName)) continue;
+                        const outgoing = computeGeneration(states as number[][]);
+                        if (!outgoing) continue;
+                        const key = String(buff.id);
+                        if (!specialTotals[key]) {
+                            specialTotals[key] = {
+                                id: buff.id,
+                                name: info.name,
+                                total: 0,
+                                rows: {}
+                            };
+                        }
+                        const sourceInfo = sourceLookup.get(sourceName) || { account: sourceName, profession: 'Unknown' };
+                        if (!specialTotals[key].rows[sourceInfo.account]) {
+                            specialTotals[key].rows[sourceInfo.account] = {
+                                account: sourceInfo.account,
+                                profession: sourceInfo.profession,
+                                total: 0,
+                                duration: 0
+                            };
+                        }
+                        specialTotals[key].total += outgoing;
+                        specialTotals[key].rows[sourceInfo.account].total += outgoing;
+                        specialTotals[key].rows[sourceInfo.account].duration += durationSec;
+                    }
+                });
+            });
+        });
+
+        const boonTables = Object.values(boonTotals)
+            .map((boon) => ({
+                id: String(boon.id),
+                name: boon.name,
+                total: boon.total,
+                rows: Object.values(boon.rows)
+                    .map((row) => ({
+                        ...row,
+                        perSecond: row.duration > 0 ? row.total / row.duration : 0
+                    }))
+                    .sort((a, b) => b.total - a.total || a.account.localeCompare(b.account))
+            }))
+            .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+
+        const specialTables = Object.values(specialTotals)
+            .map((buff) => ({
+                id: String(buff.id),
+                name: buff.name,
+                total: buff.total,
+                rows: Object.values(buff.rows)
+                    .map((row) => ({
+                        ...row,
+                        perSecond: row.duration > 0 ? row.total / row.duration : 0
+                    }))
+                    .sort((a, b) => b.total - a.total || a.account.localeCompare(b.account))
+            }))
+            .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+
         const timelineData = validLogs
             .filter(log => log.details)
             .map((log, index) => {
@@ -730,6 +879,8 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
             squadClassData,
             enemyClassData,
             timelineData,
+            boonTables,
+            specialTables,
 
             maxDodges,
             mvp,
@@ -740,6 +891,30 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
         };
     }, [logs]);
 
+    useEffect(() => {
+        if (!stats.boonTables || stats.boonTables.length === 0) {
+            if (activeBoonTab !== null) {
+                setActiveBoonTab(null);
+            }
+            return;
+        }
+        if (!activeBoonTab || !stats.boonTables.some((tab: any) => tab.id === activeBoonTab)) {
+            setActiveBoonTab(stats.boonTables[0].id);
+        }
+    }, [stats.boonTables, activeBoonTab]);
+
+    useEffect(() => {
+        if (!stats.specialTables || stats.specialTables.length === 0) {
+            if (activeSpecialTab !== null) {
+                setActiveSpecialTab(null);
+            }
+            return;
+        }
+        if (!activeSpecialTab || !stats.specialTables.some((tab: any) => tab.id === activeSpecialTab)) {
+            setActiveSpecialTab(stats.specialTables[0].id);
+        }
+    }, [stats.specialTables, activeSpecialTab]);
+
     const handleShare = async () => {
         setSharing(true);
         const node = document.getElementById('stats-dashboard-container');
@@ -748,9 +923,13 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                 // Wait a moment for UI to settle if anything changed
                 await new Promise(r => setTimeout(r, 100));
 
+                const excluded = Array.from(node.querySelectorAll('.stats-share-exclude')) as HTMLElement[];
+                excluded.forEach((el) => {
+                    el.dataset.prevDisplay = el.style.display;
+                    el.style.display = 'none';
+                });
                 const scrollWidth = node.scrollWidth;
                 const scrollHeight = node.scrollHeight;
-
                 const dataUrl = await toPng(node, {
                     backgroundColor: '#0f172a',
                     quality: 0.95,
@@ -763,6 +942,10 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                         maxHeight: 'none',
                         height: 'auto'
                     }
+                });
+                excluded.forEach((el) => {
+                    el.style.display = el.dataset.prevDisplay || '';
+                    delete el.dataset.prevDisplay;
                 });
 
                 const resp = await fetch(dataUrl);
@@ -789,19 +972,21 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
         indigo: { bg: 'bg-indigo-500/20', text: 'text-indigo-400' },
     };
 
-    const LeaderCard = ({ icon: Icon, title, data, color, unit = '', statKey }: any) => {
+    const LeaderCard = ({ icon: Icon, title, data, color, unit = '', onClick, active, rows, onClose, formatValue }: any) => {
         const classes = colorClasses[color] || colorClasses.blue;
         const iconPath = getProfessionIconPath(data.profession || 'Unknown');
-        const expanded = expandedLeader === statKey;
-        const rows = stats.leaderboards?.[statKey] || [];
-        const formatValue = (value: number) => {
-            if (unit === 'dist') return Math.round(value).toLocaleString();
-            return Math.round(value).toLocaleString();
-        };
         return (
             <div
-                className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3 group hover:bg-white/10 transition-colors cursor-pointer"
-                onClick={() => setExpandedLeader(expanded ? null : statKey)}
+                role="button"
+                tabIndex={0}
+                onClick={onClick}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onClick?.();
+                    }
+                }}
+                className={`bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3 group hover:bg-white/10 transition-colors cursor-pointer ${active ? 'ring-1 ring-white/20' : ''}`}
             >
                 <div className="flex items-center gap-4">
                     <div className={`p-3 rounded-lg ${classes.bg} ${classes.text} shrink-0`}>
@@ -823,14 +1008,13 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                     </div>
                     <div className="text-xs text-gray-500 truncate">{data.count ? `${data.count} logs` : '-'}</div>
                 </div>
-                {expanded && (
-                    <div className="border-t border-white/5 pt-3 space-y-2">
-                        {rows.length === 0 ? (
-                            <div className="text-xs text-gray-500 italic">No data available</div>
-                        ) : (
-                            <div className="max-h-48 overflow-y-auto pr-1 space-y-1">
+                {active && (
+                    <div className="mt-3 stats-share-exclude">
+                        <div className="text-xs font-semibold text-gray-200 mb-2">{title}</div>
+                        {rows?.length ? (
+                            <div className="max-h-56 overflow-y-auto pr-1 space-y-1">
                                 {rows.map((row: any) => (
-                                    <div key={`${statKey}-${row.rank}-${row.account}`} className="flex items-center gap-2 text-xs text-gray-300">
+                                    <div key={`${title}-${row.rank}-${row.account}`} className="flex items-center gap-2 text-xs text-gray-300">
                                         <div className="w-6 text-right text-gray-500">{row.rank}</div>
                                         {getProfessionIconPath(row.profession) && (
                                             <img
@@ -840,10 +1024,12 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                                             />
                                         )}
                                         <div className="flex-1 truncate">{row.account}</div>
-                                        <div className="text-gray-400 font-mono">{formatValue(row.value)}</div>
+                                        <div className="text-gray-400 font-mono">{formatValue ? formatValue(row.value) : row.value}</div>
                                     </div>
                                 ))}
                             </div>
+                        ) : (
+                            <div className="text-xs text-gray-500 italic">No data available</div>
                         )}
                     </div>
                 )}
@@ -1061,17 +1247,41 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        <LeaderCard icon={HelpingHand} title="Down Contribution" data={stats.maxDownContrib} color="red" statKey="downContrib" />
-                        <LeaderCard icon={Shield} title="Total Barrier" data={stats.maxBarrier} color="yellow" statKey="barrier" />
-                        <LeaderCard icon={Activity} title="Total Healing" data={stats.maxHealing} color="green" statKey="healing" />
-                        <LeaderCard icon={Wind} title="Total Dodges" data={stats.maxDodges} color="cyan" statKey="dodges" />
-                        <LeaderCard icon={Zap} title="Total Strips" data={stats.maxStrips} color="purple" statKey="strips" />
-                        <LeaderCard icon={Flame} title="Total Cleanses" data={stats.maxCleanses} color="blue" statKey="cleanses" />
-                        <LeaderCard icon={Hammer} title="Total CC" data={stats.maxCC} color="pink" statKey="cc" />
-                        <LeaderCard icon={ShieldCheck} title="Total Stab Gen" data={stats.maxStab} color="cyan" statKey="stability" />
-                        <LeaderCard icon={Crosshair} title="Closest to Tag" data={stats.closestToTag} color="indigo" unit="dist" statKey="closestToTag" />
-                    </div>
+                    {(() => {
+                        const leaderCards = [
+                            { icon: HelpingHand, title: 'Down Contribution', data: stats.maxDownContrib, color: 'red', statKey: 'downContrib' },
+                            { icon: Shield, title: 'Total Barrier', data: stats.maxBarrier, color: 'yellow', statKey: 'barrier' },
+                            { icon: Activity, title: 'Total Healing', data: stats.maxHealing, color: 'green', statKey: 'healing' },
+                            { icon: Wind, title: 'Total Dodges', data: stats.maxDodges, color: 'cyan', statKey: 'dodges' },
+                            { icon: Zap, title: 'Total Strips', data: stats.maxStrips, color: 'purple', statKey: 'strips' },
+                            { icon: Flame, title: 'Total Cleanses', data: stats.maxCleanses, color: 'blue', statKey: 'cleanses' },
+                            { icon: Hammer, title: 'Total CC', data: stats.maxCC, color: 'pink', statKey: 'cc' },
+                            { icon: ShieldCheck, title: 'Total Stab Gen', data: stats.maxStab, color: 'cyan', statKey: 'stability' },
+                            { icon: Crosshair, title: 'Closest to Tag', data: stats.closestToTag, color: 'indigo', unit: 'dist', statKey: 'closestToTag' }
+                        ];
+                        const formatValue = (value: number) => Math.round(value).toLocaleString();
+                        return (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    {leaderCards.map((card) => {
+                                        const isActive = expandedLeader === card.statKey;
+                                        const rows = stats.leaderboards?.[card.statKey] || [];
+                                        return (
+                                        <LeaderCard
+                                            key={card.statKey}
+                                            {...card}
+                                            active={isActive}
+                                            onClick={() => setExpandedLeader((prev) => (prev === card.statKey ? null : card.statKey))}
+                                            onClose={() => setExpandedLeader(null)}
+                                            rows={rows}
+                                            formatValue={formatValue}
+                                        />
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        );
+                    })()}
                 </div>
 
                 {/* Top Skills Row */}
@@ -1356,6 +1566,127 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
+                </div>
+
+                {/* Boon Output Tables */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude">
+                    <h3 className="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5 text-cyan-400" />
+                        Boon Output
+                    </h3>
+                    {stats.boonTables.length === 0 ? (
+                        <div className="text-center text-gray-500 italic py-8">No boon data available</div>
+                    ) : (
+                        <>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {stats.boonTables.map((boon: any) => (
+                                    <button
+                                        key={boon.id}
+                                        onClick={() => setActiveBoonTab(boon.id)}
+                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${activeBoonTab === boon.id
+                                            ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
+                                            : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                            }`}
+                                    >
+                                        {boon.name}
+                                    </button>
+                                ))}
+                            </div>
+                            {stats.boonTables.map((boon: any) => (
+                                activeBoonTab === boon.id ? (
+                                    <div key={boon.id} className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                                        <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                            <div>Player</div>
+                                            <div className="text-right">Total</div>
+                                            <div className="text-right">Per Sec</div>
+                                        </div>
+                                        <div className="max-h-64 overflow-y-auto">
+                                            {boon.rows.map((row: any, idx: number) => (
+                                                <div key={`${boon.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        {getProfessionIconPath(row.profession) && (
+                                                            <img
+                                                                src={getProfessionIconPath(row.profession) as string}
+                                                                alt={row.profession}
+                                                                className="w-4 h-4 shrink-0"
+                                                            />
+                                                        )}
+                                                        <span className="truncate">{row.account}</span>
+                                                    </div>
+                                                    <div className="text-right font-mono text-gray-300">
+                                                        {Math.round(row.total).toLocaleString()}
+                                                    </div>
+                                                    <div className="text-right font-mono text-gray-300">
+                                                        {row.perSecond.toFixed(1)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null
+                            ))}
+                        </>
+                    )}
+                </div>
+
+                {/* Special Buff Output Tables */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude">
+                    <h3 className="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-purple-300" />
+                        Special Buffs
+                    </h3>
+                    {stats.specialTables.length === 0 ? (
+                        <div className="text-center text-gray-500 italic py-8">No special buff data available</div>
+                    ) : (
+                        <>
+                            <div className="mb-4">
+                                <select
+                                    value={activeSpecialTab || ''}
+                                    onChange={(e) => setActiveSpecialTab(e.target.value)}
+                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none"
+                                >
+                                    {stats.specialTables.map((buff: any) => (
+                                        <option key={buff.id} value={buff.id} className="bg-gray-900">
+                                            {buff.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {stats.specialTables.map((buff: any) => (
+                                activeSpecialTab === buff.id ? (
+                                    <div key={buff.id} className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                                        <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                            <div>Player</div>
+                                            <div className="text-right">Total</div>
+                                            <div className="text-right">Per Sec</div>
+                                        </div>
+                                        <div className="max-h-64 overflow-y-auto">
+                                            {buff.rows.map((row: any, idx: number) => (
+                                                <div key={`${buff.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        {getProfessionIconPath(row.profession) && (
+                                                            <img
+                                                                src={getProfessionIconPath(row.profession) as string}
+                                                                alt={row.profession}
+                                                                className="w-4 h-4 shrink-0"
+                                                            />
+                                                        )}
+                                                        <span className="truncate">{row.account}</span>
+                                                    </div>
+                                                    <div className="text-right font-mono text-gray-300">
+                                                        {Math.round(row.total).toLocaleString()}
+                                                    </div>
+                                                    <div className="text-right font-mono text-gray-300">
+                                                        {row.perSecond.toFixed(1)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null
+                            ))}
+                        </>
+                    )}
                 </div>
             </div>
         </div>
