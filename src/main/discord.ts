@@ -345,6 +345,7 @@ export class DiscordNotifier {
                             formattedValues.push(formatted);
                             maxValueWidth = Math.max(maxValueWidth, formatted.length);
                         });
+                        maxValueWidth = Math.max(1, maxValueWidth);
 
                         // Discord embed inline field max width is ~25 chars in monospace
                         // Format: "RR NAME... VALUE" where RR=rank (2 chars + 1 space)
@@ -355,23 +356,30 @@ export class DiscordNotifier {
                         const nameWidth = Math.max(0, availableWidth - maxValueWidth);
 
                         let str = "";
-                        top.forEach((p, i) => {
-                            const val = valFn(p);
-                            if (val > 0 || (typeof val === 'string' && val !== '0' && val !== '')) {
-                                const rank = (i + 1).toString().padEnd(2);
-                                const fullName = p.name || p.character_name || p.account || 'Unknown';
-                                const classToken = getClassToken(p);
-                                const classCell = classToken
-                                    ? (classDisplay === 'emoji' ? `${classToken} ` : `[${classToken}] `)
-                                    : '';
-                                const availableNameWidth = Math.max(0, nameWidth - classCell.length);
-                                const trimmedName = fullName.substring(0, availableNameWidth).padEnd(availableNameWidth);
-                                const name = `${classCell}${trimmedName}`.padEnd(nameWidth);
-                                const vStr = formattedValues[i].padStart(maxValueWidth);
-                                str += `${rank} ${name} ${vStr}\n`;
+                        for (let i = 0; i < maxTopRows; i += 1) {
+                            const p = top[i];
+                            if (p) {
+                                const val = valFn(p);
+                                if (val > 0 || (typeof val === 'string' && val !== '0' && val !== '')) {
+                                    const rank = (i + 1).toString().padEnd(2);
+                                    const fullName = p.name || p.character_name || p.account || 'Unknown';
+                                    const classToken = getClassToken(p);
+                                    const classCell = classToken
+                                        ? (classDisplay === 'emoji' ? `${classToken} ` : `[${classToken}] `)
+                                        : '';
+                                    const availableNameWidth = Math.max(0, nameWidth - classCell.length);
+                                    const trimmedName = fullName.substring(0, availableNameWidth).padEnd(availableNameWidth);
+                                    const name = `${classCell}${trimmedName}`.padEnd(nameWidth);
+                                    const vStr = formattedValues[i]?.padStart(maxValueWidth) || ''.padStart(maxValueWidth);
+                                    str += `${rank} ${name} ${vStr}\n`;
+                                    continue;
+                                }
                             }
-                        });
-                        if (!str) str = "No Data\n";
+                            const rank = '  ';
+                            const name = ''.padEnd(nameWidth);
+                            const vStr = ''.padStart(maxValueWidth);
+                            str += `${rank} ${name} ${vStr}\n`;
+                        }
                         embedFields.push({
                             name: title + ":",
                             value: `\`\`\`\n${str}\`\`\``,

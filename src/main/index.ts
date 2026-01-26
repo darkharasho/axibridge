@@ -151,6 +151,9 @@ const fetchGithubReleaseNotesRange = async (currentVersion: string, lastSeenVers
                             .map((release) => {
                                 const header = `# Release Notes ${release.tag.startsWith('v') ? release.tag : `v${release.tag}`}`;
                                 const body = release.body?.trim() || '';
+                                if (body.toLowerCase().startsWith('# release notes')) {
+                                    return body;
+                                }
                                 return `${header}\n\n${body}`.trim();
                             })
                             .join('\n\n---\n\n');
