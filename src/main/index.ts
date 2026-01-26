@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage } from 'electron'
 import fs from 'fs'
 import path from 'node:path'
+import https from 'node:https'
 import { LogWatcher } from './watcher'
 import { Uploader } from './uploader'
 import { DiscordNotifier } from './discord';
@@ -72,6 +73,47 @@ let discord: DiscordNotifier | null = null
 const pendingDiscordLogs = new Map<string, { result: any, jsonDetails: any }>();
 
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
+
+const fetchGithubReleaseNotes = (version: string): Promise<string | null> => {
+    const tag = version.startsWith('v') ? version : `v${version}`;
+    const url = `https://api.github.com/repos/darkharasho/gw2_arc_log_uploader/releases/tags/${tag}`;
+    return new Promise((resolve) => {
+        const req = https.get(
+            url,
+            {
+                headers: {
+                    'User-Agent': 'gw2-arc-log-uploader',
+                    'Accept': 'application/vnd.github+json'
+                }
+            },
+            (res) => {
+                if (res.statusCode !== 200) {
+                    res.resume();
+                    resolve(null);
+                    return;
+                }
+                let data = '';
+                res.setEncoding('utf8');
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+                res.on('end', () => {
+                    try {
+                        const parsed = JSON.parse(data);
+                        resolve(parsed?.body || null);
+                    } catch (err) {
+                        resolve(null);
+                    }
+                });
+            }
+        );
+        req.on('error', () => resolve(null));
+        req.setTimeout(8000, () => {
+            req.destroy();
+            resolve(null);
+        });
+    });
+};
 
 function createTray() {
     const iconPath = path.join(process.env.VITE_PUBLIC || '', 'img/logo.png');
@@ -398,18 +440,21 @@ if (!gotTheLock) {
             return app.getVersion();
         });
 
-        ipcMain.handle('get-whats-new', () => {
+        ipcMain.handle('get-whats-new', async () => {
             const version = app.getVersion();
             const lastSeenVersion = store.get('lastSeenVersion', null) as string | null;
-            const basePath = app.isPackaged ? process.resourcesPath : process.cwd();
-            const notesPath = path.join(basePath, 'RELEASE_NOTES.md');
             let releaseNotes: string | null = null;
-            try {
-                const rawNotes = fs.readFileSync(notesPath, 'utf8');
-                const nextHeaderIndex = rawNotes.indexOf('\n# Release Notes', 1);
-                releaseNotes = nextHeaderIndex > -1 ? rawNotes.slice(0, nextHeaderIndex).trim() : rawNotes.trim();
-            } catch (err) {
-                console.warn('[Main] Failed to read release notes:', err);
+            releaseNotes = await fetchGithubReleaseNotes(version);
+            if (!releaseNotes) {
+                const basePath = app.isPackaged ? process.resourcesPath : process.cwd();
+                const notesPath = path.join(basePath, 'RELEASE_NOTES.md');
+                try {
+                    const rawNotes = fs.readFileSync(notesPath, 'utf8');
+                    const nextHeaderIndex = rawNotes.indexOf('\n# Release Notes', 1);
+                    releaseNotes = nextHeaderIndex > -1 ? rawNotes.slice(0, nextHeaderIndex).trim() : rawNotes.trim();
+                } catch (err) {
+                    console.warn('[Main] Failed to read release notes:', err);
+                }
             }
             return { version, lastSeenVersion, releaseNotes };
         });
