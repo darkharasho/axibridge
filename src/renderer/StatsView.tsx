@@ -682,9 +682,9 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
     const sortedEnemyClassData = [...stats.enemyClassData].sort(sortByCountDesc);
 
     return (
-        <div className="h-full flex flex-col p-8 w-full max-w-6xl mx-auto overflow-hidden">
+        <div className="h-full flex flex-col p-1 w-full max-w-6xl mx-auto overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8 shrink-0">
+            <div className="flex items-center justify-between mb-3 shrink-0">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onBack}
@@ -692,12 +692,12 @@ export function StatsView({ logs, onBack, mvpWeights }: StatsViewProps) {
                     >
                         <ArrowLeft className="w-6 h-6" />
                     </button>
-                    <div>
-                        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                            <Trophy className="w-8 h-8 text-yellow-500" />
+                    <div className="space-y-0">
+                        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                            <Trophy className="w-6 h-6 text-yellow-500" />
                             Statistics Dashboard
                         </h1>
-                        <p className="text-gray-400 text-sm mt-1">
+                        <p className="text-gray-400 text-xs">
                             Performance across {stats.total} uploaded logs
                         </p>
                     </div>
