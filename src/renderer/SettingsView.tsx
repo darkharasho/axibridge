@@ -118,6 +118,11 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved }: SettingsViewP
         setEmbedStats(prev => ({ ...prev, [key]: value }));
     };
 
+    const updateMaxTopRows = (value: number) => {
+        const clamped = Math.min(10, Math.max(1, Math.floor(value)));
+        setEmbedStats(prev => ({ ...prev, maxTopListRows: clamped }));
+    };
+
     // Helper to enable/disable all stats in a category
     const setAllTopLists = (enabled: boolean) => {
         setEmbedStats(prev => ({
@@ -244,6 +249,23 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved }: SettingsViewP
                     <p className="text-sm text-gray-400 mb-2">
                         Configure which top 10 player lists appear in Discord embed notifications.
                     </p>
+                    <div className="mb-4 pb-4 border-b border-white/10">
+                        <label className="text-xs text-gray-500 block mb-2">Max rows per top 10 list</label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="range"
+                                min={1}
+                                max={10}
+                                step={1}
+                                value={embedStats.maxTopListRows}
+                                onChange={(e) => updateMaxTopRows(Number(e.target.value))}
+                                className="flex-1 accent-blue-400"
+                            />
+                            <div className="min-w-8 shrink-0 text-right text-sm text-gray-300 font-mono">
+                                {embedStats.maxTopListRows}
+                            </div>
+                        </div>
+                    </div>
                     <div className="flex justify-end mb-2">
                         <button
                             onClick={() => setAllTopLists(!allTopListsEnabled)}

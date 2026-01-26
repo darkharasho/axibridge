@@ -145,9 +145,12 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, e
     const getDeaths = (p: any) => p.defenses?.[0]?.deadCount || 0;
     const getDodges = (p: any) => p.defenses?.[0]?.dodgeCount || 0;
 
+    const clampTopRows = (value: number) => Math.min(10, Math.max(1, Math.floor(value)));
+    const maxTopRows = clampTopRows(settings.maxTopListRows ?? 5);
+
     // Helper for rendering top lists
     const TopList = ({ title, sortFn, valFn, fmtVal }: { title: string, sortFn: (a: any, b: any) => number, valFn: (p: any) => any, fmtVal: (v: any) => string }) => {
-        const top = [...players].sort(sortFn).slice(0, 5);
+        const top = [...players].sort(sortFn).slice(0, maxTopRows);
         const hasData = top.some(p => {
             const val = valFn(p);
             return val > 0 || (typeof val === 'string' && val !== '0');

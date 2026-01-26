@@ -418,6 +418,7 @@ if (!gotTheLock) {
             showDamageTaken: false,
             showDeaths: false,
             showDodges: false,
+            maxTopListRows: 10,
         };
 
         ipcMain.handle('get-settings', () => {

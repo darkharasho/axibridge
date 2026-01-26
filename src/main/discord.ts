@@ -24,6 +24,7 @@ export interface IEmbedStatSettings {
     showDamageTaken: boolean;
     showDeaths: boolean;
     showDodges: boolean;
+    maxTopListRows: number;
 }
 
 // Default settings - all enabled except additional stats
@@ -47,6 +48,7 @@ const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
     showDamageTaken: false,
     showDeaths: false,
     showDodges: false,
+    maxTopListRows: 10,
 };
 
 // Discord embed limits
@@ -122,6 +124,9 @@ export class DiscordNotifier {
                     calculateAllStability(players);
 
                     let embedFields: any[] = [];
+
+                    const clampTopRows = (value: number) => Math.min(10, Math.max(1, Math.floor(value)));
+                    const maxTopRows = clampTopRows(settings.maxTopListRows ?? 10);
 
                     // --- Helpers ---
                     const fmtNum = (n: number) => n.toLocaleString();
@@ -307,7 +312,7 @@ export class DiscordNotifier {
 
                     // --- Top Lists Helper ---
                     const addTopList = (title: string, sortFn: (a: any, b: any) => number, valFn: (p: any) => any, fmtVal: (v: any) => string) => {
-                        const top = [...players].sort(sortFn).slice(0, 10);
+                        const top = [...players].sort(sortFn).slice(0, maxTopRows);
 
                         // Calculate the maximum value width for this specific list
                         let maxValueWidth = 0;

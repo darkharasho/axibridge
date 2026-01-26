@@ -30,6 +30,7 @@ export interface IEmbedStatSettings {
     showDamageTaken: boolean;
     showDeaths: boolean;
     showDodges: boolean;
+    maxTopListRows: number;
 }
 
 // Default embed stat settings
@@ -54,6 +55,7 @@ export const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
     showDamageTaken: false,
     showDeaths: false,
     showDodges: false,
+    maxTopListRows: 10,
 };
 
 export interface IElectronAPI {
