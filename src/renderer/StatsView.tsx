@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Trophy, Share2, Swords, Shield, Zap, Activity, Flame, HelpingHand, Hammer, ShieldCheck, Crosshair, Map as MapIcon, Users, Skull, Wind, Crown, Sparkles, Star } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend as ChartLegend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend as ChartLegend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { toPng } from 'html-to-image';
 import { calculateAllStability, calculateSquadBarrier, calculateSquadHealing, calculateOutCC, calculateDownContribution } from '../shared/plenbot';
 import { Player, Target } from '../shared/dpsReportTypes';
@@ -484,6 +484,31 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
             .map(([name, value]) => ({ name, value, color: mapColors[name] || '#64748b' }))
             .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
 
+        const timelineData = validLogs
+            .filter(log => log.details)
+            .map((log, index) => {
+                const details = log.details;
+                const players = (details?.players as unknown as Player[]) || [];
+                const targets = details?.targets || [];
+                const allies = players.filter(p => !p.notInSquad).length;
+                const enemies = targets.filter((t: any) => !t.isFake).length;
+                const timestamp = details?.uploadTime || log.uploadTime || 0;
+                const label = timestamp
+                    ? new Date(timestamp * 1000).toLocaleDateString()
+                    : `Log ${index + 1}`;
+                return {
+                    label,
+                    allies,
+                    enemies,
+                    timestamp
+                };
+            })
+            .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+            .map((entry, index) => ({
+                ...entry,
+                index: index + 1
+            }));
+
         return {
             total,
             wins,
@@ -510,6 +535,7 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
             mapData,
             squadClassData,
             enemyClassData,
+            timelineData,
 
             maxDodges,
             mvp,
@@ -919,6 +945,64 @@ export function StatsView({ logs, onBack }: StatsViewProps) {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Squad vs Enemy Size Timeline */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid">
+                    <h3 className="text-lg font-bold text-gray-200 mb-6 flex items-center gap-2">
+                        <Users className="w-5 h-5 text-green-400" />
+                        Squad vs Enemy Size
+                    </h3>
+                    {stats.timelineData.length === 0 ? (
+                        <div className="text-center text-gray-500 italic py-10">No timeline data available</div>
+                    ) : (
+                        <div className="h-[260px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={stats.timelineData} margin={{ top: 10, right: 24, left: 0, bottom: 0 }}>
+                                    <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
+                                    <XAxis
+                                        dataKey="index"
+                                        tick={{ fill: '#94a3b8', fontSize: 11 }}
+                                        tickLine={false}
+                                        axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                                    />
+                                    <YAxis
+                                        tick={{ fill: '#94a3b8', fontSize: 11 }}
+                                        tickLine={false}
+                                        axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                                        width={36}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
+                                        labelFormatter={(_value, payload) => {
+                                            const point = payload?.[0]?.payload;
+                                            return point?.label ? `Log ${point.index} • ${point.label}` : `Log ${_value}`;
+                                        }}
+                                        formatter={(value: any, name: string) => [
+                                            value,
+                                            name === 'allies' ? 'Allies' : 'Enemies'
+                                        ]}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="allies"
+                                        stroke="#22c55e"
+                                        strokeWidth={2}
+                                        dot={{ r: 3, fill: '#22c55e' }}
+                                        activeDot={{ r: 5 }}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="enemies"
+                                        stroke="#ef4444"
+                                        strokeWidth={2}
+                                        dot={{ r: 3, fill: '#ef4444' }}
+                                        activeDot={{ r: 5 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
                 </div>
 
                 {/* Map Distribution Pie Chart */}
