@@ -4,7 +4,6 @@
 
 ### 🧊 What’s New Modal
 - Fixed release notes missing in packaged builds by pulling from GitHub Releases
-- Includes v1.4.0 notes here for everyone who missed the update popup
 
 ---
 
