@@ -19,8 +19,7 @@
         "build:win": "npm run build && electron-builder --win",
         "build:all": "npm run build && electron-builder --linux --win",
         "build:github": "npm run build && node scripts/run-electron-builder.mjs",
-    "prebuild:github": "npm run generate:release-notes",
-    "postbuild:github": "node scripts/update-github-release.mjs",
+        "prebuild:github": "npm run generate:release-notes",
         "generate:release-notes": "node scripts/generate-release-notes.mjs",
         "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
         "preview": "vite preview",
@@ -80,7 +79,11 @@
         "publish": {
             "provider": "github",
             "owner": "darkharasho",
-            "repo": "gw2_arc_log_uploader"
+            "repo": "gw2_arc_log_uploader",
+            "releaseType": "release"
+        },
+        "releaseInfo": {
+            "releaseNotesFile": "RELEASE_NOTES.md"
         },
         "files": [
             "dist-electron/**/*",

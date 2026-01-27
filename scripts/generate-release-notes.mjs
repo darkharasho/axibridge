@@ -45,7 +45,11 @@ const nextTag = `v${version}`;
 
 let lastTag = '';
 try {
-    lastTag = exec('git describe --tags --abbrev=0');
+    const tags = exec('git tag --sort=-v:refname')
+        .split('\n')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+    lastTag = tags.find((tag) => tag !== nextTag) || '';
 } catch {
     lastTag = '';
 }
