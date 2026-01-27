@@ -5,6 +5,26 @@ Version v1.5.4 — January 27, 2026
 # GW2 Arc Log Uploader - Release Notes for v1.5.4
 
 ## 🌟 Highlights
+- Refined sidebar navigation for easier access 🗂️
+- Adjusted MVP calculations to better match displayed charts 📊
+
+## 🛠️ Improvements
+- Removed additional unused code to enhance app efficiency 
+- Addressed TypeScript errors for smoother operation
+
+## 🧯 Fixes
+- Made numerous fixes to improve the overall functionality of the sidebar
+
+## ⚠️ Breaking Changes
+None.
+
+# Release Notes
+
+Version v1.5.4 — January 27, 2026
+
+# GW2 Arc Log Uploader - Release Notes for v1.5.4
+
+## 🌟 Highlights
 - 🎉 **Sidebar Navigation**: Enjoy a refined and smoother experience navigating through the app!
 - 📊 **MVP Calculations**: Adjustments made to better align MVP calculations with charts.
 
