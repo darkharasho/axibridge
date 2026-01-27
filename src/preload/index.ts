@@ -82,6 +82,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeAllListeners('github-auth-complete');
     },
     getGithubRepos: () => ipcRenderer.invoke('get-github-repos'),
+    getGithubReports: () => ipcRenderer.invoke('get-github-reports'),
+    deleteGithubReports: (payload: { ids: string[] }) => ipcRenderer.invoke('delete-github-reports', payload),
+    listLogFiles: (payload: { dir: string }) => ipcRenderer.invoke('list-log-files', payload),
     createGithubRepo: (params: { name: string; branch?: string }) => ipcRenderer.invoke('create-github-repo', params),
     uploadWebReport: (payload: { meta: any; stats: any }) => ipcRenderer.invoke('upload-web-report', payload),
     getGithubPagesBuildStatus: () => ipcRenderer.invoke('get-github-pages-build-status'),

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as ImageIcon, Layout, RefreshCw, Trophy, ChevronDown, Grid3X3, LayoutGrid } from 'lucide-react';
+import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as ImageIcon, Layout, RefreshCw, Trophy, ChevronDown, Grid3X3, LayoutGrid, Trash2, FilePlus2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { StatsView } from './StatsView';
@@ -18,6 +18,7 @@ function App() {
     const [logs, setLogs] = useState<ILogData[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+    const canceledLogsRef = useRef<Set<string>>(new Set());
     const [embedStatSettings, setEmbedStatSettings] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
     const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
 
@@ -47,6 +48,16 @@ function App() {
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
     const [webhookModalOpen, setWebhookModalOpen] = useState(false);
+
+    // File picker modal state
+    const [filePickerOpen, setFilePickerOpen] = useState(false);
+    const [filePickerFolder, setFilePickerFolder] = useState<string | null>(null);
+    const [filePickerAvailable, setFilePickerAvailable] = useState<Array<{ path: string; name: string; mtimeMs: number; size: number }>>([]);
+    const [filePickerSelected, setFilePickerSelected] = useState<Set<string>>(new Set());
+    const [filePickerFilter, setFilePickerFilter] = useState('');
+    const [filePickerError, setFilePickerError] = useState<string | null>(null);
+    const [filePickerLoading, setFilePickerLoading] = useState(false);
+    const lastPickedIndexRef = useRef<number | null>(null);
 
     // Persistence removed
 
@@ -119,6 +130,9 @@ function App() {
 
         // Listen for status updates during upload process
         const cleanupStatus = window.electronAPI.onUploadStatus((data: ILogData) => {
+            if (data.filePath && canceledLogsRef.current.has(data.filePath)) {
+                return;
+            }
             setLogs((currentLogs) => {
                 const existingIndex = currentLogs.findIndex(log => log.filePath === data.filePath);
                 if (existingIndex >= 0) {
@@ -132,6 +146,9 @@ function App() {
         });
 
         const cleanupUpload = window.electronAPI.onUploadComplete((data: ILogData) => {
+            if (data.filePath && canceledLogsRef.current.has(data.filePath)) {
+                return;
+            }
             setLogs((currentLogs) => {
                 const existingIndex = currentLogs.findIndex(log => log.filePath === data.filePath);
                 if (existingIndex >= 0) {
@@ -252,6 +269,11 @@ function App() {
     }, [updateStatus]);
 
     useEffect(() => {
+        if (!filePickerOpen) return;
+        loadLogFiles(filePickerFolder || logDirectory);
+    }, [filePickerOpen, filePickerFolder, logDirectory]);
+
+    useEffect(() => {
         const cleanupMessage = window.electronAPI.onUpdateMessage((message) => setUpdateStatus(message));
         const cleanupAvailable = window.electronAPI.onUpdateAvailable(() => {
             setUpdateAvailable(true);
@@ -294,6 +316,75 @@ function App() {
             setLogDirectory(path);
             window.electronAPI.startWatching(path);
         }
+    };
+
+    const loadLogFiles = async (dir: string | null) => {
+        if (!dir) {
+            setFilePickerAvailable([]);
+            return;
+        }
+        if (!window.electronAPI.listLogFiles) {
+            setFilePickerError('Log listing is unavailable in this build.');
+            return;
+        }
+        setFilePickerLoading(true);
+        setFilePickerError(null);
+        try {
+            const result = await window.electronAPI.listLogFiles({ dir });
+            if (result?.success) {
+                setFilePickerAvailable(result.files || []);
+            } else {
+                setFilePickerError(result?.error || 'Failed to load logs.');
+            }
+        } catch (err: any) {
+            setFilePickerError(err?.message || 'Failed to load logs.');
+        } finally {
+            setFilePickerLoading(false);
+        }
+    };
+
+    const handlePickFolder = async () => {
+        const path = await window.electronAPI.selectDirectory();
+        if (path) {
+            setFilePickerFolder(path);
+            setLogDirectory(path);
+            window.electronAPI.startWatching(path);
+            setFilePickerSelected(new Set());
+            await loadLogFiles(path);
+        }
+    };
+
+    const handleAddSelectedFiles = () => {
+        const files = Array.from(filePickerSelected);
+        if (!files.length) {
+            setFilePickerError('Select at least one log file.');
+            return;
+        }
+        const optimisticLogs: ILogData[] = [];
+        files.forEach((filePath) => {
+            const fileName = filePath.split(/[\\/]/).pop() || filePath;
+            optimisticLogs.push({
+                id: fileName,
+                filePath,
+                status: 'queued',
+                fightName: fileName,
+                uploadTime: Date.now() / 1000,
+                permalink: ''
+            });
+        });
+        setLogs((currentLogs) => {
+            const newLogs = [...currentLogs];
+            optimisticLogs.forEach((optLog) => {
+                if (!newLogs.some((l) => l.filePath === optLog.filePath)) {
+                    newLogs.unshift(optLog);
+                }
+            });
+            return newLogs;
+        });
+        window.electronAPI.manualUploadBatch(files);
+        setFilePickerOpen(false);
+        setFilePickerSelected(new Set());
+        setFilePickerError(null);
     };
 
     const handleUpdateSettings = (updates: any) => {
@@ -617,7 +708,7 @@ function App() {
                                             optimisticLogs.push({
                                                 id: file.name, // Temporary ID
                                                 filePath: filePath,
-                                                status: 'uploading',
+                                                status: 'pending',
                                                 fightName: file.name,
                                                 uploadTime: Date.now() / 1000,
                                                 permalink: '' // Placeholder
@@ -641,10 +732,35 @@ function App() {
                                     }
                                 }}
                             >
-                                <h2 className="text-lg font-semibold mb-6 text-gray-200 flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-gray-400" />
-                                    Recent Activity
-                                </h2>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-gray-400" />
+                                        Recent Activity
+                                    </h2>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setFilePickerOpen(true)}
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+                                            title="Select logs to upload"
+                                        >
+                                            <FilePlus2 className="w-3.5 h-3.5" />
+                                            Add Logs
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setLogs([]);
+                                                setExpandedLogId(null);
+                                                setScreenshotData(null);
+                                                canceledLogsRef.current.clear();
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-colors"
+                                            title="Clear all logs"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                            Clear Logs
+                                        </button>
+                                    </div>
+                                </div>
 
                                 <div className="flex-1 overflow-y-auto pr-2 space-y-3">
                                     <AnimatePresence mode='popLayout'>
@@ -660,6 +776,14 @@ function App() {
                                                     log={log}
                                                     isExpanded={expandedLogId === log.filePath}
                                                     onToggle={() => setExpandedLogId(expandedLogId === log.filePath ? null : log.filePath)}
+                                                    onCancel={() => {
+                                                        if (!log.filePath) return;
+                                                        canceledLogsRef.current.add(log.filePath);
+                                                        setLogs((currentLogs) => currentLogs.filter((entry) => entry.filePath !== log.filePath));
+                                                        if (expandedLogId === log.filePath) {
+                                                            setExpandedLogId(null);
+                                                        }
+                                                    }}
                                                     embedStatSettings={embedStatSettings}
                                                     useClassIcons={showClassIcons}
                                                 />
@@ -765,6 +889,159 @@ function App() {
                     )
                 )}
             </div>
+
+            <AnimatePresence>
+                {filePickerOpen && (
+                    <motion.div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="w-full max-w-2xl bg-[#101826]/90 border border-white/10 rounded-2xl shadow-2xl p-6"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <div className="text-xs uppercase tracking-widest text-cyan-200/70">Log Import</div>
+                                    <h3 className="text-xl font-semibold text-white">Select Logs to Upload</h3>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setFilePickerOpen(false);
+                                        setFilePickerError(null);
+                                        setFilePickerSelected(new Set());
+                                    }}
+                                    className="p-2 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-white/30"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="text-xs uppercase tracking-widest text-gray-500">Available Logs</div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => loadLogFiles(filePickerFolder || logDirectory)}
+                                                className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                            >
+                                                Refresh
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (filePickerSelected.size > 0) {
+                                                        setFilePickerSelected(new Set());
+                                                        return;
+                                                    }
+                                                    const filtered = filePickerAvailable.filter((entry) =>
+                                                        entry.name.toLowerCase().includes(filePickerFilter.trim().toLowerCase())
+                                                    );
+                                                    setFilePickerSelected((prev) => {
+                                                        const next = new Set(prev);
+                                                        filtered.forEach((entry) => next.add(entry.path));
+                                                        return next;
+                                                    });
+                                                }}
+                                                className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${filePickerSelected.size > 0
+                                                    ? 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                    : 'bg-cyan-600/20 text-cyan-200 border-cyan-500/40 hover:bg-cyan-600/30'
+                                                    }`}
+                                            >
+                                                {filePickerSelected.size > 0 ? 'Clear Selection' : 'Select All'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <input
+                                        type="search"
+                                        value={filePickerFilter}
+                                        onChange={(event) => setFilePickerFilter(event.target.value)}
+                                        placeholder="Filter logs..."
+                                        className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                                    />
+                                    {filePickerLoading ? (
+                                        <div className="text-xs text-gray-500">Loading logs...</div>
+                                    ) : filePickerAvailable.length === 0 ? (
+                                        <div className="text-xs text-gray-500">No logs found in this folder.</div>
+                                    ) : (
+                                        <div className="max-h-56 overflow-y-auto space-y-1 pr-1 text-xs text-gray-300">
+                                            {filePickerAvailable
+                                                .filter((entry) => entry.name.toLowerCase().includes(filePickerFilter.trim().toLowerCase()))
+                                                .map((entry, index, filtered) => (
+                                                    <div
+                                                        key={entry.path}
+                                                        className={`flex items-center gap-2 px-2 py-1 rounded-lg border cursor-pointer select-none ${filePickerSelected.has(entry.path)
+                                                            ? 'bg-cyan-500/10 border-cyan-400/40 text-cyan-100'
+                                                            : 'bg-white/5 border-white/10 text-gray-300 hover:text-white'
+                                                            }`}
+                                                        onClick={(event) => {
+                                                            if (event.shiftKey && lastPickedIndexRef.current !== null) {
+                                                                const start = Math.min(lastPickedIndexRef.current, index);
+                                                                const end = Math.max(lastPickedIndexRef.current, index);
+                                                                setFilePickerSelected((prev) => {
+                                                                    const next = new Set(prev);
+                                                                    for (let i = start; i <= end; i += 1) {
+                                                                        next.add(filtered[i].path);
+                                                                    }
+                                                                    return next;
+                                                                });
+                                                            } else {
+                                                                setFilePickerSelected((prev) => {
+                                                                    const next = new Set(prev);
+                                                                    if (next.has(entry.path)) {
+                                                                        next.delete(entry.path);
+                                                                    } else {
+                                                                        next.add(entry.path);
+                                                                    }
+                                                                    return next;
+                                                                });
+                                                            }
+                                                            lastPickedIndexRef.current = index;
+                                                        }}
+                                                    >
+                                                        <div className="h-3.5 w-3.5 rounded border border-white/20 flex items-center justify-center">
+                                                            {filePickerSelected.has(entry.path) && (
+                                                                <div className="h-2 w-2 rounded-sm bg-cyan-300" />
+                                                            )}
+                                                        </div>
+                                                        <span className="truncate flex-1">{entry.name}</span>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {filePickerError && (
+                                    <div className="text-xs text-rose-300">{filePickerError}</div>
+                                )}
+
+                                <div className="flex items-center justify-end gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setFilePickerOpen(false);
+                                            setFilePickerError(null);
+                                            setFilePickerSelected(new Set());
+                                        }}
+                                        className="px-4 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleAddSelectedFiles}
+                                        className="px-4 py-2 rounded-lg text-xs font-semibold border bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30"
+                                    >
+                                        Add to Recent Activity ({filePickerSelected.size})
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Webhook Management Modal */}
             <WebhookModal

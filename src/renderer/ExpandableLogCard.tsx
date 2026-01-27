@@ -9,6 +9,7 @@ interface ExpandableLogCardProps {
     log: any;
     isExpanded: boolean;
     onToggle: () => void;
+    onCancel?: () => void;
     screenshotMode?: boolean;
     embedStatSettings?: IEmbedStatSettings;
     useClassIcons?: boolean;
@@ -23,7 +24,7 @@ interface ExpandableLogCardProps {
     };
 }
 
-export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, embedStatSettings, screenshotSection, useClassIcons }: ExpandableLogCardProps) {
+export function ExpandableLogCard({ log, isExpanded, onToggle, onCancel, screenshotMode, embedStatSettings, screenshotSection, useClassIcons }: ExpandableLogCardProps) {
     const details = log.details || {};
     const players: Player[] = details.players || [];
     const targets = details.targets || [];
@@ -32,9 +33,16 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, e
     const squadPlayers = players.filter((p: any) => !p.notInSquad);
     const nonSquadPlayers = players.filter((p: any) => p.notInSquad);
 
+    const isQueued = log.status === 'queued';
+    const isPending = log.status === 'pending';
     const isUploading = log.status === 'uploading';
     const hasError = log.status === 'error';
     const isDiscord = log.status === 'discord';
+    const statusLabel = isQueued ? 'Queued'
+        : isPending ? 'Pending'
+        : isUploading ? 'Parsing with dps.report'
+            : isDiscord ? 'Preparing Discord preview'
+                : null;
 
     // --- Stats Calculation ---
     let totalDps = 0;
@@ -562,13 +570,15 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, e
         >
             {/* Collapsed View */}
             <div className="p-4 flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all shrink-0 ${isUploading ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 animate-pulse' :
-                    isDiscord ? 'bg-purple-500/20 border-purple-500/30 text-purple-400 animate-pulse' :
-                        hasError ? 'bg-red-500/20 border-red-500/30 text-red-400' :
-                            'bg-green-500/20 border-green-500/30 text-green-400'
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all shrink-0 ${isQueued ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
+                    isPending ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
+                        isUploading ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 animate-pulse' :
+                            isDiscord ? 'bg-purple-500/20 border-purple-500/30 text-purple-400 animate-pulse' :
+                                hasError ? 'bg-red-500/20 border-red-500/30 text-red-400' :
+                                    'bg-green-500/20 border-green-500/30 text-green-400'
                     }`}>
                     <span className="font-bold text-xs uppercase">
-                        {isUploading ? '...' : isDiscord ? 'DC' : hasError ? 'ERR' : 'LOG'}
+                        {isQueued ? 'QUE' : isPending ? 'PEN' : isUploading ? '...' : isDiscord ? 'DC' : hasError ? 'ERR' : 'LOG'}
                     </span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -577,22 +587,35 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, screenshotMode, e
                         <span className="text-xs text-gray-500 font-mono">{details.encounterDuration || log.encounterDuration || '--:--'}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                        <span>{players.length || (isUploading || isDiscord ? 'Scanning...' : '0')} Players {nonSquadPlayers.length > 0 ? `(${squadPlayers.length} +${nonSquadPlayers.length})` : ''}</span>
+                        <span>{statusLabel ? statusLabel : `${players.length || '0'} Players${nonSquadPlayers.length > 0 ? ` (${squadPlayers.length} +${nonSquadPlayers.length})` : ''}`}</span>
                         <span>•</span>
                         <span>{(log.uploadTime || details.uploadTime)
                             ? new Date((log.uploadTime || details.uploadTime) * 1000).toLocaleTimeString()
-                            : (isUploading || isDiscord ? 'Processing...' : 'Just now')}</span>
+                            : (statusLabel ? statusLabel : 'Just now')}</span>
                     </div>
                 </div>
                 <button
-                    onClick={(e) => { e.stopPropagation(); onToggle(); }}
-                    disabled={!log.details && !isExpanded}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (!log.details && !isExpanded && onCancel) {
+                            onCancel();
+                            return;
+                        }
+                        onToggle();
+                    }}
+                    disabled={!log.details && !isExpanded && !onCancel}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 border ${!log.details
-                        ? 'bg-white/5 text-gray-600 border-white/5 cursor-not-allowed opacity-50'
+                        ? onCancel ? 'bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20' : 'bg-white/5 text-gray-600 border-white/5 cursor-not-allowed opacity-50'
                         : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white group-hover:border-white/20'
                         }`}
                 >
-                    {isExpanded ? <><ChevronUp className="w-3 h-3" /><span>Hide</span></> : <><ChevronDown className="w-3 h-3" /><span>Details</span></>}
+                    {!log.details && !isExpanded ? (
+                        <><span>Cancel</span></>
+                    ) : isExpanded ? (
+                        <><ChevronUp className="w-3 h-3" /><span>Hide</span></>
+                    ) : (
+                        <><ChevronDown className="w-3 h-3" /><span>Details</span></>
+                    )}
                 </button>
             </div>
 

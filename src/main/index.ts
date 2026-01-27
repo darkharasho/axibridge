@@ -4,6 +4,7 @@ import path from 'node:path'
 import https from 'node:https'
 import { createHash } from 'node:crypto'
 import { spawn } from 'node:child_process'
+import { DEFAULT_WEB_THEME_ID, WEB_THEMES } from '../shared/webThemes';
 import { LogWatcher } from './watcher'
 import { Uploader } from './uploader'
 import { DiscordNotifier } from './discord';
@@ -77,6 +78,78 @@ const GITHUB_PROTOCOL = 'gw2-arc-log-uploader';
 const GITHUB_DEVICE_CLIENT_ID = process.env.GITHUB_DEVICE_CLIENT_ID || 'Ov23liFh1ih9LAcnLACw';
 
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
+
+const processLogFile = async (filePath: string) => {
+    const fileId = path.basename(filePath);
+    win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
+
+    try {
+        if (!uploader) {
+            throw new Error('Uploader not initialized.');
+        }
+        const result = await uploader.upload(filePath);
+
+        if (result && !result.error) {
+            console.log(`[Main] Upload successful: ${result.permalink}. Fetching details...`);
+            let jsonDetails = await uploader.fetchDetailedJson(result.permalink);
+
+            if (!jsonDetails || jsonDetails.error) {
+                console.log('[Main] Retrying JSON fetch in 2 seconds...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                jsonDetails = await uploader.fetchDetailedJson(result.permalink);
+            }
+
+            win?.webContents.send('upload-status', {
+                id: fileId,
+                filePath,
+                status: 'discord',
+                permalink: result.permalink,
+                uploadTime: result.uploadTime,
+                encounterDuration: result.encounterDuration,
+                fightName: result.fightName
+            });
+
+            const notificationType = store.get('discordNotificationType', 'image');
+            const selectedWebhookId = store.get('selectedWebhookId', null);
+            const webhookUrl = store.get('discordWebhookUrl', null);
+            const shouldSendDiscord = Boolean(selectedWebhookId) && typeof webhookUrl === 'string' && webhookUrl.length > 0;
+            console.log(`[Main] Preparing Discord delivery. Configured type: ${notificationType}`);
+
+            if (shouldSendDiscord) {
+                try {
+                    if (notificationType === 'image' || notificationType === 'image-beta') {
+                        pendingDiscordLogs.set(result.id, { result: { ...result, filePath }, jsonDetails });
+                        win?.webContents.send('request-screenshot', { ...result, filePath, details: jsonDetails, mode: notificationType });
+                    } else {
+                        await discord?.sendLog({ ...result, filePath, mode: 'embed' }, jsonDetails);
+                    }
+                } catch (discordError: any) {
+                    console.error('[Main] Discord notification failed:', discordError?.message || discordError);
+                    // Still mark as success since upload worked, but log the Discord failure
+                }
+            } else {
+                console.log('[Main] Discord notification skipped: no webhook selected.');
+            }
+
+            win?.webContents.send('upload-complete', {
+                ...result,
+                filePath,
+                status: 'success',
+                details: jsonDetails
+            });
+        } else {
+            win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
+        }
+    } catch (error: any) {
+        console.error('[Main] Log processing failed:', error?.message || error);
+        win?.webContents.send('upload-complete', {
+            id: fileId,
+            filePath,
+            status: 'error',
+            error: error?.message || 'Unknown error during processing'
+        });
+    }
+};
 
 const parseVersion = (value: string | null): number[] | null => {
     if (!value) return null;
@@ -393,14 +466,14 @@ const createGithubBlob = async (owner: string, repo: string, token: string, cont
     return resp.data;
 };
 
-const createGithubTree = async (owner: string, repo: string, token: string, baseTree: string, entries: Array<{ path: string; sha: string }>) => {
+const createGithubTree = async (owner: string, repo: string, token: string, baseTree: string, entries: Array<{ path: string; sha: string | null }>) => {
     const resp = await githubApiRequest('POST', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/git/trees`, token, {
         base_tree: baseTree,
         tree: entries.map((entry) => ({
             path: entry.path,
             mode: '100644',
             type: 'blob',
-            sha: entry.sha
+            sha: entry.sha ?? null
         }))
     });
     if (resp.status >= 300) {
@@ -734,65 +807,7 @@ function createWindow() {
     }
 
     watcher.on('log-detected', async (filePath: string) => {
-        const fileId = path.basename(filePath);
-        win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
-
-        try {
-            const result = await uploader?.upload(filePath);
-
-            if (result && !result.error) {
-                console.log(`[Main] Upload successful: ${result.permalink}. Fetching details...`);
-                let jsonDetails = await uploader?.fetchDetailedJson(result.permalink);
-
-                if (!jsonDetails || jsonDetails.error) {
-                    console.log('[Main] Retrying JSON fetch in 2 seconds...');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    jsonDetails = await uploader?.fetchDetailedJson(result.permalink);
-                }
-
-                win?.webContents.send('upload-status', {
-                    id: fileId,
-                    filePath,
-                    status: 'discord',
-                    permalink: result.permalink,
-                    uploadTime: result.uploadTime,
-                    encounterDuration: result.encounterDuration,
-                    fightName: result.fightName
-                });
-
-                const notificationType = store.get('discordNotificationType', 'image');
-                console.log(`[Main] Preparing Discord delivery. Configured type: ${notificationType}`);
-
-                try {
-                    if (notificationType === 'image' || notificationType === 'image-beta') {
-                        pendingDiscordLogs.set(result.id, { result: { ...result, filePath }, jsonDetails });
-                        win?.webContents.send('request-screenshot', { ...result, filePath, details: jsonDetails, mode: notificationType });
-                    } else {
-                        await discord?.sendLog({ ...result, filePath, mode: 'embed' }, jsonDetails);
-                    }
-                } catch (discordError: any) {
-                    console.error('[Main] Discord notification failed:', discordError?.message || discordError);
-                    // Still mark as success since upload worked, but log the Discord failure
-                }
-
-                win?.webContents.send('upload-complete', {
-                    ...result,
-                    filePath,
-                    status: 'success',
-                    details: jsonDetails
-                });
-            } else {
-                win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
-            }
-        } catch (error: any) {
-            console.error('[Main] Log processing failed:', error?.message || error);
-            win?.webContents.send('upload-complete', {
-                id: fileId,
-                filePath,
-                status: 'error',
-                error: error?.message || 'Unknown error during processing'
-            });
-        }
+        await processLogFile(filePath);
     });
 
     win.webContents.on('did-finish-load', () => {
@@ -1036,7 +1051,8 @@ if (!gotTheLock) {
                 githubRepoName: store.get('githubRepoName', null),
                 githubBranch: store.get('githubBranch', 'main'),
                 githubPagesBaseUrl: store.get('githubPagesBaseUrl', null),
-                githubToken: store.get('githubToken', null)
+                githubToken: store.get('githubToken', null),
+                githubWebTheme: store.get('githubWebTheme', DEFAULT_WEB_THEME_ID)
             };
         });
 
@@ -1048,7 +1064,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null }) => {
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -1105,6 +1121,9 @@ if (!gotTheLock) {
             if (settings.githubToken !== undefined) {
                 store.set('githubToken', settings.githubToken);
             }
+            if (settings.githubWebTheme !== undefined) {
+                store.set('githubWebTheme', settings.githubWebTheme);
+            }
         });
 
         ipcMain.handle('select-directory', async () => {
@@ -1112,6 +1131,44 @@ if (!gotTheLock) {
             const result = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
             if (!result.canceled && result.filePaths.length > 0) return result.filePaths[0];
             return null;
+        });
+
+        ipcMain.handle('select-files', async (_event, payload?: { defaultPath?: string }) => {
+            if (!win) return null;
+            const result = await dialog.showOpenDialog(win, {
+                properties: ['openFile', 'multiSelections'],
+                defaultPath: payload?.defaultPath,
+                filters: [
+                    { name: 'Arc Logs', extensions: ['evtc', 'zevtc'] }
+                ]
+            });
+            if (!result.canceled && result.filePaths.length > 0) return result.filePaths;
+            return null;
+        });
+
+        ipcMain.handle('list-log-files', async (_event, payload?: { dir?: string }) => {
+            try {
+                const dir = payload?.dir;
+                if (!dir) return { success: false, error: 'Missing directory.' };
+                if (!fs.existsSync(dir)) return { success: false, error: 'Directory not found.' };
+                const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+                const files = await Promise.all(entries
+                    .filter((entry) => entry.isFile() && (entry.name.endsWith('.evtc') || entry.name.endsWith('.zevtc')))
+                    .map(async (entry) => {
+                        const fullPath = path.join(dir, entry.name);
+                        const stat = await fs.promises.stat(fullPath);
+                        return {
+                            path: fullPath,
+                            name: entry.name,
+                            mtimeMs: stat.mtimeMs,
+                            size: stat.size
+                        };
+                    }));
+                files.sort((a, b) => b.mtimeMs - a.mtimeMs);
+                return { success: true, files };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to list log files.' };
+            }
         });
 
         ipcMain.on('start-watching', (_event, dirPath: string) => {
@@ -1125,15 +1182,21 @@ if (!gotTheLock) {
         });
 
         ipcMain.on('manual-upload', (_event, filePath: string) => {
-            watcher?.emit('log-detected', filePath);
+            processLogFile(filePath);
         });
 
         ipcMain.on('manual-upload-batch', (_event, filePaths: string[]) => {
             console.log(`[Main] Received batch of ${filePaths.length} logs.`);
+            if (win && filePaths.length > 1) {
+                filePaths.forEach((filePath) => {
+                    const fileId = path.basename(filePath);
+                    win?.webContents.send('upload-status', { id: fileId, filePath, status: 'queued' });
+                });
+            }
             // Process sequentially to avoid overwhelming the system
             (async () => {
                 for (const filePath of filePaths) {
-                    watcher?.emit('log-detected', filePath);
+                    await processLogFile(filePath);
                     // Small delay to allow UI updates to breathe
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
@@ -1168,6 +1231,107 @@ if (!gotTheLock) {
                 return { success: false, error: err?.message || 'Failed to load repos.' };
             }
         });
+
+        ipcMain.handle('get-github-reports', async () => {
+            try {
+                const token = store.get('githubToken') as string | undefined;
+                const owner = store.get('githubRepoOwner') as string | undefined;
+                const repo = store.get('githubRepoName') as string | undefined;
+                const branch = (store.get('githubBranch') as string | undefined) || 'main';
+                if (!token) {
+                    return { success: false, error: 'GitHub not connected.' };
+                }
+                if (!owner || !repo) {
+                    return { success: false, error: 'Repository not configured.' };
+                }
+                const existing = await getGithubFile(owner, repo, 'reports/index.json', branch, token);
+                if (!existing?.content) {
+                    return { success: true, reports: [] };
+                }
+                const decoded = Buffer.from(existing.content, 'base64').toString('utf8');
+                const reports = JSON.parse(decoded);
+                return { success: true, reports: Array.isArray(reports) ? reports : [] };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to load reports.' };
+            }
+        });
+
+        ipcMain.handle('delete-github-reports', async (_event, payload: { ids: string[] }) => {
+            try {
+                const token = store.get('githubToken') as string | undefined;
+                const owner = store.get('githubRepoOwner') as string | undefined;
+                const repo = store.get('githubRepoName') as string | undefined;
+                const branch = (store.get('githubBranch') as string | undefined) || 'main';
+                const ids = payload?.ids?.filter(Boolean) || [];
+                if (!token) {
+                    return { success: false, error: 'GitHub not connected.' };
+                }
+                if (!owner || !repo) {
+                    return { success: false, error: 'Repository not configured.' };
+                }
+                if (ids.length === 0) {
+                    return { success: false, error: 'No reports selected.' };
+                }
+
+                const headRef = await getGithubRef(owner, repo, branch, token);
+                const headSha = headRef?.object?.sha;
+                if (!headSha) {
+                    throw new Error('Unable to resolve repository branch head.');
+                }
+                const headCommit = await getGithubCommit(owner, repo, headSha, token);
+                const baseTreeSha = headCommit?.tree?.sha;
+                if (!baseTreeSha) {
+                    throw new Error('Unable to resolve repository tree.');
+                }
+                const treeData = await getGithubTree(owner, repo, baseTreeSha, token);
+                const treeEntries = Array.isArray(treeData?.tree) ? treeData.tree : [];
+                const pathsToDelete = new Set<string>();
+                ids.forEach((id) => {
+                    pathsToDelete.add(`reports/${id}/`);
+                });
+                const deleteEntries: Array<{ path: string; sha: string | null }> = [];
+                treeEntries.forEach((entry: any) => {
+                    if (!entry?.path || entry?.type !== 'blob') return;
+                    for (const id of ids) {
+                        if (entry.path.startsWith(`reports/${id}/`)) {
+                            deleteEntries.push({ path: entry.path, sha: null });
+                            break;
+                        }
+                    }
+                });
+
+                let existingIndex: any[] = [];
+                try {
+                    const existing = await getGithubFile(owner, repo, 'reports/index.json', branch, token);
+                    if (existing?.content) {
+                        const decoded = Buffer.from(existing.content, 'base64').toString('utf8');
+                        existingIndex = JSON.parse(decoded);
+                    }
+                } catch {
+                    existingIndex = [];
+                }
+                const filteredIndex = Array.isArray(existingIndex)
+                    ? existingIndex.filter((entry: any) => !ids.includes(entry?.id))
+                    : [];
+                const indexContent = Buffer.from(JSON.stringify(filteredIndex, null, 2)).toString('base64');
+                const indexBlob = await createGithubBlob(owner, repo, token, indexContent);
+
+                const commitEntries = [
+                    ...deleteEntries,
+                    { path: 'reports/index.json', sha: indexBlob.sha }
+                ];
+
+                const newTree = await createGithubTree(owner, repo, token, baseTreeSha, commitEntries);
+                const commitMessage = `Delete ${ids.length} report${ids.length === 1 ? '' : 's'}`;
+                const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, headSha);
+                await updateGithubRef(owner, repo, branch, token, newCommit.sha);
+
+                return { success: true, removed: ids };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to delete reports.' };
+            }
+        });
+
 
         ipcMain.handle('create-github-repo', async (_event, params: { name: string; branch?: string }) => {
             try {
@@ -1300,6 +1464,8 @@ if (!gotTheLock) {
                     ...payload.meta,
                     appVersion: app.getVersion()
                 };
+                const themeId = (store.get('githubWebTheme', DEFAULT_WEB_THEME_ID) as string) || DEFAULT_WEB_THEME_ID;
+                const selectedTheme = WEB_THEMES.find((theme) => theme.id === themeId) || WEB_THEMES.find((theme) => theme.id === 'Midnight') || WEB_THEMES[0];
 
                 sendWebUploadStatus('Packaging', 'Preparing report bundle...', 40);
                 const stagingRoot = path.join(app.getPath('userData'), 'web-report-staging', reportMeta.id);
@@ -1333,7 +1499,30 @@ if (!gotTheLock) {
                     dateStart: reportMeta.dateStart,
                     dateEnd: reportMeta.dateEnd,
                     dateLabel: reportMeta.dateLabel,
-                    url: reportUrl
+                    url: reportUrl,
+                    summary: (() => {
+                        const stats = payload?.stats || {};
+                        const mapData = Array.isArray(stats.mapData) ? stats.mapData : [];
+                        const totalMaps = mapData.reduce((sum: number, entry: any) => sum + (entry?.value || 0), 0);
+                        const borderlandsCount = mapData.reduce((sum: number, entry: any) => {
+                            const name = String(entry?.name || '').toLowerCase();
+                            return name.includes('borderlands') ? sum + (entry?.value || 0) : sum;
+                        }, 0);
+                        const borderlandsPct = totalMaps > 0 ? borderlandsCount / totalMaps : null;
+                        const mapSlices = mapData.map((entry: any) => ({
+                            name: entry?.name || 'Unknown',
+                            value: entry?.value || 0,
+                            color: entry?.color || '#94a3b8'
+                        }));
+                        const avgSquadSize = typeof stats.avgSquadSize === 'number' ? stats.avgSquadSize : null;
+                        const avgEnemySize = typeof stats.avgEnemies === 'number' ? stats.avgEnemies : null;
+                        return {
+                            borderlandsPct,
+                            mapSlices,
+                            avgSquadSize,
+                            avgEnemySize
+                        };
+                    })()
                 };
 
                 let existingIndex: any[] = [];
@@ -1397,6 +1586,10 @@ if (!gotTheLock) {
 
                 const indexBuffer = Buffer.from(JSON.stringify(mergedIndex, null, 2));
                 queueFile('reports/index.json', indexBuffer);
+                if (selectedTheme) {
+                    const themeBuffer = Buffer.from(JSON.stringify(selectedTheme, null, 2));
+                    queueFile('theme.json', themeBuffer);
+                }
 
                 if (pendingEntries.length === 0) {
                     sendWebUploadStatus('Complete', 'No changes to upload.', 100);

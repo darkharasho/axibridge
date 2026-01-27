@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { CSSProperties, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Trophy, Share2, Swords, Shield, Zap, Activity, Flame, HelpingHand, Hammer, ShieldCheck, Crosshair, Map as MapIcon, Users, Skull, Wind, Crown, Sparkles, Star, UploadCloud, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend as ChartLegend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { toPng } from 'html-to-image';
@@ -1562,8 +1562,21 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
         ? 'min-h-screen flex flex-col p-1 w-full max-w-6xl mx-auto'
         : 'h-full flex flex-col p-1 w-full max-w-6xl mx-auto overflow-hidden';
     const scrollContainerClass = embedded
-        ? 'space-y-6 min-h-0 bg-[#0f172a] p-4 rounded-xl'
+        ? 'space-y-6 min-h-0 p-4 rounded-xl'
         : 'flex-1 overflow-y-auto pr-2 space-y-6 min-h-0 bg-[#0f172a] p-4 rounded-xl';
+    const scrollContainerStyle: CSSProperties | undefined = embedded
+        ? {
+            backgroundColor: 'rgba(3, 7, 18, 0.75)',
+            backgroundImage: 'linear-gradient(160deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.04) 70%)'
+        }
+        : undefined;
+
+    const embeddedStatCardStyle: CSSProperties | undefined = embedded
+        ? {
+            backgroundImage: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.26), rgba(15, 23, 42, 0.8) 70%)',
+            borderColor: 'rgba(var(--accent-rgb), 0.35)'
+        }
+        : undefined;
 
     return (
         <div className={containerClass}>
@@ -1686,15 +1699,17 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                 </div>
             )}
 
-            <div id="stats-dashboard-container" className={scrollContainerClass}>
+            <div id="stats-dashboard-container" className={scrollContainerClass} style={scrollContainerStyle}>
 
                 {/* Wins/Losses Big Cards with embedded Averages and KDR */}
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gradient-to-br from-green-500/20 to-emerald-900/20 border border-green-500/30 rounded-2xl p-6 flex flex-col items-center justify-center relative">
+                    <div
+                        className="bg-gradient-to-br from-green-500/20 to-emerald-900/20 border border-green-500/30 rounded-2xl p-6 flex flex-col items-center justify-center relative"
+                    >
                         <div className="text-5xl font-black text-green-400">{stats.wins}</div>
                         <div className="text-green-200/50 font-bold uppercase tracking-widest text-sm mt-2 mb-4">Victories</div>
 
-                        <div className="grid grid-cols-2 gap-4 border-t border-green-500/20 pt-3 w-full">
+                        <div className={`grid grid-cols-2 gap-4 pt-3 w-full ${embedded ? 'border-t border-white/10' : 'border-t border-green-500/20'}`}>
                             <div className="flex flex-col items-center">
                                 <div className="text-green-200 text-lg font-bold">{stats.avgSquadSize}</div>
                                 <div className="text-green-200/40 text-[10px] uppercase font-bold tracking-wider">Avg Squad</div>
@@ -1705,11 +1720,13 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                             </div>
                         </div>
                     </div>
-                    <div className="bg-gradient-to-br from-red-500/20 to-rose-900/20 border border-red-500/30 rounded-2xl p-6 flex flex-col items-center justify-center relative">
+                    <div
+                        className="bg-gradient-to-br from-red-500/20 to-rose-900/20 border border-red-500/30 rounded-2xl p-6 flex flex-col items-center justify-center relative"
+                    >
                         <div className="text-5xl font-black text-red-400">{stats.losses}</div>
                         <div className="text-red-200/50 font-bold uppercase tracking-widest text-sm mt-2 mb-4">Defeats</div>
 
-                        <div className="grid grid-cols-2 gap-4 border-t border-red-500/20 pt-3 w-full">
+                        <div className={`grid grid-cols-2 gap-4 pt-3 w-full ${embedded ? 'border-t border-white/10' : 'border-t border-red-500/20'}`}>
                             <div className="flex flex-col items-center">
                                 <div className="text-red-200 text-lg font-bold">{stats.avgEnemies}</div>
                                 <div className="text-red-200/40 text-[10px] uppercase font-bold tracking-wider">Avg Enemies</div>
@@ -2215,7 +2232,7 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                     <div className="text-center text-gray-500 italic py-8">No boons match this filter</div>
                                 ) : (
                                     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-                                        <div className="bg-black/20 border border-white/5 rounded-xl p-3">
+                                        <div className="bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0">
                                             <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Boons</div>
                                             <input
                                                 value={boonSearch}
@@ -2223,7 +2240,7 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                                 placeholder="Search..."
                                                 className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
                                             />
-                                            <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
+                                            <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
                                                 {filteredBoonTables.map((boon: any) => (
                                                     <button
                                                         key={boon.id}
@@ -2325,7 +2342,7 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                         <div className="text-center text-gray-500 italic py-8">No offensive stats available</div>
                     ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-                            <div className="bg-black/20 border border-white/5 rounded-xl p-3">
+                            <div className="bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0">
                                 <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Offensive Tabs</div>
                                 <input
                                     value={offenseSearch}
@@ -2458,7 +2475,7 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                         <div className="text-center text-gray-500 italic py-8">No defensive stats available</div>
                     ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-                            <div className="bg-black/20 border border-white/5 rounded-xl p-3">
+                            <div className="bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0">
                                 <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Defensive Tabs</div>
                                 <input
                                     value={defenseSearch}
@@ -2574,7 +2591,7 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                         <div className="text-center text-gray-500 italic py-8">No support stats available</div>
                     ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-                            <div className="bg-black/20 border border-white/5 rounded-xl p-3">
+                            <div className="bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0">
                                 <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Support Tabs</div>
                                 <input
                                     value={supportSearch}
@@ -2691,7 +2708,7 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                         <div className="text-center text-gray-500 italic py-8">No healing stats available</div>
                     ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-                            <div className="bg-black/20 border border-white/5 rounded-xl p-3">
+                            <div className="bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0">
                                 <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Healing Tabs</div>
                                 <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
                                     {HEALING_METRICS.map((metric) => (
@@ -2811,7 +2828,7 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                 <div className="text-center text-gray-500 italic py-8">No special buffs match this filter</div>
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-                                    <div className="bg-black/20 border border-white/5 rounded-xl p-3">
+                                    <div className="bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0">
                                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Special Buffs</div>
                                         <input
                                             value={specialSearch}
@@ -2819,7 +2836,7 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                             placeholder="Search..."
                                             className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
                                         />
-                                        <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
+                                        <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
                                             {filteredSpecialTables.map((buff: any) => (
                                                 <button
                                                     key={buff.id}

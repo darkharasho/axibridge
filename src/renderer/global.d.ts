@@ -113,6 +113,7 @@ export interface IElectronAPI {
         githubBranch?: string | null;
         githubPagesBaseUrl?: string | null;
         githubToken?: string | null;
+        githubWebTheme?: string | null;
     }>;
     manualUpload: (path: string) => void;
     manualUploadBatch: (paths: string[]) => void;
@@ -131,6 +132,7 @@ export interface IElectronAPI {
         githubBranch?: string | null;
         githubPagesBaseUrl?: string | null;
         githubToken?: string | null;
+        githubWebTheme?: string | null;
     }) => void;
     onRequestScreenshot: (callback: (data: any) => void) => () => void;
     openExternal: (url: string) => Promise<{ success: boolean, error?: string }>;
@@ -160,6 +162,9 @@ export interface IElectronAPI {
     startGithubOAuth: () => Promise<{ success: boolean; error?: string; userCode?: string; verificationUri?: string }>;
     onGithubAuthComplete: (callback: (data: { success: boolean; token?: string; error?: string }) => void) => () => void;
     getGithubRepos: () => Promise<{ success: boolean; repos?: Array<{ full_name: string; name: string; owner: string }> ; error?: string }>;
+    getGithubReports: () => Promise<{ success: boolean; reports?: any[]; error?: string }>;
+    deleteGithubReports: (payload: { ids: string[] }) => Promise<{ success: boolean; removed?: string[]; error?: string }>;
+    listLogFiles: (payload: { dir: string }) => Promise<{ success: boolean; files?: Array<{ path: string; name: string; mtimeMs: number; size: number }>; error?: string }>;
     createGithubRepo: (params: { name: string; branch?: string }) => Promise<{ success: boolean; repo?: { full_name: string; owner: string; name: string; pagesUrl?: string }; error?: string }>;
     uploadWebReport: (payload: { meta: any; stats: any }) => Promise<{ success: boolean; url?: string; error?: string }>;
     getGithubPagesBuildStatus: () => Promise<{ success: boolean; status?: string; updatedAt?: string; errorMessage?: string; error?: string }>;
@@ -175,7 +180,7 @@ declare global {
         id: string;
         permalink: string;
         filePath: string;
-        status?: 'uploading' | 'discord' | 'success' | 'error';
+        status?: 'queued' | 'pending' | 'uploading' | 'discord' | 'success' | 'error';
         error?: string;
         uploadTime?: number;
         encounterDuration?: string;

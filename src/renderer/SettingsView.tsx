@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Cloud, Link as LinkIcon, RefreshCw, Plus } from 'lucide-react';
+import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, IMvpWeights } from './global.d';
+import { DEFAULT_WEB_THEME_ID, WEB_THEMES } from '../shared/webThemes';
 
 interface SettingsViewProps {
     onBack: () => void;
@@ -44,11 +45,12 @@ function Toggle({ enabled, onChange, label, description }: {
 }
 
 // Section component for grouping settings
-function SettingsSection({ title, icon: Icon, children, delay = 0 }: {
+function SettingsSection({ title, icon: Icon, children, delay = 0, action }: {
     title: string;
     icon: React.ElementType;
     children: React.ReactNode;
     delay?: number;
+    action?: React.ReactNode;
 }) {
     return (
         <motion.div
@@ -57,11 +59,14 @@ function SettingsSection({ title, icon: Icon, children, delay = 0 }: {
             transition={{ delay }}
             className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
         >
-            <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/30">
-                    <Icon className="w-5 h-5 text-blue-400" />
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/30">
+                        <Icon className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-200">{title}</h3>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-200">{title}</h3>
+                {action}
             </div>
             {children}
         </motion.div>
@@ -77,6 +82,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [githubBranch, setGithubBranch] = useState('main');
     const [githubPagesBaseUrl, setGithubPagesBaseUrl] = useState('');
     const [githubToken, setGithubToken] = useState('');
+    const [githubWebTheme, setGithubWebTheme] = useState(DEFAULT_WEB_THEME_ID);
     const [githubAuthStatus, setGithubAuthStatus] = useState<'idle' | 'pending' | 'connected' | 'error'>('idle');
     const [githubAuthMessage, setGithubAuthMessage] = useState<string | null>(null);
     const [githubUserCode, setGithubUserCode] = useState<string | null>(null);
@@ -88,10 +94,22 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [githubRepoError, setGithubRepoError] = useState<string | null>(null);
     const [creatingRepo, setCreatingRepo] = useState(false);
     const [githubRepoStatus, setGithubRepoStatus] = useState<string | null>(null);
+    const [githubManageOpen, setGithubManageOpen] = useState(false);
+    const [githubReports, setGithubReports] = useState<any[]>([]);
+    const [githubReportsLoading, setGithubReportsLoading] = useState(false);
+    const [githubReportsError, setGithubReportsError] = useState<string | null>(null);
+    const [githubReportsSelected, setGithubReportsSelected] = useState<Set<string>>(new Set());
+    const [githubReportsDeleting, setGithubReportsDeleting] = useState(false);
+    const [githubReportsStatus, setGithubReportsStatus] = useState<string | null>(null);
     const [githubRepoStatusKind, setGithubRepoStatusKind] = useState<'idle' | 'success' | 'error' | 'pending'>('idle');
     const [isSaving, setIsSaving] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
     const [showSaved, setShowSaved] = useState(false);
+    const orderedThemes = useMemo(() => {
+        const active = WEB_THEMES.find((theme) => theme.id === githubWebTheme);
+        if (!active) return WEB_THEMES;
+        return [active, ...WEB_THEMES.filter((theme) => theme.id !== githubWebTheme)];
+    }, [githubWebTheme]);
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -108,6 +126,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             setGithubBranch(settings.githubBranch || 'main');
             setGithubPagesBaseUrl(settings.githubPagesBaseUrl || '');
             setGithubToken(settings.githubToken || '');
+            setGithubWebTheme(settings.githubWebTheme || DEFAULT_WEB_THEME_ID);
             if (settings.githubToken) {
                 setGithubAuthStatus('connected');
             }
@@ -127,7 +146,8 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             githubRepoName: githubRepoName || null,
             githubBranch: githubBranch || 'main',
             githubPagesBaseUrl: githubPagesBaseUrl || null,
-            githubToken: githubToken || null
+            githubToken: githubToken || null,
+            githubWebTheme: githubWebTheme || DEFAULT_WEB_THEME_ID
         });
         onEmbedStatSettingsSaved?.(embedStats);
         onMvpWeightsSaved?.(mvpWeights);
@@ -154,6 +174,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         githubBranch,
         githubPagesBaseUrl,
         githubToken,
+        githubWebTheme,
         hasLoaded
     ]);
 
@@ -186,6 +207,62 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         }
         setLoadingRepos(false);
     };
+
+    const loadGithubReports = async () => {
+        if (!window.electronAPI?.getGithubReports) return;
+        setGithubReportsLoading(true);
+        setGithubReportsError(null);
+        setGithubReportsStatus(null);
+        try {
+            const result = await window.electronAPI.getGithubReports();
+            if (result?.success) {
+                setGithubReports(Array.isArray(result.reports) ? result.reports : []);
+            } else {
+                setGithubReportsError(result?.error || 'Failed to load reports.');
+            }
+        } catch (err: any) {
+            setGithubReportsError(err?.message || 'Failed to load reports.');
+        } finally {
+            setGithubReportsLoading(false);
+        }
+    };
+
+    const toggleReportSelection = (id: string) => {
+        setGithubReportsSelected((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const handleDeleteSelectedReports = async () => {
+        if (!window.electronAPI?.deleteGithubReports) return;
+        const ids = Array.from(githubReportsSelected);
+        if (ids.length === 0) return;
+        const confirmed = window.confirm(`Delete ${ids.length} report${ids.length === 1 ? '' : 's'} from GitHub Pages? This cannot be undone.`);
+        if (!confirmed) return;
+        setGithubReportsDeleting(true);
+        setGithubReportsStatus(null);
+        try {
+            const result = await window.electronAPI.deleteGithubReports({ ids });
+            if (result?.success) {
+                setGithubReports((prev) => prev.filter((report) => !ids.includes(report?.id)));
+                setGithubReportsSelected(new Set());
+                setGithubReportsStatus(`Deleted ${ids.length} report${ids.length === 1 ? '' : 's'}.`);
+            } else {
+                setGithubReportsError(result?.error || 'Failed to delete reports.');
+            }
+        } catch (err: any) {
+            setGithubReportsError(err?.message || 'Failed to delete reports.');
+        } finally {
+            setGithubReportsDeleting(false);
+        }
+    };
+
 
     const handleCreateGithubRepo = async () => {
         if (!window.electronAPI?.createGithubRepo) return;
@@ -372,7 +449,22 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 </SettingsSection>
 
                 {/* GitHub Pages Hosting */}
-                <SettingsSection title="GitHub Pages Web Reports" icon={Cloud} delay={0.08}>
+                <SettingsSection
+                    title="GitHub Pages Web Reports"
+                    icon={Cloud}
+                    delay={0.08}
+                    action={githubAuthStatus === 'connected' ? (
+                        <button
+                            onClick={() => {
+                                setGithubManageOpen(true);
+                                loadGithubReports();
+                            }}
+                            className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30 transition-colors"
+                        >
+                            Manage
+                        </button>
+                    ) : null}
+                >
                     <p className="text-sm text-gray-400 mb-4">
                         Connect a GitHub OAuth App to publish web reports to GitHub Pages.
                     </p>
@@ -500,6 +592,31 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                             placeholder="Pages Base URL (auto if empty)"
                             className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-cyan-400/50 focus:outline-none transition-colors"
                         />
+                    </div>
+                    <div className="bg-black/30 border border-white/10 rounded-xl p-4 mb-4">
+                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Web Theme</div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-56 overflow-y-auto pr-1">
+                            {orderedThemes.map((theme) => {
+                                const isActive = theme.id === githubWebTheme;
+                                return (
+                                    <button
+                                        key={theme.id}
+                                        onClick={() => setGithubWebTheme(theme.id)}
+                                        className={`rounded-xl border px-3 py-3 text-left transition-colors ${isActive
+                                            ? 'border-cyan-400/60 bg-cyan-500/10'
+                                            : 'border-white/10 bg-white/5 hover:border-white/30'
+                                            }`}
+                                        style={{ boxShadow: isActive ? `0 0 18px rgba(${theme.rgb}, 0.25)` : undefined }}
+                                    >
+                                        <div
+                                            className="w-full h-12 rounded-lg mb-2 border border-white/10"
+                                            style={{ backgroundImage: theme.pattern, backgroundColor: '#0f172a' }}
+                                        />
+                                        <div className="text-xs font-semibold text-gray-200">{theme.label}</div>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 mb-3">
                         <button
@@ -848,6 +965,112 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 <div className="h-[12vh] min-h-10 max-h-28" />
                 {/* Save Button (hidden with auto-save) */}
             </div>
+
+            <AnimatePresence>
+                {githubManageOpen && (
+                    <motion.div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="w-full max-w-3xl bg-[#101826]/90 border border-white/10 rounded-2xl shadow-2xl p-6"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <div className="text-xs uppercase tracking-widest text-cyan-200/70">GitHub Pages</div>
+                                    <h3 className="text-xl font-semibold text-white">Manage Web Reports</h3>
+                                </div>
+                                <button
+                                    onClick={() => setGithubManageOpen(false)}
+                                    className="p-2 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-white/30"
+                                >
+                                    <CloseIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="text-xs text-gray-400">
+                                    {githubReports.length} report{githubReports.length === 1 ? '' : 's'}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={loadGithubReports}
+                                        className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                    >
+                                        Refresh
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteSelectedReports}
+                                        disabled={githubReportsSelected.size === 0 || githubReportsDeleting}
+                                        className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-red-500/20 text-red-200 border-red-500/40 disabled:opacity-50"
+                                    >
+                                        {githubReportsDeleting ? 'Deleting...' : `Delete (${githubReportsSelected.size})`}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {githubReportsError && (
+                                <div className="mb-3 text-xs text-rose-300">{githubReportsError}</div>
+                            )}
+                            {githubReportsStatus && (
+                                <div className="mb-3 text-xs text-emerald-300">{githubReportsStatus}</div>
+                            )}
+
+                            <div className="max-h-[420px] overflow-y-auto pr-1 space-y-2">
+                                {githubReportsLoading ? (
+                                    <div className="text-sm text-gray-400">Loading reports...</div>
+                                ) : githubReports.length === 0 ? (
+                                    <div className="text-sm text-gray-400">No reports found.</div>
+                                ) : (
+                                    githubReports.map((report) => (
+                                        <div
+                                            key={report.id}
+                                            className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${githubReportsSelected.has(report.id)
+                                                ? 'bg-cyan-500/10 border-cyan-400/40'
+                                                : 'bg-white/5 border-white/10'
+                                                }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={githubReportsSelected.has(report.id)}
+                                                onChange={() => toggleReportSelection(report.id)}
+                                                className="h-4 w-4 accent-cyan-400"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-semibold text-white truncate">
+                                                    {report.title || report.id}
+                                                </div>
+                                                <div className="text-xs text-gray-400 truncate">
+                                                    {report.dateLabel || report.dateStart || 'Unknown date'}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => window.electronAPI?.openExternal?.(report.url)}
+                                                className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:text-white"
+                                                title="Open report"
+                                            >
+                                                <ExternalLink className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => toggleReportSelection(report.id)}
+                                                className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:text-red-200"
+                                                title="Select for deletion"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
