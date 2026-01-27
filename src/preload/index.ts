@@ -86,10 +86,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteGithubReports: (payload: { ids: string[] }) => ipcRenderer.invoke('delete-github-reports', payload),
     listLogFiles: (payload: { dir: string }) => ipcRenderer.invoke('list-log-files', payload),
     createGithubRepo: (params: { name: string; branch?: string }) => ipcRenderer.invoke('create-github-repo', params),
+    ensureGithubTemplate: () => ipcRenderer.invoke('ensure-github-template'),
+    applyGithubTheme: (payload?: { themeId?: string }) => ipcRenderer.invoke('apply-github-theme', payload),
     uploadWebReport: (payload: { meta: any; stats: any }) => ipcRenderer.invoke('upload-web-report', payload),
     getGithubPagesBuildStatus: () => ipcRenderer.invoke('get-github-pages-build-status'),
     onWebUploadStatus: (callback: (data: any) => void) => {
         ipcRenderer.on('web-upload-status', (_event, value) => callback(value));
         return () => ipcRenderer.removeAllListeners('web-upload-status');
+    },
+    onGithubThemeStatus: (callback: (data: { stage?: string; message?: string; progress?: number }) => void) => {
+        ipcRenderer.on('github-theme-status', (_event, value) => callback(value));
+        return () => ipcRenderer.removeAllListeners('github-theme-status');
     }
 })

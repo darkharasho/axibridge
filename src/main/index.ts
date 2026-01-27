@@ -657,6 +657,12 @@ const sendWebUploadStatus = (stage: string, message?: string, progress?: number)
     }
 };
 
+const sendGithubThemeStatus = (stage: string, message?: string, progress?: number) => {
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('github-theme-status', { stage, message, progress });
+    }
+};
+
 const buildWebTemplate = async (appRoot: string) => {
     return new Promise<{ ok: boolean; error?: string }>((resolve) => {
         const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
@@ -1392,6 +1398,197 @@ if (!gotTheLock) {
                 };
             } catch (err: any) {
                 return { success: false, error: err?.message || 'Failed to load Pages build status.' };
+            }
+        });
+
+        ipcMain.handle('ensure-github-template', async () => {
+            try {
+                const token = store.get('githubToken') as string | undefined;
+                const owner = store.get('githubRepoOwner') as string | undefined;
+                const repo = store.get('githubRepoName') as string | undefined;
+                const branch = (store.get('githubBranch') as string | undefined) || 'main';
+                if (!token) {
+                    return { success: false, error: 'Missing GitHub token. Connect GitHub first.' };
+                }
+                if (!owner || !repo) {
+                    return { success: false, error: 'Select or create a repository in Settings first.' };
+                }
+
+                const headRef = await getGithubRef(owner, repo, branch, token);
+                const headSha = headRef?.object?.sha;
+                if (!headSha) {
+                    throw new Error('Unable to resolve repository branch head.');
+                }
+                const headCommit = await getGithubCommit(owner, repo, headSha, token);
+                const baseTreeSha = headCommit?.tree?.sha;
+                if (!baseTreeSha) {
+                    throw new Error('Unable to resolve repository tree.');
+                }
+                const treeData = await getGithubTree(owner, repo, baseTreeSha, token);
+                const treeEntries = Array.isArray(treeData?.tree) ? treeData.tree : [];
+                const treeMap = new Map<string, string>();
+                let hasIndex = false;
+                let hasAssets = false;
+                let hasClassIcons = false;
+                treeEntries.forEach((entry: any) => {
+                    if (entry?.path && entry?.sha && entry?.type === 'blob') {
+                        treeMap.set(entry.path, entry.sha);
+                        if (entry.path === 'index.html') hasIndex = true;
+                        if (entry.path.startsWith('assets/')) hasAssets = true;
+                        if (entry.path.startsWith('img/class-icons/')) hasClassIcons = true;
+                    }
+                });
+
+                if (hasIndex && hasAssets && hasClassIcons) {
+                    return { success: true, updated: false };
+                }
+
+                const appRoot = getWebRoot();
+                const templateDir = path.join(appRoot, 'dist-web');
+                if (app.isPackaged && !fs.existsSync(templateDir)) {
+                    return { success: false, error: 'Web template missing from the app build.' };
+                }
+                if (!app.isPackaged) {
+                    const built = await buildWebTemplate(appRoot);
+                    if (!built.ok || !fs.existsSync(templateDir)) {
+                        return { success: false, error: built.error || 'Failed to generate the web template automatically.' };
+                    }
+                }
+
+                const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
+                const queueFile = (repoPath: string, content: Buffer) => {
+                    const blobSha = computeGitBlobSha(content);
+                    const existingSha = treeMap.get(repoPath);
+                    if (existingSha && existingSha === blobSha) return;
+                    pendingEntries.push({
+                        path: repoPath,
+                        contentBase64: content.toString('base64'),
+                        blobSha
+                    });
+                };
+
+                const rootFiles = collectFiles(templateDir);
+                for (const file of rootFiles) {
+                    const content = fs.readFileSync(file.absPath);
+                    queueFile(file.relPath, content);
+                }
+
+                if (pendingEntries.length === 0) {
+                    return { success: true, updated: false };
+                }
+
+                const blobEntries: Array<{ path: string; sha: string }> = [];
+                for (const entry of pendingEntries) {
+                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64);
+                    blobEntries.push({ path: entry.path, sha: blob.sha });
+                }
+
+                const newTree = await createGithubTree(owner, repo, token, baseTreeSha, blobEntries);
+                const commitMessage = 'Add web template';
+                const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, headSha);
+                await updateGithubRef(owner, repo, branch, token, newCommit.sha);
+
+                return { success: true, updated: true };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to ensure web template.' };
+            }
+        });
+
+        ipcMain.handle('apply-github-theme', async (_event, payload?: { themeId?: string }) => {
+            try {
+                sendGithubThemeStatus('Preparing', 'Updating site theme. This can take a minute...', 5);
+                const token = store.get('githubToken') as string | undefined;
+                const owner = store.get('githubRepoOwner') as string | undefined;
+                const repo = store.get('githubRepoName') as string | undefined;
+                const branch = (store.get('githubBranch') as string | undefined) || 'main';
+                if (!token) {
+                    return { success: false, error: 'Missing GitHub token. Connect GitHub first.' };
+                }
+                if (!owner || !repo) {
+                    return { success: false, error: 'Select or create a repository in Settings first.' };
+                }
+
+                const themeId = payload?.themeId
+                    || (store.get('githubWebTheme', DEFAULT_WEB_THEME_ID) as string)
+                    || DEFAULT_WEB_THEME_ID;
+                const selectedTheme = WEB_THEMES.find((theme) => theme.id === themeId) || WEB_THEMES[0];
+
+                sendGithubThemeStatus('Preparing', 'Loading report index...', 15);
+                let reportIds: string[] = [];
+                try {
+                    const indexFile = await getGithubFile(owner, repo, 'reports/index.json', branch, token);
+                    if (indexFile?.content) {
+                        const decoded = Buffer.from(indexFile.content, 'base64').toString('utf8');
+                        const parsed = JSON.parse(decoded);
+                        if (Array.isArray(parsed)) {
+                            reportIds = parsed.map((entry) => entry?.id).filter((id) => typeof id === 'string');
+                        }
+                    }
+                } catch (err) {
+                    reportIds = [];
+                }
+
+                sendGithubThemeStatus('Preparing', `Updating ${reportIds.length} reports...`, 25);
+                const headRef = await getGithubRef(owner, repo, branch, token);
+                const headSha = headRef?.object?.sha;
+                if (!headSha) {
+                    throw new Error('Unable to resolve repository branch head.');
+                }
+                const headCommit = await getGithubCommit(owner, repo, headSha, token);
+                const baseTreeSha = headCommit?.tree?.sha;
+                if (!baseTreeSha) {
+                    throw new Error('Unable to resolve repository tree.');
+                }
+                const treeData = await getGithubTree(owner, repo, baseTreeSha, token);
+                const treeEntries = Array.isArray(treeData?.tree) ? treeData.tree : [];
+                const treeMap = new Map<string, string>();
+                treeEntries.forEach((entry: any) => {
+                    if (entry?.path && entry?.sha && entry?.type === 'blob') {
+                        treeMap.set(entry.path, entry.sha);
+                    }
+                });
+
+                const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
+                const queueFile = (repoPath: string, content: Buffer) => {
+                    const blobSha = computeGitBlobSha(content);
+                    const existingSha = treeMap.get(repoPath);
+                    if (existingSha && existingSha === blobSha) return;
+                    pendingEntries.push({
+                        path: repoPath,
+                        contentBase64: content.toString('base64'),
+                        blobSha
+                    });
+                };
+
+                const themeBuffer = Buffer.from(JSON.stringify(selectedTheme, null, 2));
+                queueFile('theme.json', themeBuffer);
+                reportIds.forEach((id) => {
+                    queueFile(`reports/${id}/theme.json`, themeBuffer);
+                });
+
+                if (pendingEntries.length === 0) {
+                    sendGithubThemeStatus('Complete', 'Theme already up to date.', 100);
+                    return { success: true };
+                }
+
+                sendGithubThemeStatus('Uploading', 'Uploading theme updates...', 70);
+                const blobEntries: Array<{ path: string; sha: string }> = [];
+                for (const entry of pendingEntries) {
+                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64);
+                    blobEntries.push({ path: entry.path, sha: blob.sha });
+                }
+
+                sendGithubThemeStatus('Finalizing', 'Publishing theme commit...', 90);
+                const newTree = await createGithubTree(owner, repo, token, baseTreeSha, blobEntries);
+                const commitMessage = `Update web theme to ${selectedTheme.id}`;
+                const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, headSha);
+                await updateGithubRef(owner, repo, branch, token, newCommit.sha);
+
+                sendGithubThemeStatus('Committed', 'Theme commit pushed. Waiting for Pages build...', 100);
+                return { success: true };
+            } catch (err: any) {
+                sendGithubThemeStatus('Error', err?.message || 'Theme update failed.', 100);
+                return { success: false, error: err?.message || 'Theme update failed.' };
             }
         });
 

@@ -161,14 +161,17 @@ export interface IElectronAPI {
     setLastSeenVersion: (version: string) => Promise<void>;
     startGithubOAuth: () => Promise<{ success: boolean; error?: string; userCode?: string; verificationUri?: string }>;
     onGithubAuthComplete: (callback: (data: { success: boolean; token?: string; error?: string }) => void) => () => void;
-    getGithubRepos: () => Promise<{ success: boolean; repos?: Array<{ full_name: string; name: string; owner: string }> ; error?: string }>;
+    getGithubRepos: () => Promise<{ success: boolean; repos?: Array<{ full_name: string; name: string; owner: string }>; error?: string }>;
     getGithubReports: () => Promise<{ success: boolean; reports?: any[]; error?: string }>;
     deleteGithubReports: (payload: { ids: string[] }) => Promise<{ success: boolean; removed?: string[]; error?: string }>;
     listLogFiles: (payload: { dir: string }) => Promise<{ success: boolean; files?: Array<{ path: string; name: string; mtimeMs: number; size: number }>; error?: string }>;
     createGithubRepo: (params: { name: string; branch?: string }) => Promise<{ success: boolean; repo?: { full_name: string; owner: string; name: string; pagesUrl?: string }; error?: string }>;
+    ensureGithubTemplate: () => Promise<{ success: boolean; updated?: boolean; error?: string }>;
+    applyGithubTheme: (payload?: { themeId?: string }) => Promise<{ success: boolean; error?: string }>;
     uploadWebReport: (payload: { meta: any; stats: any }) => Promise<{ success: boolean; url?: string; error?: string }>;
     getGithubPagesBuildStatus: () => Promise<{ success: boolean; status?: string; updatedAt?: string; errorMessage?: string; error?: string }>;
     onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number }) => void) => () => void;
+    onGithubThemeStatus: (callback: (data: { stage?: string; message?: string; progress?: number }) => void) => () => void;
 }
 
 declare global {

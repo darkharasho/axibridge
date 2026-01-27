@@ -2228,20 +2228,20 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                     </div>
                                 </div>
 
-                                {filteredBoonTables.length === 0 ? (
-                                    <div className="text-center text-gray-500 italic py-8">No boons match this filter</div>
-                                ) : (
-                                    <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-                                        <div className="bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0">
-                                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Boons</div>
-                                            <input
-                                                value={boonSearch}
-                                                onChange={(e) => setBoonSearch(e.target.value)}
-                                                placeholder="Search..."
-                                                className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
-                                            />
-                                            <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
-                                                {filteredBoonTables.map((boon: any) => (
+                                <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
+                                    <div className="bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0">
+                                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Boons</div>
+                                        <input
+                                            value={boonSearch}
+                                            onChange={(e) => setBoonSearch(e.target.value)}
+                                            placeholder="Search..."
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                                        />
+                                        <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
+                                            {filteredBoonTables.length === 0 ? (
+                                                <div className="text-center text-gray-500 italic py-6 text-xs">No boons match this filter</div>
+                                            ) : (
+                                                filteredBoonTables.map((boon: any) => (
                                                     <button
                                                         key={boon.id}
                                                         onClick={() => setActiveBoonTab(boon.id)}
@@ -2252,11 +2252,15 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                                     >
                                                         {boon.name}
                                                     </button>
-                                                ))}
-                                            </div>
+                                                ))
+                                            )}
                                         </div>
-                                        <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
-                                            {filteredBoonTables.map((boon: any) => (
+                                    </div>
+                                    <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                                        {filteredBoonTables.length === 0 ? (
+                                            <div className="px-4 py-10 text-center text-gray-500 italic text-sm">No boons match this filter</div>
+                                        ) : (
+                                            filteredBoonTables.map((boon: any) => (
                                                 activeBoonTab === boon.id ? (
                                                     <div key={boon.id}>
                                                         <div className="flex items-center justify-between px-4 py-3 bg-white/5">
@@ -2301,32 +2305,32 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                                                     - getBoonMetricValue(a, activeBoonCategory, boon.stacking, activeBoonMetric)
                                                                 ))
                                                                 .map((row: any, idx: number) => (
-                                                                <div key={`${boon.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
-                                                                    <div className="flex items-center gap-2 min-w-0">
-                                                                        {getProfessionIconPath(row.profession) && (
-                                                                            <img
-                                                                                src={getProfessionIconPath(row.profession) as string}
-                                                                                alt={row.profession}
-                                                                                className="w-4 h-4 shrink-0"
-                                                                            />
-                                                                        )}
-                                                                        <span className="truncate">{row.account}</span>
+                                                                    <div key={`${boon.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                                        <div className="flex items-center gap-2 min-w-0">
+                                                                            {getProfessionIconPath(row.profession) && (
+                                                                                <img
+                                                                                    src={getProfessionIconPath(row.profession) as string}
+                                                                                    alt={row.profession}
+                                                                                    className="w-4 h-4 shrink-0"
+                                                                                />
+                                                                            )}
+                                                                            <span className="truncate">{row.account}</span>
+                                                                        </div>
+                                                                        <div className="text-right font-mono text-gray-300">
+                                                                            {formatBoonMetricDisplay(row, activeBoonCategory, boon.stacking, activeBoonMetric)}
+                                                                        </div>
+                                                                        <div className="text-right font-mono text-gray-400">
+                                                                            {row.activeTimeMs ? `${(row.activeTimeMs / 1000).toFixed(1)}s` : '-'}
+                                                                        </div>
                                                                     </div>
-                                                        <div className="text-right font-mono text-gray-300">
-                                                            {formatBoonMetricDisplay(row, activeBoonCategory, boon.stacking, activeBoonMetric)}
+                                                                ))}
                                                         </div>
-                                                        <div className="text-right font-mono text-gray-400">
-                                                            {row.activeTimeMs ? `${(row.activeTimeMs / 1000).toFixed(1)}s` : '-'}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
                                                     </div>
                                                 ) : null
-                                            ))}
-                                        </div>
+                                            ))
+                                        )}
                                     </div>
-                                )}
+                                </div>
                             </div>
                         </>
                     )}
@@ -2351,20 +2355,26 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                     className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
                                 />
                                 <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
-                                    {OFFENSE_METRICS.filter((metric) =>
-                                        metric.label.toLowerCase().includes(offenseSearch.trim().toLowerCase())
-                                    ).map((metric) => (
-                                        <button
-                                            key={metric.id}
-                                            onClick={() => setActiveOffenseStat(metric.id)}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeOffenseStat === metric.id
-                                                ? 'bg-rose-500/20 text-rose-200 border-rose-500/40'
-                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                }`}
-                                        >
-                                            {metric.label}
-                                        </button>
-                                    ))}
+                                    {(() => {
+                                        const filtered = OFFENSE_METRICS.filter((metric) =>
+                                            metric.label.toLowerCase().includes(offenseSearch.trim().toLowerCase())
+                                        );
+                                        if (filtered.length === 0) {
+                                            return <div className="text-center text-gray-500 italic py-6 text-xs">No offensive stats match this filter</div>;
+                                        }
+                                        return filtered.map((metric) => (
+                                            <button
+                                                key={metric.id}
+                                                onClick={() => setActiveOffenseStat(metric.id)}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeOffenseStat === metric.id
+                                                    ? 'bg-rose-500/20 text-rose-200 border-rose-500/40'
+                                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                    }`}
+                                            >
+                                                {metric.label}
+                                            </button>
+                                        ));
+                                    })()}
                                 </div>
                             </div>
                             <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
@@ -2484,20 +2494,26 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                     className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
                                 />
                                 <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
-                                    {DEFENSE_METRICS.filter((metric) =>
-                                        metric.label.toLowerCase().includes(defenseSearch.trim().toLowerCase())
-                                    ).map((metric) => (
-                                        <button
-                                            key={metric.id}
-                                            onClick={() => setActiveDefenseStat(metric.id)}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeDefenseStat === metric.id
-                                                ? 'bg-sky-500/20 text-sky-200 border-sky-500/40'
-                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                }`}
-                                        >
-                                            {metric.label}
-                                        </button>
-                                    ))}
+                                    {(() => {
+                                        const filtered = DEFENSE_METRICS.filter((metric) =>
+                                            metric.label.toLowerCase().includes(defenseSearch.trim().toLowerCase())
+                                        );
+                                        if (filtered.length === 0) {
+                                            return <div className="text-center text-gray-500 italic py-6 text-xs">No defensive stats match this filter</div>;
+                                        }
+                                        return filtered.map((metric) => (
+                                            <button
+                                                key={metric.id}
+                                                onClick={() => setActiveDefenseStat(metric.id)}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeDefenseStat === metric.id
+                                                    ? 'bg-sky-500/20 text-sky-200 border-sky-500/40'
+                                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                    }`}
+                                            >
+                                                {metric.label}
+                                            </button>
+                                        ));
+                                    })()}
                                 </div>
                             </div>
                             <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
@@ -2600,20 +2616,26 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                     className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
                                 />
                                 <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
-                                    {SUPPORT_METRICS.filter((metric) =>
-                                        metric.label.toLowerCase().includes(supportSearch.trim().toLowerCase())
-                                    ).map((metric) => (
-                                        <button
-                                            key={metric.id}
-                                            onClick={() => setActiveSupportStat(metric.id)}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeSupportStat === metric.id
-                                                ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
-                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                }`}
-                                        >
-                                            {metric.label}
-                                        </button>
-                                    ))}
+                                    {(() => {
+                                        const filtered = SUPPORT_METRICS.filter((metric) =>
+                                            metric.label.toLowerCase().includes(supportSearch.trim().toLowerCase())
+                                        );
+                                        if (filtered.length === 0) {
+                                            return <div className="text-center text-gray-500 italic py-6 text-xs">No support stats match this filter</div>;
+                                        }
+                                        return filtered.map((metric) => (
+                                            <button
+                                                key={metric.id}
+                                                onClick={() => setActiveSupportStat(metric.id)}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeSupportStat === metric.id
+                                                    ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
+                                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                    }`}
+                                            >
+                                                {metric.label}
+                                            </button>
+                                        ));
+                                    })()}
                                 </div>
                             </div>
                             <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
@@ -2824,20 +2846,20 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                         <div className="text-center text-gray-500 italic py-8">No special buff data available</div>
                     ) : (
                         <>
-                            {filteredSpecialTables.length === 0 ? (
-                                <div className="text-center text-gray-500 italic py-8">No special buffs match this filter</div>
-                            ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-                                    <div className="bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0">
-                                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Special Buffs</div>
-                                        <input
-                                            value={specialSearch}
-                                            onChange={(e) => setSpecialSearch(e.target.value)}
-                                            placeholder="Search..."
-                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
-                                        />
-                                        <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
-                                            {filteredSpecialTables.map((buff: any) => (
+                            <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
+                                <div className="bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0">
+                                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Special Buffs</div>
+                                    <input
+                                        value={specialSearch}
+                                        onChange={(e) => setSpecialSearch(e.target.value)}
+                                        placeholder="Search..."
+                                        className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                                    />
+                                    <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
+                                        {filteredSpecialTables.length === 0 ? (
+                                            <div className="text-center text-gray-500 italic py-6 text-xs">No special buffs match this filter</div>
+                                        ) : (
+                                            filteredSpecialTables.map((buff: any) => (
                                                 <button
                                                     key={buff.id}
                                                     onClick={() => setActiveSpecialTab(buff.id)}
@@ -2848,11 +2870,15 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                                 >
                                                     {buff.name}
                                                 </button>
-                                            ))}
-                                        </div>
+                                            ))
+                                        )}
                                     </div>
-                                    <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
-                                        {filteredSpecialTables.map((buff: any) => (
+                                </div>
+                                <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                                    {filteredSpecialTables.length === 0 ? (
+                                        <div className="px-4 py-10 text-center text-gray-500 italic text-sm">No special buffs match this filter</div>
+                                    ) : (
+                                        filteredSpecialTables.map((buff: any) => (
                                             activeSpecialTab === buff.id ? (
                                                 <div key={buff.id}>
                                                     <div className="flex items-center justify-between px-4 py-3 bg-white/5">
@@ -2892,10 +2918,10 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                                     </div>
                                                 </div>
                                             ) : null
-                                        ))}
-                                    </div>
+                                        ))
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </>
                     )}
                 </div>

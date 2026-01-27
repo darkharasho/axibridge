@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, IMvpWeights } from './global.d';
@@ -79,6 +79,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [embedStats, setEmbedStats] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
     const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
     const [githubRepoName, setGithubRepoName] = useState('');
+    const [githubRepoOwner, setGithubRepoOwner] = useState('');
     const [githubBranch, setGithubBranch] = useState('main');
     const [githubPagesBaseUrl, setGithubPagesBaseUrl] = useState('');
     const [githubToken, setGithubToken] = useState('');
@@ -105,6 +106,15 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [isSaving, setIsSaving] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
     const [showSaved, setShowSaved] = useState(false);
+    const [githubThemeStatus, setGithubThemeStatus] = useState<string | null>(null);
+    const [githubThemeStatusKind, setGithubThemeStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+    const lastSyncedThemeRef = useRef<string | null>(null);
+    const themeSyncInFlightRef = useRef(false);
+    const queuedThemeRef = useRef<string | null>(null);
+    const buildPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [githubTemplateStatus, setGithubTemplateStatus] = useState<string | null>(null);
+    const [githubTemplateStatusKind, setGithubTemplateStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+    const lastEnsuredRepoRef = useRef<string | null>(null);
     const orderedThemes = useMemo(() => {
         const active = WEB_THEMES.find((theme) => theme.id === githubWebTheme);
         if (!active) return WEB_THEMES;
@@ -122,6 +132,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             setCloseBehavior(settings.closeBehavior || 'minimize');
             setEmbedStats({ ...DEFAULT_EMBED_STATS, ...(settings.embedStatSettings || {}) });
             setMvpWeights({ ...DEFAULT_MVP_WEIGHTS, ...(settings.mvpWeights || {}) });
+            setGithubRepoOwner(settings.githubRepoOwner || '');
             setGithubRepoName(settings.githubRepoName || '');
             setGithubBranch(settings.githubBranch || 'main');
             setGithubPagesBaseUrl(settings.githubPagesBaseUrl || '');
@@ -144,6 +155,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             embedStatSettings: embedStats,
             mvpWeights: mvpWeights,
             githubRepoName: githubRepoName || null,
+            githubRepoOwner: githubRepoOwner || null,
             githubBranch: githubBranch || 'main',
             githubPagesBaseUrl: githubPagesBaseUrl || null,
             githubToken: githubToken || null,
@@ -171,6 +183,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         embedStats,
         mvpWeights,
         githubRepoName,
+        githubRepoOwner,
         githubBranch,
         githubPagesBaseUrl,
         githubToken,
@@ -282,6 +295,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         if (result?.success && result.repo) {
             setGithubRepoError(null);
             setGithubRepoMode('select');
+            setGithubRepoOwner(result.repo.owner || '');
             setGithubPagesBaseUrl(result.repo.pagesUrl || githubPagesBaseUrl);
             await refreshGithubRepos();
             setGithubRepoStatusKind('success');
@@ -304,6 +318,140 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             refreshGithubRepos();
         }
     }, [githubAuthStatus]);
+
+    useEffect(() => {
+        if (!hasLoaded) return;
+        if (githubAuthStatus !== 'connected') return;
+        if (!githubRepoName || !githubRepoOwner || !githubToken) return;
+        if (!window.electronAPI?.ensureGithubTemplate) return;
+        const repoKey = `${githubRepoOwner}/${githubRepoName}`;
+        if (lastEnsuredRepoRef.current === repoKey) return;
+        lastEnsuredRepoRef.current = repoKey;
+        const timeout = setTimeout(async () => {
+            setGithubTemplateStatusKind('pending');
+            setGithubTemplateStatus('Checking web template in this repo...');
+            const result = await window.electronAPI.ensureGithubTemplate();
+            if (result?.success) {
+                setGithubTemplateStatusKind('success');
+                setGithubTemplateStatus(result.updated ? 'Base web template added to the repo.' : 'Base web template already present.');
+            } else {
+                setGithubTemplateStatusKind('error');
+                setGithubTemplateStatus(result?.error || 'Failed to ensure web template.');
+            }
+        }, 300);
+        return () => clearTimeout(timeout);
+    }, [githubRepoName, githubRepoOwner, githubToken, githubAuthStatus, hasLoaded]);
+
+    useEffect(() => {
+        if (!window.electronAPI?.onGithubThemeStatus) return;
+        const unsubscribe = window.electronAPI.onGithubThemeStatus((payload) => {
+            const stage = payload?.stage || '';
+            const stageLower = stage.toLowerCase();
+            if (stageLower.includes('error')) {
+                setGithubThemeStatusKind('error');
+                setGithubThemeStatus(payload?.message || stage || null);
+                return;
+            }
+            if (stageLower.includes('complete')) {
+                setGithubThemeStatusKind('pending');
+                setGithubThemeStatus('Commit pushed. Waiting for Pages build...');
+                return;
+            }
+            setGithubThemeStatusKind('pending');
+            setGithubThemeStatus(payload?.message || stage || null);
+        });
+        return () => {
+            unsubscribe?.();
+        };
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (buildPollRef.current) {
+                clearTimeout(buildPollRef.current);
+            }
+        };
+    }, []);
+
+    const pollGithubBuildStatus = async (startedAt: number) => {
+        if (!window.electronAPI?.getGithubPagesBuildStatus) return;
+        let attempts = 0;
+        const poll = async () => {
+            attempts += 1;
+            const statusResp = await window.electronAPI.getGithubPagesBuildStatus();
+            if (!statusResp?.success) {
+                setGithubThemeStatusKind('pending');
+                setGithubThemeStatus('Theme updated. Waiting for Pages build...');
+            } else {
+                const status = String(statusResp.status || '').toLowerCase();
+                const updatedAt = statusResp.updatedAt ? Date.parse(statusResp.updatedAt) : null;
+                const isFresh = updatedAt !== null && updatedAt >= startedAt;
+                if ((status === 'built' || status === 'success') && isFresh) {
+                    setGithubThemeStatusKind('success');
+                    setGithubThemeStatus('Theme live on GitHub Pages.');
+                    return;
+                }
+                if (status === 'errored' || status === 'error' || status === 'failed') {
+                    setGithubThemeStatusKind('error');
+                    setGithubThemeStatus(statusResp.errorMessage || 'Pages build failed.');
+                    return;
+                }
+                setGithubThemeStatusKind('pending');
+                setGithubThemeStatus(isFresh ? 'GitHub Pages is building the theme...' : 'Waiting for new Pages build to start...');
+            }
+            if (attempts < 10) {
+                buildPollRef.current = setTimeout(poll, 6000);
+            }
+        };
+        if (buildPollRef.current) {
+            clearTimeout(buildPollRef.current);
+        }
+        poll();
+    };
+
+    const runThemeSync = async (themeId: string) => {
+        if (!window.electronAPI?.applyGithubTheme) return;
+        themeSyncInFlightRef.current = true;
+        setGithubThemeStatusKind('pending');
+        setGithubThemeStatus('Updating GitHub Pages theme. This can take a minute...');
+        const startedAt = Date.now();
+        const result = await window.electronAPI.applyGithubTheme({ themeId });
+        if (result?.success) {
+            lastSyncedThemeRef.current = themeId;
+            await pollGithubBuildStatus(startedAt);
+        } else {
+            setGithubThemeStatusKind('error');
+            setGithubThemeStatus(result?.error || 'Theme update failed.');
+        }
+        themeSyncInFlightRef.current = false;
+        if (queuedThemeRef.current && queuedThemeRef.current !== lastSyncedThemeRef.current) {
+            const nextTheme = queuedThemeRef.current;
+            queuedThemeRef.current = null;
+            runThemeSync(nextTheme);
+        }
+    };
+
+    useEffect(() => {
+        if (!hasLoaded) return;
+        if (!githubWebTheme) return;
+        if (lastSyncedThemeRef.current === null) {
+            lastSyncedThemeRef.current = githubWebTheme;
+            return;
+        }
+        if (githubWebTheme === lastSyncedThemeRef.current) return;
+        if (githubAuthStatus !== 'connected') return;
+        if (!githubRepoName || !githubToken) return;
+        if (themeSyncInFlightRef.current) {
+            queuedThemeRef.current = githubWebTheme;
+            setGithubThemeStatusKind('pending');
+            setGithubThemeStatus('Theme change queued. Will publish after current update.');
+            return;
+        }
+        const timeout = setTimeout(() => {
+            runThemeSync(githubWebTheme);
+        }, 400);
+        return () => clearTimeout(timeout);
+    }, [githubWebTheme, githubAuthStatus, githubRepoName, githubToken, hasLoaded]);
 
     const validateRepoName = (value: string) => {
         if (!value) return 'Repository name is required.';
@@ -526,7 +674,10 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                             .map((repo, idx) => (
                                                 <button
                                                     key={`${repo.full_name}-${idx}`}
-                                                    onClick={() => setGithubRepoName(repo.name)}
+                                                    onClick={() => {
+                                                        setGithubRepoName(repo.name);
+                                                        setGithubRepoOwner(repo.owner || '');
+                                                    }}
                                                     className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${githubRepoName === repo.name
                                                         ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
                                                         : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
@@ -576,6 +727,17 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                     {githubRepoStatus}
                                 </div>
                             )}
+                            {githubRepoMode === 'select' && githubTemplateStatus && (
+                                <div className={`text-xs mt-2 ${githubTemplateStatusKind === 'success'
+                                    ? 'text-emerald-300'
+                                    : githubTemplateStatusKind === 'error'
+                                        ? 'text-rose-400'
+                                        : 'text-cyan-300'
+                                    }`}
+                                >
+                                    {githubTemplateStatus}
+                                </div>
+                            )}
                         </div>
 
                         <input
@@ -595,6 +757,15 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                     </div>
                     <div className="bg-black/30 border border-white/10 rounded-xl p-4 mb-4">
                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Web Theme</div>
+                        <div className={`mb-3 rounded-lg border px-3 py-2 text-xs ${githubThemeStatusKind === 'success'
+                            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+                            : githubThemeStatusKind === 'error'
+                                ? 'border-rose-500/40 bg-rose-500/10 text-rose-200'
+                                : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-200'
+                            }`}
+                        >
+                            {githubThemeStatus || 'Theme changes publish automatically to GitHub Pages.'}
+                        </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-56 overflow-y-auto pr-1">
                             {orderedThemes.map((theme) => {
                                 const isActive = theme.id === githubWebTheme;
