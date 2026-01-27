@@ -80,8 +80,6 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
     const [githubRepoName, setGithubRepoName] = useState('');
     const [githubRepoOwner, setGithubRepoOwner] = useState('');
-    const [githubBranch, setGithubBranch] = useState('main');
-    const [githubPagesBaseUrl, setGithubPagesBaseUrl] = useState('');
     const [githubToken, setGithubToken] = useState('');
     const [githubWebTheme, setGithubWebTheme] = useState(DEFAULT_WEB_THEME_ID);
     const [githubAuthStatus, setGithubAuthStatus] = useState<'idle' | 'pending' | 'connected' | 'error'>('idle');
@@ -102,6 +100,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [githubReportsSelected, setGithubReportsSelected] = useState<Set<string>>(new Set());
     const [githubReportsDeleting, setGithubReportsDeleting] = useState(false);
     const [githubReportsStatus, setGithubReportsStatus] = useState<string | null>(null);
+    const [pagesUrlCopied, setPagesUrlCopied] = useState(false);
     const [githubRepoStatusKind, setGithubRepoStatusKind] = useState<'idle' | 'success' | 'error' | 'pending'>('idle');
     const [isSaving, setIsSaving] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
@@ -118,6 +117,9 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [githubLogoPath, setGithubLogoPath] = useState<string | null>(null);
     const [githubLogoStatus, setGithubLogoStatus] = useState<string | null>(null);
     const [githubLogoStatusKind, setGithubLogoStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+    const inferredPagesUrl = githubRepoOwner && githubRepoName
+        ? `https://${githubRepoOwner}.github.io/${githubRepoName}`
+        : '';
     const logoSyncInFlightRef = useRef(false);
     const queuedLogoPathRef = useRef<string | null>(null);
     const orderedThemes = useMemo(() => {
@@ -139,8 +141,6 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             setMvpWeights({ ...DEFAULT_MVP_WEIGHTS, ...(settings.mvpWeights || {}) });
             setGithubRepoOwner(settings.githubRepoOwner || '');
             setGithubRepoName(settings.githubRepoName || '');
-            setGithubBranch(settings.githubBranch || 'main');
-            setGithubPagesBaseUrl(settings.githubPagesBaseUrl || '');
             setGithubToken(settings.githubToken || '');
             setGithubWebTheme(settings.githubWebTheme || DEFAULT_WEB_THEME_ID);
             setGithubLogoPath(settings.githubLogoPath || null);
@@ -162,8 +162,6 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             mvpWeights: mvpWeights,
             githubRepoName: githubRepoName || null,
             githubRepoOwner: githubRepoOwner || null,
-            githubBranch: githubBranch || 'main',
-            githubPagesBaseUrl: githubPagesBaseUrl || null,
             githubToken: githubToken || null,
             githubWebTheme: githubWebTheme || DEFAULT_WEB_THEME_ID,
             githubLogoPath: githubLogoPath || null
@@ -191,8 +189,6 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         mvpWeights,
         githubRepoName,
         githubRepoOwner,
-        githubBranch,
-        githubPagesBaseUrl,
         githubToken,
         githubWebTheme,
         githubLogoPath,
@@ -299,12 +295,12 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         setCreatingRepo(true);
         setGithubRepoStatusKind('pending');
         setGithubRepoStatus('Creating repository...');
-        const result = await window.electronAPI.createGithubRepo({ name: githubRepoName, branch: githubBranch });
+        const result = await window.electronAPI.createGithubRepo({ name: githubRepoName, branch: 'main' });
         if (result?.success && result.repo) {
             setGithubRepoError(null);
             setGithubRepoMode('select');
             setGithubRepoOwner(result.repo.owner || '');
-            setGithubPagesBaseUrl(result.repo.pagesUrl || githubPagesBaseUrl);
+            // Pages URL inferred from repo settings; no manual override.
             await refreshGithubRepos();
             setGithubRepoStatusKind('success');
             setGithubRepoStatus(`Created ${result.repo.full_name}`);
@@ -319,6 +315,17 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             setGithubRepoStatus(null);
             setGithubRepoStatusKind('idle');
         }, 3000);
+    };
+
+    const handleCopyPagesUrl = async () => {
+        if (!inferredPagesUrl) return;
+        try {
+            await navigator.clipboard.writeText(inferredPagesUrl);
+            setPagesUrlCopied(true);
+            setTimeout(() => setPagesUrlCopied(false), 2000);
+        } catch {
+            setPagesUrlCopied(false);
+        }
     };
 
     useEffect(() => {
@@ -785,22 +792,26 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                     {githubTemplateStatus}
                                 </div>
                             )}
+                            <div className="bg-black/40 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-3 mt-3">
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-1">GitHub Pages URL</div>
+                                    <input
+                                        type="text"
+                                        value={inferredPagesUrl || 'Connect GitHub and select a repo'}
+                                        readOnly
+                                        className="w-full bg-transparent text-sm text-gray-200 focus:outline-none"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleCopyPagesUrl}
+                                    disabled={!inferredPagesUrl}
+                                    className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-200 border-white/10 hover:border-white/30 disabled:opacity-50"
+                                >
+                                    {pagesUrlCopied ? 'Copied' : 'Copy'}
+                                </button>
+                            </div>
                         </div>
 
-                        <input
-                            type="text"
-                            value={githubBranch}
-                            onChange={(e) => setGithubBranch(e.target.value)}
-                            placeholder="Branch (default: main)"
-                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-cyan-400/50 focus:outline-none transition-colors"
-                        />
-                        <input
-                            type="text"
-                            value={githubPagesBaseUrl}
-                            onChange={(e) => setGithubPagesBaseUrl(e.target.value)}
-                            placeholder="Pages Base URL (auto if empty)"
-                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-cyan-400/50 focus:outline-none transition-colors"
-                        />
                     </div>
                     <div className="bg-black/30 border border-white/10 rounded-xl p-4 mb-4">
                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Web Theme</div>
