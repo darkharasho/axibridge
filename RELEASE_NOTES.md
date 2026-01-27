@@ -1,117 +1,21 @@
 # Release Notes
 
-Version v1.5.6 — January 27, 2026
+Version v1.5.7 — January 27, 2026
 
-# GW2 Arc Log Uploader Release Notes - Version 1.5.6
+# 🎉 GW2 Arc Log Uploader v1.5.7 Release Notes
 
 ## 🌟 Highlights
-- This update focuses on refining our release notes! 📜
+- **Enhanced Release Notes**: The app now better captures and presents release notes.
+- **Screenshot Generation**: Fixed issues with generating screenshots for the image-beta mode. 📸
+- **Draft GitHub Releases**: Releases on GitHub can now be created as drafts for safer management. 📝
 
 ## 🛠️ Improvements
-- Minor version updates to the package files for better performance. 🚀
+- Improved the extraction process for release notes, ensuring clarity and consistency.
+- Made adjustments to the screenshot generation process, improving reliability and performance.
 
 ## 🧯 Fixes
-- Corrected inconsistencies in the release notes documentation.
-- Made the tiled (image-beta) Discord delivery path actually generate attachments in packaged builds.
+- Resolved inconsistencies in the release notes documentation.
+- Made sure that the tiled Discord delivery path generates attachments correctly in packaged builds. ✔️
 
 ## ⚠️ Breaking Changes
 None.
-
-# Release Notes
-
-Version v1.5.5 — January 27, 2026
-
-# GW2 Arc Log Uploader - Release Notes for v1.5.5 🎉
-
-## 🌟 Highlights
-- Enhanced readability and maintainability through a code structure refactor. 🛠️
-- Updated release notes for clarity and completeness. 📜
-
-## 🛠️ Improvements
-- Removed unused code to streamline the application. 🚀
-- Fixed TypeScript errors for a more stable experience.
-
-## 🧯 Fixes
-- Corrected minor issues in release notes. 
-
-## ⚠️ Breaking Changes
-None.
-
-# Release Notes
-
-Version v1.5.4 — January 27, 2026
-
-# GW2 Arc Log Uploader - Release Notes for v1.5.4
-
-## 🌟 Highlights
-- Refined sidebar navigation for easier access 🗂️
-- Adjusted MVP calculations to better match displayed charts 📊
-
-## 🛠️ Improvements
-- Removed additional unused code to enhance app efficiency 
-- Addressed TypeScript errors for smoother operation
-
-## 🧯 Fixes
-- Made numerous fixes to improve the overall functionality of the sidebar
-
-## ⚠️ Breaking Changes
-None.
-
-# Release Notes
-
-Version v1.5.4 — January 27, 2026
-
-# GW2 Arc Log Uploader - Release Notes for v1.5.4
-
-## 🌟 Highlights
-- 🎉 **Sidebar Navigation**: Enjoy a refined and smoother experience navigating through the app!
-- 📊 **MVP Calculations**: Adjustments made to better align MVP calculations with charts.
-
-## 🛠️ Improvements
-- ✅ Fixed TypeScript errors for better stability and performance.
-- 📝 Updated release notes to keep you informed about the latest changes!
-
-## 🧯 Fixes
-- 🔧 Numerous bug fixes to enhance overall functionality and user experience.
-
-## ⚠️ Breaking Changes
-None.
-
-# Release Notes
-
-Version v1.5.4 — January 27, 2026
-
-# GW2 Arc Log Uploader - Release Notes v1.5.4
-
-## 🌟 Highlights
-- 🚀 Refined sidebar navigation for a smoother experience.
-- 📊 Adjusted MVP calculations to better match charts for improved accuracy.
-
-## 🛠️ Improvements
-- Enhanced sidebar functionality to boost user interaction.
-- Overall performance optimizations for faster app responses.
-
-## 🧯 Fixes
-- Fixed various issues related to the sidebar for a more reliable experience.
-- Resolved multiple bugs to improve overall stability.
-
-## ⚠️ Breaking Changes
-None.
-
-# Release Notes
-
-Version v1.5.3 — January 26, 2026
-
-# GW2 Arc Log Uploader Release Notes - v1.5.3 🎉
-
-## 🌟 Highlights
-- We've updated to version 1.5.3! 🚀
-
-## 🛠️ Improvements
-- Added a script to streamline the updating of the GitHub release body, making future updates easier! 💻✨
-
-## 🧯 Fixes
-- None.
-
-## ⚠️ Breaking Changes
-- None.
