@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 
-const exec = (cmd) => execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+const exec = (cmd) => execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: process.env }).trim();
 
 const rootDir = process.cwd();
 const packageJsonPath = path.join(rootDir, 'package.json');
@@ -67,7 +67,7 @@ const prompt = [
     `You are writing friendly release notes for the "GW2 Arc Log Uploader" app.`,
     `Version: v${version}.`,
     `Use ONLY the commit summary provided below (git log ${lastTag || 'project start'}..HEAD). Do not infer or add features not explicitly listed.`,
-    `Please produce concise, user-facing notes with these sections and markdown headings (include tasteful emojis in the headings and a few bullets):`,
+    `Please produce concise, user-facing notes with these sections and markdown headings (include emojis in headings and sprinkle a few emojis in bullets):`,
     `## 🌟 Highlights`,
     `## 🛠️ Improvements`,
     `## 🧯 Fixes`,
