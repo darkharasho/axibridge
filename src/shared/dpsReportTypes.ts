@@ -14,6 +14,7 @@ export interface DPSReportJSON {
     success: boolean;
     skillMap?: { [key: string]: { name: string; icon: string } };
     buffMap?: { [key: string]: { name: string; stacking: boolean; icon?: string; classification?: string } };
+    combatReplayMetaData?: { inchToPixel?: number; pollingRate?: number };
 }
 
 export interface Target {
@@ -56,6 +57,13 @@ export interface Player {
     totalDamageDist?: TotalDamageDist[][];
     totalDamageTaken?: TotalDamageTaken[][];
     statsTargets?: StatsTarget[][];
+    combatReplayData?: {
+        positions?: Array<[number, number]>;
+        dead?: Array<[number, number]>;
+        down?: Array<[number, number]>;
+        start?: number;
+    };
+    hasCommanderTag?: boolean;
     notInSquad?: boolean;
     account?: string;
     stabGeneration?: number; // Calculated field

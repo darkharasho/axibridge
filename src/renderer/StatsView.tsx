@@ -238,14 +238,99 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
             const players = details.players as unknown as Player[];
             const targets = details.targets || [];
             const durationSec = details.durationMS ? details.durationMS / 1000 : 0;
+            const replayMeta = (details as any).combatReplayMetaData || {};
+            const inchesToPixel = typeof replayMeta?.inchToPixel === 'number' && replayMeta.inchToPixel > 0
+                ? replayMeta.inchToPixel
+                : 1;
+            const pollingRate = typeof replayMeta?.pollingRate === 'number' && replayMeta.pollingRate > 0
+                ? replayMeta.pollingRate
+                : 1;
+            const RUN_BACK_RANGE = 5000;
+
+            const toPairs = (value: any): Array<[number, number]> => {
+                if (!Array.isArray(value)) return [];
+                return value
+                    .map((entry) => (Array.isArray(entry) ? [Number(entry[0]), Number(entry[1])] as [number, number] : null))
+                    .filter((entry): entry is [number, number] => Boolean(entry) && Number.isFinite(entry[0]) && Number.isFinite(entry[1]));
+            };
+
+            let commanderTagPositions: Array<[number, number]> = [];
+            let deadTagMark = details.durationMS || 0;
+            let deadTag = false;
+            const commanderPlayer = players.find((player: any) => player?.hasCommanderTag && !player?.notInSquad);
+            if (commanderPlayer?.combatReplayData?.positions) {
+                commanderTagPositions = commanderPlayer.combatReplayData.positions as Array<[number, number]>;
+                const commanderDeaths = toPairs(commanderPlayer.combatReplayData.dead);
+                commanderDeaths.forEach(([deathTime]) => {
+                    if (deathTime > 0) {
+                        deadTag = true;
+                        deadTagMark = Math.min(deadTagMark, deathTime);
+                    }
+                });
+            }
+
+            const safePosition = (positions: Array<[number, number]>, idx: number) => {
+                if (!positions.length) return [0, 0] as [number, number];
+                if (idx < positions.length) return positions[idx];
+                if (idx - 1 < positions.length) return positions[idx - 1];
+                return positions[positions.length - 1];
+            };
+
+            const avgDistance = (
+                positions: Array<[number, number]>,
+                tagPositions: Array<[number, number]>,
+                poll: number,
+            ) => {
+                const limit = Math.max(0, Math.min(poll, positions.length, tagPositions.length));
+                if (limit <= 0) return 0;
+                let sum = 0;
+                for (let i = 0; i < limit; i += 1) {
+                    const [px, py] = positions[i];
+                    const [tx, ty] = tagPositions[i];
+                    sum += Math.hypot(px - tx, py - ty);
+                }
+                return Math.round((sum / limit) / inchesToPixel);
+            };
+
             const getDistanceToTag = (p: any) => {
                 const stats = p.statsAll?.[0];
                 const distToCom = stats?.distToCom;
-                if (distToCom !== undefined && distToCom !== null) {
-                    return distToCom;
-                }
                 const stackDist = stats?.stackDist;
-                return stackDist || 0;
+                let playerDistToTag = 0;
+                if (distToCom !== undefined && distToCom !== null) {
+                    playerDistToTag = distToCom === 'Infinity' ? 0 : Math.round(Number(distToCom));
+                } else if (stackDist !== undefined && stackDist !== null) {
+                    playerDistToTag = Math.round(Number(stackDist)) || 0;
+                }
+
+                const combatData = p.combatReplayData;
+                if (!combatData?.positions || !commanderTagPositions.length) {
+                    return playerDistToTag;
+                }
+
+                const playerPositions = combatData.positions as Array<[number, number]>;
+                const playerDeaths = toPairs(combatData.dead);
+                const playerDowns = toPairs(combatData.down);
+                const playerOffset = Math.floor((combatData.start || 0) / pollingRate);
+
+                if (playerDeaths.length && playerDowns.length) {
+                    for (const [deathKey] of playerDeaths) {
+                        if (deathKey < 0) continue;
+                        const positionMark = Math.max(0, Math.floor(deathKey / pollingRate)) - playerOffset;
+                        for (const [downKey, downValue] of playerDowns) {
+                            if (deathKey !== downValue) continue;
+
+                            const [x1, y1] = safePosition(playerPositions, positionMark);
+                            const [x2, y2] = safePosition(commanderTagPositions, positionMark);
+                            const playerDeadPoll = deadTag && downKey > deadTagMark
+                                ? Math.max(1, Math.floor(deadTagMark / pollingRate))
+                                : positionMark;
+                            playerDistToTag = avgDistance(playerPositions, commanderTagPositions, playerDeadPoll);
+                        }
+                    }
+                }
+
+                return playerDistToTag;
             };
 
             // Squad/Enemy Counts
@@ -392,12 +477,10 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
 
                 // Stack Distance (Distance to Tag)
                 // statsAll[0] contains the stackDist field in Elite Insights JSON
-                if (p.statsAll && p.statsAll.length > 0) {
-                    const dist = getDistanceToTag(p);
-                    if (dist > 0) {
-                        s.totalDist += dist;
-                        s.distCount++;
-                    }
+                const dist = getDistanceToTag(p);
+                if (dist <= RUN_BACK_RANGE) {
+                    s.totalDist += dist;
+                    s.distCount++;
                 }
 
                 // Dodges

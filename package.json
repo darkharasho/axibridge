@@ -18,7 +18,7 @@
         "build:linux": "npm run build && electron-builder --linux",
         "build:win": "npm run build && electron-builder --win",
         "build:all": "npm run build && electron-builder --linux --win",
-        "build:github": "npm run build && electron-builder --linux --win --publish always",
+        "build:github": "npm run build && electron-builder --publish always",
         "prebuild:github": "npm run generate:release-notes",
         "generate:release-notes": "node scripts/generate-release-notes.mjs",
         "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
