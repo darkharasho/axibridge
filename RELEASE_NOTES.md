@@ -5,19 +5,19 @@ Version v1.5.0 — January 26, 2026
 # GW2 Arc Log Uploader Release Notes
 
 ## Highlights
-- Welcome to version 1.5.0! Enjoy a smoother experience with our latest updates and enhancements.
-- We've revamped the user interface for easier navigation and log uploading.
-- New feature: Users can now preview logs before final upload to ensure they're uploading the correct files.
+- Exciting new version v1.5.0 is here!
+- Enhanced user interface for easier navigation and a more intuitive experience.
+- Improved performance for faster log uploads.
 
 ## Improvements
-- Optimized upload speed, making the process quicker than ever.
-- Enhanced error handling to provide clearer messages if something goes wrong during uploads.
-- Improved compatibility with the latest GW2 game updates to ensure seamless integration.
+- Streamlined log upload process for increased efficiency.
+- Refined error handling, providing clearer messages when issues arise.
+- Updated documentation for better guidance and support.
 
 ## Fixes
-- Resolved an issue where some users experienced crashes when uploading large logs.
-- Fixed a bug that occasionally caused the app to freeze during the preview feature.
-- Addressed minor layout issues for a more polished and consistent look across all devices.
+- Resolved a bug preventing some users from uploading logs correctly.
+- Fixed minor stability issues to ensure smoother operation.
+- Corrected inconsistencies in error messages.
 
 ## Breaking Changes
 None.
