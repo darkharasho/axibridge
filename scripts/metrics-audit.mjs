@@ -126,6 +126,13 @@ const writeOutput = (destPath, data) => {
     fs.writeFileSync(destPath, JSON.stringify(data, null, 2));
 };
 
+const normalizeForCompare = (data) => {
+    if (!data || typeof data !== 'object') return data;
+    const copy = { ...data };
+    delete copy.generatedAt;
+    return copy;
+};
+
 const compareWithExpected = (data, expectedFile) => {
     const expectedFullPath = path.resolve(cwd, expectedFile);
     if (!fs.existsSync(expectedFullPath)) {
@@ -133,7 +140,7 @@ const compareWithExpected = (data, expectedFile) => {
     }
     const expectedRaw = fs.readFileSync(expectedFullPath, 'utf8');
     const expected = JSON.parse(expectedRaw);
-    const ok = JSON.stringify(expected) === JSON.stringify(data);
+    const ok = JSON.stringify(normalizeForCompare(expected)) === JSON.stringify(normalizeForCompare(data));
     return { ok, reason: ok ? '' : 'mismatch' };
 };
 
