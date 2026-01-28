@@ -125,7 +125,7 @@ const SUPPORT_METRICS: Array<{
 const HEALING_METRICS: Array<{
     id: string;
     label: string;
-    baseField: 'healing' | 'barrier' | 'downedHealing';
+    baseField: 'healing' | 'barrier' | 'downedHealing' | 'resUtility';
     perSecond: boolean;
     decimals: number;
 }> = [
@@ -134,8 +134,31 @@ const HEALING_METRICS: Array<{
     { id: 'barrier', label: 'Barrier', baseField: 'barrier', perSecond: false, decimals: 0 },
     { id: 'barrierPerSecond', label: 'Barrier Per Second', baseField: 'barrier', perSecond: true, decimals: 2 },
     { id: 'downedHealing', label: 'Downed Healing', baseField: 'downedHealing', perSecond: false, decimals: 0 },
-    { id: 'downedHealingPerSecond', label: 'Downed Healing Per Second', baseField: 'downedHealing', perSecond: true, decimals: 1 }
+    { id: 'downedHealingPerSecond', label: 'Downed Healing Per Second', baseField: 'downedHealing', perSecond: true, decimals: 1 },
+    { id: 'resUtility', label: 'Resurrect Utility', baseField: 'resUtility', perSecond: false, decimals: 0 }
 ];
+
+const RES_UTILITY_NAME_MATCHES = [
+    'battle standard',
+    'glyph of renewal',
+    'glyph of the stars',
+    'illusion of life',
+    'spirit of nature',
+    'nature spirit',
+    'search and rescue',
+    'signet of mercy'
+];
+
+const RES_UTILITY_IDS = new Set<number>([10244]);
+
+const isResUtilitySkill = (id: number, skillMap: Record<string, { name?: string }> | undefined) => {
+    if (RES_UTILITY_IDS.has(id)) {
+        return true;
+    }
+    const entry = skillMap?.[`s${id}`] || skillMap?.[`${id}`];
+    const name = entry?.name?.toLowerCase() || '';
+    return RES_UTILITY_NAME_MATCHES.some((match) => name.includes(match));
+};
 
 interface SkillUsagePlayer {
     key: string;
@@ -164,6 +187,7 @@ interface SkillUsageSummary {
     logRecords: SkillUsageLogRecord[];
     players: SkillUsagePlayer[];
     skillOptions: SkillOption[];
+    resUtilitySkills?: Array<{ id: string; name: string }>;
 }
 
 export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded = false }: StatsViewProps) {
@@ -183,6 +207,7 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
     const [activeSupportStat, setActiveSupportStat] = useState<string>('condiCleanse');
     const [activeHealingMetric, setActiveHealingMetric] = useState<string>('healing');
     const [healingCategory, setHealingCategory] = useState<'total' | 'squad' | 'group' | 'self' | 'offSquad'>('total');
+    const [activeResUtilitySkill, setActiveResUtilitySkill] = useState<string>('all');
     const [offenseViewMode, setOffenseViewMode] = useState<'total' | 'per1s' | 'per60s'>('total');
     const [defenseViewMode, setDefenseViewMode] = useState<'total' | 'per1s' | 'per60s'>('total');
     const [supportViewMode, setSupportViewMode] = useState<'total' | 'per1s' | 'per60s'>('total');
@@ -566,6 +591,27 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                     if (!Number.isFinite(value)) return;
                     s.healingTotals[key] = (s.healingTotals[key] || 0) + value;
                 };
+
+                if (Array.isArray(p.rotation)) {
+                    let resUtilityCasts = 0;
+                    p.rotation.forEach((rotationSkill: any) => {
+                        if (!rotationSkill || typeof rotationSkill.id !== 'number') {
+                            return;
+                        }
+                        if (!isResUtilitySkill(rotationSkill.id, details.skillMap)) {
+                            return;
+                        }
+                        const castCount = Array.isArray(rotationSkill.skills) ? rotationSkill.skills.length : 0;
+                        if (!Number.isFinite(castCount) || castCount <= 0) {
+                            return;
+                        }
+                        resUtilityCasts += castCount;
+                        addHealingTotal(`resUtility_s${rotationSkill.id}`, castCount);
+                    });
+                    if (resUtilityCasts > 0) {
+                        addHealingTotal('resUtility', resUtilityCasts);
+                    }
+                }
 
                 if (p.extHealingStats?.outgoingHealingAllies && Array.isArray(p.extHealingStats.outgoingHealingAllies)) {
                     const healerName = p.name || '';
@@ -1452,6 +1498,7 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
         const skillTotals = new Map<string, number>();
         const playerMap = new Map<string, SkillUsagePlayer>();
         const logRecords: SkillUsageLogRecord[] = [];
+        const resUtilitySkillNameMap = new Map<string, string>();
 
         const resolveSkillName = (map: Record<string, { name?: string }>, id: number) => {
             const keyed = map?.[`s${id}`] || map?.[`${id}`];
@@ -1478,14 +1525,14 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                 skillEntries: {}
             };
 
-        const players = (details.players || []) as any[];
-        players.forEach((player) => {
-            if (player?.notInSquad) {
-                return;
-            }
-            const account = player.account || player.name || player.character_name || 'Unknown';
-            const profession = player.profession || 'Unknown';
-            const key = `${account}|${profession}`;
+            const players = (details.players || []) as any[];
+            players.forEach((player) => {
+                if (player?.notInSquad) {
+                    return;
+                }
+                const account = player.account || player.name || player.character_name || 'Unknown';
+                const profession = player.profession || 'Unknown';
+                const key = `${account}|${profession}`;
                 let playerRecord = playerMap.get(key);
                 if (!playerRecord) {
                     playerRecord = {
@@ -1517,6 +1564,10 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                     playerRecord.skillTotals[skillId] = (playerRecord.skillTotals[skillId] || 0) + castCount;
                     skillNameMap.set(skillId, skillName);
                     skillTotals.set(skillId, (skillTotals.get(skillId) || 0) + castCount);
+
+                    if (isResUtilitySkill(rotationSkill.id, skillMap)) {
+                        resUtilitySkillNameMap.set(skillId, skillName);
+                    }
                 });
             });
 
@@ -1543,7 +1594,10 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
         return {
             logRecords,
             players,
-            skillOptions
+            skillOptions,
+            resUtilitySkills: Array.from(resUtilitySkillNameMap.entries())
+                .map(([id, name]) => ({ id, name }))
+                .sort((a, b) => a.name.localeCompare(b.name))
         };
     }, [precomputedStats, validLogs]);
 
@@ -3387,15 +3441,20 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                             <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'healing-stats' ? 'flex flex-col min-h-0' : ''}`}>
                                 {(() => {
                                     const metric = HEALING_METRICS.find((entry) => entry.id === activeHealingMetric) || HEALING_METRICS[0];
+                                    const isResUtilityMetric = metric.baseField === 'resUtility';
                                     const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
-                                    const prefix = healingCategory === 'total'
+                                    const prefix = isResUtilityMetric
                                         ? ''
-                                        : healingCategory === 'offSquad'
-                                            ? 'offSquad'
-                                            : healingCategory;
-                                    const fieldName = prefix
-                                        ? `${prefix}${metric.baseField[0].toUpperCase()}${metric.baseField.slice(1)}`
-                                        : metric.baseField;
+                                        : healingCategory === 'total'
+                                            ? ''
+                                            : healingCategory === 'offSquad'
+                                                ? 'offSquad'
+                                                : healingCategory;
+                                    const fieldName = isResUtilityMetric
+                                        ? (activeResUtilitySkill === 'all' ? 'resUtility' : `resUtility_${activeResUtilitySkill}`)
+                                        : prefix
+                                            ? `${prefix}${metric.baseField[0].toUpperCase()}${metric.baseField.slice(1)}`
+                                            : metric.baseField;
                                     const rows = [...stats.healingPlayers]
                                         .filter((row: any) => Object.values(row.healingTotals || {}).some((val: any) => Number(val) > 0))
                                         .map((row: any) => {
@@ -3414,26 +3473,53 @@ export function StatsView({ logs, onBack, mvpWeights, precomputedStats, embedded
                                                 <div className="text-sm font-semibold text-gray-200">{metric.label}</div>
                                                 <div className="text-xs uppercase tracking-widest text-gray-500">Healing</div>
                                             </div>
-                                            <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
-                                                {([
-                                                    { value: 'total', label: 'Total' },
-                                                    { value: 'squad', label: 'Squad' },
-                                                    { value: 'group', label: 'Group' },
-                                                    { value: 'self', label: 'Self' },
-                                                    { value: 'offSquad', label: 'OffSquad' }
-                                                ] as const).map((option) => (
+                                            {isResUtilityMetric && (
+                                                <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5 flex-wrap">
                                                     <button
-                                                        key={option.value}
-                                                        onClick={() => setHealingCategory(option.value)}
-                                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${healingCategory === option.value
+                                                        onClick={() => setActiveResUtilitySkill('all')}
+                                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${activeResUtilitySkill === 'all'
                                                             ? 'bg-lime-500/20 text-lime-200 border-lime-500/40'
                                                             : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
                                                             }`}
                                                     >
-                                                        {option.label}
+                                                        All
                                                     </button>
-                                                ))}
-                                            </div>
+                                                    {(skillUsageData.resUtilitySkills || []).map((skill) => (
+                                                        <button
+                                                            key={skill.id}
+                                                            onClick={() => setActiveResUtilitySkill(skill.id)}
+                                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${activeResUtilitySkill === skill.id
+                                                                ? 'bg-lime-500/20 text-lime-200 border-lime-500/40'
+                                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                                }`}
+                                                        >
+                                                            {skill.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {!isResUtilityMetric && (
+                                                <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
+                                                    {([
+                                                        { value: 'total', label: 'Total' },
+                                                        { value: 'squad', label: 'Squad' },
+                                                        { value: 'group', label: 'Group' },
+                                                        { value: 'self', label: 'Self' },
+                                                        { value: 'offSquad', label: 'OffSquad' }
+                                                    ] as const).map((option) => (
+                                                        <button
+                                                            key={option.value}
+                                                            onClick={() => setHealingCategory(option.value)}
+                                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${healingCategory === option.value
+                                                                ? 'bg-lime-500/20 text-lime-200 border-lime-500/40'
+                                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                                }`}
+                                                        >
+                                                            {option.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                 <div className="text-center">#</div>
                                                 <div>Player</div>
