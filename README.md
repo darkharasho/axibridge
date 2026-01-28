@@ -81,7 +81,7 @@ A premium, high-performance Electron application for Guild Wars 2 players to aut
 
 ## 📄 License
 
-This project is licensed under the MIT License—see the LICENSE file for details.
+This project is licensed under the gpl3.0 License—see the LICENSE file for details.
 
 ## Attribution
 
