@@ -1,17 +1,18 @@
 # Release Notes
 
-Version v1.6.1 — January 27, 2026
+Version v1.6.2 — January 28, 2026
 
-# GW2 Arc Log Uploader v1.6.1 Release Notes
+# Release Notes for GW2 Arc Log Uploader v1.6.2
 
 ## 🌟 Highlights
-- Improved MVP cards: Zero weights will no longer appear! 🎉
+- **Enhanced Licensing:** A comprehensive MIT License has been added, ensuring proper attribution for projects contributing to this app. 📜
 
 ## 🛠️ Improvements
-- Enhanced error handling for a smoother user experience. 🔧
+- **License Requirements:** Ongoing efforts to rectify licensing requirements for improved compliance. ⛏️
+- **Updated Documentation:** The README and other documentation files have been revised to reflect recent changes. 📝
 
 ## 🧯 Fixes
-None.
+- **Corrected Copyrights:** Added a new COPYRIGHT file to clarify official copyright information. ⚖️
 
 ## ⚠️ Breaking Changes
 None.
