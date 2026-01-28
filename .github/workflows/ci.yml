@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  setup:
+  validate-boons:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,37 +22,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Upload node_modules
-        uses: actions/upload-artifact@v4
-        with:
-          name: node_modules
-          path: node_modules
-
-  validate-boons:
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Download node_modules
-        uses: actions/download-artifact@v4
-        with:
-          name: node_modules
-          path: node_modules
-
       - name: Validate boon generation
         run: npm run validate:boons
 
   audit-metrics:
     runs-on: ubuntu-latest
-    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,11 +37,8 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Download node_modules
-        uses: actions/download-artifact@v4
-        with:
-          name: node_modules
-          path: node_modules
+      - name: Install dependencies
+        run: npm ci
 
       - name: Audit combat metrics
         run: npm run audit:metrics
