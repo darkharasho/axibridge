@@ -7,6 +7,7 @@
         "name": "darkharasho",
         "email": "mstephens@example.com"
     },
+    "license": "MIT",
     "main": "dist-electron/main/index.js",
     "scripts": {
         "dev": "concurrently \"npm run dev:electron\" \"npm run dev:react\"",
