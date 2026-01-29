@@ -1197,6 +1197,7 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
         // If they play Guardian in 3 and Necro in 2, they count ONCE as Guardian and ONCE as Necro.
         const uniqueSquadComposition = new Set<string>();
 
+        const seenEnemyIdsAcrossLogs = new Set<string>();
         validLogs.forEach(log => {
             const details = log.details;
             if (!details) return;
@@ -1213,19 +1214,23 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
                 }
             });
 
-            // Enemy Classes
+            // Enemy Classes (unique by player/instance id per log)
             if (targets) {
                 targets.forEach(t => {
-                    if (!t.isFake) {
-                        const rawName = t.name || 'Unknown';
-                        // Clean up name: remove " pl-1234", " (Account)", ids, etc.
-                        let cleanName = rawName
-                            .replace(/\s+pl-\d+$/i, '')
-                            .replace(/\s*\([^)]*\)/, '')
-                            .trim();
+                    if (t.isFake) return;
+                    const rawName = t.name || 'Unknown';
+                    const rawId = (t as any).instanceID ?? (t as any).instid ?? (t as any).id ?? rawName;
+                    const idKey = rawId !== undefined && rawId !== null ? String(rawId) : rawName;
+                    if (seenEnemyIdsAcrossLogs.has(idKey)) return;
+                    seenEnemyIdsAcrossLogs.add(idKey);
 
-                        enemyClassCounts[cleanName] = (enemyClassCounts[cleanName] || 0) + 1;
-                    }
+                    // Clean up name: remove " pl-1234", " (Account)", ids, etc.
+                    let cleanName = rawName
+                        .replace(/\s+pl-\d+$/i, '')
+                        .replace(/\s*\([^)]*\)/, '')
+                        .trim();
+
+                    enemyClassCounts[cleanName] = (enemyClassCounts[cleanName] || 0) + 1;
                 });
             }
         });
