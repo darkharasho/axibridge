@@ -66,6 +66,8 @@ function App() {
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
     const [webhookModalOpen, setWebhookModalOpen] = useState(false);
+    const [webhookDropdownOpen, setWebhookDropdownOpen] = useState(false);
+    const webhookDropdownRef = useRef<HTMLDivElement | null>(null);
 
     // File picker modal state
     const [filePickerOpen, setFilePickerOpen] = useState(false);
@@ -108,6 +110,32 @@ function App() {
         embedStatSettings.showDodges
     ].filter(Boolean).length;
     const showClassIcons = notificationType === 'image' || notificationType === 'image-beta';
+
+    const selectedWebhook = useMemo(
+        () => webhooks.find((hook) => hook.id === selectedWebhookId) || null,
+        [webhooks, selectedWebhookId]
+    );
+
+    useEffect(() => {
+        if (!webhookDropdownOpen) return;
+        const handleMouseDown = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (webhookDropdownRef.current && !webhookDropdownRef.current.contains(target)) {
+                setWebhookDropdownOpen(false);
+            }
+        };
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setWebhookDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', handleMouseDown);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [webhookDropdownOpen]);
 
 
     // Stats calculation
@@ -725,22 +753,65 @@ function App() {
                                     <div>
                                         <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 block">Discord Webhook</label>
                                         <div className="flex gap-2">
-                                            <div className="flex-1 min-w-0 bg-black/40 border border-white/5 rounded-xl p-2 flex items-center gap-2 hover:border-purple-500/50 transition-colors">
-                                                <select
-                                                    value={selectedWebhookId || ''}
-                                                    onChange={(e) => {
-                                                        const id = e.target.value || null;
-                                                        setSelectedWebhookId(id);
-                                                        handleUpdateSettings({ selectedWebhookId: id });
-                                                    }}
-                                                    className="flex-1 bg-transparent border-none text-sm text-gray-300 focus:ring-0 cursor-pointer appearance-none"
+                                            <div ref={webhookDropdownRef} className="relative flex-1 min-w-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setWebhookDropdownOpen((prev) => !prev)}
+                                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 text-sm text-gray-300 hover:border-purple-500/50 hover:bg-black/50 transition-colors"
+                                                    aria-haspopup="listbox"
+                                                    aria-expanded={webhookDropdownOpen}
                                                 >
-                                                    <option value="" className="bg-gray-900">Disabled</option>
-                                                    {webhooks.map(w => (
-                                                        <option key={w.id} value={w.id} className="bg-gray-900">{w.name}</option>
-                                                    ))}
-                                                </select>
-                                                <ChevronDown className="w-4 h-4 text-gray-500 shrink-0 pointer-events-none" />
+                                                    <span className="truncate">
+                                                        {selectedWebhook?.name || 'Disabled'}
+                                                    </span>
+                                                    <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
+                                                </button>
+                                                {webhookDropdownOpen && (
+                                                    <div
+                                                        className="glass-dropdown absolute z-30 mt-2 w-full rounded-xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden"
+                                                        role="listbox"
+                                                    >
+                                                        <div className="relative z-10 max-h-64 overflow-y-auto">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedWebhookId(null);
+                                                                    handleUpdateSettings({ selectedWebhookId: null });
+                                                                    setWebhookDropdownOpen(false);
+                                                                }}
+                                                                className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                                                                    !selectedWebhookId
+                                                                        ? 'bg-purple-500/20 text-purple-100'
+                                                                        : 'text-gray-300 hover:bg-white/10'
+                                                                }`}
+                                                                role="option"
+                                                                aria-selected={!selectedWebhookId}
+                                                            >
+                                                                Disabled
+                                                            </button>
+                                                            {webhooks.map((hook) => (
+                                                                <button
+                                                                    key={hook.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setSelectedWebhookId(hook.id);
+                                                                        handleUpdateSettings({ selectedWebhookId: hook.id });
+                                                                        setWebhookDropdownOpen(false);
+                                                                    }}
+                                                                    className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                                                                        selectedWebhookId === hook.id
+                                                                            ? 'bg-purple-500/20 text-purple-100'
+                                                                            : 'text-gray-300 hover:bg-white/10'
+                                                                    }`}
+                                                                    role="option"
+                                                                    aria-selected={selectedWebhookId === hook.id}
+                                                                >
+                                                                    {hook.name}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                             <button
                                                 onClick={() => setWebhookModalOpen(true)}
