@@ -46,6 +46,29 @@ body.web-report #root {
     /* Firefox */
 }
 
+svg {
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
+.recharts-wrapper,
+.recharts-surface,
+.recharts-layer,
+.recharts-text,
+.recharts-cartesian-axis,
+.recharts-tooltip-wrapper {
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
+.recharts-wrapper * {
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
 input,
 select,
 textarea,
@@ -67,6 +90,7 @@ button:focus-visible,
     outline: none;
     box-shadow: none;
 }
+
 
 @keyframes modal-pane-grow {
     from {

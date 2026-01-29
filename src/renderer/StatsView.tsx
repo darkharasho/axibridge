@@ -458,6 +458,7 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
     const [defenseViewMode, setDefenseViewMode] = useState<'total' | 'per1s' | 'per60s'>('total');
     const [supportViewMode, setSupportViewMode] = useState<'total' | 'per1s' | 'per60s'>('total');
     const [cleanseScope, setCleanseScope] = useState<'squad' | 'all'>('all');
+    const [timelineFriendlyScope, setTimelineFriendlyScope] = useState<'squad' | 'squadAllies'>('squad');
     const [uploadingWeb, setUploadingWeb] = useState(false);
     const [webUploadMessage, setWebUploadMessage] = useState<string | null>(null);
     const [webUploadStage, setWebUploadStage] = useState<string | null>(null);
@@ -1758,7 +1759,9 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
                 const details = log.details;
                 const players = (details?.players as unknown as Player[]) || [];
                 const targets = details?.targets || [];
-                const allies = players.filter(p => !p.notInSquad).length;
+                const squadCount = players.filter(p => !p.notInSquad).length;
+                const allyCount = players.filter(p => p.notInSquad).length;
+                const friendlyCount = squadCount + allyCount;
                 const enemies = targets.filter((t: any) => !t.isFake).length;
                 const timestamp = details?.uploadTime || log.uploadTime || 0;
                 const label = timestamp
@@ -1766,7 +1769,9 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
                     : `Log ${index + 1}`;
                 return {
                     label,
-                    allies,
+                    squadCount,
+                    allyCount,
+                    friendlyCount,
                     enemies,
                     timestamp
                 };
@@ -2356,6 +2361,31 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
             setActiveSpecialTab(stats.specialTables[0].id);
         }
     }, [stats.specialTables, activeSpecialTab]);
+
+    useEffect(() => {
+        const clearSelection = () => {
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                selection.removeAllRanges();
+            }
+        };
+        const preventChartSelection = (event: Event) => {
+            const target = event.target as HTMLElement | null;
+            if (!target?.closest?.('.recharts-wrapper')) return;
+            event.preventDefault();
+            clearSelection();
+        };
+        document.addEventListener('selectstart', preventChartSelection);
+        document.addEventListener('mousedown', preventChartSelection);
+        document.addEventListener('mousemove', preventChartSelection);
+        document.addEventListener('dragstart', preventChartSelection);
+        return () => {
+            document.removeEventListener('selectstart', preventChartSelection);
+            document.removeEventListener('mousedown', preventChartSelection);
+            document.removeEventListener('mousemove', preventChartSelection);
+            document.removeEventListener('dragstart', preventChartSelection);
+        };
+    }, []);
 
     const buildReportMeta = () => {
         const commanderSet = new Set<string>();
@@ -3441,10 +3471,34 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
 
                 {/* Squad vs Enemy Size Timeline */}
                 <div id="timeline" className="bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24">
-                    <h3 className="text-lg font-bold text-gray-200 mb-6 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-green-400" />
-                        Squad vs Enemy Size
-                    </h3>
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+                        <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
+                            <Users className="w-5 h-5 text-green-400" />
+                            Squad vs Enemy Size
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-gray-500">
+                            <span className="text-gray-400">Friendly Count</span>
+                            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1">
+                                {([
+                                    { value: 'squad', label: 'Squad' },
+                                    { value: 'squadAllies', label: 'Squad + Allies' }
+                                ] as const).map((option) => (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => setTimelineFriendlyScope(option.value)}
+                                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                                            timelineFriendlyScope === option.value
+                                                ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
+                                                : 'border border-transparent text-gray-400 hover:text-gray-200'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                     {stats.timelineData.length === 0 ? (
                         <div className="text-center text-gray-500 italic py-10">No timeline data available</div>
                     ) : (
@@ -3472,12 +3526,15 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
                                         }}
                                         formatter={(value: any, name?: string) => [
                                             value,
-                                            name === 'allies' ? 'Allies' : 'Enemies'
+                                            name === 'friendly'
+                                                ? (timelineFriendlyScope === 'squad' ? 'Squad' : 'Squad + Allies')
+                                                : 'Enemies'
                                         ]}
                                     />
                                     <Line
                                         type="monotone"
-                                        dataKey="allies"
+                                        dataKey={timelineFriendlyScope === 'squad' ? 'squadCount' : 'friendlyCount'}
+                                        name="friendly"
                                         stroke="#22c55e"
                                         strokeWidth={2}
                                         dot={{ r: 3, fill: '#22c55e' }}
