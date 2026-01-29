@@ -46,6 +46,28 @@ body.web-report #root {
     /* Firefox */
 }
 
+input,
+select,
+textarea,
+button,
+[contenteditable="true"] {
+    outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus,
+[contenteditable="true"]:focus,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+[contenteditable="true"]:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
 @keyframes modal-pane-grow {
     from {
         opacity: 0;
