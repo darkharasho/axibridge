@@ -28,13 +28,30 @@ const renderProfessionIcon = (
     const resolvedProfession = profession === 'Multi' && list.length > 0 ? list[0] : profession;
     const iconPath = getProfessionIconPath(resolvedProfession || 'Unknown');
     if (!iconPath) return null;
-    const title = list.length > 1 ? `Multi: ${list.join(', ')}` : (list[0] || resolvedProfession || 'Unknown');
-    const showMultiDot = list.length > 1;
+    const showMulti = list.length > 1;
     return (
-        <span className="relative inline-flex shrink-0" title={title}>
+        <span className={`relative inline-flex shrink-0 ${showMulti ? 'group' : ''}`}>
             <img src={iconPath} alt={resolvedProfession || 'Unknown'} className={`${className} shrink-0`} />
-            {showMultiDot && (
-                <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-amber-300 ring-1 ring-[#0f172a]" />
+            {showMulti && (
+                <>
+                    <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-amber-300 ring-1 ring-[#0f172a]" />
+                    <div className="absolute left-1/2 top-full z-50 mt-2 w-max -translate-x-1/2 rounded-md border border-white/10 bg-[#0f172a]/95 px-2 py-1 text-[10px] text-gray-200 shadow-lg opacity-0 pointer-events-none transition-opacity group-hover:opacity-100">
+                        <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">Multi</div>
+                        <div className="space-y-1">
+                            {list.map((prof) => {
+                                const itemIcon = getProfessionIconPath(prof || 'Unknown');
+                                return (
+                                    <div key={prof} className="flex items-center gap-1">
+                                        {itemIcon ? (
+                                            <img src={itemIcon} alt={prof || 'Unknown'} className="h-3.5 w-3.5" />
+                                        ) : null}
+                                        <span className="text-gray-100">{prof || 'Unknown'}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </>
             )}
         </span>
     );
