@@ -4,7 +4,6 @@ Version v1.8.0 — January 28, 2026
 
 ## 🌟 Highlights
 - Version bump to v1.8.0
-- Default model updated to gpt-5.1-mini
 - Fight breakdown feature added with detailed statistics
 - Top damage list expanded to 25 entries
 - File picker gains a month window filter and a Load More option

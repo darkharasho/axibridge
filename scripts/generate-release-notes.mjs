@@ -36,7 +36,7 @@ if (!apiKey) {
     process.exit(1);
 }
 
-const model = process.env.OPENAI_MODEL || 'gpt-5.1-mini';
+const model = process.env.OPENAI_MODEL || 'gpt-5-nano';
 const org = process.env.OPENAI_ORG;
 const project = process.env.OPENAI_PROJECT;
 

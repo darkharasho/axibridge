@@ -1533,7 +1533,7 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
             }));
 
         const fightBreakdown = validLogs.map((log, index) => {
-            const details = log.details || {};
+            const details = (log.details || {}) as any;
             const players = (details.players || []) as any[];
             const targets = (details.targets || []) as any[];
             const squadPlayers = players.filter((p) => !p.notInSquad);
