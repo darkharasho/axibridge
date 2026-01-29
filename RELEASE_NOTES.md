@@ -1,15 +1,20 @@
 # Release Notes
 
-Version v1.7.1 — January 28, 2026
-
-# GW2 Arc Log Uploader v1.7.1 Release Notes
+Version v1.8.0 — January 28, 2026
 
 ## 🌟 Highlights
-- 🎉 Updated version to v1.7.1!
-- 🚫 Cleaned up the Discord message format by removing unnecessary decimals.
+- Version bump to v1.8.0
+- Default model updated to gpt-5.1-mini
+- Fight breakdown feature added with detailed statistics
+- Top damage list expanded to 25 entries
+- File picker gains a month window filter and a Load More option
 
 ## 🛠️ Improvements
-- None.
+- Fight breakdown refined
+- Add "select since" button for manual log addition
+- Add date/time picker for manual log selection
+- Unique count for enemy players
+- Release notes prompt refined for clarity
 
 ## 🧯 Fixes
 - None.
