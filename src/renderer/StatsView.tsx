@@ -2183,8 +2183,7 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
                 if (!filterTerm) return true;
                 return entry.name.toLowerCase().includes(filterTerm);
             })
-            .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
-            .slice(0, 8);
+            .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
         return filtered;
     }, [selectedPlayers, playerMapByKey, skillNameLookup, skillUsageSkillFilter, isSkillUsagePerSecond]);
 
