@@ -169,7 +169,7 @@ export class DiscordNotifier {
                     const maxTopRows = clampTopRows(settings.maxTopListRows ?? 10);
 
                     // --- Helpers ---
-                    const fmtNum = (n: number) => n.toLocaleString();
+                    const fmtInt = (n: number) => Math.round(n).toLocaleString();
 
                     let totalDps = 0;
                     let totalDmg = 0;
@@ -285,8 +285,8 @@ export class DiscordNotifier {
                     if (settings.showSquadSummary) {
                         const squadSummaryLines = [
                             formatStatLine('Count:', nonSquadPlayers.length > 0 ? `${squadPlayers.length} (+${nonSquadPlayers.length})` : squadPlayers.length),
-                            formatStatLine('DMG:', fmtNum(squadDmg)),
-                            formatStatLine('DPS:', fmtNum(squadDps)),
+                            formatStatLine('DMG:', fmtInt(squadDmg)),
+                            formatStatLine('DPS:', fmtInt(squadDps)),
                             formatStatLine('Downs:', squadDowns),
                             formatStatLine('Deaths:', squadDeaths)
                         ].join('\n');
@@ -302,8 +302,8 @@ export class DiscordNotifier {
                     if (settings.showEnemySummary) {
                         const enemySummaryLines = [
                             formatStatLine('Count:', enemyCount),
-                            formatStatLine('DMG:', fmtNum(totalDmgTaken)),
-                            formatStatLine('DPS:', fmtNum(totalIncomingDps)),
+                            formatStatLine('DMG:', fmtInt(totalDmgTaken)),
+                            formatStatLine('DPS:', fmtInt(totalIncomingDps)),
                             formatStatLine('Downs:', enemyDowns),
                             formatStatLine('Kills:', enemyDeaths)
                         ].join('\n');
@@ -323,9 +323,11 @@ export class DiscordNotifier {
                     // Line 2: Incoming Attacks | Incoming CC | Incoming Strips (conditionally shown)
                     if (settings.showIncomingStats) {
                         const formatIncoming = (val1: number, val2: number, total: number) => {
+                            const missBlock = Math.round(val1 + val2);
+                            const totalRounded = Math.round(total);
                             return [
-                                `Miss/Blk:  ${(val1 + val2).toString().padStart(6)}`,
-                                `Total:     ${total.toString().padStart(6)}`
+                                `Miss/Blk:  ${missBlock.toString().padStart(6)}`,
+                                `Total:     ${totalRounded.toString().padStart(6)}`
                             ].join('\n');
                         };
 
@@ -430,112 +432,112 @@ export class DiscordNotifier {
                                 title: "Damage",
                                 sortFn: (a: any, b: any) => getPlayerDamage(b) - getPlayerDamage(a),
                                 valFn: (p: any) => getPlayerDamage(p),
-                                fmtVal: (v: any) => v.toLocaleString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showDownContribution,
                                 title: "Down Contribution",
                                 sortFn: (a: any, b: any) => getPlayerDownContribution(b) - getPlayerDownContribution(a),
                                 valFn: (p: any) => getPlayerDownContribution(p),
-                                fmtVal: (v: any) => v.toLocaleString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showHealing,
                                 title: "Healing",
                                 sortFn: (a: any, b: any) => getPlayerSquadHealing(b) - getPlayerSquadHealing(a),
                                 valFn: (p: any) => getPlayerSquadHealing(p),
-                                fmtVal: (v: any) => v.toLocaleString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showBarrier,
                                 title: "Barrier",
                                 sortFn: (a: any, b: any) => getPlayerSquadBarrier(b) - getPlayerSquadBarrier(a),
                                 valFn: (p: any) => getPlayerSquadBarrier(p),
-                                fmtVal: (v: any) => v.toLocaleString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showCleanses,
                                 title: "Cleanses",
                                 sortFn: (a: any, b: any) => getPlayerCleanses(b) - getPlayerCleanses(a),
                                 valFn: (p: any) => getPlayerCleanses(p),
-                                fmtVal: (v: any) => v.toString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showBoonStrips,
                                 title: "Boon Strips",
                                 sortFn: (a: any, b: any) => getPlayerStrips(b, this.disruptionMethod) - getPlayerStrips(a, this.disruptionMethod),
                                 valFn: (p: any) => getPlayerStrips(p, this.disruptionMethod),
-                                fmtVal: (v: any) => v.toString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showCC,
                                 title: "CC",
                                 sortFn: (a: any, b: any) => getPlayerOutgoingCrowdControl(b, this.disruptionMethod) - getPlayerOutgoingCrowdControl(a, this.disruptionMethod),
                                 valFn: (p: any) => getPlayerOutgoingCrowdControl(p, this.disruptionMethod),
-                                fmtVal: (v: any) => v.toLocaleString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showStability,
                                 title: "Stability",
                                 sortFn: (a: any, b: any) => (b.stabGeneration || 0) - (a.stabGeneration || 0),
                                 valFn: (p: any) => p.stabGeneration || 0,
-                                fmtVal: (v: any) => v.toLocaleString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showResurrects,
                                 title: "Resurrects",
                                 sortFn: (a: any, b: any) => getResurrects(b) - getResurrects(a),
                                 valFn: (p: any) => getResurrects(p),
-                                fmtVal: (v: any) => v.toString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showDistanceToTag,
                                 title: "Distance to Tag",
                                 sortFn: (a: any, b: any) => getDistanceToTag(a) - getDistanceToTag(b),
                                 valFn: (p: any) => getDistanceToTag(p),
-                                fmtVal: (v: any) => v.toFixed(1)
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showKills,
                                 title: "Kills",
                                 sortFn: (a: any, b: any) => getTargetStatTotal(b, 'killed') - getTargetStatTotal(a, 'killed'),
                                 valFn: (p: any) => getTargetStatTotal(p, 'killed'),
-                                fmtVal: (v: any) => v.toString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showDowns,
                                 title: "Downs",
                                 sortFn: (a: any, b: any) => getTargetStatTotal(b, 'downed') - getTargetStatTotal(a, 'downed'),
                                 valFn: (p: any) => getTargetStatTotal(p, 'downed'),
-                                fmtVal: (v: any) => v.toString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showBreakbarDamage,
                                 title: "Breakbar Damage",
                                 sortFn: (a: any, b: any) => getBreakbarDamage(b) - getBreakbarDamage(a),
                                 valFn: (p: any) => getBreakbarDamage(p),
-                                fmtVal: (v: any) => v.toLocaleString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showDamageTaken,
                                 title: "Damage Taken",
                                 sortFn: (a: any, b: any) => getDamageTaken(b) - getDamageTaken(a),
                                 valFn: (p: any) => getDamageTaken(p),
-                                fmtVal: (v: any) => v.toLocaleString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showDeaths,
                                 title: "Deaths",
                                 sortFn: (a: any, b: any) => getDeaths(b) - getDeaths(a),
                                 valFn: (p: any) => getDeaths(p),
-                                fmtVal: (v: any) => v.toString()
+                        fmtVal: (v: any) => fmtInt(v)
                             },
                             {
                                 enabled: settings.showDodges,
                                 title: "Dodges",
                                 sortFn: (a: any, b: any) => getDodges(b) - getDodges(a),
                                 valFn: (p: any) => getDodges(p),
-                                fmtVal: (v: any) => v.toString()
+                        fmtVal: (v: any) => fmtInt(v)
                             }
                         ];
 
