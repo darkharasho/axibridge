@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as ImageIcon, Layout, RefreshCw, Trophy, ChevronDown, Grid3X3, LayoutGrid, Trash2, FilePlus2 } from 'lucide-react';
+import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as ImageIcon, Layout, RefreshCw, Trophy, ChevronDown, ChevronLeft, ChevronRight, Grid3X3, LayoutGrid, Trash2, FilePlus2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { StatsView } from './StatsView';
@@ -73,7 +73,12 @@ function App() {
     const [filePickerSelected, setFilePickerSelected] = useState<Set<string>>(new Set());
     const [filePickerFilter, setFilePickerFilter] = useState('');
     const [selectSinceOpen, setSelectSinceOpen] = useState(false);
-    const [selectSinceValue, setSelectSinceValue] = useState('');
+    const [selectSinceDate, setSelectSinceDate] = useState<Date | null>(null);
+    const [selectSinceView, setSelectSinceView] = useState<Date>(() => new Date());
+    const [selectSinceHour, setSelectSinceHour] = useState<number>(12);
+    const [selectSinceMinute, setSelectSinceMinute] = useState<number>(0);
+    const [selectSinceMeridiem, setSelectSinceMeridiem] = useState<'AM' | 'PM'>('AM');
+    const [selectSinceMonthOpen, setSelectSinceMonthOpen] = useState(false);
     const [filePickerError, setFilePickerError] = useState<string | null>(null);
     const [filePickerLoading, setFilePickerLoading] = useState(false);
     const lastPickedIndexRef = useRef<number | null>(null);
@@ -1024,7 +1029,7 @@ function App() {
                             </div>
 
                             <div className="space-y-4">
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                                <div className="bg-white/5 border border-white/10 rounded-xl p-4 relative">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="text-xs uppercase tracking-widest text-gray-500">Available Logs</div>
                                         <div className="flex items-center gap-2">
@@ -1040,7 +1045,22 @@ function App() {
                                                         setFilePickerSelected(new Set());
                                                         return;
                                                     }
-                                                    setSelectSinceOpen((prev) => !prev);
+                                                    setSelectSinceOpen((prev) => {
+                                                        const next = !prev;
+                                                        if (next) {
+                                                            const now = new Date();
+                                                            setSelectSinceView(new Date(now.getFullYear(), now.getMonth(), 1));
+                                                            setSelectSinceDate((current) => current ?? new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+                                                            const hour24 = now.getHours();
+                                                            const meridiem = hour24 >= 12 ? 'PM' : 'AM';
+                                                            const hour12 = hour24 % 12 || 12;
+                                                            setSelectSinceHour(hour12);
+                                                            setSelectSinceMinute(now.getMinutes());
+                                                            setSelectSinceMeridiem(meridiem);
+                                                            setSelectSinceMonthOpen(false);
+                                                        }
+                                                        return next;
+                                                    });
                                                 }}
                                                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${filePickerSelected.size > 0
                                                     ? 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
@@ -1051,45 +1071,234 @@ function App() {
                                             </button>
                                         </div>
                                     </div>
-                                    {selectSinceOpen && filePickerSelected.size === 0 && (
-                                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                                            <input
-                                                type="datetime-local"
-                                                value={selectSinceValue}
-                                                onChange={(event) => setSelectSinceValue(event.target.value)}
-                                                className="glass-datetime bg-black/40 border border-white/15 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none backdrop-blur-sm shadow-inner shadow-black/30"
-                                            />
-                                            <button
-                                                onClick={() => {
-                                                    if (!selectSinceValue) return;
-                                                    const sinceMs = new Date(selectSinceValue).getTime();
-                                                    if (!Number.isFinite(sinceMs)) return;
-                                                    const matching = filePickerAvailable.filter((entry) => {
-                                                        if (!Number.isFinite(entry.mtimeMs)) return false;
-                                                        return entry.mtimeMs >= sinceMs;
-                                                    });
-                                                    setFilePickerSelected((prev) => {
-                                                        const next = new Set(prev);
-                                                        matching.forEach((entry) => next.add(entry.path));
-                                                        return next;
-                                                    });
-                                                    setSelectSinceOpen(false);
-                                                }}
-                                                className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-cyan-600/20 text-cyan-200 border-cyan-500/40 hover:bg-cyan-600/30"
+                                    <AnimatePresence>
+                                        {selectSinceOpen && filePickerSelected.size === 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                                                transition={{ duration: 0.18, ease: 'easeOut' }}
+                                                className="absolute z-20 left-4 right-4 top-[56px] rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur-md shadow-2xl shadow-black/40"
                                             >
-                                                Apply
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setSelectSinceOpen(false);
-                                                    setSelectSinceValue('');
-                                                }}
-                                                className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    )}
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="text-xs uppercase tracking-widest text-gray-400">Select Since</div>
+                                                    <div className="text-[10px] text-gray-500">
+                                                        {selectSinceDate
+                                                            ? `${selectSinceDate.toLocaleDateString()} • ${selectSinceHour.toString().padStart(2, '0')}:${selectSinceMinute.toString().padStart(2, '0')} ${selectSinceMeridiem}`
+                                                            : 'Pick a date'}
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3">
+                                                    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <button
+                                                                onClick={() => setSelectSinceView((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                                                                className="h-6 w-6 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors focus:outline-none focus:ring-0 flex items-center justify-center"
+                                                                aria-label="Previous month"
+                                                            >
+                                                                <ChevronLeft className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <div className="relative">
+                                                                <button
+                                                                    onClick={() => setSelectSinceMonthOpen((prev) => !prev)}
+                                                                    className="text-sm font-semibold text-gray-200 hover:text-white"
+                                                                >
+                                                                    {selectSinceView.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
+                                                                </button>
+                                                                <AnimatePresence>
+                                                                    {selectSinceMonthOpen && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                                                                            transition={{ duration: 0.14, ease: 'easeOut' }}
+                                                                            className="absolute z-10 mt-2 w-44 rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-2xl p-2"
+                                                                        >
+                                                                            <div className="flex items-center justify-between mb-2">
+                                                                                <button
+                                                                                    onClick={() => setSelectSinceView((prev) => new Date(prev.getFullYear() - 1, prev.getMonth(), 1))}
+                                                                                    className="h-5 w-5 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors focus:outline-none focus:ring-0 flex items-center justify-center"
+                                                                                    aria-label="Previous year"
+                                                                                >
+                                                                                    <ChevronLeft className="w-3 h-3" />
+                                                                                </button>
+                                                                                <div className="text-[11px] text-gray-300">
+                                                                                    {selectSinceView.getFullYear()}
+                                                                                </div>
+                                                                                <button
+                                                                                    onClick={() => setSelectSinceView((prev) => new Date(prev.getFullYear() + 1, prev.getMonth(), 1))}
+                                                                                    className="h-5 w-5 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors focus:outline-none focus:ring-0 flex items-center justify-center"
+                                                                                    aria-label="Next year"
+                                                                                >
+                                                                                    <ChevronRight className="w-3 h-3" />
+                                                                                </button>
+                                                                            </div>
+                                                                            <div className="grid grid-cols-3 gap-1">
+                                                                                {Array.from({ length: 12 }, (_, i) => (
+                                                                                    <button
+                                                                                        key={`month-${i}`}
+                                                                                        onClick={() => {
+                                                                                            setSelectSinceView((prev) => new Date(prev.getFullYear(), i, 1));
+                                                                                            setSelectSinceMonthOpen(false);
+                                                                                        }}
+                                                                                        className={`px-2 py-1 rounded-full text-[10px] border transition-colors ${selectSinceView.getMonth() === i
+                                                                                            ? 'bg-cyan-500/30 text-cyan-100 border-cyan-400/50'
+                                                                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                                                            }`}
+                                                                                    >
+                                                                                        {new Date(2000, i, 1).toLocaleString(undefined, { month: 'short' })}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setSelectSinceView((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                                                                className="h-6 w-6 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors focus:outline-none focus:ring-0 flex items-center justify-center"
+                                                                aria-label="Next month"
+                                                            >
+                                                                <ChevronRight className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                        <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-2">
+                                                            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
+                                                                <div key={day} className="text-center">{day}</div>
+                                                            ))}
+                                                        </div>
+                                                        {(() => {
+                                                            const year = selectSinceView.getFullYear();
+                                                            const month = selectSinceView.getMonth();
+                                                            const firstDay = new Date(year, month, 1).getDay();
+                                                            const daysInMonth = new Date(year, month + 1, 0).getDate();
+                                                            const cells = Array.from({ length: firstDay + daysInMonth }, (_, idx) => idx);
+                                                            return (
+                                                                <div className="grid grid-cols-7 gap-1 text-xs">
+                                                                    {cells.map((idx) => {
+                                                                        if (idx < firstDay) {
+                                                                            return <div key={`pad-${idx}`} />;
+                                                                        }
+                                                                        const day = idx - firstDay + 1;
+                                                                        const isSelected = selectSinceDate
+                                                                            && selectSinceDate.getFullYear() === year
+                                                                            && selectSinceDate.getMonth() === month
+                                                                            && selectSinceDate.getDate() === day;
+                                                                        return (
+                                                                            <button
+                                                                                key={`day-${day}`}
+                                                                                onClick={() => setSelectSinceDate(new Date(year, month, day))}
+                                                                                className={`h-7 w-7 rounded-full mx-auto flex items-center justify-center transition-colors ${isSelected
+                                                                                    ? 'bg-cyan-500/30 text-cyan-100 border border-cyan-400/50'
+                                                                                    : 'text-gray-200 hover:bg-white/10'
+                                                                                    }`}
+                                                                            >
+                                                                                {day}
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                                                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Time</div>
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            <div>
+                                                                <div className="text-[10px] text-gray-400 mb-1">Hour</div>
+                                                                <div className="h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5">
+                                                                    {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
+                                                                        <button
+                                                                            key={`hour-${hour}`}
+                                                                            onClick={() => setSelectSinceHour(hour)}
+                                                                            className={`w-full py-1 text-[10px] border-b border-white/5 last:border-0 transition-colors ${selectSinceHour === hour
+                                                                                ? 'bg-cyan-500/30 text-cyan-100'
+                                                                                : 'text-gray-300 hover:text-white'
+                                                                                }`}
+                                                                        >
+                                                                            {hour.toString().padStart(2, '0')}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[10px] text-gray-400 mb-1">Minute</div>
+                                                                <div className="h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5">
+                                                                    {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
+                                                                        <button
+                                                                            key={`minute-${minute}`}
+                                                                            onClick={() => setSelectSinceMinute(minute)}
+                                                                            className={`w-full py-1 text-[10px] border-b border-white/5 last:border-0 transition-colors ${selectSinceMinute === minute
+                                                                                ? 'bg-cyan-500/30 text-cyan-100'
+                                                                                : 'text-gray-300 hover:text-white'
+                                                                                }`}
+                                                                        >
+                                                                            {minute.toString().padStart(2, '0')}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[10px] text-gray-400 mb-1">AM/PM</div>
+                                                                <div className="h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5">
+                                                                    {(['AM', 'PM'] as const).map((period) => (
+                                                                        <button
+                                                                            key={period}
+                                                                            onClick={() => setSelectSinceMeridiem(period)}
+                                                                            className={`w-full py-2 text-[10px] border-b border-white/5 last:border-0 transition-colors ${selectSinceMeridiem === period
+                                                                                ? 'bg-cyan-500/30 text-cyan-100'
+                                                                                : 'text-gray-300 hover:text-white'
+                                                                                }`}
+                                                                        >
+                                                                            {period}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-3 flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            if (!selectSinceDate) return;
+                                                            const base = new Date(
+                                                                selectSinceDate.getFullYear(),
+                                                                selectSinceDate.getMonth(),
+                                                                selectSinceDate.getDate()
+                                                            );
+                                                            let hour24 = selectSinceHour % 12;
+                                                            if (selectSinceMeridiem === 'PM') {
+                                                                hour24 += 12;
+                                                            }
+                                                            base.setHours(hour24, selectSinceMinute, 0, 0);
+                                                            const sinceMs = base.getTime();
+                                                            if (!Number.isFinite(sinceMs)) return;
+                                                            const matching = filePickerAvailable.filter((entry) => {
+                                                                if (!Number.isFinite(entry.mtimeMs)) return false;
+                                                                return entry.mtimeMs >= sinceMs;
+                                                            });
+                                                            setFilePickerSelected((prev) => {
+                                                                const next = new Set(prev);
+                                                                matching.forEach((entry) => next.add(entry.path));
+                                                                return next;
+                                                            });
+                                                            setSelectSinceOpen(false);
+                                                        }}
+                                                        className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-cyan-600/20 text-cyan-200 border-cyan-500/40 hover:bg-cyan-600/30"
+                                                    >
+                                                        Apply
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setSelectSinceOpen(false)}
+                                                        className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                     <input
                                         type="search"
                                         value={filePickerFilter}
