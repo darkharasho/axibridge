@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as ImageIcon, Layout, RefreshCw, Trophy, ChevronDown, ChevronLeft, ChevronRight, Grid3X3, LayoutGrid, Trash2, FilePlus2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
@@ -70,6 +70,8 @@ function App() {
     // File picker modal state
     const [filePickerOpen, setFilePickerOpen] = useState(false);
     const [filePickerAvailable, setFilePickerAvailable] = useState<Array<{ path: string; name: string; mtimeMs: number; size: number }>>([]);
+    const [filePickerAll, setFilePickerAll] = useState<Array<{ path: string; name: string; mtimeMs: number; size: number }>>([]);
+    const [filePickerMonthWindow, setFilePickerMonthWindow] = useState(1);
     const [filePickerSelected, setFilePickerSelected] = useState<Set<string>>(new Set());
     const [filePickerFilter, setFilePickerFilter] = useState('');
     const [selectSinceOpen, setSelectSinceOpen] = useState(false);
@@ -82,6 +84,8 @@ function App() {
     const [filePickerError, setFilePickerError] = useState<string | null>(null);
     const [filePickerLoading, setFilePickerLoading] = useState(false);
     const lastPickedIndexRef = useRef<number | null>(null);
+    const [filePickerAtBottom, setFilePickerAtBottom] = useState(false);
+    const filePickerListRef = useRef<HTMLDivElement | null>(null);
 
     // Persistence removed
 
@@ -373,6 +377,14 @@ function App() {
     }, [filePickerOpen, logDirectory]);
 
     useEffect(() => {
+        if (!filePickerOpen) return;
+        const node = filePickerListRef.current;
+        if (!node) return;
+        const atBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 4;
+        setFilePickerAtBottom(atBottom);
+    }, [filePickerOpen, filePickerAvailable.length, filePickerFilter]);
+
+    useEffect(() => {
         const cleanupMessage = window.electronAPI.onUpdateMessage((message) => setUpdateStatus(message));
         const cleanupAvailable = window.electronAPI.onUpdateAvailable(() => {
             setUpdateAvailable(true);
@@ -420,6 +432,7 @@ function App() {
     const loadLogFiles = async (dir: string | null) => {
         if (!dir) {
             setFilePickerAvailable([]);
+            setFilePickerAll([]);
             return;
         }
         if (!window.electronAPI.listLogFiles) {
@@ -431,7 +444,15 @@ function App() {
         try {
             const result = await window.electronAPI.listLogFiles({ dir });
             if (result?.success) {
-                setFilePickerAvailable(result.files || []);
+                const files = (result.files || []).slice().sort((a, b) => {
+                    const aTime = Number.isFinite(a.mtimeMs) ? a.mtimeMs : 0;
+                    const bTime = Number.isFinite(b.mtimeMs) ? b.mtimeMs : 0;
+                    return bTime - aTime;
+                });
+                setFilePickerAll(files);
+                setFilePickerMonthWindow(1);
+                setFilePickerAvailable([]);
+                setFilePickerAtBottom(false);
             } else {
                 setFilePickerError(result?.error || 'Failed to load logs.');
             }
@@ -439,6 +460,38 @@ function App() {
             setFilePickerError(err?.message || 'Failed to load logs.');
         } finally {
             setFilePickerLoading(false);
+        }
+    };
+
+    const filePickerVisible = useMemo(() => {
+        if (filePickerAll.length === 0) return [];
+        const cutoffMs = Date.now() - (Math.max(1, filePickerMonthWindow) * 30 * 24 * 60 * 60 * 1000);
+        return filePickerAll.filter((entry) => {
+            if (!Number.isFinite(entry.mtimeMs)) return true;
+            return entry.mtimeMs >= cutoffMs;
+        });
+    }, [filePickerAll, filePickerMonthWindow]);
+
+    useEffect(() => {
+        setFilePickerAvailable(filePickerVisible);
+    }, [filePickerVisible]);
+
+    const filePickerHasMore = useMemo(() => {
+        if (filePickerAll.length === 0) return false;
+        const cutoffMs = Date.now() - (Math.max(1, filePickerMonthWindow) * 30 * 24 * 60 * 60 * 1000);
+        return filePickerAll.some((entry) => Number.isFinite(entry.mtimeMs) && entry.mtimeMs < cutoffMs);
+    }, [filePickerAll, filePickerMonthWindow]);
+
+    const ensureMonthWindowForSince = (sinceMs: number) => {
+        if (!Number.isFinite(sinceMs)) return;
+        let monthsBack = Math.max(1, filePickerMonthWindow);
+        const cutoffFor = (months: number) =>
+            Date.now() - (months * 30 * 24 * 60 * 60 * 1000);
+        while (sinceMs < cutoffFor(monthsBack)) {
+            monthsBack += 1;
+        }
+        if (monthsBack !== filePickerMonthWindow) {
+            setFilePickerMonthWindow(monthsBack);
         }
     };
 
@@ -1274,7 +1327,8 @@ function App() {
                                                             base.setHours(hour24, selectSinceMinute, 0, 0);
                                                             const sinceMs = base.getTime();
                                                             if (!Number.isFinite(sinceMs)) return;
-                                                            const matching = filePickerAvailable.filter((entry) => {
+                                                            ensureMonthWindowForSince(sinceMs);
+                                                            const matching = filePickerAll.filter((entry) => {
                                                                 if (!Number.isFinite(entry.mtimeMs)) return false;
                                                                 return entry.mtimeMs >= sinceMs;
                                                             });
@@ -1309,9 +1363,19 @@ function App() {
                                     {filePickerLoading ? (
                                         <div className="text-xs text-gray-500">Loading logs...</div>
                                     ) : filePickerAvailable.length === 0 ? (
-                                        <div className="text-xs text-gray-500">No logs found in this folder.</div>
+                                        <div className="text-xs text-gray-500">
+                                            {filePickerAll.length > 0 ? 'No logs in the last 30 days.' : 'No logs found in this folder.'}
+                                        </div>
                                     ) : (
-                                        <div className="max-h-56 overflow-y-auto space-y-1 pr-1 text-xs text-gray-300">
+                                        <div
+                                            ref={filePickerListRef}
+                                            onScroll={(event) => {
+                                                const target = event.currentTarget;
+                                                const atBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 4;
+                                                setFilePickerAtBottom(atBottom);
+                                            }}
+                                            className="max-h-56 overflow-y-auto space-y-1 pr-1 text-xs text-gray-300"
+                                        >
                                             {filePickerAvailable
                                                 .filter((entry) => entry.name.toLowerCase().includes(filePickerFilter.trim().toLowerCase()))
                                                 .map((entry, index, filtered) => {
@@ -1370,6 +1434,16 @@ function App() {
                                                     </div>
                                                     );
                                                 })}
+                                        </div>
+                                    )}
+                                    {!filePickerLoading && filePickerHasMore && filePickerAtBottom && (
+                                        <div className="mt-3 flex justify-center">
+                                            <button
+                                                onClick={() => setFilePickerMonthWindow((prev) => prev + 1)}
+                                                className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                            >
+                                                Load more
+                                            </button>
                                         </div>
                                     )}
                                 </div>
