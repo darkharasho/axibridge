@@ -786,9 +786,6 @@ function App() {
                                             >
                                                 <Grid3X3 className="w-4 h-4" />
                                                 <span className="text-sm font-medium">Tiled</span>
-                                                <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40">
-                                                    Beta
-                                                </span>
                                             </button>
                                         </div>
                                     </div>
