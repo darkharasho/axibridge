@@ -113,6 +113,8 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [showSaved, setShowSaved] = useState(false);
     const [githubThemeStatus, setGithubThemeStatus] = useState<string | null>(null);
     const [githubThemeStatusKind, setGithubThemeStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+    const [dpsCacheStatus, setDpsCacheStatus] = useState<string | null>(null);
+    const [dpsCacheBusy, setDpsCacheBusy] = useState(false);
     const lastSyncedThemeRef = useRef<string | null>(null);
     const themeSyncInFlightRef = useRef(false);
     const queuedThemeRef = useRef<string | null>(null);
@@ -671,6 +673,39 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                         placeholder="Enter your dps.report token..."
                         className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
                     />
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <button
+                            onClick={async () => {
+                                if (!window.electronAPI?.clearDpsReportCache || dpsCacheBusy) return;
+                                setDpsCacheBusy(true);
+                                setDpsCacheStatus(null);
+                                try {
+                                    const result = await window.electronAPI.clearDpsReportCache();
+                                    if (result?.success) {
+                                        const count = result.clearedEntries ?? 0;
+                                        setDpsCacheStatus(`Cleared ${count} cached ${count === 1 ? 'log' : 'logs'}.`);
+                                    } else {
+                                        setDpsCacheStatus(result?.error || 'Failed to clear cache.');
+                                    }
+                                } catch (err: any) {
+                                    setDpsCacheStatus(err?.message || 'Failed to clear cache.');
+                                } finally {
+                                    setDpsCacheBusy(false);
+                                }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={dpsCacheBusy}
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            {dpsCacheBusy ? 'Clearing cache…' : 'Clear dps.report cache'}
+                        </button>
+                        <div className="text-xs text-gray-500">
+                            Removes cached dps.report results stored locally (does not delete your log files).
+                        </div>
+                        {dpsCacheStatus && (
+                            <div className="text-xs text-gray-400">{dpsCacheStatus}</div>
+                        )}
+                    </div>
                 </SettingsSection>
 
                 {/* GitHub Pages Hosting */}

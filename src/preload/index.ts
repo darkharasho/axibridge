@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setDiscordWebhook: (url: string) => ipcRenderer.send('set-discord-webhook', url),
     windowControl: (action: 'minimize' | 'maximize' | 'close') => ipcRenderer.send('window-control', action),
     getSettings: () => ipcRenderer.invoke('get-settings'),
+    clearDpsReportCache: () => ipcRenderer.invoke('clear-dps-report-cache'),
     manualUpload: (path: string) => ipcRenderer.send('manual-upload', path),
     manualUploadBatch: (paths: string[]) => ipcRenderer.send('manual-upload-batch', paths),
     saveSettings: (settings: any) => ipcRenderer.send('save-settings', settings),

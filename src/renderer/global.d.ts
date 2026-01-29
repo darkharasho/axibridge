@@ -123,6 +123,7 @@ export interface IElectronAPI {
         githubWebTheme?: string | null;
         githubLogoPath?: string | null;
     }>;
+    clearDpsReportCache: () => Promise<{ success: boolean; clearedEntries?: number; error?: string }>;
     manualUpload: (path: string) => void;
     manualUploadBatch: (paths: string[]) => void;
     saveSettings: (settings: {

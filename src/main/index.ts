@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process'
 import { DEFAULT_WEB_THEME_ID, WEB_THEMES } from '../shared/webThemes';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'
-import { Uploader } from './uploader'
+import { Uploader, UploadResult } from './uploader'
 import { DiscordNotifier } from './discord';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
@@ -65,6 +65,180 @@ console.error = (...args) => {
 const Store = require('electron-store');
 const store = new Store();
 
+type DpsReportCacheEntry = {
+    hash: string;
+    createdAt: number;
+    result: UploadResult;
+    detailsPath?: string | null;
+};
+
+const DPS_REPORT_CACHE_KEY = 'dpsReportCacheIndex';
+const DPS_REPORT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const DPS_REPORT_CACHE_MAX_ENTRIES = 100;
+
+const getDpsReportCacheDir = () => path.join(app.getPath('userData'), 'dps-report-cache');
+
+const loadDpsReportCacheIndex = (): Record<string, DpsReportCacheEntry> => {
+    const raw = store.get(DPS_REPORT_CACHE_KEY, {});
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    return raw as Record<string, DpsReportCacheEntry>;
+};
+
+const saveDpsReportCacheIndex = (index: Record<string, DpsReportCacheEntry>) => {
+    store.set(DPS_REPORT_CACHE_KEY, index);
+};
+
+const clearDpsReportCache = () => {
+    const index = loadDpsReportCacheIndex();
+    const clearedEntries = Object.keys(index).length;
+    store.delete(DPS_REPORT_CACHE_KEY);
+
+    const cacheDir = getDpsReportCacheDir();
+    try {
+        fs.rmSync(cacheDir, { recursive: true, force: true });
+    } catch (err: any) {
+        console.warn('[Main] Failed to remove dps.report cache directory:', err?.message || err);
+        return { success: false, clearedEntries, error: 'Failed to remove cache directory.' };
+    }
+
+    return { success: true, clearedEntries };
+};
+
+const removeDpsReportCacheEntry = (index: Record<string, DpsReportCacheEntry>, key: string) => {
+    const entry = index[key];
+    if (entry?.detailsPath) {
+        try {
+            fs.unlinkSync(entry.detailsPath);
+        } catch {
+            // Ignore cache cleanup errors.
+        }
+    }
+    delete index[key];
+};
+
+const pruneDpsReportCacheIndex = (index: Record<string, DpsReportCacheEntry>) => {
+    const now = Date.now();
+    let changed = false;
+
+    Object.keys(index).forEach((key) => {
+        const entry = index[key];
+        if (!entry || typeof entry.createdAt !== 'number' || !entry.result?.permalink) {
+            console.log(`[Cache] Removing invalid cache entry for ${key}.`);
+            removeDpsReportCacheEntry(index, key);
+            changed = true;
+            return;
+        }
+        if (now - entry.createdAt > DPS_REPORT_CACHE_TTL_MS) {
+            console.log(`[Cache] Busting cache for ${key} (expired).`);
+            removeDpsReportCacheEntry(index, key);
+            changed = true;
+            return;
+        }
+        if (entry.detailsPath && !fs.existsSync(entry.detailsPath)) {
+            console.log(`[Cache] Cache details missing for ${key}; will refetch JSON.`);
+            entry.detailsPath = null;
+            changed = true;
+        }
+    });
+
+    const keys = Object.keys(index);
+    if (keys.length > DPS_REPORT_CACHE_MAX_ENTRIES) {
+        const sorted = keys.sort((a, b) => (index[b]?.createdAt || 0) - (index[a]?.createdAt || 0));
+        sorted.slice(DPS_REPORT_CACHE_MAX_ENTRIES).forEach((key) => {
+            console.log(`[Cache] Evicting cache entry for ${key} (limit ${DPS_REPORT_CACHE_MAX_ENTRIES}).`);
+            removeDpsReportCacheEntry(index, key);
+            changed = true;
+        });
+    }
+
+    return changed;
+};
+
+const computeFileHash = (filePath: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const hash = createHash('sha256');
+        const stream = fs.createReadStream(filePath);
+        stream.on('data', (chunk) => hash.update(chunk));
+        stream.on('error', reject);
+        stream.on('end', () => resolve(hash.digest('hex')));
+    });
+};
+
+const loadDpsReportCacheEntry = async (hash: string) => {
+    const index = loadDpsReportCacheIndex();
+    const changed = pruneDpsReportCacheIndex(index);
+    if (changed) saveDpsReportCacheIndex(index);
+
+    const entry = index[hash];
+    if (!entry) return null;
+
+    let jsonDetails: any | null = null;
+    if (entry.detailsPath) {
+        try {
+            const raw = await fs.promises.readFile(entry.detailsPath, 'utf8');
+            jsonDetails = JSON.parse(raw);
+        } catch {
+            jsonDetails = null;
+        }
+    }
+
+    return { entry, jsonDetails };
+};
+
+const saveDpsReportCacheEntry = async (hash: string, result: UploadResult, jsonDetails: any | null) => {
+    const cacheDir = getDpsReportCacheDir();
+    try {
+        fs.mkdirSync(cacheDir, { recursive: true });
+    } catch {
+        // Cache directory creation failures should not block uploads.
+    }
+
+    const index = loadDpsReportCacheIndex();
+    const entry: DpsReportCacheEntry = {
+        hash,
+        createdAt: Date.now(),
+        result,
+        detailsPath: null
+    };
+
+    if (jsonDetails) {
+        const detailsPath = path.join(cacheDir, `${hash}.json`);
+        try {
+            await fs.promises.writeFile(detailsPath, JSON.stringify(jsonDetails));
+            entry.detailsPath = detailsPath;
+        } catch {
+            entry.detailsPath = null;
+        }
+    }
+
+    index[hash] = entry;
+    pruneDpsReportCacheIndex(index);
+    saveDpsReportCacheIndex(index);
+};
+
+const updateDpsReportCacheDetails = async (hash: string, jsonDetails: any) => {
+    const cacheDir = getDpsReportCacheDir();
+    try {
+        fs.mkdirSync(cacheDir, { recursive: true });
+    } catch {
+        return;
+    }
+
+    const index = loadDpsReportCacheIndex();
+    const entry = index[hash];
+    if (!entry) return;
+
+    const detailsPath = path.join(cacheDir, `${hash}.json`);
+    try {
+        await fs.promises.writeFile(detailsPath, JSON.stringify(jsonDetails));
+        entry.detailsPath = detailsPath;
+        index[hash] = entry;
+        saveDpsReportCacheIndex(index);
+    } catch {
+        // Ignore cache write errors.
+    }
+};
+
 process.env.DIST = path.join(__dirname, '../../')
 process.env.VITE_PUBLIC = app.isPackaged ? path.join(process.env.DIST, 'dist-react') : path.join(process.env.DIST, 'public')
 
@@ -88,16 +262,43 @@ const processLogFile = async (filePath: string) => {
         if (!uploader) {
             throw new Error('Uploader not initialized.');
         }
-        const result = await uploader.upload(filePath);
+        let cacheKey: string | null = null;
+        try {
+            cacheKey = await computeFileHash(filePath);
+        } catch (hashError: any) {
+            console.warn('[Main] Failed to compute log hash for cache:', hashError?.message || hashError);
+        }
+
+        let cached = null as null | { entry: DpsReportCacheEntry; jsonDetails: any | null };
+        if (cacheKey) {
+            cached = await loadDpsReportCacheEntry(cacheKey);
+            if (!cached) {
+                console.log(`[Cache] Miss for ${filePath}.`);
+            }
+        }
+
+        const result = cached?.entry?.result || await uploader.upload(filePath);
 
         if (result && !result.error) {
-            console.log(`[Main] Upload successful: ${result.permalink}. Fetching details...`);
-            let jsonDetails = await uploader.fetchDetailedJson(result.permalink);
+            if (cached?.entry?.result) {
+                console.log(`[Main] Cache hit for ${filePath}. Using cached dps.report permalink.`);
+            } else {
+                console.log(`[Main] Upload successful: ${result.permalink}. Fetching details...`);
+            }
+
+            let jsonDetails = cached?.jsonDetails || await uploader.fetchDetailedJson(result.permalink);
 
             if (!jsonDetails || jsonDetails.error) {
                 console.log('[Main] Retrying JSON fetch in 2 seconds...');
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 jsonDetails = await uploader.fetchDetailedJson(result.permalink);
+            }
+
+            const cacheableDetails = jsonDetails && !jsonDetails.error ? jsonDetails : null;
+            if (cacheKey && !cached?.entry?.result) {
+                await saveDpsReportCacheEntry(cacheKey, result, cacheableDetails);
+            } else if (cacheKey && cached?.entry?.result && cacheableDetails && !cached?.jsonDetails) {
+                await updateDpsReportCacheDetails(cacheKey, cacheableDetails);
             }
 
             win?.webContents.send('upload-status', {
@@ -1124,6 +1325,10 @@ if (!gotTheLock) {
                 githubWebTheme: store.get('githubWebTheme', DEFAULT_WEB_THEME_ID),
                 githubLogoPath: store.get('githubLogoPath', null)
             };
+        });
+
+        ipcMain.handle('clear-dps-report-cache', async () => {
+            return clearDpsReportCache();
         });
 
         // Clear logs from store to improve boot time (persistence removed)
