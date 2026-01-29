@@ -34,15 +34,6 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, onCancel, screens
     applyStabilityGeneration(players, { durationMS: details.durationMS, buffMap: details.buffMap });
     const squadPlayers = players.filter((p: any) => !p.notInSquad);
     const nonSquadPlayers = players.filter((p: any) => p.notInSquad);
-    const logTimestamp = (log.uploadTime || details.uploadTime)
-        ? new Date((log.uploadTime || details.uploadTime) * 1000).toLocaleString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-        })
-        : null;
 
     const isQueued = log.status === 'queued';
     const isPending = log.status === 'pending';
