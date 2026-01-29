@@ -2,7 +2,7 @@ import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Trophy, Share2, Swords, Shield, Zap, Activity, Flame, HelpingHand, Hammer, ShieldCheck, Crosshair, Map as MapIcon, Users, Skull, Wind, Crown, Sparkles, Star, UploadCloud, Loader2, CheckCircle2, XCircle, Maximize2, X } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend as ChartLegend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { toPng } from 'html-to-image';
-import { applyStabilityGeneration, getPlayerCleanses, getPlayerStrips, getPlayerDownContribution, getPlayerSquadHealing, getPlayerSquadBarrier, getPlayerOutgoingCrowdControl } from '../shared/dashboardMetrics';
+import { applyStabilityGeneration, getPlayerCleanses, getPlayerStrips, getPlayerDownContribution, getPlayerSquadHealing, getPlayerSquadBarrier, getPlayerOutgoingCrowdControl, getTargetStatTotal } from '../shared/dashboardMetrics';
 import { Player, Target } from '../shared/dpsReportTypes';
 import { getProfessionColor, getProfessionIconPath } from '../shared/professionUtils';
 import { BoonCategory, BoonMetric, buildBoonTables, formatBoonMetricDisplay, getBoonMetricValue } from '../shared/boonGeneration';
@@ -236,6 +236,73 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals
         });
+
+    const formatDurationMs = (durationMs?: number) => {
+        if (!durationMs || !Number.isFinite(durationMs)) return '--:--';
+        const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        if (hours > 0) {
+            return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    };
+
+    const getFightDurationLabel = (details: any, log: any) => {
+        const candidates = [details?.encounterDuration, details?.duration, log?.encounterDuration];
+        for (const candidate of candidates) {
+            if (candidate === undefined || candidate === null) continue;
+            if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+                return formatDurationMs(candidate);
+            }
+            if (typeof candidate === 'string') {
+                const trimmed = candidate.trim();
+                if (!trimmed) continue;
+                if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+                    return trimmed;
+                }
+                const hmsMatch = trimmed.match(/^(?:(\d+(?:\.\d+)?)\s*h(?:ours?)?)?\s*(?:(\d+(?:\.\d+)?)\s*m(?:in(?:ute)?s?)?)?\s*(?:(\d+(?:\.\d+)?)\s*s(?:ec(?:ond)?s?)?)?\s*(?:(\d+(?:\.\d+)?)\s*ms)?$/i);
+                if (hmsMatch) {
+                    const hours = Number(hmsMatch[1] || 0);
+                    const minutes = Number(hmsMatch[2] || 0);
+                    const seconds = Number(hmsMatch[3] || 0);
+                    const ms = Number(hmsMatch[4] || 0);
+                    const totalMs = (hours * 3600 + minutes * 60 + seconds) * 1000 + ms;
+                    if (totalMs > 0) {
+                        return formatDurationMs(totalMs);
+                    }
+                }
+                const msMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*ms$/i);
+                if (msMatch) {
+                    return formatDurationMs(Number(msMatch[1]));
+                }
+                const msWordMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*(milliseconds?|msec|msecs)$/i);
+                if (msWordMatch) {
+                    return formatDurationMs(Number(msWordMatch[1]));
+                }
+                const secMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*(s|sec|secs|seconds?)$/i);
+                if (secMatch) {
+                    return formatDurationMs(Number(secMatch[1]) * 1000);
+                }
+                if (/^\d+(?:\.\d+)?$/.test(trimmed)) {
+                    return formatDurationMs(Number(trimmed));
+                }
+                return trimmed;
+            }
+        }
+        return formatDurationMs(details?.durationMS);
+    };
+
+    const shortenFightLabel = (label: string) => {
+        const normalized = label.trim();
+        const lowered = normalized.toLowerCase();
+        if (lowered.includes('eternal battleground')) return 'EBG';
+        if (lowered.includes('green borderlands') || lowered.includes('green alpine borderlands')) return 'Green BL';
+        if (lowered.includes('blue borderlands') || lowered.includes('blue alpine borderlands')) return 'Blue BL';
+        if (lowered.includes('red borderlands') || lowered.includes('red desert borderlands')) return 'Red BL';
+        return normalized;
+    };
 
     const validLogs = useMemo(() => logs.filter(l => (l.status === 'success' || l.status === 'discord') && l.details), [logs]);
 
@@ -1440,6 +1507,105 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
                 index: index + 1
             }));
 
+        const fightBreakdown = validLogs.map((log, index) => {
+            const details = log.details || {};
+            const players = (details.players || []) as any[];
+            const targets = (details.targets || []) as any[];
+            const squadPlayers = players.filter((p) => !p.notInSquad);
+            const allyPlayers = players.filter((p) => p.notInSquad);
+            const allFriendly = players;
+            const nonFakeTargets = targets.filter((t) => !t.isFake);
+            const teamIds = Array.from(new Set(nonFakeTargets.map((t) => t?.teamID).filter((id) => id !== undefined && id !== null)));
+            const colorOrder = ['red', 'green', 'blue'] as const;
+
+            const teamColorMap = new Map<number, typeof colorOrder[number]>();
+            const rawTeamMap = details?.teamIdMap || details?.teamIDMap || details?.wvwTeams || details?.teams;
+            if (rawTeamMap && typeof rawTeamMap === 'object') {
+                if (Array.isArray(rawTeamMap)) {
+                    rawTeamMap.forEach((entry: any) => {
+                        const id = Number(entry?.teamID ?? entry?.teamId ?? entry?.id);
+                        const colorRaw = String(entry?.color || entry?.name || '').toLowerCase();
+                        const color = colorOrder.find((c) => colorRaw.includes(c));
+                        if (Number.isFinite(id) && color) {
+                            teamColorMap.set(id, color);
+                        }
+                    });
+                } else {
+                    colorOrder.forEach((color) => {
+                        const id = rawTeamMap[color] ?? rawTeamMap[color.toUpperCase()];
+                        if (typeof id === 'number') {
+                            teamColorMap.set(id, color);
+                        }
+                    });
+                }
+            }
+
+            const usedColors = new Set(teamColorMap.values());
+            const remainingColors = colorOrder.filter((c) => !usedColors.has(c));
+            const unmappedIds = teamIds.filter((id) => !teamColorMap.has(id)).sort((a, b) => a - b);
+            unmappedIds.forEach((id, idx) => {
+                const color = remainingColors[idx] || remainingColors[remainingColors.length - 1] || 'red';
+                teamColorMap.set(id, color);
+            });
+
+            const teamCounts = { red: 0, green: 0, blue: 0 };
+            nonFakeTargets.forEach((t) => {
+                const teamId = t?.teamID;
+                if (!Number.isFinite(teamId)) return;
+                const color = teamColorMap.get(teamId);
+                if (!color) return;
+                teamCounts[color] += 1;
+            });
+
+            let alliesDown = 0;
+            let alliesDead = 0;
+            let alliesRevived = 0;
+            let rallies = 0;
+            let totalOutgoingDamage = 0;
+            let totalIncomingDamage = 0;
+            let incomingBarrierAbsorbed = 0;
+
+            allFriendly.forEach((p) => {
+                alliesDown += Number(p.defenses?.[0]?.downCount ?? 0);
+                alliesDead += Number(p.defenses?.[0]?.deadCount ?? 0);
+                alliesRevived += Number(p.support?.[0]?.resurrects ?? 0);
+                rallies += Number(p.defenses?.[0]?.rallyCount ?? p.defenses?.[0]?.rallies ?? 0);
+                totalOutgoingDamage += Number(p.dpsAll?.[0]?.damage ?? 0);
+                totalIncomingDamage += Number(p.defenses?.[0]?.damageTaken ?? 0);
+                incomingBarrierAbsorbed += Number(p.defenses?.[0]?.damageBarrier ?? 0);
+            });
+
+            let enemyDeaths = 0;
+            squadPlayers.forEach((p: any) => {
+                enemyDeaths += getTargetStatTotal(p, 'killed');
+            });
+
+            let outgoingBarrierAbsorbed = 0;
+            nonFakeTargets.forEach((t) => {
+                outgoingBarrierAbsorbed += Number(t?.defenses?.[0]?.damageBarrier ?? 0);
+            });
+
+            return {
+                id: log.id || log.filePath || `${details.fightName || 'fight'}-${index}`,
+                label: shortenFightLabel(details.fightName || details.name || log.filePath || log.id || 'Fight'),
+                permalink: log.permalink,
+                duration: getFightDurationLabel(details, log),
+                squadCount: squadPlayers.length,
+                allyCount: allyPlayers.length,
+                enemyCount: nonFakeTargets.length,
+                teamCounts,
+                alliesDown,
+                alliesDead,
+                alliesRevived,
+                rallies,
+                enemyDeaths,
+                totalOutgoingDamage,
+                totalIncomingDamage,
+                incomingBarrierAbsorbed,
+                outgoingBarrierAbsorbed
+            };
+        });
+
         return {
             total,
             wins,
@@ -1467,6 +1633,7 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
             squadClassData,
             enemyClassData,
             timelineData,
+            fightBreakdown,
             boonTables,
             specialTables,
             offensePlayers,
@@ -2319,6 +2486,89 @@ export function StatsView({ logs, onBack, mvpWeights, disruptionMethod, precompu
                                 <div className="text-red-200/40 text-[10px] uppercase font-bold tracking-wider">Enemy KDR</div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Fight Breakdown (excluded from share screenshots) */}
+                <div id="fight-breakdown" className="mt-6 stats-share-exclude">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-gray-200">Fight Breakdown</h3>
+                            <span className="text-[10px] uppercase tracking-widest text-gray-500">
+                                {stats.fightBreakdown?.length || 0} Fights
+                            </span>
+                        </div>
+                        {(stats.fightBreakdown || []).length === 0 ? (
+                            <div className="text-center text-gray-500 italic py-6">No fight data available</div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-[1500px] w-full text-xs">
+                                    <thead>
+                                        <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
+                                            <th className="text-right py-2 px-3">#</th>
+                                            <th className="text-left py-2 px-3">Report</th>
+                                            <th className="text-left py-2 px-3">Duration</th>
+                                            <th className="text-right py-2 px-3">Squad</th>
+                                            <th className="text-right py-2 px-3">Allies</th>
+                                            <th className="text-right py-2 px-3">Enemies</th>
+                                            <th className="text-right py-2 px-3">Red</th>
+                                            <th className="text-right py-2 px-3">Green</th>
+                                            <th className="text-right py-2 px-3">Blue</th>
+                                            <th className="text-right py-2 px-3">Allies Down</th>
+                                            <th className="text-right py-2 px-3">Allies Dead</th>
+                                            <th className="text-right py-2 px-3">Allies Revived</th>
+                                            <th className="text-right py-2 px-3">Rallies</th>
+                                            <th className="text-right py-2 px-3">Enemy Deaths</th>
+                                            <th className="text-right py-2 px-3">Outgoing Dmg</th>
+                                            <th className="text-right py-2 px-3">Incoming Dmg</th>
+                                            <th className="text-right py-2 px-3">Barrier In</th>
+                                            <th className="text-right py-2 px-3">Barrier Out</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(stats.fightBreakdown || []).map((fight: any, idx: number) => (
+                                            <tr key={fight.id || `${fight.label}-${idx}`} className="border-b border-white/5 hover:bg-white/5">
+                                                <td className="py-2 px-3 text-right font-mono text-gray-500">{idx + 1}</td>
+                                                <td className="py-2 px-3">
+                                                    {fight.permalink ? (
+                                                        <button
+                                                            onClick={() => {
+                                                                if (fight.permalink && window.electronAPI?.openExternal) {
+                                                                    window.electronAPI.openExternal(fight.permalink);
+                                                                } else if (fight.permalink) {
+                                                                    window.open(fight.permalink, '_blank');
+                                                                }
+                                                            }}
+                                                            className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2"
+                                                        >
+                                                            {fight.label || 'dps.report'}
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-gray-500">Pending</span>
+                                                    )}
+                                                </td>
+                                                <td className="py-2 px-3 text-gray-200">{fight.duration || '--:--'}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{fight.squadCount ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{fight.allyCount ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{fight.enemyCount ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono text-red-300">{fight.teamCounts?.red ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono text-green-300">{fight.teamCounts?.green ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono text-blue-300">{fight.teamCounts?.blue ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{fight.alliesDown ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{fight.alliesDead ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{fight.alliesRevived ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{fight.rallies ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{fight.enemyDeaths ?? 0}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{Number(fight.totalOutgoingDamage || 0).toLocaleString()}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{Number(fight.totalIncomingDamage || 0).toLocaleString()}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{Number(fight.incomingBarrierAbsorbed || 0).toLocaleString()}</td>
+                                                <td className="py-2 px-3 text-right font-mono">{Number(fight.outgoingBarrierAbsorbed || 0).toLocaleString()}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </div>
 
