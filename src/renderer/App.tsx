@@ -50,6 +50,8 @@ function App() {
     const [updateDownloaded, setUpdateDownloaded] = useState<boolean>(false);
     const [showUpdateErrorModal, setShowUpdateErrorModal] = useState(false);
     const [updateError, setUpdateError] = useState<string | null>(null);
+    const [autoUpdateSupported, setAutoUpdateSupported] = useState<boolean>(true);
+    const [autoUpdateDisabledReason, setAutoUpdateDisabledReason] = useState<string | null>(null);
 
     // Terminal State
     const [showTerminal, setShowTerminal] = useState(false);
@@ -179,6 +181,10 @@ function App() {
             }
             if (settings.disruptionMethod) {
                 setDisruptionMethod(settings.disruptionMethod);
+            }
+            if (typeof settings.autoUpdateSupported === 'boolean') {
+                setAutoUpdateSupported(settings.autoUpdateSupported);
+                setAutoUpdateDisabledReason(settings.autoUpdateDisabledReason || null);
             }
 
             const whatsNew = await window.electronAPI.getWhatsNew();
@@ -655,6 +661,18 @@ function App() {
                                 )
                             )}
                         </AnimatePresence>
+                        {!autoUpdateSupported && (
+                            <div
+                                className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border bg-amber-500/15 text-amber-200 border-amber-500/30"
+                                title={autoUpdateDisabledReason === 'portable'
+                                    ? 'Portable build detected'
+                                    : autoUpdateDisabledReason === 'missing-config'
+                                        ? 'Update config missing for this build'
+                                        : 'Auto-updates disabled in development'}
+                            >
+                                Auto-updates disabled
+                            </div>
+                        )}
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}

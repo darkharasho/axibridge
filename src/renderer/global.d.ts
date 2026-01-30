@@ -141,6 +141,8 @@ export interface IElectronAPI {
         statsViewSettings: IStatsViewSettings;
         disruptionMethod: DisruptionMethod;
         eiCliSettings?: IEiCliSettings;
+        autoUpdateSupported?: boolean;
+        autoUpdateDisabledReason?: string | null;
         githubRepoOwner?: string | null;
         githubRepoName?: string | null;
         githubBranch?: string | null;

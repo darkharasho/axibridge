@@ -1217,21 +1217,33 @@ if (!gotTheLock) {
             integrator.integrate().catch(err => console.error('Integration error:', err));
         }
 
-        // Check for updates
-        setupAutoUpdater();
+        // Check for updates (skip for portable/zip builds without app-update.yml)
+        const updateConfigPath = path.join(process.resourcesPath, 'app-update.yml');
+        const isPortable = Boolean(process.env.PORTABLE_EXECUTABLE);
+        const canAutoUpdate = app.isPackaged && !isPortable && fs.existsSync(updateConfigPath);
+        if (canAutoUpdate) {
+            setupAutoUpdater();
+        } else {
+            log.info('[AutoUpdater] Skipped: no app-update.yml or portable build detected.');
+        }
 
-        // Disable auto-download to give more control
-        autoUpdater.autoDownload = true;
-        autoUpdater.autoInstallOnAppQuit = true;
+        if (canAutoUpdate) {
+            // Disable auto-download to give more control
+            autoUpdater.autoDownload = true;
+            autoUpdater.autoInstallOnAppQuit = true;
 
-        if (process.platform === 'linux' && !process.env.APPIMAGE) {
-            log.info('[AutoUpdater] Detected Linux non-AppImage run. Disabling auto-download to ensure detection works without download errors.');
-            autoUpdater.autoDownload = false;
+            if (process.platform === 'linux' && !process.env.APPIMAGE) {
+                log.info('[AutoUpdater] Detected Linux non-AppImage run. Disabling auto-download to ensure detection works without download errors.');
+                autoUpdater.autoDownload = false;
+            }
         }
 
         // Check for updates after a short delay to ensure window is ready
         // Only check for updates in packaged apps (not development)
         setTimeout(async () => {
+            if (!canAutoUpdate) {
+                return;
+            }
             // Skip auto-update in development mode
             if (!app.isPackaged) {
                 log.info('[AutoUpdater] Skipping update check in development mode');
@@ -1359,6 +1371,19 @@ if (!gotTheLock) {
         const DEFAULT_EI_SETTINGS = DEFAULT_EI_CLI_SETTINGS;
 
         ipcMain.handle('get-settings', () => {
+            const updateConfigPath = path.join(process.resourcesPath, 'app-update.yml');
+            const isPortable = Boolean(process.env.PORTABLE_EXECUTABLE);
+            const updateSupported = app.isPackaged && !isPortable && fs.existsSync(updateConfigPath);
+            let updateDisabledReason: string | null = null;
+            if (!updateSupported) {
+                if (!app.isPackaged) {
+                    updateDisabledReason = 'dev';
+                } else if (isPortable) {
+                    updateDisabledReason = 'portable';
+                } else {
+                    updateDisabledReason = 'missing-config';
+                }
+            }
             return {
                 logDirectory: store.get('logDirectory', null),
                 discordWebhookUrl: store.get('discordWebhookUrl', null),
@@ -1372,6 +1397,8 @@ if (!gotTheLock) {
                 statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, ...(store.get('statsViewSettings') as any || {}) },
                 disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
                 eiCliSettings: { ...DEFAULT_EI_SETTINGS, ...(store.get('eiCliSettings') as any || {}) },
+                autoUpdateSupported: updateSupported,
+                autoUpdateDisabledReason: updateDisabledReason,
                 githubRepoOwner: store.get('githubRepoOwner', null),
                 githubRepoName: store.get('githubRepoName', null),
                 githubBranch: store.get('githubBranch', 'main'),
