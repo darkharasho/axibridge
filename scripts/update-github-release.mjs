@@ -40,6 +40,7 @@ if (!fs.existsSync(releaseNotesPath)) {
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 const version = packageJson?.version || '0.0.0';
 const tagName = `v${version}`;
+const outputDir = path.join(rootDir, packageJson?.build?.directories?.output || 'dist_out');
 
 const publishConfig = packageJson?.build?.publish || {};
 const owner = publishConfig.owner;
@@ -54,6 +55,29 @@ if (!notes) {
     console.error('RELEASE_NOTES.md is empty. Aborting release body update.');
     process.exit(1);
 }
+
+const allowedAssetNames = new Set(['latest.yml', 'latest-linux.yml']);
+const allowedAssetExts = new Set(['.AppImage', '.deb', '.exe', '.blockmap']);
+
+const collectReleaseFiles = (dir) => {
+    if (!fs.existsSync(dir)) return [];
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+        const absPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            files.push(...collectReleaseFiles(absPath));
+            continue;
+        }
+        if (!entry.isFile()) continue;
+        const ext = path.extname(entry.name);
+        if (!allowedAssetNames.has(entry.name) && !allowedAssetExts.has(ext)) {
+            continue;
+        }
+        files.push({ absPath, name: entry.name });
+    }
+    return files;
+};
 
 const request = async (method, url, body) => {
     const resp = await fetch(url, {
@@ -96,7 +120,7 @@ if (releaseResp.status === 404) {
             tag_name: tagName,
             name: tagName,
             body: notes,
-            draft: true,
+            draft: false,
             prerelease: false
         });
     }
@@ -117,4 +141,42 @@ if (!updateResp.ok) {
     process.exit(1);
 }
 
-console.log(`Updated GitHub release body for ${tagName}.`);
+const releaseId = updateResp.data?.id || releaseResp.data?.id;
+const refreshedResp = releaseId ? await request('GET', `${baseUrl}/releases/${releaseId}`) : null;
+const releaseData = refreshedResp?.ok ? refreshedResp.data : (updateResp.data || releaseResp.data);
+
+const files = collectReleaseFiles(outputDir);
+if (files.length === 0) {
+    console.error(`No release artifacts found in ${outputDir}. Aborting upload.`);
+    process.exit(1);
+}
+
+const uploadUrl = releaseData?.upload_url?.replace('{?name,label}', '');
+if (!uploadUrl) {
+    console.error('Release upload URL missing. Aborting asset upload.');
+    process.exit(1);
+}
+
+const existingAssets = Array.isArray(releaseData?.assets) ? releaseData.assets : [];
+for (const file of files) {
+    const existing = existingAssets.find((asset) => asset?.name === file.name);
+    if (existing?.id) {
+        await request('DELETE', `${baseUrl}/releases/assets/${existing.id}`);
+    }
+    const uploadResp = await fetch(`${uploadUrl}?name=${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/octet-stream',
+            'X-GitHub-Api-Version': '2022-11-28'
+        },
+        body: fs.readFileSync(file.absPath)
+    });
+    if (!uploadResp.ok) {
+        console.error(`Failed to upload ${file.name} (${uploadResp.status}).`);
+        process.exit(1);
+    }
+}
+
+console.log(`Published GitHub release ${tagName} with ${files.length} assets.`);

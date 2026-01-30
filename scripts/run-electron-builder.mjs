@@ -25,7 +25,7 @@ const loadEnvFile = (filePath) => {
 
 loadEnvFile(path.join(rootDir, '.env'));
 
-const args = ['electron-builder', '--linux', '--win', '--publish', 'always'];
+const args = ['electron-builder', '--linux', '--win', '--publish', 'never'];
 const result = spawnSync('npx', args, { stdio: 'inherit', env: process.env });
 
 process.exit(result.status ?? 1);
