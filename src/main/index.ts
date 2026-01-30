@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { DEFAULT_WEB_THEME_ID, WEB_THEMES } from '../shared/webThemes';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
+import { DEFAULT_EI_CLI_SETTINGS, loadEiCliJsonForLog, updateEiCliIfNeeded } from './eiCli';
 import { LogWatcher } from './watcher'
 import { Uploader, UploadResult } from './uploader'
 import { DiscordNotifier } from './discord';
@@ -269,6 +270,33 @@ const processLogFile = async (filePath: string) => {
             console.warn('[Main] Failed to compute log hash for cache:', hashError?.message || hashError);
         }
 
+        let localEiDetails: any | null = null;
+            const eiCliSettings = store.get('eiCliSettings', DEFAULT_EI_CLI_SETTINGS) as any;
+            if (eiCliSettings?.enabled) {
+                try {
+                    const eiResult = await loadEiCliJsonForLog({
+                        filePath,
+                        cacheKey,
+                        settings: {
+                            enabled: Boolean(eiCliSettings.enabled),
+                            autoSetup: eiCliSettings.autoSetup !== false,
+                            autoUpdate: eiCliSettings.autoUpdate !== false,
+                            preferredRuntime: eiCliSettings.preferredRuntime || 'auto'
+                        },
+                        dpsReportToken: store.get('dpsReportToken', null)
+                    });
+                if (eiResult.json) {
+                    const sourceLabel = eiResult.source === 'cache' ? 'cache hit' : 'parsed';
+                    console.log(`[Main] EI CLI ${sourceLabel}: ${filePath}`);
+                    localEiDetails = eiResult.json;
+                } else if (eiResult.error) {
+                    console.warn('[Main] EI CLI unavailable:', eiResult.error);
+                }
+            } catch (err: any) {
+                console.warn('[Main] EI CLI failed:', err?.message || err);
+            }
+        }
+
         let cached = null as null | { entry: DpsReportCacheEntry; jsonDetails: any | null };
         if (cacheKey) {
             cached = await loadDpsReportCacheEntry(cacheKey);
@@ -342,7 +370,8 @@ const processLogFile = async (filePath: string) => {
                 ...result,
                 filePath,
                 status: 'success',
-                details: jsonDetails
+                details: jsonDetails,
+                eiDetails: localEiDetails || undefined
             });
         } else {
             win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
@@ -1163,27 +1192,58 @@ if (!gotTheLock) {
         createWindow();
         createTray();
 
+        const eiCliSettings = store.get('eiCliSettings', DEFAULT_EI_CLI_SETTINGS) as any;
+        if (eiCliSettings?.enabled && eiCliSettings?.autoUpdate !== false) {
+            setTimeout(async () => {
+                try {
+                    const result = await updateEiCliIfNeeded({
+                        enabled: Boolean(eiCliSettings.enabled),
+                        autoSetup: eiCliSettings.autoSetup !== false,
+                        autoUpdate: eiCliSettings.autoUpdate !== false,
+                        preferredRuntime: eiCliSettings.preferredRuntime || 'auto'
+                    });
+                    if (result?.updated) {
+                        console.log(`[Main] EI CLI updated${result.version ? ` to ${result.version}` : ''}.`);
+                    }
+                } catch (err: any) {
+                    console.warn('[Main] EI CLI update check failed:', err?.message || err);
+                }
+            }, 1000);
+        }
+
         // Desktop Integration for Linux AppImage
         if (process.platform === 'linux') {
             const integrator = new DesktopIntegrator();
             integrator.integrate().catch(err => console.error('Integration error:', err));
         }
 
-        // Check for updates
-        setupAutoUpdater();
+        // Check for updates (skip for portable/zip builds without app-update.yml)
+        const updateConfigPath = path.join(process.resourcesPath, 'app-update.yml');
+        const isPortable = Boolean(process.env.PORTABLE_EXECUTABLE);
+        const canAutoUpdate = app.isPackaged && !isPortable && fs.existsSync(updateConfigPath);
+        if (canAutoUpdate) {
+            setupAutoUpdater();
+        } else {
+            log.info('[AutoUpdater] Skipped: no app-update.yml or portable build detected.');
+        }
 
-        // Disable auto-download to give more control
-        autoUpdater.autoDownload = true;
-        autoUpdater.autoInstallOnAppQuit = true;
+        if (canAutoUpdate) {
+            // Disable auto-download to give more control
+            autoUpdater.autoDownload = true;
+            autoUpdater.autoInstallOnAppQuit = true;
 
-        if (process.platform === 'linux' && !process.env.APPIMAGE) {
-            log.info('[AutoUpdater] Detected Linux non-AppImage run. Disabling auto-download to ensure detection works without download errors.');
-            autoUpdater.autoDownload = false;
+            if (process.platform === 'linux' && !process.env.APPIMAGE) {
+                log.info('[AutoUpdater] Detected Linux non-AppImage run. Disabling auto-download to ensure detection works without download errors.');
+                autoUpdater.autoDownload = false;
+            }
         }
 
         // Check for updates after a short delay to ensure window is ready
         // Only check for updates in packaged apps (not development)
         setTimeout(async () => {
+            if (!canAutoUpdate) {
+                return;
+            }
             // Skip auto-update in development mode
             if (!app.isPackaged) {
                 log.info('[AutoUpdater] Skipping update check in development mode');
@@ -1308,8 +1368,22 @@ if (!gotTheLock) {
             showTopStats: true,
             showMvp: true
         };
+        const DEFAULT_EI_SETTINGS = DEFAULT_EI_CLI_SETTINGS;
 
         ipcMain.handle('get-settings', () => {
+            const updateConfigPath = path.join(process.resourcesPath, 'app-update.yml');
+            const isPortable = Boolean(process.env.PORTABLE_EXECUTABLE);
+            const updateSupported = app.isPackaged && !isPortable && fs.existsSync(updateConfigPath);
+            let updateDisabledReason: string | null = null;
+            if (!updateSupported) {
+                if (!app.isPackaged) {
+                    updateDisabledReason = 'dev';
+                } else if (isPortable) {
+                    updateDisabledReason = 'portable';
+                } else {
+                    updateDisabledReason = 'missing-config';
+                }
+            }
             return {
                 logDirectory: store.get('logDirectory', null),
                 discordWebhookUrl: store.get('discordWebhookUrl', null),
@@ -1322,6 +1396,9 @@ if (!gotTheLock) {
                 mvpWeights: { ...DEFAULT_MVP_WEIGHTS, ...(store.get('mvpWeights') as any || {}) },
                 statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, ...(store.get('statsViewSettings') as any || {}) },
                 disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
+                eiCliSettings: { ...DEFAULT_EI_SETTINGS, ...(store.get('eiCliSettings') as any || {}) },
+                autoUpdateSupported: updateSupported,
+                autoUpdateDisabledReason: updateDisabledReason,
                 githubRepoOwner: store.get('githubRepoOwner', null),
                 githubRepoName: store.get('githubRepoName', null),
                 githubBranch: store.get('githubBranch', 'main'),
@@ -1344,7 +1421,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null }) => {
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, eiCliSettings?: any, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -1392,6 +1469,9 @@ if (!gotTheLock) {
             if (settings.disruptionMethod !== undefined) {
                 store.set('disruptionMethod', settings.disruptionMethod);
                 discord?.setDisruptionMethod(settings.disruptionMethod);
+            }
+            if (settings.eiCliSettings !== undefined) {
+                store.set('eiCliSettings', settings.eiCliSettings);
             }
             if (settings.githubRepoOwner !== undefined) {
                 store.set('githubRepoOwner', settings.githubRepoOwner);
@@ -1503,6 +1583,20 @@ if (!gotTheLock) {
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
             })();
+        });
+
+        ipcMain.on('renderer-log', (_event, payload: { level?: 'info' | 'warn' | 'error'; message: string; meta?: any }) => {
+            const level = payload?.level || 'info';
+            const meta = payload?.meta;
+            const message = payload?.message || '';
+            const formatted = meta ? `${message} ${formatLogArgs([meta])}` : message;
+            if (level === 'error') {
+                console.error(`[Renderer] ${formatted}`);
+            } else if (level === 'warn') {
+                console.warn(`[Renderer] ${formatted}`);
+            } else {
+                console.log(`[Renderer] ${formatted}`);
+            }
         });
 
         ipcMain.on('window-control', (_event, action: 'minimize' | 'maximize' | 'close') => {

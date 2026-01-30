@@ -7,6 +7,7 @@ import { Player, Target } from '../shared/dpsReportTypes';
 import { getProfessionColor, getProfessionIconPath } from '../shared/professionUtils';
 import { BoonCategory, BoonMetric, buildBoonTables, formatBoonMetricDisplay, getBoonMetricValue } from '../shared/boonGeneration';
 import { DEFAULT_DISRUPTION_METHOD, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IMvpWeights, IStatsViewSettings } from './global.d';
+import { computeOutgoingConditions, resolveConditionNameFromEntry } from '../shared/conditionsMetrics';
 
 interface StatsViewProps {
     logs: ILogData[];
@@ -262,6 +263,92 @@ const CountClassTooltip = ({
     );
 };
 
+const SkillBreakdownTooltip = ({
+    value,
+    label,
+    items,
+    className
+}: {
+    value: string;
+    label: string;
+    items: Array<{ name: string; value: string }>;
+    className?: string;
+}) => {
+    const hasTooltip = items.length > 0;
+    const [open, setOpen] = useState(false);
+    const [tooltipStyle, setTooltipStyle] = useState<CSSProperties>({
+        position: 'fixed',
+        top: -9999,
+        left: -9999,
+        transform: 'translateX(-50%)'
+    });
+    const wrapperRef = useRef<HTMLSpanElement | null>(null);
+    const tooltipRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const updatePosition = () => {
+            const wrapper = wrapperRef.current;
+            const tooltip = tooltipRef.current;
+            if (!wrapper || !tooltip) return;
+            const wrapRect = wrapper.getBoundingClientRect();
+            const tipRect = tooltip.getBoundingClientRect();
+            const padding = 8;
+            const spaceBelow = window.innerHeight - wrapRect.bottom;
+            const spaceAbove = wrapRect.top;
+            const top = spaceBelow < tipRect.height + padding && spaceAbove > spaceBelow
+                ? Math.max(padding, wrapRect.top - tipRect.height - padding)
+                : Math.min(window.innerHeight - tipRect.height - padding, wrapRect.bottom + padding);
+            const center = wrapRect.left + wrapRect.width / 2;
+            const minLeft = padding + tipRect.width / 2;
+            const maxLeft = window.innerWidth - padding - tipRect.width / 2;
+            const left = Math.min(Math.max(center, minLeft), maxLeft);
+            setTooltipStyle({
+                position: 'fixed',
+                top,
+                left,
+                transform: 'translateX(-50%)'
+            });
+        };
+        const raf = requestAnimationFrame(updatePosition);
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+        };
+    }, [open, items.length]);
+
+    return (
+        <span
+            ref={wrapperRef}
+            className={`relative inline-flex items-center justify-end ${hasTooltip ? 'group cursor-help' : ''} ${className || ''}`}
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+        >
+            <span>{value}</span>
+            {hasTooltip && (
+                <div
+                    ref={tooltipRef}
+                    style={tooltipStyle}
+                    className={`z-[9999] w-64 rounded-md border border-white/10 bg-black/70 px-3 py-2 text-[10px] text-gray-200 shadow-lg backdrop-blur-md opacity-0 pointer-events-none transition-opacity ${open ? 'opacity-100' : ''}`}
+                >
+                    <div className="text-[9px] uppercase tracking-wider text-amber-200 mb-1">{label}</div>
+                    <div className="max-h-40 overflow-y-auto space-y-1">
+                        {items.map((item) => (
+                            <div key={item.name} className="flex items-center justify-between gap-2">
+                                <span className="truncate text-gray-100">{item.name}</span>
+                                <span className="text-gray-300 font-mono">{item.value}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </span>
+    );
+};
+
 const OFFENSE_METRICS: Array<{
     id: string;
     label: string;
@@ -451,9 +538,16 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
     const [specialSearch, setSpecialSearch] = useState('');
     const [offenseSearch, setOffenseSearch] = useState('');
     const [defenseSearch, setDefenseSearch] = useState('');
+    const [conditionSearch, setConditionSearch] = useState('');
+    const [conditionDirection, setConditionDirection] = useState<'outgoing' | 'incoming'>('outgoing');
     const [supportSearch, setSupportSearch] = useState('');
     const [activeOffenseStat, setActiveOffenseStat] = useState<string>('damage');
     const [activeDefenseStat, setActiveDefenseStat] = useState<string>('damageTaken');
+    const [activeConditionName, setActiveConditionName] = useState<string>('all');
+    const [conditionSort, setConditionSort] = useState<{ key: 'applications' | 'damage'; dir: 'asc' | 'desc' }>({
+        key: 'damage',
+        dir: 'desc'
+    });
     const [activeSupportStat, setActiveSupportStat] = useState<string>('condiCleanse');
     const [activeHealingMetric, setActiveHealingMetric] = useState<string>('healing');
     const [healingCategory, setHealingCategory] = useState<'total' | 'squad' | 'group' | 'self' | 'offSquad'>('total');
@@ -580,6 +674,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
     };
 
     const validLogs = useMemo(() => logs.filter(l => (l.status === 'success' || l.status === 'discord') && l.details), [logs]);
+    const hasEiDetails = useMemo(() => validLogs.some((log) => Boolean(log.eiDetails)), [validLogs]);
 
     const stats = useMemo(() => {
         if (precomputedStats) {
@@ -625,6 +720,17 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
             damage: number;
             dps: number;
             revives: number;
+            outgoingConditions: Record<string, {
+                applications: number;
+                damage: number;
+                skills: Record<string, { name: string; hits: number; damage: number }>;
+                applicationsFromBuffs?: number;
+            }>;
+            incomingConditions: Record<string, {
+                applications: number;
+                damage: number;
+                skills: Record<string, { name: string; hits: number; damage: number }>;
+            }>;
         }
 
         const playerStats = new Map<string, PlayerStats>();
@@ -633,6 +739,8 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
         // --- Skill Aggregation ---
         // skillId -> { name, damage, hits }
         const skillDamageMap: Record<number, { name: string, damage: number, hits: number }> = {};
+        const outgoingCondiTotals: Record<string, { name: string; applications: number; damage: number; applicationsFromBuffs?: number }> = {};
+        const incomingCondiTotals: Record<string, { name: string; applications: number; damage: number }> = {};
         const incomingSkillDamageMap: Record<number, { name: string, damage: number, hits: number }> = {};
 
         let totalSquadSizeAccum = 0;
@@ -649,6 +757,11 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
             if (!details) return;
             const players = details.players as unknown as Player[];
             const targets = details.targets || [];
+            const conditionDetails = log.eiDetails || details;
+            const conditionPlayers = (conditionDetails?.players as unknown as Player[]) || players;
+            const conditionTargets = conditionDetails?.targets || targets;
+            const conditionSkillMap = conditionDetails?.skillMap || details.skillMap;
+            const conditionBuffMap = conditionDetails?.buffMap || details.buffMap;
             const replayMeta = (details as any).combatReplayMetaData || {};
             const inchesToPixel = typeof replayMeta?.inchToPixel === 'number' && replayMeta.inchToPixel > 0
                 ? replayMeta.inchToPixel
@@ -829,7 +942,9 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
                         isCommander: false,
                         damage: 0,
                         dps: 0,
-                        revives: 0
+                        revives: 0,
+                        outgoingConditions: {},
+                        incomingConditions: {}
                     });
                 }
 
@@ -1121,39 +1236,149 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
 
                             skillDamageMap[entry.id].damage += entry.totalDamage;
                             skillDamageMap[entry.id].hits += entry.connectedHits;
+
                         });
                     });
                 }
 
-                // Incoming Skill Aggregation (Damage Taken)
-                if (p.totalDamageTaken) {
-                    p.totalDamageTaken.forEach(takenList => {
-                        if (!takenList) return;
-                        takenList.forEach(entry => {
-                            if (!entry.id) return;
+            // Incoming Skill Aggregation (Damage Taken)
+            if (p.totalDamageTaken) {
+                p.totalDamageTaken.forEach(takenList => {
+                    if (!takenList) return;
+                    takenList.forEach(entry => {
+                        if (!entry.id) return;
 
-                            let skillName = `Skill ${entry.id}`;
-                            // Resolve name
-                            if (details.skillMap) {
-                                if (details.skillMap[`s${entry.id}`]) {
-                                    skillName = details.skillMap[`s${entry.id}`].name;
-                                } else if (details.skillMap[`${entry.id}`]) {
-                                    skillName = details.skillMap[`${entry.id}`].name;
-                                }
+                        let skillName = `Skill ${entry.id}`;
+                        // Resolve name
+                        if (details.skillMap) {
+                            if (details.skillMap[`s${entry.id}`]) {
+                                skillName = details.skillMap[`s${entry.id}`].name;
+                            } else if (details.skillMap[`${entry.id}`]) {
+                                skillName = details.skillMap[`${entry.id}`].name;
                             }
+                        }
 
-                            if (!incomingSkillDamageMap[entry.id]) {
-                                incomingSkillDamageMap[entry.id] = { name: skillName, damage: 0, hits: 0 };
-                            }
-                            if (incomingSkillDamageMap[entry.id].name.startsWith('Skill ') && !skillName.startsWith('Skill ')) {
-                                incomingSkillDamageMap[entry.id].name = skillName;
-                            }
+                        if (!incomingSkillDamageMap[entry.id]) {
+                            incomingSkillDamageMap[entry.id] = { name: skillName, damage: 0, hits: 0 };
+                        }
+                        if (incomingSkillDamageMap[entry.id].name.startsWith('Skill ') && !skillName.startsWith('Skill ')) {
+                            incomingSkillDamageMap[entry.id].name = skillName;
+                        }
 
-                            incomingSkillDamageMap[entry.id].damage += entry.totalDamage;
-                            incomingSkillDamageMap[entry.id].hits += entry.hits; // For taken, hits is usually raw hits
-                        });
+                        incomingSkillDamageMap[entry.id].damage += entry.totalDamage;
+                        incomingSkillDamageMap[entry.id].hits += entry.hits; // For taken, hits is usually raw hits
                     });
+                });
+            }
+            });
+
+            const conditionResult = computeOutgoingConditions({
+                players: conditionPlayers,
+                targets: conditionTargets,
+                skillMap: conditionSkillMap,
+                buffMap: conditionBuffMap,
+                getPlayerKey: (player) => {
+                    const account = player?.account || 'Unknown';
+                    if (account && account !== 'Unknown') return account;
+                    const name = player?.name || 'Unknown';
+                    return name || null;
                 }
+            });
+
+            Object.entries(conditionResult.playerConditions).forEach(([key, conditionTotals]) => {
+                const playerStat = playerStats.get(key);
+                if (!playerStat) return;
+                Object.entries(conditionTotals).forEach(([conditionName, entry]) => {
+                    const existing = playerStat.outgoingConditions[conditionName] || {
+                        applications: 0,
+                        damage: 0,
+                        skills: {}
+                    };
+                    existing.applications += Number(entry.applications || 0);
+                    existing.damage += Number(entry.damage || 0);
+                    if (entry.applicationsFromBuffs) {
+                        existing.applicationsFromBuffs = (existing.applicationsFromBuffs || 0) + entry.applicationsFromBuffs;
+                    }
+                    Object.entries(entry.skills || {}).forEach(([skillName, skillEntry]) => {
+                        const skillExisting = existing.skills[skillName] || { name: skillEntry.name, hits: 0, damage: 0 };
+                        skillExisting.hits += Number(skillEntry.hits || 0);
+                        skillExisting.damage += Number(skillEntry.damage || 0);
+                        existing.skills[skillName] = skillExisting;
+                    });
+                    playerStat.outgoingConditions[conditionName] = existing;
+                });
+            });
+
+            Object.entries(conditionResult.summary).forEach(([conditionName, entry]) => {
+                const existing = outgoingCondiTotals[conditionName] || {
+                    name: entry.name || conditionName,
+                    applications: 0,
+                    damage: 0
+                };
+                existing.applications += Number(entry.applications || 0);
+                existing.damage += Number(entry.damage || 0);
+                if (entry.applicationsFromBuffs) {
+                    existing.applicationsFromBuffs = (existing.applicationsFromBuffs || 0) + entry.applicationsFromBuffs;
+                }
+                outgoingCondiTotals[conditionName] = existing;
+            });
+
+            if (conditionResult.meta.buffStateApplicationsTotal > 0) {
+                window.electronAPI?.logToMain?.({
+                    level: 'info',
+                    message: '[Conditions] Buff state applications',
+                    meta: { count: conditionResult.meta.buffStateApplicationsTotal }
+                });
+            } else {
+                window.electronAPI?.logToMain?.({
+                    level: 'info',
+                    message: '[Conditions] No buff state applications found; using damage distribution fallback.',
+                    meta: {
+                        targetBuffEntriesSeen: conditionResult.meta.targetBuffEntriesSeen,
+                        buffStateSourcesSeen: conditionResult.meta.buffStateSourcesSeen
+                    }
+                });
+            }
+
+            conditionPlayers.forEach((player: any) => {
+                if (player?.notInSquad) return;
+                const account = player.account || 'Unknown';
+                const key = account !== 'Unknown' ? account : (player.name || 'Unknown');
+                const stat = playerStats.get(key);
+                if (!stat || !player?.totalDamageTaken) return;
+                player.totalDamageTaken.forEach((takenList: any) => {
+                    if (!takenList) return;
+                    takenList.forEach((entry: any) => {
+                        if (!entry.id) return;
+                        let skillName = `Skill ${entry.id}`;
+                        if (conditionSkillMap) {
+                            if (conditionSkillMap[`s${entry.id}`]) {
+                                skillName = conditionSkillMap[`s${entry.id}`].name;
+                            } else if (conditionSkillMap[`${entry.id}`]) {
+                                skillName = conditionSkillMap[`${entry.id}`].name;
+                            }
+                        }
+                        const finalName = resolveConditionNameFromEntry(skillName, entry.id, conditionBuffMap);
+                        if (!finalName) return;
+                        const hits = Number(entry.hits ?? 0);
+                        const damage = Number(entry.totalDamage ?? 0);
+                        if (!Number.isFinite(hits) && !Number.isFinite(damage)) return;
+
+                        const summaryEntry = incomingCondiTotals[finalName] || { name: finalName, applications: 0, damage: 0 };
+                        summaryEntry.applications += Number.isFinite(hits) ? hits : 0;
+                        summaryEntry.damage += Number.isFinite(damage) ? damage : 0;
+                        incomingCondiTotals[finalName] = summaryEntry;
+
+                        const playerEntry = stat.incomingConditions[finalName] || { applications: 0, damage: 0, skills: {} };
+                        playerEntry.applications += Number.isFinite(hits) ? hits : 0;
+                        playerEntry.damage += Number.isFinite(damage) ? damage : 0;
+                        const skillEntry = playerEntry.skills[skillName] || { name: skillName, hits: 0, damage: 0 };
+                        skillEntry.hits += Number.isFinite(hits) ? hits : 0;
+                        skillEntry.damage += Number.isFinite(damage) ? damage : 0;
+                        playerEntry.skills[skillName] = skillEntry;
+                        stat.incomingConditions[finalName] = playerEntry;
+                    });
+                });
             });
         });
 
@@ -1244,6 +1469,45 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
             activeMs: stat.healingActiveMs || 0,
             healingTotals: stat.healingTotals
         }));
+        const outgoingConditionPlayers = playerEntries.map(({ stat }) => {
+            const conditionTotals = stat.outgoingConditions || {};
+            let totalApplications = 0;
+            let totalDamage = 0;
+            Object.values(conditionTotals).forEach((entry) => {
+                const applications = (entry.applicationsFromBuffs && entry.applicationsFromBuffs > 0)
+                    ? entry.applicationsFromBuffs
+                    : entry.applications;
+                totalApplications += Number(applications || 0);
+                totalDamage += Number(entry.damage || 0);
+            });
+            return {
+                account: stat.account,
+                profession: stat.profession || 'Unknown',
+                professionList: stat.professionList,
+                totalFightMs: stat.totalFightMs || 0,
+                totalApplications,
+                totalDamage,
+                conditions: conditionTotals
+            };
+        });
+        const incomingConditionPlayers = playerEntries.map(({ stat }) => {
+            const conditionTotals = stat.incomingConditions || {};
+            let totalApplications = 0;
+            let totalDamage = 0;
+            Object.values(conditionTotals).forEach((entry) => {
+                totalApplications += Number(entry.applications || 0);
+                totalDamage += Number(entry.damage || 0);
+            });
+            return {
+                account: stat.account,
+                profession: stat.profession || 'Unknown',
+                professionList: stat.professionList,
+                totalFightMs: stat.totalFightMs || 0,
+                totalApplications,
+                totalDamage,
+                conditions: conditionTotals
+            };
+        });
 
         if (shouldComputeTopStats) {
             playerEntries.forEach(({ stat }) => {
@@ -1548,6 +1812,21 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
         const topIncomingSkills = Object.values(incomingSkillDamageMap)
             .sort((a, b) => b.damage - a.damage)
             .slice(0, 25);
+
+        const outgoingConditionSummary = Object.values(outgoingCondiTotals)
+            .map((entry) => ({
+                ...entry,
+                applications: (entry.applicationsFromBuffs && entry.applicationsFromBuffs > 0)
+                    ? entry.applicationsFromBuffs
+                    : entry.applications
+            }))
+            .sort((a, b) => b.damage - a.damage || a.name.localeCompare(b.name));
+        const incomingConditionSummary = Object.values(incomingCondiTotals)
+            .map((entry) => ({
+                ...entry,
+                applications: entry.applications
+            }))
+            .sort((a, b) => b.damage - a.damage || a.name.localeCompare(b.name));
 
         // KDR Calculations
         const squadKDR = totalSquadDeaths > 0 ? (totalSquadKills / totalSquadDeaths).toFixed(2) : totalSquadKills > 0 ? '∞' : '0.00';
@@ -1987,6 +2266,10 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
             closestToTag,
             topSkills,
             topIncomingSkills,
+            outgoingConditionSummary,
+            outgoingConditionPlayers,
+            incomingConditionSummary,
+            incomingConditionPlayers,
 
             mapData,
             squadClassData,
@@ -2008,6 +2291,13 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
             leaderboards
         };
     }, [validLogs, precomputedStats]);
+
+    const conditionSummary = conditionDirection === 'outgoing'
+        ? stats.outgoingConditionSummary
+        : stats.incomingConditionSummary;
+    const conditionPlayers = conditionDirection === 'outgoing'
+        ? stats.outgoingConditionPlayers
+        : stats.incomingConditionPlayers;
 
     const skillUsageData = useMemo<SkillUsageSummary>(() => {
         const precomputedSkillUsage = precomputedStats?.skillUsageData as SkillUsageSummary | undefined;
@@ -3819,6 +4109,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
                     {stats.offensePlayers.length === 0 ? (
                         <div className="text-center text-gray-500 italic py-8">No offensive stats available</div>
                     ) : (
+                        <>
                         <div className={`grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 ${expandedSection === 'offense-detailed' ? 'flex-1 min-h-0 h-full' : ''}`}>
                             <div className={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'offense-detailed' ? 'h-full flex-1' : 'self-start'}`}>
                                 <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Offensive Tabs</div>
@@ -3946,6 +4237,265 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
                                 })()}
                             </div>
                         </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Conditions */}
+                <div
+                    id="conditions-outgoing"
+                    className={`bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+                        expandedSection === 'conditions-outgoing'
+                            ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
+                                expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
+                            }`
+                            : ''
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
+                            <Skull className="w-5 h-5 text-amber-300" />
+                            Conditions
+                        </h3>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setConditionDirection('outgoing')}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${conditionDirection === 'outgoing'
+                                    ? 'bg-amber-500/20 text-amber-200 border-amber-500/40'
+                                    : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                    }`}
+                            >
+                                Outgoing
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setConditionDirection('incoming')}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${conditionDirection === 'incoming'
+                                    ? 'bg-amber-500/20 text-amber-200 border-amber-500/40'
+                                    : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                    }`}
+                            >
+                                Incoming
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => (expandedSection === 'conditions-outgoing' ? closeExpandedSection() : openExpandedSection('conditions-outgoing'))}
+                                className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                                aria-label={expandedSection === 'conditions-outgoing' ? 'Close Outgoing Conditions' : 'Expand Outgoing Conditions'}
+                                title={expandedSection === 'conditions-outgoing' ? 'Close' : 'Expand'}
+                            >
+                                {expandedSection === 'conditions-outgoing' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+                    {!hasEiDetails && (
+                        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+                            {embedded
+                                ? 'This table has been generated with an external parser; condition application counts may be incomplete.'
+                                : 'Local Elite Insights parsing is disabled. Condition application counts may be incomplete. For more accurate counts enable Elite Insights in the settings.'}
+                        </div>
+                    )}
+                    {conditionSummary && conditionSummary.length > 0 ? (
+                        <div className={`grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 ${expandedSection === 'conditions-outgoing' ? 'flex-1 min-h-0 h-full' : ''}`}>
+                            <div className={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'conditions-outgoing' ? 'h-full flex-1' : 'self-start'}`}>
+                                <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Conditions</div>
+                                <input
+                                    value={conditionSearch}
+                                    onChange={(e) => setConditionSearch(e.target.value)}
+                                    placeholder="Search..."
+                                    className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                                />
+                                <div className={`${sidebarListClass} ${expandedSection === 'conditions-outgoing' ? 'max-h-none flex-1 min-h-0' : ''}`}>
+                                    {(() => {
+                                        const entries = [...(conditionSummary || [])].sort((a: any, b: any) => (b.damage || 0) - (a.damage || 0));
+                                        const filtered = entries.filter((entry: any) =>
+                                            entry.name.toLowerCase().includes(conditionSearch.trim().toLowerCase())
+                                        );
+                                        if (filtered.length === 0) {
+                                            return <div className="text-center text-gray-500 italic py-6 text-xs">No conditions match this filter</div>;
+                                        }
+                                        return (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setActiveConditionName('all')}
+                                                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeConditionName === 'all'
+                                                        ? 'bg-amber-500/20 text-amber-200 border-amber-500/40'
+                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                        }`}
+                                                >
+                                                    All Conditions
+                                                </button>
+                                                {filtered.map((entry: any) => (
+                                                    <button
+                                                        key={entry.name}
+                                                        type="button"
+                                                        onClick={() => setActiveConditionName(entry.name)}
+                                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeConditionName === entry.name
+                                                            ? 'bg-amber-500/20 text-amber-200 border-amber-500/40'
+                                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                            }`}
+                                                    >
+                                                        {entry.name}
+                                                    </button>
+                                                ))}
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                            <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'conditions-outgoing' ? 'flex flex-col min-h-0' : ''}`}>
+                                <div className="flex items-center justify-between px-4 py-3 bg-white/5">
+                                    <div className="text-sm font-semibold text-gray-200">
+                                        {activeConditionName === 'all' ? 'All Conditions' : activeConditionName}
+                                    </div>
+                                    <div className="text-xs uppercase tracking-widest text-gray-500">Squad Totals</div>
+                                </div>
+                                <div className="grid grid-cols-[0.4fr_1.6fr_1fr_1fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                    <div className="text-center">#</div>
+                                    <div>Player</div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setConditionSort((prev) => ({
+                                                key: 'applications',
+                                                dir: prev.key === 'applications' ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
+                                            }));
+                                        }}
+                                        className={`text-right transition-colors ${conditionSort.key === 'applications' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                    >
+                                        Applications {conditionSort.key === 'applications' ? (conditionSort.dir === 'desc' ? '↓' : '↑') : ''}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setConditionSort((prev) => ({
+                                                key: 'damage',
+                                                dir: prev.key === 'damage' ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
+                                            }));
+                                        }}
+                                        className={`text-right transition-colors ${conditionSort.key === 'damage' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                    >
+                                        Damage {conditionSort.key === 'damage' ? (conditionSort.dir === 'desc' ? '↓' : '↑') : ''}
+                                    </button>
+                                </div>
+                                <div className={`${expandedSection === 'conditions-outgoing' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-80 overflow-y-auto'}`}>
+                                    {(() => {
+                                        const entries = conditionPlayers || [];
+                                        const rows = entries
+                                            .map((player: any) => {
+                                                const conditionTotals = player.conditions || {};
+                                                if (activeConditionName === 'all') {
+                                                    return {
+                                                        ...player,
+                                                        applications: Number(player.totalApplications || 0),
+                                                        damage: Number(player.totalDamage || 0)
+                                                    };
+                                                }
+                                                const condition = conditionTotals[activeConditionName];
+                                                const applications = conditionDirection === 'outgoing' && condition?.applicationsFromBuffs && condition.applicationsFromBuffs > 0
+                                                    ? condition.applicationsFromBuffs
+                                                    : condition?.applications;
+                                                return {
+                                                    ...player,
+                                                    applications: Number(applications || 0),
+                                                    damage: Number(condition?.damage || 0)
+                                                };
+                                            })
+                                            .filter((row: any) => row.applications > 0 || row.damage > 0)
+                                            .sort((a: any, b: any) => {
+                                                const aVal = conditionSort.key === 'applications' ? (a.applications || 0) : (a.damage || 0);
+                                                const bVal = conditionSort.key === 'applications' ? (b.applications || 0) : (b.damage || 0);
+                                                const primary = conditionSort.dir === 'desc' ? bVal - aVal : aVal - bVal;
+                                                if (primary !== 0) return primary;
+                                                const secondary = conditionSort.key === 'applications'
+                                                    ? (b.damage || 0) - (a.damage || 0)
+                                                    : (b.applications || 0) - (a.applications || 0);
+                                                if (secondary !== 0) return secondary;
+                                                return String(a.account || '').localeCompare(String(b.account || ''));
+                                            });
+                                        if (rows.length === 0) {
+                                            return <div className="text-center text-gray-500 italic py-6">No condition data available</div>;
+                                        }
+                                        return rows.map((entry: any, idx: number) => {
+                                            const conditionTotals = entry.conditions || {};
+                                            let skillsMap: Record<string, { name: string; hits: number; damage: number }> = {};
+                                            if (activeConditionName === 'all') {
+                                                Object.values(conditionTotals).forEach((cond: any) => {
+                                                    const skills = cond?.skills || {};
+                                                    Object.values(skills).forEach((skill: any) => {
+                                                        const name = skill?.name || 'Unknown';
+                                                        const hits = Number(skill?.hits || 0);
+                                                        const damage = Number(skill?.damage || 0);
+                                                        if ((!Number.isFinite(hits) || hits <= 0) && (!Number.isFinite(damage) || damage <= 0)) {
+                                                            return;
+                                                        }
+                                                        const existing = skillsMap[name] || { name, hits: 0, damage: 0 };
+                                                        existing.hits += Number.isFinite(hits) ? hits : 0;
+                                                        existing.damage += Number.isFinite(damage) ? damage : 0;
+                                                        skillsMap[name] = existing;
+                                                    });
+                                                });
+                                            } else {
+                                                skillsMap = conditionTotals[activeConditionName]?.skills || {};
+                                            }
+                                            const skillsList = Object.values(skillsMap)
+                                                .filter((skill: any) => Number.isFinite(skill.hits) && skill.hits > 0)
+                                                .sort((a: any, b: any) => b.hits - a.hits || a.name.localeCompare(b.name));
+                                            const skillsDamageList = Object.values(skillsMap)
+                                                .filter((skill: any) => Number.isFinite(skill.damage) && skill.damage > 0)
+                                                .sort((a: any, b: any) => b.damage - a.damage || a.name.localeCompare(b.name));
+                                            const showTooltip = activeConditionName === 'all' && skillsList.length > 0;
+                                            const showDamageTooltip = activeConditionName === 'all' && skillsDamageList.length > 0;
+                                            const applicationsValue = Math.round(entry.applications || 0).toLocaleString();
+                                            const damageValue = Math.round(entry.damage || 0).toLocaleString();
+                                            return (
+                                            <div key={`${entry.account}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr_1fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    {renderProfessionIcon(entry.profession, entry.professionList, 'w-4 h-4')}
+                                                    <span className="truncate">{entry.account}</span>
+                                                </div>
+                                                <div className="text-right font-mono text-gray-300">
+                                                    {showTooltip ? (
+                                                        <SkillBreakdownTooltip
+                                                            value={applicationsValue}
+                                                            label="Condition Sources"
+                                                            items={skillsList.map((skill: any) => ({
+                                                                name: skill.name,
+                                                                value: Math.round(skill.hits).toLocaleString()
+                                                            }))}
+                                                            className="justify-end"
+                                                        />
+                                                    ) : (
+                                                        applicationsValue
+                                                    )}
+                                                </div>
+                                                <div className="text-right font-mono text-gray-300">
+                                                    {showDamageTooltip ? (
+                                                        <SkillBreakdownTooltip
+                                                            value={damageValue}
+                                                            label="Condition Damage Sources"
+                                                            items={skillsDamageList.map((skill: any) => ({
+                                                                name: skill.name,
+                                                                value: Math.round(skill.damage).toLocaleString()
+                                                            }))}
+                                                            className="justify-end"
+                                                        />
+                                                    ) : (
+                                                        damageValue
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                        });
+                                    })()}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-500 italic py-8">No condition data available</div>
                     )}
                 </div>
 

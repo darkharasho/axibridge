@@ -19,6 +19,7 @@
         "build:linux": "npm run build && electron-builder --linux",
         "build:win": "npm run build && electron-builder --win",
         "build:all": "npm run build && electron-builder --linux --win",
+        "build:qa:win": "npm run build && electron-builder --win zip",
         "build:github": "npm run build && node scripts/run-electron-builder.mjs",
         "prebuild:github": "npm run generate:release-notes",
         "postbuild:github": "node scripts/update-github-release.mjs",
@@ -28,10 +29,12 @@
         "fixture:json": "bash scripts/generate-json-fixture.sh",
         "audit:boons": "node scripts/boon-validate.js",
         "audit:metrics": "node scripts/metrics-audit.mjs --all",
+        "audit:conditions": "node scripts/conditions-audit.mjs --all",
         "generate:metrics": "node scripts/metrics-audit.mjs --all --out test-fixtures/metrics",
         "generate:fixtures": "for f in testdata/*.zevtc; do bash scripts/generate-json-fixture.sh \"$f\"; done"
     },
     "dependencies": {
+        "adm-zip": "^0.5.16",
         "axios": "^1.6.0",
         "chokidar": "^3.5.3",
         "clsx": "^2.0.0",

@@ -37,3 +37,10 @@ Project: https://github.com/Drevarr/GW2_EI_log_combiner
 Portions of this codebase are adapted from or inspired by the project above,
 which is licensed under GPL-3.0. This project is licensed under GPL-3.0-only;
 see LICENSE for the full GPLv3 text that governs this combined work.
+
+## GW2 Elite Insights Parser (MIT)
+
+Project: https://github.com/baaron4/GW2-Elite-Insights-Parser
+
+This project integrates with the Elite Insights Parser CLI to generate local
+log JSON outputs. The Elite Insights Parser is licensed under the MIT License.

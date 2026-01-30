@@ -55,6 +55,13 @@ export interface IStatsViewSettings {
     showMvp: boolean;
 }
 
+export interface IEiCliSettings {
+    enabled: boolean;
+    autoSetup: boolean;
+    autoUpdate: boolean;
+    preferredRuntime: 'auto' | 'dotnet' | 'wine';
+}
+
 export type DisruptionMethod = 'count' | 'duration' | 'tiered';
 
 export const DEFAULT_DISRUPTION_METHOD: DisruptionMethod = 'count';
@@ -106,6 +113,13 @@ export const DEFAULT_STATS_VIEW_SETTINGS: IStatsViewSettings = {
     showMvp: true
 };
 
+export const DEFAULT_EI_CLI_SETTINGS: IEiCliSettings = {
+    enabled: false,
+    autoSetup: true,
+    autoUpdate: true,
+    preferredRuntime: 'auto'
+};
+
 export interface IElectronAPI {
     selectDirectory: () => Promise<string | null>;
     startWatching: (path: string) => void;
@@ -126,6 +140,9 @@ export interface IElectronAPI {
         mvpWeights: IMvpWeights;
         statsViewSettings: IStatsViewSettings;
         disruptionMethod: DisruptionMethod;
+        eiCliSettings?: IEiCliSettings;
+        autoUpdateSupported?: boolean;
+        autoUpdateDisabledReason?: string | null;
         githubRepoOwner?: string | null;
         githubRepoName?: string | null;
         githubBranch?: string | null;
@@ -149,6 +166,7 @@ export interface IElectronAPI {
         mvpWeights?: IMvpWeights;
         statsViewSettings?: IStatsViewSettings;
         disruptionMethod?: DisruptionMethod;
+        eiCliSettings?: IEiCliSettings;
         githubRepoOwner?: string | null;
         githubRepoName?: string | null;
         githubBranch?: string | null;
@@ -163,6 +181,7 @@ export interface IElectronAPI {
     sendScreenshots: (id: string, buffers: Uint8Array[]) => void;
     sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => void;
     onConsoleLog: (callback: (log: { type: 'info' | 'error', message: string, timestamp: string }) => void) => () => void;
+    logToMain: (payload: { level?: 'info' | 'warn' | 'error'; message: string; meta?: any }) => void;
     getLogs: () => Promise<ILogData[]>;
     saveLogs: (logs: ILogData[]) => void;
     // Auto Updater
@@ -219,6 +238,9 @@ declare global {
             success: boolean;
             players: IPlayer[];
             uploadTime: number;
+            [key: string]: any;
+        };
+        eiDetails?: {
             [key: string]: any;
         };
     }

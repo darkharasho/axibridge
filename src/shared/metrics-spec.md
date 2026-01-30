@@ -132,6 +132,46 @@ Incoming damage per skill (incoming damage distribution) is derived from
 squad view. This total can be large for siege skills because it aggregates
 all hits and all players (and across multiple logs when viewing aggregates).
 
+## Conditions (Outgoing + Incoming)
+
+Outgoing condition totals are derived from `players[*].totalDamageDist[*]`
+entries whose resolved skill name maps to a condition label (see
+`CONDITION_NAME_MAP`). For each matching entry:
+
+- `applications` uses `connectedHits` when available, otherwise falls back to
+  `hits` (needed for non-damaging conditions like blind/slow/fear).
+- `damage` uses `totalDamage`.
+
+Totals are aggregated per player and across the squad. The UI can filter to a
+single condition or show the all-conditions rollup.
+
+Incoming condition totals are derived from `players[*].totalDamageTaken[*]`
+entries whose resolved skill/buff ID maps to a condition. For each matching
+entry:
+
+- `applications` uses `hits`.
+- `damage` uses `totalDamage`.
+
+### Limitation (EI JSON)
+
+Accurate application counts for non-damaging conditions (e.g., vulnerability,
+weakness, blind, slow) require target buff state timelines
+(`targets[*].buffs[*].statesPerSource`). When this data is absent in the EI JSON,
+the app falls back to damage distribution (`totalDamageDist`) hit counts, which
+can significantly under-count applications for those conditions.
+
+### Local Parsing (EI CLI)
+
+When enabled, the app can run a local Elite Insights parser (EI CLI) and use its
+JSON output as a more complete data source for **all** metrics (not only
+conditions). This is intended to fill gaps in hosted JSON outputs when they omit
+certain fields.
+
+**Linux note:** if no system `dotnet` runtime is detected and auto-setup is
+enabled, the app will download and install a private .NET runtime under the app
+user data directory and use it to run the EI CLI DLL. No extra manual setup is
+required for local development beyond enabling the setting.
+
 ## Deaths / Downs (Taken)
 
 `deaths = defenses[0].deadCount`  

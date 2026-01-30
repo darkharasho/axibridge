@@ -45,6 +45,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('console-log', (_event, value) => callback(value))
         return () => ipcRenderer.removeAllListeners('console-log')
     },
+    logToMain: (payload: { level?: 'info' | 'warn' | 'error'; message: string; meta?: any }) => {
+        ipcRenderer.send('renderer-log', payload)
+    },
 
     // Auto Updater
     checkForUpdates: () => ipcRenderer.send('check-for-updates'),
