@@ -12,6 +12,7 @@ export type EiCliRuntimePreference = 'auto' | 'dotnet' | 'wine';
 export interface EiCliSettings {
     enabled: boolean;
     autoSetup: boolean;
+    autoUpdate: boolean;
     preferredRuntime: EiCliRuntimePreference;
 }
 
@@ -26,6 +27,7 @@ export interface EiCliLoadResult {
 export const DEFAULT_EI_CLI_SETTINGS: EiCliSettings = {
     enabled: false,
     autoSetup: true,
+    autoUpdate: true,
     preferredRuntime: 'auto'
 };
 
@@ -211,6 +213,44 @@ const ensureEiCliInstalled = async (settings: EiCliSettings): Promise<{ ok: bool
     const version = release?.tag_name || release?.name || 'unknown';
     await writeVersion(version);
     return { ok: true, version };
+};
+
+export const updateEiCliIfNeeded = async (settings: EiCliSettings) => {
+    if (!settings.enabled || !settings.autoUpdate) return { updated: false };
+    const currentVersion = await readVersion();
+    const existing = await resolveCliBinaries();
+    if (!existing.exe && !existing.dll) {
+        if (!settings.autoSetup) {
+            return { updated: false, error: 'EI CLI not installed and auto-setup disabled.' };
+        }
+        const installed = await ensureEiCliInstalled(settings);
+        return { updated: installed.ok, version: installed.version };
+    }
+
+    const release = await fetchJson<any>(`https://api.github.com/repos/${EI_REPO}/releases/latest`);
+    const latestVersion = release?.tag_name || release?.name || 'unknown';
+    if (!latestVersion || latestVersion === currentVersion) {
+        return { updated: false, version: currentVersion || undefined };
+    }
+
+    const asset = Array.isArray(release?.assets)
+        ? release.assets.find((entry: any) => entry?.name === EI_ASSET)
+        : null;
+    if (!asset?.browser_download_url) {
+        return { updated: false, error: 'Failed to locate GW2EICLI.zip in the latest release.' };
+    }
+
+    const cliDir = getEiCliDir();
+    await fs.promises.mkdir(cliDir, { recursive: true });
+    const zipPath = path.join(getEiBaseDir(), EI_ASSET);
+    await downloadFile(asset.browser_download_url, zipPath);
+    const zip = new AdmZip(zipPath);
+    await fs.promises.rm(cliDir, { recursive: true, force: true });
+    zip.extractAllTo(cliDir, true);
+    await fs.promises.unlink(zipPath);
+    await writeVersion(latestVersion);
+
+    return { updated: true, version: latestVersion };
 };
 
 const buildEiConfig = (outLocation: string, token?: string | null) => {

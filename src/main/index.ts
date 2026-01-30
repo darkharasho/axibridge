@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { DEFAULT_WEB_THEME_ID, WEB_THEMES } from '../shared/webThemes';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
-import { DEFAULT_EI_CLI_SETTINGS, loadEiCliJsonForLog } from './eiCli';
+import { DEFAULT_EI_CLI_SETTINGS, loadEiCliJsonForLog, updateEiCliIfNeeded } from './eiCli';
 import { LogWatcher } from './watcher'
 import { Uploader, UploadResult } from './uploader'
 import { DiscordNotifier } from './discord';
@@ -271,19 +271,20 @@ const processLogFile = async (filePath: string) => {
         }
 
         let localEiDetails: any | null = null;
-        const eiCliSettings = store.get('eiCliSettings', DEFAULT_EI_CLI_SETTINGS) as any;
-        if (eiCliSettings?.enabled) {
-            try {
-                const eiResult = await loadEiCliJsonForLog({
-                    filePath,
-                    cacheKey,
-                    settings: {
-                        enabled: Boolean(eiCliSettings.enabled),
-                        autoSetup: eiCliSettings.autoSetup !== false,
-                        preferredRuntime: eiCliSettings.preferredRuntime || 'auto'
-                    },
-                    dpsReportToken: store.get('dpsReportToken', null)
-                });
+            const eiCliSettings = store.get('eiCliSettings', DEFAULT_EI_CLI_SETTINGS) as any;
+            if (eiCliSettings?.enabled) {
+                try {
+                    const eiResult = await loadEiCliJsonForLog({
+                        filePath,
+                        cacheKey,
+                        settings: {
+                            enabled: Boolean(eiCliSettings.enabled),
+                            autoSetup: eiCliSettings.autoSetup !== false,
+                            autoUpdate: eiCliSettings.autoUpdate !== false,
+                            preferredRuntime: eiCliSettings.preferredRuntime || 'auto'
+                        },
+                        dpsReportToken: store.get('dpsReportToken', null)
+                    });
                 if (eiResult.json) {
                     const sourceLabel = eiResult.source === 'cache' ? 'cache hit' : 'parsed';
                     console.log(`[Main] EI CLI ${sourceLabel}: ${filePath}`);
@@ -1190,6 +1191,25 @@ if (!gotTheLock) {
         }
         createWindow();
         createTray();
+
+        const eiCliSettings = store.get('eiCliSettings', DEFAULT_EI_CLI_SETTINGS) as any;
+        if (eiCliSettings?.enabled && eiCliSettings?.autoUpdate !== false) {
+            setTimeout(async () => {
+                try {
+                    const result = await updateEiCliIfNeeded({
+                        enabled: Boolean(eiCliSettings.enabled),
+                        autoSetup: eiCliSettings.autoSetup !== false,
+                        autoUpdate: eiCliSettings.autoUpdate !== false,
+                        preferredRuntime: eiCliSettings.preferredRuntime || 'auto'
+                    });
+                    if (result?.updated) {
+                        console.log(`[Main] EI CLI updated${result.version ? ` to ${result.version}` : ''}.`);
+                    }
+                } catch (err: any) {
+                    console.warn('[Main] EI CLI update check failed:', err?.message || err);
+                }
+            }, 1000);
+        }
 
         // Desktop Integration for Linux AppImage
         if (process.platform === 'linux') {

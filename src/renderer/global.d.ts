@@ -58,6 +58,7 @@ export interface IStatsViewSettings {
 export interface IEiCliSettings {
     enabled: boolean;
     autoSetup: boolean;
+    autoUpdate: boolean;
     preferredRuntime: 'auto' | 'dotnet' | 'wine';
 }
 
@@ -115,6 +116,7 @@ export const DEFAULT_STATS_VIEW_SETTINGS: IStatsViewSettings = {
 export const DEFAULT_EI_CLI_SETTINGS: IEiCliSettings = {
     enabled: false,
     autoSetup: true,
+    autoUpdate: true,
     preferredRuntime: 'auto'
 };
 

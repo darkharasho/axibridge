@@ -750,6 +750,12 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                             label="Auto download & setup"
                             description="Downloads the latest EI CLI automatically if missing."
                         />
+                        <Toggle
+                            enabled={eiCliSettings.autoUpdate}
+                            onChange={(value) => setEiCliSettings((prev) => ({ ...prev, autoUpdate: value }))}
+                            label="Auto update on app start"
+                            description="Checks for EI CLI updates when the app launches."
+                        />
                     </div>
                     <div className="mt-3 text-xs text-gray-500">
                         Linux requires Wine or a system dotnet runtime to execute the parser.
