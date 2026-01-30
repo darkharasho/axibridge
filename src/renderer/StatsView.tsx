@@ -4316,7 +4316,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, disrupt
                                         }
                                         return rows.map((entry: any, idx: number) => {
                                             const conditionTotals = entry.conditions || {};
-                                            let skillsMap: Record<string, { name: string; hits: number }> = {};
+                                            let skillsMap: Record<string, { name: string; hits: number; damage: number }> = {};
                                             if (activeConditionName === 'all') {
                                                 Object.values(conditionTotals).forEach((cond: any) => {
                                                     const skills = cond?.skills || {};

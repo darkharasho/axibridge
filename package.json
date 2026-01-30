@@ -19,6 +19,7 @@
         "build:linux": "npm run build && electron-builder --linux",
         "build:win": "npm run build && electron-builder --win",
         "build:all": "npm run build && electron-builder --linux --win",
+        "build:qa:win": "npm run build && electron-builder --win zip",
         "build:github": "npm run build && node scripts/run-electron-builder.mjs",
         "prebuild:github": "npm run generate:release-notes",
         "postbuild:github": "node scripts/update-github-release.mjs",
