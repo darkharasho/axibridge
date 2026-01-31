@@ -1,19 +1,15 @@
 # <img width="36" height="36" alt="ArcBridge logo" src="public/img/ArcBridge.png" /> ArcBridge
 
-A premium, high-performance Electron application for Guild Wars 2 players to automatically upload arcdps combat logs, notify Discord, and view detailed WvW statistics in a stunning, modern interface.
+ArcBridge automatically uploads arcdps logs, summarizes WvW fights, and sends clean, readable reports to Discord or the web so your squad can review quickly.
 
-## ✨ Features
+## ✨ What it does for you
 
-- **🚀 Automated Monitoring**: Automatically detects, uploads, and processes new combat logs as they are created.
-- **🎨 Premium UI**: A dark, glassmorphic interface built with React, Tailwind CSS, and Framer Motion for a smooth, high-end experience.
-- **📊 Detailed WvW Statistics**: Expanded log cards providing deep insights:
-    - **Squad Summary**: Damage, DPS, Downs, and Deaths for your squad.
-    - **Enemy Summary**: Total damage taken and enemy player counts.
-    - **Incoming Stats**: Track Misses, Blocks, CC (Interrupts), and Boon Strips.
-    - **Top Rankings**: Ranked lists for Damage, Down Contribution, Healing, Barrier, Cleanses, Strips, CC, and Stability.
-- **💬 Discord Integration**: Real-time notifications with detailed embed summaries, matching the aesthetics of the local UI.
-- **🌐 Browser Fallback**: One-click to open full reports on `dps.report` in your default system browser.
-- **📦 Drag & Drop Support**: Manually upload individual log files simply by dragging them into the app.
+- **🚀 Automatic uploads**: Watch your arcdps log folder and upload every fight as it ends.
+- **📊 WvW fight breakdowns**: See squad vs enemy sizes, damage, downs/deaths, cleanses, strips, stability, healing, and more.
+- **🏆 Rankings & MVPs**: Identify top performers by role and stat category across your sessions.
+- **💬 Discord-ready summaries**: Post clean embeds or shareable report images straight to your server.
+- **🌐 Persistent web reports**: Publish a GitHub Pages report you can share with your squad anytime.
+- **🖱️ Manual control when you want it**: Drag & drop a single log to upload or re-run a report.
 
 ## 🖼️ Screenshots
 <img width="1082" height="794" alt="image" src="https://github.com/user-attachments/assets/085c5938-23df-427a-be71-10707d6ee571" />
@@ -33,51 +29,12 @@ A premium, high-performance Electron application for Guild Wars 2 players to aut
 
 
 
-## 🛠️ Technology Stack
-
-- **Framework**: Electron + React
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **Backend API**: dps.report
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (v16+)
-- [npm](https://www.npmjs.com/)
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/darkharasho/ArcBridge.git
-   cd ArcBridge
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the application in development mode:
-   ```bash
-   npm run dev
-   ```
-
-4. Build the application for production:
-   ```bash
-   npm run build
-   ```
-
-## 📖 Usage
+## 📖 Quick start
 
 1. **Configure Log Directory**: Set your `arcdps.cbtlogs` folder in the Configuration panel.
 2. **Discord Notification**: Paste your Discord Webhook URL to receive summaries in your channel.
-3. **Automatic Uploads**: The app will watch the directory and process new logs automatically.
-4. **View Details**: Click on any log card in the activity list to expand the detailed statistics view.
+3. **Automatic Uploads**: ArcBridge watches the folder and processes new logs automatically.
+4. **Share Reports**: Open the full web report or post to Discord for your squad.
 
 ## 📄 License
 
