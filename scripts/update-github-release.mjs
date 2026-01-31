@@ -58,6 +58,19 @@ if (!notes) {
 
 const allowedAssetNames = new Set(['latest.yml', 'latest-linux.yml']);
 const allowedAssetExts = new Set(['.AppImage', '.deb', '.exe', '.blockmap']);
+const artifactName = packageJson?.build?.artifactName || '';
+const artifactPrefix = artifactName
+    .replace(/\$\{version\}/g, version)
+    .replace(/\$\{ext\}/g, '')
+    .replace(/\$\{os\}/g, '')
+    .replace(/\$\{arch\}/g, '');
+const shouldIncludeAsset = (fileName) => {
+    if (allowedAssetNames.has(fileName)) return true;
+    const ext = path.extname(fileName);
+    if (!allowedAssetExts.has(ext)) return false;
+    if (artifactPrefix) return fileName.startsWith(artifactPrefix);
+    return true;
+};
 
 const collectReleaseFiles = (dir) => {
     if (!fs.existsSync(dir)) return [];
@@ -70,10 +83,7 @@ const collectReleaseFiles = (dir) => {
             continue;
         }
         if (!entry.isFile()) continue;
-        const ext = path.extname(entry.name);
-        if (!allowedAssetNames.has(entry.name) && !allowedAssetExts.has(ext)) {
-            continue;
-        }
+        if (!shouldIncludeAsset(entry.name)) continue;
         files.push({ absPath, name: entry.name });
     }
     return files;
@@ -105,6 +115,7 @@ const findReleaseByTag = async () => {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let releaseResp = await request('GET', `${baseUrl}/releases/tags/${tagName}`);
+let createdRelease = false;
 if (releaseResp.status === 404) {
     const retryDelays = [800, 1200, 1800, 2600, 3400];
     for (const delay of retryDelays) {
@@ -123,6 +134,7 @@ if (releaseResp.status === 404) {
             draft: false,
             prerelease: false
         });
+        createdRelease = releaseResp.ok;
     }
 }
 
@@ -131,19 +143,24 @@ if (!releaseResp.ok || !releaseResp.data?.id) {
     process.exit(1);
 }
 
-const updateResp = await request('PATCH', `${baseUrl}/releases/${releaseResp.data.id}`, {
-    body: notes,
-    draft: false
-});
-
-if (!updateResp.ok) {
-    console.error(`Failed to update release body (${updateResp.status}).`);
-    process.exit(1);
+let releaseData = releaseResp.data;
+if (!createdRelease) {
+    const updateResp = await request('PATCH', `${baseUrl}/releases/${releaseResp.data.id}`, {
+        body: notes,
+        draft: false
+    });
+    if (!updateResp.ok) {
+        console.error(`Failed to update release body (${updateResp.status}).`);
+        process.exit(1);
+    }
+    releaseData = updateResp.data || releaseResp.data;
 }
 
-const releaseId = updateResp.data?.id || releaseResp.data?.id;
+const releaseId = releaseData?.id;
 const refreshedResp = releaseId ? await request('GET', `${baseUrl}/releases/${releaseId}`) : null;
-const releaseData = refreshedResp?.ok ? refreshedResp.data : (updateResp.data || releaseResp.data);
+if (refreshedResp?.ok) {
+    releaseData = refreshedResp.data;
+}
 
 const files = collectReleaseFiles(outputDir);
 if (files.length === 0) {
