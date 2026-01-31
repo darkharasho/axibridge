@@ -1,21 +1,21 @@
 # Release Notes
 
-Version v1.13.0 — January 31, 2026
+Version v1.14.0 — January 31, 2026
 
 ## 🌟 Highlights
-- ArcBridge replaces the old gw2-arc-log-uploader branding with a refreshed name and configurations.
-- On first run, ArcBridge will automatically migrate your legacy settings so you don’t have to start from scratch.
-- Auto-detection and configuration for your logs now use ArcBridge paths and the ARCBRIDGE_LOG_DIR environment variable.
+- New win/loss tracking and squad KDR calculations added to logs analysis.
+- Improved mobile experience and readability on small screens.
+- Web reports spacing tweaked for clearer viewing.
 
 ## 🛠️ Improvements
-- Added automatic migration of legacy settings from older names to ArcBridge on startup.
-- Updated internal identifiers and protocol usage to ArcBridge for consistency.
-- Log directory and config detection now respect ARCBRIDGE_LOG_DIR and ArcBridge config locations.
-- Startup flow includes a migration step to align legacy install names with ArcBridge.
+- Truncate long skill names on mobile for cleaner layouts.
+- Better mobile experience (pt1) for easier navigation.
+- Improve web report spacing for easier reading.
+- Documentation updates to clarify features and improve readability.
 
 ## 🧯 Fixes
-- Legacy settings are migrated automatically to prevent losing preferences.
-- Improved handling of log directory detection and configuration paths to match ArcBridge setup.
+- Fix fullscreen table modal behavior.
+- Fix ghosting from skill usage for smoother visuals.
 
 ## ⚠️ Breaking Changes
-- Branding and protocol identifiers changed to ArcBridge; external tools or scripts that referenced the old gw2-arc-log-uploader name or User-Agent may need updates.
+- None.
