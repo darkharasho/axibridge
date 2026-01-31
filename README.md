@@ -16,19 +16,19 @@ A premium, high-performance Electron application for Guild Wars 2 players to aut
 - **📦 Drag & Drop Support**: Manually upload individual log files simply by dragging them into the app.
 
 ## 🖼️ Screenshots
-<img width="1043" height="786" alt="image" src="https://github.com/user-attachments/assets/dc09d52a-e90e-4c07-8489-59235e7ba275" />
+<img width="1082" height="794" alt="image" src="https://github.com/user-attachments/assets/085c5938-23df-427a-be71-10707d6ee571" />
 
-### Configurable stat reporting
-<img width="1043" height="786" alt="image" src="https://github.com/user-attachments/assets/c4529ea9-8ccf-4157-9ca6-02909087bee7" />
+### Highly Configurable
+<img width="1082" height="794" alt="image" src="https://github.com/user-attachments/assets/05b70735-5b95-4055-be14-9fe1a00acaaa" />
 
 ### Aggregated live stat dashboard
-<img width="1035" height="1315" alt="image" src="https://github.com/user-attachments/assets/8bc490df-7a4e-49b0-812d-7e0d9f73c270" />
+<img width="1082" height="794" alt="image" src="https://github.com/user-attachments/assets/bbd2fc5e-0dff-4a75-93d8-a88426cd5b1f" />
 
 ### Choose whether to post a native discord embed or a generated image
 <img width="537" height="1259" alt="image" src="https://github.com/user-attachments/assets/4feba70b-1d05-4796-a452-a68aaa700c6b" /> <img width="1800" height="2444" alt="image" src="https://github.com/user-attachments/assets/ba52192d-8b9b-4473-bfb9-55de9a9e79be" />
 
-### Higscores calculated on the fly and postable automatically to discord
-<img width="537" height="1259" alt="image" src="https://github.com/user-attachments/assets/cd72e824-e987-4a79-962c-b1d73118c84d" />
+### Persistent Stat Report via Github Pages
+<img width="2034" height="1299" alt="image" src="https://github.com/user-attachments/assets/f700c0b9-26ec-4ac1-8ac1-f0c2d927fdc0" />
 
 
 
