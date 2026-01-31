@@ -52,6 +52,8 @@ const readArgValue = (flag) => {
 const publishConfig = packageJson?.build?.publish || {};
 const owner = publishConfig.owner;
 const repo = publishConfig.repo;
+const releaseType = String(publishConfig.releaseType || '').toLowerCase();
+const shouldDraft = releaseType === 'draft';
 const releaseOwner = readArgValue('--release-owner') || process.env.GITHUB_RELEASE_OWNER || owner;
 const releaseRepo = readArgValue('--release-repo') || process.env.GITHUB_RELEASE_REPO || repo;
 if (!releaseOwner || !releaseRepo) {
@@ -139,7 +141,7 @@ if (releaseResp.status === 404) {
             tag_name: tagName,
             name: tagName,
             body: notes,
-            draft: false,
+            draft: shouldDraft,
             prerelease: false
         });
     }
@@ -152,8 +154,17 @@ if (!releaseResp.ok || !releaseResp.data?.id) {
 
 let releaseData = releaseResp.data;
 if (releaseResp.status === 200 && releaseData?.id && releaseData?.tag_name === tagName) {
-    console.error(`Release ${tagName} already exists. Aborting to avoid multiple posts.`);
-    process.exit(1);
+    const patchResp = await request('PATCH', `${baseUrl}/releases/${releaseData.id}`, {
+        name: tagName,
+        body: notes,
+        draft: shouldDraft,
+        prerelease: false
+    });
+    if (!patchResp.ok || !patchResp.data?.id) {
+        console.error(`Failed to update release ${tagName}.`);
+        process.exit(1);
+    }
+    releaseData = patchResp.data;
 }
 
 const releaseId = releaseData?.id;

@@ -27,7 +27,7 @@ import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSe
 import { getProfessionAbbrev, getProfessionEmoji } from '../shared/professionUtils';
 import { Player } from '../shared/dpsReportTypes';
 
-const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/ArcBridge/main/public/img/ArcBridgeGradient.png';
+const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/ArcBridge/main/public/img/ArcBridgeDiscord.png';
 
 // Embed stat settings interface
 export interface IEmbedStatSettings {

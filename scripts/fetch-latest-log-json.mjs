@@ -45,8 +45,12 @@ if (!watchDir && process.env.GW2_LOG_DIR) {
 const readConfigLogDir = async () => {
     const xdgConfigHome = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
     const candidates = [
+        path.join(xdgConfigHome, 'ArcBridge', 'config.json'),
+        path.join(xdgConfigHome, 'arcbridge', 'config.json'),
         path.join(xdgConfigHome, 'gw2-arc-log-uploader', 'config.json'),
         path.join(xdgConfigHome, 'GW2 Arc Log Uploader', 'config.json'),
+        path.join(os.homedir(), '.config', 'ArcBridge', 'config.json'),
+        path.join(os.homedir(), '.config', 'arcbridge', 'config.json'),
         path.join(os.homedir(), '.config', 'gw2-arc-log-uploader', 'config.json'),
         path.join(os.homedir(), '.config', 'GW2 Arc Log Uploader', 'config.json')
     ];
