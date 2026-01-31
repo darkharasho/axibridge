@@ -86,8 +86,8 @@ if (bumpType) {
 
 run(npmCmd, ['run', 'generate:release-notes']);
 run(npmCmd, ['run', 'build']);
+run(process.execPath, ['scripts/commit-web-dist.mjs']);
 run(process.execPath, ['scripts/run-electron-builder.mjs']);
-run(process.execPath, ['scripts/commit-web-index.mjs']);
 const releaseArgs = ['scripts/update-github-release.mjs'];
 if (releaseOwner) releaseArgs.push('--release-owner', releaseOwner);
 if (releaseRepo) releaseArgs.push('--release-repo', releaseRepo);
