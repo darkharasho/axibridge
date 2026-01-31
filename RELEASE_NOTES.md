@@ -1,18 +1,18 @@
 # Release Notes
 
-Version v1.11.0 — January 30, 2026
+Version v1.11.1 — January 30, 2026
 
 ## 🌟 Highlights
-- New darker theme and a refreshed app icon.
-- Updated icon assets and visuals for a sleeker look.
+- Smoother asset loading thanks to improved asset inclusion logic.
+- More reliable update flow with enhanced release update handling.
+- Fresh visuals: updated app icons and UI assets for a cleaner look.
 
 ## 🛠️ Improvements
-- Updated application icon files to match the new look.
-- Implemented a darker theme option for the UI.
-- Updated dist-web index files to support the new visuals.
+- Code structure cleaned up for easier maintenance.
+- Dist-web assets and index files updated to reflect latest visuals.
 
 ## 🧯 Fixes
-- None.
+- Fixed a typing issue in StatsView related to OutgoingConditionsResult, stabilizing stats display.
 
 ## ⚠️ Breaking Changes
-- Removal of EI CLI integration and related settings may affect workflows that relied on that feature. An initial EI CLI configuration file with default settings is included for future use.
+- None.
