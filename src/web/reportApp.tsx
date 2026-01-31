@@ -327,6 +327,7 @@ export function ReportApp() {
     }, [sortedIndex, searchTerm]);
 
     if (report) {
+        const arcbridgeLogoUrl = `${basePath}img/ArcBridge.svg`.replace(/\/{2,}/g, '/');
         const tocItems = [
             { id: 'overview', label: 'Overview', icon: LayoutDashboard },
             { id: 'top-players', label: 'Top Players', icon: Trophy },
@@ -418,35 +419,21 @@ export function ReportApp() {
                     <div className="flex flex-col w-full">
                         <div className="px-6 pt-6 pb-5">
                                 <div className="flex items-center gap-3">
-                                    {logoUrl ? (
-                                        logoIsDefault ? (
-                                            <div
-                                                className="h-10 w-10 rounded-2xl bg-white/10 border border-white/20"
-                                                style={{
-                                                    backgroundColor: 'var(--accent)',
-                                                    maskImage: `url(${logoUrl})`,
-                                                    WebkitMaskImage: `url(${logoUrl})`,
-                                                    maskRepeat: 'no-repeat',
-                                                    WebkitMaskRepeat: 'no-repeat',
-                                                    maskPosition: 'center',
-                                                    WebkitMaskPosition: 'center',
-                                                    maskSize: '65%',
-                                                    WebkitMaskSize: '65%'
-                                                }}
-                                                aria-label="ArcBridge logo"
-                                            />
-                                        ) : (
-                                            <img
-                                                src={logoUrl}
-                                                alt="Squad logo"
-                                                className="h-10 w-10 rounded-2xl object-cover border border-white/20"
-                                            />
-                                        )
-                                    ) : (
-                                        <div className="h-10 w-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-[color:var(--accent)]">
-                                            <LayoutDashboard className="w-5 h-5" />
-                                        </div>
-                                    )}
+                                    <div
+                                        className="h-10 w-10 rounded-2xl bg-white/10 border border-white/20"
+                                        style={{
+                                            backgroundColor: 'var(--accent)',
+                                            maskImage: `url(${arcbridgeLogoUrl})`,
+                                            WebkitMaskImage: `url(${arcbridgeLogoUrl})`,
+                                            maskRepeat: 'no-repeat',
+                                            WebkitMaskRepeat: 'no-repeat',
+                                            maskPosition: 'center',
+                                            WebkitMaskPosition: 'center',
+                                            maskSize: '65%',
+                                            WebkitMaskSize: '65%'
+                                        }}
+                                        aria-label="ArcBridge logo"
+                                    />
                                     <div>
                                         <div className="text-[11px] uppercase tracking-[0.4em] text-gray-400">ArcBridge Reports</div>
                                         <div className="text-sm font-semibold text-white">Navigation</div>
