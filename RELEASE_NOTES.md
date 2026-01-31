@@ -1,17 +1,16 @@
 # Release Notes
 
-Version v1.11.5 — January 30, 2026
+Version v1.12.0 — January 31, 2026
 
 ## 🌟 Highlights
-- All references now point to ArcBridge (docs and UI) instead of gw2_arc_log_uploader.
-- The app now pulls release notes from ArcBridge, keeping you up to date with the latest.
+- Brand refresh across the app visuals, including updated logos and icons.
+- New and refreshed visuals for ArcBridge and its Discord presence to align with the new branding.
 
 ## 🛠️ Improvements
-- None.
+- Behind-the-scenes refactor to improve readability and maintainability of the codebase.
 
 ## 🧯 Fixes
-- The app now fetches release notes from ArcBridge instead of the old repository.
-- License and Third-Party Notices links in Settings now point to the ArcBridge repository.
+- None.
 
 ## ⚠️ Breaking Changes
 - None.
