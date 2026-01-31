@@ -590,6 +590,7 @@ function App() {
     };
 
     const isModernTheme = uiTheme === 'modern';
+    const appIconPath = `${import.meta.env.BASE_URL || './'}img/ArcBridgeGradient.png`;
     const shellClassName = isModernTheme
         ? 'app-shell h-screen w-screen text-white overflow-hidden flex flex-col'
         : 'app-shell h-screen w-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black text-white font-sans overflow-hidden flex flex-col';
@@ -599,7 +600,7 @@ function App() {
             {/* Custom Title Bar */}
             <div className="app-titlebar h-10 shrink-0 w-full flex justify-between items-center px-4 bg-black/20 backdrop-blur-md border-b border-white/5 drag-region select-none z-50">
                 <div className="flex items-center gap-2">
-                    <img src="/img/ArcBridgeGradient.png" alt="Icon" className="h-4 w-auto" />
+                    <img src={appIconPath} alt="Icon" className="h-4 w-auto" />
                     <span className="text-xs font-medium text-gray-400">GW2 Arc Log Uploader</span>
                 </div>
                 <div className="flex items-center gap-4 no-drag">
@@ -627,7 +628,7 @@ function App() {
                         className="flex items-center gap-3"
                     >
                         <div className="flex items-center gap-3">
-                            <img src="/img/ArcBridgeGradient.png" alt="ArcBridge" className="h-8 w-auto rounded-md" />
+                            <img src={appIconPath} alt="ArcBridge" className="h-8 w-auto rounded-md" />
                             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
                                 GW2 Arc Log Uploader
                             </h1>
