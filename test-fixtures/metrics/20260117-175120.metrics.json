@@ -2,7 +2,7 @@
   "specVersion": "unknown",
   "method": "count",
   "source": "test-fixtures/boon/20260117-175120.json",
-  "generatedAt": "2026-01-28T23:17:34.491Z",
+  "generatedAt": "2026-01-31T09:13:44.060Z",
   "metrics": [
     {
       "name": "Haro Forge",

@@ -2,7 +2,7 @@
   "specVersion": "unknown",
   "method": "count",
   "source": "test-fixtures/boon/20260125-202439.json",
-  "generatedAt": "2026-01-28T23:17:34.878Z",
+  "generatedAt": "2026-01-31T09:13:44.521Z",
   "metrics": [
     {
       "name": "El Stan",

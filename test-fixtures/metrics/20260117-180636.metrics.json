@@ -2,7 +2,7 @@
   "specVersion": "unknown",
   "method": "count",
   "source": "test-fixtures/boon/20260117-180636.json",
-  "generatedAt": "2026-01-28T23:17:34.681Z",
+  "generatedAt": "2026-01-31T09:13:44.305Z",
   "metrics": [
     {
       "name": "Before Mourning",
