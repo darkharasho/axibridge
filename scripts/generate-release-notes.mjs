@@ -91,6 +91,8 @@ const prompt = [
     `Version: v${version}.`,
     `Use ONLY the commit summary and diff below. Don't invent features.`,
     `Keep it short and clear for end users.`,
+    `Do NOT mention version bumps, release chores, dependency updates, or build/publish metadata.`,
+    `Focus on user-facing features and fixes only.`,
     `Use these markdown sections (with emojis in the headings):`,
     `## 🌟 Highlights`,
     `## 🛠️ Improvements`,

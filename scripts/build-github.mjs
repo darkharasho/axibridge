@@ -76,5 +76,8 @@ if (bumpType) {
     run(gitCmd, ['commit', '-m', `chore: bump version to ${nextVersion}`]);
 }
 
+run(npmCmd, ['run', 'generate:release-notes']);
 run(npmCmd, ['run', 'build']);
 run(process.execPath, ['scripts/run-electron-builder.mjs']);
+run(process.execPath, ['scripts/commit-web-index.mjs']);
+run(process.execPath, ['scripts/update-github-release.mjs']);

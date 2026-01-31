@@ -21,8 +21,6 @@
         "build:all": "npm run build && electron-builder --linux --win",
         "build:qa:win": "npm run build && electron-builder --win zip",
         "build:github": "node scripts/build-github.mjs",
-        "prebuild:github": "npm run generate:release-notes",
-        "postbuild:github": "node scripts/commit-web-index.mjs && node scripts/update-github-release.mjs",
         "generate:release-notes": "node scripts/generate-release-notes.mjs",
         "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
         "preview": "vite preview",
