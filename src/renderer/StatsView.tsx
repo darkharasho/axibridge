@@ -651,6 +651,8 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [activeNavId, setActiveNavId] = useState('overview');
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+    const scrollRafRef = useRef<number | null>(null);
+    const scrollDeltaRef = useRef(0);
 
     const formatWithCommas = (value: number, decimals = 2) =>
         value.toLocaleString(undefined, {
@@ -682,20 +684,19 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
 
     const tocItems = useMemo(() => ([
         { id: 'overview', label: 'Overview', icon: Trophy },
-        { id: 'fight-breakdown', label: 'Fight Breakdown', icon: Swords },
-        { id: 'top-players', label: 'Top Players', icon: Users },
-        { id: 'top-skills-outgoing', label: 'Top Skills', icon: Zap },
-        { id: 'timeline', label: 'Squad vs Enemy', icon: Activity },
+        { id: 'top-players', label: 'Top Players', icon: Trophy },
+        { id: 'top-skills-outgoing', label: 'Top Skills', icon: Swords },
+        { id: 'timeline', label: 'Squad vs Enemy', icon: Users },
         { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon },
-        { id: 'boon-output', label: 'Boon Output', icon: Sparkles },
-        { id: 'offense-detailed', label: 'Offense Detailed', icon: Crosshair },
+        { id: 'boon-output', label: 'Boon Output', icon: ShieldCheck },
+        { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords },
         { id: 'conditions-outgoing', label: 'Conditions', icon: Skull },
         { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
         { id: 'support-detailed', label: 'Support Detailed', icon: HelpingHand },
         { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
         { id: 'special-buffs', label: 'Special Buffs', icon: Star },
-        { id: 'skill-usage', label: 'Skill Usage', icon: Hammer },
-        { id: 'apm-stats', label: 'APM Breakdown', icon: Wind }
+        { id: 'skill-usage', label: 'Skill Usage', icon: Zap },
+        { id: 'apm-stats', label: 'APM Breakdown', icon: Activity }
     ]), []);
 
     const scrollToSection = (id: string) => {
@@ -715,6 +716,42 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
         }
         setMobileNavOpen(false);
     };
+
+    useEffect(() => {
+        const onWheel = (event: WheelEvent) => {
+            const container = scrollContainerRef.current;
+            if (!container) return;
+            const target = event.target as Node | null;
+            if (target && container.contains(target)) return;
+            if (event.deltaY === 0) return;
+            scrollDeltaRef.current += event.deltaY;
+            if (scrollRafRef.current === null) {
+                const tick = () => {
+                    const current = scrollDeltaRef.current;
+                    if (Math.abs(current) < 0.5) {
+                        scrollDeltaRef.current = 0;
+                        scrollRafRef.current = null;
+                        return;
+                    }
+                    const step = current * 0.2;
+                    scrollDeltaRef.current = current - step;
+                    container.scrollBy({ top: step, behavior: 'auto' });
+                    scrollRafRef.current = requestAnimationFrame(tick);
+                };
+                scrollRafRef.current = requestAnimationFrame(tick);
+            }
+            event.preventDefault();
+        };
+        window.addEventListener('wheel', onWheel, { passive: false });
+        return () => {
+            window.removeEventListener('wheel', onWheel);
+            if (scrollRafRef.current !== null) {
+                cancelAnimationFrame(scrollRafRef.current);
+                scrollRafRef.current = null;
+            }
+            scrollDeltaRef.current = 0;
+        };
+    }, []);
 
     const stepSection = (direction: -1 | 1) => {
         const currentIndex = Math.max(0, tocItems.findIndex((item) => item.id === activeNavId));
@@ -6344,6 +6381,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                     )}
                     </div>
                 </div>
+                {!embedded && <div className="h-24" aria-hidden="true" />}
             </div>
 
             {!embedded && (
@@ -6388,7 +6426,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                 }
                             }}
                         >
-                            <div className="w-full max-w-sm rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+                            <div className="w-full max-w-sm max-h-[80vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
                                     <button
@@ -6399,7 +6437,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
-                                <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-1.5">
+                                <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1 pb-2">
                                     {tocItems.map((item) => {
                                         const Icon = item.icon;
                                         const isActive = item.id === activeNavId;
@@ -6407,15 +6445,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                             <button
                                                 key={item.id}
                                                 onClick={() => scrollToSection(item.id)}
-                                                className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl text-gray-200 border transition-colors ${isActive
+                                                className={`w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-gray-200 border transition-colors ${isActive
                                                     ? 'bg-white/10 border-white/20'
                                                     : 'border-transparent hover:border-white/10 hover:bg-white/10'
                                                     }`}
                                             >
-                                                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-white/5 border border-white/10">
-                                                    <Icon className="w-4 h-4 text-[color:var(--accent)]" />
+                                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 border border-white/10">
+                                                    <Icon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
                                                 </span>
-                                                <span className="text-sm font-medium">{item.label}</span>
+                                                <span className="text-[13px] font-medium">{item.label}</span>
                                             </button>
                                         );
                                     })}
