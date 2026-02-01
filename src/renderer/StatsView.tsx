@@ -3470,7 +3470,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
     const sortedEnemyClassData = [...stats.enemyClassData].sort(sortByCountDesc);
 
     const containerClass = embedded
-        ? 'stats-view min-h-screen flex flex-col p-2 sm:p-3 w-full max-w-6xl mx-auto'
+        ? 'stats-view min-h-screen flex flex-col p-0 w-full max-w-none'
         : 'stats-view h-full flex flex-col p-1 w-full max-w-6xl mx-auto overflow-hidden';
     const scrollContainerClass = embedded
         ? `space-y-5 sm:space-y-6 min-h-0 p-3 sm:p-4 rounded-xl bg-black/20 border border-white/5 ${
@@ -3597,38 +3597,36 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
             <div id="stats-dashboard-container" className={scrollContainerClass} style={scrollContainerStyle}>
 
                 {/* Wins/Losses Big Cards with embedded Averages and KDR */}
-                <div id="overview" className="grid grid-cols-2 gap-4 scroll-mt-24">
-                    <div
-                        className="bg-gradient-to-br from-green-500/20 to-emerald-900/20 border border-green-500/30 rounded-2xl p-6 flex flex-col items-center justify-center relative"
-                    >
-                        <div className="text-5xl font-black text-green-400">{stats.wins}</div>
-                        <div className="text-green-200/50 font-bold uppercase tracking-widest text-sm mt-2 mb-4">Victories</div>
-
-                        <div className={`grid grid-cols-2 gap-4 pt-3 w-full ${embedded ? 'border-t border-white/10' : 'border-t border-green-500/20'}`}>
-                            <div className="flex flex-col items-center">
-                                <div className="text-green-200 text-lg font-bold">{stats.avgSquadSize}</div>
-                                <div className="text-green-200/40 text-[10px] uppercase font-bold tracking-wider">Avg Squad</div>
+                <div id="overview" className="grid grid-cols-1 md:grid-cols-2 gap-4 scroll-mt-24">
+                    <div className="bg-gradient-to-br from-green-500/20 to-emerald-900/20 border border-green-500/30 rounded-2xl px-5 py-4">
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                            <div className="text-left">
+                                <div className="text-lg font-semibold text-green-100">{stats.avgSquadSize}</div>
+                                <div className="text-[10px] uppercase tracking-[0.3em] text-green-200/60">Avg Squad</div>
                             </div>
-                            <div className="flex flex-col items-center">
-                                <div className="text-green-200 text-lg font-bold">{stats.squadKDR}</div>
-                                <div className="text-green-200/40 text-[10px] uppercase font-bold tracking-wider">Squad KDR</div>
+                            <div className="text-center">
+                                <div className="text-3xl font-black text-green-300 leading-none">{stats.wins}</div>
+                                <div className="text-[10px] uppercase tracking-[0.3em] text-green-200/50 mt-1">Victories</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-lg font-semibold text-green-100">{stats.squadKDR}</div>
+                                <div className="text-[10px] uppercase tracking-[0.3em] text-green-200/60">Squad KDR</div>
                             </div>
                         </div>
                     </div>
-                    <div
-                        className="bg-gradient-to-br from-red-500/20 to-rose-900/20 border border-red-500/30 rounded-2xl p-6 flex flex-col items-center justify-center relative"
-                    >
-                        <div className="text-5xl font-black text-red-400">{stats.losses}</div>
-                        <div className="text-red-200/50 font-bold uppercase tracking-widest text-sm mt-2 mb-4">Defeats</div>
-
-                        <div className={`grid grid-cols-2 gap-4 pt-3 w-full ${embedded ? 'border-t border-white/10' : 'border-t border-red-500/20'}`}>
-                            <div className="flex flex-col items-center">
-                                <div className="text-red-200 text-lg font-bold">{stats.avgEnemies}</div>
-                                <div className="text-red-200/40 text-[10px] uppercase font-bold tracking-wider">Avg Enemies</div>
+                    <div className="bg-gradient-to-br from-red-500/20 to-rose-900/20 border border-red-500/30 rounded-2xl px-5 py-4">
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                            <div className="text-left">
+                                <div className="text-lg font-semibold text-red-100">{stats.avgEnemies}</div>
+                                <div className="text-[10px] uppercase tracking-[0.3em] text-red-200/60">Avg Enemies</div>
                             </div>
-                            <div className="flex flex-col items-center">
-                                <div className="text-red-200 text-lg font-bold">{stats.enemyKDR}</div>
-                                <div className="text-red-200/40 text-[10px] uppercase font-bold tracking-wider">Enemy KDR</div>
+                            <div className="text-center">
+                                <div className="text-3xl font-black text-red-300 leading-none">{stats.losses}</div>
+                                <div className="text-[10px] uppercase tracking-[0.3em] text-red-200/50 mt-1">Defeats</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-lg font-semibold text-red-100">{stats.enemyKDR}</div>
+                                <div className="text-[10px] uppercase tracking-[0.3em] text-red-200/60">Enemy KDR</div>
                             </div>
                         </div>
                     </div>
@@ -3832,17 +3830,17 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                     </h3>
                     {showMvp && (
                     <>
-                    <div className="mb-6">
-                        <div className="mvp-card mvp-card--gold border border-yellow-500/30 rounded-2xl p-6 relative overflow-hidden group">
+                    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)] gap-3 mb-6">
+                        <div className="mvp-card mvp-card--gold border border-yellow-500/30 rounded-2xl p-3 relative overflow-hidden group flex items-center">
                             {/* Glow Effect */}
                             <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/10 blur-[80px] rounded-full pointer-events-none group-hover:bg-yellow-500/20 transition-all" />
 
-                            <div className="flex items-center gap-6 relative z-10">
+                            <div className="flex items-center gap-5 relative z-10 w-full">
                                 <div className="hidden sm:flex items-center justify-center w-20 h-20 rounded-full bg-yellow-500/20 border border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
                                     <Crown className="w-10 h-10 text-yellow-400" />
                                 </div>
 
-                                <div className="flex-1">
+                                <div className="flex-1 flex flex-col h-full">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
                                         <span className="text-yellow-400 font-bold uppercase tracking-widest text-xs">Squad MVP</span>
@@ -3854,13 +3852,13 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                             {stats.mvp.profession}
                                         </span>
                                     </div>
-                                    <p className="text-yellow-200/80 italic flex items-center gap-2 mb-3">
+                                    <p className="text-yellow-200/80 italic flex items-center gap-2 mb-2">
                                         <Star className="w-4 h-4 text-yellow-400 fill-yellow-500/40" />
                                         "{stats.mvp.reason}"
                                     </p>
 
                                     {/* Top Stats Breakdown */}
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="mt-auto flex flex-wrap gap-2">
                                         {stats.mvp.topStats && stats.mvp.topStats.filter((stat: any) => isMvpStatEnabled(stat.name)).map((stat: any, i: number) => {
                                             const rank = Math.max(1, Math.round(stat.ratio));
                                             const mod100 = rank % 100;
@@ -3875,10 +3873,10 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                             ? 'rd'
                                                             : 'th';
                                             return (
-                                                <div key={i} className="flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full text-xs">
+                                                <div key={i} className="inline-flex items-baseline gap-2 px-2.5 py-0.5 bg-yellow-500/10 border border-yellow-500/30 rounded-full text-[11px] leading-none">
                                                     <span className="text-yellow-200 font-bold">{stat.name}</span>
-                                                    <span className="text-yellow-50 font-mono">{stat.val}</span>
-                                                    <span className="text-yellow-400/60 text-[10px]">({rank}{suffix})</span>
+                                                    <span className="text-yellow-50 font-mono tabular-nums">{stat.val}</span>
+                                                    <span className="text-yellow-400/60">({rank}{suffix})</span>
                                                 </div>
                                             );
                                         })}
@@ -3892,41 +3890,41 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        {[
-                            { label: 'Silver', data: stats.silver, accent: 'text-slate-200' },
-                            { label: 'Bronze', data: stats.bronze, accent: 'text-orange-200' }
-                        ].map((entry) => (
-                            <div
-                                key={entry.label}
-                                className={`mvp-card mvp-card--${entry.label.toLowerCase()} border border-white/10 rounded-2xl p-4 relative overflow-hidden group`}
-                            >
-                                <div className={`absolute top-0 right-0 w-48 h-48 rounded-full blur-[70px] pointer-events-none transition-all ${entry.label === 'Silver'
-                                    ? 'bg-slate-300/15 group-hover:bg-slate-300/25'
-                                    : 'bg-orange-400/15 group-hover:bg-orange-400/25'
-                                    }`} />
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className={`text-xs uppercase tracking-widest font-semibold ${entry.label === 'Silver' ? 'text-slate-200' : 'text-orange-200'}`}>
-                                        {entry.label} MVP
-                                    </div>
-                                    <div className="text-xs text-gray-500 font-mono">
-                                        {entry.data?.score ? entry.data.score.toFixed(1) : '-'}
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    {entry.data && renderProfessionIcon(entry.data.profession, entry.data.professionList, 'w-6 h-6')}
-                                    <div className="min-w-0 flex-1">
-                                        <div className={`text-lg font-semibold ${entry.label === 'Silver' ? 'text-slate-100' : 'text-orange-100'} truncate`}>
-                                            {entry.data?.account || '—'}
+                        <div className="grid grid-cols-2 xl:grid-cols-1 gap-3">
+                            {[
+                                { label: 'Silver', data: stats.silver },
+                                { label: 'Bronze', data: stats.bronze }
+                            ].map((entry) => (
+                                <div
+                                    key={entry.label}
+                                    className={`mvp-card mvp-card--${entry.label.toLowerCase()} border border-white/10 rounded-2xl p-3 relative overflow-hidden group flex flex-col`}
+                                >
+                                    <div className={`absolute top-0 right-0 w-48 h-48 rounded-full blur-[70px] pointer-events-none transition-all ${entry.label === 'Silver'
+                                        ? 'bg-slate-300/15 group-hover:bg-slate-300/25'
+                                        : 'bg-orange-400/15 group-hover:bg-orange-400/25'
+                                        }`} />
+                                    <div className="flex items-center justify-between mb-1">
+                                        <div className={`text-xs uppercase tracking-widest font-semibold ${entry.label === 'Silver' ? 'text-slate-200' : 'text-orange-200'}`}>
+                                            {entry.label} MVP
                                         </div>
-                                        <div className={`text-xs ${entry.label === 'Silver' ? 'text-slate-300/70' : 'text-orange-200/70'} truncate`}>
-                                            {entry.data?.profession || 'Unknown'}
+                                        <div className="text-xs text-gray-500 font-mono">
+                                            {entry.data?.score ? entry.data.score.toFixed(1) : '-'}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        {entry.data && renderProfessionIcon(entry.data.profession, entry.data.professionList, 'w-6 h-6')}
+                                        <div className="min-w-0 flex-1">
+                                            <div className={`text-base font-semibold ${entry.label === 'Silver' ? 'text-slate-100' : 'text-orange-100'} truncate`}>
+                                                {entry.data?.account || '—'}
+                                            </div>
+                                            <div className={`text-xs ${entry.label === 'Silver' ? 'text-slate-300/70' : 'text-orange-200/70'} truncate`}>
+                                                {entry.data?.profession || 'Unknown'}
+                                            </div>
                                         </div>
                                     </div>
                                     {entry.data?.topStats?.some((stat: any) => isMvpStatEnabled(stat.name)) ? (
-                                        <div className={`flex flex-col items-end gap-1 text-[10px] ${entry.label === 'Silver' ? 'text-slate-200' : 'text-orange-200'}`}>
+                                        <div className={`mt-auto flex flex-wrap items-center gap-2 text-[10px] ${entry.label === 'Silver' ? 'text-slate-200' : 'text-orange-200'}`}>
                                             {entry.data.topStats.filter((stat: any) => isMvpStatEnabled(stat.name)).map((stat: any, idx: number) => {
                                                 const rank = Math.max(1, Math.round(stat.ratio));
                                                 const mod100 = rank % 100;
@@ -3941,22 +3939,23 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                                 ? 'rd'
                                                                 : 'th';
                                                 return (
-                                                    <span
-                                                        key={idx}
-                                                        className={`px-2 py-0.5 rounded-full border ${entry.label === 'Silver'
-                                                            ? 'bg-slate-400/10 border-slate-300/30'
-                                                            : 'bg-orange-500/10 border-orange-400/30'
-                                                            }`}
-                                                    >
-                                                        {stat.name} {rank}{suffix}
-                                                    </span>
+                                                <span
+                                                    key={idx}
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border leading-none ${entry.label === 'Silver'
+                                                        ? 'bg-slate-400/10 border-slate-300/30'
+                                                        : 'bg-orange-500/10 border-orange-400/30'
+                                                        }`}
+                                                >
+                                                    <span className="leading-none">{stat.name}</span>
+                                                    <span className="tabular-nums leading-none">{rank}{suffix}</span>
+                                                </span>
                                                 );
                                             })}
                                         </div>
                                     ) : null}
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                     </>
                     )}
