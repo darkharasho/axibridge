@@ -404,6 +404,26 @@ body.theme-classic .stats-view .mvp-card--bronze {
     background-image: linear-gradient(90deg, rgba(234, 88, 12, 0.25), rgba(120, 53, 15, 0.15));
 }
 
+body.web-report .stats-sections > [data-section-visible="true"] + [data-section-visible="true"] {
+    margin-top: 1.5rem;
+}
+
+body.web-report .stats-sections > [data-section-first="true"] {
+    margin-top: 0.5rem;
+}
+
+body.web-report .stats-view .max-h-64 {
+    max-height: 24rem !important;
+}
+
+body.web-report .stats-view .max-h-72 {
+    max-height: 26rem !important;
+}
+
+body.web-report .stats-view .max-h-80 {
+    max-height: 28rem !important;
+}
+
 body.theme-modern .settings-view .bg-black\/40,
 body.theme-modern .settings-view .bg-black\/30 {
     background-color: rgba(7, 10, 14, 0.6) !important;

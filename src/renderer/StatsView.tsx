@@ -19,6 +19,8 @@ interface StatsViewProps {
     disruptionMethod?: DisruptionMethod;
     precomputedStats?: any;
     embedded?: boolean;
+    sectionVisibility?: (id: string) => boolean;
+    dashboardTitle?: string;
     uiTheme?: 'classic' | 'modern';
 }
 
@@ -556,7 +558,7 @@ interface ApmSpecBucket {
     skillMap: Map<string, ApmSkillEntry>;
 }
 
-export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, uiTheme }: StatsViewProps) {
+export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, uiTheme }: StatsViewProps) {
     const method = disruptionMethod || DEFAULT_DISRUPTION_METHOD;
     const activeMvpWeights = mvpWeights || DEFAULT_MVP_WEIGHTS;
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
@@ -682,6 +684,34 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
         return `${minutes}:${String(seconds).padStart(2, '0')}`;
     };
 
+    const isSectionVisible = (id: string) => (sectionVisibility ? sectionVisibility(id) : true);
+    const sectionClass = (id: string, base: string) => {
+        const visible = isSectionVisible(id);
+        return `${base} transition-[opacity,transform] duration-700 ease-in-out ${visible
+            ? 'opacity-100 translate-y-0 max-h-[99999px]'
+            : 'opacity-0 -translate-y-2 max-h-0 h-0 min-h-0 overflow-hidden pointer-events-none p-0 !p-0 m-0 !mb-0 !mt-0 border-0 !border-0 border-transparent'}`;
+    };
+    const orderedSectionIds = [
+        'overview',
+        'fight-breakdown',
+        'top-players',
+        'top-skills-outgoing',
+        'squad-composition',
+        'timeline',
+        'map-distribution',
+        'boon-output',
+        'offense-detailed',
+        'conditions-outgoing',
+        'defense-detailed',
+        'support-detailed',
+        'healing-stats',
+        'special-buffs',
+        'skill-usage',
+        'apm-stats'
+    ];
+    const firstVisibleSectionId = orderedSectionIds.find((id) => isSectionVisible(id)) || null;
+    const isFirstVisibleSection = (id: string) => id === firstVisibleSectionId;
+
     const tocItems = useMemo(() => ([
         { id: 'overview', label: 'Overview', icon: Trophy },
         { id: 'top-players', label: 'Top Players', icon: Trophy },
@@ -718,12 +748,14 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
     };
 
     useEffect(() => {
+        if (embedded) return;
         const onWheel = (event: WheelEvent) => {
             const container = scrollContainerRef.current;
             if (!container) return;
             const target = event.target as Node | null;
             if (target && container.contains(target)) return;
             if (event.deltaY === 0) return;
+            if (container.scrollHeight <= container.clientHeight) return;
             scrollDeltaRef.current += event.deltaY;
             if (scrollRafRef.current === null) {
                 const tick = () => {
@@ -751,7 +783,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
             }
             scrollDeltaRef.current = 0;
         };
-    }, []);
+    }, [embedded]);
 
     const stepSection = (direction: -1 | 1) => {
         const currentIndex = Math.max(0, tocItems.findIndex((item) => item.id === activeNavId));
@@ -3629,7 +3661,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
         ? 'stats-view min-h-screen flex flex-col p-0 w-full max-w-none'
         : 'stats-view h-full flex flex-col p-1 w-full max-w-6xl mx-auto overflow-hidden';
     const scrollContainerClass = embedded
-        ? `space-y-5 sm:space-y-6 min-h-0 p-3 sm:p-4 rounded-xl bg-black/20 border border-white/5 ${
+        ? `stats-sections space-y-0 min-h-0 px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4 rounded-xl bg-black/20 border border-white/5 ${
             expandedSection ? '' : 'backdrop-blur-xl'
         }`
         : `flex-1 overflow-y-auto pr-2 space-y-6 min-h-0 bg-black/30 border border-white/5 p-4 rounded-xl ${
@@ -3666,7 +3698,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                     <div className="space-y-0">
                         <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
                             <Trophy className="w-6 h-6 text-yellow-500" />
-                            Statistics Dashboard
+                            {dashboardTitle || 'Statistics Dashboard'}
                         </h1>
                         <p className="text-gray-400 text-[11px] sm:text-xs">
                             Performance across {stats.total} uploaded logs
@@ -3804,7 +3836,8 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
             >
 
                 {/* Wins/Losses Big Cards with embedded Averages and KDR */}
-                <div id="overview" className="grid grid-cols-1 md:grid-cols-2 gap-4 scroll-mt-24">
+                <div id="kdr" className="scroll-mt-24" />
+                <div id="overview" data-section-visible={isSectionVisible('overview')} data-section-first={isFirstVisibleSection('overview')} className={sectionClass('overview', 'grid grid-cols-1 md:grid-cols-2 gap-4 scroll-mt-24')}>
                     <div className="bg-gradient-to-br from-green-500/20 to-emerald-900/20 border border-green-500/30 rounded-2xl px-5 py-4">
                         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                             <div className="text-left">
@@ -3840,7 +3873,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 </div>
 
                 {/* Fight Breakdown (excluded from share screenshots) */}
-                <div id="fight-breakdown" className="mt-6 stats-share-exclude">
+                <div id="fight-breakdown" data-section-visible={isSectionVisible('fight-breakdown')} data-section-first={isFirstVisibleSection('fight-breakdown')} className={sectionClass('fight-breakdown', 'mt-6 stats-share-exclude')}>
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between mb-4">
                             <h3 className="text-lg font-bold text-gray-200">Fight Breakdown</h3>
@@ -4030,7 +4063,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
 
                 {/* Records Grid */}
                 {showTopStats && (
-                <div id="top-players" className="scroll-mt-24">
+                <div id="top-players" data-section-visible={isSectionVisible('top-players')} data-section-first={isFirstVisibleSection('top-players')} className={sectionClass('top-players', 'scroll-mt-24')}>
                     <h3 className="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
                         <Trophy className="w-5 h-5 text-yellow-400" />
                         Top Players (Total Accumulated Stats)
@@ -4217,17 +4250,22 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 )}
 
                 {/* Top Skills Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div
+                    data-section-visible={isSectionVisible('top-skills-outgoing')}
+                    data-section-first={isFirstVisibleSection('top-skills-outgoing')}
+                    className={sectionClass('top-skills-outgoing', 'grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8')}
+                >
                     {/* Outgoing Skills */}
                     <div
                         id="top-skills-outgoing"
-                        className={`bg-white/5 border border-white/10 rounded-2xl p-6 scroll-mt-24 ${
+                        data-section-visible={isSectionVisible('top-skills-outgoing')}
+                        className={sectionClass('top-skills-outgoing', `bg-white/5 border border-white/10 rounded-2xl p-6 scroll-mt-24 ${
                             expandedSection === 'top-skills-outgoing'
                                 ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
                                     expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                                 }`
                                 : ''
-                        }`}
+                        }`)}
                     >
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
@@ -4274,13 +4312,14 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                     {/* Incoming Skills */}
                     <div
                         id="top-skills-incoming"
-                        className={`bg-white/5 border border-white/10 rounded-2xl p-6 scroll-mt-24 ${
+                        data-section-visible={isSectionVisible('top-skills-incoming')}
+                        className={sectionClass('top-skills-incoming', `bg-white/5 border border-white/10 rounded-2xl p-6 scroll-mt-24 ${
                             expandedSection === 'top-skills-incoming'
                                 ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
                                     expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                                 }`
                                 : ''
-                        }`}
+                        }`)}
                     >
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
@@ -4326,7 +4365,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 </div>
 
                 {/* Class Distribution Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 page-break-avoid">
+                <div id="squad-composition" data-section-visible={isSectionVisible('squad-composition')} data-section-first={isFirstVisibleSection('squad-composition')} className={sectionClass('squad-composition', 'grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 page-break-avoid')}>
                     {/* Squad Composition */}
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                         <h3 className="text-lg font-bold text-gray-200 mb-6 flex items-center gap-2">
@@ -4435,7 +4474,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 </div>
 
                 {/* Squad vs Enemy Size Timeline */}
-                <div id="timeline" className="bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24">
+                <div id="timeline" data-section-visible={isSectionVisible('timeline')} data-section-first={isFirstVisibleSection('timeline')} className={sectionClass('timeline', 'bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24')}>
                     <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                         <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
                             <Users className="w-5 h-5 text-green-400" />
@@ -4520,7 +4559,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 </div>
 
                 {/* Map Distribution Pie Chart */}
-                <div id="map-distribution" className="bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24">
+                <div id="map-distribution" data-section-visible={isSectionVisible('map-distribution')} data-section-first={isFirstVisibleSection('map-distribution')} className={sectionClass('map-distribution', 'bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24')}>
                     <h3 className="text-lg font-bold text-gray-200 mb-6 flex items-center gap-2">
                         <MapIcon className="w-5 h-5 text-blue-400" />
                         Map Distribution
@@ -4570,13 +4609,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 {/* Boon Output Tables */}
                 <div
                     id="boon-output"
-                    className={`bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+                    data-section-visible={isSectionVisible('boon-output')}
+                    data-section-first={isFirstVisibleSection('boon-output')}
+                    className={sectionClass('boon-output', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
                         expandedSection === 'boon-output'
                             ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
                                 expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                             }`
                             : ''
-                    }`}
+                    }`)}
                 >
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
@@ -4723,13 +4764,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 {/* Offensive - Detailed Table */}
                 <div
                     id="offense-detailed"
-                    className={`bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+                    data-section-visible={isSectionVisible('offense-detailed')}
+                    data-section-first={isFirstVisibleSection('offense-detailed')}
+                    className={sectionClass('offense-detailed', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
                         expandedSection === 'offense-detailed'
                             ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
                                 expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                             }`
                             : ''
-                    }`}
+                    }`)}
                 >
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
@@ -4885,13 +4928,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 {/* Conditions */}
                 <div
                     id="conditions-outgoing"
-                    className={`bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+                    data-section-visible={isSectionVisible('conditions-outgoing')}
+                    data-section-first={isFirstVisibleSection('conditions-outgoing')}
+                    className={sectionClass('conditions-outgoing', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
                         expandedSection === 'conditions-outgoing'
                             ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
                                 expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                             }`
                             : ''
-                    }`}
+                    }`)}
                 >
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
@@ -5140,13 +5185,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 {/* Defenses - Detailed Table */}
                 <div
                     id="defense-detailed"
-                    className={`bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+                    data-section-visible={isSectionVisible('defense-detailed')}
+                    data-section-first={isFirstVisibleSection('defense-detailed')}
+                    className={sectionClass('defense-detailed', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
                         expandedSection === 'defense-detailed'
                             ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
                                 expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                             }`
                             : ''
-                    }`}
+                    }`)}
                 >
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
@@ -5283,13 +5330,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 {/* Support - Detailed Table */}
                 <div
                     id="support-detailed"
-                    className={`bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+                    data-section-visible={isSectionVisible('support-detailed')}
+                    data-section-first={isFirstVisibleSection('support-detailed')}
+                    className={sectionClass('support-detailed', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
                         expandedSection === 'support-detailed'
                             ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
                                 expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                             }`
                             : ''
-                    }`}
+                    }`)}
                 >
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
@@ -5476,13 +5525,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 {/* Healing Stats Table */}
                 <div
                     id="healing-stats"
-                    className={`bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+                    data-section-visible={isSectionVisible('healing-stats')}
+                    data-section-first={isFirstVisibleSection('healing-stats')}
+                    className={sectionClass('healing-stats', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
                         expandedSection === 'healing-stats'
                             ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
                                 expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                             }`
                             : ''
-                    }`}
+                    }`)}
                 >
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
@@ -5640,13 +5691,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 {/* Special Buff Output Tables */}
                 <div
                     id="special-buffs"
-                    className={`bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+                    data-section-visible={isSectionVisible('special-buffs')}
+                    data-section-first={isFirstVisibleSection('special-buffs')}
+                    className={sectionClass('special-buffs', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
                         expandedSection === 'special-buffs'
                             ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
                                 expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                             }`
                             : ''
-                    }`}
+                    }`)}
                 >
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
@@ -5742,13 +5795,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 {/* Skill Usage Tracker */}
                 <div
                     id="skill-usage"
-                    className={`bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+                    data-section-visible={isSectionVisible('skill-usage')}
+                    data-section-first={isFirstVisibleSection('skill-usage')}
+                    className={sectionClass('skill-usage', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
                         expandedSection === 'skill-usage'
                             ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${
                                 expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                             }`
                             : 'overflow-hidden'
-                    }`}
+                    }`)}
                 >
                     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4 relative">
                         <div className={expandedSection === 'skill-usage' ? 'pr-10 md:pr-0' : ''}>
@@ -6143,13 +6198,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 {/* APM Breakdown */}
                 <div
                     id="apm-stats"
-                    className={`bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24 flex flex-col ${
+                    data-section-visible={isSectionVisible('apm-stats')}
+                    data-section-first={isFirstVisibleSection('apm-stats')}
+                    className={sectionClass('apm-stats', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24 flex flex-col ${
                         expandedSection === 'apm-stats'
                             ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${
                                 expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                             }`
                             : 'overflow-hidden'
-                    }`}
+                    }`)}
                 >
                     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
                         <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">

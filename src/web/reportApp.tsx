@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useMemo, useState } from 'react';
+import { CSSProperties, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
 import { DEFAULT_WEB_THEME, WebTheme } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
 import {
     ShieldCheck,
+    Shield,
     CalendarDays,
     Users,
     ExternalLink,
@@ -157,6 +158,9 @@ export function ReportApp() {
     const [tocOpen, setTocOpen] = useState(false);
     const [uiTheme, setUiTheme] = useState<'classic' | 'modern'>('classic');
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
+    const [activeGroup, setActiveGroup] = useState('overview');
+    const statsWrapperRef = useRef<HTMLDivElement | null>(null);
+    const pendingScrollIdRef = useRef<string | null>(null);
     const basePath = useMemo(() => {
         let pathName = window.location.pathname || '/';
         if (pathName.endsWith('/index.html')) {
@@ -175,6 +179,115 @@ export function ReportApp() {
         return isLocalhost && window.location.pathname.startsWith('/web/');
     }, []);
     const assetBasePath = isDevLocalWeb ? '/' : basePath;
+    const navGroups = useMemo(() => ([
+        {
+            id: 'overview',
+            label: 'Overview',
+            icon: LayoutDashboard,
+            sectionIds: [
+                'overview',
+                'kdr',
+                'fight-breakdown',
+                'top-players',
+                'top-skills-outgoing',
+                'top-skills-incoming',
+                'timeline',
+                'map-distribution',
+                'squad-composition'
+            ],
+            items: [
+                { id: 'kdr', label: 'KDR', icon: Trophy },
+                { id: 'fight-breakdown', label: 'Fight Breakdown', icon: Swords },
+                { id: 'top-players', label: 'Top Players', icon: Trophy },
+                { id: 'top-skills-outgoing', label: 'Top Skills', icon: Swords },
+                { id: 'squad-composition', label: 'Squad Composition', icon: Users },
+                { id: 'timeline', label: 'Squad vs Enemy Size', icon: Users },
+                { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon }
+            ]
+        },
+        {
+            id: 'offense',
+            label: 'Offensive Stats',
+            icon: Swords,
+            sectionIds: ['offense-detailed', 'conditions-outgoing'],
+            items: [
+                { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords },
+                { id: 'conditions-outgoing', label: 'Conditions', icon: Skull }
+            ]
+        },
+        {
+            id: 'defense',
+            label: 'Defensive Stats',
+            icon: Shield,
+            sectionIds: ['defense-detailed', 'support-detailed', 'healing-stats'],
+            items: [
+                { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
+                { id: 'support-detailed', label: 'Support Detailed', icon: HelpingHand },
+                { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse }
+            ]
+        },
+        {
+            id: 'other',
+            label: 'Other Metrics',
+            icon: Sparkles,
+            sectionIds: ['special-buffs', 'skill-usage', 'apm-stats'],
+            items: [
+                { id: 'special-buffs', label: 'Special Buffs', icon: Star },
+                { id: 'skill-usage', label: 'Skill Usage', icon: Zap },
+                { id: 'apm-stats', label: 'APM Breakdown', icon: Activity }
+            ]
+        }
+    ]), []);
+    const activeGroupDef = useMemo(
+        () => navGroups.find((group) => group.id === activeGroup) || navGroups[0],
+        [navGroups, activeGroup]
+    );
+    const activeSectionIds = useMemo(() => {
+        const baseIds = (activeGroupDef as any)?.sectionIds || (activeGroupDef?.items || []).map((item) => item.id);
+        const ids = baseIds.map((id: string) => (id === 'kdr' ? 'overview' : id));
+        return new Set(ids);
+    }, [activeGroupDef]);
+    const scrollToSection = (id: string) => {
+        const el = document.getElementById(id);
+        if (!el) return false;
+        const isVisible = el.getAttribute('data-section-visible') !== 'false';
+        if (!isVisible) return false;
+        if (!el.offsetParent) return false;
+        const rect = el.getBoundingClientRect();
+        if (rect.height <= 0) return false;
+        const targetTop = rect.top + window.scrollY - 12;
+        window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+        if (history.replaceState) {
+            history.replaceState(null, '', `#${id}`);
+        }
+        return true;
+    };
+    const scrollToSectionSafe = (id: string, attempts = 0) => {
+        if (scrollToSection(id)) return;
+        if (attempts >= 12) return;
+        window.setTimeout(() => {
+            requestAnimationFrame(() => scrollToSectionSafe(id, attempts + 1));
+        }, 40);
+    };
+
+    useEffect(() => {
+        const pendingId = pendingScrollIdRef.current;
+        if (!pendingId) return;
+        let attempts = 0;
+        const tick = () => {
+            if (scrollToSection(pendingId)) {
+                pendingScrollIdRef.current = null;
+                return;
+            }
+            attempts += 1;
+            if (attempts >= 20) {
+                pendingScrollIdRef.current = null;
+                return;
+            }
+            window.setTimeout(() => requestAnimationFrame(tick), 40);
+        };
+        requestAnimationFrame(tick);
+    }, [activeGroup, activeSectionIds]);
     const resolvedTheme = theme ?? DEFAULT_WEB_THEME;
     const accentRgb = resolvedTheme.rgb;
     const accentVars = {
@@ -358,15 +471,15 @@ export function ReportApp() {
     }, [sortedIndex, searchTerm]);
 
     const legalNoticePane = (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-gray-400">
-            <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-semibold text-gray-200">Legal Notice</div>
-                <div className="flex items-center gap-2">
+        <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-[11px] text-gray-500">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.35em] text-gray-400">Legal Notice</div>
+                <div className="flex flex-wrap items-center gap-2">
                     <a
                         href="https://github.com/darkharasho/ArcBridge"
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 text-gray-400 border-white/10 hover:text-white"
                     >
                         GitHub
                     </a>
@@ -374,13 +487,13 @@ export function ReportApp() {
                         href="https://discord.gg/UjzMXMGXEg"
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 text-gray-400 border-white/10 hover:text-white"
                     >
                         Discord
                     </a>
                     <button
                         onClick={() => setProofOfWorkOpen(true)}
-                        className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 text-gray-400 border-white/10 hover:text-white"
                     >
                         Proof of Work
                     </button>
@@ -396,7 +509,7 @@ export function ReportApp() {
                     href="https://www.arena.net/en/legal/content-terms-of-use"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                    className="text-blue-300/80 hover:text-blue-200 underline underline-offset-2"
                 >
                     Content Terms of Use
                 </a>
@@ -414,7 +527,7 @@ export function ReportApp() {
                     href="https://github.com/darkharasho/ArcBridge/blob/main/LICENSE"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                    className="text-blue-300/80 hover:text-blue-200 underline underline-offset-2"
                 >
                     LICENSE
                 </a>
@@ -423,7 +536,7 @@ export function ReportApp() {
                     href="https://github.com/darkharasho/ArcBridge/blob/main/THIRD_PARTY_NOTICES.md"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                    className="text-blue-300/80 hover:text-blue-200 underline underline-offset-2"
                 >
                     THIRD_PARTY_NOTICES.md
                 </a>
@@ -525,31 +638,56 @@ export function ReportApp() {
 
     if (report) {
         const arcbridgeLogoUrl = `${assetBasePath}img/ArcBridge.svg`.replace(/\/{2,}/g, '/');
-        const tocItems = [
-            { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-            { id: 'top-players', label: 'Top Players', icon: Trophy },
-            { id: 'top-skills-outgoing', label: 'Top Skills', icon: Swords },
-            { id: 'timeline', label: 'Squad vs Enemy', icon: Activity },
-            { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon },
-            { id: 'boon-output', label: 'Boon Output', icon: Sparkles },
-            { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords },
-            { id: 'conditions-outgoing', label: 'Conditions', icon: Skull },
-            { id: 'defense-detailed', label: 'Defense Detailed', icon: ShieldCheck },
-            { id: 'support-detailed', label: 'Support Detailed', icon: HelpingHand },
-            { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
-            { id: 'special-buffs', label: 'Special Buffs', icon: Star },
-            { id: 'skill-usage', label: 'Skill Usage', icon: Zap },
-            { id: 'apm-stats', label: 'APM Breakdown', icon: Activity }
-        ];
-        const handleTocClick = (id: string) => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                if (history.replaceState) {
-                    history.replaceState(null, '', `#${id}`);
+        const handleGroupSelect = (groupId: string) => {
+            setActiveGroup(groupId);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        const handleSubNavClick = (groupId: string, id: string) => {
+            const isSameGroup = groupId === activeGroup;
+            if (!isSameGroup) {
+                pendingScrollIdRef.current = id;
+                setActiveGroup(groupId);
+                window.scrollTo({ top: 0, behavior: 'auto' });
+            }
+            if (isSameGroup) {
+                requestAnimationFrame(() => scrollToSectionSafe(id));
+            }
+        };
+        const handleNavWheel = (event: React.WheelEvent<HTMLElement>) => {
+            const nav = event.currentTarget;
+            const canScroll = nav.scrollHeight > nav.clientHeight;
+            if (!canScroll) {
+                window.scrollBy({ top: event.deltaY, behavior: 'auto' });
+                event.preventDefault();
+                return;
+            }
+            const atTop = nav.scrollTop <= 0;
+            const atBottom = nav.scrollTop + nav.clientHeight >= nav.scrollHeight - 1;
+            if ((atTop && event.deltaY < 0) || (atBottom && event.deltaY > 0)) {
+                window.scrollBy({ top: event.deltaY, behavior: 'auto' });
+                event.preventDefault();
+            }
+        };
+        const handleStatsWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+            const wrapper = statsWrapperRef.current;
+            if (!wrapper) return;
+            const target = event.target as HTMLElement | null;
+            if (!target || !wrapper.contains(target)) return;
+            let node: HTMLElement | null = target;
+            while (node && node !== wrapper) {
+                const style = window.getComputedStyle(node);
+                const overflowY = style.overflowY;
+                const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight + 1;
+                if (isScrollable) {
+                    const atTop = node.scrollTop <= 0;
+                    const atBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 1;
+                    if ((event.deltaY < 0 && atTop) || (event.deltaY > 0 && atBottom)) {
+                        window.scrollBy({ top: event.deltaY, behavior: 'auto' });
+                        event.preventDefault();
+                    }
+                    return;
                 }
-            } else {
-                window.location.hash = id;
+                node = node.parentElement;
             }
         };
         return (
@@ -604,21 +742,41 @@ export function ReportApp() {
                                 Back to Reports
                             </a>
                         </div>
-                        <nav className="px-3 pb-6 space-y-1.5 text-sm overflow-y-auto">
-                            {tocItems.map((item) => {
-                                const Icon = item.icon;
+                        <nav className="px-3 pb-6 space-y-3 text-sm overflow-y-auto" onWheel={handleNavWheel}>
+                            {navGroups.map((group) => {
+                                const GroupIcon = group.icon;
+                                const isActive = group.id === activeGroup;
                                 return (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => {
-                                            handleTocClick(item.id);
-                                            setTocOpen(false);
-                                        }}
-                                        className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-gray-200 border border-transparent hover:border-white/10 hover:bg-white/10 transition-colors"
-                                    >
-                                        <Icon className="w-4 h-4 text-[color:var(--accent)]" />
-                                        {item.label}
-                                    </button>
+                                    <div key={group.id} className="space-y-2">
+                                        <button
+                                            onClick={() => handleGroupSelect(group.id)}
+                                            className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${isActive
+                                                ? 'bg-white/10 text-white border-white/20'
+                                                : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
+                                                }`}
+                                        >
+                                            <GroupIcon className="w-4 h-4 text-[color:var(--accent)]" />
+                                            <span className="text-[11px] uppercase tracking-[0.35em]">{group.label}</span>
+                                        </button>
+                                        <div className="space-y-1 pl-2">
+                                            {group.items.map((item) => {
+                                                const ItemIcon = item.icon;
+                                                return (
+                                                    <button
+                                                        key={item.id}
+                                                        onClick={() => {
+                                                            handleSubNavClick(group.id, item.id);
+                                                            setTocOpen(false);
+                                                        }}
+                                                        className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-gray-200 border border-transparent hover:border-white/10 hover:bg-white/10 transition-colors"
+                                                    >
+                                                        <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
+                                                        {item.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 );
                             })}
                         </nav>
@@ -649,18 +807,38 @@ export function ReportApp() {
                                     </div>
                                 </div>
                         </div>
-                        <nav className="px-4 space-y-1.5 text-sm flex-1 overflow-y-auto">
-                            {tocItems.map((item) => {
-                                const Icon = item.icon;
+                        <nav className="px-4 space-y-4 text-sm flex-1 overflow-y-auto" onWheel={handleNavWheel}>
+                            {navGroups.map((group) => {
+                                const GroupIcon = group.icon;
+                                const isActive = group.id === activeGroup;
                                 return (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => handleTocClick(item.id)}
-                                        className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-200 border border-transparent hover:border-white/10 hover:bg-white/10 transition-colors"
-                                    >
-                                        <Icon className="w-4 h-4 text-[color:var(--accent)]" />
-                                        {item.label}
-                                    </button>
+                                    <div key={group.id} className="space-y-2">
+                                        <button
+                                            onClick={() => handleGroupSelect(group.id)}
+                                            className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${isActive
+                                                ? 'bg-white/10 text-white border-white/20'
+                                                : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
+                                                }`}
+                                        >
+                                            <GroupIcon className="w-4 h-4 text-[color:var(--accent)]" />
+                                            <span className="text-[11px] uppercase tracking-[0.35em]">{group.label}</span>
+                                        </button>
+                                        <div className="space-y-1 pl-2">
+                                            {group.items.map((item) => {
+                                                const ItemIcon = item.icon;
+                                                return (
+                                                    <button
+                                                        key={item.id}
+                                                        onClick={() => handleSubNavClick(group.id, item.id)}
+                                                        className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-gray-200 border border-transparent hover:border-white/10 hover:bg-white/10 transition-colors"
+                                                    >
+                                                        <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
+                                                        {item.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 );
                             })}
                         </nav>
@@ -680,7 +858,7 @@ export function ReportApp() {
                         </div>
                     </div>
                 </aside>
-                <div className="max-w-[1600px] mx-auto px-4 py-5 sm:px-6 sm:py-6 lg:pl-64 lg:pr-10 mobile-bottom-pad">
+                <div className="max-w-[1600px] mx-auto px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:pl-64 lg:pr-10 mobile-bottom-pad">
                     <div className={`${glassCard} p-5 sm:p-6 mb-6`} style={glassCardStyle}>
                         <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
@@ -743,12 +921,12 @@ export function ReportApp() {
                     <div className="sm:hidden mb-4">
                         <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Jump to</div>
                         <div className="flex gap-2 overflow-x-auto pr-2 pb-1 snap-x snap-mandatory">
-                            {tocItems.map((item) => {
+                            {(activeGroupDef?.items || []).map((item) => {
                                 const Icon = item.icon;
                                 return (
                                     <button
                                         key={`chip-${item.id}`}
-                                        onClick={() => handleTocClick(item.id)}
+                                        onClick={() => handleSubNavClick(activeGroupDef?.id || 'overview', item.id)}
                                         className="group flex items-center gap-2 px-3 py-2 rounded-full text-[10px] uppercase tracking-widest text-gray-200 whitespace-nowrap border border-white/15 bg-gradient-to-br from-white/10 via-white/5 to-transparent shadow-[0_10px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--accent-border)] hover:shadow-[0_18px_35px_rgba(0,0,0,0.45)] active:translate-y-0 active:scale-[0.98] snap-start"
                                     >
                                         <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border border-white/10 group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-glow)] transition-colors">
@@ -760,8 +938,17 @@ export function ReportApp() {
                             })}
                         </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <StatsView logs={[]} onBack={() => {}} mvpWeights={undefined} precomputedStats={report.stats} statsViewSettings={report.stats?.statsViewSettings} embedded />
+                    <div ref={statsWrapperRef} onWheelCapture={handleStatsWheel} className="flex-1 min-w-0">
+                        <StatsView
+                            logs={[]}
+                            onBack={() => {}}
+                            mvpWeights={undefined}
+                            precomputedStats={report.stats}
+                            statsViewSettings={report.stats?.statsViewSettings}
+                            embedded
+                            sectionVisibility={(id) => activeSectionIds.has(id)}
+                            dashboardTitle={`Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`}
+                        />
                     </div>
                     <div className="mt-10">
                         {legalNoticePane}
@@ -820,7 +1007,7 @@ export function ReportApp() {
                     style={{ backgroundColor: 'var(--accent-glow-soft)' }}
                 />
             </div>
-            <div className="max-w-[1600px] mx-auto px-4 py-8 sm:px-6 sm:py-10">
+                <div className="max-w-[1600px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10">
                 <div id="report-list-container" className="rounded-2xl border border-white/5 bg-black/20 p-4 sm:p-6">
                     <div className={`${glassCard} p-5 sm:p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`} style={glassCardStyle}>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-h-[56px] text-center sm:text-left">
