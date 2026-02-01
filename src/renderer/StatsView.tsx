@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Trophy, Share2, Swords, Shield, Zap, Activity, Flame, HelpingHand, Hammer, ShieldCheck, Crosshair, Map as MapIcon, Users, Skull, Wind, Crown, Sparkles, Star, UploadCloud, Loader2, CheckCircle2, XCircle, Maximize2, X, ChevronDown, ChevronRight, HeartPulse } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend as ChartLegend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { toPng } from 'html-to-image';
@@ -8,6 +8,10 @@ import { getProfessionColor, getProfessionIconPath } from '../shared/professionU
 import { BoonCategory, BoonMetric, buildBoonTables, formatBoonMetricDisplay, getBoonMetricValue } from '../shared/boonGeneration';
 import { DEFAULT_DISRUPTION_METHOD, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IMvpWeights, IStatsViewSettings, IWebUploadState } from './global.d';
 import { computeOutgoingConditions, normalizeConditionLabel, resolveConditionNameFromEntry, type OutgoingConditionsResult } from '../shared/conditionsMetrics';
+import { PillToggleGroup } from './stats/ui/PillToggleGroup';
+import { CountClassTooltip, SkillBreakdownTooltip, renderProfessionIcon } from './stats/ui/StatsViewShared';
+import { SkillUsageSection } from './stats/sections/SkillUsageSection';
+import { ApmSection } from './stats/sections/ApmSection';
 
 interface StatsViewProps {
     logs: ILogData[];
@@ -36,334 +40,6 @@ const NON_DAMAGING_CONDITIONS = new Set([
     'Fear',
     'Taunt'
 ]);
-
-const useSmartTooltipPlacement = (
-    open: boolean,
-    deps: any[],
-    wrapperRef: RefObject<HTMLElement>,
-    tooltipRef: RefObject<HTMLElement>
-) => {
-    const [placement, setPlacement] = useState<'top' | 'bottom'>('bottom');
-    const [shiftX, setShiftX] = useState(0);
-
-    useEffect(() => {
-        if (!open) return;
-        const raf = requestAnimationFrame(() => {
-            const wrapper = wrapperRef.current;
-            const tooltip = tooltipRef.current;
-            if (!wrapper || !tooltip) return;
-
-            const rect = wrapper.getBoundingClientRect();
-            const tipRect = tooltip.getBoundingClientRect();
-
-            const findClippingAncestor = (node: HTMLElement | null) => {
-                let current = node?.parentElement || null;
-                while (current) {
-                    const style = window.getComputedStyle(current);
-                    const overflow = `${style.overflow}${style.overflowY}${style.overflowX}`;
-                    if (/(auto|scroll|hidden)/.test(overflow)) {
-                        return current;
-                    }
-                    current = current.parentElement;
-                }
-                return null;
-            };
-
-            const clipAncestor = findClippingAncestor(wrapper);
-            const clipRect = clipAncestor ? clipAncestor.getBoundingClientRect() : {
-                top: 0,
-                bottom: window.innerHeight,
-                left: 0,
-                right: window.innerWidth
-            };
-
-            const spaceBelow = clipRect.bottom - rect.bottom;
-            const spaceAbove = rect.top - clipRect.top;
-            const preferred = spaceBelow < tipRect.height + 8 && spaceAbove > spaceBelow ? 'top' : 'bottom';
-            setPlacement(preferred);
-
-            const padding = 6;
-            const desiredCenter = rect.left + rect.width / 2;
-            const minCenter = clipRect.left + padding + tipRect.width / 2;
-            const maxCenter = clipRect.right - padding - tipRect.width / 2;
-            const clampedCenter = Math.min(Math.max(desiredCenter, minCenter), maxCenter);
-            setShiftX(clampedCenter - desiredCenter);
-        });
-        return () => cancelAnimationFrame(raf);
-    }, [open, ...deps]);
-
-    return { placement, shiftX };
-};
-
-const buildClassColumns = (counts: Record<string, number>, maxRows = 5) => {
-    const entries = Object.entries(counts)
-        .filter(([, count]) => count > 0)
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .map(([profession, count]) => ({ profession, count }));
-    const columns: Array<Array<{ profession: string; count: number }>> = [];
-    for (let i = 0; i < entries.length; i += maxRows) {
-        columns.push(entries.slice(i, i + maxRows));
-    }
-    return columns;
-};
-
-const ProfessionIcon = ({
-    profession,
-    professionList,
-    className = 'w-4 h-4'
-}: {
-    profession: string | undefined;
-    professionList?: string[];
-    className?: string;
-}) => {
-    const list = (professionList || []).filter(Boolean);
-    const resolvedProfession = profession === 'Multi' && list.length > 0 ? list[0] : profession;
-    const iconPath = getProfessionIconPath(resolvedProfession || 'Unknown');
-    const showMulti = list.length > 1;
-    const [open, setOpen] = useState(false);
-    const wrapperRef = useRef<HTMLSpanElement | null>(null);
-    const tooltipRef = useRef<HTMLDivElement | null>(null);
-    const { placement, shiftX } = useSmartTooltipPlacement(open, [list.length, className], wrapperRef, tooltipRef);
-
-    if (!iconPath) return null;
-
-    const placementClass = placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2';
-    const tooltipStyle = { transform: `translateX(calc(-50% + ${shiftX}px))` };
-
-    return (
-        <span
-            ref={wrapperRef}
-            className={`relative inline-flex shrink-0 ${showMulti ? 'group' : ''}`}
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
-        >
-            <img src={iconPath} alt={resolvedProfession || 'Unknown'} className={`${className} shrink-0`} />
-            {showMulti && (
-                <>
-                    <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-amber-300 ring-1 ring-[#0f172a]" />
-                    <div
-                        ref={tooltipRef}
-                        style={tooltipStyle}
-                        className={`absolute left-1/2 z-50 w-max rounded-md border border-white/10 bg-black/70 backdrop-blur-md px-2 py-1 text-[10px] text-gray-200 shadow-lg opacity-0 pointer-events-none transition-opacity ${placementClass} ${open ? 'opacity-100' : ''}`}
-                    >
-                        <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">Multi</div>
-                        <div className="space-y-1">
-                            {list.map((prof) => {
-                                const itemIcon = getProfessionIconPath(prof || 'Unknown');
-                                return (
-                                    <div key={prof} className="flex items-center gap-1">
-                                        {itemIcon ? (
-                                            <img src={itemIcon} alt={prof || 'Unknown'} className="h-3.5 w-3.5" />
-                                        ) : null}
-                                        <span className="text-gray-100">{prof || 'Unknown'}</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </>
-            )}
-        </span>
-    );
-};
-
-const renderProfessionIcon = (
-    profession: string | undefined,
-    professionList?: string[],
-    className = 'w-4 h-4'
-) => (
-    <ProfessionIcon profession={profession} professionList={professionList} className={className} />
-);
-
-const CountClassTooltip = ({
-    count,
-    classCounts,
-    label,
-    className
-}: {
-    count: number;
-    classCounts?: Record<string, number>;
-    label: string;
-    className?: string;
-}) => {
-    const columns = buildClassColumns(classCounts || {});
-    const hasTooltip = count > 0;
-    const [open, setOpen] = useState(false);
-    const [tooltipStyle, setTooltipStyle] = useState<CSSProperties>({
-        position: 'fixed',
-        top: -9999,
-        left: -9999,
-        transform: 'translateX(-50%)'
-    });
-    const wrapperRef = useRef<HTMLSpanElement | null>(null);
-    const tooltipRef = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-        if (!open) return;
-        const updatePosition = () => {
-            const wrapper = wrapperRef.current;
-            const tooltip = tooltipRef.current;
-            if (!wrapper || !tooltip) return;
-            const rect = wrapper.getBoundingClientRect();
-            const tipRect = tooltip.getBoundingClientRect();
-            const spaceBelow = window.innerHeight - rect.bottom;
-            const spaceAbove = rect.top;
-            const placeOnTop = spaceBelow < tipRect.height + 8 && spaceAbove > spaceBelow;
-            const top = placeOnTop
-                ? Math.max(8, rect.top - tipRect.height - 8)
-                : Math.min(window.innerHeight - tipRect.height - 8, rect.bottom + 8);
-            const desiredCenter = rect.left + rect.width / 2;
-            const minCenter = 8 + tipRect.width / 2;
-            const maxCenter = window.innerWidth - 8 - tipRect.width / 2;
-            const clampedCenter = Math.min(Math.max(desiredCenter, minCenter), maxCenter);
-            setTooltipStyle({
-                position: 'fixed',
-                top,
-                left: clampedCenter,
-                transform: 'translateX(-50%)'
-            });
-        };
-        const raf = requestAnimationFrame(updatePosition);
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-        return () => {
-            cancelAnimationFrame(raf);
-            window.removeEventListener('scroll', updatePosition, true);
-            window.removeEventListener('resize', updatePosition);
-        };
-    }, [open, columns.length, count]);
-
-    return (
-        <span
-            ref={wrapperRef}
-            className={`relative inline-flex items-center justify-end ${hasTooltip ? 'group cursor-help' : ''}`}
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
-        >
-            <span className={className}>{count}</span>
-            {hasTooltip && (
-                <div
-                    ref={tooltipRef}
-                    style={tooltipStyle}
-                    className={`z-[9999] w-max rounded-md border border-white/10 bg-black/70 backdrop-blur-md px-2 py-1 text-[10px] text-gray-200 shadow-lg opacity-0 pointer-events-none transition-opacity ${open ? 'opacity-100' : ''}`}
-                >
-                    <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">
-                        {label}
-                    </div>
-                    {columns.length > 0 ? (
-                        <div className="grid grid-flow-col auto-cols-fr gap-2">
-                            {columns.map((col, idx) => (
-                                <div key={`${label}-col-${idx}`} className="space-y-1">
-                                    {col.map(({ profession, count: profCount }) => {
-                                        const iconPath = getProfessionIconPath(profession || 'Unknown');
-                                        return (
-                                            <div key={profession} className="flex items-center gap-1">
-                                                {iconPath ? (
-                                                    <img src={iconPath} alt={profession || 'Unknown'} className="h-3.5 w-3.5" />
-                                                ) : null}
-                                                <span className="text-gray-100">{profession || 'Unknown'}</span>
-                                                <span className="text-gray-400">·</span>
-                                                <span className="text-gray-200">{profCount}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-[10px] text-gray-500 italic">No class data available</div>
-                    )}
-                </div>
-            )}
-        </span>
-    );
-};
-
-const SkillBreakdownTooltip = ({
-    value,
-    label,
-    items,
-    className
-}: {
-    value: string;
-    label: string;
-    items: Array<{ name: string; value: string }>;
-    className?: string;
-}) => {
-    const hasTooltip = items.length > 0;
-    const [open, setOpen] = useState(false);
-    const [tooltipStyle, setTooltipStyle] = useState<CSSProperties>({
-        position: 'fixed',
-        top: -9999,
-        left: -9999,
-        transform: 'translateX(-50%)'
-    });
-    const wrapperRef = useRef<HTMLSpanElement | null>(null);
-    const tooltipRef = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-        if (!open) return;
-        const updatePosition = () => {
-            const wrapper = wrapperRef.current;
-            const tooltip = tooltipRef.current;
-            if (!wrapper || !tooltip) return;
-            const wrapRect = wrapper.getBoundingClientRect();
-            const tipRect = tooltip.getBoundingClientRect();
-            const padding = 8;
-            const spaceBelow = window.innerHeight - wrapRect.bottom;
-            const spaceAbove = wrapRect.top;
-            const top = spaceBelow < tipRect.height + padding && spaceAbove > spaceBelow
-                ? Math.max(padding, wrapRect.top - tipRect.height - padding)
-                : Math.min(window.innerHeight - tipRect.height - padding, wrapRect.bottom + padding);
-            const center = wrapRect.left + wrapRect.width / 2;
-            const minLeft = padding + tipRect.width / 2;
-            const maxLeft = window.innerWidth - padding - tipRect.width / 2;
-            const left = Math.min(Math.max(center, minLeft), maxLeft);
-            setTooltipStyle({
-                position: 'fixed',
-                top,
-                left,
-                transform: 'translateX(-50%)'
-            });
-        };
-        const raf = requestAnimationFrame(updatePosition);
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-        return () => {
-            cancelAnimationFrame(raf);
-            window.removeEventListener('scroll', updatePosition, true);
-            window.removeEventListener('resize', updatePosition);
-        };
-    }, [open, items.length]);
-
-    return (
-        <span
-            ref={wrapperRef}
-            className={`relative inline-flex items-center justify-end ${hasTooltip ? 'group cursor-help' : ''} ${className || ''}`}
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
-        >
-            <span>{value}</span>
-            {hasTooltip && (
-                <div
-                    ref={tooltipRef}
-                    style={tooltipStyle}
-                    className={`z-[9999] w-64 rounded-md border border-white/10 bg-black/70 px-3 py-2 text-[10px] text-gray-200 shadow-lg backdrop-blur-md opacity-0 pointer-events-none transition-opacity ${open ? 'opacity-100' : ''}`}
-                >
-                    <div className="text-[9px] uppercase tracking-wider text-amber-200 mb-1">{label}</div>
-                    <div className="max-h-40 overflow-y-auto space-y-1">
-                        {items.map((item) => (
-                            <div key={item.name} className="flex items-center justify-between gap-2">
-                                <span className="truncate text-gray-100">{item.name}</span>
-                                <span className="text-gray-300 font-mono">{item.value}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </span>
-    );
-};
 
 const OFFENSE_METRICS: Array<{
     id: string;
@@ -3878,25 +3554,18 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between mb-4">
                             <h3 className="text-lg font-bold text-gray-200">Fight Breakdown</h3>
                             <div className="flex flex-wrap items-center gap-2">
-                                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                {([
-                                    { id: 'sizes', label: 'Sizes' },
-                                    { id: 'outcomes', label: 'Outcome' },
-                                    { id: 'damage', label: 'Damage' },
-                                    { id: 'barrier', label: 'Barrier' }
-                                ] as const).map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setFightBreakdownTab(tab.id)}
-                                        className={`px-2.5 py-1 rounded-full transition-colors ${fightBreakdownTab === tab.id
-                                            ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-500/40'
-                                            : 'border border-transparent text-gray-400 hover:text-white'
-                                            }`}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                                </div>
+                                <PillToggleGroup
+                                    value={fightBreakdownTab}
+                                    onChange={setFightBreakdownTab}
+                                    options={[
+                                        { value: 'sizes', label: 'Sizes' },
+                                        { value: 'outcomes', label: 'Outcome' },
+                                        { value: 'damage', label: 'Damage' },
+                                        { value: 'barrier', label: 'Barrier' }
+                                    ]}
+                                    activeClassName="bg-cyan-500/20 text-cyan-200 border border-cyan-500/40"
+                                    inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                />
                                 <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:ml-1 w-full sm:w-auto">
                                     {stats.fightBreakdown?.length || 0} Fights
                                 </span>
@@ -4643,25 +4312,18 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                             <div className="flex flex-col gap-4">
                                 <div className="flex flex-col gap-3">
                                     <div className="flex flex-wrap gap-2 justify-center">
-                                        <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                        {([
-                                            { value: 'selfBuffs', label: 'Self' },
-                                            { value: 'groupBuffs', label: 'Group' },
-                                            { value: 'squadBuffs', label: 'Squad' },
-                                            { value: 'totalBuffs', label: 'Total' }
-                                        ] as const).map((option) => (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => setActiveBoonCategory(option.value)}
-                                                className={`px-2.5 py-1 rounded-full transition-colors ${activeBoonCategory === option.value
-                                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
-                                                    : 'border border-transparent text-gray-400 hover:text-white'
-                                                    }`}
-                                            >
-                                                {option.label}
-                                            </button>
-                                        ))}
-                                        </div>
+                                        <PillToggleGroup
+                                            value={activeBoonCategory}
+                                            onChange={setActiveBoonCategory}
+                                            options={[
+                                                { value: 'selfBuffs', label: 'Self' },
+                                                { value: 'groupBuffs', label: 'Group' },
+                                                { value: 'squadBuffs', label: 'Squad' },
+                                                { value: 'totalBuffs', label: 'Total' }
+                                            ]}
+                                            activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-500/40"
+                                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                        />
                                     </div>
                                 </div>
 
@@ -4705,24 +4367,17 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
-                                                    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                                    {([
-                                                        { value: 'total', label: 'Total Gen' },
-                                                        { value: 'average', label: 'Gen/Sec' },
-                                                        { value: 'uptime', label: 'Uptime' }
-                                                    ] as const).map((option) => (
-                                                        <button
-                                                            key={option.value}
-                                                            onClick={() => setActiveBoonMetric(option.value)}
-                                                            className={`px-2.5 py-1 rounded-full transition-colors ${activeBoonMetric === option.value
-                                                                ? 'bg-blue-500/20 text-blue-200 border border-blue-500/40'
-                                                                : 'border border-transparent text-gray-400 hover:text-white'
-                                                                }`}
-                                                        >
-                                                            {option.label}
-                                                        </button>
-                                                    ))}
-                                                    </div>
+                                                    <PillToggleGroup
+                                                        value={activeBoonMetric}
+                                                        onChange={setActiveBoonMetric}
+                                                        options={[
+                                                            { value: 'total', label: 'Total Gen' },
+                                                            { value: 'average', label: 'Gen/Sec' },
+                                                            { value: 'uptime', label: 'Uptime' }
+                                                        ]}
+                                                        activeClassName="bg-blue-500/20 text-blue-200 border border-blue-500/40"
+                                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                    />
                                                 </div>
                                                 <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                     <div className="text-center">#</div>
@@ -4873,24 +4528,17 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                 <div className="text-xs uppercase tracking-widest text-gray-500">Offensive</div>
                                             </div>
                                             <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
-                                                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                                {([
-                                                    { value: 'total', label: 'Total' },
-                                                    { value: 'per1s', label: 'Stat/1s' },
-                                                    { value: 'per60s', label: 'Stat/60s' }
-                                                ] as const).map((option) => (
-                                                    <button
-                                                        key={option.value}
-                                                        onClick={() => setOffenseViewMode(option.value)}
-                                                        className={`px-2.5 py-1 rounded-full transition-colors ${offenseViewMode === option.value
-                                                            ? 'bg-rose-500/20 text-rose-200 border border-rose-500/40'
-                                                            : 'border border-transparent text-gray-400 hover:text-white'
-                                                            }`}
-                                                    >
-                                                        {option.label}
-                                                    </button>
-                                                ))}
-                                                </div>
+                                                <PillToggleGroup
+                                                    value={offenseViewMode}
+                                                    onChange={setOffenseViewMode}
+                                                    options={[
+                                                        { value: 'total', label: 'Total' },
+                                                        { value: 'per1s', label: 'Stat/1s' },
+                                                        { value: 'per60s', label: 'Stat/60s' }
+                                                    ]}
+                                                    activeClassName="bg-rose-500/20 text-rose-200 border border-rose-500/40"
+                                                    inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                />
                                             </div>
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                 <div className="text-center">#</div>
@@ -5017,28 +4665,16 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                     </div>
                                     <div className="flex flex-col items-end gap-2 text-right ml-auto mt-2">
                                         <div className="text-xs uppercase tracking-widest text-gray-500">Squad Totals</div>
-                                        <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                            <button
-                                                type="button"
-                                                onClick={() => setConditionDirection('outgoing')}
-                                                className={`px-2.5 py-1 rounded-full transition-colors ${conditionDirection === 'outgoing'
-                                                    ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40'
-                                                    : 'border border-transparent text-gray-400 hover:text-white'
-                                                    }`}
-                                            >
-                                                Outgoing
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setConditionDirection('incoming')}
-                                                className={`px-2.5 py-1 rounded-full transition-colors ${conditionDirection === 'incoming'
-                                                    ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40'
-                                                    : 'border border-transparent text-gray-400 hover:text-white'
-                                                    }`}
-                                            >
-                                                Incoming
-                                            </button>
-                                        </div>
+                                        <PillToggleGroup
+                                            value={conditionDirection}
+                                            onChange={setConditionDirection}
+                                            options={[
+                                                { value: 'outgoing', label: 'Outgoing' },
+                                                { value: 'incoming', label: 'Incoming' }
+                                            ]}
+                                            activeClassName="bg-amber-500/20 text-amber-200 border border-amber-500/40"
+                                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                        />
                                     </div>
                                 </div>
                                 <div className={`grid ${conditionGridClass} text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2`}>
@@ -5279,24 +4915,17 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                 <div className="text-xs uppercase tracking-widest text-gray-500">Defensive</div>
                                             </div>
                                             <div className="flex items-center justify-end px-4 py-2 bg-white/5">
-                                                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                                    {([
+                                                <PillToggleGroup
+                                                    value={defenseViewMode}
+                                                    onChange={setDefenseViewMode}
+                                                    options={[
                                                         { value: 'total', label: 'Total' },
                                                         { value: 'per1s', label: 'Stat/1s' },
                                                         { value: 'per60s', label: 'Stat/60s' }
-                                                    ] as const).map((option) => (
-                                                        <button
-                                                            key={option.value}
-                                                            onClick={() => setDefenseViewMode(option.value)}
-                                                            className={`px-2.5 py-1 rounded-full transition-colors ${defenseViewMode === option.value
-                                                                ? 'bg-sky-500/20 text-sky-200 border border-sky-500/40'
-                                                                : 'border border-transparent text-gray-400 hover:text-white'
-                                                                }`}
-                                                        >
-                                                            {option.label}
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                                    ]}
+                                                    activeClassName="bg-sky-500/20 text-sky-200 border border-sky-500/40"
+                                                    inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                />
                                             </div>
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                 <div className="text-center">#</div>
@@ -5435,62 +5064,42 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                             </div>
                                             {metric.id === 'condiCleanse' ? (
                                                 <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-white/5">
-                                                    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                                        {([
+                                                    <PillToggleGroup
+                                                        value={cleanseScope}
+                                                        onChange={setCleanseScope}
+                                                        options={[
                                                             { value: 'all', label: 'All' },
                                                             { value: 'squad', label: 'Squad' }
-                                                        ] as const).map((option) => (
-                                                            <button
-                                                                key={option.value}
-                                                                onClick={() => setCleanseScope(option.value)}
-                                                                className={`px-2.5 py-1 rounded-full transition-colors ${cleanseScope === option.value
-                                                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
-                                                                    : 'border border-transparent text-gray-400 hover:text-white'
-                                                                    }`}
-                                                            >
-                                                                {option.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400 sm:ml-auto">
-                                                        {([
+                                                        ]}
+                                                        activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-500/40"
+                                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                    />
+                                                    <PillToggleGroup
+                                                        value={supportViewMode}
+                                                        onChange={setSupportViewMode}
+                                                        options={[
                                                             { value: 'total', label: 'Total' },
                                                             { value: 'per1s', label: 'Stat/1s' },
                                                             { value: 'per60s', label: 'Stat/60s' }
-                                                        ] as const).map((option) => (
-                                                            <button
-                                                                key={option.value}
-                                                                onClick={() => setSupportViewMode(option.value)}
-                                                                className={`px-2.5 py-1 rounded-full transition-colors ${supportViewMode === option.value
-                                                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
-                                                                    : 'border border-transparent text-gray-400 hover:text-white'
-                                                                    }`}
-                                                            >
-                                                                {option.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                                        ]}
+                                                        className="sm:ml-auto"
+                                                        activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-500/40"
+                                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                    />
                                                 </div>
                                             ) : (
                                                 <div className="flex flex-wrap items-center justify-start sm:justify-end px-4 py-2 bg-white/5">
-                                                    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                                        {([
+                                                    <PillToggleGroup
+                                                        value={supportViewMode}
+                                                        onChange={setSupportViewMode}
+                                                        options={[
                                                             { value: 'total', label: 'Total' },
                                                             { value: 'per1s', label: 'Stat/1s' },
                                                             { value: 'per60s', label: 'Stat/60s' }
-                                                        ] as const).map((option) => (
-                                                            <button
-                                                                key={option.value}
-                                                                onClick={() => setSupportViewMode(option.value)}
-                                                                className={`px-2.5 py-1 rounded-full transition-colors ${supportViewMode === option.value
-                                                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
-                                                                    : 'border border-transparent text-gray-400 hover:text-white'
-                                                                    }`}
-                                                            >
-                                                                {option.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                                        ]}
+                                                        activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-500/40"
+                                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                    />
                                                 </div>
                                             )}
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
@@ -5622,53 +5231,38 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                             </div>
                                             {isResUtilityMetric && (
                                                 <div className="flex items-center justify-end px-4 py-2 bg-white/5 flex-wrap">
-                                                    <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                                        <button
-                                                            onClick={() => setActiveResUtilitySkill('all')}
-                                                            className={`px-2.5 py-1 rounded-full transition-colors ${activeResUtilitySkill === 'all'
-                                                                ? 'bg-lime-500/20 text-lime-200 border border-lime-500/40'
-                                                                : 'border border-transparent text-gray-400 hover:text-white'
-                                                                }`}
-                                                        >
-                                                            All
-                                                        </button>
-                                                        {(skillUsageData.resUtilitySkills || []).map((skill) => (
-                                                            <button
-                                                                key={skill.id}
-                                                                onClick={() => setActiveResUtilitySkill(skill.id)}
-                                                                className={`px-2.5 py-1 rounded-full transition-colors ${activeResUtilitySkill === skill.id
-                                                                    ? 'bg-lime-500/20 text-lime-200 border border-lime-500/40'
-                                                                    : 'border border-transparent text-gray-400 hover:text-white'
-                                                                    }`}
-                                                            >
-                                                                {skill.name}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                                    <PillToggleGroup
+                                                        value={activeResUtilitySkill}
+                                                        onChange={setActiveResUtilitySkill}
+                                                        options={[
+                                                            { value: 'all', label: 'All' },
+                                                            ...(skillUsageData.resUtilitySkills || []).map((skill) => ({
+                                                                value: skill.id,
+                                                                label: skill.name
+                                                            }))
+                                                        ]}
+                                                        className="flex-wrap"
+                                                        activeClassName="bg-lime-500/20 text-lime-200 border border-lime-500/40"
+                                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                    />
                                                 </div>
                                             )}
                                             {!isResUtilityMetric && (
                                                 <div className="flex items-center justify-end px-4 py-2 bg-white/5">
-                                                    <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                                        {([
+                                                    <PillToggleGroup
+                                                        value={healingCategory}
+                                                        onChange={setHealingCategory}
+                                                        options={[
                                                             { value: 'total', label: 'Total' },
                                                             { value: 'squad', label: 'Squad' },
                                                             { value: 'group', label: 'Group' },
                                                             { value: 'self', label: 'Self' },
                                                             { value: 'offSquad', label: 'OffSquad' }
-                                                        ] as const).map((option) => (
-                                                            <button
-                                                                key={option.value}
-                                                                onClick={() => setHealingCategory(option.value)}
-                                                                className={`px-2.5 py-1 rounded-full transition-colors ${healingCategory === option.value
-                                                                    ? 'bg-lime-500/20 text-lime-200 border border-lime-500/40'
-                                                                    : 'border border-transparent text-gray-400 hover:text-white'
-                                                                    }`}
-                                                            >
-                                                                {option.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                                        ]}
+                                                        className="flex-wrap"
+                                                        activeClassName="bg-lime-500/20 text-lime-200 border border-lime-500/40"
+                                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                    />
                                                 </div>
                                             )}
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
@@ -5810,659 +5404,80 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                     )}
                 </div>
 
-                {/* Skill Usage Tracker */}
-                <div
-                    id="skill-usage"
-                    data-section-visible={isSectionVisible('skill-usage')}
-                    data-section-first={isFirstVisibleSection('skill-usage')}
-                    className={sectionClass('skill-usage', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
-                        expandedSection === 'skill-usage'
-                            ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${
-                                expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                            }`
-                            : 'overflow-hidden'
-                    }`)}
-                >
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4 relative">
-                        <div className={expandedSection === 'skill-usage' ? 'pr-10 md:pr-0' : ''}>
-                            <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                                <Zap className="w-5 h-5 text-cyan-400" />
-                                Skill Usage Tracker
-                            </h3>
-                            <p className="text-xs text-gray-400">
-                                Compare how often squad members cast a skill and drill into the timeline breakdown.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                {[
-                                    { id: 'total', label: 'Total' },
-                                    { id: 'perSecond', label: 'Per Sec' }
-                                ].map((mode) => (
-                                    <button
-                                        key={mode.id}
-                                        type="button"
-                                        onClick={() => setSkillUsageView(mode.id as 'total' | 'perSecond')}
-                                        className={`px-2.5 py-1 rounded-full transition-colors ${
-                                            skillUsageView === mode.id
-                                                ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/40'
-                                                : 'border border-transparent text-gray-400 hover:text-white'
-                                        }`}
-                                    >
-                                        {mode.label}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="text-xs uppercase tracking-[0.3em] text-gray-500">
-                                {skillUsageData.logRecords.length} {skillUsageData.logRecords.length === 1 ? 'log' : 'logs'}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => (expandedSection === 'skill-usage' ? closeExpandedSection() : openExpandedSection('skill-usage'))}
-                                className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${
-                                    expandedSection === 'skill-usage' ? 'absolute top-2 right-2 md:static' : ''
-                                }`}
-                                aria-label={expandedSection === 'skill-usage' ? 'Close Skill Usage' : 'Expand Skill Usage'}
-                                title={expandedSection === 'skill-usage' ? 'Close' : 'Expand'}
-                            >
-                                {expandedSection === 'skill-usage' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                            </button>
-                        </div>
-                    </div>
-                    {selectedPlayers.length > 0 && (
-                        <div className="flex items-center gap-2 pb-2 overflow-x-auto pr-1 -mx-1 px-1">
-                            <button
-                                type="button"
-                                onClick={() => setSelectedPlayers([])}
-                                className="shrink-0 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-[10px] uppercase tracking-widest text-gray-300 hover:text-white"
-                            >
-                                Clear All
-                            </button>
-                            {selectedPlayers.map((playerKey) => {
-                                const player = playerMapByKey.get(playerKey);
-                                if (!player) return null;
-                                return (
-                                    <span key={player.key} className="flex items-center gap-1 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-200 shrink-0">
-                                        <span className="truncate max-w-[140px]">{player.displayName}</span>
-                                        <span className="text-[10px] text-cyan-200/70">{player.logs} {player.logs === 1 ? 'log' : 'logs'}</span>
-                                        <button type="button" onClick={() => removeSelectedPlayer(player.key)} className="rounded-full p-1 text-cyan-200 hover:bg-white/20">
-                                            <XCircle className="w-3 h-3" />
-                                        </button>
-                                    </span>
-                                );
-                            })}
-                        </div>
-                    )}
-                    <div className="grid gap-4 lg:grid-cols-2 items-stretch">
-                        <div className="space-y-2 flex flex-col h-[320px]">
-                            <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">
-                                Squad Players
-                            </div>
-                            <input
-                                type="search"
-                                value={skillUsagePlayerFilter}
-                                onChange={(event) => setSkillUsagePlayerFilter(event.target.value)}
-                                placeholder="Search player or account"
-                                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-gray-200 focus:border-cyan-400 focus:outline-none"
-                            />
-                            <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl border border-white/10 bg-black/20">
-                                {groupedSkillUsagePlayers.length === 0 ? (
-                                    <div className="px-3 py-4 text-xs text-gray-500 italic">
-                                        No squad players match the filter
-                                    </div>
-                                ) : (
-                                    groupedSkillUsagePlayers.map((group) => {
-                                        const isExpanded = expandedSkillUsageClass === group.profession;
-                                        const groupKeys = group.players.map((player) => player.key);
-                                        const allSelected = groupKeys.length > 0 && groupKeys.every((key) => selectedPlayers.includes(key));
-                                        return (
-                                            <div key={group.profession} className="border-b border-white/5 last:border-b-0">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (isExpanded) {
-                                                            setExpandedSkillUsageClass(null);
-                                                            return;
-                                                        }
-                                                        setExpandedSkillUsageClass(group.profession);
-                                                    }}
-                                                    className={`w-full px-3 py-2 text-left transition-colors ${isExpanded ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                            {renderProfessionIcon(group.profession, undefined, 'w-4 h-4')}
-                                                            <div className="text-sm font-semibold truncate text-white">{group.profession}</div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 text-gray-400">
-                                                            <span className="text-[10px]">{group.players.length}p</span>
-                                                            {isExpanded ? (
-                                                                <ChevronDown className="w-3.5 h-3.5" />
-                                                            ) : (
-                                                                <ChevronRight className="w-3.5 h-3.5" />
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                                {isExpanded && (
-                                                    <div className="pb-2">
-                                                        <div className="px-6 pt-1 pb-2 flex items-center justify-between text-[11px] text-gray-400">
-                                                            <span>{group.players.length} {group.players.length === 1 ? 'player' : 'players'}</span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setSelectedPlayers((prev) => {
-                                                                        if (allSelected) {
-                                                                            return prev.filter((key) => !groupKeys.includes(key));
-                                                                        }
-                                                                        const next = new Set(prev);
-                                                                        groupKeys.forEach((key) => next.add(key));
-                                                                        return Array.from(next);
-                                                                    });
-                                                                }}
-                                                                className="px-2 py-0.5 rounded-full border border-white/10 bg-white/5 text-[10px] uppercase tracking-widest text-gray-300 hover:text-white"
-                                                            >
-                                                                {allSelected ? 'Clear All' : 'Select All'}
-                                                            </button>
-                                                        </div>
-                                                        {group.players.map((player) => {
-                                                            const isSelected = selectedPlayers.includes(player.key);
-                                                            return (
-                                                                <button
-                                                                    type="button"
-                                                                    key={player.key}
-                                                                    onClick={() => togglePlayerSelection(player.key)}
-                                                                    className={`w-full border-b border-white/5 px-6 py-2 text-left transition-colors last:border-b-0 ${isSelected ? 'border-cyan-400 bg-cyan-500/10 text-white' : 'border-transparent hover:border-white/10 hover:bg-white/5'}`}
-                                                                >
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div>
-                                                                            <div className="text-sm font-semibold truncate text-white">{player.displayName}</div>
-                                                                            <div className="text-[11px] text-gray-400">
-                                                                                {player.account} · {player.profession} · {player.logs} {player.logs === 1 ? 'log' : 'logs'}
-                                                                            </div>
-                                                                        </div>
-                                                                        {isSelected && <CheckCircle2 className="w-4 h-4 text-cyan-300" />}
-                                                                    </div>
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })
-                                )}
-                            </div>
-                        </div>
-                        <div className="space-y-2 flex flex-col h-[320px]">
-                            <div className="flex items-center justify-between">
-                                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">
-                                    Skill Totals
-                                </div>
-                                <div className="text-[11px] text-gray-500">
-                                    {selectedPlayers.length > 0
-                                        ? `${selectedPlayers.length} player${selectedPlayers.length === 1 ? '' : 's'} · ${isSkillUsagePerSecond ? 'casts/sec' : 'total casts'}`
-                                        : 'Select players'}
-                                </div>
-                            </div>
-                            <input
-                                type="search"
-                                value={skillUsageSkillFilter}
-                                onChange={(event) => setSkillUsageSkillFilter(event.target.value)}
-                                placeholder="Filter skill names"
-                                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-gray-200 focus:border-cyan-400 focus:outline-none"
-                            />
-                            <div className="rounded-2xl border border-white/10 bg-black/20 p-0.5 flex-1 min-h-0">
-                                {selectedPlayers.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-xs text-gray-500">
-                                        Select squad players to see the skills they cast.
-                                    </div>
-                                ) : skillBarData.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-xs text-gray-500">
-                                        No skill casts found for the selected players.
-                                    </div>
-                                ) : (
-                                    (() => {
-                                        const maxSkillTotal = skillBarData.reduce((max, entry) => Math.max(max, entry.total), 0) || 1;
-                                        return (
-                                            <div className="space-y-0.5 h-full overflow-y-auto pr-0.5">
-                                                {skillBarData.map((entry, index) => {
-                                                    const widthPct = Math.min(100, (entry.total / maxSkillTotal) * 100);
-                                                    const isSelected = selectedSkillId === entry.skillId;
-                                                    return (
-                                                        <button
-                                                            key={entry.skillId}
-                                                            type="button"
-                                                            onClick={() => setSelectedSkillId(entry.skillId)}
-                                                            className={`w-full space-y-1 rounded-lg border px-2 py-1.5 text-left transition-colors ${isSelected ? 'border-white/60 bg-white/10' : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'}`}
-                                                        >
-                                                                <div className="flex items-center justify-between text-sm text-white min-w-0">
-                                                                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">{`#${index + 1}`}</span>
-                                                                        <span className="font-semibold truncate min-w-0 flex-1 block max-w-[58vw] sm:max-w-none sm:whitespace-normal sm:overflow-visible">{entry.name}</span>
-                                                                    </div>
-                                                                    <span className="text-cyan-200 font-mono text-xs shrink-0">{formatSkillUsageValue(entry.total)}</span>
-                                                                </div>
-                                                            <div className="h-1 w-full rounded-full bg-white/10">
-                                                                <div
-                                                                    className="h-full rounded-full transition-all"
-                                                                    style={{ width: `${widthPct}%`, backgroundColor: entry.color }}
-                                                                />
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        );
-                                    })()
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="space-y-3">
-                        {skillUsageReady ? (
-                            <div className="space-y-4">
-                                <div className="space-y-4 rounded-2xl bg-black/50 p-4 mt-2">
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-sm font-semibold text-gray-200">
-                                            {selectedSkillName || 'Selected Skill Usage'}
-                                        </div>
-                                        <div className="text-[11px] text-gray-400">
-                                            ({isSkillUsagePerSecond ? 'casts per second' : 'casts per log'})
-                                        </div>
-                                    </div>
-                                    <ResponsiveContainer width="100%" height={250}>
-                                        <LineChart data={skillChartData}>
-                                            <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="index"
-                                                type="number"
-                                                tick={{ fill: '#e2e8f0', fontSize: 10 }}
-                                                interval={0}
-                                                tickFormatter={(value: number) => {
-                                                    const entry = skillChartData[value];
-                                                    const label = String(entry?.shortLabel ?? value);
-                                                    return label.length > 20 ? `${label.slice(0, 20)}…` : label;
-                                                }}
-                                            />
-                                            <YAxis
-                                                tick={{ fill: '#e2e8f0', fontSize: 10 }}
-                                                domain={[0, Math.max(1, skillChartMaxY)]}
-                                                allowDecimals={false}
-                                            />
-                                            <Tooltip
-                                                contentStyle={{ backgroundColor: '#0f172a', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
-                                                content={({ active, payload, label }) => {
-                                                    if (!active || !payload || payload.length === 0) return null;
-                                                    const sorted = [...payload].sort((a, b) => (b.value || 0) - (a.value || 0));
-                                                    const first = sorted[0];
-                                                    const header = (first?.payload as any)?.fullLabel || label;
-                                                    return (
-                                                        <div className="rounded-lg bg-slate-900/95 border border-white/10 px-3 py-2 shadow-xl">
-                                                            <div className="text-sm text-white mb-1">{header}</div>
-                                                            <div className="space-y-1">
-                                                                {sorted.map((item) => {
-                                                                    const name = String(item.name || '');
-                                                                    const player = playerMapByKey.get(name);
-                                                                    const labelText = player?.displayName || name || 'Player';
-                                                                    const value = formatSkillUsageValue(Number(item.value || 0));
-                                                                    const color = item.color || '#38bdf8';
-                                                                    return (
-                                                                        <div key={`${labelText}-${value}`} className="flex items-center justify-between text-sm">
-                                                                            <span className="truncate" style={{ color }}>{labelText}</span>
-                                                                            <span className="text-gray-200 font-mono">{value}</span>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                }}
-                                            />
-                                            {selectedPlayers.map((playerKey) => {
-                                                const isSelected = hoveredSkillPlayer.includes(playerKey);
-                                                const hasSelection = hoveredSkillPlayer.length > 0;
-                                                const color = getLineStrokeColor(playerKey, isSelected, hasSelection);
-                                                const dash = getLineDashForPlayer(playerKey);
-                                                const isDimmed = hoveredSkillPlayer.length > 0 && !isSelected;
-                                                return (
-                                                <Line
-                                                    key={playerKey}
-                                                    dataKey={playerKey}
-                                                    stroke={color}
-                                                    strokeWidth={isSelected ? 4 : 3}
-                                                    strokeDasharray={dash}
-                                                    opacity={isDimmed ? 0.6 : 1}
-                                                    dot={false}
-                                                    isAnimationActive={false}
-                                                />
-                                                );
-                                            })}
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                {selectedPlayers.length > 0 && (
-                                    <div className="rounded-2xl bg-black/40 border border-white/10 p-4 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-xs uppercase tracking-[0.4em] text-gray-400">Selected Players</div>
-                                            <div className="text-[11px] text-gray-500">
-                                                {selectedPlayers.length} {selectedPlayers.length === 1 ? 'player' : 'players'}
-                                            </div>
-                                        </div>
-                                        <div className="grid gap-3 md:grid-cols-2">
-                                            {[...selectedPlayers]
-                                                .sort((a, b) => (playerTotalsForSkill[b] || 0) - (playerTotalsForSkill[a] || 0))
-                                                .map((playerKey) => {
-                                                    const player = playerMapByKey.get(playerKey);
-                                                    const total = playerTotalsForSkill[playerKey] ?? 0;
-                                                const isActive = hoveredSkillPlayer.includes(playerKey);
-                                                const hasSelection = hoveredSkillPlayer.length > 0;
-                                                const swatchColor = getLineStrokeColor(playerKey, isActive, hasSelection);
-                                                    return (
-                                                        <button
-                                                            key={playerKey}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setHoveredSkillPlayer((prev) => {
-                                                                    if (prev.includes(playerKey)) {
-                                                                        return prev.filter((key) => key !== playerKey);
-                                                                    }
-                                                                    return [...prev, playerKey];
-                                                                });
-                                                            }}
-                                                            className={`w-full rounded-2xl border bg-white/5 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 min-w-0 ${
-                                                                isActive ? 'border-white/40 bg-white/10' : 'border-white/10 hover:border-white/30 hover:bg-white/10'
-                                                            }`}
-                                                            aria-pressed={isActive}
-                                                        >
-                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                <svg className="h-2 w-6" viewBox="0 0 24 4" aria-hidden="true">
-                                                                    <line
-                                                                        x1="0"
-                                                                        y1="2"
-                                                                        x2="24"
-                                                                        y2="2"
-                                                                        stroke={swatchColor}
-                                                                        strokeWidth="2"
-                                                                        strokeDasharray={getLineDashForPlayer(playerKey)}
-                                                                        strokeLinecap="round"
-                                                                    />
-                                                                </svg>
-                                                                {renderProfessionIcon(player?.profession, player?.professionList, 'w-4 h-4')}
-                                                                <div className="min-w-0">
-                                                                    <div className="text-[10px] uppercase tracking-[0.4em] text-gray-400">Player</div>
-                                                                    <div className="font-semibold text-white truncate">{player?.displayName || playerKey}</div>
-                                                                    <div className="text-[11px] text-gray-400">
-                                                                        {player?.logs ?? 0} {(player?.logs ?? 0) === 1 ? 'log' : 'logs'}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-2xl sm:text-3xl font-black text-white font-mono self-end sm:self-auto shrink-0">
-                                                                {formatSkillUsageValue(total)}
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="rounded-2xl border border-dashed border-white/20 px-4 py-6 mt-2 text-center text-xs text-gray-400">
-                                {skillUsageAvailable
-                                    ? 'Pick one skill and up to two players to visualize their usage over time.'
-                                    : 'Upload or highlight logs with rotation data to enable the skill usage tracker.'}
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <SkillUsageSection
+                    expandedSection={expandedSection}
+                    expandedSectionClosing={expandedSectionClosing}
+                    openExpandedSection={openExpandedSection}
+                    closeExpandedSection={closeExpandedSection}
+                    isSectionVisible={isSectionVisible}
+                    isFirstVisibleSection={isFirstVisibleSection}
+                    sectionClass={sectionClass}
+                    selectedPlayers={selectedPlayers}
+                    setSelectedPlayers={setSelectedPlayers}
+                    removeSelectedPlayer={removeSelectedPlayer}
+                    playerMapByKey={playerMapByKey}
+                    groupedSkillUsagePlayers={groupedSkillUsagePlayers}
+                    expandedSkillUsageClass={expandedSkillUsageClass}
+                    setExpandedSkillUsageClass={setExpandedSkillUsageClass}
+                    togglePlayerSelection={togglePlayerSelection}
+                    skillUsagePlayerFilter={skillUsagePlayerFilter}
+                    setSkillUsagePlayerFilter={setSkillUsagePlayerFilter}
+                    skillUsageView={skillUsageView}
+                    setSkillUsageView={setSkillUsageView}
+                    skillUsageData={skillUsageData}
+                    skillUsageSkillFilter={skillUsageSkillFilter}
+                    setSkillUsageSkillFilter={setSkillUsageSkillFilter}
+                    selectedSkillId={selectedSkillId}
+                    setSelectedSkillId={setSelectedSkillId}
+                    skillBarData={skillBarData}
+                    selectedSkillName={selectedSkillName}
+                    skillUsageReady={skillUsageReady}
+                    skillUsageAvailable={skillUsageAvailable}
+                    isSkillUsagePerSecond={isSkillUsagePerSecond}
+                    skillChartData={skillChartData}
+                    skillChartMaxY={skillChartMaxY}
+                    playerTotalsForSkill={playerTotalsForSkill}
+                    hoveredSkillPlayer={hoveredSkillPlayer}
+                    setHoveredSkillPlayer={setHoveredSkillPlayer}
+                    getLineStrokeColor={getLineStrokeColor}
+                    getLineDashForPlayer={getLineDashForPlayer}
+                    formatSkillUsageValue={formatSkillUsageValue}
+                    formatCastRateValue={formatCastRateValue}
+                    formatCastCountValue={formatCastCountValue}
+                    renderProfessionIcon={renderProfessionIcon}
+                />
 
-                {/* APM Breakdown */}
-                <div
-                    id="apm-stats"
-                    data-section-visible={isSectionVisible('apm-stats')}
-                    data-section-first={isFirstVisibleSection('apm-stats')}
-                    className={sectionClass('apm-stats', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24 flex flex-col ${
-                        expandedSection === 'apm-stats'
-                            ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${
-                                expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                            }`
-                            : 'overflow-hidden'
-                    }`)}
-                >
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
-                        <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                            <Activity className="w-5 h-5 text-emerald-300" />
-                            APM Breakdown
-                        </h3>
-                        <div className="flex items-center gap-3 relative">
-                            <div className="text-xs uppercase tracking-[0.3em] text-gray-500">
-                                {apmSpecTables.length} {apmSpecTables.length === 1 ? 'spec' : 'specs'}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => (expandedSection === 'apm-stats' ? closeExpandedSection() : openExpandedSection('apm-stats'))}
-                                className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${
-                                    expandedSection === 'apm-stats' ? 'absolute -top-1 -right-1 md:static' : ''
-                                }`}
-                                aria-label={expandedSection === 'apm-stats' ? 'Close APM Breakdown' : 'Expand APM Breakdown'}
-                                title={expandedSection === 'apm-stats' ? 'Close' : 'Expand'}
-                            >
-                                {expandedSection === 'apm-stats' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                            </button>
-                        </div>
-                    </div>
-                    <div className={expandedSection === 'apm-stats' ? 'flex-1 min-h-0 flex flex-col' : ''}>
-                        {!apmSpecAvailable ? (
-                            <div className="rounded-2xl border border-dashed border-white/20 px-4 py-6 text-center text-xs text-gray-400">
-                                {skillUsageAvailable
-                                    ? 'No APM data available for the current selection.'
-                                    : 'Upload or highlight logs with rotation data to enable the APM table.'}
-                            </div>
-                        ) : (
-                            <div className={`grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 h-full' : ''}`}>
-                                <div className={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'apm-stats' ? 'h-full' : ''}`}>
-                                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Elite Specs</div>
-                                    <div className={`${sidebarListClass} ${expandedSection === 'apm-stats' ? 'max-h-none flex-1 min-h-0' : ''}`}>
-                                    {apmSpecTables.map((spec) => (
-                                        <div key={spec.profession} className="space-y-1">
-                                            <button
-                                                onClick={() => {
-                                                    if (activeApmSpec === spec.profession && expandedApmSpec === spec.profession) {
-                                                        setExpandedApmSpec(null);
-                                                        return;
-                                                    }
-                                                    setActiveApmSpec(spec.profession);
-                                                    setExpandedApmSpec(spec.profession);
-                                                }}
-                                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
-                                                    activeApmSpec === spec.profession
-                                                        ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
-                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                }`}
-                                            >
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        {renderProfessionIcon(spec.profession, undefined, 'w-4 h-4')}
-                                                        <span className="truncate">{spec.profession}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-gray-400">
-                                                        <span className="text-[10px]">{spec.players.length}p</span>
-                                                        {expandedApmSpec === spec.profession ? (
-                                                            <ChevronDown className="w-3.5 h-3.5" />
-                                                        ) : (
-                                                            <ChevronRight className="w-3.5 h-3.5" />
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                            {expandedApmSpec === spec.profession && spec.skills.length > 0 && (
-                                                <div className="ml-4 space-y-2">
-                                                    <input
-                                                        type="search"
-                                                        value={apmSkillSearch}
-                                                        onChange={(event) => setApmSkillSearch(event.target.value)}
-                                                        placeholder="Search skills..."
-                                                        className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-gray-200 focus:outline-none focus:border-emerald-400"
-                                                    />
-                                                    <button
-                                                        onClick={() => setActiveApmSkillId(ALL_SKILLS_KEY)}
-                                                        className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
-                                                            activeApmSkillId === ALL_SKILLS_KEY
-                                                                ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/40'
-                                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                        }`}
-                                                    >
-                                                        <span className="truncate block">All Skills</span>
-                                                    </button>
-                                                    {(() => {
-                                                        const term = apmSkillSearch.trim().toLowerCase();
-                                                        const filteredSkills = term
-                                                            ? spec.skills.filter((skill) => skill.name.toLowerCase().includes(term))
-                                                            : spec.skills;
-                                                        if (filteredSkills.length === 0) {
-                                                            return (
-                                                                <div className="px-3 py-2 text-[11px] text-gray-500 italic">
-                                                                    No skills match this search.
-                                                                </div>
-                                                            );
-                                                        }
-                                                        return filteredSkills.map((skill) => (
-                                                            <button
-                                                                key={skill.id}
-                                                                onClick={() => setActiveApmSkillId(skill.id)}
-                                                                className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors ${
-                                                                    activeApmSkillId === skill.id
-                                                                        ? 'bg-emerald-500/10 text-emerald-100 border-emerald-400/40'
-                                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                                }`}
-                                                            >
-                                                                <span className="truncate block">{skill.name}</span>
-                                                            </button>
-                                                        ));
-                                                    })()}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`}>
-                                {!activeApmSpecTable || (!isAllApmSkills && !activeApmSkill) ? (
-                                    <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
-                                        Select an elite spec and skill to view APM details
-                                    </div>
-                                ) : (
-                                    <div className={expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}>
-                                        <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
-                                            <div className="flex flex-col gap-2 min-w-0">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    {renderProfessionIcon(activeApmSpecTable.profession, undefined, 'w-4 h-4')}
-                                                    <div className="text-sm font-semibold text-gray-200">{activeApmSpecTable.profession}</div>
-                                                    <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
-                                                    <div className="text-sm font-semibold text-gray-200 truncate">
-                                                        {isAllApmSkills ? 'All Skills' : activeApmSkill?.name}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-2 text-right ml-auto mt-2">
-                                                <div className="text-[11px] text-gray-400">
-                                                    {isAllApmSkills
-                                                        ? `${activeApmSpecTable.players.length} ${activeApmSpecTable.players.length === 1 ? 'player' : 'players'} | ${formatApmValue(apmView === 'perSecond' ? activeApmSpecTable.totalAps : activeApmSpecTable.totalApm)} ${apmView === 'perSecond' ? 'APS' : 'APM'} | ${formatApmValue(apmView === 'perSecond' ? activeApmSpecTable.totalApsNoAuto : activeApmSpecTable.totalApmNoAuto)} ${apmView === 'perSecond' ? 'APS' : 'APM'} (no auto)`
-                                                        : `${activeApmSkill?.playerRows.length ?? 0} ${activeApmSkill?.playerRows.length === 1 ? 'player' : 'players'} | ${formatApmValue(activeApmSkill?.totalApm ?? 0)} APM | ${apmView === 'perSecond'
-                                                            ? `${formatCastRateValue(activeApmSkill?.totalCastsPerSecond ?? 0)} casts/sec`
-                                                            : `${formatCastCountValue(activeApmSkill?.totalCasts ?? 0)} casts`}`}
-                                                </div>
-                                                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                                    {[
-                                                        { id: 'total', label: 'Total' },
-                                                        { id: 'perSecond', label: 'Per Sec' }
-                                                    ].map((mode) => (
-                                                        <button
-                                                            key={mode.id}
-                                                            type="button"
-                                                            onClick={() => setApmView(mode.id as 'total' | 'perSecond')}
-                                                            className={`px-2.5 py-1 rounded-full transition-colors ${
-                                                                apmView === mode.id
-                                                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/40'
-                                                                    : 'border border-transparent text-gray-400 hover:text-white'
-                                                            }`}
-                                                        >
-                                                            {mode.label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {isAllApmSkills ? (
-                                            <>
-                                                <div className="grid grid-cols-[1.6fr_0.7fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
-                                                    <div>Player</div>
-                                                    <div className="text-right">{apmView === 'perSecond' ? 'APS' : 'APM'}</div>
-                                                    <div className="text-right">{apmView === 'perSecond' ? 'APS' : 'APM'} (No Auto)</div>
-                                                </div>
-                                                <div className={expandedSection === 'apm-stats' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}>
-                                                    {activeApmSpecTable.playerRows.map((row, index) => (
-                                                        <div
-                                                            key={`${activeApmSpecTable.profession}-all-${row.key}`}
-                                                            className="grid grid-cols-[1.6fr_0.7fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5"
-                                                        >
-                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">{`#${index + 1}`}</span>
-                                                                {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                                <div className="min-w-0">
-                                                                    <div className="font-semibold text-white truncate">{row.displayName}</div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right font-mono text-gray-300">
-                                                                {formatApmValue(apmView === 'perSecond' ? row.aps : row.apm)}
-                                                            </div>
-                                                            <div className="text-right font-mono text-gray-300">
-                                                                {formatApmValue(apmView === 'perSecond' ? row.apsNoAuto : row.apmNoAuto)}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="grid grid-cols-[1.6fr_0.7fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
-                                                    <div>Player</div>
-                                                    <div className="text-right">APM</div>
-                                                    <div className="text-right">{apmView === 'perSecond' ? 'Casts/Sec' : 'Casts'}</div>
-                                                </div>
-                                                <div className={expandedSection === 'apm-stats' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}>
-                                                    {activeApmSkill?.playerRows.map((row, index) => (
-                                                        <div
-                                                            key={`${activeApmSpecTable.profession}-${activeApmSkill?.id}-${row.key}`}
-                                                            className="grid grid-cols-[1.6fr_0.7fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5"
-                                                        >
-                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">{`#${index + 1}`}</span>
-                                                                {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                                <div className="min-w-0">
-                                                                    <div className="font-semibold text-white truncate">{row.displayName}</div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right font-mono text-gray-300">
-                                                                {formatApmValue(row.apm)}
-                                                            </div>
-                                                            <div className="text-right font-mono text-gray-300">
-                                                                {apmView === 'perSecond'
-                                                                    ? formatCastRateValue(row.aps)
-                                                                    : formatCastCountValue(row.count)}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                    </div>
-                </div>
+                <ApmSection
+                    expandedSection={expandedSection}
+                    expandedSectionClosing={expandedSectionClosing}
+                    openExpandedSection={openExpandedSection}
+                    closeExpandedSection={closeExpandedSection}
+                    isSectionVisible={isSectionVisible}
+                    isFirstVisibleSection={isFirstVisibleSection}
+                    sectionClass={sectionClass}
+                    sidebarListClass={sidebarListClass}
+                    apmSpecAvailable={apmSpecAvailable}
+                    skillUsageAvailable={skillUsageAvailable}
+                    apmSpecTables={apmSpecTables}
+                    activeApmSpec={activeApmSpec}
+                    setActiveApmSpec={setActiveApmSpec}
+                    expandedApmSpec={expandedApmSpec}
+                    setExpandedApmSpec={setExpandedApmSpec}
+                    activeApmSkillId={activeApmSkillId}
+                    setActiveApmSkillId={setActiveApmSkillId}
+                    ALL_SKILLS_KEY={ALL_SKILLS_KEY}
+                    apmSkillSearch={apmSkillSearch}
+                    setApmSkillSearch={setApmSkillSearch}
+                    activeApmSpecTable={activeApmSpecTable}
+                    activeApmSkill={activeApmSkill}
+                    isAllApmSkills={isAllApmSkills}
+                    apmView={apmView}
+                    setApmView={setApmView}
+                    formatApmValue={formatApmValue}
+                    formatCastRateValue={formatCastRateValue}
+                    formatCastCountValue={formatCastCountValue}
+                    renderProfessionIcon={renderProfessionIcon}
+                />
                 {!embedded && <div className="h-24" aria-hidden="true" />}
             </div>
 

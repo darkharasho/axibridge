@@ -1,5 +1,28 @@
 [
   {
+    "id": "20260131-194733-e43d",
+    "title": "Dub Grumble",
+    "commanders": [
+      "Dub Grumble"
+    ],
+    "dateStart": "2026-02-01T03:47:33.000Z",
+    "dateEnd": "2026-02-01T04:01:27.000Z",
+    "dateLabel": "1/31/2026, 7:47:33 PM - 1/31/2026, 8:01:27 PM",
+    "url": "./?report=20260131-194733-e43d",
+    "summary": {
+      "borderlandsPct": 1,
+      "mapSlices": [
+        {
+          "name": "Green Borderlands",
+          "value": 5,
+          "color": "#10b981"
+        }
+      ],
+      "avgSquadSize": 36,
+      "avgEnemySize": 57
+    }
+  },
+  {
     "id": "20260131-195242-ino6",
     "title": "Dub Grumble",
     "commanders": [
