@@ -779,6 +779,7 @@ function App() {
 
     const isModernTheme = uiTheme === 'modern';
     const appIconPath = `${import.meta.env.BASE_URL || './'}img/ArcBridgeGradient.png`;
+    const isDev = import.meta.env.DEV;
     const shellClassName = isModernTheme
         ? 'app-shell h-screen w-screen text-white overflow-hidden flex flex-col'
         : 'app-shell h-screen w-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black text-white font-sans overflow-hidden flex flex-col';
@@ -790,6 +791,11 @@ function App() {
                 <div className="flex items-center gap-2">
                     <img src={appIconPath} alt="Icon" className="h-4 w-auto" />
                     <span className="text-xs font-medium text-gray-400">ArcBridge</span>
+                    {isDev ? (
+                        <span className="ml-1 rounded-full border border-amber-500/50 bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-amber-300">
+                            Dev Build
+                        </span>
+                    ) : null}
                 </div>
                 <div className="flex items-center gap-4 no-drag">
                     <button onClick={() => window.electronAPI.windowControl('minimize')} className="text-gray-400 hover:text-white transition-colors">

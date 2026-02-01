@@ -33,6 +33,11 @@ autoUpdater.logger = log;
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 
+if (!app.isPackaged) {
+    const devUserDataDir = path.join(app.getPath('appData'), 'ArcBridge-Dev');
+    app.setPath('userData', devUserDataDir);
+}
+
 function formatLogArgs(args: any[]) {
     return args.map(arg => {
         if (arg instanceof Error) {
