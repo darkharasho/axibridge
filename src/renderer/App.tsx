@@ -152,6 +152,10 @@ function App() {
 
     // Stats calculation
     const totalUploads = logs.length;
+    const pendingUploads = logs.filter((log) =>
+        log.status === 'queued' || log.status === 'pending' || log.status === 'uploading'
+    ).length;
+    const completedUploads = totalUploads - pendingUploads;
     const avgSquadSize = logs.length > 0
         ? Math.round(logs.reduce((acc, log) => acc + (log.details?.players?.filter((p: any) => !p.notInSquad)?.length || 0), 0) / logs.length)
         : 0;
@@ -1118,7 +1122,11 @@ function App() {
                             >
                                 <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl p-4">
                                     <div className="text-blue-200 text-xs font-medium mb-1 uppercase tracking-wider">Uploads</div>
-                                    <div className="text-2xl font-bold text-white">{totalUploads}</div>
+                                    <div className="text-2xl font-bold text-white">
+                                        <span className="text-amber-200">{pendingUploads}</span>
+                                        <span className="text-gray-500 mx-2">/</span>
+                                        <span className="text-emerald-300">{completedUploads}</span>
+                                    </div>
                                 </div>
                                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4">
                                     <div className="text-gray-400 text-xs font-medium mb-1 uppercase tracking-wider">W / L</div>

@@ -7,8 +7,11 @@ const CONDITION_NAME_MAP = new Map<string, string>([
     ['vulnerability', 'Vulnerability'],
     ['weakness', 'Weakness'],
     ['blind', 'Blind'],
+    ['cripple', 'Cripple'],
     ['crippled', 'Cripple'],
+    ['chill', 'Chill'],
     ['chilled', 'Chill'],
+    ['immob', 'Immobilize'],
     ['immobilized', 'Immobilize'],
     ['slow', 'Slow'],
     ['fear', 'Fear'],
@@ -18,8 +21,17 @@ const CONDITION_NAME_MAP = new Map<string, string>([
 const getConditionName = (name?: string | null) => {
     if (!name) return null;
     const cleaned = name.trim().toLowerCase();
-    return CONDITION_NAME_MAP.get(cleaned) || null;
+    const directMatch = CONDITION_NAME_MAP.get(cleaned);
+    if (directMatch) return directMatch;
+    const tokens = cleaned.split(/[^a-z]+/).filter(Boolean);
+    for (const token of tokens) {
+        const match = CONDITION_NAME_MAP.get(token);
+        if (match) return match;
+    }
+    return null;
 };
+
+export const normalizeConditionLabel = (name?: string | null) => getConditionName(name);
 
 export const resolveConditionNameFromEntry = (
     skillName: string,

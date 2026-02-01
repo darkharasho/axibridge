@@ -189,8 +189,8 @@ export function ReportApp() {
         : undefined;
     const glassCardStyle: CSSProperties = {
         backgroundImage: isModernUi
-            ? 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.18), rgba(14, 18, 26, 0.78) 70%)'
-            : 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.22), rgba(15, 23, 42, 0.72) 70%)'
+            ? 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.06) 70%)'
+            : 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.26), rgba(var(--accent-rgb), 0.08) 70%)'
     };
 
     useEffect(() => {

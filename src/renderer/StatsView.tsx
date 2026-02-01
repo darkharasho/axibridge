@@ -7,7 +7,7 @@ import { Player, Target } from '../shared/dpsReportTypes';
 import { getProfessionColor, getProfessionIconPath } from '../shared/professionUtils';
 import { BoonCategory, BoonMetric, buildBoonTables, formatBoonMetricDisplay, getBoonMetricValue } from '../shared/boonGeneration';
 import { DEFAULT_DISRUPTION_METHOD, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IMvpWeights, IStatsViewSettings, IWebUploadState } from './global.d';
-import { computeOutgoingConditions, resolveConditionNameFromEntry, type OutgoingConditionsResult } from '../shared/conditionsMetrics';
+import { computeOutgoingConditions, normalizeConditionLabel, resolveConditionNameFromEntry, type OutgoingConditionsResult } from '../shared/conditionsMetrics';
 
 interface StatsViewProps {
     logs: ILogData[];
@@ -23,6 +23,18 @@ interface StatsViewProps {
 }
 
 const sidebarListClass = 'max-h-80 overflow-y-auto space-y-1 pr-1';
+const NON_DAMAGING_CONDITIONS = new Set([
+    'Vulnerability',
+    'Weakness',
+    'Blind',
+    'Cripple',
+    'Chill',
+    'Immobilize',
+    'Immobile',
+    'Slow',
+    'Fear',
+    'Taunt'
+]);
 
 const useSmartTooltipPlacement = (
     open: boolean,
@@ -597,6 +609,14 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
         key: 'damage',
         dir: 'desc'
     });
+    const isNonDamagingCondition = activeConditionName !== 'all' && NON_DAMAGING_CONDITIONS.has(activeConditionName);
+    const showConditionDamage = !isNonDamagingCondition;
+    const conditionGridClass = showConditionDamage
+        ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr]'
+        : 'grid-cols-[0.4fr_1.6fr_1fr]';
+    const effectiveConditionSort = showConditionDamage
+        ? conditionSort
+        : { key: 'applications', dir: conditionSort.key === 'applications' ? conditionSort.dir : 'desc' };
     const [activeSupportStat, setActiveSupportStat] = useState<string>('condiCleanse');
     const [activeHealingMetric, setActiveHealingMetric] = useState<string>('healing');
     const [healingCategory, setHealingCategory] = useState<'total' | 'squad' | 'group' | 'self' | 'offSquad'>('total');
@@ -2507,12 +2527,84 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
         };
     }, [validLogs, precomputedStats]);
 
-    const conditionSummary = conditionDirection === 'outgoing'
-        ? stats.outgoingConditionSummary
-        : stats.incomingConditionSummary;
-    const conditionPlayers = conditionDirection === 'outgoing'
-        ? stats.outgoingConditionPlayers
-        : stats.incomingConditionPlayers;
+    const normalizeConditionName = (name?: string | null) => normalizeConditionLabel(name) ?? (name || '');
+    const conditionSummary = useMemo(() => {
+        const rawSummary = conditionDirection === 'outgoing'
+            ? stats.outgoingConditionSummary
+            : stats.incomingConditionSummary;
+        const merged = new Map<string, any>();
+        (rawSummary || []).forEach((entry: any) => {
+            const key = normalizeConditionName(entry.name);
+            if (!key) return;
+            const existing = merged.get(key) || {
+                ...entry,
+                name: key,
+                applications: 0,
+                damage: 0,
+                applicationsFromBuffs: 0,
+                applicationsFromBuffsActive: 0
+            };
+            existing.applications += Number(entry.applications || 0);
+            existing.damage += Number(entry.damage || 0);
+            if (Number.isFinite(entry.applicationsFromBuffs)) {
+                existing.applicationsFromBuffs += Number(entry.applicationsFromBuffs || 0);
+            }
+            if (Number.isFinite(entry.applicationsFromBuffsActive)) {
+                existing.applicationsFromBuffsActive += Number(entry.applicationsFromBuffsActive || 0);
+            }
+            merged.set(key, existing);
+        });
+        return Array.from(merged.values());
+    }, [conditionDirection, stats.outgoingConditionSummary, stats.incomingConditionSummary]);
+
+    const conditionPlayers = useMemo(() => {
+        const rawPlayers = conditionDirection === 'outgoing'
+            ? stats.outgoingConditionPlayers
+            : stats.incomingConditionPlayers;
+        return (rawPlayers || []).map((player: any) => {
+            const mergedConditions: Record<string, any> = {};
+            let totalApplications = 0;
+            let totalDamage = 0;
+            Object.entries(player.conditions || {}).forEach(([conditionName, entry]: [string, any]) => {
+                const key = normalizeConditionName(conditionName);
+                if (!key) return;
+                const existing = mergedConditions[key] || {
+                    ...entry,
+                    applications: 0,
+                    damage: 0,
+                    skills: {}
+                };
+                existing.applications += Number(entry.applications || 0);
+                existing.damage += Number(entry.damage || 0);
+                if (Number.isFinite(entry.applicationsFromBuffs)) {
+                    existing.applicationsFromBuffs = (existing.applicationsFromBuffs || 0) + Number(entry.applicationsFromBuffs || 0);
+                }
+                if (Number.isFinite(entry.applicationsFromBuffsActive)) {
+                    existing.applicationsFromBuffsActive = (existing.applicationsFromBuffsActive || 0) + Number(entry.applicationsFromBuffsActive || 0);
+                }
+                Object.entries(entry.skills || {}).forEach(([skillName, skillEntry]: [string, any]) => {
+                    const skillExisting = existing.skills[skillName] || { name: skillEntry.name, hits: 0, damage: 0 };
+                    skillExisting.hits += Number(skillEntry.hits || 0);
+                    skillExisting.damage += Number(skillEntry.damage || 0);
+                    existing.skills[skillName] = skillExisting;
+                });
+                mergedConditions[key] = existing;
+            });
+            Object.values(mergedConditions).forEach((entry: any) => {
+                const applications = conditionDirection === 'outgoing' && entry.applicationsFromBuffs && entry.applicationsFromBuffs > 0
+                    ? entry.applicationsFromBuffs
+                    : entry.applications;
+                totalApplications += Number(applications || 0);
+                totalDamage += Number(entry.damage || 0);
+            });
+            return {
+                ...player,
+                conditions: mergedConditions,
+                totalApplications,
+                totalDamage
+            };
+        });
+    }, [conditionDirection, stats.outgoingConditionPlayers, stats.incomingConditionPlayers]);
 
     const skillUsageData = useMemo<SkillUsageSummary>(() => {
         const precomputedSkillUsage = precomputedStats?.skillUsageData as SkillUsageSummary | undefined;
@@ -4683,7 +4775,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                     </div>
                                     <div className="text-xs uppercase tracking-widest text-gray-500">Squad Totals</div>
                                 </div>
-                                <div className="grid grid-cols-[0.4fr_1.6fr_1fr_1fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                <div className={`grid ${conditionGridClass} text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2`}>
                                     <div className="text-center">#</div>
                                     <div>Player</div>
                                     <button
@@ -4694,22 +4786,24 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                 dir: prev.key === 'applications' ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
                                             }));
                                         }}
-                                        className={`text-right transition-colors ${conditionSort.key === 'applications' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                        className={`text-right transition-colors ${effectiveConditionSort.key === 'applications' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
                                     >
-                                        Applications {conditionSort.key === 'applications' ? (conditionSort.dir === 'desc' ? '↓' : '↑') : ''}
+                                        Applications {effectiveConditionSort.key === 'applications' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
                                     </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setConditionSort((prev) => ({
-                                                key: 'damage',
-                                                dir: prev.key === 'damage' ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
-                                            }));
-                                        }}
-                                        className={`text-right transition-colors ${conditionSort.key === 'damage' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
-                                    >
-                                        Damage {conditionSort.key === 'damage' ? (conditionSort.dir === 'desc' ? '↓' : '↑') : ''}
-                                    </button>
+                                    {showConditionDamage ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setConditionSort((prev) => ({
+                                                    key: 'damage',
+                                                    dir: prev.key === 'damage' ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
+                                                }));
+                                            }}
+                                            className={`text-right transition-colors ${effectiveConditionSort.key === 'damage' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                        >
+                                            Damage {effectiveConditionSort.key === 'damage' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
+                                        </button>
+                                    ) : null}
                                 </div>
                                 <div className={`${expandedSection === 'conditions-outgoing' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-80 overflow-y-auto'}`}>
                                     {(() => {
@@ -4736,11 +4830,11 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                             })
                                             .filter((row: any) => row.applications > 0 || row.damage > 0)
                                             .sort((a: any, b: any) => {
-                                                const aVal = conditionSort.key === 'applications' ? (a.applications || 0) : (a.damage || 0);
-                                                const bVal = conditionSort.key === 'applications' ? (b.applications || 0) : (b.damage || 0);
-                                                const primary = conditionSort.dir === 'desc' ? bVal - aVal : aVal - bVal;
+                                                const aVal = effectiveConditionSort.key === 'applications' ? (a.applications || 0) : (a.damage || 0);
+                                                const bVal = effectiveConditionSort.key === 'applications' ? (b.applications || 0) : (b.damage || 0);
+                                                const primary = effectiveConditionSort.dir === 'desc' ? bVal - aVal : aVal - bVal;
                                                 if (primary !== 0) return primary;
-                                                const secondary = conditionSort.key === 'applications'
+                                                const secondary = effectiveConditionSort.key === 'applications'
                                                     ? (b.damage || 0) - (a.damage || 0)
                                                     : (b.applications || 0) - (a.applications || 0);
                                                 if (secondary !== 0) return secondary;
@@ -4782,7 +4876,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                             const applicationsValue = Math.round(entry.applications || 0).toLocaleString();
                                             const damageValue = Math.round(entry.damage || 0).toLocaleString();
                                             return (
-                                            <div key={`${entry.account}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr_1fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                            <div key={`${entry.account}-${idx}`} className={`grid ${conditionGridClass} px-4 py-2 text-sm text-gray-200 border-t border-white/5`}>
                                                 <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {renderProfessionIcon(entry.profession, entry.professionList, 'w-4 h-4')}
@@ -4803,21 +4897,23 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                         applicationsValue
                                                     )}
                                                 </div>
-                                                <div className="text-right font-mono text-gray-300">
-                                                    {showDamageTooltip ? (
-                                                        <SkillBreakdownTooltip
-                                                            value={damageValue}
-                                                            label="Condition Damage Sources"
-                                                            items={skillsDamageList.map((skill: any) => ({
-                                                                name: skill.name,
-                                                                value: Math.round(skill.damage).toLocaleString()
-                                                            }))}
-                                                            className="justify-end"
-                                                        />
-                                                    ) : (
-                                                        damageValue
-                                                    )}
-                                                </div>
+                                                {showConditionDamage ? (
+                                                    <div className="text-right font-mono text-gray-300">
+                                                        {showDamageTooltip ? (
+                                                            <SkillBreakdownTooltip
+                                                                value={damageValue}
+                                                                label="Condition Damage Sources"
+                                                                items={skillsDamageList.map((skill: any) => ({
+                                                                    name: skill.name,
+                                                                    value: Math.round(skill.damage).toLocaleString()
+                                                                }))}
+                                                                className="justify-end"
+                                                            />
+                                                        ) : (
+                                                            damageValue
+                                                        )}
+                                                    </div>
+                                                ) : null}
                                             </div>
                                         );
                                         });
