@@ -512,6 +512,39 @@ interface SkillUsageSummary {
     resUtilitySkills?: Array<{ id: string; name: string }>;
 }
 
+interface ApmPlayerRow {
+    key: string;
+    account: string;
+    displayName: string;
+    profession: string;
+    professionList: string[];
+    logs: number;
+    totalActiveSeconds: number;
+    totalCasts: number;
+    totalAutoCasts: number;
+    apm: number;
+    apmNoAuto: number;
+    aps: number;
+    apsNoAuto: number;
+}
+
+interface ApmSkillEntry {
+    id: string;
+    name: string;
+    totalCasts: number;
+    playerCounts: Map<string, number>;
+}
+
+interface ApmSpecBucket {
+    profession: string;
+    players: SkillUsagePlayer[];
+    playerRows: ApmPlayerRow[];
+    totalActiveSeconds: number;
+    totalCasts: number;
+    totalAutoCasts: number;
+    skillMap: Map<string, ApmSkillEntry>;
+}
+
 export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, uiTheme }: StatsViewProps) {
     const method = disruptionMethod || DEFAULT_DISRUPTION_METHOD;
     const activeMvpWeights = mvpWeights || DEFAULT_MVP_WEIGHTS;
@@ -1712,7 +1745,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 })), true)
             };
 
-            topStatsPerSecond = {
+            const topStatsPerSecondLocal = {
                 maxDownContrib: { ...emptyLeader },
                 maxCleanses: { ...emptyLeader },
                 maxStrips: { ...emptyLeader },
@@ -1737,16 +1770,18 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                 const dodges = getTopStatPerSecond(stat, 'dodges');
                 const revives = getTopStatPerSecond(stat, 'revives');
 
-                if (downContrib > topStatsPerSecond.maxDownContrib.value) topStatsPerSecond.maxDownContrib = { value: downContrib, ...pInfo };
-                if (cleanses > topStatsPerSecond.maxCleanses.value) topStatsPerSecond.maxCleanses = { value: cleanses, ...pInfo };
-                if (strips > topStatsPerSecond.maxStrips.value) topStatsPerSecond.maxStrips = { value: strips, ...pInfo };
-                if (stab > topStatsPerSecond.maxStab.value) topStatsPerSecond.maxStab = { value: stab, ...pInfo };
-                if (healing > topStatsPerSecond.maxHealing.value) topStatsPerSecond.maxHealing = { value: healing, ...pInfo };
-                if (barrier > topStatsPerSecond.maxBarrier.value) topStatsPerSecond.maxBarrier = { value: barrier, ...pInfo };
-                if (cc > topStatsPerSecond.maxCC.value) topStatsPerSecond.maxCC = { value: cc, ...pInfo };
-                if (dodges > topStatsPerSecond.maxDodges.value) topStatsPerSecond.maxDodges = { value: dodges, ...pInfo };
-                if (revives > topStatsPerSecond.maxRevives.value) topStatsPerSecond.maxRevives = { value: revives, ...pInfo };
+                if (downContrib > topStatsPerSecondLocal.maxDownContrib.value) topStatsPerSecondLocal.maxDownContrib = { value: downContrib, ...pInfo };
+                if (cleanses > topStatsPerSecondLocal.maxCleanses.value) topStatsPerSecondLocal.maxCleanses = { value: cleanses, ...pInfo };
+                if (strips > topStatsPerSecondLocal.maxStrips.value) topStatsPerSecondLocal.maxStrips = { value: strips, ...pInfo };
+                if (stab > topStatsPerSecondLocal.maxStab.value) topStatsPerSecondLocal.maxStab = { value: stab, ...pInfo };
+                if (healing > topStatsPerSecondLocal.maxHealing.value) topStatsPerSecondLocal.maxHealing = { value: healing, ...pInfo };
+                if (barrier > topStatsPerSecondLocal.maxBarrier.value) topStatsPerSecondLocal.maxBarrier = { value: barrier, ...pInfo };
+                if (cc > topStatsPerSecondLocal.maxCC.value) topStatsPerSecondLocal.maxCC = { value: cc, ...pInfo };
+                if (dodges > topStatsPerSecondLocal.maxDodges.value) topStatsPerSecondLocal.maxDodges = { value: dodges, ...pInfo };
+                if (revives > topStatsPerSecondLocal.maxRevives.value) topStatsPerSecondLocal.maxRevives = { value: revives, ...pInfo };
             });
+
+            topStatsPerSecond = topStatsPerSecondLocal;
 
             topStatsLeaderboardsPerSecond = {
                 downContrib: buildLeaderboard(playerEntries.map(({ key, stat }) => ({
@@ -2855,47 +2890,20 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
 
     const ALL_SKILLS_KEY = '__all__';
     const apmSpecTables = useMemo(() => {
-        const specMap = new Map<string, {
-            profession: string;
-            players: SkillUsagePlayer[];
-            playerRows: Array<{
-                key: string;
-                account: string;
-                displayName: string;
-                profession: string;
-                professionList: string[];
-                logs: number;
-                totalActiveSeconds: number;
-                totalCasts: number;
-                totalAutoCasts: number;
-                apm: number;
-                apmNoAuto: number;
-                aps: number;
-                apsNoAuto: number;
-            }>;
-            totalActiveSeconds: number;
-            totalCasts: number;
-            totalAutoCasts: number;
-            skillMap: Map<string, {
-                id: string;
-                name: string;
-                totalCasts: number;
-                playerCounts: Map<string, number>;
-            }>;
-        }>();
+        const specMap = new Map<string, ApmSpecBucket>();
         const playerLookup = new Map(skillUsageData.players.map((player) => [player.key, player]));
         const normalizeSkillKey = (name: string) => name.trim().toLowerCase();
 
         skillUsageData.players.forEach((player) => {
             const profession = player.profession || 'Unknown';
-            const entry = specMap.get(profession) || {
+            const entry: ApmSpecBucket = specMap.get(profession) || {
                 profession,
-                players: [],
-                playerRows: [],
+                players: [] as SkillUsagePlayer[],
+                playerRows: [] as ApmPlayerRow[],
                 totalActiveSeconds: 0,
                 totalCasts: 0,
                 totalAutoCasts: 0,
-                skillMap: new Map()
+                skillMap: new Map<string, ApmSkillEntry>()
             };
             const activeSeconds = player.totalActiveSeconds || 0;
             let totalCasts = 0;
