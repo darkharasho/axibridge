@@ -3878,6 +3878,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between mb-4">
                             <h3 className="text-lg font-bold text-gray-200">Fight Breakdown</h3>
                             <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
                                 {([
                                     { id: 'sizes', label: 'Sizes' },
                                     { id: 'outcomes', label: 'Outcome' },
@@ -3887,14 +3888,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                     <button
                                         key={tab.id}
                                         onClick={() => setFightBreakdownTab(tab.id)}
-                                        className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border transition-colors ${fightBreakdownTab === tab.id
-                                            ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
-                                            : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
+                                        className={`px-2.5 py-1 rounded-full transition-colors ${fightBreakdownTab === tab.id
+                                            ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-500/40'
+                                            : 'border border-transparent text-gray-400 hover:text-white'
                                             }`}
                                     >
                                         {tab.label}
                                     </button>
                                 ))}
+                                </div>
                                 <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:ml-1 w-full sm:w-auto">
                                     {stats.fightBreakdown?.length || 0} Fights
                                 </span>
@@ -4641,6 +4643,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                             <div className="flex flex-col gap-4">
                                 <div className="flex flex-col gap-3">
                                     <div className="flex flex-wrap gap-2 justify-center">
+                                        <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
                                         {([
                                             { value: 'selfBuffs', label: 'Self' },
                                             { value: 'groupBuffs', label: 'Group' },
@@ -4650,14 +4653,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                             <button
                                                 key={option.value}
                                                 onClick={() => setActiveBoonCategory(option.value)}
-                                                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${activeBoonCategory === option.value
-                                                    ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
-                                                    : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                className={`px-2.5 py-1 rounded-full transition-colors ${activeBoonCategory === option.value
+                                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
+                                                    : 'border border-transparent text-gray-400 hover:text-white'
                                                     }`}
                                             >
                                                 {option.label}
                                             </button>
                                         ))}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -4701,6 +4705,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
+                                                    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
                                                     {([
                                                         { value: 'total', label: 'Total Gen' },
                                                         { value: 'average', label: 'Gen/Sec' },
@@ -4709,14 +4714,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                         <button
                                                             key={option.value}
                                                             onClick={() => setActiveBoonMetric(option.value)}
-                                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${activeBoonMetric === option.value
-                                                                ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                            className={`px-2.5 py-1 rounded-full transition-colors ${activeBoonMetric === option.value
+                                                                ? 'bg-blue-500/20 text-blue-200 border border-blue-500/40'
+                                                                : 'border border-transparent text-gray-400 hover:text-white'
                                                                 }`}
                                                         >
                                                             {option.label}
                                                         </button>
                                                     ))}
+                                                    </div>
                                                 </div>
                                                 <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                     <div className="text-center">#</div>
@@ -4867,6 +4873,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                 <div className="text-xs uppercase tracking-widest text-gray-500">Offensive</div>
                                             </div>
                                             <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
+                                                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
                                                 {([
                                                     { value: 'total', label: 'Total' },
                                                     { value: 'per1s', label: 'Stat/1s' },
@@ -4875,14 +4882,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                     <button
                                                         key={option.value}
                                                         onClick={() => setOffenseViewMode(option.value)}
-                                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${offenseViewMode === option.value
-                                                            ? 'bg-rose-500/20 text-rose-200 border-rose-500/40'
-                                                            : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                        className={`px-2.5 py-1 rounded-full transition-colors ${offenseViewMode === option.value
+                                                            ? 'bg-rose-500/20 text-rose-200 border border-rose-500/40'
+                                                            : 'border border-transparent text-gray-400 hover:text-white'
                                                             }`}
                                                     >
                                                         {option.label}
                                                     </button>
                                                 ))}
+                                                </div>
                                             </div>
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                 <div className="text-center">#</div>
@@ -4943,37 +4951,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                             <Skull className="w-5 h-5 text-amber-300" />
                             Conditions
                         </h3>
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setConditionDirection('outgoing')}
-                                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${conditionDirection === 'outgoing'
-                                    ? 'bg-amber-500/20 text-amber-200 border-amber-500/40'
-                                    : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
-                                    }`}
-                            >
-                                Outgoing
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setConditionDirection('incoming')}
-                                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${conditionDirection === 'incoming'
-                                    ? 'bg-amber-500/20 text-amber-200 border-amber-500/40'
-                                    : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
-                                    }`}
-                            >
-                                Incoming
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => (expandedSection === 'conditions-outgoing' ? closeExpandedSection() : openExpandedSection('conditions-outgoing'))}
-                                className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
-                                aria-label={expandedSection === 'conditions-outgoing' ? 'Close Outgoing Conditions' : 'Expand Outgoing Conditions'}
-                                title={expandedSection === 'conditions-outgoing' ? 'Close' : 'Expand'}
-                            >
-                                {expandedSection === 'conditions-outgoing' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => (expandedSection === 'conditions-outgoing' ? closeExpandedSection() : openExpandedSection('conditions-outgoing'))}
+                            className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                            aria-label={expandedSection === 'conditions-outgoing' ? 'Close Outgoing Conditions' : 'Expand Outgoing Conditions'}
+                            title={expandedSection === 'conditions-outgoing' ? 'Close' : 'Expand'}
+                        >
+                            {expandedSection === 'conditions-outgoing' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                        </button>
                     </div>
                     {conditionSummary && conditionSummary.length > 0 ? (
                         <div className={`grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 ${expandedSection === 'conditions-outgoing' ? 'flex-1 min-h-0 h-full' : ''}`}>
@@ -5025,11 +5011,35 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                 </div>
                             </div>
                             <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'conditions-outgoing' ? 'flex flex-col min-h-0' : ''}`}>
-                                <div className="flex items-center justify-between px-4 py-3 bg-white/5">
+                                <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
                                     <div className="text-sm font-semibold text-gray-200">
                                         {activeConditionName === 'all' ? 'All Conditions' : activeConditionName}
                                     </div>
-                                    <div className="text-xs uppercase tracking-widest text-gray-500">Squad Totals</div>
+                                    <div className="flex flex-col items-end gap-2 text-right ml-auto mt-2">
+                                        <div className="text-xs uppercase tracking-widest text-gray-500">Squad Totals</div>
+                                        <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
+                                            <button
+                                                type="button"
+                                                onClick={() => setConditionDirection('outgoing')}
+                                                className={`px-2.5 py-1 rounded-full transition-colors ${conditionDirection === 'outgoing'
+                                                    ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40'
+                                                    : 'border border-transparent text-gray-400 hover:text-white'
+                                                    }`}
+                                            >
+                                                Outgoing
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConditionDirection('incoming')}
+                                                className={`px-2.5 py-1 rounded-full transition-colors ${conditionDirection === 'incoming'
+                                                    ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40'
+                                                    : 'border border-transparent text-gray-400 hover:text-white'
+                                                    }`}
+                                            >
+                                                Incoming
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className={`grid ${conditionGridClass} text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2`}>
                                     <div className="text-center">#</div>
@@ -5268,23 +5278,25 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                 <div className="text-sm font-semibold text-gray-200">{metric.label}</div>
                                                 <div className="text-xs uppercase tracking-widest text-gray-500">Defensive</div>
                                             </div>
-                                            <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
-                                                {([
-                                                    { value: 'total', label: 'Total' },
-                                                    { value: 'per1s', label: 'Stat/1s' },
-                                                    { value: 'per60s', label: 'Stat/60s' }
-                                                ] as const).map((option) => (
-                                                    <button
-                                                        key={option.value}
-                                                        onClick={() => setDefenseViewMode(option.value)}
-                                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${defenseViewMode === option.value
-                                                            ? 'bg-sky-500/20 text-sky-200 border-sky-500/40'
-                                                            : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
-                                                            }`}
-                                                    >
-                                                        {option.label}
-                                                    </button>
-                                                ))}
+                                            <div className="flex items-center justify-end px-4 py-2 bg-white/5">
+                                                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
+                                                    {([
+                                                        { value: 'total', label: 'Total' },
+                                                        { value: 'per1s', label: 'Stat/1s' },
+                                                        { value: 'per60s', label: 'Stat/60s' }
+                                                    ] as const).map((option) => (
+                                                        <button
+                                                            key={option.value}
+                                                            onClick={() => setDefenseViewMode(option.value)}
+                                                            className={`px-2.5 py-1 rounded-full transition-colors ${defenseViewMode === option.value
+                                                                ? 'bg-sky-500/20 text-sky-200 border border-sky-500/40'
+                                                                : 'border border-transparent text-gray-400 hover:text-white'
+                                                                }`}
+                                                        >
+                                                            {option.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                 <div className="text-center">#</div>
@@ -5423,7 +5435,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                             </div>
                                             {metric.id === 'condiCleanse' ? (
                                                 <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-white/5">
-                                                    <div className="flex flex-wrap items-center gap-2">
+                                                    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
                                                         {([
                                                             { value: 'all', label: 'All' },
                                                             { value: 'squad', label: 'Squad' }
@@ -5431,16 +5443,16 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                             <button
                                                                 key={option.value}
                                                                 onClick={() => setCleanseScope(option.value)}
-                                                                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${cleanseScope === option.value
-                                                                    ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
-                                                                    : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                                className={`px-2.5 py-1 rounded-full transition-colors ${cleanseScope === option.value
+                                                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
+                                                                    : 'border border-transparent text-gray-400 hover:text-white'
                                                                     }`}
                                                             >
                                                                 {option.label}
                                                             </button>
                                                         ))}
                                                     </div>
-                                                    <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                                                    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400 sm:ml-auto">
                                                         {([
                                                             { value: 'total', label: 'Total' },
                                                             { value: 'per1s', label: 'Stat/1s' },
@@ -5449,9 +5461,9 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                             <button
                                                                 key={option.value}
                                                                 onClick={() => setSupportViewMode(option.value)}
-                                                                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${supportViewMode === option.value
-                                                                    ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
-                                                                    : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                                className={`px-2.5 py-1 rounded-full transition-colors ${supportViewMode === option.value
+                                                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
+                                                                    : 'border border-transparent text-gray-400 hover:text-white'
                                                                     }`}
                                                             >
                                                                 {option.label}
@@ -5460,23 +5472,25 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 px-4 py-2 bg-white/5">
-                                                    {([
-                                                        { value: 'total', label: 'Total' },
-                                                        { value: 'per1s', label: 'Stat/1s' },
-                                                        { value: 'per60s', label: 'Stat/60s' }
-                                                    ] as const).map((option) => (
-                                                        <button
-                                                            key={option.value}
-                                                            onClick={() => setSupportViewMode(option.value)}
-                                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${supportViewMode === option.value
-                                                                ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
-                                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
-                                                                }`}
-                                                        >
-                                                            {option.label}
-                                                        </button>
-                                                    ))}
+                                                <div className="flex flex-wrap items-center justify-start sm:justify-end px-4 py-2 bg-white/5">
+                                                    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
+                                                        {([
+                                                            { value: 'total', label: 'Total' },
+                                                            { value: 'per1s', label: 'Stat/1s' },
+                                                            { value: 'per60s', label: 'Stat/60s' }
+                                                        ] as const).map((option) => (
+                                                            <button
+                                                                key={option.value}
+                                                                onClick={() => setSupportViewMode(option.value)}
+                                                                className={`px-2.5 py-1 rounded-full transition-colors ${supportViewMode === option.value
+                                                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
+                                                                    : 'border border-transparent text-gray-400 hover:text-white'
+                                                                    }`}
+                                                            >
+                                                                {option.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
@@ -5607,50 +5621,54 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                 <div className="text-xs uppercase tracking-widest text-gray-500">Healing</div>
                                             </div>
                                             {isResUtilityMetric && (
-                                                <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5 flex-wrap">
-                                                    <button
-                                                        onClick={() => setActiveResUtilitySkill('all')}
-                                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${activeResUtilitySkill === 'all'
-                                                            ? 'bg-lime-500/20 text-lime-200 border-lime-500/40'
-                                                            : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
-                                                            }`}
-                                                    >
-                                                        All
-                                                    </button>
-                                                    {(skillUsageData.resUtilitySkills || []).map((skill) => (
+                                                <div className="flex items-center justify-end px-4 py-2 bg-white/5 flex-wrap">
+                                                    <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
                                                         <button
-                                                            key={skill.id}
-                                                            onClick={() => setActiveResUtilitySkill(skill.id)}
-                                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${activeResUtilitySkill === skill.id
-                                                                ? 'bg-lime-500/20 text-lime-200 border-lime-500/40'
-                                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                            onClick={() => setActiveResUtilitySkill('all')}
+                                                            className={`px-2.5 py-1 rounded-full transition-colors ${activeResUtilitySkill === 'all'
+                                                                ? 'bg-lime-500/20 text-lime-200 border border-lime-500/40'
+                                                                : 'border border-transparent text-gray-400 hover:text-white'
                                                                 }`}
                                                         >
-                                                            {skill.name}
+                                                            All
                                                         </button>
-                                                    ))}
+                                                        {(skillUsageData.resUtilitySkills || []).map((skill) => (
+                                                            <button
+                                                                key={skill.id}
+                                                                onClick={() => setActiveResUtilitySkill(skill.id)}
+                                                                className={`px-2.5 py-1 rounded-full transition-colors ${activeResUtilitySkill === skill.id
+                                                                    ? 'bg-lime-500/20 text-lime-200 border border-lime-500/40'
+                                                                    : 'border border-transparent text-gray-400 hover:text-white'
+                                                                    }`}
+                                                            >
+                                                                {skill.name}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
                                             {!isResUtilityMetric && (
-                                                <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
-                                                    {([
-                                                        { value: 'total', label: 'Total' },
-                                                        { value: 'squad', label: 'Squad' },
-                                                        { value: 'group', label: 'Group' },
-                                                        { value: 'self', label: 'Self' },
-                                                        { value: 'offSquad', label: 'OffSquad' }
-                                                    ] as const).map((option) => (
-                                                        <button
-                                                            key={option.value}
-                                                            onClick={() => setHealingCategory(option.value)}
-                                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${healingCategory === option.value
-                                                                ? 'bg-lime-500/20 text-lime-200 border-lime-500/40'
-                                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
-                                                                }`}
-                                                        >
-                                                            {option.label}
-                                                        </button>
-                                                    ))}
+                                                <div className="flex items-center justify-end px-4 py-2 bg-white/5">
+                                                    <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
+                                                        {([
+                                                            { value: 'total', label: 'Total' },
+                                                            { value: 'squad', label: 'Squad' },
+                                                            { value: 'group', label: 'Group' },
+                                                            { value: 'self', label: 'Self' },
+                                                            { value: 'offSquad', label: 'OffSquad' }
+                                                        ] as const).map((option) => (
+                                                            <button
+                                                                key={option.value}
+                                                                onClick={() => setHealingCategory(option.value)}
+                                                                className={`px-2.5 py-1 rounded-full transition-colors ${healingCategory === option.value
+                                                                    ? 'bg-lime-500/20 text-lime-200 border border-lime-500/40'
+                                                                    : 'border border-transparent text-gray-400 hover:text-white'
+                                                                    }`}
+                                                            >
+                                                                {option.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
@@ -6173,6 +6191,9 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                                                 <div className="min-w-0">
                                                                     <div className="text-[10px] uppercase tracking-[0.4em] text-gray-400">Player</div>
                                                                     <div className="font-semibold text-white truncate">{player?.displayName || playerKey}</div>
+                                                                    <div className="text-[11px] text-gray-400">
+                                                                        {player?.logs ?? 0} {(player?.logs ?? 0) === 1 ? 'log' : 'logs'}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                             <div className="text-2xl sm:text-3xl font-black text-white font-mono self-end sm:self-auto shrink-0">
@@ -6214,25 +6235,6 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                             APM Breakdown
                         </h3>
                         <div className="flex items-center gap-3 relative">
-                            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
-                                {[
-                                    { id: 'total', label: 'Total' },
-                                    { id: 'perSecond', label: 'Per Sec' }
-                                ].map((mode) => (
-                                    <button
-                                        key={mode.id}
-                                        type="button"
-                                        onClick={() => setApmView(mode.id as 'total' | 'perSecond')}
-                                        className={`px-2.5 py-1 rounded-full transition-colors ${
-                                            apmView === mode.id
-                                                ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/40'
-                                                : 'border border-transparent text-gray-400 hover:text-white'
-                                        }`}
-                                    >
-                                        {mode.label}
-                                    </button>
-                                ))}
-                            </div>
                             <div className="text-xs uppercase tracking-[0.3em] text-gray-500">
                                 {apmSpecTables.length} {apmSpecTables.length === 1 ? 'spec' : 'specs'}
                             </div>
@@ -6351,21 +6353,44 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, webUplo
                                     </div>
                                 ) : (
                                     <div className={expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}>
-                                        <div className="flex items-center justify-between px-4 py-3 bg-white/5">
-                                            <div className="flex items-center gap-2">
-                                                {renderProfessionIcon(activeApmSpecTable.profession, undefined, 'w-4 h-4')}
-                                                <div className="text-sm font-semibold text-gray-200">{activeApmSpecTable.profession}</div>
-                                                <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
-                                                <div className="text-sm font-semibold text-gray-200 truncate">
-                                                    {isAllApmSkills ? 'All Skills' : activeApmSkill?.name}
+                                        <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
+                                            <div className="flex flex-col gap-2 min-w-0">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    {renderProfessionIcon(activeApmSpecTable.profession, undefined, 'w-4 h-4')}
+                                                    <div className="text-sm font-semibold text-gray-200">{activeApmSpecTable.profession}</div>
+                                                    <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
+                                                    <div className="text-sm font-semibold text-gray-200 truncate">
+                                                        {isAllApmSkills ? 'All Skills' : activeApmSkill?.name}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="text-[11px] text-gray-400">
-                                                {isAllApmSkills
-                                                    ? `${activeApmSpecTable.players.length} ${activeApmSpecTable.players.length === 1 ? 'player' : 'players'} | ${formatApmValue(apmView === 'perSecond' ? activeApmSpecTable.totalAps : activeApmSpecTable.totalApm)} ${apmView === 'perSecond' ? 'APS' : 'APM'} | ${formatApmValue(apmView === 'perSecond' ? activeApmSpecTable.totalApsNoAuto : activeApmSpecTable.totalApmNoAuto)} ${apmView === 'perSecond' ? 'APS' : 'APM'} (no auto)`
-                                                    : `${activeApmSkill?.playerRows.length ?? 0} ${activeApmSkill?.playerRows.length === 1 ? 'player' : 'players'} | ${formatApmValue(activeApmSkill?.totalApm ?? 0)} APM | ${apmView === 'perSecond'
-                                                        ? `${formatCastRateValue(activeApmSkill?.totalCastsPerSecond ?? 0)} casts/sec`
-                                                        : `${formatCastCountValue(activeApmSkill?.totalCasts ?? 0)} casts`}`}
+                                            <div className="flex flex-col items-end gap-2 text-right ml-auto mt-2">
+                                                <div className="text-[11px] text-gray-400">
+                                                    {isAllApmSkills
+                                                        ? `${activeApmSpecTable.players.length} ${activeApmSpecTable.players.length === 1 ? 'player' : 'players'} | ${formatApmValue(apmView === 'perSecond' ? activeApmSpecTable.totalAps : activeApmSpecTable.totalApm)} ${apmView === 'perSecond' ? 'APS' : 'APM'} | ${formatApmValue(apmView === 'perSecond' ? activeApmSpecTable.totalApsNoAuto : activeApmSpecTable.totalApmNoAuto)} ${apmView === 'perSecond' ? 'APS' : 'APM'} (no auto)`
+                                                        : `${activeApmSkill?.playerRows.length ?? 0} ${activeApmSkill?.playerRows.length === 1 ? 'player' : 'players'} | ${formatApmValue(activeApmSkill?.totalApm ?? 0)} APM | ${apmView === 'perSecond'
+                                                            ? `${formatCastRateValue(activeApmSkill?.totalCastsPerSecond ?? 0)} casts/sec`
+                                                            : `${formatCastCountValue(activeApmSkill?.totalCasts ?? 0)} casts`}`}
+                                                </div>
+                                                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400">
+                                                    {[
+                                                        { id: 'total', label: 'Total' },
+                                                        { id: 'perSecond', label: 'Per Sec' }
+                                                    ].map((mode) => (
+                                                        <button
+                                                            key={mode.id}
+                                                            type="button"
+                                                            onClick={() => setApmView(mode.id as 'total' | 'perSecond')}
+                                                            className={`px-2.5 py-1 rounded-full transition-colors ${
+                                                                apmView === mode.id
+                                                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/40'
+                                                                    : 'border border-transparent text-gray-400 hover:text-white'
+                                                            }`}
+                                                        >
+                                                            {mode.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                         {isAllApmSkills ? (
