@@ -33,9 +33,11 @@
         "generate:conditions": "node scripts/conditions-audit.mjs --all --out test-fixtures/conditions",
         "generate:metrics": "node scripts/metrics-audit.mjs --all --out test-fixtures/metrics",
         "generate:fixtures": "for f in testdata/*.zevtc; do bash scripts/generate-json-fixture.sh \"$f\"; done",
+        "build:electron:test": "vite build && tsc -p electron/tsconfig.json",
         "test:unit": "vitest run",
         "test:unit:watch": "vitest",
         "test:e2e:web": "playwright test --config playwright.web.config.ts",
+        "pretest:e2e:electron": "npm run build:electron:test",
         "test:e2e:electron": "playwright test --config playwright.electron.config.ts",
         "test:all": "npm run test:unit && npm run test:e2e:web && npm run test:e2e:electron"
     },
