@@ -14,7 +14,7 @@ type ApmSectionProps = {
     skillUsageAvailable: boolean;
     apmSpecTables: any[];
     activeApmSpec: string | null;
-    setActiveApmSpec: (value: string) => void;
+    setActiveApmSpec: (value: string | null) => void;
     expandedApmSpec: string | null;
     setExpandedApmSpec: (value: string | null) => void;
     activeApmSkillId: any;
@@ -68,13 +68,11 @@ export const ApmSection = ({
         id="apm-stats"
         data-section-visible={isSectionVisible('apm-stats')}
         data-section-first={isFirstVisibleSection('apm-stats')}
-        className={sectionClass('apm-stats', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24 flex flex-col ${
-            expandedSection === 'apm-stats'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${
-                    expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
+        className={sectionClass('apm-stats', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24 flex flex-col ${expandedSection === 'apm-stats'
+                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                 }`
                 : 'overflow-hidden'
-        }`)}
+            }`)}
     >
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
@@ -88,9 +86,8 @@ export const ApmSection = ({
                 <button
                     type="button"
                     onClick={() => (expandedSection === 'apm-stats' ? closeExpandedSection() : openExpandedSection('apm-stats'))}
-                    className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${
-                        expandedSection === 'apm-stats' ? 'absolute -top-1 -right-1 md:static' : ''
-                    }`}
+                    className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${expandedSection === 'apm-stats' ? 'absolute -top-1 -right-1 md:static' : ''
+                        }`}
                     aria-label={expandedSection === 'apm-stats' ? 'Close APM Breakdown' : 'Expand APM Breakdown'}
                     title={expandedSection === 'apm-stats' ? 'Close' : 'Expand'}
                 >
@@ -121,11 +118,10 @@ export const ApmSection = ({
                                             setActiveApmSpec(spec.profession);
                                             setExpandedApmSpec(spec.profession);
                                         }}
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
-                                            activeApmSpec === spec.profession
+                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeApmSpec === spec.profession
                                                 ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
                                                 : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                        }`}
+                                            }`}
                                     >
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0">
@@ -153,11 +149,10 @@ export const ApmSection = ({
                                             />
                                             <button
                                                 onClick={() => setActiveApmSkillId(ALL_SKILLS_KEY)}
-                                                className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
-                                                    activeApmSkillId === ALL_SKILLS_KEY
+                                                className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${activeApmSkillId === ALL_SKILLS_KEY
                                                         ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/40'
                                                         : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                }`}
+                                                    }`}
                                             >
                                                 <span className="truncate block">All Skills</span>
                                             </button>
@@ -177,11 +172,10 @@ export const ApmSection = ({
                                                     <button
                                                         key={skill.id}
                                                         onClick={() => setActiveApmSkillId(skill.id)}
-                                                        className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors ${
-                                                            activeApmSkillId === skill.id
+                                                        className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors ${activeApmSkillId === skill.id
                                                                 ? 'bg-emerald-500/10 text-emerald-100 border-emerald-400/40'
                                                                 : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         <span className="truncate block">{skill.name}</span>
                                                     </button>

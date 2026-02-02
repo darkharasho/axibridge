@@ -195,10 +195,23 @@ export const ConditionsSection = ({
                                         .map((player: any) => {
                                             const conditionTotals = player.conditions || {};
                                             if (activeConditionName === 'all') {
+                                                const totals = Object.values(conditionTotals).reduce(
+                                                    (acc: { applications: number; damage: number }, condition: any) => {
+                                                        const applications = (conditionDirection === 'outgoing'
+                                                            && condition?.applicationsFromBuffs
+                                                            && condition.applicationsFromBuffs > 0)
+                                                            ? condition.applicationsFromBuffs
+                                                            : condition?.applications;
+                                                        acc.applications += Number(applications || 0);
+                                                        acc.damage += Number(condition?.damage || 0);
+                                                        return acc;
+                                                    },
+                                                    { applications: 0, damage: 0 }
+                                                );
                                                 return {
                                                     ...player,
-                                                    applications: Number(player.totalApplications || 0),
-                                                    damage: Number(player.totalDamage || 0)
+                                                    applications: totals.applications,
+                                                    damage: totals.damage
                                                 };
                                             }
                                             const condition = conditionTotals[activeConditionName];

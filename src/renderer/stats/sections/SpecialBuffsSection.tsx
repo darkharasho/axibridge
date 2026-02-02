@@ -7,8 +7,8 @@ type SpecialBuffsSectionProps = {
     specialSearch: string;
     setSpecialSearch: (value: string) => void;
     filteredSpecialTables: any[];
-    activeSpecialTab: string;
-    setActiveSpecialTab: (value: string) => void;
+    activeSpecialTab: string | null;
+    setActiveSpecialTab: (value: string | null) => void;
     activeSpecialTable: any | null;
     formatWithCommas: (value: number, decimals: number) => string;
     renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => JSX.Element | null;
@@ -45,13 +45,11 @@ export const SpecialBuffsSection = ({
         id="special-buffs"
         data-section-visible={isSectionVisible('special-buffs')}
         data-section-first={isFirstVisibleSection('special-buffs')}
-        className={sectionClass('special-buffs', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
-            expandedSection === 'special-buffs'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
-                    expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
+        className={sectionClass('special-buffs', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${expandedSection === 'special-buffs'
+                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                 }`
                 : ''
-        }`)}
+            }`)}
     >
         <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">

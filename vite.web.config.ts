@@ -5,10 +5,10 @@ import path from 'node:path';
 export default defineConfig({
     plugins: [react()],
     base: './',
-    root: 'web',
-    publicDir: path.resolve(__dirname, 'public'),
+    root: '.',
+    publicDir: 'public',
     build: {
-        outDir: '../dist-web',
+        outDir: 'dist-web',
         emptyOutDir: true,
         rollupOptions: {
             input: path.resolve(__dirname, 'web/index.html')

@@ -28,6 +28,8 @@
         "audit:boons": "node scripts/boon-validate.js",
         "audit:metrics": "node scripts/metrics-audit.mjs --all",
         "audit:conditions": "node scripts/conditions-audit.mjs --all",
+        "audit": "npm run audit:boons && npm run audit:metrics && npm run audit:conditions",
+        "generate:conditions": "node scripts/conditions-audit.mjs --all --out test-fixtures/conditions",
         "generate:metrics": "node scripts/metrics-audit.mjs --all --out test-fixtures/metrics",
         "generate:fixtures": "for f in testdata/*.zevtc; do bash scripts/generate-json-fixture.sh \"$f\"; done"
     },

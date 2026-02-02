@@ -1,0 +1,766 @@
+{
+  "source": "hosted",
+  "file": "test-fixtures/boon/20260125-202439.json",
+  "generatedAt": "2026-02-02T02:46:23.271Z",
+  "meta": {
+    "buffStateApplicationsTotal": 0,
+    "targetBuffEntriesSeen": 0,
+    "buffStateSourcesSeen": 0
+  },
+  "summary": [
+    {
+      "name": "Bleeding",
+      "applications": 614,
+      "damage": 135500,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Burning",
+      "applications": 875,
+      "damage": 821820,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Chill",
+      "applications": 21,
+      "damage": 141,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Confusion",
+      "applications": 19,
+      "damage": 2094,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Cripple",
+      "applications": 2,
+      "damage": 0,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Fear",
+      "applications": 25,
+      "damage": 22461,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Poison",
+      "applications": 225,
+      "damage": 49658,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Torment",
+      "applications": 271,
+      "damage": 232311,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Vulnerability",
+      "applications": 4,
+      "damage": 0,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Weakness",
+      "applications": 1,
+      "damage": 0,
+      "applicationsFromBuffs": 0
+    }
+  ],
+  "players": [
+    {
+      "key": "Grimmster.6924",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 48,
+          "damage": 5730,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 48,
+              "damage": 5730
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 1,
+          "damage": 178,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 1,
+              "damage": 178
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 3,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Chilled",
+              "hits": 3,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 21,
+          "damage": 4480,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 21,
+              "damage": 4480
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "harasho.4281",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 134,
+          "damage": 21982,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 134,
+              "damage": 21982
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 94,
+          "damage": 24762,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 94,
+              "damage": 24762
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 4,
+          "damage": 97,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 2,
+              "damage": 97
+            },
+            {
+              "name": "Poison Blast Combo",
+              "hits": 2,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 7,
+          "damage": 184,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 7,
+              "damage": 184
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "moxic.6038",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 161,
+          "damage": 24983,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 161,
+              "damage": 24983
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 65,
+          "damage": 23972,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 65,
+              "damage": 23972
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 2,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Chilled",
+              "hits": 2,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 11,
+          "damage": 1850,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 11,
+              "damage": 1850
+            }
+          ]
+        },
+        {
+          "name": "Fear",
+          "applications": 25,
+          "damage": 22461,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Fear",
+              "hits": 25,
+              "damage": 22461
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 106,
+          "damage": 30761,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 106,
+              "damage": 30761
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 223,
+          "damage": 230708,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 223,
+              "damage": 230708
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "pinguinox.9528",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 28,
+          "damage": 7575,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 27,
+              "damage": 1795
+            },
+            {
+              "name": "Bleeding Shot",
+              "hits": 1,
+              "damage": 5780
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 2,
+          "damage": 243,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 2,
+              "damage": 243
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 37,
+          "damage": 2327,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 36,
+              "damage": 2327
+            },
+            {
+              "name": "Poison Blast Combo",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 3,
+          "damage": 89,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 3,
+              "damage": 89
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Revan Malise.5107",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 79,
+          "damage": 23196,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 61,
+              "damage": 6662
+            },
+            {
+              "name": "Bleeding Edge",
+              "hits": 18,
+              "damage": 16534
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 74,
+          "damage": 16697,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 74,
+              "damage": 16697
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 2,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Chilled",
+              "hits": 2,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 3,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison Blast Combo",
+              "hits": 3,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Vulnerability",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Weakness",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Weakness",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Shanhana Miko.8702",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 37,
+          "damage": 5346,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 37,
+              "damage": 5346
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 6,
+          "damage": 245,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 6,
+              "damage": 245
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Stan.9684",
+      "conditions": [
+        {
+          "name": "Chill",
+          "applications": 2,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Chilled",
+              "hits": 2,
+              "damage": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "undiee.3146",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 23,
+          "damage": 8598,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 23,
+              "damage": 8598
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 215,
+          "damage": 261703,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 177,
+              "damage": 44616
+            },
+            {
+              "name": "Burning Speed",
+              "hits": 38,
+              "damage": 217087
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Crippled",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison Blast Combo",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 7,
+          "damage": 230,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 7,
+              "damage": 230
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Vettexl.9726",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 82,
+          "damage": 12807,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 82,
+              "damage": 12807
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 6,
+          "damage": 174,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 6,
+              "damage": 174
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "VincentCross.1469",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 125,
+          "damage": 42210,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 119,
+              "damage": 40959
+            },
+            {
+              "name": "Bleeding Edge",
+              "hits": 6,
+              "damage": 1251
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 280,
+          "damage": 471349,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 280,
+              "damage": 471349
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 7,
+          "damage": 941,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 7,
+              "damage": 941
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Wag Z.8294",
+      "conditions": []
+    },
+    {
+      "key": "Zietlogik.6208",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 16,
+          "damage": 1226,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 16,
+              "damage": 1226
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 25,
+          "damage": 4763,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 25,
+              "damage": 4763
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 12,
+          "damage": 141,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "\"Chilled to the Bone!\"",
+              "hits": 11,
+              "damage": 141
+            },
+            {
+              "name": "Chilled",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 8,
+          "damage": 244,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 8,
+              "damage": 244
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Crippled",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 46,
+          "damage": 11052,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 46,
+              "damage": 11052
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 19,
+          "damage": 681,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 19,
+              "damage": 681
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 3,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Vulnerability",
+              "hits": 3,
+              "damage": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

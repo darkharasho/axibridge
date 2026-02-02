@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { applyStabilityGeneration, getIncomingDisruptions, getPlayerDamage, getPlayerDps, getPlayerDownsTaken, getPlayerDeaths, getPlayerDamageTaken, getPlayerDodges, getPlayerMissed, getPlayerBlocked, getPlayerEvaded, getPlayerResurrects, getPlayerDownContribution, getPlayerOutgoingCrowdControl, getPlayerSquadBarrier, getPlayerSquadHealing, getTargetStatTotal } from '../shared/dashboardMetrics';
@@ -25,7 +26,7 @@ interface ExpandableLogCardProps {
     };
 }
 
-export function ExpandableLogCard({ log, isExpanded, onToggle, onCancel, screenshotMode, embedStatSettings, disruptionMethod, screenshotSection, useClassIcons }: ExpandableLogCardProps) {
+export const ExpandableLogCard = forwardRef<HTMLDivElement, ExpandableLogCardProps>(({ log, isExpanded, onToggle, onCancel, screenshotMode, embedStatSettings, disruptionMethod, screenshotSection, useClassIcons }, ref) => {
     const details = log.details || {};
     const players: Player[] = details.players || [];
     const targets = details.targets || [];
@@ -163,7 +164,7 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, onCancel, screens
             .map(([profession, count]) => ({ profession, count }));
     })();
 
-    
+
 
     const getDistanceToTag = (p: any) => {
         const stats = p.statsAll?.[0];
@@ -666,6 +667,7 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, onCancel, screens
 
     return (
         <motion.div
+            ref={ref}
             initial={{ opacity: 0, x: 20, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -852,4 +854,6 @@ export function ExpandableLogCard({ log, isExpanded, onToggle, onCancel, screens
             </AnimatePresence >
         </motion.div >
     );
-}
+});
+
+ExpandableLogCard.displayName = 'ExpandableLogCard';

@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CheckCircle2, ChevronDown, ChevronRight, Maximize2, X, XCircle, Zap } from 'lucide-react';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
+import type { SkillUsagePlayer } from '../statsTypes';
 
 type SkillUsageSectionProps = {
     expandedSection: string | null;
@@ -15,7 +16,7 @@ type SkillUsageSectionProps = {
     setSelectedPlayers: Dispatch<SetStateAction<string[]>>;
     removeSelectedPlayer: (key: string) => void;
     playerMapByKey: Map<string, any>;
-    groupedSkillUsagePlayers: any[];
+    groupedSkillUsagePlayers: { profession: string; players: SkillUsagePlayer[] }[];
     expandedSkillUsageClass: string | null;
     setExpandedSkillUsageClass: Dispatch<SetStateAction<string | null>>;
     togglePlayerSelection: (key: string) => void;
@@ -35,14 +36,13 @@ type SkillUsageSectionProps = {
     isSkillUsagePerSecond: boolean;
     skillChartData: any[];
     skillChartMaxY: number;
-    playerTotalsForSkill: Record<string, number>;
+    playerTotalsForSkill: Map<string, number>;
     hoveredSkillPlayer: string[];
     setHoveredSkillPlayer: Dispatch<SetStateAction<string[]>>;
     getLineStrokeColor: (playerKey: string, isSelected: boolean, hasSelection: boolean) => string;
     getLineDashForPlayer: (playerKey: string) => string | undefined;
     formatSkillUsageValue: (value: number) => string;
-    formatCastRateValue: (value: number) => string;
-    formatCastCountValue: (value: number) => string;
+
     renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => JSX.Element | null;
 };
 
@@ -84,21 +84,18 @@ export const SkillUsageSection = ({
     getLineStrokeColor,
     getLineDashForPlayer,
     formatSkillUsageValue,
-    formatCastRateValue,
-    formatCastCountValue,
+
     renderProfessionIcon
 }: SkillUsageSectionProps) => (
     <div
         id="skill-usage"
         data-section-visible={isSectionVisible('skill-usage')}
         data-section-first={isFirstVisibleSection('skill-usage')}
-        className={sectionClass('skill-usage', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
-            expandedSection === 'skill-usage'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${
-                    expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                }`
-                : 'overflow-hidden'
-        }`)}
+        className={sectionClass('skill-usage', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${expandedSection === 'skill-usage'
+            ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
+            }`
+            : 'overflow-hidden'
+            }`)}
     >
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4 relative">
             <div className={expandedSection === 'skill-usage' ? 'pr-10 md:pr-0' : ''}>
@@ -127,9 +124,8 @@ export const SkillUsageSection = ({
                 <button
                     type="button"
                     onClick={() => (expandedSection === 'skill-usage' ? closeExpandedSection() : openExpandedSection('skill-usage'))}
-                    className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${
-                        expandedSection === 'skill-usage' ? 'absolute top-2 right-2 md:static' : ''
-                    }`}
+                    className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${expandedSection === 'skill-usage' ? 'absolute top-2 right-2 md:static' : ''
+                        }`}
                     aria-label={expandedSection === 'skill-usage' ? 'Close Skill Usage' : 'Expand Skill Usage'}
                     title={expandedSection === 'skill-usage' ? 'Close' : 'Expand'}
                 >
@@ -418,10 +414,10 @@ export const SkillUsageSection = ({
                             </div>
                             <div className="grid gap-3 md:grid-cols-2">
                                 {[...selectedPlayers]
-                                    .sort((a, b) => (playerTotalsForSkill[b] || 0) - (playerTotalsForSkill[a] || 0))
+                                    .sort((a, b) => (playerTotalsForSkill.get(b) || 0) - (playerTotalsForSkill.get(a) || 0))
                                     .map((playerKey) => {
                                         const player = playerMapByKey.get(playerKey);
-                                        const total = playerTotalsForSkill[playerKey] ?? 0;
+                                        const total = playerTotalsForSkill.get(playerKey) ?? 0;
                                         const isActive = hoveredSkillPlayer.includes(playerKey);
                                         const hasSelection = hoveredSkillPlayer.length > 0;
                                         const swatchColor = getLineStrokeColor(playerKey, isActive, hasSelection);
@@ -437,9 +433,8 @@ export const SkillUsageSection = ({
                                                         return [...prev, playerKey];
                                                     });
                                                 }}
-                                                className={`w-full rounded-2xl border bg-white/5 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 min-w-0 ${
-                                                    isActive ? 'border-white/40 bg-white/10' : 'border-white/10 hover:border-white/30 hover:bg-white/10'
-                                                }`}
+                                                className={`w-full rounded-2xl border bg-white/5 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 min-w-0 ${isActive ? 'border-white/40 bg-white/10' : 'border-white/10 hover:border-white/30 hover:bg-white/10'
+                                                    }`}
                                                 aria-pressed={isActive}
                                             >
                                                 <div className="flex items-center gap-2 min-w-0">

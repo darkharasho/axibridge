@@ -118,7 +118,22 @@ export const FightBreakdownSection = ({
                                                     }}
                                                     className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2 block truncate"
                                                 >
-                                                    {fight.label || 'dps.report'}
+                                                    {(() => {
+                                                        const ts = Number(fight.timestamp || 0);
+                                                        const tsMs = ts > 1e12 ? ts : ts * 1000;
+                                                        const dateLabel = tsMs
+                                                            ? new Date(tsMs).toLocaleDateString(undefined, {
+                                                                month: '2-digit',
+                                                                day: '2-digit'
+                                                            }) + ' ' + new Date(tsMs).toLocaleTimeString(undefined, {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })
+                                                            : '--';
+                                                        const rawMap = fight.mapName || fight.map || 'Unknown Map';
+                                                        const mapLabel = String(rawMap).replace(/^Detailed\s*WvW\s*-\s*/i, '').trim();
+                                                        return `${dateLabel} • ${mapLabel}`;
+                                                    })()}
                                                 </button>
                                             ) : (
                                                 <span className="text-gray-500">Pending</span>

@@ -6,7 +6,7 @@ type TopPlayersSectionProps = {
     showMvp: boolean;
     topStatsMode: 'total' | 'perSecond';
     expandedLeader: string | null;
-    setExpandedLeader: (value: string | null) => void;
+    setExpandedLeader: (value: string | null | ((prev: string | null) => string | null)) => void;
     formatTopStatValue: (value: number) => string;
     formatWithCommas: (value: number, decimals?: number) => string;
     isMvpStatEnabled: (name: string) => boolean;
@@ -29,7 +29,8 @@ const colorClasses: Record<string, { bg: string; text: string }> = {
 
 const LeaderCard = ({ icon: Icon, title, data, color, unit = '', onClick, active, rows, formatValue, renderProfessionIcon }: any) => {
     const classes = colorClasses[color] || colorClasses.blue;
-    const displayValue = formatValue ? formatValue(data.value) : Math.round(data.value).toLocaleString();
+    const value = data?.value ?? 0;
+    const displayValue = formatValue ? formatValue(value) : Math.round(value).toLocaleString();
     return (
         <div
             role="button"
@@ -56,10 +57,10 @@ const LeaderCard = ({ icon: Icon, title, data, color, unit = '', onClick, active
             </div>
             <div className="flex flex-col border-t border-white/5 pt-2">
                 <div className="flex items-center gap-2 min-w-0">
-                    {renderProfessionIcon(data.profession || 'Unknown', data.professionList, 'w-4 h-4')}
-                    <div className="text-sm font-medium text-blue-300 truncate">{data.player || '-'}</div>
+                    {renderProfessionIcon(data?.profession || 'Unknown', data?.professionList, 'w-4 h-4')}
+                    <div className="text-sm font-medium text-blue-300 truncate">{data?.player || '-'}</div>
                 </div>
-                <div className="text-xs text-gray-500 truncate">{data.count ? `${data.count} logs` : '-'}</div>
+                <div className="text-xs text-gray-500 truncate">{data?.count ? `${data.count} logs` : '-'}</div>
             </div>
             {active && (
                 <div className="mt-3 stats-share-exclude">
