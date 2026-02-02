@@ -3,23 +3,23 @@
 Version v1.16.0 — February 1, 2026
 
 ## 🌟 Highlights
-- New stat sections: map distribution, overview, squad composition, timeline, top players, and top skills in the stats renderer.
-- Detailed stats areas added for Defense, Healing, Special Buffs, and Support.
-- WebUploadBanner now includes a short URL copy feature to share reports easily.
-- Settings now let you favorite GitHub repositories for quick access.
-- UI polish and navigation improvements across StatsView and ReportApp, plus smoother scrolling on mobile.
+- New Stats sections in the renderer: Map Distribution, Overview, Squad Composition, Timeline, Top Players, and Top Skills.
+- Added detailed stat panels and components: Defense, Healing, Special Buffs, Support; plus BoonOutputSection, ConditionsSection, and OffenseSection for deeper insights.
+- Short URL copy feature added to WebUploadBanner for easy sharing.
+- Settings now support marking favorite GitHub repositories for quick access.
+- UI and navigation polish across stats and reports, including improved flow for easier browsing.
 
 ## 🛠️ Improvements
-- Enhanced StatsView with improved button styling and layout for a cleaner UI.
-- StatsView and ReportApp now support section visibility and easier navigation.
-- Smooth scrolling for mobile navigation and better UI elements in StatsView.
-- Web reports content widened with small UI polish to take advantage of width.
-- Back to reports button moved to a better location for easier navigation.
+- Web reports widened with light UI polish for easier reading on larger screens.
+- StatsView updated with cleaner button styling and layout for a neater look; better navigation and responsive behavior.
+- General code organization cleanup to improve maintainability.
 
 ## 🧯 Fixes
-- Fixed profession icon path handling in development environment.
-- Adjusted report date label styling for consistency.
-- Added an HTML redirect page for the new report to facilitate navigation.
+- Typo fixed in the Tailwind directive in index.css.
+- Outdated report data removed from index.json.
+- Added a simple redirect page to help navigate to the new report; prepared a report.json file for future data population.
+- Report date label styling updated for consistency.
+- Back-to-reports button moved to a more convenient location for easier access.
 
 ## ⚠️ Breaking Changes
-- None.
+None.
