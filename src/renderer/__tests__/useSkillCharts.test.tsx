@@ -60,6 +60,11 @@ const SkillChartsProbe = ({
 describe('useSkillCharts', () => {
     it('includes selected players with zero values in chart data', async () => {
         let result: UseSkillChartsResult | null = null;
+        const assertResult = (value: UseSkillChartsResult | null): asserts value is UseSkillChartsResult => {
+            if (!value) {
+                throw new Error('Expected skill chart data to be available.');
+            }
+        };
 
         render(<SkillChartsProbe onData={(data) => { result = data; }} />);
 
@@ -67,9 +72,7 @@ describe('useSkillCharts', () => {
             expect((result as UseSkillChartsResult | null)?.skillChartData.length).toBe(1);
         });
 
-        if (!result) {
-            throw new Error('Expected skill chart data to be available.');
-        }
+        assertResult(result);
         const point = result.skillChartData[0] as any;
         expect(point.p1).toBe(3);
         expect(point.p2).toBe(0);
