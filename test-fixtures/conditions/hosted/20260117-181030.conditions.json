@@ -1,0 +1,1235 @@
+{
+  "source": "hosted",
+  "file": "test-fixtures/boon/20260117-181030.json",
+  "generatedAt": "2026-02-02T02:46:23.143Z",
+  "meta": {
+    "buffStateApplicationsTotal": 0,
+    "targetBuffEntriesSeen": 0,
+    "buffStateSourcesSeen": 0
+  },
+  "summary": [
+    {
+      "name": "Bleeding",
+      "applications": 291,
+      "damage": 33063,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Blind",
+      "applications": 1,
+      "damage": 0,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Burning",
+      "applications": 347,
+      "damage": 78756,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Chill",
+      "applications": 4,
+      "damage": 60,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Confusion",
+      "applications": 204,
+      "damage": 15878,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Poison",
+      "applications": 120,
+      "damage": 16547,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Torment",
+      "applications": 120,
+      "damage": 3354,
+      "applicationsFromBuffs": 0
+    },
+    {
+      "name": "Vulnerability",
+      "applications": 1,
+      "damage": 0,
+      "applicationsFromBuffs": 0
+    }
+  ],
+  "players": [
+    {
+      "key": "amends.3469",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 32,
+          "damage": 1196,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 29,
+              "damage": 1196
+            },
+            {
+              "name": "Bleeding Edge",
+              "hits": 3,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 47,
+          "damage": 6973,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 47,
+              "damage": 6973
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Arx.9785",
+      "conditions": []
+    },
+    {
+      "key": "Astronauta.1087",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 10,
+          "damage": 824,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 10,
+              "damage": 824
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 2,
+          "damage": 96,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 2,
+              "damage": 96
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Before Mourning.6193",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 92,
+          "damage": 25246,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 87,
+              "damage": 13577
+            },
+            {
+              "name": "Burning Speed",
+              "hits": 5,
+              "damage": 11669
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 20,
+          "damage": 516,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 20,
+              "damage": 516
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Blades Of Fatalis.1279",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 13,
+          "damage": 1547,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 13,
+              "damage": 1547
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 10,
+          "damage": 402,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 10,
+              "damage": 402
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 8,
+          "damage": 270,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 8,
+              "damage": 270
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BreakN.5496",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 12,
+          "damage": 357,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 12,
+              "damage": 357
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "bro.2856",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 15,
+          "damage": 2207,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 15,
+              "damage": 2207
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "CuddlyKoala.3194",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 3,
+          "damage": 522,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 3,
+              "damage": 522
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "DraGonfly.9317",
+      "conditions": [
+        {
+          "name": "Torment",
+          "applications": 6,
+          "damage": 226,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 6,
+              "damage": 226
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Fibbs.1623",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 3,
+          "damage": 176,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 3,
+              "damage": 176
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 3,
+          "damage": 60,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "\"Chilled to the Bone!\"",
+              "hits": 3,
+              "damage": 60
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 5,
+          "damage": 515,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 5,
+              "damage": 515
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 18,
+          "damage": 4656,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 18,
+              "damage": 4656
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 5,
+          "damage": 167,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 5,
+              "damage": 167
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Vulnerability",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Flame.7958",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 36,
+          "damage": 914,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 36,
+              "damage": 914
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 50,
+          "damage": 5109,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 50,
+              "damage": 5109
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "General Moo.7930",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 14,
+          "damage": 1072,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 14,
+              "damage": 1072
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 37,
+          "damage": 4847,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 36,
+              "damage": 4847
+            },
+            {
+              "name": "Poison Leap Combo",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 3,
+          "damage": 80,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 3,
+              "damage": 80
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "harasho.4281",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 62,
+          "damage": 13782,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 62,
+              "damage": 13782
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 28,
+          "damage": 9014,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 28,
+              "damage": 9014
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 3,
+          "damage": 108,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 3,
+              "damage": 108
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "hotep.8715",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 16,
+          "damage": 581,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 16,
+              "damage": 581
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Izathel.4058",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 19,
+          "damage": 1996,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 19,
+              "damage": 1996
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Jordan.1860",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 20,
+          "damage": 888,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 20,
+              "damage": 888
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 14,
+          "damage": 2333,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 14,
+              "damage": 2333
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 6,
+          "damage": 138,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 6,
+              "damage": 138
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Kaishi.9813",
+      "conditions": [
+        {
+          "name": "Torment",
+          "applications": 11,
+          "damage": 359,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 11,
+              "damage": 359
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Kaliptuce.9051",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 3,
+          "damage": 319,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 3,
+              "damage": 319
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 8,
+          "damage": 179,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 8,
+              "damage": 179
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Krushito.5943",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 2,
+          "damage": 47,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 2,
+              "damage": 47
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 1,
+          "damage": 3,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 1,
+              "damage": 3
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 3,
+          "damage": 20,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 3,
+              "damage": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Lenorellei.9815",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 34,
+          "damage": 5828,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 34,
+              "damage": 5828
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 31,
+          "damage": 10198,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 31,
+              "damage": 10198
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 2,
+          "damage": 115,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 2,
+              "damage": 115
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Lenrawr.6520",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 23,
+          "damage": 2583,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 23,
+              "damage": 2583
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Luckgiver.6059",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 22,
+          "damage": 1696,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 22,
+              "damage": 1696
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 6,
+          "damage": 114,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 6,
+              "damage": 114
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Morkai.7021",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 44,
+          "damage": 6272,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 44,
+              "damage": 6272
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 25,
+          "damage": 4516,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 25,
+              "damage": 4516
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 6,
+          "damage": 197,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 6,
+              "damage": 197
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Oceanomega.4856",
+      "conditions": [
+        {
+          "name": "Torment",
+          "applications": 1,
+          "damage": 14,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 1,
+              "damage": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "red armadillo.4593",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 8,
+          "damage": 498,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 8,
+              "damage": 498
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Revan Malise.5107",
+      "conditions": [
+        {
+          "name": "Blind",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Blinded",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 5,
+          "damage": 99,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 5,
+              "damage": 99
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 15,
+          "damage": 810,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 15,
+              "damage": 810
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 3,
+          "damage": 180,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 3,
+              "damage": 180
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "ROOMBA.7658",
+      "conditions": []
+    },
+    {
+      "key": "sbr.8170",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 3,
+          "damage": 448,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 3,
+              "damage": 448
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Shanhana Miko.8702",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 1,
+          "damage": 17,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 1,
+              "damage": 17
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 12,
+          "damage": 367,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 12,
+              "damage": 367
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Sselnoisiv.6130",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 7,
+          "damage": 530,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 7,
+              "damage": 530
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 3,
+          "damage": 116,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 3,
+              "damage": 116
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Sunny.3891",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 45,
+          "damage": 3185,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 45,
+              "damage": 3185
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 40,
+          "damage": 13163,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 40,
+              "damage": 13163
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 2,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison Blast Combo",
+              "hits": 2,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 5,
+          "damage": 111,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 5,
+              "damage": 111
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Tehryan.7861",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 6,
+          "damage": 245,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 6,
+              "damage": 245
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Chilled",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 7,
+          "damage": 154,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 7,
+              "damage": 154
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Travis the Terrible.4739",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 2,
+          "damage": 400,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 2,
+              "damage": 400
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 7,
+          "damage": 210,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 7,
+              "damage": 210
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "VincentCross.1469",
+      "conditions": [
+        {
+          "name": "Poison",
+          "applications": 25,
+          "damage": 1498,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 25,
+              "damage": 1498
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 7,
+          "damage": 62,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 7,
+              "damage": 62
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Wag Z.3604",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 18,
+          "damage": 1576,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 18,
+              "damage": 1576
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Wisdom.6028",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 2,
+          "damage": 37,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 2,
+              "damage": 37
+            }
+          ]
+        },
+        {
+          "name": "Poison",
+          "applications": 13,
+          "damage": 4334,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 13,
+              "damage": 4334
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 6,
+          "damage": 230,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 6,
+              "damage": 230
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Yesmad.2791",
+      "conditions": [
+        {
+          "name": "Torment",
+          "applications": 8,
+          "damage": 110,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 8,
+              "damage": 110
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

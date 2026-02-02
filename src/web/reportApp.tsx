@@ -219,9 +219,10 @@ export function ReportApp() {
             id: 'defense',
             label: 'Defensive Stats',
             icon: Shield,
-            sectionIds: ['defense-detailed', 'support-detailed', 'healing-stats'],
+            sectionIds: ['defense-detailed', 'boon-output', 'support-detailed', 'healing-stats'],
             items: [
                 { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
+                { id: 'boon-output', label: 'Boon Output', icon: ShieldCheck },
                 { id: 'support-detailed', label: 'Support Detailed', icon: HelpingHand },
                 { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse }
             ]
@@ -248,17 +249,26 @@ export function ReportApp() {
         return new Set(ids);
     }, [activeGroupDef]);
     const scrollToSection = (id: string) => {
-        const el = document.getElementById(id);
+        const targetId = id === 'kdr' ? 'overview' : id;
+        const resolvedId = targetId === 'overview' ? 'report-top' : targetId;
+        const el = document.getElementById(resolvedId);
         if (!el) return false;
         const isVisible = el.getAttribute('data-section-visible') !== 'false';
         if (!isVisible) return false;
         if (!el.offsetParent) return false;
         const rect = el.getBoundingClientRect();
         if (rect.height <= 0) return false;
-        const targetTop = rect.top + window.scrollY - 12;
+        let extraOffset = 0;
+        if (resolvedId === 'stats-view-top') {
+            const reportTop = document.getElementById('report-top');
+            if (reportTop) {
+                extraOffset = reportTop.getBoundingClientRect().height + 12;
+            }
+        }
+        const targetTop = rect.top + window.scrollY - 12 - extraOffset;
         window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
         if (history.replaceState) {
-            history.replaceState(null, '', `#${id}`);
+            history.replaceState(null, '', `#${resolvedId}`);
         }
         return true;
     };
@@ -287,7 +297,7 @@ export function ReportApp() {
             window.setTimeout(() => requestAnimationFrame(tick), 40);
         };
         requestAnimationFrame(tick);
-    }, [activeGroup, activeSectionIds]);
+    }, [activeGroup]);
     const resolvedTheme = theme ?? DEFAULT_WEB_THEME;
     const accentRgb = resolvedTheme.rgb;
     const accentVars = {
@@ -639,6 +649,7 @@ export function ReportApp() {
     if (report) {
         const arcbridgeLogoUrl = `${assetBasePath}img/ArcBridge.svg`.replace(/\/{2,}/g, '/');
         const handleGroupSelect = (groupId: string) => {
+            pendingScrollIdRef.current = null;
             setActiveGroup(groupId);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
@@ -858,8 +869,8 @@ export function ReportApp() {
                         </div>
                     </div>
                 </aside>
-                <div className="max-w-[1600px] mx-auto px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:pl-64 lg:pr-10 mobile-bottom-pad">
-                    <div className={`${glassCard} p-5 sm:p-6 mb-6`} style={glassCardStyle}>
+                <div className="max-w-[1600px] mx-1 sm:mx-2 2xl:mx-auto px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:pl-64 lg:pr-10 mobile-bottom-pad">
+                    <div className={`${glassCard} p-5 sm:p-6 mb-6 mx-1 sm:mx-1 lg:mx-0`} style={glassCardStyle}>
                         <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
                                 {logoUrl && (
@@ -939,16 +950,18 @@ export function ReportApp() {
                         </div>
                     </div>
                     <div ref={statsWrapperRef} onWheelCapture={handleStatsWheel} className="flex-1 min-w-0">
-                        <StatsView
-                            logs={[]}
-                            onBack={() => {}}
-                            mvpWeights={undefined}
-                            precomputedStats={report.stats}
-                            statsViewSettings={report.stats?.statsViewSettings}
-                            embedded
-                            sectionVisibility={(id) => activeSectionIds.has(id)}
-                            dashboardTitle={`Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`}
-                        />
+                        <div id="stats-view-top">
+                            <StatsView
+                                logs={[]}
+                                onBack={() => {}}
+                                mvpWeights={undefined}
+                                precomputedStats={report.stats}
+                                statsViewSettings={report.stats?.statsViewSettings}
+                                embedded
+                                sectionVisibility={(id) => activeSectionIds.has(id)}
+                                dashboardTitle={`Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`}
+                            />
+                        </div>
                     </div>
                     <div className="mt-10">
                         {legalNoticePane}
@@ -1009,7 +1022,7 @@ export function ReportApp() {
             </div>
                 <div className="max-w-[1600px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10">
                 <div id="report-list-container" className="rounded-2xl border border-white/5 bg-black/20 p-4 sm:p-6">
-                    <div className={`${glassCard} p-5 sm:p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`} style={glassCardStyle}>
+                    <div id="report-top" className={`${glassCard} p-5 sm:p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`} style={glassCardStyle}>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-h-[56px] text-center sm:text-left">
                             {logoUrl && (
                                 logoIsDefault ? (

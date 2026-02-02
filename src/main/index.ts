@@ -1027,6 +1027,48 @@ const copyDir = (src: string, dest: string) => {
     });
 };
 
+const isWebTemplateReady = (webRoot: string) => {
+    try {
+        const indexPath = path.join(webRoot, 'index.html');
+        const assetsPath = path.join(webRoot, 'assets');
+        if (!fs.existsSync(indexPath)) return false;
+        if (!fs.existsSync(assetsPath)) return false;
+        const entries = fs.readdirSync(assetsPath);
+        return entries.length > 0;
+    } catch {
+        return false;
+    }
+};
+
+const ensureDevWebIndex = (webRoot: string) => {
+    const indexPath = path.join(webRoot, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        try {
+            const current = fs.readFileSync(indexPath, 'utf8');
+            if (current.includes('/src/web/main.tsx')) {
+                return;
+            }
+        } catch {
+            // Fall through to rewrite index.
+        }
+    }
+    const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/img/ArcBridgeGradient.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ArcBridge</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/web/main.tsx"></script>
+  </body>
+</html>
+`;
+    fs.writeFileSync(indexPath, html);
+};
+
 const sendWebUploadStatus = (stage: string, message?: string, progress?: number) => {
     if (win && !win.isDestroyed()) {
         win.webContents.send('web-upload-status', { stage, message, progress });
@@ -2442,9 +2484,21 @@ if (!gotTheLock) {
             try {
                 const appRoot = getWebRoot();
                 const webRoot = path.join(appRoot, 'web');
-                if (!fs.existsSync(webRoot)) {
-                    return { success: false, error: `Web source root not found at ${webRoot}` };
+                const webRootExists = fs.existsSync(webRoot);
+                const webRootEmpty = webRootExists ? fs.readdirSync(webRoot).length === 0 : true;
+                if (!webRootExists) {
+                    fs.mkdirSync(webRoot, { recursive: true });
                 }
+                if (webRootEmpty) {
+                    const templateDir = path.join(appRoot, 'dist-web');
+                    const built = await buildWebTemplate(appRoot);
+                    if (!built.ok || !fs.existsSync(templateDir)) {
+                        return { success: false, error: built.error || 'Failed to generate the web template automatically.' };
+                    }
+                    copyDir(templateDir, webRoot);
+                }
+                // Always ensure dev index points at the web entry.
+                ensureDevWebIndex(webRoot);
                 const reportMeta = {
                     ...payload.meta,
                     appVersion: app.getVersion()

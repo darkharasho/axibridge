@@ -288,6 +288,12 @@ function App() {
             if (data.filePath && canceledLogsRef.current.has(data.filePath)) {
                 return;
             }
+            console.log('[App] Upload Complete Data:', {
+                path: data.filePath,
+                status: data.status,
+                hasDetails: !!data.details,
+                playerCount: data.details?.players?.length
+            });
             setLogs((currentLogs) => {
                 const existingIndex = currentLogs.findIndex(log => log.filePath === data.filePath);
                 if (existingIndex >= 0) {
@@ -1034,11 +1040,10 @@ function App() {
                                                                     handleUpdateSettings({ selectedWebhookId: null });
                                                                     setWebhookDropdownOpen(false);
                                                                 }}
-                                                                className={`w-full px-3 py-2 text-left text-sm transition-colors ${
-                                                                    !selectedWebhookId
-                                                                        ? 'bg-purple-500/20 text-purple-100'
-                                                                        : 'text-gray-300 hover:bg-white/10'
-                                                                }`}
+                                                                className={`w-full px-3 py-2 text-left text-sm transition-colors ${!selectedWebhookId
+                                                                    ? 'bg-purple-500/20 text-purple-100'
+                                                                    : 'text-gray-300 hover:bg-white/10'
+                                                                    }`}
                                                                 role="option"
                                                                 aria-selected={!selectedWebhookId}
                                                             >
@@ -1053,11 +1058,10 @@ function App() {
                                                                         handleUpdateSettings({ selectedWebhookId: hook.id });
                                                                         setWebhookDropdownOpen(false);
                                                                     }}
-                                                                    className={`w-full px-3 py-2 text-left text-sm transition-colors ${
-                                                                        selectedWebhookId === hook.id
-                                                                            ? 'bg-purple-500/20 text-purple-100'
-                                                                            : 'text-gray-300 hover:bg-white/10'
-                                                                    }`}
+                                                                    className={`w-full px-3 py-2 text-left text-sm transition-colors ${selectedWebhookId === hook.id
+                                                                        ? 'bg-purple-500/20 text-purple-100'
+                                                                        : 'text-gray-300 hover:bg-white/10'
+                                                                        }`}
                                                                     role="option"
                                                                     aria-selected={selectedWebhookId === hook.id}
                                                                 >
@@ -1751,48 +1755,48 @@ function App() {
                                                         : null;
                                                     return (
                                                         <div
-                                                        key={entry.path}
-                                                        className={`flex items-center gap-2 px-2 py-1 rounded-lg border cursor-pointer select-none ${filePickerSelected.has(entry.path)
-                                                            ? 'bg-cyan-500/10 border-cyan-400/40 text-cyan-100'
-                                                            : 'bg-white/5 border-white/10 text-gray-300 hover:text-white'
-                                                            }`}
-                                                        onClick={(event) => {
-                                                            if (event.shiftKey && lastPickedIndexRef.current !== null) {
-                                                                const start = Math.min(lastPickedIndexRef.current, index);
-                                                                const end = Math.max(lastPickedIndexRef.current, index);
-                                                                setFilePickerSelected((prev) => {
-                                                                    const next = new Set(prev);
-                                                                    for (let i = start; i <= end; i += 1) {
-                                                                        next.add(filtered[i].path);
-                                                                    }
-                                                                    return next;
-                                                                });
-                                                            } else {
-                                                                setFilePickerSelected((prev) => {
-                                                                    const next = new Set(prev);
-                                                                    if (next.has(entry.path)) {
-                                                                        next.delete(entry.path);
-                                                                    } else {
-                                                                        next.add(entry.path);
-                                                                    }
-                                                                    return next;
-                                                                });
-                                                            }
-                                                            lastPickedIndexRef.current = index;
-                                                        }}
-                                                    >
-                                                        <div className="h-3.5 w-3.5 rounded border border-white/20 flex items-center justify-center">
-                                                            {filePickerSelected.has(entry.path) && (
-                                                                <div className="h-2 w-2 rounded-sm bg-cyan-300" />
+                                                            key={entry.path}
+                                                            className={`flex items-center gap-2 px-2 py-1 rounded-lg border cursor-pointer select-none ${filePickerSelected.has(entry.path)
+                                                                ? 'bg-cyan-500/10 border-cyan-400/40 text-cyan-100'
+                                                                : 'bg-white/5 border-white/10 text-gray-300 hover:text-white'
+                                                                }`}
+                                                            onClick={(event) => {
+                                                                if (event.shiftKey && lastPickedIndexRef.current !== null) {
+                                                                    const start = Math.min(lastPickedIndexRef.current, index);
+                                                                    const end = Math.max(lastPickedIndexRef.current, index);
+                                                                    setFilePickerSelected((prev) => {
+                                                                        const next = new Set(prev);
+                                                                        for (let i = start; i <= end; i += 1) {
+                                                                            next.add(filtered[i].path);
+                                                                        }
+                                                                        return next;
+                                                                    });
+                                                                } else {
+                                                                    setFilePickerSelected((prev) => {
+                                                                        const next = new Set(prev);
+                                                                        if (next.has(entry.path)) {
+                                                                            next.delete(entry.path);
+                                                                        } else {
+                                                                            next.add(entry.path);
+                                                                        }
+                                                                        return next;
+                                                                    });
+                                                                }
+                                                                lastPickedIndexRef.current = index;
+                                                            }}
+                                                        >
+                                                            <div className="h-3.5 w-3.5 rounded border border-white/20 flex items-center justify-center">
+                                                                {filePickerSelected.has(entry.path) && (
+                                                                    <div className="h-2 w-2 rounded-sm bg-cyan-300" />
+                                                                )}
+                                                            </div>
+                                                            <span className="truncate flex-1">{entry.name}</span>
+                                                            {timestamp && (
+                                                                <span className="text-[10px] text-gray-500/80 font-medium whitespace-nowrap">
+                                                                    {timestamp}
+                                                                </span>
                                                             )}
                                                         </div>
-                                                        <span className="truncate flex-1">{entry.name}</span>
-                                                        {timestamp && (
-                                                            <span className="text-[10px] text-gray-500/80 font-medium whitespace-nowrap">
-                                                                {timestamp}
-                                                            </span>
-                                                        )}
-                                                    </div>
                                                     );
                                                 })}
                                         </div>
