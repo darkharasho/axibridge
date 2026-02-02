@@ -60,7 +60,7 @@ const SkillChartsProbe = ({
 describe('useSkillCharts', () => {
     it('includes selected players with zero values in chart data', async () => {
         let result: UseSkillChartsResult | null = null;
-        const assertResult = (value: UseSkillChartsResult | null): asserts value is UseSkillChartsResult => {
+        const assertResult: (value: UseSkillChartsResult | null) => asserts value is UseSkillChartsResult = (value) => {
             if (!value) {
                 throw new Error('Expected skill chart data to be available.');
             }
