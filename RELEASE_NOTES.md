@@ -1,13 +1,17 @@
 # Release Notes
 
-Version v1.19.1 — February 2, 2026
+Version v1.19.2 — February 2, 2026
 
 ## 🌟 Highlights
-- Battle standard tracking added to offense metrics and stats aggregation.
-- Initial HTML structure laid out for the ArcBridge interface.
+- Added a developer settings toggle to reveal hidden tools
+- Update checks can be run on demand from the UI
+- Stats view now handles top skills metric more robustly
+- Fight breakdown stats now include enemy downs tracking
 
 ## 🛠️ Improvements
-- StatsView and TopSkillsSection components cleaned up by removing unused props to streamline the UI.
+- Developer Settings panel: new hidden-tools UI with an action to Ensure GitHub Template
+- StatsView: improved handling for top skills metric using local state for smoother control
+- Build workflow now includes a pre-build validation step and a new typecheck script
 
 ## 🧯 Fixes
 None.
