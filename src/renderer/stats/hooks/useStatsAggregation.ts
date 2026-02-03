@@ -267,6 +267,10 @@ export const useStatsAggregation = ({ logs, precomputedStats, mvpWeights, statsV
             const isWin = getFightOutcome(details);
             if (isWin) wins++; else losses++;
 
+            const battleStandardSkillId = details.skillMap
+                ? Number(Object.keys(details.skillMap).find((key) => details.skillMap?.[key]?.name === 'Battle Standard')?.replace(/^s/, ''))
+                : null;
+
             players.forEach(p => {
                 if (p.notInSquad) return;
                 const account = p.account || 'Unknown';
@@ -413,6 +417,16 @@ export const useStatsAggregation = ({ logs, precomputedStats, mvpWeights, statsV
                         if (m.isRate && denom > 0) s.offenseRateWeights[m.id] = (s.offenseRateWeights[m.id] || 0) + denom;
                     }
                 });
+                if (p.targetDamageDist && Number.isFinite(battleStandardSkillId)) {
+                    const connectedHits = p.targetDamageDist
+                        .flatMap((group: any) => group || [])
+                        .flatMap((list: any) => list || [])
+                        .reduce((sum: number, entry: any) => {
+                            if (!entry?.id) return sum;
+                            return entry.id === battleStandardSkillId ? sum + (entry?.connectedHits || 0) : sum;
+                        }, 0);
+                    s.offenseTotals.battleStandardHits = (s.offenseTotals.battleStandardHits || 0) + connectedHits;
+                }
 
                 s.revives += p.support?.[0]?.resurrects || 0;
                 if (dpsAll) {
