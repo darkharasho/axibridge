@@ -122,6 +122,60 @@ const removeDpsReportCacheEntry = (index: Record<string, DpsReportCacheEntry>, k
     delete index[key];
 };
 
+const getDevDatasetsDir = () => path.join(process.cwd(), 'dev', 'datasets');
+
+const ensureDevDatasetsDir = async () => {
+    const dir = getDevDatasetsDir();
+    await fs.promises.mkdir(dir, { recursive: true });
+    return dir;
+};
+
+const sanitizeDevDatasetId = (id: string) => id.replace(/[^a-zA-Z0-9-_]/g, '');
+const sanitizeDevDatasetName = (name: string) => name.replace(/[^a-zA-Z0-9-_ ]/g, '').trim() || 'dataset';
+const devDatasetFolderCache = new Map<string, string>();
+
+const readJsonFilesWithLimit = async <T = any>(paths: string[], limit = 8): Promise<T[]> => {
+    const results: T[] = new Array(paths.length);
+    let index = 0;
+
+    const worker = async () => {
+        while (index < paths.length) {
+            const current = index;
+            index += 1;
+            const raw = await fs.promises.readFile(paths[current], 'utf-8');
+            results[current] = JSON.parse(raw) as T;
+        }
+    };
+
+    const workers = Array.from({ length: Math.min(limit, paths.length) }, () => worker());
+    await Promise.all(workers);
+    return results;
+};
+
+const writeJsonFilesWithLimit = async (
+    entries: Array<{ path: string; data: any }>,
+    limit = 8,
+    onProgress?: (written: number, total: number) => void
+) => {
+    let index = 0;
+    let written = 0;
+    const total = entries.length;
+
+    const worker = async () => {
+        while (index < entries.length) {
+            const current = index;
+            index += 1;
+            const entry = entries[current];
+            await fs.promises.writeFile(entry.path, JSON.stringify(entry.data), 'utf-8');
+            written += 1;
+            onProgress?.(written, total);
+        }
+    };
+
+    const workers = Array.from({ length: Math.min(limit, entries.length) }, () => worker());
+    await Promise.all(workers);
+};
+
 const pruneDpsReportCacheIndex = (index: Record<string, DpsReportCacheEntry>) => {
     const now = Date.now();
     let changed = false;
@@ -1752,6 +1806,216 @@ if (!gotTheLock) {
                 return { success: true, settings: parsed, filePath };
             } catch (err: any) {
                 return { success: false, error: err?.message || 'Failed to read settings file.' };
+            }
+        });
+
+        ipcMain.handle('list-dev-datasets', async () => {
+            try {
+                const dir = await ensureDevDatasetsDir();
+                const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+                const datasets = [];
+                for (const entry of entries) {
+                    if (!entry.isDirectory()) continue;
+                    const metaPath = path.join(dir, entry.name, 'meta.json');
+                    try {
+                        const raw = await fs.promises.readFile(metaPath, 'utf-8');
+                        const parsed = JSON.parse(raw);
+                        if (!parsed || typeof parsed !== 'object') continue;
+                        datasets.push({
+                            id: parsed.id || entry.name,
+                            name: parsed.name || 'Unnamed Dataset',
+                            createdAt: parsed.createdAt || new Date(0).toISOString()
+                        });
+                    } catch {
+                        // Ignore unreadable dataset folders.
+                    }
+                }
+                datasets.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+                return { success: true, datasets };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to list datasets.' };
+            }
+        });
+
+        ipcMain.handle('save-dev-dataset', async (event, payload: { id?: string; name: string; logs: any[]; report?: any }) => {
+            try {
+                const dir = await ensureDevDatasetsDir();
+                const baseId = payload.id || `${Date.now()}`;
+                const id = sanitizeDevDatasetId(baseId) || `${Date.now()}`;
+                const name = payload.name?.trim() || 'Dataset';
+                const createdAt = new Date().toISOString();
+                const folderName = `${id}-${sanitizeDevDatasetName(name).replace(/\s+/g, '-').toLowerCase()}`;
+                const datasetDir = path.join(dir, folderName);
+                const logsDir = path.join(datasetDir, 'logs');
+                await fs.promises.mkdir(logsDir, { recursive: true });
+                event.sender.send('dev-dataset-save-progress', { id, stage: 'folder', written: 0, total: 0 });
+                const meta = { id, name, createdAt, folder: folderName };
+                await fs.promises.writeFile(path.join(datasetDir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf-8');
+                await fs.promises.writeFile(path.join(datasetDir, 'report.json'), JSON.stringify(payload.report || null), 'utf-8');
+                const logs = Array.isArray(payload.logs) ? payload.logs : [];
+                const entries = logs.map((log, index) => ({
+                    path: path.join(logsDir, `log-${index + 1}.json`),
+                    data: log
+                }));
+                if (entries.length > 0) {
+                    await writeJsonFilesWithLimit(entries, 8, (written, total) => {
+                        event.sender.send('dev-dataset-save-progress', { id, stage: 'logs', written, total });
+                    });
+                }
+                event.sender.send('dev-dataset-save-progress', { id, stage: 'done', written: logs.length, total: logs.length });
+                return { success: true, dataset: { id, name, createdAt } };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to save dataset.' };
+            }
+        });
+
+        ipcMain.handle('begin-dev-dataset-save', async (_event, payload: { id?: string; name: string; report?: any }) => {
+            try {
+                const dir = await ensureDevDatasetsDir();
+                const baseId = payload.id || `${Date.now()}`;
+                const id = sanitizeDevDatasetId(baseId) || `${Date.now()}`;
+                const name = payload.name?.trim() || 'Dataset';
+                const createdAt = new Date().toISOString();
+                const folderName = `${id}-${sanitizeDevDatasetName(name).replace(/\s+/g, '-').toLowerCase()}`;
+                const datasetDir = path.join(dir, folderName);
+                const logsDir = path.join(datasetDir, 'logs');
+                await fs.promises.mkdir(logsDir, { recursive: true });
+                const meta = { id, name, createdAt, folder: folderName };
+                await fs.promises.writeFile(path.join(datasetDir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf-8');
+                await fs.promises.writeFile(path.join(datasetDir, 'report.json'), JSON.stringify(payload.report || null), 'utf-8');
+                devDatasetFolderCache.set(id, datasetDir);
+                return { success: true, dataset: { id, name, createdAt } };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to start dataset save.' };
+            }
+        });
+
+        ipcMain.handle('append-dev-dataset-logs', async (event, payload: { id: string; logs: any[]; startIndex: number; total?: number }) => {
+            try {
+                const id = sanitizeDevDatasetId(payload.id);
+                if (!id) return { success: false, error: 'Invalid dataset id.' };
+                let datasetDir = devDatasetFolderCache.get(id);
+                if (!datasetDir) {
+                    const dir = await ensureDevDatasetsDir();
+                    const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+                    const folder = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(`${id}-`));
+                    if (!folder) return { success: false, error: 'Dataset not found.' };
+                    datasetDir = path.join(dir, folder.name);
+                    devDatasetFolderCache.set(id, datasetDir);
+                }
+                const logsDir = path.join(datasetDir, 'logs');
+                const logs = Array.isArray(payload.logs) ? payload.logs : [];
+                const entries = logs.map((log, index) => ({
+                    path: path.join(logsDir, `log-${payload.startIndex + index + 1}.json`),
+                    data: log
+                }));
+                if (entries.length > 0) {
+                    await writeJsonFilesWithLimit(entries, 8);
+                }
+                if (payload.total) {
+                    const written = Math.min(payload.startIndex + logs.length, payload.total);
+                    event.sender.send('dev-dataset-save-progress', { id, stage: 'logs', written, total: payload.total });
+                }
+                return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to append dataset logs.' };
+            }
+        });
+
+        ipcMain.handle('finish-dev-dataset-save', async (_event, payload: { id: string; total: number }) => {
+            try {
+                const id = sanitizeDevDatasetId(payload.id);
+                if (!id) return { success: false, error: 'Invalid dataset id.' };
+                return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to finish dataset save.' };
+            }
+        });
+
+        ipcMain.handle('load-dev-dataset', async (_event, payload: { id: string }) => {
+            try {
+                const dir = await ensureDevDatasetsDir();
+                const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+                const id = sanitizeDevDatasetId(payload.id);
+                if (!id) return { success: false, error: 'Invalid dataset id.' };
+                const folder = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(`${id}-`));
+                if (!folder) return { success: false, error: 'Dataset not found.' };
+                const datasetDir = path.join(dir, folder.name);
+                const metaPath = path.join(datasetDir, 'meta.json');
+                const reportPath = path.join(datasetDir, 'report.json');
+                const logsDir = path.join(datasetDir, 'logs');
+                const metaRaw = await fs.promises.readFile(metaPath, 'utf-8');
+                const meta = JSON.parse(metaRaw);
+                const reportRaw = await fs.promises.readFile(reportPath, 'utf-8');
+                const report = JSON.parse(reportRaw);
+                const logEntries = await fs.promises.readdir(logsDir);
+                const sortedLogEntries = logEntries
+                    .filter((name) => name.endsWith('.json'))
+                    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+                const logPaths = sortedLogEntries.map((file) => path.join(logsDir, file));
+                const logs = await readJsonFilesWithLimit(logPaths, 8);
+                return { success: true, dataset: { ...meta, logs, report } };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to load dataset.' };
+            }
+        });
+
+        ipcMain.handle('load-dev-dataset-chunked', async (event, payload: { id: string; chunkSize?: number }) => {
+            try {
+                const dir = await ensureDevDatasetsDir();
+                const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+                const id = sanitizeDevDatasetId(payload.id);
+                if (!id) return { success: false, error: 'Invalid dataset id.' };
+                const folder = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(`${id}-`));
+                if (!folder) return { success: false, error: 'Dataset not found.' };
+                const datasetDir = path.join(dir, folder.name);
+                const metaPath = path.join(datasetDir, 'meta.json');
+                const reportPath = path.join(datasetDir, 'report.json');
+                const logsDir = path.join(datasetDir, 'logs');
+                const metaRaw = await fs.promises.readFile(metaPath, 'utf-8');
+                const meta = JSON.parse(metaRaw);
+                const reportRaw = await fs.promises.readFile(reportPath, 'utf-8');
+                const report = JSON.parse(reportRaw);
+                const logEntries = await fs.promises.readdir(logsDir);
+                const sortedLogEntries = logEntries
+                    .filter((name) => name.endsWith('.json'))
+                    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+                const logPaths = sortedLogEntries.map((file) => path.join(logsDir, file));
+                const chunkSize = Math.max(1, Math.min(payload.chunkSize || 25, 200));
+
+                void (async () => {
+                    for (let i = 0; i < logPaths.length; i += chunkSize) {
+                        const chunkPaths = logPaths.slice(i, i + chunkSize);
+                        const logs = await readJsonFilesWithLimit(chunkPaths, 8);
+                        event.sender.send('dev-dataset-logs-chunk', {
+                            id,
+                            logs,
+                            index: i,
+                            total: logPaths.length,
+                            done: i + chunkSize >= logPaths.length
+                        });
+                    }
+                })();
+
+                return { success: true, dataset: { ...meta, report }, totalLogs: logPaths.length };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to load dataset.' };
+            }
+        });
+
+        ipcMain.handle('delete-dev-dataset', async (_event, payload: { id: string }) => {
+            try {
+                const dir = await ensureDevDatasetsDir();
+                const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+                const id = sanitizeDevDatasetId(payload.id);
+                if (!id) return { success: false, error: 'Invalid dataset id.' };
+                const folder = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(`${id}-`));
+                if (!folder) return { success: false, error: 'Dataset not found.' };
+                const datasetDir = path.join(dir, folder.name);
+                await fs.promises.rm(datasetDir, { recursive: true, force: true });
+                return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to delete dataset.' };
             }
         });
 

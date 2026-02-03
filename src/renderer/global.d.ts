@@ -71,6 +71,12 @@ export interface IWebUploadState {
     buildStatus: WebUploadBuildStatus;
 }
 
+export interface IDevDatasetMeta {
+    id: string;
+    name: string;
+    createdAt: string;
+}
+
 export type UiTheme = 'classic' | 'modern';
 
 export type DisruptionMethod = 'count' | 'duration' | 'tiered';
@@ -242,6 +248,16 @@ export interface IElectronAPI {
     exportSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     importSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     selectSettingsFile: () => Promise<{ success: boolean; canceled?: boolean; error?: string; settings?: any; filePath?: string }>;
+    listDevDatasets: () => Promise<{ success: boolean; datasets?: IDevDatasetMeta[]; error?: string }>;
+    saveDevDataset: (payload: { id?: string; name: string; logs: any[]; report?: any }) => Promise<{ success: boolean; dataset?: IDevDatasetMeta; error?: string }>;
+    beginDevDatasetSave: (payload: { id?: string; name: string; report?: any }) => Promise<{ success: boolean; dataset?: IDevDatasetMeta; error?: string }>;
+    appendDevDatasetLogs: (payload: { id: string; logs: any[]; startIndex: number; total?: number }) => Promise<{ success: boolean; error?: string }>;
+    finishDevDatasetSave: (payload: { id: string; total: number }) => Promise<{ success: boolean; error?: string }>;
+    loadDevDataset: (payload: { id: string }) => Promise<{ success: boolean; dataset?: any; error?: string }>;
+    loadDevDatasetChunked: (payload: { id: string; chunkSize?: number }) => Promise<{ success: boolean; dataset?: any; totalLogs?: number; error?: string }>;
+    onDevDatasetLogsChunk: (callback: (data: any) => void) => () => void;
+    onDevDatasetSaveProgress: (callback: (data: any) => void) => () => void;
+    deleteDevDataset: (payload: { id: string }) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

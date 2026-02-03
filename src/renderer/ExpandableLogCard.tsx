@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { applyStabilityGeneration, getIncomingDisruptions, getPlayerDamage, getPlayerDps, getPlayerDownsTaken, getPlayerDeaths, getPlayerDamageTaken, getPlayerDodges, getPlayerMissed, getPlayerBlocked, getPlayerEvaded, getPlayerResurrects, getPlayerDownContribution, getPlayerOutgoingCrowdControl, getPlayerSquadBarrier, getPlayerSquadHealing, getTargetStatTotal } from '../shared/dashboardMetrics';
@@ -26,15 +26,15 @@ interface ExpandableLogCardProps {
     };
 }
 
-export const ExpandableLogCard = forwardRef<HTMLDivElement, ExpandableLogCardProps>(({ log, isExpanded, onToggle, onCancel, screenshotMode, embedStatSettings, disruptionMethod, screenshotSection, useClassIcons }, ref) => {
+const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>(({ log, isExpanded, onToggle, onCancel, screenshotMode, embedStatSettings, disruptionMethod, screenshotSection, useClassIcons }, ref) => {
     const details = log.details || {};
     const players: Player[] = details.players || [];
     const targets = details.targets || [];
     const settings = embedStatSettings || DEFAULT_EMBED_STATS;
     const method = disruptionMethod || DEFAULT_DISRUPTION_METHOD;
-    applyStabilityGeneration(players, { durationMS: details.durationMS, buffMap: details.buffMap });
     const squadPlayers = players.filter((p: any) => !p.notInSquad);
     const nonSquadPlayers = players.filter((p: any) => p.notInSquad);
+    const shouldComputeDetails = isExpanded || screenshotMode || Boolean(screenshotSection);
 
     const isQueued = log.status === 'queued';
     const isPending = log.status === 'pending';
@@ -46,6 +46,18 @@ export const ExpandableLogCard = forwardRef<HTMLDivElement, ExpandableLogCardPro
             : isUploading ? 'Parsing with dps.report'
                 : isDiscord ? 'Preparing Discord preview'
                     : null;
+    const resolveTimestampMs = () => {
+        const raw = log.uploadTime || details.uploadTime;
+        if (!raw) return null;
+        const value = Number(raw);
+        if (!Number.isFinite(value)) return null;
+        return value > 1e12 ? value : value * 1000;
+    };
+    const formattedTime = () => {
+        const ts = resolveTimestampMs();
+        if (!ts) return 'Just now';
+        return new Date(ts).toLocaleTimeString();
+    };
 
     // --- Stats Calculation ---
     let totalDps = 0;
@@ -73,60 +85,10 @@ export const ExpandableLogCard = forwardRef<HTMLDivElement, ExpandableLogCardPro
     let totalStripsTaken = 0;
     let totalStripsMissed = 0;
     let totalStripsBlocked = 0;
-
-    players.forEach((p: any) => {
-        const isSquad = !p.notInSquad;
-        totalDps += getPlayerDps(p);
-        totalDmg += getPlayerDamage(p);
-        if (isSquad) {
-            squadDps += getPlayerDps(p);
-            squadDmg += getPlayerDamage(p);
-            squadCC += getPlayerOutgoingCrowdControl(p, method);
-            squadResurrects += getPlayerResurrects(p);
-        }
-        totalDowns += getPlayerDownsTaken(p);
-        totalDeaths += getPlayerDeaths(p);
-        totalDmgTaken += getPlayerDamageTaken(p);
-        if (isSquad) {
-            squadDowns += getPlayerDownsTaken(p);
-            squadDeaths += getPlayerDeaths(p);
-        }
-        totalMiss += getPlayerMissed(p);
-        totalBlock += getPlayerBlocked(p);
-        totalEvade += getPlayerEvaded(p);
-        totalDodge += getPlayerDodges(p);
-
-        const pStats = getIncomingDisruptions(p, method);
-        totalCCTaken += pStats.cc.total;
-        totalCCMissed += pStats.cc.missed;
-        totalCCBlocked += pStats.cc.blocked;
-
-        totalStripsTaken += pStats.strips.total;
-        totalStripsMissed += pStats.strips.missed;
-        totalStripsBlocked += pStats.strips.blocked;
-    });
-
-    // Calculate Enemy (Target) Stats - how many times WE downed/killed them
-    // We aggregate from player statsTargets, which records what each player did to targets
     let enemyDowns = 0;
     let enemyDeaths = 0;
     let enemyCount = 0;
-
-    // Count non-fake targets
-    targets.forEach((t: any) => {
-        if (!t.isFake) enemyCount++;
-    });
-
-    // Aggregate downed/killed from statsTargets
-    players.forEach((p: any) => {
-        if (p.notInSquad) return; // Only count squad contributions
-        enemyDowns += getTargetStatTotal(p, 'downed');
-        enemyDeaths += getTargetStatTotal(p, 'killed');
-    });
-
-    // Calculate enemy DPS (damage they dealt to us per second)
-    const durationSec = (details.durationMS || 0) / 1000 || 1;
-    const enemyDps = Math.round(totalDmgTaken / durationSec);
+    let enemyDps = 0;
 
     const buildClassCounts = (list: Player[]) => {
         const counts: Record<string, number> = {};
@@ -140,31 +102,84 @@ export const ExpandableLogCard = forwardRef<HTMLDivElement, ExpandableLogCardPro
             .map(([profession, count]) => ({ profession, count }));
     };
 
-    const squadClassCounts = buildClassCounts(squadPlayers);
-    const enemyClassCounts = (() => {
-        const counts: Record<string, number> = {};
-        const seenEnemyIdsInFight = new Set<string>();
-        targets.forEach((t: any) => {
-            if (t?.isFake) return;
-            const rawName = t?.name || 'Unknown';
-            const rawId = t?.instanceID ?? t?.instid ?? t?.id ?? rawName;
-            const idKey = rawId !== undefined && rawId !== null ? String(rawId) : rawName;
-            if (seenEnemyIdsInFight.has(idKey)) return;
-            seenEnemyIdsInFight.add(idKey);
+    let squadClassCounts: Array<{ profession: string; count: number }> = [];
+    let enemyClassCounts: Array<{ profession: string; count: number }> = [];
 
-            const cleanName = String(rawName)
-                .replace(/\s+pl-\d+$/i, '')
-                .replace(/\s*\([^)]*\)/, '')
-                .trim();
-            counts[cleanName] = (counts[cleanName] || 0) + 1;
+    if (shouldComputeDetails) {
+        applyStabilityGeneration(players, { durationMS: details.durationMS, buffMap: details.buffMap });
+        players.forEach((p: any) => {
+            const isSquad = !p.notInSquad;
+            totalDps += getPlayerDps(p);
+            totalDmg += getPlayerDamage(p);
+            if (isSquad) {
+                squadDps += getPlayerDps(p);
+                squadDmg += getPlayerDamage(p);
+                squadCC += getPlayerOutgoingCrowdControl(p, method);
+                squadResurrects += getPlayerResurrects(p);
+            }
+            totalDowns += getPlayerDownsTaken(p);
+            totalDeaths += getPlayerDeaths(p);
+            totalDmgTaken += getPlayerDamageTaken(p);
+            if (isSquad) {
+                squadDowns += getPlayerDownsTaken(p);
+                squadDeaths += getPlayerDeaths(p);
+            }
+            totalMiss += getPlayerMissed(p);
+            totalBlock += getPlayerBlocked(p);
+            totalEvade += getPlayerEvaded(p);
+            totalDodge += getPlayerDodges(p);
+
+            const pStats = getIncomingDisruptions(p, method);
+            totalCCTaken += pStats.cc.total;
+            totalCCMissed += pStats.cc.missed;
+            totalCCBlocked += pStats.cc.blocked;
+
+            totalStripsTaken += pStats.strips.total;
+            totalStripsMissed += pStats.strips.missed;
+            totalStripsBlocked += pStats.strips.blocked;
         });
-        return Object.entries(counts)
-            .filter(([, count]) => count > 0)
-            .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
-            .map(([profession, count]) => ({ profession, count }));
-    })();
 
+        // Calculate Enemy (Target) Stats - how many times WE downed/killed them
+        // We aggregate from player statsTargets, which records what each player did to targets
+        targets.forEach((t: any) => {
+            if (!t.isFake) enemyCount++;
+        });
 
+        // Aggregate downed/killed from statsTargets
+        players.forEach((p: any) => {
+            if (p.notInSquad) return; // Only count squad contributions
+            enemyDowns += getTargetStatTotal(p, 'downed');
+            enemyDeaths += getTargetStatTotal(p, 'killed');
+        });
+
+        // Calculate enemy DPS (damage they dealt to us per second)
+        const durationSec = (details.durationMS || 0) / 1000 || 1;
+        enemyDps = Math.round(totalDmgTaken / durationSec);
+
+        squadClassCounts = buildClassCounts(squadPlayers);
+        enemyClassCounts = (() => {
+            const counts: Record<string, number> = {};
+            const seenEnemyIdsInFight = new Set<string>();
+            targets.forEach((t: any) => {
+                if (t?.isFake) return;
+                const rawName = t?.name || 'Unknown';
+                const rawId = t?.instanceID ?? t?.instid ?? t?.id ?? rawName;
+                const idKey = rawId !== undefined && rawId !== null ? String(rawId) : rawName;
+                if (seenEnemyIdsInFight.has(idKey)) return;
+                seenEnemyIdsInFight.add(idKey);
+
+                const cleanName = String(rawName)
+                    .replace(/\s+pl-\d+$/i, '')
+                    .replace(/\s*\([^)]*\)/, '')
+                    .trim();
+                counts[cleanName] = (counts[cleanName] || 0) + 1;
+            });
+            return Object.entries(counts)
+                .filter(([, count]) => count > 0)
+                .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
+                .map(([profession, count]) => ({ profession, count }));
+        })();
+    }
 
     const getDistanceToTag = (p: any) => {
         const stats = p.statsAll?.[0];
@@ -575,7 +590,7 @@ export const ExpandableLogCard = forwardRef<HTMLDivElement, ExpandableLogCardPro
                             <div className="flex items-center gap-4 mt-2 text-sm font-medium text-gray-400">
                                 <span className="bg-white/5 px-2 py-0.5 rounded-md border border-white/10">{players.length} Players {nonSquadPlayers.length > 0 ? `(${squadPlayers.length} Squad + ${nonSquadPlayers.length} Others)` : ''}</span>
                                 <span className="text-gray-600">•</span>
-                                <span>{(log.uploadTime || details.uploadTime) ? new Date((log.uploadTime || details.uploadTime) * 1000).toLocaleTimeString() : 'Just now'}</span>
+                                <span>{formattedTime()}</span>
                             </div>
                         </div>
                     </div>
@@ -695,9 +710,7 @@ export const ExpandableLogCard = forwardRef<HTMLDivElement, ExpandableLogCardPro
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                         <span>{statusLabel ? statusLabel : `${players.length || '0'} Players${nonSquadPlayers.length > 0 ? ` (${squadPlayers.length} +${nonSquadPlayers.length})` : ''}`}</span>
                         <span>•</span>
-                        <span>{(log.uploadTime || details.uploadTime)
-                            ? new Date((log.uploadTime || details.uploadTime) * 1000).toLocaleTimeString()
-                            : (statusLabel ? statusLabel : 'Just now')}</span>
+                        <span>{formattedTime()}</span>
                     </div>
                 </div>
                 <button
@@ -855,5 +868,17 @@ export const ExpandableLogCard = forwardRef<HTMLDivElement, ExpandableLogCardPro
         </motion.div >
     );
 });
+
+const areEqual = (prev: ExpandableLogCardProps, next: ExpandableLogCardProps) => {
+    return prev.log === next.log
+        && prev.isExpanded === next.isExpanded
+        && prev.screenshotMode === next.screenshotMode
+        && prev.embedStatSettings === next.embedStatSettings
+        && prev.disruptionMethod === next.disruptionMethod
+        && prev.screenshotSection === next.screenshotSection
+        && prev.useClassIcons === next.useClassIcons;
+};
+
+export const ExpandableLogCard = memo(ExpandableLogCardBase, areEqual);
 
 ExpandableLogCard.displayName = 'ExpandableLogCard';

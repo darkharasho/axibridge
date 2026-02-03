@@ -107,5 +107,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     exportSettings: () => ipcRenderer.invoke('export-settings'),
     importSettings: () => ipcRenderer.invoke('import-settings'),
-    selectSettingsFile: () => ipcRenderer.invoke('select-settings-file')
+    selectSettingsFile: () => ipcRenderer.invoke('select-settings-file'),
+    listDevDatasets: () => ipcRenderer.invoke('list-dev-datasets'),
+    saveDevDataset: (payload: { id?: string; name: string; logs: any[]; report?: any }) =>
+        ipcRenderer.invoke('save-dev-dataset', payload),
+    beginDevDatasetSave: (payload: { id?: string; name: string; report?: any }) =>
+        ipcRenderer.invoke('begin-dev-dataset-save', payload),
+    appendDevDatasetLogs: (payload: { id: string; logs: any[]; startIndex: number; total?: number }) =>
+        ipcRenderer.invoke('append-dev-dataset-logs', payload),
+    finishDevDatasetSave: (payload: { id: string; total: number }) =>
+        ipcRenderer.invoke('finish-dev-dataset-save', payload),
+    loadDevDataset: (payload: { id: string }) => ipcRenderer.invoke('load-dev-dataset', payload),
+    loadDevDatasetChunked: (payload: { id: string; chunkSize?: number }) =>
+        ipcRenderer.invoke('load-dev-dataset-chunked', payload),
+    onDevDatasetLogsChunk: (callback: (data: any) => void) => {
+        ipcRenderer.on('dev-dataset-logs-chunk', (_event, value) => callback(value));
+        return () => ipcRenderer.removeAllListeners('dev-dataset-logs-chunk');
+    },
+    onDevDatasetSaveProgress: (callback: (data: any) => void) => {
+        ipcRenderer.on('dev-dataset-save-progress', (_event, value) => callback(value));
+        return () => ipcRenderer.removeAllListeners('dev-dataset-save-progress');
+    },
+    deleteDevDataset: (payload: { id: string }) => ipcRenderer.invoke('delete-dev-dataset', payload)
 })

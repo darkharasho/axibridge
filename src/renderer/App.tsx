@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as ImageIcon, Layout, RefreshCw, Trophy, ChevronDown, ChevronLeft, ChevronRight, Grid3X3, LayoutGrid, Trash2, FilePlus2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { StatsView } from './StatsView';
+import { useStatsAggregation } from './stats/hooks/useStatsAggregation';
 import { SettingsView } from './SettingsView';
 import { WebhookModal, Webhook } from './WebhookModal';
 import { UpdateErrorModal } from './UpdateErrorModal';
@@ -104,7 +105,93 @@ function App() {
     const [filePickerAtBottom, setFilePickerAtBottom] = useState(false);
     const filePickerListRef = useRef<HTMLDivElement | null>(null);
 
+    const devDatasetsEnabled = import.meta.env.DEV;
+    const [devDatasetName, setDevDatasetName] = useState('');
+    const [devDatasets, setDevDatasets] = useState<Array<{ id: string; name: string; createdAt: string }>>([]);
+    const [devDatasetsOpen, setDevDatasetsOpen] = useState(false);
+    const [precomputedStats, setPrecomputedStats] = useState<any | null>(null);
+    const datasetLoadRef = useRef(false);
+    const [devDatasetSaving, setDevDatasetSaving] = useState(false);
+    const [devDatasetLoadingId, setDevDatasetLoadingId] = useState<string | null>(null);
+    const [devDatasetRefreshing, setDevDatasetRefreshing] = useState(false);
+    const devDatasetStreamingIdRef = useRef<string | null>(null);
+    const [devDatasetSaveProgress, setDevDatasetSaveProgress] = useState<{ id: string; stage: string; written: number; total: number } | null>(null);
+    const devDatasetSavingIdRef = useRef<string | null>(null);
+
+    const loadDevDatasets = useCallback(async () => {
+        if (!window.electronAPI?.listDevDatasets) return;
+        setDevDatasetRefreshing(true);
+        try {
+            const result = await window.electronAPI.listDevDatasets();
+            if (result?.success && Array.isArray(result.datasets)) {
+                setDevDatasets(result.datasets);
+            }
+        } finally {
+            setDevDatasetRefreshing(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!devDatasetsEnabled) return;
+        let mounted = true;
+        (async () => {
+            if (!mounted) return;
+            await loadDevDatasets();
+        })();
+        return () => {
+            mounted = false;
+        };
+    }, [devDatasetsEnabled, loadDevDatasets]);
+
+    useEffect(() => {
+        if (datasetLoadRef.current) {
+            datasetLoadRef.current = false;
+            return;
+        }
+        setPrecomputedStats(null);
+    }, [logs]);
+
+    useEffect(() => {
+        if (!devDatasetsEnabled || !window.electronAPI?.onDevDatasetLogsChunk) return;
+        const unsubscribe = window.electronAPI.onDevDatasetLogsChunk((payload: { id: string; logs: ILogData[]; done?: boolean }) => {
+            if (!payload?.id || payload.id !== devDatasetStreamingIdRef.current) return;
+            if (Array.isArray(payload.logs) && payload.logs.length > 0) {
+                setLogs((prev) => [...prev, ...payload.logs]);
+            }
+            if (payload.done) {
+                devDatasetStreamingIdRef.current = null;
+                setDevDatasetLoadingId(null);
+            }
+        });
+        return () => {
+            unsubscribe?.();
+        };
+    }, [devDatasetsEnabled]);
+
+    useEffect(() => {
+        if (!devDatasetsEnabled || !window.electronAPI?.onDevDatasetSaveProgress) return;
+        const unsubscribe = window.electronAPI.onDevDatasetSaveProgress((payload: { id: string; stage: string; written: number; total: number }) => {
+            if (!payload?.id) return;
+            if (devDatasetSavingIdRef.current && payload.id !== devDatasetSavingIdRef.current) return;
+            setDevDatasetSaveProgress(payload);
+            if (payload.stage === 'done') {
+                setTimeout(() => setDevDatasetSaveProgress(null), 500);
+            }
+        });
+        return () => {
+            unsubscribe?.();
+        };
+    }, [devDatasetsEnabled]);
+
     // Persistence removed
+
+    const { stats: computedStats, skillUsageData: computedSkillUsageData } = useStatsAggregation({
+        logs,
+        mvpWeights,
+        statsViewSettings,
+        disruptionMethod,
+        precomputedStats: precomputedStats || undefined
+    });
 
     const enabledTopListCount = [
         embedStatSettings.showDamage,
@@ -965,6 +1052,16 @@ function App() {
                         >
                             <TerminalIcon className="w-5 h-5" />
                         </button>
+                        {devDatasetsEnabled && (
+                            <button
+                                type="button"
+                                onClick={() => setDevDatasetsOpen(true)}
+                                className="p-2 rounded-xl transition-all bg-amber-500/20 text-amber-200 border border-amber-500/40 hover:bg-amber-500/30"
+                                title="Dev Datasets"
+                            >
+                                <FilePlus2 className="w-5 h-5" />
+                            </button>
+                        )}
                     </div>
                 </header>
 
@@ -996,6 +1093,7 @@ function App() {
                         mvpWeights={mvpWeights}
                         disruptionMethod={disruptionMethod}
                         statsViewSettings={statsViewSettings}
+                        precomputedStats={precomputedStats || undefined}
                         onStatsViewSettingsChange={(next) => {
                             setStatsViewSettings(next);
                             window.electronAPI?.saveSettings?.({ statsViewSettings: next });
@@ -1467,6 +1565,212 @@ function App() {
                     )
                 )}
             </div>
+
+            <AnimatePresence>
+                {devDatasetsEnabled && devDatasetsOpen && (
+                    <motion.div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="w-full max-w-2xl bg-[#0a0f1a]/95 border border-amber-500/30 rounded-2xl shadow-2xl"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                        >
+                            <div className="px-6 pt-6 pb-4 border-b border-amber-500/20 flex items-center justify-between">
+                                <div>
+                                    <div className="text-xs uppercase tracking-widest text-amber-200/70">Dev Mode</div>
+                                    <h3 className="text-xl font-semibold text-amber-100">Datasets</h3>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={loadDevDatasets}
+                                        className="px-3 py-2 rounded-lg text-xs font-semibold border border-amber-400/40 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20 transition-colors inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        disabled={devDatasetRefreshing}
+                                    >
+                                        <RefreshCw className={`w-3.5 h-3.5 ${devDatasetRefreshing ? 'animate-spin' : ''}`} />
+                                        {devDatasetRefreshing ? 'Refreshing...' : 'Refresh'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDevDatasetsOpen(false)}
+                                        className="p-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 hover:text-amber-50 hover:border-amber-400/60 transition-colors"
+                                        aria-label="Close datasets"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="px-6 py-5">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <input
+                                        value={devDatasetName}
+                                        onChange={(e) => setDevDatasetName(e.target.value)}
+                                        placeholder="Dataset name"
+                                        className="flex-1 min-w-[200px] bg-black/50 border border-amber-500/20 rounded-lg px-3 py-2 text-xs text-amber-100 focus:outline-none focus:border-amber-400/60"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            if (devDatasetSaving) return;
+                                            const name = devDatasetName.trim();
+                                            if (!name) return;
+                                            if (!window.electronAPI?.beginDevDatasetSave) return;
+                                            setDevDatasetSaving(true);
+                                            devDatasetSavingIdRef.current = null;
+                                            setDevDatasetSaveProgress(null);
+                                            await new Promise((resolve) => setTimeout(resolve, 0));
+                                            try {
+                                                const result = await window.electronAPI.beginDevDatasetSave({
+                                                    name,
+                                                    report: {
+                                                        stats: computedStats,
+                                                        skillUsageData: computedSkillUsageData
+                                                    }
+                                                });
+                                                if (!result?.success || !result.dataset?.id) return;
+                                                const datasetId = result.dataset.id;
+                                                devDatasetSavingIdRef.current = datasetId;
+                                                setDevDatasets((prev) => [result.dataset!, ...prev]);
+                                                setDevDatasetName('');
+                                                const snapshot = logs.slice();
+                                                const chunkSize = 25;
+                                                const total = snapshot.length;
+                                                for (let i = 0; i < snapshot.length; i += chunkSize) {
+                                                    const chunk = snapshot.slice(i, i + chunkSize);
+                                                    if (window.electronAPI?.appendDevDatasetLogs) {
+                                                        await window.electronAPI.appendDevDatasetLogs({
+                                                            id: datasetId,
+                                                            logs: chunk,
+                                                            startIndex: i,
+                                                            total
+                                                        });
+                                                    }
+                                                    setDevDatasetSaveProgress({
+                                                        id: datasetId,
+                                                        stage: 'logs',
+                                                        written: Math.min(i + chunk.length, total),
+                                                        total
+                                                    });
+                                                }
+                                                if (window.electronAPI?.finishDevDatasetSave) {
+                                                    await window.electronAPI.finishDevDatasetSave({ id: datasetId, total });
+                                                }
+                                                setDevDatasetSaveProgress({
+                                                    id: datasetId,
+                                                    stage: 'done',
+                                                    written: total,
+                                                    total
+                                                });
+                                            } finally {
+                                                setDevDatasetSaving(false);
+                                                devDatasetSavingIdRef.current = null;
+                                            }
+                                        }}
+                                        className="px-3 py-2 rounded-lg text-xs font-semibold border border-amber-500/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25 transition-colors inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        disabled={devDatasetSaving}
+                                    >
+                                        {devDatasetSaving ? (
+                                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                            <FilePlus2 className="w-3.5 h-3.5" />
+                                        )}
+                                        {devDatasetSaving ? 'Saving...' : 'Save Current'}
+                                        {devDatasetSaving && devDatasetSaveProgress?.stage === 'logs' && devDatasetSaveProgress.total > 0
+                                            ? ` (${Math.round((devDatasetSaveProgress.written / devDatasetSaveProgress.total) * 100)}%)`
+                                            : ''}
+                                    </button>
+                                </div>
+                                <div className="mt-4 space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                                    {devDatasets.length === 0 ? (
+                                        <div className="text-xs text-amber-200/60 italic py-6 text-center">No datasets saved.</div>
+                                    ) : (
+                                        devDatasets.map((dataset) => (
+                                            <div key={dataset.id} className="flex items-center justify-between gap-3 bg-amber-500/5 border border-amber-500/20 rounded-lg px-4 py-2">
+                                                <div className="min-w-0">
+                                                    <div className="text-sm font-semibold text-amber-100 truncate">{dataset.name}</div>
+                                                    <div className="text-[10px] text-amber-200/60">{new Date(dataset.createdAt).toLocaleString()}</div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            if (devDatasetLoadingId) return;
+                                                            if (!window.electronAPI?.loadDevDatasetChunked && !window.electronAPI?.loadDevDataset) return;
+                                                            setDevDatasetLoadingId(dataset.id);
+                                                            try {
+                                                                if (window.electronAPI?.loadDevDatasetChunked) {
+                                                                    const result = await window.electronAPI.loadDevDatasetChunked({ id: dataset.id, chunkSize: 25 });
+                                                                    if (!result?.success || !result.dataset) return;
+                                                                    datasetLoadRef.current = true;
+                                                                    devDatasetStreamingIdRef.current = dataset.id;
+                                                                    setLogs([]);
+                                                                    setPrecomputedStats(result.dataset.report || null);
+                                                                    setExpandedLogId(null);
+                                                                    setScreenshotData(null);
+                                                                    canceledLogsRef.current.clear();
+                                                                    setDevDatasetsOpen(false);
+                                                                } else {
+                                                                    const result = await window.electronAPI.loadDevDataset({ id: dataset.id });
+                                                                    if (!result?.success || !result.dataset) return;
+                                                                    datasetLoadRef.current = true;
+                                                                    setLogs(result.dataset.logs || []);
+                                                                    setPrecomputedStats(result.dataset.report || null);
+                                                                    setExpandedLogId(null);
+                                                                    setScreenshotData(null);
+                                                                    canceledLogsRef.current.clear();
+                                                                    setDevDatasetsOpen(false);
+                                                                }
+                                                            } finally {
+                                                                if (!devDatasetStreamingIdRef.current) {
+                                                                    setDevDatasetLoadingId(null);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="px-2.5 py-1 rounded-md text-[11px] font-semibold border border-amber-400/40 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20 transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                                                        disabled={devDatasetLoadingId === dataset.id}
+                                                    >
+                                                        {devDatasetLoadingId === dataset.id ? (
+                                                            <RefreshCw className="w-3 h-3 animate-spin" />
+                                                        ) : null}
+                                                        {devDatasetLoadingId === dataset.id ? 'Loading...' : 'Load'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            if (window.electronAPI?.deleteDevDataset) {
+                                                                await window.electronAPI.deleteDevDataset({ id: dataset.id });
+                                                            }
+                                                            setDevDatasets((prev) => prev.filter((entry) => entry.id !== dataset.id));
+                                                        }}
+                                                        className="px-2.5 py-1 rounded-md text-[11px] font-semibold border border-amber-700/40 bg-amber-700/10 text-amber-200 hover:bg-amber-700/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                                        disabled={devDatasetLoadingId === dataset.id}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                            <div className="px-6 pb-5 flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setDevDatasetsOpen(false)}
+                                    className="px-4 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 hover:text-amber-50 hover:border-amber-400/60 transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence>
                 {filePickerOpen && (
