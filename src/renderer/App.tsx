@@ -58,6 +58,16 @@ function App() {
 
     // Terminal State
     const [showTerminal, setShowTerminal] = useState(false);
+    const [showDeveloperSettings, setShowDeveloperSettings] = useState(false);
+    const settingsUpdateCheckRef = useRef(false);
+    const versionClickCountRef = useRef(0);
+    const versionClickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const versionClickTimesRef = useRef<number[]>([]);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('arcbridge.devSettings');
+        if (saved === 'true') setShowDeveloperSettings(true);
+    }, []);
 
     // View State
     const [view, setView] = useState<'dashboard' | 'stats' | 'settings'>('dashboard');
@@ -899,7 +909,31 @@ function App() {
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             className="text-xs font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
-                            onClick={() => window.electronAPI.checkForUpdates()}
+                            onClick={() => {
+                                if (view === 'settings') {
+                                    if (!settingsUpdateCheckRef.current) {
+                                        window.electronAPI.checkForUpdates();
+                                        settingsUpdateCheckRef.current = true;
+                                    }
+                                } else {
+                                    window.electronAPI.checkForUpdates();
+                                }
+                                if (view !== 'settings') return;
+                                const now = Date.now();
+                                versionClickTimesRef.current = versionClickTimesRef.current.filter((t) => now - t < 5000);
+                                versionClickTimesRef.current.push(now);
+                                if (versionClickTimeoutRef.current) {
+                                    clearTimeout(versionClickTimeoutRef.current);
+                                }
+                                versionClickTimeoutRef.current = setTimeout(() => {
+                                    versionClickTimesRef.current = [];
+                                }, 5200);
+                                if (versionClickTimesRef.current.length >= 5) {
+                                    setShowDeveloperSettings(true);
+                                    localStorage.setItem('arcbridge.devSettings', 'true');
+                                    versionClickTimesRef.current = [];
+                                }
+                            }}
                             title="Check for updates"
                         >
                             v{appVersion}
@@ -979,6 +1013,7 @@ function App() {
                         onStatsViewSettingsSaved={setStatsViewSettings}
                         onDisruptionMethodSaved={setDisruptionMethod}
                         onUiThemeSaved={setUiTheme}
+                        showDeveloperSettings={showDeveloperSettings}
                         onOpenWhatsNew={() => setWhatsNewOpen(true)}
                     />
                 ) : (

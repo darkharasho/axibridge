@@ -16,6 +16,7 @@ interface SettingsViewProps {
     onStatsViewSettingsSaved?: (settings: IStatsViewSettings) => void;
     onDisruptionMethodSaved?: (method: DisruptionMethod) => void;
     onUiThemeSaved?: (theme: UiTheme) => void;
+    showDeveloperSettings?: boolean;
 }
 
 // Toggle switch component
@@ -80,7 +81,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action }: {
     );
 }
 
-export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved }: SettingsViewProps) {
+export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, showDeveloperSettings }: SettingsViewProps) {
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
     const [embedStats, setEmbedStats] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
@@ -135,6 +136,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [importModalOpen, setImportModalOpen] = useState(false);
     const [importPreviewSettings, setImportPreviewSettings] = useState<any | null>(null);
     const [importSelections, setImportSelections] = useState<Record<string, boolean>>({});
+    const [devSettingsOpen, setDevSettingsOpen] = useState(false);
     const inferredPagesUrl = githubRepoOwner && githubRepoName
         ? `https://${githubRepoOwner}.github.io/${githubRepoName}`
         : '';
@@ -258,6 +260,26 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         setImportPreviewSettings(null);
         setSettingsTransferStatus({ kind: 'success', message: 'Settings imported.' });
     };
+
+    const handleEnsureGithubTemplate = async () => {
+        if (!window.electronAPI?.ensureGithubTemplate) return;
+        setGithubTemplateStatusKind('pending');
+        setGithubTemplateStatus('Ensuring web template...');
+        const result = await window.electronAPI.ensureGithubTemplate();
+        if (result?.success) {
+            setGithubTemplateStatusKind('success');
+            setGithubTemplateStatus(result.updated ? 'Template updated.' : 'Template already up to date.');
+        } else {
+            setGithubTemplateStatusKind('error');
+            setGithubTemplateStatus(result?.error || 'Template update failed.');
+        }
+    };
+
+    useEffect(() => {
+        if (showDeveloperSettings) {
+            setDevSettingsOpen(true);
+        }
+    }, [showDeveloperSettings]);
 
     const toggleImportSelection = (key: string) => {
         setImportSelections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -1867,6 +1889,72 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                     className="px-4 py-2 rounded-lg border border-emerald-500/40 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30 transition-colors"
                                 >
                                     Import
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {devSettingsOpen && (
+                    <motion.div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="w-full max-w-xl bg-[#101826]/90 border border-white/10 rounded-2xl shadow-2xl"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                        >
+                            <div className="px-6 pt-6 pb-4 border-b border-white/10 flex items-center justify-between">
+                                <div>
+                                    <div className="text-xs uppercase tracking-widest text-amber-200/70">Developer Settings</div>
+                                    <h3 className="text-xl font-semibold text-white">Hidden Tools</h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setDevSettingsOpen(false)}
+                                    className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                                    aria-label="Close Developer Settings"
+                                >
+                                    <CloseIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="px-6 py-5 space-y-3">
+                                <p className="text-sm text-gray-400">
+                                    Troubleshooting and one-off maintenance actions.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleEnsureGithubTemplate}
+                                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-200 hover:bg-amber-500/20 transition-colors"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                    Ensure GitHub Template
+                                </button>
+                                {githubTemplateStatus && (
+                                    <div className={`text-xs ${githubTemplateStatusKind === 'success'
+                                        ? 'text-emerald-300'
+                                        : githubTemplateStatusKind === 'error'
+                                            ? 'text-rose-400'
+                                            : 'text-amber-300'
+                                        }`}
+                                    >
+                                        {githubTemplateStatus}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="px-6 pb-5 flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setDevSettingsOpen(false)}
+                                    className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                                >
+                                    Close
                                 </button>
                             </div>
                         </motion.div>
