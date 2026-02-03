@@ -7,7 +7,7 @@ import { OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS, HEALING_METRICS } fr
 import { useStatsNavigation } from './stats/hooks/useStatsNavigation';
 import { useStatsUploads } from './stats/hooks/useStatsUploads';
 import { useStatsScreenshot } from './stats/hooks/useStatsScreenshot';
-import { useStatsAggregation } from './stats/hooks/useStatsAggregation';
+import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { useApmStats } from './stats/hooks/useApmStats';
 import { useSkillCharts } from './stats/hooks/useSkillCharts';
 import { getProfessionColor, getProfessionIconPath } from '../shared/professionUtils';
@@ -76,10 +76,8 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const devMockAvailable = !embedded && import.meta.env.DEV && !!window.electronAPI?.mockWebReport;
 
     // --- Hook Integration ---
-    const {
-        stats,
-        skillUsageData: computedSkillUsageData
-    } = useStatsAggregation({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod });
+    const { result: aggregationResult } = useStatsAggregationWorker({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod });
+    const { stats, skillUsageData: computedSkillUsageData } = aggregationResult;
 
     const skillUsageData = (precomputedStats?.skillUsageData ?? computedSkillUsageData) as SkillUsageSummary;
 

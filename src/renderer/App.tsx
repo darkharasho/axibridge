@@ -4,7 +4,7 @@ import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as
 import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { StatsView } from './StatsView';
-import { useStatsAggregation } from './stats/hooks/useStatsAggregation';
+import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { SettingsView } from './SettingsView';
 import { WebhookModal, Webhook } from './WebhookModal';
 import { UpdateErrorModal } from './UpdateErrorModal';
@@ -117,6 +117,11 @@ function App() {
     const devDatasetStreamingIdRef = useRef<string | null>(null);
     const [devDatasetSaveProgress, setDevDatasetSaveProgress] = useState<{ id: string; stage: string; written: number; total: number } | null>(null);
     const devDatasetSavingIdRef = useRef<string | null>(null);
+    const logsListRef = useRef<HTMLDivElement | null>(null);
+    const [bulkCalculatingActive, setBulkCalculatingActive] = useState(false);
+    const [logsForStats, setLogsForStats] = useState<ILogData[]>(logs);
+    const statsBatchTimerRef = useRef<number | null>(null);
+    const logsRef = useRef<ILogData[]>(logs);
 
     const loadDevDatasets = useCallback(async () => {
         if (!window.electronAPI?.listDevDatasets) return;
@@ -149,6 +154,18 @@ function App() {
             return;
         }
         setPrecomputedStats(null);
+    }, [logs]);
+
+    useEffect(() => {
+        if (statsBatchTimerRef.current) return;
+        statsBatchTimerRef.current = window.setTimeout(() => {
+            statsBatchTimerRef.current = null;
+            setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
+        }, 5000);
+    }, [logs]);
+
+    useEffect(() => {
+        logsRef.current = logs;
     }, [logs]);
 
     useEffect(() => {
@@ -185,13 +202,52 @@ function App() {
 
     // Persistence removed
 
-    const { stats: computedStats, skillUsageData: computedSkillUsageData } = useStatsAggregation({
-        logs,
+    const { result: aggregationResult, computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, requestFlush } = useStatsAggregationWorker({
+        logs: logsForStats,
         mvpWeights,
         statsViewSettings,
         disruptionMethod,
         precomputedStats: precomputedStats || undefined
     });
+    const { stats: computedStats, skillUsageData: computedSkillUsageData } = aggregationResult;
+
+    const lastUploadCompleteAtRef = useRef(0);
+    const bulkStatsAwaitingRef = useRef(false);
+    const bulkFlushIdRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (!bulkStatsAwaitingRef.current) {
+            return;
+        }
+        if (bulkFlushIdRef.current === null) {
+            return;
+        }
+        if (lastComputedFlushId !== bulkFlushIdRef.current) {
+            return;
+        }
+        if (lastComputedToken !== activeToken) {
+            return;
+        }
+        if (lastComputedLogCount < logsForStats.length) {
+            return;
+        }
+        if (lastComputedAt < lastUploadCompleteAtRef.current) {
+            return;
+        }
+        setLogs((currentLogs) => {
+            let changed = false;
+            const next = currentLogs.map((log) => {
+                if (log.status === 'calculating') {
+                    changed = true;
+                    return { ...log, status: 'success' };
+                }
+                return log;
+            });
+            return changed ? next : currentLogs;
+        });
+        bulkStatsAwaitingRef.current = false;
+        bulkFlushIdRef.current = null;
+    }, [computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, logsForStats.length]);
 
     const enabledTopListCount = [
         embedStatSettings.showDamage,
@@ -217,6 +273,158 @@ function App() {
         () => webhooks.find((hook) => hook.id === selectedWebhookId) || null,
         [webhooks, selectedWebhookId]
     );
+
+    const [bulkUploadMode, setBulkUploadMode] = useState(false);
+    const isBulkUploadActive = useMemo(
+        () => bulkUploadMode || logs.some((log) => log.status === 'queued' || log.status === 'pending' || log.status === 'uploading' || log.status === 'calculating'),
+        [bulkUploadMode, logs]
+    );
+    const bulkUploadActiveRef = useRef(isBulkUploadActive);
+    const bulkUploadModeRef = useRef(bulkUploadMode);
+    const bulkUploadExpectedRef = useRef<number | null>(null);
+    const bulkUploadCompletedRef = useRef(0);
+
+    const calculatingCount = logs.filter((log) => log.status === 'calculating').length;
+
+    useEffect(() => {
+        if (bulkUploadMode && calculatingCount > 1) {
+            setBulkCalculatingActive(true);
+        }
+    }, [bulkUploadMode, calculatingCount]);
+
+    useEffect(() => {
+        if (!bulkCalculatingActive) return;
+        if (calculatingCount === 0) {
+            setBulkCalculatingActive(false);
+        }
+    }, [bulkCalculatingActive, calculatingCount]);
+
+    useEffect(() => {
+        bulkUploadActiveRef.current = isBulkUploadActive;
+        if (!isBulkUploadActive) {
+            scheduleDetailsHydration();
+        }
+    }, [isBulkUploadActive]);
+
+    useEffect(() => {
+        bulkUploadModeRef.current = bulkUploadMode;
+    }, [bulkUploadMode]);
+
+    useEffect(() => {
+        if (!bulkUploadMode) {
+            scheduleDetailsHydration();
+        }
+    }, [bulkUploadMode, logs]);
+
+    useEffect(() => {
+        if (view === 'stats') {
+            scheduleDetailsHydration(true);
+        }
+    }, [view]);
+
+    const fetchLogDetails = useCallback(async (log: ILogData) => {
+        if (log.details || !log.filePath || !window.electronAPI?.getLogDetails) return;
+        setLogs((currentLogs) => {
+            const idx = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
+            if (idx < 0) return currentLogs;
+            const updated = [...currentLogs];
+            updated[idx] = { ...updated[idx], detailsLoading: true };
+            return updated;
+        });
+        const result = await window.electronAPI.getLogDetails({ filePath: log.filePath });
+        if (!result?.success || !result.details) {
+            setLogs((currentLogs) => {
+                const idx = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
+                if (idx < 0) return currentLogs;
+                const updated = [...currentLogs];
+                updated[idx] = { ...updated[idx], detailsLoading: false };
+                return updated;
+            });
+            return;
+        }
+        setLogs((currentLogs) => {
+            const existingIndex = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
+            if (existingIndex < 0) return currentLogs;
+            const updated = [...currentLogs];
+            const existing = updated[existingIndex];
+            updated[existingIndex] = {
+                ...existing,
+                details: result.details,
+                detailsLoading: false,
+                status: 'success'
+            };
+            return updated;
+        });
+    }, []);
+
+    const pendingDetailsRef = useRef<Set<string>>(new Set());
+    const hydrateDetailsQueueRef = useRef<number | null>(null);
+
+    const scheduleDetailsHydration = useCallback((force = false) => {
+        if (hydrateDetailsQueueRef.current !== null && !force) return;
+        const schedule = typeof (window as any).requestIdleCallback === 'function'
+            ? (window as any).requestIdleCallback
+            : (cb: () => void) => window.setTimeout(cb, 150);
+        hydrateDetailsQueueRef.current = schedule(async () => {
+            hydrateDetailsQueueRef.current = null;
+            if (!window.electronAPI?.getLogDetails) return;
+            const candidates = logsRef.current
+                .filter((log) => (log.detailsAvailable || log.status === 'success' || log.status === 'calculating') && !log.details && log.filePath)
+                .sort((a, b) => {
+                    const aTime = a.uploadTime || 0;
+                    const bTime = b.uploadTime || 0;
+                    if (aTime !== bTime) return aTime - bTime;
+                    return (a.filePath || '').localeCompare(b.filePath || '');
+                });
+            if (candidates.length === 0) return;
+            const maxConcurrent = 1;
+            let nextIndex = 0;
+            const runWorker = async () => {
+                while (nextIndex < candidates.length) {
+                    const currentIndex = nextIndex;
+                    nextIndex += 1;
+                    const log = candidates[currentIndex];
+                    const filePath = log.filePath!;
+                    if (pendingDetailsRef.current.has(filePath)) continue;
+                    pendingDetailsRef.current.add(filePath);
+                    try {
+                        const result = await window.electronAPI.getLogDetails({ filePath });
+                        if (result?.success && result.details) {
+                            setLogs((currentLogs) => {
+                                const idx = currentLogs.findIndex((entry) => entry.filePath === filePath);
+                                if (idx < 0) return currentLogs;
+                                const updated = [...currentLogs];
+                                const existing = updated[idx];
+                                updated[idx] = {
+                                    ...existing,
+                                    details: result.details,
+                                    status: 'success'
+                                };
+                                return updated;
+                            });
+                        }
+                    } finally {
+                        pendingDetailsRef.current.delete(filePath);
+                    }
+                }
+            };
+            await Promise.all(Array.from({ length: Math.min(maxConcurrent, candidates.length) }, () => runWorker()));
+        });
+    }, [logs]);
+
+    const endBulkUpload = useCallback(() => {
+        bulkUploadExpectedRef.current = null;
+        bulkUploadCompletedRef.current = 0;
+        setBulkUploadMode(false);
+        bulkStatsAwaitingRef.current = true;
+        setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
+        const flushId = requestFlush?.();
+        if (flushId) {
+            bulkFlushIdRef.current = flushId;
+        }
+        window.setTimeout(() => scheduleDetailsHydration(true), 0);
+        window.setTimeout(() => scheduleDetailsHydration(true), 500);
+    }, [scheduleDetailsHydration, requestFlush]);
 
     useEffect(() => {
         if (!webhookDropdownOpen) return;
@@ -249,7 +457,7 @@ function App() {
     // Stats calculation
     const totalUploads = logs.length;
     const pendingUploads = logs.filter((log) =>
-        log.status === 'queued' || log.status === 'pending' || log.status === 'uploading'
+        log.status === 'queued' || log.status === 'pending' || log.status === 'uploading' || log.status === 'calculating'
     ).length;
     const completedUploads = totalUploads - pendingUploads;
     const avgSquadSize = logs.length > 0
@@ -390,12 +598,29 @@ function App() {
             if (data.filePath && canceledLogsRef.current.has(data.filePath)) {
                 return;
             }
+            lastUploadCompleteAtRef.current = Date.now();
             console.log('[App] Upload Complete Data:', {
                 path: data.filePath,
                 status: data.status,
                 hasDetails: !!data.details,
                 playerCount: data.details?.players?.length
             });
+            if (bulkUploadModeRef.current) {
+                setLogs((currentLogs) => {
+                    const existingIndex = currentLogs.findIndex(log => log.filePath === data.filePath);
+                    if (existingIndex >= 0) {
+                        const updated = [...currentLogs];
+                        updated[existingIndex] = { ...updated[existingIndex], ...data };
+                        return updated;
+                    }
+                    return [data, ...currentLogs];
+                });
+                bulkUploadCompletedRef.current += 1;
+                if (bulkUploadExpectedRef.current !== null && bulkUploadCompletedRef.current >= bulkUploadExpectedRef.current) {
+                    endBulkUpload();
+                }
+                return;
+            }
             setLogs((currentLogs) => {
                 const existingIndex = currentLogs.findIndex(log => log.filePath === data.filePath);
                 if (existingIndex >= 0) {
@@ -798,6 +1023,11 @@ function App() {
             });
             return newLogs;
         });
+        if (files.length > 1) {
+            setBulkUploadMode(true);
+            bulkUploadExpectedRef.current = files.length;
+            bulkUploadCompletedRef.current = 0;
+        }
         window.electronAPI.manualUploadBatch(files);
         setFilePickerOpen(false);
         setFilePickerSelected(new Set());
@@ -1088,7 +1318,7 @@ function App() {
 
                 {view === 'stats' ? (
                     <StatsView
-                        logs={logs}
+                        logs={logsForStats}
                         onBack={() => setView('dashboard')}
                         mvpWeights={mvpWeights}
                         disruptionMethod={disruptionMethod}
@@ -1362,6 +1592,11 @@ function App() {
                                             return newLogs;
                                         });
 
+                                        if (validFiles.length > 1) {
+                                            setBulkUploadMode(true);
+                                            bulkUploadExpectedRef.current = validFiles.length;
+                                            bulkUploadCompletedRef.current = 0;
+                                        }
                                         window.electronAPI.manualUploadBatch(validFiles);
                                     }
                                 }}
@@ -1395,21 +1630,37 @@ function App() {
                                         </button>
                                     </div>
                                 </div>
+                                {bulkCalculatingActive && calculatingCount > 0 && (
+                                    <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-100">
+                                        Bulk calculations are running. The app may feel less responsive until they finish.
+                                    </div>
+                                )}
 
-                                <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-                                    <AnimatePresence mode='popLayout'>
-                                        {logs.length === 0 ? (
-                                            <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-20">
-                                                <UploadCloud className="w-12 h-12 mb-3" />
-                                                <p>Drop logs to upload</p>
-                                            </div>
-                                        ) : (
-                                            logs.map((log) => (
+                                <div
+                                    className="flex-1 overflow-y-auto pr-2"
+                                    ref={logsListRef}
+                                >
+                                    {logs.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-20">
+                                            <UploadCloud className="w-12 h-12 mb-3" />
+                                            <p>Drop logs to upload</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {logs.map((log) => (
                                                 <ExpandableLogCard
                                                     key={log.filePath}
                                                     log={log}
                                                     isExpanded={expandedLogId === log.filePath}
-                                                    onToggle={() => setExpandedLogId(expandedLogId === log.filePath ? null : log.filePath)}
+                                                    onToggle={() => {
+                                                        const nextExpanded = expandedLogId === log.filePath ? null : log.filePath;
+                                                        setExpandedLogId(nextExpanded);
+                                                        if (nextExpanded) {
+                                                            fetchLogDetails(log);
+                                                        }
+                                                    }}
+                                                    layoutEnabled={!isBulkUploadActive}
+                                                    motionEnabled={!isBulkUploadActive}
                                                     onCancel={() => {
                                                         if (!log.filePath) return;
                                                         canceledLogsRef.current.add(log.filePath);
@@ -1422,9 +1673,9 @@ function App() {
                                                     disruptionMethod={disruptionMethod}
                                                     useClassIcons={showClassIcons}
                                                 />
-                                            ))
-                                        )}
-                                    </AnimatePresence>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </motion.div>
                         </div>
@@ -1638,25 +1889,39 @@ function App() {
                                                 setDevDatasets((prev) => [result.dataset!, ...prev]);
                                                 setDevDatasetName('');
                                                 const snapshot = logs.slice();
-                                                const chunkSize = 25;
+                                                const chunkSize = 20;
                                                 const total = snapshot.length;
+                                                const chunks: Array<{ startIndex: number; logs: ILogData[] }> = [];
                                                 for (let i = 0; i < snapshot.length; i += chunkSize) {
-                                                    const chunk = snapshot.slice(i, i + chunkSize);
-                                                    if (window.electronAPI?.appendDevDatasetLogs) {
-                                                        await window.electronAPI.appendDevDatasetLogs({
+                                                    chunks.push({ startIndex: i, logs: snapshot.slice(i, i + chunkSize) });
+                                                }
+                                                let completed = 0;
+                                                const maxConcurrent = 3;
+                                                let nextIndex = 0;
+                                                const runWorker = async () => {
+                                                    while (nextIndex < chunks.length) {
+                                                        const currentIndex = nextIndex;
+                                                        nextIndex += 1;
+                                                        const chunk = chunks[currentIndex];
+                                                        if (window.electronAPI?.appendDevDatasetLogs) {
+                                                            await window.electronAPI.appendDevDatasetLogs({
+                                                                id: datasetId,
+                                                                logs: chunk.logs,
+                                                                startIndex: chunk.startIndex,
+                                                                total
+                                                            });
+                                                        }
+                                                        completed += 1;
+                                                        const written = Math.min(completed * chunkSize, total);
+                                                        setDevDatasetSaveProgress({
                                                             id: datasetId,
-                                                            logs: chunk,
-                                                            startIndex: i,
+                                                            stage: 'logs',
+                                                            written,
                                                             total
                                                         });
                                                     }
-                                                    setDevDatasetSaveProgress({
-                                                        id: datasetId,
-                                                        stage: 'logs',
-                                                        written: Math.min(i + chunk.length, total),
-                                                        total
-                                                    });
-                                                }
+                                                };
+                                                await Promise.all(Array.from({ length: Math.min(maxConcurrent, chunks.length) }, () => runWorker()));
                                                 if (window.electronAPI?.finishDevDatasetSave) {
                                                     await window.electronAPI.finishDevDatasetSave({ id: datasetId, total });
                                                 }

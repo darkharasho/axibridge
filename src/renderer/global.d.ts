@@ -210,6 +210,7 @@ export interface IElectronAPI {
     sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => void;
     onConsoleLog: (callback: (log: { type: 'info' | 'error', message: string, timestamp: string }) => void) => () => void;
     logToMain: (payload: { level?: 'info' | 'warn' | 'error'; message: string; meta?: any }) => void;
+    getLogDetails: (payload: { filePath: string }) => Promise<{ success: boolean; details?: any; error?: string }>;
     getLogs: () => Promise<ILogData[]>;
     saveLogs: (logs: ILogData[]) => void;
     // Auto Updater
@@ -269,7 +270,7 @@ declare global {
         id: string;
         permalink: string;
         filePath: string;
-        status?: 'queued' | 'pending' | 'uploading' | 'discord' | 'success' | 'error';
+        status?: 'queued' | 'pending' | 'uploading' | 'discord' | 'calculating' | 'success' | 'error';
         error?: string;
         uploadTime?: number;
         encounterDuration?: string;

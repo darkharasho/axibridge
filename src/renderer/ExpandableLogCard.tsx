@@ -11,6 +11,8 @@ interface ExpandableLogCardProps {
     isExpanded: boolean;
     onToggle: () => void;
     onCancel?: () => void;
+    layoutEnabled?: boolean;
+    motionEnabled?: boolean;
     screenshotMode?: boolean;
     embedStatSettings?: IEmbedStatSettings;
     disruptionMethod?: DisruptionMethod;
@@ -26,7 +28,8 @@ interface ExpandableLogCardProps {
     };
 }
 
-const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>(({ log, isExpanded, onToggle, onCancel, screenshotMode, embedStatSettings, disruptionMethod, screenshotSection, useClassIcons }, ref) => {
+const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>(
+    ({ log, isExpanded, onToggle, onCancel, layoutEnabled = true, motionEnabled = true, screenshotMode, embedStatSettings, disruptionMethod, screenshotSection, useClassIcons }, ref) => {
     const details = log.details || {};
     const players: Player[] = details.players || [];
     const targets = details.targets || [];
@@ -39,13 +42,17 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const isQueued = log.status === 'queued';
     const isPending = log.status === 'pending';
     const isUploading = log.status === 'uploading';
+    const isCalculating = log.status === 'calculating';
     const hasError = log.status === 'error';
     const isDiscord = log.status === 'discord';
+    const playerCount = details.players?.length ?? log.playerCount ?? 0;
     const statusLabel = isQueued ? 'Queued'
         : isPending ? 'Pending'
             : isUploading ? 'Parsing with dps.report'
-                : isDiscord ? 'Preparing Discord preview'
-                    : null;
+                : isCalculating ? 'Calculating statistics'
+                    : isDiscord ? 'Preparing Discord preview'
+                        : null;
+    const isCancellable = Boolean(!log.details && !isExpanded && onCancel && (isQueued || isPending || isUploading));
     const resolveTimestampMs = () => {
         const raw = log.uploadTime || details.uploadTime;
         if (!raw) return null;
@@ -680,13 +687,20 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         );
     }
 
+    const Container: any = motionEnabled ? motion.div : 'div';
+    const motionProps = motionEnabled
+        ? {
+            initial: { opacity: 0, x: 20, scale: 0.95 },
+            animate: { opacity: 1, x: 0, scale: 1 },
+            exit: { opacity: 0, scale: 0.9 },
+            layout: layoutEnabled
+        }
+        : {};
+
     return (
-        <motion.div
+        <Container
             ref={ref}
-            initial={{ opacity: 0, x: 20, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            layout
+            {...motionProps}
             className="bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 transition-all mb-3 group shadow-xl"
         >
             {/* Collapsed View */}
@@ -694,12 +708,13 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all shrink-0 ${isQueued ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
                     isPending ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
                         isUploading ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 animate-pulse' :
-                            isDiscord ? 'bg-purple-500/20 border-purple-500/30 text-purple-400 animate-pulse' :
-                                hasError ? 'bg-red-500/20 border-red-500/30 text-red-400' :
-                                    'bg-green-500/20 border-green-500/30 text-green-400'
+                            isCalculating ? 'bg-amber-500/20 border-amber-400/30 text-amber-300 animate-pulse' :
+                                isDiscord ? 'bg-purple-500/20 border-purple-500/30 text-purple-400 animate-pulse' :
+                                    hasError ? 'bg-red-500/20 border-red-500/30 text-red-400' :
+                                        'bg-green-500/20 border-green-500/30 text-green-400'
                     }`}>
                     <span className="font-bold text-xs uppercase">
-                        {isQueued ? 'QUE' : isPending ? 'PEN' : isUploading ? '...' : isDiscord ? 'DC' : hasError ? 'ERR' : 'LOG'}
+                        {isQueued ? 'QUE' : isPending ? 'PEN' : isUploading ? '...' : isCalculating ? 'CAL' : isDiscord ? 'DC' : hasError ? 'ERR' : 'LOG'}
                     </span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -708,7 +723,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         <span className="text-xs text-gray-500 font-mono">{details.encounterDuration || log.encounterDuration || '--:--'}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                        <span>{statusLabel ? statusLabel : `${players.length || '0'} Players${nonSquadPlayers.length > 0 ? ` (${squadPlayers.length} +${nonSquadPlayers.length})` : ''}`}</span>
+                        <span>{statusLabel ? statusLabel : `${playerCount || '0'} Players${nonSquadPlayers.length > 0 ? ` (${squadPlayers.length} +${nonSquadPlayers.length})` : ''}`}</span>
                         <span>•</span>
                         <span>{formattedTime()}</span>
                     </div>
@@ -716,20 +731,26 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (!log.details && !isExpanded && onCancel) {
+                        if (isCancellable) {
                             onCancel();
                             return;
                         }
                         onToggle();
                     }}
-                    disabled={!log.details && !isExpanded && !onCancel}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 border ${!log.details
-                        ? onCancel ? 'bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20' : 'bg-white/5 text-gray-600 border-white/5 cursor-not-allowed opacity-50'
-                        : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white group-hover:border-white/20'
+                    disabled={Boolean(log.detailsLoading) || (!log.details && !isExpanded && !onCancel)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 border ${isCancellable
+                        ? 'bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20'
+                        : log.detailsLoading
+                            ? 'bg-white/5 text-gray-500 border-white/10 cursor-not-allowed'
+                            : !log.details && !isExpanded && !onCancel
+                                ? 'bg-white/5 text-gray-600 border-white/5 cursor-not-allowed opacity-50'
+                                : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white group-hover:border-white/20'
                         }`}
                 >
-                    {!log.details && !isExpanded ? (
+                    {isCancellable ? (
                         <><span>Cancel</span></>
+                    ) : log.detailsLoading ? (
+                        <><span>Loading…</span></>
                     ) : isExpanded ? (
                         <><ChevronUp className="w-3 h-3" /><span>Hide</span></>
                     ) : (
@@ -865,13 +886,15 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 )
                 }
             </AnimatePresence >
-        </motion.div >
+        </Container >
     );
 });
 
 const areEqual = (prev: ExpandableLogCardProps, next: ExpandableLogCardProps) => {
     return prev.log === next.log
         && prev.isExpanded === next.isExpanded
+        && prev.layoutEnabled === next.layoutEnabled
+        && prev.motionEnabled === next.motionEnabled
         && prev.screenshotMode === next.screenshotMode
         && prev.embedStatSettings === next.embedStatSettings
         && prev.disruptionMethod === next.disruptionMethod

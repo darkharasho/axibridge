@@ -71,6 +71,7 @@ console.error = (...args) => {
 const Store = require('electron-store');
 const store = new Store();
 
+
 type DpsReportCacheEntry = {
     hash: string;
     createdAt: number;
@@ -327,13 +328,15 @@ let watcher: LogWatcher | null = null
 let uploader: Uploader | null = null
 let discord: DiscordNotifier | null = null
 const pendingDiscordLogs = new Map<string, { result: any, jsonDetails: any }>();
+let bulkUploadMode = false;
+const bulkLogDetailsCache = new Map<string, any>();
 const GITHUB_PROTOCOL = 'arcbridge';
 const GITHUB_DEVICE_CLIENT_ID = process.env.GITHUB_DEVICE_CLIENT_ID || 'Ov23liFh1ih9LAcnLACw';
 
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
-
 const processLogFile = async (filePath: string) => {
     const fileId = path.basename(filePath);
+    console.log(`[Main] processLogFile start: ${filePath}`);
     win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
 
     try {
@@ -420,14 +423,29 @@ const processLogFile = async (filePath: string) => {
                 console.log('[Main] Discord notification skipped: no webhook selected.');
             }
 
-            win?.webContents.send('upload-complete', {
-                ...result,
-                filePath,
-                status: 'success',
-                details: jsonDetails
-            });
+            if (bulkUploadMode) {
+                bulkLogDetailsCache.set(filePath, jsonDetails);
+                const playerCount = Array.isArray(jsonDetails?.players) ? jsonDetails.players.length : undefined;
+                win?.webContents.send('upload-complete', {
+                    ...result,
+                    filePath,
+                    status: 'calculating',
+                    detailsAvailable: true,
+                    playerCount
+                });
+                console.log(`[Main] upload-complete (bulk): ${filePath} players=${playerCount ?? 'n/a'}`);
+            } else {
+                win?.webContents.send('upload-complete', {
+                    ...result,
+                    filePath,
+                    status: 'success',
+                    details: jsonDetails
+                });
+                console.log(`[Main] upload-complete: ${filePath} details=${Boolean(jsonDetails && !jsonDetails.error)}`);
+            }
         } else {
             win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
+            console.log(`[Main] upload-complete error: ${filePath} msg=${result?.error || 'unknown'}`);
         }
     } catch (error: any) {
         console.error('[Main] Log processing failed:', error?.message || error);
@@ -437,6 +455,7 @@ const processLogFile = async (filePath: string) => {
             status: 'error',
             error: error?.message || 'Unknown error during processing'
         });
+        console.log(`[Main] upload-complete exception: ${filePath} msg=${error?.message || error}`);
     }
 };
 
@@ -2100,12 +2119,29 @@ if (!gotTheLock) {
             }
             // Process sequentially to avoid overwhelming the system
             (async () => {
+                bulkUploadMode = filePaths.length > 1;
                 for (const filePath of filePaths) {
                     await processLogFile(filePath);
                     // Small delay to allow UI updates to breathe
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
+                bulkUploadMode = false;
             })();
+        });
+
+        ipcMain.handle('get-log-details', async (_event, payload: { filePath: string }) => {
+            const filePath = payload?.filePath;
+            if (!filePath) {
+                console.warn('[Main] get-log-details missing filePath');
+                return { success: false, error: 'Missing filePath.' };
+            }
+            const details = bulkLogDetailsCache.get(filePath);
+            if (!details) {
+                console.warn(`[Main] get-log-details not found: ${filePath}`);
+                return { success: false, error: 'Details not found.' };
+            }
+            console.log(`[Main] get-log-details hit: ${filePath}`);
+            return { success: true, details };
         });
 
         ipcMain.on('renderer-log', (_event, payload: { level?: 'info' | 'warn' | 'error'; message: string; meta?: any }) => {

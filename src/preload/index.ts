@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     logToMain: (payload: { level?: 'info' | 'warn' | 'error'; message: string; meta?: any }) => {
         ipcRenderer.send('renderer-log', payload)
     },
+    getLogDetails: (payload: { filePath: string }) => ipcRenderer.invoke('get-log-details', payload),
 
     // Auto Updater
     checkForUpdates: () => ipcRenderer.send('check-for-updates'),

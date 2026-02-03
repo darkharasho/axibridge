@@ -16,13 +16,19 @@ interface TerminalProps {
 export function Terminal({ isOpen, onClose }: TerminalProps) {
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const shouldAutoScrollRef = useRef(true);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        const container = scrollContainerRef.current;
+        if (!container) return;
+        container.scrollTop = container.scrollHeight;
     };
 
     useEffect(() => {
-        scrollToBottom();
+        if (shouldAutoScrollRef.current) {
+            scrollToBottom();
+        }
     }, [logs, isOpen]);
 
     useEffect(() => {
@@ -76,7 +82,17 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                    <div
+                        ref={scrollContainerRef}
+                        className="flex-1 overflow-y-auto p-4 pb-6 space-y-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+                        onWheel={(event) => event.stopPropagation()}
+                        onScroll={(event) => {
+                            event.stopPropagation();
+                            const container = event.currentTarget;
+                            const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 8;
+                            shouldAutoScrollRef.current = atBottom;
+                        }}
+                    >
                         {logs.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-gray-600 opacity-50">
                                 <TerminalIcon className="w-12 h-12 mb-2" />
