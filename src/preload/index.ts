@@ -104,5 +104,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onGithubThemeStatus: (callback: (data: { stage?: string; message?: string; progress?: number }) => void) => {
         ipcRenderer.on('github-theme-status', (_event, value) => callback(value));
         return () => ipcRenderer.removeAllListeners('github-theme-status');
-    }
+    },
+    exportSettings: () => ipcRenderer.invoke('export-settings'),
+    importSettings: () => ipcRenderer.invoke('import-settings'),
+    selectSettingsFile: () => ipcRenderer.invoke('select-settings-file')
 })

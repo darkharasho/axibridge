@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star } from 'lucide-react';
+import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { DEFAULT_WEB_THEME_ID, WEB_THEMES } from '../shared/webThemes';
@@ -131,6 +131,10 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
     const [githubLogoStatus, setGithubLogoStatus] = useState<string | null>(null);
     const [githubLogoStatusKind, setGithubLogoStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+    const [settingsTransferStatus, setSettingsTransferStatus] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [importPreviewSettings, setImportPreviewSettings] = useState<any | null>(null);
+    const [importSelections, setImportSelections] = useState<Record<string, boolean>>({});
     const inferredPagesUrl = githubRepoOwner && githubRepoName
         ? `https://${githubRepoOwner}.github.io/${githubRepoName}`
         : '';
@@ -144,6 +148,27 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         return [active, ...WEB_THEMES.filter((theme) => theme.id !== githubWebTheme)];
     }, [githubWebTheme]);
 
+    const applySettingsToState = (settings: any) => {
+        setDpsReportToken(settings.dpsReportToken || '');
+        setCloseBehavior(settings.closeBehavior || 'minimize');
+        setEmbedStats({ ...DEFAULT_EMBED_STATS, ...(settings.embedStatSettings || {}) });
+        setMvpWeights({ ...DEFAULT_MVP_WEIGHTS, ...(settings.mvpWeights || {}) });
+        setStatsViewSettings({ ...DEFAULT_STATS_VIEW_SETTINGS, ...(settings.statsViewSettings || {}) });
+        setUiTheme((settings.uiTheme as UiTheme) || DEFAULT_UI_THEME);
+        if (settings.disruptionMethod) {
+            setDisruptionMethod(settings.disruptionMethod);
+        }
+        setGithubRepoOwner(settings.githubRepoOwner || '');
+        setGithubRepoName(settings.githubRepoName || '');
+        setGithubToken(settings.githubToken || '');
+        setGithubWebTheme(settings.githubWebTheme || DEFAULT_WEB_THEME_ID);
+        setGithubLogoPath(settings.githubLogoPath || null);
+        setGithubFavoriteRepos(Array.isArray(settings.githubFavoriteRepos) ? settings.githubFavoriteRepos : []);
+        if (settings.githubToken) {
+            setGithubAuthStatus('connected');
+        }
+    };
+
     useEffect(() => {
         const loadSettings = async () => {
             if (!window.electronAPI?.getSettings) {
@@ -151,28 +176,115 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 return;
             }
             const settings = await window.electronAPI.getSettings();
-            setDpsReportToken(settings.dpsReportToken || '');
-            setCloseBehavior(settings.closeBehavior || 'minimize');
-            setEmbedStats({ ...DEFAULT_EMBED_STATS, ...(settings.embedStatSettings || {}) });
-            setMvpWeights({ ...DEFAULT_MVP_WEIGHTS, ...(settings.mvpWeights || {}) });
-            setStatsViewSettings({ ...DEFAULT_STATS_VIEW_SETTINGS, ...(settings.statsViewSettings || {}) });
-            setUiTheme((settings.uiTheme as UiTheme) || DEFAULT_UI_THEME);
-            if (settings.disruptionMethod) {
-                setDisruptionMethod(settings.disruptionMethod);
-            }
-            setGithubRepoOwner(settings.githubRepoOwner || '');
-            setGithubRepoName(settings.githubRepoName || '');
-            setGithubToken(settings.githubToken || '');
-            setGithubWebTheme(settings.githubWebTheme || DEFAULT_WEB_THEME_ID);
-            setGithubLogoPath(settings.githubLogoPath || null);
-            setGithubFavoriteRepos(Array.isArray(settings.githubFavoriteRepos) ? settings.githubFavoriteRepos : []);
-            if (settings.githubToken) {
-                setGithubAuthStatus('connected');
-            }
+            applySettingsToState(settings);
             setHasLoaded(true);
         };
         loadSettings();
     }, []);
+
+    const handleExportSettings = async () => {
+        setSettingsTransferStatus(null);
+        if (!window.electronAPI?.exportSettings) {
+            setSettingsTransferStatus({ kind: 'error', message: 'Export is only available in the desktop app.' });
+            return;
+        }
+        const result = await window.electronAPI.exportSettings();
+        if (!result || result.canceled) return;
+        if (result.success) {
+            setSettingsTransferStatus({ kind: 'success', message: 'Settings exported.' });
+        } else {
+            setSettingsTransferStatus({ kind: 'error', message: result.error || 'Export failed.' });
+        }
+    };
+
+    const handleImportSettings = async () => {
+        setSettingsTransferStatus(null);
+        if (!window.electronAPI?.selectSettingsFile) {
+            setSettingsTransferStatus({ kind: 'error', message: 'Import is only available in the desktop app.' });
+            return;
+        }
+        const result = await window.electronAPI.selectSettingsFile();
+        if (!result || result.canceled) return;
+        if (!result.success || !result.settings) {
+            setSettingsTransferStatus({ kind: 'error', message: result.error || 'Import failed.' });
+            return;
+        }
+        const selections: Record<string, boolean> = {};
+        const allowedKeys = new Set(importSettingMeta.map((item) => item.key));
+        Object.keys(result.settings).forEach((key) => {
+            if (allowedKeys.has(key)) selections[key] = true;
+        });
+        setImportSelections(selections);
+        setImportPreviewSettings(result.settings);
+        setImportModalOpen(true);
+    };
+
+    const getCurrentSettingsSnapshot = () => ({
+        dpsReportToken,
+        closeBehavior,
+        embedStatSettings: embedStats,
+        mvpWeights,
+        statsViewSettings,
+        disruptionMethod,
+        uiTheme,
+        githubRepoOwner,
+        githubRepoName,
+        githubToken,
+        githubWebTheme,
+        githubLogoPath,
+        githubFavoriteRepos
+    });
+
+    const confirmImportSettings = async () => {
+        if (!importPreviewSettings) return;
+        const patch: Record<string, any> = {};
+        Object.entries(importSelections).forEach(([key, enabled]) => {
+            if (!enabled) return;
+            if (importPreviewSettings[key] !== undefined) {
+                patch[key] = importPreviewSettings[key];
+            }
+        });
+        if (Object.keys(patch).length === 0) {
+            setSettingsTransferStatus({ kind: 'error', message: 'No settings selected.' });
+            return;
+        }
+        window.electronAPI?.saveSettings?.(patch);
+        const merged = {
+            ...getCurrentSettingsSnapshot(),
+            ...patch
+        };
+        applySettingsToState(merged);
+        setImportModalOpen(false);
+        setImportPreviewSettings(null);
+        setSettingsTransferStatus({ kind: 'success', message: 'Settings imported.' });
+    };
+
+    const toggleImportSelection = (key: string) => {
+        setImportSelections((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const importSettingMeta: Array<{ key: string; label: string; description: string; section: string }> = [
+        { key: 'logDirectory', label: 'Log Directory', description: 'Path to the ArcDPS log folder.', section: 'Logs & Uploads' },
+        { key: 'dpsReportToken', label: 'dps.report Token', description: 'User token for uploads.', section: 'Logs & Uploads' },
+        { key: 'discordNotificationType', label: 'Discord Post Type', description: 'Image vs embed post format.', section: 'Discord' },
+        { key: 'discordWebhookUrl', label: 'Discord Webhook URL', description: 'Legacy single webhook URL.', section: 'Discord' },
+        { key: 'webhooks', label: 'Webhook List', description: 'Saved webhook entries.', section: 'Discord' },
+        { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
+        { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
+        { key: 'uiTheme', label: 'UI Theme', description: 'Classic or modern theme.', section: 'App' },
+        { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
+        { key: 'mvpWeights', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
+        { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
+        { key: 'disruptionMethod', label: 'CC/Strip Method', description: 'Count, duration, or tiered.', section: 'Stats' },
+        { key: 'githubRepoOwner', label: 'GitHub Owner', description: 'GitHub Pages owner/org.', section: 'GitHub' },
+        { key: 'githubRepoName', label: 'GitHub Repo', description: 'GitHub Pages repository.', section: 'GitHub' },
+        { key: 'githubBranch', label: 'GitHub Branch', description: 'Branch for web uploads.', section: 'GitHub' },
+        { key: 'githubPagesBaseUrl', label: 'GitHub Pages URL', description: 'Base URL for hosted reports.', section: 'GitHub' },
+        { key: 'githubToken', label: 'GitHub Token', description: 'Token used for uploads.', section: 'GitHub' },
+        { key: 'githubWebTheme', label: 'Web Theme', description: 'Theme for hosted reports.', section: 'GitHub' },
+        { key: 'githubLogoPath', label: 'Web Logo', description: 'Logo path used for reports.', section: 'GitHub' },
+        { key: 'githubFavoriteRepos', label: 'Favorite Repos', description: 'Pinned repos list.', section: 'GitHub' }
+    ];
 
     const saveSettings = () => {
         setIsSaving(true);
@@ -1589,6 +1701,35 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                     </div>
                 </SettingsSection>
 
+                <SettingsSection title="Export / Import Settings" icon={Download} delay={0.2}>
+                    <p className="text-sm text-gray-400 mb-4">
+                        Save your current configuration to a file or import it on another machine.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            onClick={handleExportSettings}
+                            className="flex items-center justify-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-200 hover:bg-blue-500/20 transition-colors"
+                        >
+                            <Download className="w-4 h-4" />
+                            Export Settings
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleImportSettings}
+                            className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200 hover:bg-emerald-500/20 transition-colors"
+                        >
+                            <Upload className="w-4 h-4" />
+                            Import Settings
+                        </button>
+                    </div>
+                    {settingsTransferStatus && (
+                        <div className={`mt-3 text-xs ${settingsTransferStatus.kind === 'success' ? 'text-emerald-300' : 'text-red-300'}`}>
+                            {settingsTransferStatus.message}
+                        </div>
+                    )}
+                </SettingsSection>
+
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-gray-400">
                     <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-semibold text-gray-200">Legal Notice</div>
@@ -1658,6 +1799,80 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 <div className="h-[12vh] min-h-10 max-h-28" />
                 {/* Save Button (hidden with auto-save) */}
             </div>
+
+            <AnimatePresence>
+                {importModalOpen && (
+                    <motion.div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="w-full max-w-3xl bg-[#101826]/90 border border-white/10 rounded-2xl shadow-2xl"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                        >
+                            <div className="px-6 pt-6 pb-4 border-b border-white/10">
+                                <div className="text-xs uppercase tracking-widest text-cyan-200/70">Import Settings</div>
+                                <h3 className="text-xl font-semibold text-white">Choose what to import</h3>
+                                <p className="text-sm text-gray-400 mt-2">
+                                    All items are selected by default. Toggle any setting you want to skip.
+                                </p>
+                            </div>
+                            <div className="max-h-[60vh] overflow-y-auto px-6 py-4 space-y-1">
+                                {(() => {
+                                    const items = importSettingMeta.filter((item) =>
+                                        importPreviewSettings && Object.prototype.hasOwnProperty.call(importPreviewSettings, item.key)
+                                    );
+                                    const sections = Array.from(new Set(items.map((item) => item.section)));
+                                    return sections.map((section) => (
+                                        <div key={section} className="pt-2">
+                                            <div className="text-[11px] uppercase tracking-widest text-gray-500 mb-2">{section}</div>
+                                            <div className="divide-y divide-white/5 rounded-xl border border-white/5 bg-white/5 px-3">
+                                                {items
+                                                    .filter((item) => item.section === section)
+                                                    .map((item) => (
+                                                        <Toggle
+                                                            key={item.key}
+                                                            enabled={Boolean(importSelections[item.key])}
+                                                            onChange={() => toggleImportSelection(item.key)}
+                                                            label={item.label}
+                                                            description={item.description}
+                                                        />
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    ));
+                                })()}
+                                {importPreviewSettings && Object.keys(importPreviewSettings).length === 0 && (
+                                    <div className="text-sm text-gray-500 italic py-6 text-center">No settings found in file.</div>
+                                )}
+                            </div>
+                            <div className="sticky bottom-0 px-6 py-4 border-t border-white/10 bg-[#101826] flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setImportModalOpen(false);
+                                        setImportPreviewSettings(null);
+                                    }}
+                                    className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={confirmImportSettings}
+                                    className="px-4 py-2 rounded-lg border border-emerald-500/40 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30 transition-colors"
+                                >
+                                    Import
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence>
                 {githubManageOpen && (

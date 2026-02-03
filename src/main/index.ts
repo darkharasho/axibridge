@@ -1554,7 +1554,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[] }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[] }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -1629,6 +1629,113 @@ if (!gotTheLock) {
             }
             if (settings.githubFavoriteRepos !== undefined) {
                 store.set('githubFavoriteRepos', settings.githubFavoriteRepos);
+            }
+        };
+
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[] }) => {
+            applySettings(settings);
+        });
+
+        const bringDialogParentToFront = (parent: BrowserWindow | null) => {
+            if (!parent) return;
+            parent.show();
+            parent.focus();
+            try {
+                app.focus({ steal: true });
+            } catch {
+                // noop
+            }
+            if (parent.isAlwaysOnTop()) {
+                parent.setAlwaysOnTop(false);
+            }
+        };
+
+        ipcMain.handle('export-settings', async () => {
+            const parent = BrowserWindow.getFocusedWindow() || win || null;
+            bringDialogParentToFront(parent);
+            if (!parent) return { success: false, error: 'Window unavailable.' };
+            const result = await dialog.showSaveDialog(parent, {
+                title: 'Export ArcBridge Settings',
+                defaultPath: 'arcbridge-settings.json',
+                filters: [{ name: 'JSON', extensions: ['json'] }]
+            });
+            if (result.canceled || !result.filePath) return { success: false, canceled: true };
+
+            const settings = {
+                logDirectory: store.get('logDirectory', null),
+                discordWebhookUrl: store.get('discordWebhookUrl', null),
+                discordNotificationType: store.get('discordNotificationType', 'image'),
+                webhooks: store.get('webhooks', []),
+                selectedWebhookId: store.get('selectedWebhookId', null),
+                dpsReportToken: store.get('dpsReportToken', null),
+                closeBehavior: store.get('closeBehavior', 'minimize'),
+                embedStatSettings: store.get('embedStatSettings', DEFAULT_EMBED_STATS),
+                mvpWeights: { ...DEFAULT_MVP_WEIGHTS, ...(store.get('mvpWeights') as any || {}) },
+                statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, ...(store.get('statsViewSettings') as any || {}) },
+                disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
+                uiTheme: store.get('uiTheme', 'classic'),
+                githubRepoOwner: store.get('githubRepoOwner', null),
+                githubRepoName: store.get('githubRepoName', null),
+                githubBranch: store.get('githubBranch', 'main'),
+                githubPagesBaseUrl: store.get('githubPagesBaseUrl', null),
+                githubToken: store.get('githubToken', null),
+                githubWebTheme: store.get('githubWebTheme', DEFAULT_WEB_THEME_ID),
+                githubLogoPath: store.get('githubLogoPath', null),
+                githubFavoriteRepos: store.get('githubFavoriteRepos', [])
+            };
+
+            try {
+                await fs.promises.writeFile(result.filePath, JSON.stringify(settings, null, 2), 'utf-8');
+                return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to write settings file.' };
+            }
+        });
+
+        ipcMain.handle('import-settings', async () => {
+            const parent = BrowserWindow.getFocusedWindow() || win || null;
+            bringDialogParentToFront(parent);
+            if (!parent) return { success: false, error: 'Window unavailable.' };
+            const result = await dialog.showOpenDialog(parent, {
+                title: 'Import ArcBridge Settings',
+                properties: ['openFile'],
+                filters: [{ name: 'JSON', extensions: ['json'] }]
+            });
+            if (result.canceled || result.filePaths.length === 0) return { success: false, canceled: true };
+            const filePath = result.filePaths[0];
+            try {
+                const raw = await fs.promises.readFile(filePath, 'utf-8');
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') {
+                    return { success: false, error: 'Invalid settings file.' };
+                }
+                applySettings(parsed);
+                return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to import settings.' };
+            }
+        });
+
+        ipcMain.handle('select-settings-file', async () => {
+            const parent = BrowserWindow.getFocusedWindow() || win || null;
+            bringDialogParentToFront(parent);
+            if (!parent) return { success: false, error: 'Window unavailable.' };
+            const result = await dialog.showOpenDialog(parent, {
+                title: 'Select Settings File',
+                properties: ['openFile'],
+                filters: [{ name: 'JSON', extensions: ['json'] }]
+            });
+            if (result.canceled || result.filePaths.length === 0) return { success: false, canceled: true };
+            const filePath = result.filePaths[0];
+            try {
+                const raw = await fs.promises.readFile(filePath, 'utf-8');
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') {
+                    return { success: false, error: 'Invalid settings file.' };
+                }
+                return { success: true, settings: parsed, filePath };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to read settings file.' };
             }
         });
 

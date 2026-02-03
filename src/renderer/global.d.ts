@@ -239,6 +239,9 @@ export interface IElectronAPI {
     getGithubPagesBuildStatus: () => Promise<{ success: boolean; status?: string; updatedAt?: string; errorMessage?: string; error?: string }>;
     onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number }) => void) => () => void;
     onGithubThemeStatus: (callback: (data: { stage?: string; message?: string; progress?: number }) => void) => () => void;
+    exportSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
+    importSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
+    selectSettingsFile: () => Promise<{ success: boolean; canceled?: boolean; error?: string; settings?: any; filePath?: string }>;
 }
 
 declare global {

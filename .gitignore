@@ -38,3 +38,5 @@ testdata/
 
 # Dev web report testing
 web/reports/
+
+arcbridge-settings.json
