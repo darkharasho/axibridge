@@ -5,10 +5,6 @@ type TopSkillsSectionProps = {
     stats: any;
     topSkillsMetric?: 'damage' | 'downContribution';
     onTopSkillsMetricChange?: (metric: 'damage' | 'downContribution') => void;
-    expandedSection: string | null;
-    expandedSectionClosing: boolean;
-    openExpandedSection: (id: string) => void;
-    closeExpandedSection: () => void;
     isSectionVisible: (id: string) => boolean;
     isFirstVisibleSection: (id: string) => boolean;
     sectionClass: (id: string, base: string) => string;
@@ -18,10 +14,6 @@ export const TopSkillsSection = ({
     stats,
     topSkillsMetric,
     onTopSkillsMetricChange,
-    expandedSection,
-    expandedSectionClosing,
-    openExpandedSection,
-    closeExpandedSection,
     isSectionVisible,
     isFirstVisibleSection,
     sectionClass
@@ -79,7 +71,7 @@ export const TopSkillsSection = ({
                     </div>
                 )}
             </div>
-            <div className={`${expandedSection === 'top-skills-outgoing' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-80 overflow-y-auto'} space-y-4`}>
+            <div className="max-h-80 overflow-y-auto space-y-4">
                 {stats.topSkills.map((skill: { name: string; icon?: string; damage: number; hits: number }, i: number) => (
                     <div key={i} className="flex items-center gap-4">
                         <div className="w-8 text-center text-xl font-bold text-gray-600">#{i + 1}</div>
@@ -128,7 +120,7 @@ export const TopSkillsSection = ({
                     <div className="text-xs text-gray-500 mt-1">Damage</div>
                 </div>
             </div>
-            <div className={`${expandedSection === 'top-skills-incoming' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-80 overflow-y-auto'} space-y-4`}>
+            <div className="max-h-80 overflow-y-auto space-y-4">
                 {stats.topIncomingSkills.map((skill: { name: string; icon?: string; damage: number; hits: number }, i: number) => (
                     <div key={i} className="flex items-center gap-4">
                         <div className="w-8 text-center text-xl font-bold text-gray-600">#{i + 1}</div>
