@@ -60,7 +60,6 @@ function App() {
     const [showTerminal, setShowTerminal] = useState(false);
     const [showDeveloperSettings, setShowDeveloperSettings] = useState(false);
     const settingsUpdateCheckRef = useRef(false);
-    const versionClickCountRef = useRef(0);
     const versionClickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const versionClickTimesRef = useRef<number[]>([]);
 
