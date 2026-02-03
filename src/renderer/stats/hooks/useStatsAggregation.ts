@@ -829,13 +829,17 @@ export const useStatsAggregation = ({ logs, precomputedStats, mvpWeights, statsV
 
         const { boonTables } = buildBoonTables(validLogs);
 
-        const timelineData = validLogs.map((log, i) => ({
+        const timelineData = validLogs.map((log, i) => {
+            const players = (log.details?.players as any[]) || [];
+            return {
             index: i + 1,
             label: `Log ${i + 1}`,
             timestamp: log.details?.uploadTime || 0,
-            squadCount: (log.details?.players as any[]).filter(p => !p.notInSquad).length,
+            squadCount: players.filter(p => !p.notInSquad).length,
+            friendlyCount: players.length,
             enemies: (log.details?.targets as any[]).filter(t => !t.isFake).length
-        })).sort((a, b) => a.timestamp - b.timestamp);
+            };
+        }).sort((a, b) => a.timestamp - b.timestamp);
 
         // 1. Squad Class Data
         const squadClassCounts: Record<string, number> = {};
