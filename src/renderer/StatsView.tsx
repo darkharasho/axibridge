@@ -38,6 +38,7 @@ import { StatsHeader } from './stats/ui/StatsHeader';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
 import { StatsMobileNav } from './stats/ui/StatsMobileNav';
+import { prefetchIconUrls } from './stats/ui/StatsViewShared';
 
 interface StatsViewProps {
     logs: ILogData[];
@@ -53,12 +54,13 @@ interface StatsViewProps {
     sectionVisibility?: (id: string) => boolean;
     dashboardTitle?: string;
     uiTheme?: 'classic' | 'modern';
+    canShareDiscord?: boolean;
 }
 
 const sidebarListClass = 'max-h-80 overflow-y-auto space-y-1 pr-1';
 const NON_DAMAGING_CONDITIONS = new Set(['Vulnerability', 'Weakness', 'Blind', 'Chill', 'Cripple', 'Slow', 'Taunt', 'Fear', 'Immobilize']);
 
-export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, uiTheme }: StatsViewProps) {
+export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, uiTheme, canShareDiscord = true }: StatsViewProps) {
     const activeMvpWeights = mvpWeights || DEFAULT_MVP_WEIGHTS;
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
     const activeWebUploadState = webUploadState || DEFAULT_WEB_UPLOAD_STATE;
@@ -126,6 +128,35 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
             playerSkillBreakdowns: asArray((source as any).playerSkillBreakdowns)
         };
     }, [stats]);
+
+    useEffect(() => {
+        if (!window?.electronAPI?.fetchImageAsDataUrl) return;
+        const urls = new Set<string>();
+        const collect = (value: any) => {
+            if (!value) return;
+            if (typeof value === 'string') {
+                if (/^https?:\/\//i.test(value)) urls.add(value);
+                return;
+            }
+            if (Array.isArray(value)) {
+                value.forEach(collect);
+                return;
+            }
+            if (typeof value === 'object') {
+                Object.entries(value).forEach(([key, val]) => {
+                    if ((key === 'icon' || key === 'iconUrl') && typeof val === 'string') {
+                        if (/^https?:\/\//i.test(val)) urls.add(val);
+                        return;
+                    }
+                    collect(val);
+                });
+            }
+        };
+        collect(safeStats);
+        if (urls.size > 0) {
+            prefetchIconUrls(Array.from(urls));
+        }
+    }, [safeStats]);
 
     const skillUsageData = useMemo(() => {
         const source = (precomputedStats?.skillUsageData ?? computedSkillUsageData) as Partial<SkillUsageSummary> | undefined;
@@ -842,6 +873,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 uploadingWeb={uploadingWeb}
                 onWebUpload={handleWebUpload}
                 sharing={sharing}
+                canShareDiscord={canShareDiscord}
                 onShare={handleShare}
             />
 

@@ -64,7 +64,7 @@ export const StatsMobileNav = ({
                         }
                     }}
                 >
-                    <div className="w-full max-w-sm max-h-[80vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col">
+                    <div className="w-full max-w-sm max-h-[85vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col">
                         <div className="flex items-center justify-between mb-3">
                             <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
                             <button
@@ -75,7 +75,7 @@ export const StatsMobileNav = ({
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1 pb-2">
+                        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1 pb-4">
                             {tocItems.map((item) => {
                                 const Icon = item.icon;
                                 const isActive = item.id === activeNavId;

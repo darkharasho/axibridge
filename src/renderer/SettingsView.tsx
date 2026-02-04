@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload } from 'lucide-react';
+import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { DEFAULT_WEB_THEME_ID, WEB_THEMES } from '../shared/webThemes';
@@ -57,12 +57,13 @@ function Toggle({ enabled, onChange, label, description }: {
 }
 
 // Section component for grouping settings
-function SettingsSection({ title, icon: Icon, children, delay = 0, action }: {
+function SettingsSection({ title, icon: Icon, children, delay = 0, action, sectionId }: {
     title: string;
     icon: React.ElementType;
     children: React.ReactNode;
     delay?: number;
     action?: React.ReactNode;
+    sectionId?: string;
 }) {
     return (
         <motion.div
@@ -70,6 +71,9 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action }: {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay }}
             className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
+            id={sectionId}
+            data-settings-section={sectionId ? 'true' : undefined}
+            data-settings-label={sectionId ? title : undefined}
         >
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -144,6 +148,8 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [importSelections, setImportSelections] = useState<Record<string, boolean>>({});
     const [howToOpen, setHowToOpen] = useState(false);
     const [devSettingsOpen, setDevSettingsOpen] = useState(false);
+    const [settingsNavOpen, setSettingsNavOpen] = useState(false);
+    const [activeSettingsSectionId, setActiveSettingsSectionId] = useState('appearance');
     const lastDevSettingsTriggerRef = useRef<number>(developerSettingsTrigger || 0);
     const settingsScrollRef = useRef<HTMLDivElement | null>(null);
     const helpUpdatesRef = useRef<HTMLDivElement | null>(null);
@@ -238,6 +244,72 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         container.scrollTop = top;
         onHelpUpdatesFocusConsumed?.(trigger);
     }, [helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed]);
+
+    useEffect(() => {
+        const container = settingsScrollRef.current;
+        if (!container) return;
+
+        const updateActiveSection = () => {
+            const sections = Array.from(container.querySelectorAll<HTMLElement>('[data-settings-section="true"]'));
+            if (!sections.length) return;
+            const containerTop = container.getBoundingClientRect().top;
+            let bestId = sections[0].id;
+            let bestOffset = Number.POSITIVE_INFINITY;
+            sections.forEach((section) => {
+                const offset = Math.abs(section.getBoundingClientRect().top - containerTop);
+                if (offset < bestOffset) {
+                    bestOffset = offset;
+                    bestId = section.id;
+                }
+            });
+            setActiveSettingsSectionId(bestId);
+        };
+
+        updateActiveSection();
+        container.addEventListener('scroll', updateActiveSection);
+        window.addEventListener('resize', updateActiveSection);
+        return () => {
+            container.removeEventListener('scroll', updateActiveSection);
+            window.removeEventListener('resize', updateActiveSection);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (importModalOpen || devSettingsOpen || githubManageOpen || proofOfWorkOpen || howToOpen) {
+            return;
+        }
+
+        const canScroll = (element: HTMLElement, deltaY: number) => {
+            if (deltaY < 0) return element.scrollTop > 0;
+            if (deltaY > 0) return element.scrollTop + element.clientHeight < element.scrollHeight;
+            return false;
+        };
+
+        const handleWheel = (event: WheelEvent) => {
+            const container = settingsScrollRef.current;
+            if (!container) return;
+            const target = event.target as HTMLElement | null;
+            if (!target) return;
+
+            let node: HTMLElement | null = target;
+            while (node && node !== container) {
+                const style = window.getComputedStyle(node);
+                const isScrollable = (style.overflowY === 'auto' || style.overflowY === 'scroll' || style.overflowY === 'overlay')
+                    && node.scrollHeight > node.clientHeight + 1;
+                if (isScrollable && canScroll(node, event.deltaY)) {
+                    return;
+                }
+                node = node.parentElement;
+            }
+
+            if (!canScroll(container, event.deltaY)) return;
+            container.scrollTop += event.deltaY;
+            event.preventDefault();
+        };
+
+        window.addEventListener('wheel', handleWheel, { passive: false });
+        return () => window.removeEventListener('wheel', handleWheel);
+    }, [importModalOpen, devSettingsOpen, githubManageOpen, proofOfWorkOpen, howToOpen]);
 
     const handleExportSettings = async () => {
         setSettingsTransferStatus(null);
@@ -355,6 +427,41 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
 
     const toggleImportSelection = (key: string) => {
         setImportSelections((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const settingsSections = [
+        { id: 'appearance', label: 'Appearance' },
+        { id: 'dps-token', label: 'dps.report Token' },
+        { id: 'github-pages', label: 'GitHub Pages' },
+        { id: 'embed-summary', label: 'Embed Summary' },
+        { id: 'embed-top', label: 'Embed Top Stats' },
+        { id: 'help-updates', label: 'Help & Updates' },
+        { id: 'dashboard-stats', label: 'Dashboard Stats' },
+        { id: 'mvp-weighting', label: 'MVP Weighting' },
+        { id: 'close-behavior', label: 'Close Behavior' },
+        { id: 'export-import', label: 'Export / Import' },
+        { id: 'legal', label: 'Legal' }
+    ];
+
+    const scrollToSettingsSection = (id: string) => {
+        const container = settingsScrollRef.current;
+        if (!container) return;
+        const section = container.querySelector<HTMLElement>(`#${id}`);
+        if (!section) return;
+        const containerRect = container.getBoundingClientRect();
+        const sectionRect = section.getBoundingClientRect();
+        const top = Math.max(0, sectionRect.top - containerRect.top + container.scrollTop - 8);
+        container.scrollTo({ top, behavior: 'smooth' });
+    };
+
+    const stepSettingsSection = (direction: -1 | 1) => {
+        const index = settingsSections.findIndex((section) => section.id === activeSettingsSectionId);
+        if (index === -1) return;
+        const nextIndex = Math.min(settingsSections.length - 1, Math.max(0, index + direction));
+        const next = settingsSections[nextIndex];
+        if (next) {
+            scrollToSettingsSection(next.id);
+        }
     };
 
     const importSettingMeta: Array<{ key: string; label: string; description: string; section: string }> = [
@@ -907,7 +1014,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             </motion.div>
 
             <div ref={settingsScrollRef} className="flex-1 overflow-y-auto pr-2 space-y-4">
-                <SettingsSection title="Appearance" icon={Sparkles} delay={0.02}>
+                <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance">
                     <p className="text-sm text-gray-400 mb-4">
                         Switch between the classic interface and the new slate/pearl redesign.
                     </p>
@@ -935,7 +1042,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                     </div>
                 </SettingsSection>
                 {/* DPS Report Token Section */}
-                <SettingsSection title="dps.report User Token" icon={Key} delay={0.05}>
+                <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token">
                     <p className="text-sm text-gray-400 mb-4">
                         Optional: Add your dps.report user token to associate uploads with your account.
                         You can find your token at{' '}
@@ -988,6 +1095,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                     title="GitHub Pages Web Reports"
                     icon={Cloud}
                     delay={0.08}
+                    sectionId="github-pages"
                     action={githubAuthStatus === 'connected' ? (
                         <button
                             onClick={() => {
@@ -1300,7 +1408,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 </SettingsSection>
 
                 {/* Discord Embed Stats - Summary Sections */}
-                <SettingsSection title="Discord Embed - Summary Sections" icon={Users} delay={0.1}>
+                <SettingsSection title="Discord Embed - Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary">
                     <p className="text-sm text-gray-400 mb-4">
                         Configure which summary sections appear in Discord embed notifications.
                     </p>
@@ -1333,7 +1441,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 </SettingsSection>
 
                 {/* Discord Embed Stats - Top Lists */}
-                <SettingsSection title="Discord Embed - Top Stats Lists" icon={BarChart3} delay={0.15}>
+                <SettingsSection title="Discord Embed - Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top">
                     <p className="text-sm text-gray-400 mb-2">
                         Configure which top stat player lists appear in Discord embed notifications.
                     </p>
@@ -1500,7 +1608,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 </SettingsSection>
 
                 <div ref={helpUpdatesRef}>
-                    <SettingsSection title="Help & Updates" icon={Sparkles} delay={0.18}>
+                    <SettingsSection title="Help & Updates" icon={Sparkles} delay={0.18} sectionId="help-updates">
                         <p className="text-sm text-gray-400 mb-4">
                             Review release notes, reopen onboarding, or browse the complete feature guide.
                         </p>
@@ -1530,7 +1638,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                     </SettingsSection>
                 </div>
 
-                <SettingsSection title="Dashboard - Top Stats & MVP" icon={BarChart3} delay={0.18}>
+                <SettingsSection title="Dashboard - Top Stats & MVP" icon={BarChart3} delay={0.18} sectionId="dashboard-stats">
                     <p className="text-sm text-gray-400 mb-4">
                         Control the calculation and display of the top stats cards and MVP highlights.
                     </p>
@@ -1725,7 +1833,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 </SettingsSection>
 
                 {/* Close Behavior Section */}
-                <SettingsSection title="MVP Weighting" icon={BarChart3} delay={0.18}>
+                <SettingsSection title="MVP Weighting" icon={BarChart3} delay={0.18} sectionId="mvp-weighting">
                     <div className="flex items-center justify-between mb-4">
                         <p className="text-sm text-gray-400">
                             Adjust how each stat influences MVP scoring. 0 disables a stat.
@@ -1772,7 +1880,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 </SettingsSection>
 
                 {/* Close Behavior Section */}
-                <SettingsSection title="Window Close Behavior" icon={Minimize} delay={0.2}>
+                <SettingsSection title="Window Close Behavior" icon={Minimize} delay={0.2} sectionId="close-behavior">
                     <p className="text-sm text-gray-400 mb-4">
                         Choose what happens when you click the close button.
                     </p>
@@ -1807,7 +1915,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                     </div>
                 </SettingsSection>
 
-                <SettingsSection title="Export / Import Settings" icon={Download} delay={0.2}>
+                <SettingsSection title="Export / Import Settings" icon={Download} delay={0.2} sectionId="export-import">
                     <p className="text-sm text-gray-400 mb-4">
                         Save your current configuration to a file or import it on another machine.
                     </p>
@@ -1836,7 +1944,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                     )}
                 </SettingsSection>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-gray-400">
+                <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-gray-400">
                     <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-semibold text-gray-200">Legal Notice</div>
                         <div className="flex items-center gap-2">
@@ -1905,6 +2013,79 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 <div className="h-[12vh] min-h-10 max-h-28" />
                 {/* Save Button (hidden with auto-save) */}
             </div>
+
+            <div className="fixed bottom-4 left-4 right-4 z-40">
+                <div className="flex items-center justify-between gap-2 rounded-2xl border border-white/25 bg-white/5 backdrop-blur-2xl px-3 py-1.5 shadow-[0_24px_65px_rgba(0,0,0,0.55)]">
+                    <button
+                        onClick={onBack}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                    >
+                        Back
+                    </button>
+                    <button
+                        onClick={() => setSettingsNavOpen((open) => !open)}
+                        className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                    >
+                        <span className="truncate max-w-[160px]">
+                            {settingsSections.find((item) => item.id === activeSettingsSectionId)?.label || 'Settings'}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-[color:var(--accent)] transition-transform ${settingsNavOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    <button
+                        onClick={() => stepSettingsSection(1)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                    >
+                        Next
+                        <ChevronDown className="w-4 h-4 -rotate-90 text-[color:var(--accent)]" />
+                    </button>
+                </div>
+            </div>
+            {settingsNavOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center px-4"
+                    onClick={(event) => {
+                        if (event.target === event.currentTarget) {
+                            setSettingsNavOpen(false);
+                        }
+                    }}
+                >
+                    <div className="w-full max-w-sm max-h-[85vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
+                            <button
+                                onClick={() => setSettingsNavOpen(false)}
+                                className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                                aria-label="Close navigation"
+                            >
+                                <CloseIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1 pb-4">
+                            {settingsSections.map((item) => {
+                                const isActive = item.id === activeSettingsSectionId;
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => {
+                                            scrollToSettingsSection(item.id);
+                                            setSettingsNavOpen(false);
+                                        }}
+                                        className={`w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-gray-200 border transition-colors min-w-0 ${isActive
+                                            ? 'bg-white/10 border-white/20'
+                                            : 'border-transparent hover:border-white/10 hover:bg-white/10'
+                                            }`}
+                                    >
+                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 border border-white/10 text-[10px] text-[color:var(--accent)]">
+                                            {settingsSections.findIndex((section) => section.id === item.id) + 1}
+                                        </span>
+                                        <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <AnimatePresence>
                 {importModalOpen && (

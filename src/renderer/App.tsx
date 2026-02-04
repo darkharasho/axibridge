@@ -1345,12 +1345,12 @@ function App() {
             <div className="legacy-orb absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
             <div className="legacy-orb absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/20 blur-[100px] pointer-events-none" />
 
-            <div className={`app-content relative z-10 max-w-5xl mx-auto flex-1 w-full flex flex-col min-h-0 ${view === 'stats' ? 'pt-8 px-8 pb-2' : 'p-8'}`}>
-                <header className="app-header flex justify-between items-center mb-10 shrink-0">
+            <div className={`app-content relative z-10 max-w-5xl mx-auto flex-1 w-full min-w-0 flex flex-col min-h-0 ${view === 'stats' ? 'pt-8 px-8 pb-2' : 'p-8'}`}>
+                <header className="app-header flex flex-wrap justify-between items-center gap-3 mb-10 shrink-0">
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-3"
+                        className="flex items-center gap-3 min-w-0"
                     >
                         <div className="flex items-center gap-3">
                             <img src={appIconPath} alt="ArcBridge" className="h-8 w-auto rounded-md" />
@@ -1359,7 +1359,7 @@ function App() {
                             </h1>
                         </div>
                     </motion.div>
-                    <div className="flex items-center gap-3">
+                    <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
                         <AnimatePresence mode="wait">
                             {(updateAvailable || updateDownloaded) ? (
                                 <motion.div
@@ -1560,6 +1560,7 @@ function App() {
                             uiTheme={uiTheme}
                             webUploadState={webUploadState}
                             onWebUpload={handleWebUpload}
+                            canShareDiscord={!!selectedWebhookId}
                         />
                     </div>
                 )}
@@ -1745,10 +1746,10 @@ function App() {
                                 transition={{ delay: 0.2 }}
                                 className="grid grid-cols-2 gap-4"
                             >
-                                <div className="h-32 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col">
+                                <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col">
                                     <div className="text-blue-200 text-xs font-medium uppercase tracking-wider">Upload Status</div>
                                     <div className="flex-1 min-h-0 flex items-center justify-center">
-                                        <div className="w-full h-full max-h-[84px]">
+                                        <div className="w-full h-full max-h-[63px]">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart>
                                                     <Pie
@@ -1790,30 +1791,30 @@ function App() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="h-32 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col">
+                                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col">
                                     <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">W / L</div>
                                     <div className="flex-1 flex items-center">
-                                        <div className="text-3xl font-bold text-white leading-none">
+                                        <div className="text-2xl font-bold text-white leading-none">
                                             <span className="text-emerald-300">{winLoss.wins}</span>
                                             <span className="text-gray-500 mx-2">/</span>
                                             <span className="text-red-400">{winLoss.losses}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="h-32 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col">
+                                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col">
                                     <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Avg Players</div>
                                     <div className="flex-1 flex items-center">
-                                        <div className="text-3xl font-bold text-white leading-none">
+                                        <div className="text-2xl font-bold text-white leading-none">
                                             <span className="text-emerald-300">{avgSquadSize}</span>
                                             <span className="text-gray-500 mx-2">/</span>
                                             <span className="text-red-400">{avgEnemies}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="h-32 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col">
+                                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col">
                                     <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Squad KDR</div>
                                     <div className="flex-1 flex items-center">
-                                        <div className="text-3xl font-bold text-emerald-300 leading-none">{squadKdr}</div>
+                                        <div className="text-2xl font-bold text-emerald-300 leading-none">{squadKdr}</div>
                                     </div>
                                 </div>
                             </motion.div>

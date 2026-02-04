@@ -1,6 +1,85 @@
 import { CSSProperties, useEffect, useRef, useState, type RefObject } from 'react';
 import { getProfessionIconPath } from '../../../shared/professionUtils';
 
+const TRANSPARENT_ICON = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+const iconDataUrlCache = new Map<string, string>();
+const iconFetchQueue = new Map<string, Promise<string | null>>();
+
+export const prefetchIconUrls = async (urls: string[]) => {
+    if (!window?.electronAPI?.fetchImageAsDataUrl) return;
+    const unique = Array.from(new Set(urls)).filter((url) => /^https?:\/\//i.test(url));
+    await Promise.all(unique.map(async (url) => {
+        if (iconDataUrlCache.has(url)) return;
+        if (iconFetchQueue.has(url)) return;
+        const pending = (async () => {
+            const resp = await window.electronAPI.fetchImageAsDataUrl(url);
+            const dataUrl = resp?.success && resp.dataUrl ? resp.dataUrl : null;
+            if (dataUrl) iconDataUrlCache.set(url, dataUrl);
+            return dataUrl;
+        })();
+        iconFetchQueue.set(url, pending);
+        try {
+            await pending;
+        } finally {
+            iconFetchQueue.delete(url);
+        }
+    }));
+};
+
+const useCachedIconUrl = (iconUrl?: string | null) => {
+    const [resolvedUrl, setResolvedUrl] = useState(() => {
+        if (!iconUrl) return null;
+        if (!window?.electronAPI?.fetchImageAsDataUrl) return iconUrl;
+        if (!/^https?:\/\//i.test(iconUrl)) return iconUrl;
+        return iconDataUrlCache.get(iconUrl) || TRANSPARENT_ICON;
+    });
+
+    useEffect(() => {
+        if (!iconUrl) {
+            setResolvedUrl(null);
+            return;
+        }
+        if (!window?.electronAPI?.fetchImageAsDataUrl) {
+            setResolvedUrl(iconUrl);
+            return;
+        }
+        if (!/^https?:\/\//i.test(iconUrl)) {
+            setResolvedUrl(iconUrl);
+            return;
+        }
+        const cached = iconDataUrlCache.get(iconUrl);
+        if (cached) {
+            setResolvedUrl(cached);
+            return;
+        }
+        let active = true;
+        const pending = iconFetchQueue.get(iconUrl) || (async () => {
+            const resp = await window.electronAPI.fetchImageAsDataUrl(iconUrl);
+            const dataUrl = resp?.success && resp.dataUrl ? resp.dataUrl : null;
+            if (dataUrl) iconDataUrlCache.set(iconUrl, dataUrl);
+            return dataUrl;
+        })();
+        iconFetchQueue.set(iconUrl, pending);
+        pending
+            .then((dataUrl) => {
+                if (!active) return;
+                if (dataUrl) {
+                    setResolvedUrl(dataUrl);
+                    return;
+                }
+                setResolvedUrl(TRANSPARENT_ICON);
+            })
+            .finally(() => {
+                iconFetchQueue.delete(iconUrl);
+            });
+        return () => {
+            active = false;
+        };
+    }, [iconUrl]);
+
+    return resolvedUrl;
+};
+
 const useSmartTooltipPlacement = (
     open: boolean,
     deps: any[],
@@ -271,14 +350,17 @@ export const InlineIconLabel = ({
     className?: string;
     iconClassName?: string;
     textClassName?: string;
-}) => (
-    <span className={`inline-flex items-center gap-2 min-w-0 ${className}`}>
-        {iconUrl ? (
-            <img src={iconUrl} alt={name} className={`${iconClassName} shrink-0`} />
-        ) : null}
-        <span className={`truncate ${textClassName}`}>{name}</span>
-    </span>
-);
+}) => {
+    const resolvedIconUrl = useCachedIconUrl(iconUrl);
+    return (
+        <span className={`inline-flex items-center gap-2 min-w-0 ${className}`}>
+            {resolvedIconUrl ? (
+                <img src={resolvedIconUrl} alt={name} className={`${iconClassName} shrink-0`} />
+            ) : null}
+            <span className={`truncate ${textClassName}`}>{name}</span>
+        </span>
+    );
+};
 
 export const SkillBreakdownTooltip = ({
     value,

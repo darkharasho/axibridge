@@ -661,3 +661,37 @@ button:focus-visible,
     opacity: 0.95;
     pointer-events: none;
 }
+
+.stats-share-mode * {
+    scrollbar-width: none;
+}
+
+.stats-share-mode *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+.stats-share-mode table {
+    display: none;
+}
+
+.stats-share-mode #top-skills-outgoing .max-h-80,
+.stats-share-mode #top-skills-incoming .max-h-80 {
+    max-height: none;
+    overflow: visible;
+}
+
+.stats-share-mode #top-skills-outgoing .max-h-80 > div:nth-child(n + 6),
+.stats-share-mode #top-skills-incoming .max-h-80 > div:nth-child(n + 6) {
+    display: none;
+}
+
+.stats-share-mode .stats-share-table {
+    display: none;
+}
+
+.stats-share-mode #apm-stats,
+.stats-share-mode #player-breakdown {
+    display: none;
+}

@@ -259,6 +259,7 @@ export interface IElectronAPI {
     }) => void;
     onRequestScreenshot: (callback: (data: any) => void) => () => void;
     openExternal: (url: string) => Promise<{ success: boolean, error?: string }>;
+    fetchImageAsDataUrl: (url: string) => Promise<{ success: boolean; dataUrl?: string; error?: string }>;
     sendScreenshot: (id: string, buffer: Uint8Array) => void;
     sendScreenshots: (id: string, buffers: Uint8Array[]) => void;
     sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => void;

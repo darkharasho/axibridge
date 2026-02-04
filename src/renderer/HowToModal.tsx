@@ -183,7 +183,7 @@ export function HowToModal({ isOpen, onClose }: HowToModalProps) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] flex-1 min-h-0">
-                        <aside className="border-r border-white/10 bg-black/20 p-3 overflow-y-auto">
+                        <aside className="min-h-0 border-r border-white/10 bg-black/20 p-3 overflow-y-auto overscroll-contain">
                             <div className="mb-3 px-1 py-1">
                                 <div className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Guide Map</div>
                                 <div className="mt-1 text-xs text-gray-400">Browse by feature area</div>
@@ -192,7 +192,7 @@ export function HowToModal({ isOpen, onClose }: HowToModalProps) {
                                 {renderTree(ROOT, selectedNode.id, setSelectedId)}
                             </div>
                         </aside>
-                        <section className="p-6 overflow-y-auto">
+                        <section className="min-h-0 p-6 overflow-y-auto overscroll-contain">
                             <div className="flex flex-wrap items-center gap-1 text-xs text-gray-400 mb-4">
                                 {breadcrumb.map((node, idx) => (
                                     <div key={node.id} className="flex items-center gap-1">

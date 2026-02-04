@@ -245,7 +245,7 @@ export const ApmSection = ({
                             ))}
                         </div>
                     </div>
-                    <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`}>
+                    <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden stats-share-table ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`}>
                         {!activeApmSpecTable || (!isAllApmSkills && !activeApmSkill) ? (
                             <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
                                 Select an elite spec and skill to view APM details
