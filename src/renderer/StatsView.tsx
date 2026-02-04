@@ -38,6 +38,7 @@ import { StatsHeader } from './stats/ui/StatsHeader';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
 import { StatsMobileNav } from './stats/ui/StatsMobileNav';
+import { prefetchIconUrls } from './stats/ui/StatsViewShared';
 
 interface StatsViewProps {
     logs: ILogData[];
@@ -126,6 +127,35 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
             playerSkillBreakdowns: asArray((source as any).playerSkillBreakdowns)
         };
     }, [stats]);
+
+    useEffect(() => {
+        if (!window?.electronAPI?.fetchImageAsDataUrl) return;
+        const urls = new Set<string>();
+        const collect = (value: any) => {
+            if (!value) return;
+            if (typeof value === 'string') {
+                if (/^https?:\/\//i.test(value)) urls.add(value);
+                return;
+            }
+            if (Array.isArray(value)) {
+                value.forEach(collect);
+                return;
+            }
+            if (typeof value === 'object') {
+                Object.entries(value).forEach(([key, val]) => {
+                    if ((key === 'icon' || key === 'iconUrl') && typeof val === 'string') {
+                        if (/^https?:\/\//i.test(val)) urls.add(val);
+                        return;
+                    }
+                    collect(val);
+                });
+            }
+        };
+        collect(safeStats);
+        if (urls.size > 0) {
+            prefetchIconUrls(Array.from(urls));
+        }
+    }, [safeStats]);
 
     const skillUsageData = useMemo(() => {
         const source = (precomputedStats?.skillUsageData ?? computedSkillUsageData) as Partial<SkillUsageSummary> | undefined;

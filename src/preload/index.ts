@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
     },
     openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
+    fetchImageAsDataUrl: (url: string) => ipcRenderer.invoke('fetch-image-data-url', url),
     sendScreenshot: (id: string, buffer: Uint8Array) => ipcRenderer.send('send-screenshot', id, buffer),
     sendScreenshots: (id: string, buffers: Uint8Array[]) => ipcRenderer.send('send-screenshots', id, buffers),
     sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => ipcRenderer.send('send-screenshots-groups', id, groups),

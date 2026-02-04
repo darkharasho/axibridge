@@ -361,7 +361,7 @@ export const PlayerBreakdownSection = ({
                                     ))}
                             </div>
                         </div>
-                        <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'player-breakdown' ? 'flex flex-col min-h-0' : ''}`}>
+                        <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden stats-share-table ${expandedSection === 'player-breakdown' ? 'flex flex-col min-h-0' : ''}`}>
                             {viewMode === 'player' ? (
                                 !activePlayerBreakdown || !activePlayerSkill ? (
                                     <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
