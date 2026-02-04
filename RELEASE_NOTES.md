@@ -1,16 +1,19 @@
 # Release Notes
 
-Version v1.20.2 — February 3, 2026
+Version v1.20.3 — February 4, 2026
 
 ## 🌟 Highlights
-- Enhanced enemy count logic and improved stats aggregation for DiscordNotifier and computeStatsAggregation, delivering clearer results.
+- Expanded the how-to guide with icons and expanded content for easier navigation.
+- Added walkthroughs and how-to guides focused on first-time users.
+- Documentation now includes a reference for advanced developer settings that influence state updates.
+- Web assets refreshed to keep things snappy on the web.
 
 ## 🛠️ Improvements
-- Updated dist-web assets to align with the new enemy count and stats aggregation logic.
-- Refined the data flow to support more robust stats and notifications.
+- Clearer timestamp handling and more precise metrics in combat stats for easier interpretation.
+- Documentation enhancements to better guide you through features and workflows.
 
 ## 🧯 Fixes
-- None.
+- Added a select-none class to prevent text from being accidentally highlighted on buttons.
 
 ## ⚠️ Breaking Changes
 - None.
