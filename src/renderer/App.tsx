@@ -10,7 +10,7 @@ import { WebhookModal, Webhook } from './WebhookModal';
 import { UpdateErrorModal } from './UpdateErrorModal';
 import { Terminal } from './Terminal';
 import { Terminal as TerminalIcon } from 'lucide-react';
-import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IWebUploadState } from './global.d';
+import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IDevDatasetSnapshot, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IWebUploadState } from './global.d';
 import { WhatsNewModal } from './WhatsNewModal';
 import { WalkthroughModal } from './WalkthroughModal';
 
@@ -122,6 +122,42 @@ function App() {
     const statsBatchTimerRef = useRef<number | null>(null);
     const logsRef = useRef<ILogData[]>(logs);
     const [statsViewMounted, setStatsViewMounted] = useState(false);
+
+    const applyDevDatasetSnapshot = useCallback((snapshot: IDevDatasetSnapshot | null | undefined) => {
+        const state = snapshot?.state;
+        if (!state || typeof state !== 'object') return;
+
+        if (state.view === 'dashboard' || state.view === 'stats' || state.view === 'settings') {
+            setView(state.view);
+        }
+        if (state.expandedLogId === null || typeof state.expandedLogId === 'string') {
+            setExpandedLogId(state.expandedLogId ?? null);
+        }
+        if (state.notificationType === 'image' || state.notificationType === 'image-beta' || state.notificationType === 'embed') {
+            setNotificationType(state.notificationType);
+        }
+        if (state.embedStatSettings && typeof state.embedStatSettings === 'object') {
+            setEmbedStatSettings({ ...DEFAULT_EMBED_STATS, ...state.embedStatSettings });
+        }
+        if (state.mvpWeights && typeof state.mvpWeights === 'object') {
+            setMvpWeights({ ...DEFAULT_MVP_WEIGHTS, ...state.mvpWeights });
+        }
+        if (state.statsViewSettings && typeof state.statsViewSettings === 'object') {
+            setStatsViewSettings({ ...DEFAULT_STATS_VIEW_SETTINGS, ...state.statsViewSettings });
+        }
+        if (state.disruptionMethod === 'count' || state.disruptionMethod === 'duration' || state.disruptionMethod === 'tiered') {
+            setDisruptionMethod(state.disruptionMethod);
+        }
+        if (state.uiTheme === 'classic' || state.uiTheme === 'modern') {
+            setUiTheme(state.uiTheme);
+        }
+        if (state.selectedWebhookId === null || typeof state.selectedWebhookId === 'string') {
+            setSelectedWebhookId(state.selectedWebhookId ?? null);
+        }
+        if (typeof state.bulkUploadMode === 'boolean') {
+            setBulkUploadMode(state.bulkUploadMode);
+        }
+    }, []);
 
     const loadDevDatasets = useCallback(async () => {
         if (!window.electronAPI?.listDevDatasets) return;
@@ -1983,7 +2019,26 @@ function App() {
                                                     report: {
                                                         stats: computedStats,
                                                         skillUsageData: computedSkillUsageData
-                                                    }
+                                                    },
+                                                    snapshot: {
+                                                        schemaVersion: 1,
+                                                        capturedAt: new Date().toISOString(),
+                                                        appVersion,
+                                                        state: {
+                                                            view,
+                                                            expandedLogId,
+                                                            notificationType,
+                                                            embedStatSettings,
+                                                            mvpWeights,
+                                                            statsViewSettings,
+                                                            disruptionMethod,
+                                                            uiTheme,
+                                                            selectedWebhookId,
+                                                            bulkUploadMode,
+                                                            datasetLogOrder: logs.map((_, index) => `logs/log-${index + 1}.json`),
+                                                            datasetLogIds: logs.map((log, index) => log.id || `dev-log-${index + 1}`)
+                                                        }
+                                                    } satisfies IDevDatasetSnapshot
                                                 });
                                                 if (!result?.success || !result.dataset?.id) return;
                                                 const datasetId = result.dataset.id;
@@ -2076,9 +2131,9 @@ function App() {
                                                                     if (!result?.success || !result.dataset) return;
                                                                     datasetLoadRef.current = true;
                                                                     devDatasetStreamingIdRef.current = dataset.id;
+                                                                    applyDevDatasetSnapshot(result.dataset.snapshot as IDevDatasetSnapshot | null);
                                                                     setLogs([]);
                                                                     setPrecomputedStats(result.dataset.report || null);
-                                                                    setExpandedLogId(null);
                                                                     setScreenshotData(null);
                                                                     canceledLogsRef.current.clear();
                                                                     setDevDatasetsOpen(false);
@@ -2090,9 +2145,9 @@ function App() {
                                                                     const result = await window.electronAPI.loadDevDataset({ id: dataset.id });
                                                                     if (!result?.success || !result.dataset) return;
                                                                     datasetLoadRef.current = true;
+                                                                    applyDevDatasetSnapshot(result.dataset.snapshot as IDevDatasetSnapshot | null);
                                                                     setLogs(result.dataset.logs || []);
                                                                     setPrecomputedStats(result.dataset.report || null);
-                                                                    setExpandedLogId(null);
                                                                     setScreenshotData(null);
                                                                     canceledLogsRef.current.clear();
                                                                     setDevDatasetsOpen(false);

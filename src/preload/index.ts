@@ -114,9 +114,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importSettings: () => ipcRenderer.invoke('import-settings'),
     selectSettingsFile: () => ipcRenderer.invoke('select-settings-file'),
     listDevDatasets: () => ipcRenderer.invoke('list-dev-datasets'),
-    saveDevDataset: (payload: { id?: string; name: string; logs: any[]; report?: any }) =>
+    saveDevDataset: (payload: { id?: string; name: string; logs: any[]; report?: any; snapshot?: any }) =>
         ipcRenderer.invoke('save-dev-dataset', payload),
-    beginDevDatasetSave: (payload: { id?: string; name: string; report?: any }) =>
+    beginDevDatasetSave: (payload: { id?: string; name: string; report?: any; snapshot?: any }) =>
         ipcRenderer.invoke('begin-dev-dataset-save', payload),
     appendDevDatasetLogs: (payload: { id: string; logs: any[]; startIndex: number; total?: number }) =>
         ipcRenderer.invoke('append-dev-dataset-logs', payload),

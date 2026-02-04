@@ -163,8 +163,96 @@ const ensureDevDatasetsDir = async () => {
 const sanitizeDevDatasetId = (id: string) => id.replace(/[^a-zA-Z0-9-_]/g, '');
 const sanitizeDevDatasetName = (name: string) => name.replace(/[^a-zA-Z0-9-_ ]/g, '').trim() || 'dataset';
 const devDatasetFolderCache = new Map<string, string>();
+const devDatasetFinalFolderCache = new Map<string, string>();
 const devDatasetManifestCache = new Map<string, { meta: { id: string; name: string; createdAt: string; folder: string }; logs: any[] }>();
 const MAX_DEV_DATASET_REPORT_BYTES = 50 * 1024 * 1024;
+const DEV_DATASET_SNAPSHOT_SCHEMA_VERSION = 1;
+const DEV_DATASET_TEMP_PREFIX = '.tmp-';
+const DEV_DATASET_STATUS_FILE = 'status.json';
+
+const getDevDatasetFolderName = (id: string, name: string) => `${id}-${sanitizeDevDatasetName(name).replace(/\s+/g, '-').toLowerCase()}`;
+const getDevDatasetTempFolderName = (folderName: string) => `${DEV_DATASET_TEMP_PREFIX}${folderName}`;
+const isDevDatasetTempFolder = (folderName: string) => folderName.startsWith(DEV_DATASET_TEMP_PREFIX);
+
+const normalizeDevDatasetSnapshot = (snapshot: any) => {
+    const state = snapshot && typeof snapshot === 'object' && snapshot.state && typeof snapshot.state === 'object'
+        ? snapshot.state
+        : {};
+    const parsedSchemaVersion = Number(snapshot?.schemaVersion);
+    return {
+        schemaVersion: Number.isFinite(parsedSchemaVersion) && parsedSchemaVersion > 0
+            ? Math.floor(parsedSchemaVersion)
+            : DEV_DATASET_SNAPSHOT_SCHEMA_VERSION,
+        capturedAt: typeof snapshot?.capturedAt === 'string' ? snapshot.capturedAt : new Date().toISOString(),
+        appVersion: typeof snapshot?.appVersion === 'string' ? snapshot.appVersion : app.getVersion(),
+        state
+    };
+};
+
+const writeDevDatasetStatus = async (datasetDir: string, status: { complete: boolean; createdAt?: string; completedAt?: string; totalLogs?: number }) => {
+    await fs.promises.writeFile(path.join(datasetDir, DEV_DATASET_STATUS_FILE), JSON.stringify(status, null, 2), 'utf-8');
+};
+
+const readDevDatasetStatus = async (datasetDir: string) => {
+    const statusPath = path.join(datasetDir, DEV_DATASET_STATUS_FILE);
+    if (!fs.existsSync(statusPath)) return null;
+    const raw = await fs.promises.readFile(statusPath, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed as { complete?: boolean; createdAt?: string; completedAt?: string; totalLogs?: number };
+};
+
+const getDatasetRelativeLogPath = (index: number) => `logs/log-${index + 1}.json`;
+
+const normalizeDatasetRelativePath = (value: string) => value.replace(/\\/g, '/');
+
+const resolveDatasetLogPath = (datasetDir: string, logsDir: string, value: string): string | null => {
+    if (!value || typeof value !== 'string') return null;
+    const normalizedRaw = normalizeDatasetRelativePath(value);
+    const candidate = path.isAbsolute(normalizedRaw)
+        ? normalizedRaw
+        : path.join(datasetDir, normalizedRaw);
+    const normalizedCandidate = path.normalize(candidate);
+    const normalizedLogsDir = path.normalize(logsDir + path.sep);
+    if (!normalizedCandidate.startsWith(normalizedLogsDir)) return null;
+    return normalizedCandidate;
+};
+
+const resolveOrderedDatasetLogPaths = async (datasetDir: string, logsDir: string, manifest: any, snapshot: any) => {
+    const names = (await fs.promises.readdir(logsDir))
+        .filter((name) => name.endsWith('.json'))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const fallbackPaths = names.map((name) => path.join(logsDir, name));
+    const seen = new Set<string>();
+    const ordered: string[] = [];
+    const addPath = (candidate: string | null) => {
+        if (!candidate) return;
+        if (!fs.existsSync(candidate)) return;
+        if (seen.has(candidate)) return;
+        seen.add(candidate);
+        ordered.push(candidate);
+    };
+
+    const snapshotOrderRaw = snapshot?.state?.datasetLogOrder;
+    if (Array.isArray(snapshotOrderRaw)) {
+        snapshotOrderRaw.forEach((entry: any) => {
+            if (typeof entry !== 'string') return;
+            addPath(resolveDatasetLogPath(datasetDir, logsDir, entry));
+        });
+    }
+
+    const manifestOrderRaw = manifest?.logs;
+    if (Array.isArray(manifestOrderRaw)) {
+        manifestOrderRaw.forEach((entry: any) => {
+            if (!entry || typeof entry !== 'object') return;
+            if (typeof entry.filePath !== 'string') return;
+            addPath(resolveDatasetLogPath(datasetDir, logsDir, entry.filePath));
+        });
+    }
+
+    fallbackPaths.forEach((filePath) => addPath(filePath));
+    return ordered;
+};
 
 const readJsonFilesWithLimit = async <T = any>(paths: string[], limit = 8): Promise<T[]> => {
     const results: T[] = new Array(paths.length);
@@ -2032,6 +2120,14 @@ if (!gotTheLock) {
                 const datasets = [];
                 for (const entry of entries) {
                     if (!entry.isDirectory()) continue;
+                    if (isDevDatasetTempFolder(entry.name)) continue;
+                    const datasetDir = path.join(dir, entry.name);
+                    try {
+                        const status = await readDevDatasetStatus(datasetDir);
+                        if (status && status.complete !== true) continue;
+                    } catch {
+                        // Ignore unreadable status and continue listing legacy datasets.
+                    }
                     const metaPath = path.join(dir, entry.name, 'meta.json');
                     try {
                         const raw = await fs.promises.readFile(metaPath, 'utf-8');
@@ -2053,28 +2149,36 @@ if (!gotTheLock) {
             }
         });
 
-        ipcMain.handle('save-dev-dataset', async (event, payload: { id?: string; name: string; logs: any[]; report?: any }) => {
+        ipcMain.handle('save-dev-dataset', async (event, payload: { id?: string; name: string; logs: any[]; report?: any; snapshot?: any }) => {
             try {
                 const dir = await ensureDevDatasetsDir();
                 const baseId = payload.id || `${Date.now()}`;
                 const id = sanitizeDevDatasetId(baseId) || `${Date.now()}`;
                 const name = payload.name?.trim() || 'Dataset';
                 const createdAt = new Date().toISOString();
-                const folderName = `${id}-${sanitizeDevDatasetName(name).replace(/\s+/g, '-').toLowerCase()}`;
-                const datasetDir = path.join(dir, folderName);
+                const folderName = getDevDatasetFolderName(id, name);
+                const tempFolderName = getDevDatasetTempFolderName(folderName);
+                const finalDatasetDir = path.join(dir, folderName);
+                const datasetDir = path.join(dir, tempFolderName);
                 const logsDir = path.join(datasetDir, 'logs');
+                if (fs.existsSync(finalDatasetDir)) return { success: false, error: 'Dataset already exists.' };
+                if (fs.existsSync(datasetDir)) {
+                    await fs.promises.rm(datasetDir, { recursive: true, force: true });
+                }
                 await fs.promises.mkdir(logsDir, { recursive: true });
                 event.sender.send('dev-dataset-save-progress', { id, stage: 'folder', written: 0, total: 0 });
                 const meta = { id, name, createdAt, folder: folderName };
                 await fs.promises.writeFile(path.join(datasetDir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf-8');
                 await fs.promises.writeFile(path.join(datasetDir, 'report.json'), JSON.stringify(payload.report || null), 'utf-8');
+                await fs.promises.writeFile(path.join(datasetDir, 'snapshot.json'), JSON.stringify(normalizeDevDatasetSnapshot(payload.snapshot), null, 2), 'utf-8');
                 await fs.promises.writeFile(path.join(datasetDir, 'manifest.json'), JSON.stringify({ ...meta, logs: [] }, null, 2), 'utf-8');
+                await writeDevDatasetStatus(datasetDir, { complete: false, createdAt });
                 const logs = Array.isArray(payload.logs) ? payload.logs : [];
                 const manifestEntries: any[] = [];
                 const entries = logs.map((log, index) => {
                     const details = log?.details ?? log;
                     const pruned = pruneDetailsForStats(details);
-                    manifestEntries.push(buildManifestEntry(pruned, path.join(logsDir, `log-${index + 1}.json`), index));
+                    manifestEntries.push(buildManifestEntry(pruned, getDatasetRelativeLogPath(index), index));
                     return {
                         path: path.join(logsDir, `log-${index + 1}.json`),
                         data: pruned
@@ -2092,6 +2196,8 @@ if (!gotTheLock) {
                         'utf-8'
                     );
                 }
+                await writeDevDatasetStatus(datasetDir, { complete: true, createdAt, completedAt: new Date().toISOString(), totalLogs: logs.length });
+                await fs.promises.rename(datasetDir, finalDatasetDir);
                 event.sender.send('dev-dataset-save-progress', { id, stage: 'done', written: logs.length, total: logs.length });
                 return { success: true, dataset: { id, name, createdAt } };
             } catch (err: any) {
@@ -2099,22 +2205,31 @@ if (!gotTheLock) {
             }
         });
 
-        ipcMain.handle('begin-dev-dataset-save', async (_event, payload: { id?: string; name: string; report?: any }) => {
+        ipcMain.handle('begin-dev-dataset-save', async (_event, payload: { id?: string; name: string; report?: any; snapshot?: any }) => {
             try {
                 const dir = await ensureDevDatasetsDir();
                 const baseId = payload.id || `${Date.now()}`;
                 const id = sanitizeDevDatasetId(baseId) || `${Date.now()}`;
                 const name = payload.name?.trim() || 'Dataset';
                 const createdAt = new Date().toISOString();
-                const folderName = `${id}-${sanitizeDevDatasetName(name).replace(/\s+/g, '-').toLowerCase()}`;
-                const datasetDir = path.join(dir, folderName);
+                const folderName = getDevDatasetFolderName(id, name);
+                const tempFolderName = getDevDatasetTempFolderName(folderName);
+                const finalDatasetDir = path.join(dir, folderName);
+                const datasetDir = path.join(dir, tempFolderName);
                 const logsDir = path.join(datasetDir, 'logs');
+                if (fs.existsSync(finalDatasetDir)) return { success: false, error: 'Dataset already exists.' };
+                if (fs.existsSync(datasetDir)) {
+                    await fs.promises.rm(datasetDir, { recursive: true, force: true });
+                }
                 await fs.promises.mkdir(logsDir, { recursive: true });
                 const meta = { id, name, createdAt, folder: folderName };
                 await fs.promises.writeFile(path.join(datasetDir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf-8');
                 await fs.promises.writeFile(path.join(datasetDir, 'report.json'), JSON.stringify(payload.report || null), 'utf-8');
+                await fs.promises.writeFile(path.join(datasetDir, 'snapshot.json'), JSON.stringify(normalizeDevDatasetSnapshot(payload.snapshot), null, 2), 'utf-8');
                 await fs.promises.writeFile(path.join(datasetDir, 'manifest.json'), JSON.stringify({ ...meta, logs: [] }, null, 2), 'utf-8');
+                await writeDevDatasetStatus(datasetDir, { complete: false, createdAt });
                 devDatasetFolderCache.set(id, datasetDir);
+                devDatasetFinalFolderCache.set(id, finalDatasetDir);
                 devDatasetManifestCache.set(id, { meta, logs: [] });
                 return { success: true, dataset: { id, name, createdAt } };
             } catch (err: any) {
@@ -2130,10 +2245,11 @@ if (!gotTheLock) {
                 if (!datasetDir) {
                     const dir = await ensureDevDatasetsDir();
                     const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-                    const folder = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(`${id}-`));
+                    const folder = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(`${DEV_DATASET_TEMP_PREFIX}${id}-`));
                     if (!folder) return { success: false, error: 'Dataset not found.' };
                     datasetDir = path.join(dir, folder.name);
                     devDatasetFolderCache.set(id, datasetDir);
+                    devDatasetFinalFolderCache.set(id, path.join(dir, folder.name.replace(DEV_DATASET_TEMP_PREFIX, '')));
                 }
                 const logsDir = path.join(datasetDir, 'logs');
                 const logs = Array.isArray(payload.logs) ? payload.logs : [];
@@ -2142,7 +2258,7 @@ if (!gotTheLock) {
                     const pruned = pruneDetailsForStats(details);
                     const manifest = devDatasetManifestCache.get(id);
                     if (manifest) {
-                        manifest.logs.push(buildManifestEntry(pruned, path.join(logsDir, `log-${payload.startIndex + index + 1}.json`), payload.startIndex + index));
+                        manifest.logs.push(buildManifestEntry(pruned, getDatasetRelativeLogPath(payload.startIndex + index), payload.startIndex + index));
                     }
                     return {
                         path: path.join(logsDir, `log-${payload.startIndex + index + 1}.json`),
@@ -2166,18 +2282,36 @@ if (!gotTheLock) {
             try {
                 const id = sanitizeDevDatasetId(payload.id);
                 if (!id) return { success: false, error: 'Invalid dataset id.' };
+                let datasetDir = devDatasetFolderCache.get(id);
+                if (!datasetDir) {
+                    const dir = await ensureDevDatasetsDir();
+                    const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+                    const folder = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(`${DEV_DATASET_TEMP_PREFIX}${id}-`));
+                    if (!folder) return { success: false, error: 'Dataset not found.' };
+                    datasetDir = path.join(dir, folder.name);
+                    devDatasetFolderCache.set(id, datasetDir);
+                }
+                let finalDatasetDir = devDatasetFinalFolderCache.get(id);
+                if (!finalDatasetDir) {
+                    const dir = await ensureDevDatasetsDir();
+                    const folderName = path.basename(datasetDir);
+                    finalDatasetDir = path.join(dir, folderName.startsWith(DEV_DATASET_TEMP_PREFIX) ? folderName.replace(DEV_DATASET_TEMP_PREFIX, '') : folderName);
+                    devDatasetFinalFolderCache.set(id, finalDatasetDir);
+                }
                 const manifest = devDatasetManifestCache.get(id);
                 if (manifest) {
-                    const datasetDir = devDatasetFolderCache.get(id);
-                    if (datasetDir) {
-                        await fs.promises.writeFile(
-                            path.join(datasetDir, 'manifest.json'),
-                            JSON.stringify({ ...manifest.meta, logs: manifest.logs }, null, 2),
-                            'utf-8'
-                        );
-                    }
-                    devDatasetManifestCache.delete(id);
+                    await fs.promises.writeFile(
+                        path.join(datasetDir, 'manifest.json'),
+                        JSON.stringify({ ...manifest.meta, logs: manifest.logs }, null, 2),
+                        'utf-8'
+                    );
                 }
+                await writeDevDatasetStatus(datasetDir, { complete: true, completedAt: new Date().toISOString(), totalLogs: payload.total });
+                if (fs.existsSync(finalDatasetDir)) return { success: false, error: 'Dataset already exists.' };
+                await fs.promises.rename(datasetDir, finalDatasetDir);
+                devDatasetManifestCache.delete(id);
+                devDatasetFolderCache.delete(id);
+                devDatasetFinalFolderCache.delete(id);
                 return { success: true };
             } catch (err: any) {
                 return { success: false, error: err?.message || 'Failed to finish dataset save.' };
@@ -2193,8 +2327,13 @@ if (!gotTheLock) {
                 const folder = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(`${id}-`));
                 if (!folder) return { success: false, error: 'Dataset not found.' };
                 const datasetDir = path.join(dir, folder.name);
+                const status = await readDevDatasetStatus(datasetDir);
+                if (status && status.complete !== true) {
+                    return { success: false, error: 'Dataset is incomplete and cannot be loaded yet.' };
+                }
                 const metaPath = path.join(datasetDir, 'meta.json');
                 const reportPath = path.join(datasetDir, 'report.json');
+                const snapshotPath = path.join(datasetDir, 'snapshot.json');
                 const manifestPath = path.join(datasetDir, 'manifest.json');
                 const logsDir = path.join(datasetDir, 'logs');
                 const metaRaw = await fs.promises.readFile(metaPath, 'utf-8');
@@ -2220,16 +2359,25 @@ if (!gotTheLock) {
                 } catch (reportError: any) {
                     console.warn('[Main] Failed to read dev dataset report.json:', reportError?.message || reportError);
                 }
-                const logEntries = await fs.promises.readdir(logsDir);
-                const sortedLogEntries = logEntries
-                    .filter((name) => name.endsWith('.json'))
-                    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-                const logPaths = sortedLogEntries.map((file) => path.join(logsDir, file));
+                let snapshot: any = null;
+                try {
+                    if (fs.existsSync(snapshotPath)) {
+                        const snapshotRaw = await fs.promises.readFile(snapshotPath, 'utf-8');
+                        snapshot = normalizeDevDatasetSnapshot(JSON.parse(snapshotRaw));
+                    }
+                } catch (snapshotError: any) {
+                    console.warn('[Main] Failed to read dev dataset snapshot.json:', snapshotError?.message || snapshotError);
+                }
+                const logPaths = await resolveOrderedDatasetLogPaths(datasetDir, logsDir, manifest, snapshot);
+                const snapshotLogIds = Array.isArray(snapshot?.state?.datasetLogIds) ? snapshot.state.datasetLogIds : null;
                 const logs = await readJsonFilesWithLimit(logPaths, 1);
                 const slimLogs = logs.map((entry: any, index: number) => {
                     const details = entry?.details ?? entry ?? {};
+                    const snapshotId = snapshotLogIds && typeof snapshotLogIds[index] === 'string'
+                        ? snapshotLogIds[index]
+                        : null;
                     return {
-                        id: entry?.id || details?.id || `dev-log-${index + 1}`,
+                        id: snapshotId || entry?.id || details?.id || `dev-log-${index + 1}`,
                         filePath: logPaths[index],
                         status: 'calculating',
                         detailsAvailable: true,
@@ -2238,7 +2386,7 @@ if (!gotTheLock) {
                         uploadTime: resolveDetailsUploadTime(details, entry)
                     };
                 });
-                return { success: true, dataset: { ...meta, logs: slimLogs, report, manifest } };
+                return { success: true, dataset: { ...meta, logs: slimLogs, report, manifest, snapshot } };
             } catch (err: any) {
                 return { success: false, error: err?.message || 'Failed to load dataset.' };
             }
@@ -2253,8 +2401,13 @@ if (!gotTheLock) {
                 const folder = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(`${id}-`));
                 if (!folder) return { success: false, error: 'Dataset not found.' };
                 const datasetDir = path.join(dir, folder.name);
+                const status = await readDevDatasetStatus(datasetDir);
+                if (status && status.complete !== true) {
+                    return { success: false, error: 'Dataset is incomplete and cannot be loaded yet.' };
+                }
                 const metaPath = path.join(datasetDir, 'meta.json');
                 const reportPath = path.join(datasetDir, 'report.json');
+                const snapshotPath = path.join(datasetDir, 'snapshot.json');
                 const manifestPath = path.join(datasetDir, 'manifest.json');
                 const logsDir = path.join(datasetDir, 'logs');
                 const metaRaw = await fs.promises.readFile(metaPath, 'utf-8');
@@ -2280,11 +2433,17 @@ if (!gotTheLock) {
                 } catch (reportError: any) {
                     console.warn('[Main] Failed to read dev dataset report.json:', reportError?.message || reportError);
                 }
-                const logEntries = await fs.promises.readdir(logsDir);
-                const sortedLogEntries = logEntries
-                    .filter((name) => name.endsWith('.json'))
-                    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-                const logPaths = sortedLogEntries.map((file) => path.join(logsDir, file));
+                let snapshot: any = null;
+                try {
+                    if (fs.existsSync(snapshotPath)) {
+                        const snapshotRaw = await fs.promises.readFile(snapshotPath, 'utf-8');
+                        snapshot = normalizeDevDatasetSnapshot(JSON.parse(snapshotRaw));
+                    }
+                } catch (snapshotError: any) {
+                    console.warn('[Main] Failed to read dev dataset snapshot.json:', snapshotError?.message || snapshotError);
+                }
+                const logPaths = await resolveOrderedDatasetLogPaths(datasetDir, logsDir, manifest, snapshot);
+                const snapshotLogIds = Array.isArray(snapshot?.state?.datasetLogIds) ? snapshot.state.datasetLogIds : null;
                 const chunkSize = Math.max(1, Math.min(payload.chunkSize || 25, 200));
 
                 void (async () => {
@@ -2293,8 +2452,12 @@ if (!gotTheLock) {
                         const logs = await readJsonFilesWithLimit(chunkPaths, 1);
                         const slimLogs = logs.map((entry: any, offset: number) => {
                             const details = entry?.details ?? entry ?? {};
+                            const absoluteIndex = i + offset;
+                            const snapshotId = snapshotLogIds && typeof snapshotLogIds[absoluteIndex] === 'string'
+                                ? snapshotLogIds[absoluteIndex]
+                                : null;
                             return {
-                                id: entry?.id || details?.id || `dev-log-${i + offset + 1}`,
+                                id: snapshotId || entry?.id || details?.id || `dev-log-${absoluteIndex + 1}`,
                                 filePath: chunkPaths[offset],
                                 status: 'calculating',
                                 detailsAvailable: true,
@@ -2313,7 +2476,7 @@ if (!gotTheLock) {
                     }
                 })();
 
-                return { success: true, dataset: { ...meta, report, manifest }, totalLogs: logPaths.length };
+                return { success: true, dataset: { ...meta, report, manifest, snapshot }, totalLogs: logPaths.length };
             } catch (err: any) {
                 return { success: false, error: err?.message || 'Failed to load dataset.' };
             }
@@ -2325,10 +2488,17 @@ if (!gotTheLock) {
                 const entries = await fs.promises.readdir(dir, { withFileTypes: true });
                 const id = sanitizeDevDatasetId(payload.id);
                 if (!id) return { success: false, error: 'Invalid dataset id.' };
-                const folder = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(`${id}-`));
-                if (!folder) return { success: false, error: 'Dataset not found.' };
-                const datasetDir = path.join(dir, folder.name);
-                await fs.promises.rm(datasetDir, { recursive: true, force: true });
+                const folders = entries.filter((entry) =>
+                    entry.isDirectory() && (
+                        entry.name.startsWith(`${id}-`) ||
+                        entry.name.startsWith(`${DEV_DATASET_TEMP_PREFIX}${id}-`)
+                    )
+                );
+                if (folders.length === 0) return { success: false, error: 'Dataset not found.' };
+                await Promise.all(folders.map((folder) => fs.promises.rm(path.join(dir, folder.name), { recursive: true, force: true })));
+                devDatasetFolderCache.delete(id);
+                devDatasetFinalFolderCache.delete(id);
+                devDatasetManifestCache.delete(id);
                 return { success: true };
             } catch (err: any) {
                 return { success: false, error: err?.message || 'Failed to delete dataset.' };
