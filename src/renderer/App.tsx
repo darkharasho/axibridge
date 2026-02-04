@@ -159,6 +159,13 @@ function App() {
         }
     }, []);
 
+    const selectDevDatasetLoadMode = useCallback((): 'frozen' | 'recompute' => {
+        const useFrozen = window.confirm(
+            'Dev Dataset Load Mode\n\nOK: Restore frozen snapshot + precomputed stats.\nCancel: Recompute from logs using current settings.'
+        );
+        return useFrozen ? 'frozen' : 'recompute';
+    }, []);
+
     const loadDevDatasets = useCallback(async () => {
         if (!window.electronAPI?.listDevDatasets) return;
         setDevDatasetRefreshing(true);
@@ -2123,6 +2130,7 @@ function App() {
                                                         onClick={async () => {
                                                             if (devDatasetLoadingId) return;
                                                             if (!window.electronAPI?.loadDevDatasetChunked && !window.electronAPI?.loadDevDataset) return;
+                                                            const loadMode = selectDevDatasetLoadMode();
                                                             setDevDatasetLoadingId(dataset.id);
                                                             setDevDatasetLoadProgress({ id: dataset.id, name: dataset.name, loaded: 0, total: null, done: false });
                                                             try {
@@ -2141,9 +2149,12 @@ function App() {
                                                                     if (!result?.success || !result.dataset) return;
                                                                     datasetLoadRef.current = true;
                                                                     devDatasetStreamingIdRef.current = dataset.id;
-                                                                    applyDevDatasetSnapshot(result.dataset.snapshot as IDevDatasetSnapshot | null);
+                                                                    const useFrozen = loadMode === 'frozen' && !result.logsOnlyFallback;
+                                                                    if (useFrozen) {
+                                                                        applyDevDatasetSnapshot(result.dataset.snapshot as IDevDatasetSnapshot | null);
+                                                                    }
                                                                     setLogs([]);
-                                                                    setPrecomputedStats(result.dataset.report || null);
+                                                                    setPrecomputedStats(useFrozen ? (result.dataset.report || null) : null);
                                                                     setScreenshotData(null);
                                                                     canceledLogsRef.current.clear();
                                                                     setDevDatasetsOpen(false);
@@ -2164,9 +2175,12 @@ function App() {
                                                                     }
                                                                     if (!result?.success || !result.dataset) return;
                                                                     datasetLoadRef.current = true;
-                                                                    applyDevDatasetSnapshot(result.dataset.snapshot as IDevDatasetSnapshot | null);
+                                                                    const useFrozen = loadMode === 'frozen' && !result.logsOnlyFallback;
+                                                                    if (useFrozen) {
+                                                                        applyDevDatasetSnapshot(result.dataset.snapshot as IDevDatasetSnapshot | null);
+                                                                    }
                                                                     setLogs(result.dataset.logs || []);
-                                                                    setPrecomputedStats(result.dataset.report || null);
+                                                                    setPrecomputedStats(useFrozen ? (result.dataset.report || null) : null);
                                                                     setScreenshotData(null);
                                                                     canceledLogsRef.current.clear();
                                                                     setDevDatasetsOpen(false);

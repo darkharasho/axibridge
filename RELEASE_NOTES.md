@@ -15,6 +15,7 @@ Version v1.20.3 — February 4, 2026
 - Dev dataset writes are now transactional: they stream into temporary folders and only become visible after a complete marker is written and an atomic finalize step succeeds.
 - Dev dataset manifests now store relative log paths, and snapshot state captures deterministic log order and stable log ids for reliable state replays.
 - Dev dataset loads now run integrity validation (schema and checksums) and can fall back to a logs-only restore path when integrity checks fail.
+- Dev dataset loading now supports two modes: frozen snapshot/report restore, or recompute-from-logs using your current live settings.
 
 ## 🧯 Fixes
 - Added a select-none class to prevent text from being accidentally highlighted on buttons.
