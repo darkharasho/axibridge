@@ -10,7 +10,7 @@ import { WebhookModal, Webhook } from './WebhookModal';
 import { UpdateErrorModal } from './UpdateErrorModal';
 import { Terminal } from './Terminal';
 import { Terminal as TerminalIcon } from 'lucide-react';
-import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IDevDatasetSnapshot, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IWebUploadState } from './global.d';
+import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IDevDatasetSnapshot, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IUploadRetryQueueState, IWebUploadState } from './global.d';
 import { WhatsNewModal } from './WhatsNewModal';
 import { WalkthroughModal } from './WalkthroughModal';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
@@ -33,6 +33,15 @@ const dataUrlToUint8Array = (dataUrl: string): Uint8Array => {
 };
 
 function App() {
+    const EMPTY_RETRY_QUEUE: IUploadRetryQueueState = {
+        failed: 0,
+        retrying: 0,
+        resolved: 0,
+        paused: false,
+        pauseReason: null,
+        pausedAt: null,
+        entries: []
+    };
     const [logDirectory, setLogDirectory] = useState<string | null>(null);
     const [notificationType, setNotificationType] = useState<'image' | 'image-beta' | 'embed'>('image');
     const [logs, setLogs] = useState<ILogData[]>([]);
@@ -48,6 +57,8 @@ function App() {
     const webUploadClearTimerRef = useRef<number | null>(null);
 
     const [screenshotData, setScreenshotData] = useState<ILogData | null>(null);
+    const [uploadRetryQueue, setUploadRetryQueue] = useState<IUploadRetryQueueState>(EMPTY_RETRY_QUEUE);
+    const [retryQueueBusy, setRetryQueueBusy] = useState(false);
 
     // Updater State
     const [updateStatus, setUpdateStatus] = useState<string>('');
@@ -354,7 +365,7 @@ function App() {
 
     const [bulkUploadMode, setBulkUploadMode] = useState(false);
     const isBulkUploadActive = useMemo(
-        () => bulkUploadMode || logs.some((log) => log.status === 'queued' || log.status === 'pending' || log.status === 'uploading' || log.status === 'calculating'),
+        () => bulkUploadMode || logs.some((log) => log.status === 'queued' || log.status === 'pending' || log.status === 'uploading' || log.status === 'retrying' || log.status === 'calculating'),
         [bulkUploadMode, logs]
     );
     const bulkUploadActiveRef = useRef(isBulkUploadActive);
@@ -543,6 +554,7 @@ function App() {
         { key: 'queued', label: 'Queued', color: '#94a3b8' },
         { key: 'pending', label: 'Pending', color: '#f59e0b' },
         { key: 'uploading', label: 'Uploading', color: '#38bdf8' },
+        { key: 'retrying', label: 'Retrying', color: '#0ea5e9' },
         { key: 'discord', label: 'Discord', color: '#a78bfa' },
         { key: 'calculating', label: 'Calculating', color: '#facc15' },
         { key: 'success', label: 'Success', color: '#34d399' },
@@ -683,6 +695,21 @@ function App() {
             }
         };
         loadSettings();
+
+        const loadUploadRetryQueue = async () => {
+            if (!window.electronAPI?.getUploadRetryQueue) return;
+            const result = await window.electronAPI.getUploadRetryQueue();
+            if (result?.success && result.queue) {
+                setUploadRetryQueue(result.queue);
+            }
+        };
+        loadUploadRetryQueue();
+        const cleanupRetryQueue = window.electronAPI?.onUploadRetryQueueUpdated
+            ? window.electronAPI.onUploadRetryQueueUpdated((queue) => {
+                if (!queue) return;
+                setUploadRetryQueue(queue);
+            })
+            : null;
 
         // Listen for status updates during upload process
         const cleanupStatus = window.electronAPI.onUploadStatus((data: ILogData) => {
@@ -914,6 +941,7 @@ function App() {
             cleanupStatus();
             cleanupUpload();
             cleanupScreenshot();
+            cleanupRetryQueue?.();
         };
     }, []);
 
@@ -1143,6 +1171,34 @@ function App() {
 
     const handleUpdateSettings = (updates: any) => {
         window.electronAPI.saveSettings(updates);
+    };
+
+    const handleRetryFailedUploads = async () => {
+        if (!window.electronAPI?.retryFailedUploads) return;
+        if (retryQueueBusy) return;
+        setRetryQueueBusy(true);
+        try {
+            const result = await window.electronAPI.retryFailedUploads();
+            if (result?.success && result.queue) {
+                setUploadRetryQueue(result.queue);
+            }
+        } finally {
+            setRetryQueueBusy(false);
+        }
+    };
+
+    const handleResumeUploadRetries = async () => {
+        if (!window.electronAPI?.resumeUploadRetries) return;
+        if (retryQueueBusy) return;
+        setRetryQueueBusy(true);
+        try {
+            const result = await window.electronAPI.resumeUploadRetries();
+            if (result?.success && result.queue) {
+                setUploadRetryQueue(result.queue);
+            }
+        } finally {
+            setRetryQueueBusy(false);
+        }
     };
 
     const handleWhatsNewClose = async () => {
@@ -1854,6 +1910,53 @@ function App() {
                                 {bulkCalculatingActive && calculatingCount > 0 && (
                                     <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-100">
                                         Bulk calculations are running. The app may feel less responsive until they finish.
+                                    </div>
+                                )}
+                                {(uploadRetryQueue.failed > 0 || uploadRetryQueue.retrying > 0 || uploadRetryQueue.entries.length > 0) && (
+                                    <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="font-semibold">Upload Retry Queue</div>
+                                            <div className="flex items-center gap-2">
+                                                {uploadRetryQueue.paused && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleResumeUploadRetries}
+                                                        disabled={retryQueueBusy}
+                                                        className="rounded-md border border-rose-300/30 bg-rose-400/20 px-2.5 py-1 text-[11px] font-semibold text-rose-50 hover:bg-rose-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        {retryQueueBusy ? 'Resuming...' : 'Resume'}
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRetryFailedUploads}
+                                                    disabled={retryQueueBusy || uploadRetryQueue.failed === 0 || uploadRetryQueue.paused}
+                                                    className="rounded-md border border-rose-300/30 bg-rose-400/20 px-2.5 py-1 text-[11px] font-semibold text-rose-50 hover:bg-rose-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {retryQueueBusy ? 'Retrying...' : 'Retry failed'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="mt-1 text-[11px] text-rose-100/80">
+                                            Failed: {uploadRetryQueue.failed} | Retrying: {uploadRetryQueue.retrying} | Resolved: {uploadRetryQueue.resolved}
+                                        </div>
+                                        {uploadRetryQueue.paused && (
+                                            <div className="mt-1 text-[10px] text-rose-50">
+                                                Paused: {uploadRetryQueue.pauseReason || 'Retry queue is paused.'}
+                                            </div>
+                                        )}
+                                        {uploadRetryQueue.entries.length > 0 && (
+                                            <div className="mt-2 max-h-24 overflow-y-auto space-y-1 pr-1">
+                                                {uploadRetryQueue.entries.slice(0, 5).map((entry) => {
+                                                    const fileName = entry.filePath.split(/[\\/]/).pop() || entry.filePath;
+                                                    return (
+                                                        <div key={entry.filePath} className="truncate text-[10px] text-rose-100/75">
+                                                            [{entry.category}] {fileName}: {entry.error}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                                 {devDatasetLoadProgress && (

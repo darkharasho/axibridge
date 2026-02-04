@@ -104,6 +104,26 @@ export interface IDevDatasetIntegrityResult {
     snapshotSchemaVersion: number | null;
 }
 
+export interface IUploadRetryQueueEntry {
+    filePath: string;
+    error: string;
+    statusCode?: number;
+    category: 'network' | 'auth' | 'rate-limit' | 'file' | 'unknown';
+    failedAt: string;
+    attempts: number;
+    state: 'failed' | 'retrying';
+}
+
+export interface IUploadRetryQueueState {
+    failed: number;
+    retrying: number;
+    resolved: number;
+    paused: boolean;
+    pauseReason: string | null;
+    pausedAt: string | null;
+    entries: IUploadRetryQueueEntry[];
+}
+
 export type UiTheme = 'classic' | 'modern';
 
 export type DisruptionMethod = 'count' | 'duration' | 'tiered';
@@ -210,6 +230,10 @@ export interface IElectronAPI {
     onClearDpsReportCacheProgress: (callback: (data: { stage?: string; message?: string; progress?: number; current?: number; total?: number }) => void) => () => void;
     manualUpload: (path: string) => void;
     manualUploadBatch: (paths: string[]) => void;
+    getUploadRetryQueue: () => Promise<{ success: boolean; queue?: IUploadRetryQueueState; error?: string }>;
+    retryFailedUploads: () => Promise<{ success: boolean; retried?: number; queue?: IUploadRetryQueueState; error?: string }>;
+    resumeUploadRetries: () => Promise<{ success: boolean; queue?: IUploadRetryQueueState; error?: string }>;
+    onUploadRetryQueueUpdated: (callback: (data: IUploadRetryQueueState) => void) => () => void;
     saveSettings: (settings: {
         logDirectory?: string | null;
         discordWebhookUrl?: string | null;
@@ -300,7 +324,7 @@ declare global {
         id: string;
         permalink: string;
         filePath: string;
-        status?: 'queued' | 'pending' | 'uploading' | 'discord' | 'calculating' | 'success' | 'error';
+        status?: 'queued' | 'pending' | 'uploading' | 'retrying' | 'discord' | 'calculating' | 'success' | 'error';
         error?: string;
         uploadTime?: number;
         encounterDuration?: string;

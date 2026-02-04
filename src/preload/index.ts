@@ -32,6 +32,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     manualUpload: (path: string) => ipcRenderer.send('manual-upload', path),
     manualUploadBatch: (paths: string[]) => ipcRenderer.send('manual-upload-batch', paths),
+    getUploadRetryQueue: () => ipcRenderer.invoke('get-upload-retry-queue'),
+    retryFailedUploads: () => ipcRenderer.invoke('retry-failed-uploads'),
+    resumeUploadRetries: () => ipcRenderer.invoke('resume-upload-retries'),
+    onUploadRetryQueueUpdated: (callback: (data: any) => void) => {
+        ipcRenderer.on('upload-retry-queue-updated', (_event, value) => callback(value))
+        return () => ipcRenderer.removeAllListeners('upload-retry-queue-updated')
+    },
     saveSettings: (settings: any) => ipcRenderer.send('save-settings', settings),
     getLogs: () => ipcRenderer.invoke('get-logs'),
     saveLogs: (logs: any[]) => ipcRenderer.send('save-logs', logs),

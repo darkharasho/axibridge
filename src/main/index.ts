@@ -91,6 +91,38 @@ type DpsReportCacheEntry = {
 const DPS_REPORT_CACHE_KEY = 'dpsReportCacheIndex';
 const DPS_REPORT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const DPS_REPORT_CACHE_MAX_ENTRIES = 100;
+const UPLOAD_RETRY_QUEUE_KEY = 'uploadRetryQueue';
+const UPLOAD_RETRY_STATE_KEY = 'uploadRetryQueueState';
+const MAX_UPLOAD_RETRY_QUEUE_ENTRIES = 200;
+const AUTH_RETRY_PAUSE_THRESHOLD = 3;
+
+type UploadRetryFailureCategory = 'network' | 'auth' | 'rate-limit' | 'file' | 'unknown';
+
+type UploadRetryQueueEntry = {
+    filePath: string;
+    error: string;
+    statusCode?: number;
+    category: UploadRetryFailureCategory;
+    failedAt: string;
+    attempts: number;
+    state: 'failed' | 'retrying';
+};
+
+type UploadRetryRuntimeState = {
+    paused: boolean;
+    pauseReason: string | null;
+    pausedAt: string | null;
+};
+
+type UploadRetryQueuePayload = {
+    failed: number;
+    retrying: number;
+    resolved: number;
+    paused: boolean;
+    pauseReason: string | null;
+    pausedAt: string | null;
+    entries: UploadRetryQueueEntry[];
+};
 
 const getDpsReportCacheDir = () => path.join(app.getPath('userData'), 'dps-report-cache');
 
@@ -102,6 +134,46 @@ const loadDpsReportCacheIndex = (): Record<string, DpsReportCacheEntry> => {
 
 const saveDpsReportCacheIndex = (index: Record<string, DpsReportCacheEntry>) => {
     store.set(DPS_REPORT_CACHE_KEY, index);
+};
+
+const loadUploadRetryQueue = (): Record<string, UploadRetryQueueEntry> => {
+    const raw = store.get(UPLOAD_RETRY_QUEUE_KEY, {});
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    const parsed = raw as Record<string, any>;
+    const normalized: Record<string, UploadRetryQueueEntry> = {};
+    Object.entries(parsed).forEach(([key, value]) => {
+        if (!value || typeof value !== 'object') return;
+        normalized[key] = {
+            filePath: typeof value.filePath === 'string' ? value.filePath : key,
+            error: typeof value.error === 'string' ? value.error : 'Unknown upload error',
+            statusCode: typeof value.statusCode === 'number' ? value.statusCode : undefined,
+            category: value.category === 'network' || value.category === 'auth' || value.category === 'rate-limit' || value.category === 'file'
+                ? value.category
+                : 'unknown',
+            failedAt: typeof value.failedAt === 'string' ? value.failedAt : new Date().toISOString(),
+            attempts: Number.isFinite(Number(value.attempts)) ? Math.max(1, Number(value.attempts)) : 1,
+            state: value.state === 'retrying' ? 'retrying' : 'failed'
+        };
+    });
+    return normalized;
+};
+
+const saveUploadRetryQueue = (queue: Record<string, UploadRetryQueueEntry>) => {
+    store.set(UPLOAD_RETRY_QUEUE_KEY, queue);
+};
+
+const loadUploadRetryState = (): UploadRetryRuntimeState => {
+    const raw = store.get(UPLOAD_RETRY_STATE_KEY, {});
+    const parsed = (!raw || typeof raw !== 'object' || Array.isArray(raw)) ? {} : raw as any;
+    return {
+        paused: parsed.paused === true,
+        pauseReason: typeof parsed.pauseReason === 'string' ? parsed.pauseReason : null,
+        pausedAt: typeof parsed.pausedAt === 'string' ? parsed.pausedAt : null
+    };
+};
+
+const saveUploadRetryState = (state: UploadRetryRuntimeState) => {
+    store.set(UPLOAD_RETRY_STATE_KEY, state);
 };
 
 const clearDpsReportCache = (
@@ -688,6 +760,8 @@ let isQuitting = false
 let watcher: LogWatcher | null = null
 let uploader: Uploader | null = null
 let discord: DiscordNotifier | null = null
+let resolvedRetryCount = 0;
+const activeUploads = new Set<string>();
 const pendingDiscordLogs = new Map<string, { result: any, jsonDetails: any }>();
 let bulkUploadMode = false;
 const bulkLogDetailsCache = new Map<string, any>();
@@ -713,10 +787,113 @@ const GITHUB_PROTOCOL = 'arcbridge';
 const GITHUB_DEVICE_CLIENT_ID = process.env.GITHUB_DEVICE_CLIENT_ID || 'Ov23liFh1ih9LAcnLACw';
 
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
-const processLogFile = async (filePath: string) => {
+
+const getUploadRetryQueuePayload = (): UploadRetryQueuePayload => {
+    const queue = loadUploadRetryQueue();
+    const state = loadUploadRetryState();
+    const entries = Object.values(queue).sort((a, b) => b.failedAt.localeCompare(a.failedAt));
+    return {
+        failed: entries.filter((entry) => entry.state === 'failed').length,
+        retrying: entries.filter((entry) => entry.state === 'retrying').length,
+        resolved: resolvedRetryCount,
+        paused: state.paused,
+        pauseReason: state.pauseReason,
+        pausedAt: state.pausedAt,
+        entries
+    };
+};
+
+const sendUploadRetryQueueUpdate = () => {
+    if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return;
+    win.webContents.send('upload-retry-queue-updated', getUploadRetryQueuePayload());
+};
+
+const trimUploadRetryQueue = (queue: Record<string, UploadRetryQueueEntry>) => {
+    const entries = Object.values(queue);
+    if (entries.length <= MAX_UPLOAD_RETRY_QUEUE_ENTRIES) return queue;
+    const sorted = entries.sort((a, b) => a.failedAt.localeCompare(b.failedAt));
+    const overflow = sorted.length - MAX_UPLOAD_RETRY_QUEUE_ENTRIES;
+    for (let i = 0; i < overflow; i += 1) {
+        delete queue[sorted[i].filePath];
+    }
+    return queue;
+};
+
+const inferUploadRetryFailureCategory = (error: string, statusCode?: number): UploadRetryFailureCategory => {
+    const text = String(error || '').toLowerCase();
+    if (statusCode === 429 || text.includes('rate limit')) return 'rate-limit';
+    if (statusCode === 401 || statusCode === 403 || text.includes('unauthorized') || text.includes('forbidden') || text.includes('token') || text.includes('auth')) return 'auth';
+    if (statusCode === 400 || statusCode === 413 || statusCode === 415 || statusCode === 422 || text.includes('enoent') || text.includes('eacces') || text.includes('eperm') || text.includes('file')) return 'file';
+    if (statusCode === undefined || statusCode === null) {
+        if (text.includes('timeout') || text.includes('network') || text.includes('socket') || text.includes('econnreset') || text.includes('econnrefused') || text.includes('enotfound') || text.includes('eai_again') || text.includes('etimedout')) {
+            return 'network';
+        }
+    }
+    return 'unknown';
+};
+
+const setUploadRetryPaused = (paused: boolean, reason: string | null = null) => {
+    const nextState: UploadRetryRuntimeState = {
+        paused,
+        pauseReason: paused ? (reason || 'Retries paused.') : null,
+        pausedAt: paused ? new Date().toISOString() : null
+    };
+    saveUploadRetryState(nextState);
+    sendUploadRetryQueueUpdate();
+};
+
+const markUploadRetryFailure = (filePath: string, error: string, statusCode?: number) => {
+    const queue = loadUploadRetryQueue();
+    const previousAttempts = queue[filePath]?.attempts || 0;
+    queue[filePath] = {
+        filePath,
+        error,
+        statusCode,
+        category: inferUploadRetryFailureCategory(error, statusCode),
+        failedAt: new Date().toISOString(),
+        attempts: previousAttempts + 1,
+        state: 'failed'
+    };
+    saveUploadRetryQueue(trimUploadRetryQueue(queue));
+    sendUploadRetryQueueUpdate();
+};
+
+const markUploadRetrying = (filePath: string) => {
+    const queue = loadUploadRetryQueue();
+    const existing = queue[filePath];
+    if (!existing) return;
+    queue[filePath] = {
+        ...existing,
+        state: 'retrying'
+    };
+    saveUploadRetryQueue(queue);
+    sendUploadRetryQueueUpdate();
+};
+
+const markUploadRetryResolved = (filePath: string) => {
+    const queue = loadUploadRetryQueue();
+    if (!queue[filePath]) return;
+    delete queue[filePath];
+    resolvedRetryCount += 1;
+    saveUploadRetryQueue(queue);
+    sendUploadRetryQueueUpdate();
+};
+
+const processLogFile = async (filePath: string, options?: { retry?: boolean }) => {
     const fileId = path.basename(filePath);
+    if (activeUploads.has(filePath)) {
+        console.log(`[Main] processLogFile skipped (already active): ${filePath}`);
+        return;
+    }
+    activeUploads.add(filePath);
     console.log(`[Main] processLogFile start: ${filePath}`);
-    win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
+    if (options?.retry) {
+        markUploadRetrying(filePath);
+        // Keep the visible chip flow consistent with first-time uploads.
+        win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
+    } else {
+        win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
+    }
 
     try {
         if (!uploader) {
@@ -764,6 +941,8 @@ const processLogFile = async (filePath: string) => {
             if (jsonDetails && !jsonDetails.error) {
                 jsonDetails = attachConditionMetrics(jsonDetails);
             }
+
+            markUploadRetryResolved(filePath);
 
             win?.webContents.send('upload-status', {
                 id: fileId,
@@ -834,11 +1013,13 @@ const processLogFile = async (filePath: string) => {
                 console.log(`[Main] upload-complete: ${filePath} summary sent`);
             }
         } else {
+            markUploadRetryFailure(filePath, result?.error || 'Unknown upload error', result?.statusCode);
             win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
             console.log(`[Main] upload-complete error: ${filePath} msg=${result?.error || 'unknown'}`);
         }
     } catch (error: any) {
         console.error('[Main] Log processing failed:', error?.message || error);
+        markUploadRetryFailure(filePath, error?.message || 'Unknown error during processing', error?.statusCode || error?.response?.status);
         win?.webContents.send('upload-complete', {
             id: fileId,
             filePath,
@@ -846,6 +1027,8 @@ const processLogFile = async (filePath: string) => {
             error: error?.message || 'Unknown error during processing'
         });
         console.log(`[Main] upload-complete exception: ${filePath} msg=${error?.message || error}`);
+    } finally {
+        activeUploads.delete(filePath);
     }
 };
 
@@ -1737,6 +1920,7 @@ function createWindow() {
 
     win.webContents.on('did-finish-load', () => {
         win?.webContents.send('main-process-message', (new Date).toLocaleString())
+        sendUploadRetryQueueUpdate();
     })
 
     if (!app.isPackaged) {
@@ -2072,6 +2256,9 @@ if (!gotTheLock) {
             if (settings.dpsReportToken !== undefined) {
                 store.set('dpsReportToken', settings.dpsReportToken);
                 uploader?.setUserToken(settings.dpsReportToken);
+                if (typeof settings.dpsReportToken === 'string' && settings.dpsReportToken.trim().length > 0) {
+                    setUploadRetryPaused(false, null);
+                }
             }
             if (settings.closeBehavior !== undefined) {
                 store.set('closeBehavior', settings.closeBehavior);
@@ -2743,6 +2930,54 @@ if (!gotTheLock) {
                 }
                 bulkUploadMode = false;
             })();
+        });
+
+        ipcMain.handle('get-upload-retry-queue', async () => {
+            return { success: true, queue: getUploadRetryQueuePayload() };
+        });
+
+        ipcMain.handle('retry-failed-uploads', async () => {
+            const retryState = loadUploadRetryState();
+            if (retryState.paused) {
+                return { success: false, retried: 0, error: retryState.pauseReason || 'Retry queue is paused.', queue: getUploadRetryQueuePayload() };
+            }
+            const queue = loadUploadRetryQueue();
+            const retryPaths = Object.values(queue)
+                .filter((entry) => entry.state === 'failed')
+                .sort((a, b) => a.failedAt.localeCompare(b.failedAt))
+                .map((entry) => entry.filePath);
+            if (retryPaths.length === 0) {
+                return { success: true, retried: 0, queue: getUploadRetryQueuePayload() };
+            }
+            let retried = 0;
+            let consecutiveAuthFailures = 0;
+            for (const filePath of retryPaths) {
+                if (!filePath || activeUploads.has(filePath)) continue;
+                const fileId = path.basename(filePath);
+                win?.webContents.send('upload-status', { id: fileId, filePath, status: 'queued' });
+                await processLogFile(filePath, { retry: true });
+                retried += 1;
+                const refreshedQueue = loadUploadRetryQueue();
+                const entry = refreshedQueue[filePath];
+                if (entry?.state === 'failed' && entry.category === 'auth') {
+                    consecutiveAuthFailures += 1;
+                    if (consecutiveAuthFailures >= AUTH_RETRY_PAUSE_THRESHOLD) {
+                        setUploadRetryPaused(
+                            true,
+                            `Retries paused after ${AUTH_RETRY_PAUSE_THRESHOLD} consecutive authentication failures. Update your dps.report token in Settings and resume retries.`
+                        );
+                        break;
+                    }
+                } else if (!entry || entry.category !== 'auth') {
+                    consecutiveAuthFailures = 0;
+                }
+            }
+            return { success: true, retried, queue: getUploadRetryQueuePayload() };
+        });
+
+        ipcMain.handle('resume-upload-retries', async () => {
+            setUploadRetryPaused(false, null);
+            return { success: true, queue: getUploadRetryQueuePayload() };
         });
 
         ipcMain.handle('get-log-details', async (_event, payload: { filePath: string }) => {

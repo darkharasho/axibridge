@@ -42,6 +42,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const isQueued = log.status === 'queued';
     const isPending = log.status === 'pending';
     const isUploading = log.status === 'uploading';
+    const isRetrying = log.status === 'retrying';
     const isCalculating = log.status === 'calculating';
     const hasError = log.status === 'error';
     const isDiscord = log.status === 'discord';
@@ -49,10 +50,11 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const statusLabel = isQueued ? 'Queued'
         : isPending ? 'Pending'
             : isUploading ? 'Parsing with dps.report'
+                : isRetrying ? 'Retrying upload'
                 : isCalculating ? 'Calculating statistics'
                     : isDiscord ? 'Preparing Discord preview'
                         : null;
-    const isCancellable = Boolean(!log.details && !isExpanded && onCancel && (isQueued || isPending || isUploading));
+    const isCancellable = Boolean(!log.details && !isExpanded && onCancel && (isQueued || isPending || isUploading || isRetrying));
     const resolveTimestampMs = () => {
         const raw = log.uploadTime || details.uploadTime;
         if (!raw) return null;
