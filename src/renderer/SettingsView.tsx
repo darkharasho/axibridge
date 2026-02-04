@@ -17,6 +17,7 @@ interface SettingsViewProps {
     onDisruptionMethodSaved?: (method: DisruptionMethod) => void;
     onUiThemeSaved?: (theme: UiTheme) => void;
     showDeveloperSettings?: boolean;
+    developerSettingsTrigger?: number;
 }
 
 // Toggle switch component
@@ -81,7 +82,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action }: {
     );
 }
 
-export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, showDeveloperSettings }: SettingsViewProps) {
+export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, showDeveloperSettings, developerSettingsTrigger }: SettingsViewProps) {
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
     const [embedStats, setEmbedStats] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
@@ -121,6 +122,8 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [githubThemeStatusKind, setGithubThemeStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
     const [dpsCacheStatus, setDpsCacheStatus] = useState<string | null>(null);
     const [dpsCacheBusy, setDpsCacheBusy] = useState(false);
+    const [dpsCacheProgress, setDpsCacheProgress] = useState<number>(0);
+    const [dpsCacheProgressLabel, setDpsCacheProgressLabel] = useState<string | null>(null);
     const lastSyncedThemeRef = useRef<string | null>(null);
     const themeSyncInFlightRef = useRef(false);
     const queuedThemeRef = useRef<string | null>(null);
@@ -183,6 +186,26 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         };
         loadSettings();
     }, []);
+
+    useEffect(() => {
+        if (!window.electronAPI?.onClearDpsReportCacheProgress) return;
+        const cleanup = window.electronAPI.onClearDpsReportCacheProgress((data: any) => {
+            if (typeof data?.progress === 'number') {
+                const clamped = Math.max(0, Math.min(100, data.progress));
+                setDpsCacheProgress(clamped);
+            }
+            if (typeof data?.message === 'string' && data.message.length > 0) {
+                setDpsCacheProgressLabel(data.message);
+            }
+        });
+        return cleanup;
+    }, []);
+
+    useEffect(() => {
+        if ((developerSettingsTrigger || 0) > 0) {
+            setDevSettingsOpen(true);
+        }
+    }, [developerSettingsTrigger]);
 
     const handleExportSettings = async () => {
         setSettingsTransferStatus(null);
@@ -275,11 +298,28 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         }
     };
 
-    useEffect(() => {
-        if (showDeveloperSettings) {
-            setDevSettingsOpen(true);
+    const handleClearDpsCache = async () => {
+        if (!window.electronAPI?.clearDpsReportCache || dpsCacheBusy) return;
+        setDpsCacheBusy(true);
+        setDpsCacheStatus(null);
+        setDpsCacheProgress(0);
+        setDpsCacheProgressLabel('Preparing cache cleanup…');
+        try {
+            const result = await window.electronAPI.clearDpsReportCache();
+            if (result?.success) {
+                const count = result.clearedEntries ?? 0;
+                setDpsCacheProgress(100);
+                setDpsCacheProgressLabel('Cache cleared.');
+                setDpsCacheStatus(`Cleared ${count} cached ${count === 1 ? 'log' : 'logs'}.`);
+            } else {
+                setDpsCacheStatus(result?.error || 'Failed to clear cache.');
+            }
+        } catch (err: any) {
+            setDpsCacheStatus(err?.message || 'Failed to clear cache.');
+        } finally {
+            setDpsCacheBusy(false);
         }
-    }, [showDeveloperSettings]);
+    };
 
     const toggleImportSelection = (key: string) => {
         setImportSelections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -831,6 +871,16 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                         <ExternalLink className="w-4 h-4" />
                         Support Discord
                     </button>
+                    {showDeveloperSettings && (
+                        <button
+                            type="button"
+                            onClick={() => setDevSettingsOpen(true)}
+                            className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-500/20 transition-colors"
+                        >
+                            <Zap className="w-4 h-4" />
+                            Hidden Tools
+                        </button>
+                    )}
                 </div>
             </motion.div>
 
@@ -883,24 +933,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                     />
                     <div className="mt-4 flex flex-wrap items-center gap-3">
                         <button
-                            onClick={async () => {
-                                if (!window.electronAPI?.clearDpsReportCache || dpsCacheBusy) return;
-                                setDpsCacheBusy(true);
-                                setDpsCacheStatus(null);
-                                try {
-                                    const result = await window.electronAPI.clearDpsReportCache();
-                                    if (result?.success) {
-                                        const count = result.clearedEntries ?? 0;
-                                        setDpsCacheStatus(`Cleared ${count} cached ${count === 1 ? 'log' : 'logs'}.`);
-                                    } else {
-                                        setDpsCacheStatus(result?.error || 'Failed to clear cache.');
-                                    }
-                                } catch (err: any) {
-                                    setDpsCacheStatus(err?.message || 'Failed to clear cache.');
-                                } finally {
-                                    setDpsCacheBusy(false);
-                                }
-                            }}
+                            onClick={handleClearDpsCache}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={dpsCacheBusy}
                         >
@@ -912,6 +945,18 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                         </div>
                         {dpsCacheStatus && (
                             <div className="text-xs text-gray-400">{dpsCacheStatus}</div>
+                        )}
+                        {dpsCacheBusy && (
+                            <div className="w-full max-w-sm">
+                                <div className="text-[11px] text-gray-400 mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
+                                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                    <div
+                                        className="h-full bg-amber-400 transition-all duration-150"
+                                        style={{ width: `${dpsCacheProgress}%` }}
+                                    />
+                                </div>
+                                <div className="text-[11px] text-gray-500 mt-1">{Math.round(dpsCacheProgress)}%</div>
+                            </div>
                         )}
                     </div>
                 </SettingsSection>
@@ -1936,6 +1981,36 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                     <RefreshCw className="w-4 h-4" />
                                     Ensure GitHub Template
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={handleClearDpsCache}
+                                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-200 hover:bg-rose-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={dpsCacheBusy}
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    {dpsCacheBusy ? 'Clearing dps.report cache…' : 'Clear dps.report cache'}
+                                </button>
+                                {(dpsCacheBusy || dpsCacheStatus) && (
+                                    <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                                        {dpsCacheBusy && (
+                                            <>
+                                                <div className="text-xs text-gray-300 mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
+                                                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-rose-400 transition-all duration-150"
+                                                        style={{ width: `${dpsCacheProgress}%` }}
+                                                    />
+                                                </div>
+                                                <div className="text-[11px] text-gray-500 mt-1">{Math.round(dpsCacheProgress)}%</div>
+                                            </>
+                                        )}
+                                        {dpsCacheStatus && (
+                                            <div className={`text-xs ${dpsCacheStatus.toLowerCase().includes('failed') ? 'text-rose-300' : 'text-emerald-300'}`}>
+                                                {dpsCacheStatus}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 {githubTemplateStatus && (
                                     <div className={`text-xs ${githubTemplateStatusKind === 'success'
                                         ? 'text-emerald-300'

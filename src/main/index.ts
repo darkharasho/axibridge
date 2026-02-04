@@ -104,19 +104,39 @@ const saveDpsReportCacheIndex = (index: Record<string, DpsReportCacheEntry>) => 
     store.set(DPS_REPORT_CACHE_KEY, index);
 };
 
-const clearDpsReportCache = () => {
+const clearDpsReportCache = (
+    onProgress?: (data: { stage?: string; message?: string; progress?: number; current?: number; total?: number }) => void
+) => {
+    onProgress?.({ stage: 'start', message: 'Preparing cache cleanup…', progress: 0 });
     const index = loadDpsReportCacheIndex();
     const clearedEntries = Object.keys(index).length;
     store.delete(DPS_REPORT_CACHE_KEY);
+    onProgress?.({ stage: 'index', message: 'Cache index cleared.', progress: 20, current: 0, total: 0 });
 
     const cacheDir = getDpsReportCacheDir();
     try {
-        fs.rmSync(cacheDir, { recursive: true, force: true });
+        if (fs.existsSync(cacheDir)) {
+            const entries = fs.readdirSync(cacheDir);
+            const total = entries.length;
+            entries.forEach((entry, index) => {
+                fs.rmSync(path.join(cacheDir, entry), { recursive: true, force: true });
+                const progress = total > 0 ? 20 + Math.round(((index + 1) / total) * 75) : 95;
+                onProgress?.({
+                    stage: 'files',
+                    message: `Removing cached files (${index + 1}/${total})…`,
+                    progress,
+                    current: index + 1,
+                    total
+                });
+            });
+            fs.rmSync(cacheDir, { recursive: true, force: true });
+        }
     } catch (err: any) {
         console.warn('[Main] Failed to remove dps.report cache directory:', err?.message || err);
         return { success: false, clearedEntries, error: 'Failed to remove cache directory.' };
     }
 
+    onProgress?.({ stage: 'done', message: 'Cache cleared.', progress: 100 });
     return { success: true, clearedEntries };
 };
 
@@ -1764,8 +1784,10 @@ if (!gotTheLock) {
             };
         });
 
-        ipcMain.handle('clear-dps-report-cache', async () => {
-            return clearDpsReportCache();
+        ipcMain.handle('clear-dps-report-cache', async (event) => {
+            return clearDpsReportCache((progress) => {
+                event.sender.send('clear-dps-report-cache-progress', progress);
+            });
         });
 
         // Clear logs from store to improve boot time (persistence removed)

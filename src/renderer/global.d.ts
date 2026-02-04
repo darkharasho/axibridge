@@ -179,6 +179,7 @@ export interface IElectronAPI {
         githubFavoriteRepos?: string[] | null;
     }>;
     clearDpsReportCache: () => Promise<{ success: boolean; clearedEntries?: number; error?: string }>;
+    onClearDpsReportCacheProgress: (callback: (data: { stage?: string; message?: string; progress?: number; current?: number; total?: number }) => void) => () => void;
     manualUpload: (path: string) => void;
     manualUploadBatch: (paths: string[]) => void;
     saveSettings: (settings: {
