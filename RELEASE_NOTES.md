@@ -1,24 +1,18 @@
 # Release Notes
 
-Version v1.20.3 — February 4, 2026
+Version v1.20.4 — February 4, 2026
 
 ## 🌟 Highlights
-- Expanded the how-to guide with icons and expanded content for easier navigation.
-- Added walkthroughs and how-to guides focused on first-time users.
-- Documentation now includes a reference for advanced developer settings that influence state updates.
-- Web assets refreshed to keep things snappy on the web.
+- Stats handling is safer with safer data access and a clearer logging reset.
+- Dataset deletion now requires explicit confirmation with a timeout.
+- Dev dataset enhancements include load mode options (frozen snapshot or recompute), integrity validation, snapshot support, and transactional writes.
 
 ## 🛠️ Improvements
-- Clearer timestamp handling and more precise metrics in combat stats for easier interpretation.
-- Documentation enhancements to better guide you through features and workflows.
-- Dev datasets now persist and restore a `snapshot.json` state (view, notification mode, stat settings, theme, and related dev UI state) alongside logs and report data.
-- Dev dataset writes are now transactional: they stream into temporary folders and only become visible after a complete marker is written and an atomic finalize step succeeds.
-- Dev dataset manifests now store relative log paths, and snapshot state captures deterministic log order and stable log ids for reliable state replays.
-- Dev dataset loads now run integrity validation (schema and checksums) and can fall back to a logs-only restore path when integrity checks fail.
-- Dev dataset loading now supports per-dataset mode selection in the dataset UI: frozen snapshot/report restore, or recompute-from-logs using your current live settings.
+- Upload status is now shown as a pie chart for easier status breakdown.
+- Dev dataset features: added load mode options, snapshot support, transactional writes, and improved loading with integrity validation.
 
 ## 🧯 Fixes
-- Added a select-none class to prevent text from being accidentally highlighted on buttons.
+- Fixed help updates focus trigger initialization and improved scroll behavior.
 
 ## ⚠️ Breaking Changes
 - None.
