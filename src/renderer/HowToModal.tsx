@@ -1,5 +1,34 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronRight, ListTree, X } from 'lucide-react';
+import {
+    Activity,
+    AlertTriangle,
+    ArrowUp,
+    BarChart2,
+    Check,
+    ChevronRight,
+    Clock,
+    Database,
+    Droplet,
+    FileText,
+    Folder,
+    Github,
+    Globe,
+    Heart,
+    HelpCircle,
+    Layers,
+    LayoutDashboard,
+    Link,
+    ListTree,
+    MousePointer,
+    Palette,
+    Plug,
+    Rocket,
+    Settings,
+    Shield,
+    Sliders,
+    Upload,
+    X
+} from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -19,6 +48,36 @@ interface HelpNode {
 }
 
 const ROOT = howToTree as HelpNode;
+
+const ICON_MAP: Record<string, ReactNode> = {
+    activity: <Activity className="w-5 h-5 text-blue-400 inline-block mb-1 mx-1" />,
+    'bar-chart': <BarChart2 className="w-5 h-5 text-purple-400 inline-block mb-1 mx-1" />,
+    settings: <Settings className="w-5 h-5 text-slate-400 inline-block mb-1 mx-1" />,
+    github: <Github className="w-5 h-5 text-white inline-block mb-1 mx-1" />,
+    database: <Database className="w-5 h-5 text-emerald-400 inline-block mb-1 mx-1" />,
+    upload: <Upload className="w-4 h-4 text-sky-400 inline-block mx-1" />,
+    layers: <Layers className="w-5 h-5 text-indigo-400 inline-block mb-1 mx-1" />,
+    file: <FileText className="w-5 h-5 text-amber-400 inline-block mb-1 mx-1" />,
+    globe: <Globe className="w-4 h-4 text-blue-300 inline-block mx-1" />,
+    dashboard: <LayoutDashboard className="w-5 h-5 text-orange-400 inline-block mb-1 mx-1" />,
+    clock: <Clock className="w-4 h-4 text-yellow-400 inline-block mx-1" />,
+    check: <Check className="w-4 h-4 text-green-400 inline-block mx-1" />,
+    error: <AlertTriangle className="w-4 h-4 text-red-400 inline-block mx-1" />,
+    shield: <Shield className="w-4 h-4 text-indigo-400 inline-block mx-1" />,
+    heart: <Heart className="w-4 h-4 text-rose-400 inline-block mx-1" />,
+    'arrow-up': <ArrowUp className="w-4 h-4 text-cyan-400 inline-block mx-1" />,
+    droplet: <Droplet className="w-4 h-4 text-red-500 inline-block mx-1" />,
+    sliders: <Sliders className="w-5 h-5 text-gray-400 inline-block mb-1 mx-1" />,
+    palette: <Palette className="w-5 h-5 text-pink-400 inline-block mb-1 mx-1" />,
+    plug: <Plug className="w-5 h-5 text-yellow-200 inline-block mb-1 mx-1" />,
+    rocket: <Rocket className="w-5 h-5 text-fuchsia-400 inline-block mb-1 mx-1" />,
+    link: <Link className="w-4 h-4 text-blue-300 inline-block mx-1" />,
+    folder: <Folder className="w-5 h-5 text-yellow-500 inline-block mb-1 mx-1" />,
+    'help-circle': <HelpCircle className="w-4 h-4 text-indigo-300 inline-block mx-1" />,
+    'mouse-pointer': <MousePointer className="w-4 h-4 text-slate-300 inline-block mx-1" />,
+    'list-tree': <ListTree className="w-4 h-4 text-blue-300 inline-block mx-1" />,
+    arcbridge: <img src="/img/ArcBridge.svg" className="w-5 h-5 inline-block mb-1 mx-1" alt="" />
+};
 
 const buildNodeIndex = (root: HelpNode) => {
     const byId = new Map<string, HelpNode>();
@@ -54,11 +113,10 @@ const renderTree = (node: HelpNode, selectedId: string, onSelect: (id: string) =
             <button
                 type="button"
                 onClick={() => onSelect(node.id)}
-                className={`w-full rounded-lg border px-2 py-2 text-left text-xs transition-colors ${
-                    active
-                        ? 'border-blue-500/40 bg-blue-500/15 text-blue-100'
-                        : 'border-white/10 bg-white/[0.03] text-gray-300 hover:border-white/30 hover:text-white'
-                }`}
+                className={`w-full rounded-lg border px-2 py-2 text-left text-xs transition-colors ${active
+                    ? 'border-blue-500/40 bg-blue-500/15 text-blue-100'
+                    : 'border-white/10 bg-white/[0.03] text-gray-300 hover:border-white/30 hover:text-white'
+                    }`}
             >
                 <div className="font-semibold">{node.title}</div>
                 {node.summary && depth < 2 && (
@@ -131,7 +189,7 @@ export function HowToModal({ isOpen, onClose }: HowToModalProps) {
                                 <div className="mt-1 text-xs text-gray-400">Browse by feature area</div>
                             </div>
                             <div className="space-y-2">
-                            {renderTree(ROOT, selectedNode.id, setSelectedId)}
+                                {renderTree(ROOT, selectedNode.id, setSelectedId)}
                             </div>
                         </aside>
                         <section className="p-6 overflow-y-auto">
@@ -141,9 +199,8 @@ export function HowToModal({ isOpen, onClose }: HowToModalProps) {
                                         <button
                                             type="button"
                                             onClick={() => setSelectedId(node.id)}
-                                            className={`transition-colors ${
-                                                idx === breadcrumb.length - 1 ? 'text-blue-200' : 'text-gray-400 hover:text-white'
-                                            }`}
+                                            className={`transition-colors ${idx === breadcrumb.length - 1 ? 'text-blue-200' : 'text-gray-400 hover:text-white'
+                                                }`}
                                         >
                                             {node.title}
                                         </button>
@@ -152,7 +209,12 @@ export function HowToModal({ isOpen, onClose }: HowToModalProps) {
                                 ))}
                             </div>
 
-                            <h3 className="text-xl font-semibold text-white">{selectedNode.title}</h3>
+                            <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                                {selectedNode.id === 'arcbridge' && (
+                                    <img src="/img/ArcBridge.svg" className="h-6 w-6" alt="ArcBridge" />
+                                )}
+                                {selectedNode.title}
+                            </h3>
                             {selectedNode.summary && (
                                 <p className="text-sm text-gray-300 mt-2">{selectedNode.summary}</p>
                             )}
@@ -161,10 +223,18 @@ export function HowToModal({ isOpen, onClose }: HowToModalProps) {
                                 <div className="mt-4 text-sm text-gray-200 leading-6 prose prose-invert max-w-none prose-p:my-3 prose-li:my-1">
                                     <ReactMarkdown
                                         remarkPlugins={[remarkGfm]}
+                                        urlTransform={(url) => url}
                                         components={{
-                                            h1: ({ children }) => <h1 className="text-2xl font-bold text-white">{children}</h1>,
-                                            h2: ({ children }) => <h2 className="text-xl font-semibold text-white mt-5">{children}</h2>,
-                                            h3: ({ children }) => <h3 className="text-lg font-semibold text-white mt-4">{children}</h3>,
+                                            img: ({ src, alt }) => {
+                                                if (src?.startsWith('icon:')) {
+                                                    const iconKey = src.replace('icon:', '');
+                                                    return <span title={alt}>{ICON_MAP[iconKey] || null}</span>;
+                                                }
+                                                return <img src={src} alt={alt} className="rounded-lg" />;
+                                            },
+                                            h1: ({ children }) => <h1 className="text-2xl font-bold text-white flex items-center">{children}</h1>,
+                                            h2: ({ children }) => <h2 className="text-xl font-semibold text-white mt-5 flex items-center">{children}</h2>,
+                                            h3: ({ children }) => <h3 className="text-lg font-semibold text-white mt-4 flex items-center">{children}</h3>,
                                             p: ({ children }) => <p className="my-3 leading-6 text-gray-200">{children}</p>,
                                             ul: ({ children }) => <ul className="my-3 list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
                                             ol: ({ children }) => <ol className="my-3 list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
