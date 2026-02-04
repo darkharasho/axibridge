@@ -114,6 +114,7 @@ function App() {
     const [devDatasetLoadingId, setDevDatasetLoadingId] = useState<string | null>(null);
     const [devDatasetRefreshing, setDevDatasetRefreshing] = useState(false);
     const [devDatasetLoadModes, setDevDatasetLoadModes] = useState<Record<string, 'frozen' | 'recompute'>>({});
+    const [devDatasetDeleteConfirmId, setDevDatasetDeleteConfirmId] = useState<string | null>(null);
     const devDatasetStreamingIdRef = useRef<string | null>(null);
     const [devDatasetSaveProgress, setDevDatasetSaveProgress] = useState<{ id: string; stage: string; written: number; total: number } | null>(null);
     const devDatasetSavingIdRef = useRef<string | null>(null);
@@ -261,6 +262,20 @@ function App() {
             unsubscribe?.();
         };
     }, [devDatasetsEnabled]);
+
+    useEffect(() => {
+        if (!devDatasetsOpen) {
+            setDevDatasetDeleteConfirmId(null);
+        }
+    }, [devDatasetsOpen]);
+
+    useEffect(() => {
+        if (!devDatasetDeleteConfirmId) return;
+        const timeout = window.setTimeout(() => {
+            setDevDatasetDeleteConfirmId(null);
+        }, 4000);
+        return () => window.clearTimeout(timeout);
+    }, [devDatasetDeleteConfirmId]);
 
     // Persistence removed
 
@@ -2297,20 +2312,49 @@ function App() {
                                                     <button
                                                         type="button"
                                                         onClick={async () => {
-                                                            if (window.electronAPI?.deleteDevDataset) {
-                                                                await window.electronAPI.deleteDevDataset({ id: dataset.id });
+                                                            if (devDatasetDeleteConfirmId !== dataset.id) {
+                                                                setDevDatasetDeleteConfirmId(dataset.id);
+                                                                return;
                                                             }
-                                                            setDevDatasets((prev) => prev.filter((entry) => entry.id !== dataset.id));
-                                                            setDevDatasetLoadModes((prev) => {
-                                                                const next = { ...prev };
-                                                                delete next[dataset.id];
-                                                                return next;
-                                                            });
+                                                            try {
+                                                                if (window.electronAPI?.deleteDevDataset) {
+                                                                    await window.electronAPI.deleteDevDataset({ id: dataset.id });
+                                                                }
+                                                                setDevDatasets((prev) => prev.filter((entry) => entry.id !== dataset.id));
+                                                                setDevDatasetLoadModes((prev) => {
+                                                                    const next = { ...prev };
+                                                                    delete next[dataset.id];
+                                                                    return next;
+                                                                });
+                                                            } finally {
+                                                                setDevDatasetDeleteConfirmId(null);
+                                                            }
                                                         }}
-                                                        className="px-2.5 py-1 rounded-md text-[11px] font-semibold border border-amber-700/40 bg-amber-700/10 text-amber-200 hover:bg-amber-700/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                                        className={`relative overflow-hidden px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${devDatasetDeleteConfirmId === dataset.id
+                                                            ? 'border-red-500 bg-red-600 text-white'
+                                                            : 'border-amber-700/40 bg-amber-700/10 text-amber-200 hover:bg-amber-700/20'
+                                                            }`}
                                                         disabled={devDatasetLoadingId === dataset.id}
                                                     >
-                                                        Delete
+                                                        <motion.span
+                                                            aria-hidden
+                                                            className="absolute inset-0 bg-red-600"
+                                                            initial={false}
+                                                            animate={{ x: devDatasetDeleteConfirmId === dataset.id ? '0%' : '-100%' }}
+                                                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                                                        />
+                                                        <AnimatePresence mode="wait" initial={false}>
+                                                            <motion.span
+                                                                key={devDatasetDeleteConfirmId === dataset.id ? `confirm-${dataset.id}` : `delete-${dataset.id}`}
+                                                                className="relative z-10 inline-flex"
+                                                                initial={{ opacity: 0, x: 8 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                exit={{ opacity: 0, x: -8 }}
+                                                                transition={{ duration: 0.16 }}
+                                                            >
+                                                                {devDatasetDeleteConfirmId === dataset.id ? 'Confirm?' : 'Delete'}
+                                                            </motion.span>
+                                                        </AnimatePresence>
                                                     </button>
                                                 </div>
                                             </div>
