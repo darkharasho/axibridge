@@ -139,6 +139,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [importPreviewSettings, setImportPreviewSettings] = useState<any | null>(null);
     const [importSelections, setImportSelections] = useState<Record<string, boolean>>({});
     const [devSettingsOpen, setDevSettingsOpen] = useState(false);
+    const lastDevSettingsTriggerRef = useRef<number>(developerSettingsTrigger || 0);
     const inferredPagesUrl = githubRepoOwner && githubRepoName
         ? `https://${githubRepoOwner}.github.io/${githubRepoName}`
         : '';
@@ -201,9 +202,11 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     }, []);
 
     useEffect(() => {
-        if ((developerSettingsTrigger || 0) > 0) {
+        const trigger = developerSettingsTrigger || 0;
+        if (trigger > lastDevSettingsTriggerRef.current) {
             setDevSettingsOpen(true);
         }
+        lastDevSettingsTriggerRef.current = trigger;
     }, [developerSettingsTrigger]);
 
     const handleExportSettings = async () => {
