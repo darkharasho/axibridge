@@ -2238,6 +2238,12 @@ function App() {
                                                             const loadMode = devDatasetLoadModes[dataset.id] || 'frozen';
                                                             setDevDatasetLoadingId(dataset.id);
                                                             setDevDatasetLoadProgress({ id: dataset.id, name: dataset.name, loaded: 0, total: null, done: false });
+                                                            setLogs([]);
+                                                            setLogsForStats([]);
+                                                            logsRef.current = [];
+                                                            setPrecomputedStats(null);
+                                                            setScreenshotData(null);
+                                                            canceledLogsRef.current.clear();
                                                             try {
                                                                 if (window.electronAPI?.loadDevDatasetChunked) {
                                                                     let result = await window.electronAPI.loadDevDatasetChunked({ id: dataset.id, chunkSize: 25 });
@@ -2258,10 +2264,7 @@ function App() {
                                                                     if (useFrozen) {
                                                                         applyDevDatasetSnapshot(result.dataset.snapshot as IDevDatasetSnapshot | null);
                                                                     }
-                                                                    setLogs([]);
                                                                     setPrecomputedStats(useFrozen ? (result.dataset.report || null) : null);
-                                                                    setScreenshotData(null);
-                                                                    canceledLogsRef.current.clear();
                                                                     setDevDatasetsOpen(false);
                                                                     if (typeof result.totalLogs === 'number') {
                                                                         const totalLogs = result.totalLogs;
@@ -2286,8 +2289,6 @@ function App() {
                                                                     }
                                                                     setLogs(result.dataset.logs || []);
                                                                     setPrecomputedStats(useFrozen ? (result.dataset.report || null) : null);
-                                                                    setScreenshotData(null);
-                                                                    canceledLogsRef.current.clear();
                                                                     setDevDatasetsOpen(false);
                                                                     const total = Array.isArray(result.dataset.logs) ? result.dataset.logs.length : 0;
                                                                     setDevDatasetLoadProgress((prev) => (prev && prev.id === dataset.id ? { ...prev, loaded: total, total, done: true } : prev));

@@ -80,7 +80,62 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const { result: aggregationResult } = useStatsAggregationWorker({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod });
     const { stats, skillUsageData: computedSkillUsageData } = aggregationResult;
 
-    const skillUsageData = (precomputedStats?.skillUsageData ?? computedSkillUsageData) as SkillUsageSummary;
+    const safeStats = useMemo(() => {
+        const source = stats && typeof stats === 'object' ? stats : {};
+        const asArray = (value: any) => (Array.isArray(value) ? value : []);
+        const asObject = (value: any) => (value && typeof value === 'object' ? value : {});
+        const withFallbackObject = (value: any, fallback: any) => (value && typeof value === 'object' ? value : fallback);
+        const emptyTopStat = { value: 0, player: '-', profession: 'Unknown', professionList: [], count: 0 };
+        const emptyMvp = { account: '-', profession: 'Unknown', professionList: [], reason: '', topStats: [], score: 0 };
+        return {
+            ...source,
+            total: Number((source as any).total || 0),
+            timelineData: asArray((source as any).timelineData),
+            mapData: asArray((source as any).mapData),
+            fightBreakdown: asArray((source as any).fightBreakdown),
+            topSkills: asArray((source as any).topSkills),
+            topIncomingSkills: asArray((source as any).topIncomingSkills),
+            leaderboards: asObject((source as any).leaderboards),
+            topStatsPerSecond: asObject((source as any).topStatsPerSecond),
+            topStatsLeaderboardsPerSecond: asObject((source as any).topStatsLeaderboardsPerSecond),
+            maxDownContrib: withFallbackObject((source as any).maxDownContrib, emptyTopStat),
+            maxBarrier: withFallbackObject((source as any).maxBarrier, emptyTopStat),
+            maxHealing: withFallbackObject((source as any).maxHealing, emptyTopStat),
+            maxDodges: withFallbackObject((source as any).maxDodges, emptyTopStat),
+            maxStrips: withFallbackObject((source as any).maxStrips, emptyTopStat),
+            maxCleanses: withFallbackObject((source as any).maxCleanses, emptyTopStat),
+            maxCC: withFallbackObject((source as any).maxCC, emptyTopStat),
+            maxStab: withFallbackObject((source as any).maxStab, emptyTopStat),
+            closestToTag: withFallbackObject((source as any).closestToTag, emptyTopStat),
+            mvp: { ...emptyMvp, ...asObject((source as any).mvp), topStats: asArray((source as any)?.mvp?.topStats) },
+            silver: withFallbackObject((source as any).silver, emptyMvp),
+            bronze: withFallbackObject((source as any).bronze, emptyMvp),
+            avgMvpScore: Number((source as any).avgMvpScore || 0),
+            offensePlayers: asArray((source as any).offensePlayers),
+            defensePlayers: asArray((source as any).defensePlayers),
+            supportPlayers: asArray((source as any).supportPlayers),
+            healingPlayers: asArray((source as any).healingPlayers),
+            boonTables: asArray((source as any).boonTables),
+            specialTables: asArray((source as any).specialTables),
+            outgoingConditionSummary: asArray((source as any).outgoingConditionSummary),
+            outgoingConditionPlayers: asArray((source as any).outgoingConditionPlayers),
+            incomingConditionSummary: asArray((source as any).incomingConditionSummary),
+            incomingConditionPlayers: asArray((source as any).incomingConditionPlayers),
+            squadClassData: asArray((source as any).squadClassData),
+            enemyClassData: asArray((source as any).enemyClassData),
+            playerSkillBreakdowns: asArray((source as any).playerSkillBreakdowns)
+        };
+    }, [stats]);
+
+    const skillUsageData = useMemo(() => {
+        const source = (precomputedStats?.skillUsageData ?? computedSkillUsageData) as Partial<SkillUsageSummary> | undefined;
+        return {
+            logRecords: Array.isArray(source?.logRecords) ? source.logRecords : [],
+            players: Array.isArray(source?.players) ? source.players : [],
+            skillOptions: Array.isArray(source?.skillOptions) ? source.skillOptions : [],
+            resUtilitySkills: Array.isArray(source?.resUtilitySkills) ? source.resUtilitySkills : []
+        } as SkillUsageSummary;
+    }, [computedSkillUsageData, precomputedStats?.skillUsageData]);
 
     // console logging removed to avoid blocking view transitions
 
@@ -117,7 +172,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         handleDevMockUpload
     } = useStatsUploads({
         logs,
-        stats,
+        stats: safeStats,
         skillUsageData,
         activeStatsViewSettings: statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS,
         uiTheme: uiTheme || 'classic',
@@ -215,7 +270,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const [activeClassBreakdownSkillId, setActiveClassBreakdownSkillId] = useState<string | null>(null);
 
     const { apmSpecBuckets: apmSpecTables } = useApmStats(skillUsageData);
-    const playerSkillBreakdowns = (stats?.playerSkillBreakdowns || []) as PlayerSkillBreakdown[];
+    const playerSkillBreakdowns = (safeStats.playerSkillBreakdowns || []) as PlayerSkillBreakdown[];
     const playerSkillBreakdownMap = useMemo(() => {
         const map = new Map<string, PlayerSkillBreakdown>();
         playerSkillBreakdowns.forEach((entry) => map.set(entry.key, entry));
@@ -380,8 +435,8 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         };
     }, []);
 
-    const conditionRawSummary = conditionDirection === 'outgoing' ? stats.outgoingConditionSummary : stats.incomingConditionSummary;
-    const conditionRawPlayers = conditionDirection === 'outgoing' ? stats.outgoingConditionPlayers : stats.incomingConditionPlayers;
+    const conditionRawSummary = conditionDirection === 'outgoing' ? safeStats.outgoingConditionSummary : safeStats.incomingConditionSummary;
+    const conditionRawPlayers = conditionDirection === 'outgoing' ? safeStats.outgoingConditionPlayers : safeStats.incomingConditionPlayers;
     const { summary: conditionSummary, players: conditionPlayers } = normalizeConditionData(
         conditionRawSummary || [],
         conditionRawPlayers || []
@@ -620,38 +675,38 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
 
     const filteredBoonTables = useMemo(() => {
         const term = boonSearch.trim().toLowerCase();
-        const tables = stats?.boonTables || [];
+        const tables = safeStats.boonTables || [];
         if (!term) return tables;
         return tables.filter((boon: any) => boon.name.toLowerCase().includes(term));
-    }, [stats?.boonTables, boonSearch]);
+    }, [safeStats.boonTables, boonSearch]);
     const activeBoonTable = useMemo(() => {
         if (!activeBoonTab) return null;
-        return (stats?.boonTables || []).find((boon: any) => boon.id === activeBoonTab) ?? null;
-    }, [stats?.boonTables, activeBoonTab]);
+        return (safeStats.boonTables || []).find((boon: any) => boon.id === activeBoonTab) ?? null;
+    }, [safeStats.boonTables, activeBoonTab]);
     const filteredSpecialTables = useMemo(() => {
         const term = specialSearch.trim().toLowerCase();
-        const sorted = [...(stats?.specialTables || [])].sort((a: any, b: any) => a.name.localeCompare(b.name));
+        const sorted = [...(safeStats.specialTables || [])].sort((a: any, b: any) => a.name.localeCompare(b.name));
         if (!term) return sorted;
         return sorted.filter((buff: any) => buff.name.toLowerCase().includes(term));
-    }, [stats?.specialTables, specialSearch]);
+    }, [safeStats.specialTables, specialSearch]);
     const activeSpecialTable = useMemo(() => {
         if (!activeSpecialTab) return null;
-        return (stats?.specialTables || []).find((buff: any) => buff.id === activeSpecialTab) ?? null;
-    }, [stats?.specialTables, activeSpecialTab]);
+        return (safeStats.specialTables || []).find((buff: any) => buff.id === activeSpecialTab) ?? null;
+    }, [safeStats.specialTables, activeSpecialTab]);
 
     useEffect(() => {
-        if (!stats?.boonTables || stats.boonTables.length === 0) return;
-        if (!activeBoonTab || !stats.boonTables.some((tab: any) => tab.id === activeBoonTab)) {
-            setActiveBoonTab(stats.boonTables[0].id);
+        if (!safeStats.boonTables || safeStats.boonTables.length === 0) return;
+        if (!activeBoonTab || !safeStats.boonTables.some((tab: any) => tab.id === activeBoonTab)) {
+            setActiveBoonTab(safeStats.boonTables[0].id);
         }
-    }, [stats?.boonTables, activeBoonTab]);
+    }, [safeStats.boonTables, activeBoonTab]);
 
     useEffect(() => {
-        if (!stats?.specialTables || stats.specialTables.length === 0) return;
-        if (!activeSpecialTab || !stats.specialTables.some((tab: any) => tab.id === activeSpecialTab)) {
-            setActiveSpecialTab(stats.specialTables[0].id);
+        if (!safeStats.specialTables || safeStats.specialTables.length === 0) return;
+        if (!activeSpecialTab || !safeStats.specialTables.some((tab: any) => tab.id === activeSpecialTab)) {
+            setActiveSpecialTab(safeStats.specialTables[0].id);
         }
-    }, [stats?.specialTables, activeSpecialTab]);
+    }, [safeStats.specialTables, activeSpecialTab]);
 
     useEffect(() => {
         const clearSelection = () => {
@@ -726,8 +781,8 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         if (diff !== 0) return diff;
         return String(a?.name || '').localeCompare(String(b?.name || ''));
     };
-    const squadClassData = Array.isArray(stats?.squadClassData) ? stats.squadClassData : [];
-    const enemyClassData = Array.isArray(stats?.enemyClassData) ? stats.enemyClassData : [];
+    const squadClassData = Array.isArray(safeStats?.squadClassData) ? safeStats.squadClassData : [];
+    const enemyClassData = Array.isArray(safeStats?.enemyClassData) ? safeStats.enemyClassData : [];
     const sortedSquadClassData = [...squadClassData].sort(sortByCountDesc);
     const sortedEnemyClassData = [...enemyClassData].sort(sortByCountDesc);
 
@@ -779,7 +834,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
             <StatsHeader
                 embedded={embedded}
                 dashboardTitle={dashboardTitle}
-                totalLogs={stats.total}
+                totalLogs={safeStats.total}
                 onBack={onBack}
                 devMockAvailable={devMockAvailable}
                 devMockUploadState={devMockUploadState}
@@ -813,14 +868,14 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
             >
 
                 <OverviewSection
-                    stats={stats}
+                    stats={safeStats}
                     isSectionVisible={isSectionVisible}
                     isFirstVisibleSection={isFirstVisibleSection}
                     sectionClass={sectionClass}
                 />
 
                 <FightBreakdownSection
-                    stats={stats}
+                    stats={safeStats}
                     fightBreakdownTab={fightBreakdownTab}
                     setFightBreakdownTab={setFightBreakdownTab}
                     isSectionVisible={isSectionVisible}
@@ -829,7 +884,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 />
 
                 <TopPlayersSection
-                    stats={stats}
+                    stats={safeStats}
                     showTopStats={showTopStats}
                     showMvp={showMvp}
                     topStatsMode={topStatsMode}
@@ -845,7 +900,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 />
 
                 <TopSkillsSection
-                    stats={stats}
+                    stats={safeStats}
                     topSkillsMetric={topSkillsMetric}
                     onTopSkillsMetricChange={updateTopSkillsMetric}
                     isSectionVisible={isSectionVisible}
@@ -863,7 +918,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 />
 
                 <TimelineSection
-                    timelineData={stats.timelineData}
+                    timelineData={safeStats.timelineData}
                     timelineFriendlyScope={timelineFriendlyScope}
                     setTimelineFriendlyScope={setTimelineFriendlyScope}
                     isSectionVisible={isSectionVisible}
@@ -872,14 +927,14 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 />
 
                 <MapDistributionSection
-                    mapData={stats.mapData}
+                    mapData={safeStats.mapData}
                     isSectionVisible={isSectionVisible}
                     isFirstVisibleSection={isFirstVisibleSection}
                     sectionClass={sectionClass}
                 />
 
                 <OffenseSection
-                    stats={stats}
+                    stats={safeStats}
                     OFFENSE_METRICS={OFFENSE_METRICS}
                     roundCountStats={roundCountStats}
                     offenseSearch={offenseSearch}
@@ -925,7 +980,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 />
 
                 <DefenseSection
-                    stats={stats}
+                    stats={safeStats}
                     DEFENSE_METRICS={DEFENSE_METRICS}
                     defenseSearch={defenseSearch}
                     setDefenseSearch={setDefenseSearch}
@@ -947,7 +1002,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 />
 
                 <BoonOutputSection
-                    stats={stats}
+                    stats={safeStats}
                     activeBoonCategory={activeBoonCategory}
                     setActiveBoonCategory={(val: string) => setActiveBoonCategory(val as BoonCategory)}
                     activeBoonMetric={activeBoonMetric}
@@ -973,7 +1028,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 />
 
                 <SupportSection
-                    stats={stats}
+                    stats={safeStats}
                     SUPPORT_METRICS={SUPPORT_METRICS}
                     supportSearch={supportSearch}
                     setSupportSearch={setSupportSearch}
@@ -997,7 +1052,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 />
 
                 <HealingSection
-                    stats={stats}
+                    stats={safeStats}
                     HEALING_METRICS={HEALING_METRICS}
                     activeHealingMetric={activeHealingMetric}
                     setActiveHealingMetric={setActiveHealingMetric}
@@ -1018,7 +1073,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 />
 
                 <SpecialBuffsSection
-                    stats={stats}
+                    stats={safeStats}
                     specialSearch={specialSearch}
                     setSpecialSearch={setSpecialSearch}
                     filteredSpecialTables={filteredSpecialTables}
