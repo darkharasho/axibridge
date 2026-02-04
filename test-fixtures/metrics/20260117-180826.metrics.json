@@ -2,7 +2,7 @@
   "specVersion": "unknown",
   "method": "count",
   "source": "test-fixtures/boon/20260117-180826.json",
-  "generatedAt": "2026-01-31T09:13:44.357Z",
+  "generatedAt": "2026-02-04T04:40:52.530Z",
   "metrics": [
     {
       "name": "Nim Iss",

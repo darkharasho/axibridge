@@ -1,73 +1,29 @@
 {
   "specVersion": "unknown",
   "method": "count",
-  "source": "test-fixtures/boon/20260117-180636.json",
-  "generatedAt": "2026-02-04T04:40:52.477Z",
+  "source": "test-fixtures/boon/20260202-192851.json",
+  "generatedAt": "2026-02-04T04:40:52.983Z",
   "metrics": [
     {
-      "name": "Before Mourning",
-      "account": "Before Mourning.6193",
-      "profession": "Catalyst",
-      "group": 1,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 1199,
-      "stabGeneration": 0
-    },
-    {
-      "name": "Caedeus",
-      "account": "Arx.9785",
-      "profession": "Druid",
-      "group": 1,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 4421,
-      "squadHealing": 9656,
-      "stabGeneration": 0
-    },
-    {
-      "name": "Dub Grumble",
-      "account": "bro.2856",
+      "name": "Fernvision",
+      "account": "Beornin.5793",
       "profession": "Virtuoso",
       "group": 2,
       "notInSquad": false,
-      "outCrowdControl": 0,
+      "outCrowdControl": 1,
       "incomingStrips": {
+        "total": 8,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
         "total": 2,
         "missed": 0,
         "blocked": 0
       },
-      "incomingCrowdControl": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
       "downContribution": 0,
       "squadBarrier": 0,
-      "squadHealing": 89,
+      "squadHealing": 894,
       "stabGeneration": 0
     },
     {
@@ -76,119 +32,53 @@
       "profession": "Dragonhunter",
       "group": 2,
       "notInSquad": false,
-      "outCrowdControl": 1,
+      "outCrowdControl": 0,
       "incomingStrips": {
-        "total": 0,
+        "total": 35,
         "missed": 0,
         "blocked": 0
       },
       "incomingCrowdControl": {
-        "total": 1,
+        "total": 4,
         "missed": 0,
         "blocked": 0
       },
       "downContribution": 0,
       "squadBarrier": 0,
-      "squadHealing": 22336,
-      "stabGeneration": 439.37919800000003
+      "squadHealing": 29248,
+      "stabGeneration": 323.97910599999994
     },
     {
-      "name": "Ha Ha Veil Go Brrr",
-      "account": "Lenrawr.6520",
-      "profession": "Troubadour",
+      "name": "Iron Planter",
+      "account": "IronOre.7826",
+      "profession": "Druid",
       "group": 2,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 73683,
-      "squadHealing": 35118,
-      "stabGeneration": 0
-    },
-    {
-      "name": "Siival Of The Mists",
-      "account": "Izathel.4058",
-      "profession": "Virtuoso",
-      "group": 2,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 56,
-      "stabGeneration": 0
-    },
-    {
-      "name": "Sir Koala X",
-      "account": "CuddlyKoala.3194",
-      "profession": "Luminary",
-      "group": 2,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 25547,
-      "stabGeneration": 1237.3360780000003
-    },
-    {
-      "name": "Breaknbads",
-      "account": "BreakN.5496",
-      "profession": "Spellbreaker",
-      "group": 3,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 559,
-      "stabGeneration": 148.024354
-    },
-    {
-      "name": "Corsair Wag",
-      "account": "Wag Z.3604",
-      "profession": "Troubadour",
-      "group": 3,
       "notInSquad": false,
       "outCrowdControl": 2,
       "incomingStrips": {
-        "total": 0,
+        "total": 20,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 4,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 4393,
+      "squadHealing": 224624,
+      "stabGeneration": 0
+    },
+    {
+      "name": "Lenghis Khann",
+      "account": "Lenorellei.9815",
+      "profession": "Luminary",
+      "group": 2,
+      "notInSquad": false,
+      "outCrowdControl": 3,
+      "incomingStrips": {
+        "total": 9,
         "missed": 0,
         "blocked": 0
       },
@@ -198,19 +88,19 @@
         "blocked": 0
       },
       "downContribution": 0,
-      "squadBarrier": 21729,
-      "squadHealing": 7162,
-      "stabGeneration": 929.636529
+      "squadBarrier": 18735,
+      "squadHealing": 64347,
+      "stabGeneration": 642.235186
     },
     {
-      "name": "Jakarua Eywata",
-      "account": "Kaishi.9813",
-      "profession": "Druid",
-      "group": 3,
+      "name": "Ruari Aconitum",
+      "account": "Hostile Pudding.5617",
+      "profession": "Reaper",
+      "group": 2,
       "notInSquad": false,
-      "outCrowdControl": 0,
+      "outCrowdControl": 3,
       "incomingStrips": {
-        "total": 0,
+        "total": 8,
         "missed": 0,
         "blocked": 0
       },
@@ -221,74 +111,96 @@
       },
       "downContribution": 0,
       "squadBarrier": 0,
-      "squadHealing": 2840,
-      "stabGeneration": 0
+      "squadHealing": 7116,
+      "stabGeneration": 57.020880999999996
     },
     {
-      "name": "Rate My Flesh Golem",
-      "account": "Wisdom.6028",
+      "name": "Anhuur N",
+      "account": "Anhuur.5829",
       "profession": "Reaper",
       "group": 3,
       "notInSquad": false,
-      "outCrowdControl": 5,
+      "outCrowdControl": 7,
       "incomingStrips": {
-        "total": 0,
+        "total": 4,
         "missed": 0,
         "blocked": 0
       },
       "incomingCrowdControl": {
-        "total": 0,
+        "total": 2,
         "missed": 0,
         "blocked": 0
       },
       "downContribution": 0,
       "squadBarrier": 0,
-      "squadHealing": 3628,
-      "stabGeneration": 9.555366
+      "squadHealing": 1141,
+      "stabGeneration": 50.669718
     },
     {
-      "name": "Sayuri Moriko",
-      "account": "Travis the Terrible.4739",
-      "profession": "Luminary",
-      "group": 3,
-      "notInSquad": false,
-      "outCrowdControl": 6,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 32474,
-      "squadHealing": 23676,
-      "stabGeneration": 1400.2802140000001
-    },
-    {
-      "name": "Hera Twix",
-      "account": "Sselnoisiv.6130",
+      "name": "Eli Celebrant",
+      "account": "Eliare.4069",
       "profession": "Druid",
-      "group": 4,
+      "group": 3,
       "notInSquad": false,
       "outCrowdControl": 0,
       "incomingStrips": {
-        "total": 0,
+        "total": 24,
         "missed": 0,
         "blocked": 0
       },
       "incomingCrowdControl": {
-        "total": 0,
+        "total": 1,
         "missed": 0,
         "blocked": 0
       },
       "downContribution": 0,
       "squadBarrier": 0,
-      "squadHealing": 8433,
+      "squadHealing": 143497,
       "stabGeneration": 0
+    },
+    {
+      "name": "Mesmer Hatt",
+      "account": "hotep.8715",
+      "profession": "Troubadour",
+      "group": 3,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 16,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 1,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 11247,
+      "squadHealing": 16295,
+      "stabGeneration": 303.180792
+    },
+    {
+      "name": "Protectress Kali",
+      "account": "Kaliptuce.9051",
+      "profession": "Luminary",
+      "group": 3,
+      "notInSquad": false,
+      "outCrowdControl": 1,
+      "incomingStrips": {
+        "total": 23,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 2,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 6032,
+      "squadHealing": 1726,
+      "stabGeneration": 521.214124
     },
     {
       "name": "Kotton Kandy Randy",
@@ -296,9 +208,9 @@
       "profession": "Reaper",
       "group": 4,
       "notInSquad": false,
-      "outCrowdControl": 7,
+      "outCrowdControl": 5,
       "incomingStrips": {
-        "total": 1,
+        "total": 6,
         "missed": 0,
         "blocked": 0
       },
@@ -310,303 +222,39 @@
       "downContribution": 0,
       "squadBarrier": 0,
       "squadHealing": 0,
-      "stabGeneration": 59.59530899999999
+      "stabGeneration": 12.004395999999998
     },
     {
-      "name": "Lady Andromeda Rose",
+      "name": "Mr Pinguino",
+      "account": "pinguinox.9528",
+      "profession": "Luminary",
+      "group": 4,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 19,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 5,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 11937,
+      "squadHealing": 10912,
+      "stabGeneration": 142.168341
+    },
+    {
+      "name": "Prínce Charming",
       "account": "Oceanomega.4856",
-      "profession": "Troubadour",
-      "group": 4,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 3,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 20242,
-      "squadHealing": 30931,
-      "stabGeneration": 1039.9423330000002
-    },
-    {
-      "name": "Necro Of Fatalis",
-      "account": "Blades Of Fatalis.1279",
-      "profession": "Reaper",
-      "group": 4,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 2,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 0,
-      "stabGeneration": 41.825680999999996
-    },
-    {
-      "name": "Protectress Kali",
-      "account": "Kaliptuce.9051",
-      "profession": "Luminary",
-      "group": 4,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 914,
-      "stabGeneration": 954.363134
-    },
-    {
-      "name": "Brakmariana",
-      "account": "Astronauta.1087",
-      "profession": "Troubadour",
-      "group": 5,
-      "notInSquad": false,
-      "outCrowdControl": 1,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 64671,
-      "squadHealing": 45672,
-      "stabGeneration": 1351.5813749999998
-    },
-    {
-      "name": "Color Of Life",
-      "account": "amends.3469",
       "profession": "Firebrand",
-      "group": 5,
+      "group": 4,
       "notInSquad": false,
       "outCrowdControl": 0,
       "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 0,
-      "stabGeneration": 604.5864469999999
-    },
-    {
-      "name": "Fibbs The Dead",
-      "account": "Fibbs.1623",
-      "profession": "Reaper",
-      "group": 5,
-      "notInSquad": false,
-      "outCrowdControl": 1,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 9,
-      "stabGeneration": 19.194551
-    },
-    {
-      "name": "Haro Forge",
-      "account": "harasho.4281",
-      "profession": "Amalgam",
-      "group": 5,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 2,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 0,
-      "stabGeneration": 0
-    },
-    {
-      "name": "Tengu Very Much",
-      "account": "DraGonfly.9317",
-      "profession": "Druid",
-      "group": 5,
-      "notInSquad": false,
-      "outCrowdControl": 2,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 2,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 69017,
-      "stabGeneration": 7.208434
-    },
-    {
-      "name": "Lenoreleii",
-      "account": "Lenorellei.9815",
-      "profession": "Amalgam",
-      "group": 6,
-      "notInSquad": false,
-      "outCrowdControl": 1,
-      "incomingStrips": {
-        "total": 3,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 0,
-      "stabGeneration": 0
-    },
-    {
-      "name": "Luckgivers Illusion",
-      "account": "Luckgiver.6059",
-      "profession": "Troubadour",
-      "group": 6,
-      "notInSquad": false,
-      "outCrowdControl": 1,
-      "incomingStrips": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 4070,
-      "squadHealing": 1496,
-      "stabGeneration": 563.8504129999999
-    },
-    {
-      "name": "Mylania Svenson",
-      "account": "sbr.8170",
-      "profession": "Luminary",
-      "group": 6,
-      "notInSquad": false,
-      "outCrowdControl": 2,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 6661,
-      "stabGeneration": 1268.935841
-    },
-    {
-      "name": "R O O M B A",
-      "account": "ROOMBA.7658",
-      "profession": "Druid",
-      "group": 6,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 5417,
-      "stabGeneration": 0
-    },
-    {
-      "name": "Revan Belladonna",
-      "account": "Revan Malise.5107",
-      "profession": "Reaper",
-      "group": 6,
-      "notInSquad": false,
-      "outCrowdControl": 4,
-      "incomingStrips": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 0,
-      "stabGeneration": 35.958351
-    },
-    {
-      "name": "Birdman Jackman",
-      "account": "VincentCross.1469",
-      "profession": "Untamed",
-      "group": 7,
-      "notInSquad": false,
-      "outCrowdControl": 1,
-      "incomingStrips": {
-        "total": 2,
+        "total": 5,
         "missed": 0,
         "blocked": 0
       },
@@ -617,150 +265,172 @@
       },
       "downContribution": 0,
       "squadBarrier": 0,
-      "squadHealing": 0,
-      "stabGeneration": 6.370244
+      "squadHealing": 27046,
+      "stabGeneration": 533.148727
     },
     {
-      "name": "Eve Clearwater",
-      "account": "Krushito.5943",
-      "profession": "Evoker",
-      "group": 7,
+      "name": "Sunny Dispositíon",
+      "account": "Sunny.3891",
+      "profession": "Amalgam",
+      "group": 4,
       "notInSquad": false,
       "outCrowdControl": 0,
       "incomingStrips": {
-        "total": 0,
+        "total": 13,
         "missed": 0,
         "blocked": 0
       },
       "incomingCrowdControl": {
-        "total": 0,
+        "total": 3,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 3051,
+      "squadHealing": 1788,
+      "stabGeneration": 8.026195000000001
+    },
+    {
+      "name": "Teharcher",
+      "account": "Tehryan.7861",
+      "profession": "Druid",
+      "group": 4,
+      "notInSquad": false,
+      "outCrowdControl": 1,
+      "incomingStrips": {
+        "total": 6,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 1,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 4330,
+      "squadHealing": 138966,
+      "stabGeneration": 0
+    },
+    {
+      "name": "Atishue",
+      "account": "tishtennis.9154",
+      "profession": "Druid",
+      "group": 5,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 5,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 1,
         "missed": 0,
         "blocked": 0
       },
       "downContribution": 0,
       "squadBarrier": 0,
-      "squadHealing": 2937,
+      "squadHealing": 231740,
       "stabGeneration": 0
     },
     {
-      "name": "Mal Incendia",
-      "account": "Morkai.7021",
-      "profession": "Amalgam",
-      "group": 7,
+      "name": "Meatcrib",
+      "account": "Gawna.6519",
+      "profession": "Troubadour",
+      "group": 5,
       "notInSquad": false,
-      "outCrowdControl": 2,
+      "outCrowdControl": 0,
       "incomingStrips": {
+        "total": 20,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
         "total": 2,
         "missed": 0,
         "blocked": 0
       },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
       "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 0,
-      "stabGeneration": 29.839564
-    },
-    {
-      "name": "Momma Miko",
-      "account": "Shanhana Miko.8702",
-      "profession": "Luminary",
-      "group": 7,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 14785,
-      "squadHealing": 2540,
-      "stabGeneration": 1356.6943339999998
-    },
-    {
-      "name": "Tricky Thorn",
-      "account": "Yesmad.2791",
-      "profession": "Chronomancer",
-      "group": 7,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 17142,
-      "squadHealing": 15506,
-      "stabGeneration": 729.8958520000001
-    },
-    {
-      "name": "Mesmer Hatt",
-      "account": "hotep.8715",
-      "profession": "Troubadour",
-      "group": 8,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 1,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 15832,
-      "squadHealing": 10027,
-      "stabGeneration": 756.215018
-    },
-    {
-      "name": "Nim Iss",
-      "account": "Flame.7958",
-      "profession": "Holosmith",
-      "group": 8,
-      "notInSquad": false,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 0,
-      "stabGeneration": 0
+      "squadBarrier": 47962,
+      "squadHealing": 49050,
+      "stabGeneration": 742.806899
     },
     {
       "name": "Radburne",
       "account": "red armadillo.4593",
       "profession": "Luminary",
-      "group": 8,
+      "group": 5,
       "notInSquad": false,
       "outCrowdControl": 0,
       "incomingStrips": {
-        "total": 0,
+        "total": 17,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 4,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 19923,
+      "squadHealing": 35108,
+      "stabGeneration": 528.053838
+    },
+    {
+      "name": "Rate My Flesh Golem",
+      "account": "Wisdom.6028",
+      "profession": "Reaper",
+      "group": 5,
+      "notInSquad": false,
+      "outCrowdControl": 2,
+      "incomingStrips": {
+        "total": 25,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 4,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 12244,
+      "stabGeneration": 9.631434
+    },
+    {
+      "name": "Tilted Aegis",
+      "account": "Pentheus.4571",
+      "profession": "Luminary",
+      "group": 5,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 20,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 2,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 19895,
+      "squadHealing": 5297,
+      "stabGeneration": 248.74225199999998
+    },
+    {
+      "name": "Arx Aeternus",
+      "account": "Arx.9785",
+      "profession": "Amalgam",
+      "group": 6,
+      "notInSquad": false,
+      "outCrowdControl": 3,
+      "incomingStrips": {
+        "total": 16,
         "missed": 0,
         "blocked": 0
       },
@@ -770,13 +440,277 @@
         "blocked": 0
       },
       "downContribution": 0,
-      "squadBarrier": 18815,
-      "squadHealing": 18274,
-      "stabGeneration": 581.5362220000001
+      "squadBarrier": 869,
+      "squadHealing": 157,
+      "stabGeneration": 8.933504000000001
     },
     {
-      "name": "Sunny Dispositíon",
-      "account": "Sunny.3891",
+      "name": "Charrundie",
+      "account": "undiee.3146",
+      "profession": "Luminary",
+      "group": 6,
+      "notInSquad": false,
+      "outCrowdControl": 2,
+      "incomingStrips": {
+        "total": 17,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 5,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 23466,
+      "squadHealing": 79521,
+      "stabGeneration": 665.406462
+    },
+    {
+      "name": "Georqe",
+      "account": "shibby.8670",
+      "profession": "Untamed",
+      "group": 6,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 22,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 1,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 220,
+      "stabGeneration": 56.951088
+    },
+    {
+      "name": "Nim Ísnt",
+      "account": "Flame.7958",
+      "profession": "Troubadour",
+      "group": 6,
+      "notInSquad": false,
+      "outCrowdControl": 1,
+      "incomingStrips": {
+        "total": 8,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 4,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 51396,
+      "squadHealing": 94522,
+      "stabGeneration": 678.2483739999999
+    },
+    {
+      "name": "Shyenne Riversong",
+      "account": "kroft.5946",
+      "profession": "Druid",
+      "group": 6,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 10,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 5,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 162343,
+      "stabGeneration": 0
+    },
+    {
+      "name": "Psychic Visit",
+      "account": "Mes.1906",
+      "profession": "Troubadour",
+      "group": 7,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 14,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 1,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 43309,
+      "squadHealing": 76095,
+      "stabGeneration": 304.85582400000004
+    },
+    {
+      "name": "Psychoscythe",
+      "account": "Cavalier.4015",
+      "profession": "Troubadour",
+      "group": 7,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 1,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 1,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 36853,
+      "squadHealing": 184485,
+      "stabGeneration": 648.516556
+    },
+    {
+      "name": "R O O M B A",
+      "account": "ROOMBA.7658",
+      "profession": "Druid",
+      "group": 7,
+      "notInSquad": false,
+      "outCrowdControl": 1,
+      "incomingStrips": {
+        "total": 14,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 2,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 34276,
+      "stabGeneration": 0
+    },
+    {
+      "name": "Shortalist",
+      "account": "Brotalist.3085",
+      "profession": "Amalgam",
+      "group": 7,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 4,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 4,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 0,
+      "stabGeneration": 20.239969999999996
+    },
+    {
+      "name": "Tyroneblake",
+      "account": "Jax Blake.7250",
+      "profession": "Harbinger",
+      "group": 7,
+      "notInSquad": false,
+      "outCrowdControl": 1,
+      "incomingStrips": {
+        "total": 10,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 5,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 69834,
+      "stabGeneration": 129.675394
+    },
+    {
+      "name": "Aeri Berry",
+      "account": "Aeri.4529",
+      "profession": "Troubadour",
+      "group": 8,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 5,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 1,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 11940,
+      "stabGeneration": 213.00823599999998
+    },
+    {
+      "name": "Already Name Change",
+      "account": "Wag Z.8294",
+      "profession": "Berserker",
+      "group": 8,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 3,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 5,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 0,
+      "stabGeneration": 17.238871
+    },
+    {
+      "name": "Breaknbads",
+      "account": "BreakN.5496",
+      "profession": "Berserker",
+      "group": 8,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 10,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 4,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 0,
+      "stabGeneration": 111.11045599999999
+    },
+    {
+      "name": "Mal Incendia",
+      "account": "Morkai.7021",
       "profession": "Amalgam",
       "group": 8,
       "notInSquad": false,
@@ -787,20 +721,130 @@
         "blocked": 0
       },
       "incomingCrowdControl": {
+        "total": 1,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 0,
+      "stabGeneration": 31.965194
+    },
+    {
+      "name": "Renfri Of Lykaia",
+      "account": "DharmaDub.5691",
+      "profession": "Druid",
+      "group": 8,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 11,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 8,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 4385,
+      "squadHealing": 92245,
+      "stabGeneration": 0
+    },
+    {
+      "name": "Bingo Scrag",
+      "account": "woahs.1329",
+      "profession": "Troubadour",
+      "group": 9,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 10,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 3,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 35195,
+      "squadHealing": 133817,
+      "stabGeneration": 655.35627
+    },
+    {
+      "name": "Iori Kosaka",
+      "account": "Xiefer.1503",
+      "profession": "Amalgam",
+      "group": 9,
+      "notInSquad": false,
+      "outCrowdControl": 2,
+      "incomingStrips": {
+        "total": 26,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 1,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 0,
+      "stabGeneration": 30.01099
+    },
+    {
+      "name": "Radiant Harasho",
+      "account": "harasho.4281",
+      "profession": "Luminary",
+      "group": 9,
+      "notInSquad": false,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 9,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
         "total": 0,
         "missed": 0,
         "blocked": 0
       },
       "downContribution": 0,
-      "squadBarrier": 4639,
-      "squadHealing": 0,
-      "stabGeneration": 22.966406000000003
+      "squadBarrier": 19810,
+      "squadHealing": 22605,
+      "stabGeneration": 85.14746
     },
     {
-      "name": "Tehryan",
-      "account": "Tehryan.7861",
-      "profession": "Evoker",
-      "group": 8,
+      "name": "Ranger Fibbs",
+      "account": "Fibbs.1623",
+      "profession": "Druid",
+      "group": 9,
+      "notInSquad": false,
+      "outCrowdControl": 1,
+      "incomingStrips": {
+        "total": 11,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 1,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 386129,
+      "stabGeneration": 0
+    },
+    {
+      "name": "Sayuri Moriko",
+      "account": "Travis the Terrible.4739",
+      "profession": "Luminary",
+      "group": 9,
       "notInSquad": false,
       "outCrowdControl": 0,
       "incomingStrips": {
@@ -815,13 +859,35 @@
       },
       "downContribution": 0,
       "squadBarrier": 0,
-      "squadHealing": 29426,
+      "squadHealing": 0,
       "stabGeneration": 0
     },
     {
-      "name": "Evoker pl-5489",
-      "account": "Non Squad Player 32",
-      "profession": "Evoker",
+      "name": "Tempest pl-3385",
+      "account": "Non Squad Player 6",
+      "profession": "Tempest",
+      "group": 51,
+      "notInSquad": true,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 0,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 0,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 27224,
+      "stabGeneration": 0
+    },
+    {
+      "name": "Weaver pl-2058",
+      "account": "Non Squad Player 43",
+      "profession": "Weaver",
       "group": 51,
       "notInSquad": true,
       "outCrowdControl": 0,
@@ -841,31 +907,9 @@
       "stabGeneration": 0
     },
     {
-      "name": "Scrapper pl-4879",
-      "account": "Non Squad Player 4",
-      "profession": "Scrapper",
-      "group": 51,
-      "notInSquad": true,
-      "outCrowdControl": 0,
-      "incomingStrips": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "incomingCrowdControl": {
-        "total": 0,
-        "missed": 0,
-        "blocked": 0
-      },
-      "downContribution": 0,
-      "squadBarrier": 0,
-      "squadHealing": 791,
-      "stabGeneration": 0
-    },
-    {
-      "name": "Troubadour pl-4148",
-      "account": "Non Squad Player 38",
-      "profession": "Troubadour",
+      "name": "Engineer pl-5818",
+      "account": "Non Squad Player 31",
+      "profession": "Engineer",
       "group": 51,
       "notInSquad": true,
       "outCrowdControl": 0,
@@ -885,9 +929,9 @@
       "stabGeneration": 0
     },
     {
-      "name": "Specter pl-4078",
-      "account": "Non Squad Player 2",
-      "profession": "Specter",
+      "name": "Mirage pl-4265",
+      "account": "Non Squad Player 42",
+      "profession": "Mirage",
       "group": 51,
       "notInSquad": true,
       "outCrowdControl": 0,
@@ -902,8 +946,52 @@
         "blocked": 0
       },
       "downContribution": 0,
-      "squadBarrier": 35878,
-      "squadHealing": 3540,
+      "squadBarrier": 0,
+      "squadHealing": 0,
+      "stabGeneration": 0
+    },
+    {
+      "name": "Ritualist pl-6137",
+      "account": "Non Squad Player 3",
+      "profession": "Ritualist",
+      "group": 51,
+      "notInSquad": true,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 0,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 0,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 15710,
+      "stabGeneration": 0
+    },
+    {
+      "name": "Spellbreaker pl-6218",
+      "account": "Non Squad Player 45",
+      "profession": "Spellbreaker",
+      "group": 51,
+      "notInSquad": true,
+      "outCrowdControl": 0,
+      "incomingStrips": {
+        "total": 0,
+        "missed": 0,
+        "blocked": 0
+      },
+      "incomingCrowdControl": {
+        "total": 0,
+        "missed": 0,
+        "blocked": 0
+      },
+      "downContribution": 0,
+      "squadBarrier": 0,
+      "squadHealing": 0,
       "stabGeneration": 0
     }
   ]
