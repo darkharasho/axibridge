@@ -889,7 +889,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
     console.log(`[Main] processLogFile start: ${filePath}`);
     if (options?.retry) {
         markUploadRetrying(filePath);
-        win?.webContents.send('upload-status', { id: fileId, filePath, status: 'retrying' });
+        // Keep the visible chip flow consistent with first-time uploads.
+        win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
     } else {
         win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
     }
