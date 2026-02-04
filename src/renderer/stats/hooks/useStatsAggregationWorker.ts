@@ -23,6 +23,8 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const workerRef = useRef<Worker | null>(null);
     const [workerFailed, setWorkerFailed] = useState(false);
     const streamTimerRef = useRef<number | null>(null);
+    const workerLogLimit = 8;
+    const shouldUseWorker = logs.length <= workerLogLimit;
 
     const payload = useMemo(
         () => ({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod }),
@@ -32,6 +34,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     useEffect(() => {
         if (typeof Worker === 'undefined') return;
         if (workerFailed) return;
+        if (!shouldUseWorker) return;
         if (!workerRef.current) {
             workerRef.current = new Worker(new URL('../../workers/statsWorker.ts', import.meta.url), { type: 'module' });
             workerRef.current.onmessage = (event) => {
@@ -76,10 +79,10 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             workerRef.current?.terminate();
             workerRef.current = null;
         };
-    }, [workerFailed]);
+    }, [workerFailed, shouldUseWorker]);
 
     useEffect(() => {
-        if (!workerRef.current || workerFailed) return;
+        if (!workerRef.current || workerFailed || !shouldUseWorker) return;
         try {
             activeTokenRef.current += 1;
             setActiveToken(activeTokenRef.current);
@@ -118,22 +121,22 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             workerRef.current = null;
             setWorkerFailed(true);
         }
-    }, [payload, logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod]);
+    }, [payload, logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod, shouldUseWorker]);
 
     const fallback = useMemo(() => {
-        if (!workerFailed && typeof Worker !== 'undefined') return null;
+        if (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker) return null;
         return computeStatsAggregation({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod });
-    }, [workerFailed, logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod]);
+    }, [workerFailed, logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod, shouldUseWorker]);
 
     useEffect(() => {
-        if (!workerFailed && typeof Worker !== 'undefined') return;
+        if (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker) return;
         setComputeTick((prev) => prev + 1);
         setLastComputedLogCount(logs.length);
         setLastComputedToken(activeTokenRef.current);
         setLastComputedAt(Date.now());
-    }, [fallback, workerFailed, logs.length]);
+    }, [fallback, workerFailed, logs.length, shouldUseWorker]);
 
-    const resolvedResult = (workerFailed || typeof Worker === 'undefined')
+    const resolvedResult = (workerFailed || typeof Worker === 'undefined' || !shouldUseWorker)
         ? (fallback ?? computeStatsAggregation({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod }))
         : result;
 

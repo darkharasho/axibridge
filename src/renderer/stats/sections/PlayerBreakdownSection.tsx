@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, ListTree, Maximize2, X } from 'lucide-react';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import { formatTopStatValue, formatWithCommas } from '../utils/dashboardUtils';
@@ -80,6 +81,36 @@ export const PlayerBreakdownSection = ({
     const playerCount = playerSkillBreakdowns.length;
     const totalPlayerDamage = (activePlayerBreakdown?.skills || []).reduce((sum, skill) => sum + (skill.damage || 0), 0);
     const activeClassRows = activeClassBreakdown?.players || [];
+    const [classSort, setClassSort] = useState<{ key: 'down' | 'damage' | 'dps'; dir: 'asc' | 'desc' }>({
+        key: 'down',
+        dir: 'desc'
+    });
+    const sortedClassRows = useMemo(() => {
+        if (!activeClassBreakdown || !activeClassSkill) return activeClassRows;
+        const rows = [...activeClassRows];
+        rows.sort((a, b) => {
+            const aSkill = a.skillMap?.[activeClassSkill.id];
+            const bSkill = b.skillMap?.[activeClassSkill.id];
+            const aDown = Number(aSkill?.downContribution || 0);
+            const bDown = Number(bSkill?.downContribution || 0);
+            const aDamage = Number(aSkill?.damage || 0);
+            const bDamage = Number(bSkill?.damage || 0);
+            const aDps = a.totalFightMs > 0 ? aDamage / (a.totalFightMs / 1000) : 0;
+            const bDps = b.totalFightMs > 0 ? bDamage / (b.totalFightMs / 1000) : 0;
+            let diff = 0;
+            if (classSort.key === 'down') diff = aDown - bDown;
+            if (classSort.key === 'damage') diff = aDamage - bDamage;
+            if (classSort.key === 'dps') diff = aDps - bDps;
+            return classSort.dir === 'asc' ? diff : -diff;
+        });
+        return rows;
+    }, [activeClassBreakdown, activeClassRows, activeClassSkill, classSort]);
+    const toggleClassSort = (key: 'down' | 'damage' | 'dps') => {
+        setClassSort((prev) => {
+            if (prev.key !== key) return { key, dir: 'desc' };
+            return { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' };
+        });
+    };
 
     return (
         <div
@@ -403,12 +434,33 @@ export const PlayerBreakdownSection = ({
                                         </div>
                                         <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                             <div>Player</div>
-                                            <div className="text-right">Down Contrib</div>
-                                            <div className="text-right">Damage</div>
-                                            <div className="text-right">DPS</div>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleClassSort('down')}
+                                                className="text-right flex items-center justify-end gap-1 hover:text-white transition-colors"
+                                            >
+                                                Down Contrib
+                                                <span className="text-[10px]">{classSort.key === 'down' ? (classSort.dir === 'desc' ? '▼' : '▲') : ''}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleClassSort('damage')}
+                                                className="text-right flex items-center justify-end gap-1 hover:text-white transition-colors"
+                                            >
+                                                Damage
+                                                <span className="text-[10px]">{classSort.key === 'damage' ? (classSort.dir === 'desc' ? '▼' : '▲') : ''}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleClassSort('dps')}
+                                                className="text-right flex items-center justify-end gap-1 hover:text-white transition-colors"
+                                            >
+                                                DPS
+                                                <span className="text-[10px]">{classSort.key === 'dps' ? (classSort.dir === 'desc' ? '▼' : '▲') : ''}</span>
+                                            </button>
                                         </div>
                                         <div className={expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}>
-                                            {activeClassRows.map((player) => {
+                                            {sortedClassRows.map((player) => {
                                                 const skillEntry = player.skillMap?.[activeClassSkill.id];
                                                 const downContribution = Number(skillEntry?.downContribution || 0);
                                                 const damage = Number(skillEntry?.damage || 0);

@@ -620,37 +620,38 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
 
     const filteredBoonTables = useMemo(() => {
         const term = boonSearch.trim().toLowerCase();
-        if (!term) return stats.boonTables;
-        return stats.boonTables.filter((boon: any) => boon.name.toLowerCase().includes(term));
-    }, [stats.boonTables, boonSearch]);
+        const tables = stats?.boonTables || [];
+        if (!term) return tables;
+        return tables.filter((boon: any) => boon.name.toLowerCase().includes(term));
+    }, [stats?.boonTables, boonSearch]);
     const activeBoonTable = useMemo(() => {
         if (!activeBoonTab) return null;
-        return stats.boonTables.find((boon: any) => boon.id === activeBoonTab) ?? null;
-    }, [stats.boonTables, activeBoonTab]);
+        return (stats?.boonTables || []).find((boon: any) => boon.id === activeBoonTab) ?? null;
+    }, [stats?.boonTables, activeBoonTab]);
     const filteredSpecialTables = useMemo(() => {
         const term = specialSearch.trim().toLowerCase();
-        const sorted = [...stats.specialTables].sort((a: any, b: any) => a.name.localeCompare(b.name));
+        const sorted = [...(stats?.specialTables || [])].sort((a: any, b: any) => a.name.localeCompare(b.name));
         if (!term) return sorted;
         return sorted.filter((buff: any) => buff.name.toLowerCase().includes(term));
-    }, [stats.specialTables, specialSearch]);
+    }, [stats?.specialTables, specialSearch]);
     const activeSpecialTable = useMemo(() => {
         if (!activeSpecialTab) return null;
-        return stats.specialTables.find((buff: any) => buff.id === activeSpecialTab) ?? null;
-    }, [stats.specialTables, activeSpecialTab]);
+        return (stats?.specialTables || []).find((buff: any) => buff.id === activeSpecialTab) ?? null;
+    }, [stats?.specialTables, activeSpecialTab]);
 
     useEffect(() => {
-        if (!stats.boonTables || stats.boonTables.length === 0) return;
+        if (!stats?.boonTables || stats.boonTables.length === 0) return;
         if (!activeBoonTab || !stats.boonTables.some((tab: any) => tab.id === activeBoonTab)) {
             setActiveBoonTab(stats.boonTables[0].id);
         }
-    }, [stats.boonTables, activeBoonTab]);
+    }, [stats?.boonTables, activeBoonTab]);
 
     useEffect(() => {
-        if (!stats.specialTables || stats.specialTables.length === 0) return;
+        if (!stats?.specialTables || stats.specialTables.length === 0) return;
         if (!activeSpecialTab || !stats.specialTables.some((tab: any) => tab.id === activeSpecialTab)) {
             setActiveSpecialTab(stats.specialTables[0].id);
         }
-    }, [stats.specialTables, activeSpecialTab]);
+    }, [stats?.specialTables, activeSpecialTab]);
 
     useEffect(() => {
         const clearSelection = () => {

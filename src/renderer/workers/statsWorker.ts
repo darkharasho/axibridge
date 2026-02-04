@@ -15,6 +15,84 @@ let computeId = 0;
 let currentToken = 0;
 let pendingFlushId: number | null = null;
 
+const pruneDetailsForStats = (details: any) => {
+    if (!details || typeof details !== 'object') return details;
+    const pick = (obj: any, keys: string[]) => {
+        const out: any = {};
+        keys.forEach((key) => {
+            if (obj && Object.prototype.hasOwnProperty.call(obj, key)) {
+                out[key] = obj[key];
+            }
+        });
+        return out;
+    };
+    const pruned: any = pick(details, [
+        'players',
+        'targets',
+        'durationMS',
+        'uploadTime',
+        'fightName',
+        'success',
+        'teamCounts',
+        'combatReplayMetaData',
+        'skillMap',
+        'buffMap',
+        'encounterDuration'
+    ]);
+    if (Array.isArray(pruned.players)) {
+        pruned.players = pruned.players.map((player: any) => pick(player, [
+            'name',
+            'display_name',
+            'character_name',
+            'profession',
+            'elite_spec',
+            'group',
+            'dpsAll',
+            'statsAll',
+            'dpsTargets',
+            'statsTargets',
+            'defenses',
+            'support',
+            'rotation',
+            'extHealingStats',
+            'extBarrierStats',
+            'squadBuffVolumes',
+            'selfBuffs',
+            'groupBuffs',
+            'squadBuffs',
+            'selfBuffsActive',
+            'groupBuffsActive',
+            'squadBuffsActive',
+            'buffUptimes',
+            'totalDamageDist',
+            'targetDamageDist',
+            'totalDamageTaken',
+            'combatReplayData',
+            'hasCommanderTag',
+            'notInSquad',
+            'account',
+            'activeTimes'
+        ]));
+    }
+    if (Array.isArray(pruned.targets)) {
+        pruned.targets = pruned.targets.map((target: any) =>
+            pick(target, ['id', 'name', 'isFake', 'dpsAll', 'statsAll', 'defenses', 'totalHealth', 'healthPercentBurned', 'enemyPlayer'])
+        );
+    }
+    return pruned;
+};
+
+const pruneLogForStats = (log: any) => {
+    if (!log || typeof log !== 'object') return log;
+    const pruned = { ...log };
+    if (log.details) {
+        pruned.details = pruneDetailsForStats(log.details);
+    } else {
+        pruned.details = pruneDetailsForStats(log);
+    }
+    return pruned;
+};
+
 const computeAndPost = () => {
     if (!dirty || !latestPayload) return;
     dirty = false;
@@ -67,7 +145,7 @@ self.onmessage = (event: MessageEvent) => {
         if (!latestPayload) {
             latestPayload = { logs: [] };
         }
-        latestPayload.logs.push(data.payload);
+        latestPayload.logs.push(pruneLogForStats(data.payload));
         dirty = true;
         ensureTimer();
         return;

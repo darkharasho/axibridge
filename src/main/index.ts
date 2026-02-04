@@ -57,18 +57,24 @@ function formatLogArgs(args: any[]) {
     }).join(' ');
 }
 
+const safeSendToRenderer = (payload: { type: 'info' | 'error'; message: string; timestamp: string }) => {
+    try {
+        if (!win || win.isDestroyed()) return;
+        if (win.webContents.isDestroyed()) return;
+        win.webContents.send('console-log', payload);
+    } catch {
+        // Swallow send errors to avoid recursive console errors when the renderer is gone.
+    }
+};
+
 console.log = (...args) => {
     originalConsoleLog(...args);
-    if (win && !win.isDestroyed()) {
-        win.webContents.send('console-log', { type: 'info', message: formatLogArgs(args), timestamp: new Date().toISOString() });
-    }
+    safeSendToRenderer({ type: 'info', message: formatLogArgs(args), timestamp: new Date().toISOString() });
 };
 
 console.error = (...args) => {
     originalConsoleError(...args);
-    if (win && !win.isDestroyed()) {
-        win.webContents.send('console-log', { type: 'error', message: formatLogArgs(args), timestamp: new Date().toISOString() });
-    }
+    safeSendToRenderer({ type: 'error', message: formatLogArgs(args), timestamp: new Date().toISOString() });
 };
 
 const Store = require('electron-store');
