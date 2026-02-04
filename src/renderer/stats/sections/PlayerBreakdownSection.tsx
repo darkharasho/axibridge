@@ -212,20 +212,29 @@ export const PlayerBreakdownSection = ({
                                                                 );
                                                             }
                                                             return filteredSkills.map((skill) => (
-                                                                <button
-                                                                    key={skill.id}
-                                                                    onClick={() => setActivePlayerSkillId(skill.id)}
-                                                                    className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors ${
-                                                                        activePlayerSkillId === skill.id
-                                                                            ? 'bg-sky-500/10 text-sky-100 border-sky-400/40'
-                                                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                                    }`}
-                                                                >
-                                                                    <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-4 w-4" />
-                                                                </button>
-                                                            ));
-                                                        })()
-                                                    )}
+                                                            <button
+                                                                key={skill.id}
+                                                                onClick={() => setActivePlayerSkillId(skill.id)}
+                                                                className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors overflow-hidden ${
+                                                                    activePlayerSkillId === skill.id
+                                                                        ? 'bg-sky-500/10 text-sky-100 border-sky-400/40'
+                                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                                }`}
+                                                                title={skill.name}
+                                                            >
+                                                                <div className="min-w-0 pr-4 w-full">
+                                                                    <InlineIconLabel
+                                                                        name={skill.name}
+                                                                        iconUrl={skill.icon}
+                                                                        iconClassName="h-4 w-4"
+                                                                        className="min-w-0 flex-1 w-full"
+                                                                        textClassName="truncate max-w-[140px] sm:max-w-full"
+                                                                    />
+                                                                </div>
+                                                            </button>
+                                                        ));
+                                                    })()
+                                                )}
                                                 </div>
                                             )}
                                         </div>
@@ -292,20 +301,29 @@ export const PlayerBreakdownSection = ({
                                                                 );
                                                             }
                                                             return filteredSkills.map((skill) => (
-                                                                <button
-                                                                    key={skill.id}
-                                                                    onClick={() => setActiveClassSkillId(skill.id)}
-                                                                    className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors ${
-                                                                        activeClassSkillId === skill.id
-                                                                            ? 'bg-sky-500/10 text-sky-100 border-sky-400/40'
-                                                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                                    }`}
-                                                                >
-                                                                    <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-4 w-4" />
-                                                                </button>
-                                                            ));
-                                                        })()
-                                                    )}
+                                                            <button
+                                                                key={skill.id}
+                                                                onClick={() => setActiveClassSkillId(skill.id)}
+                                                                className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors overflow-hidden ${
+                                                                    activeClassSkillId === skill.id
+                                                                        ? 'bg-sky-500/10 text-sky-100 border-sky-400/40'
+                                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                                }`}
+                                                                title={skill.name}
+                                                            >
+                                                                <div className="min-w-0 pr-4 w-full">
+                                                                    <InlineIconLabel
+                                                                        name={skill.name}
+                                                                        iconUrl={skill.icon}
+                                                                        iconClassName="h-4 w-4"
+                                                                        className="min-w-0 flex-1 w-full"
+                                                                        textClassName="truncate max-w-[140px] sm:max-w-full"
+                                                                    />
+                                                                </div>
+                                                            </button>
+                                                        ));
+                                                    })()
+                                                )}
                                                 </div>
                                             )}
                                         </div>

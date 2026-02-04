@@ -14,6 +14,9 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { DesktopIntegrator } from './integration';
 
+// Increase V8 heap for packaged and dev builds to avoid OOM on large datasets.
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=6144');
+
 // Handle EPIPE errors gracefully - these occur when stdout/stderr pipes close
 // (e.g., when running as AppImage without a terminal)
 process.stdout?.on?.('error', (err: NodeJS.ErrnoException) => {
