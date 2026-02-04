@@ -255,10 +255,10 @@ function App() {
         }
         setLogs((currentLogs) => {
             let changed = false;
-            const next = currentLogs.map((log) => {
+            const next = currentLogs.map<ILogData>((log) => {
                 if (log.status === 'calculating') {
                     changed = true;
-                    return { ...log, status: 'success' };
+                    return { ...log, status: 'success' as const };
                 }
                 return log;
             });
