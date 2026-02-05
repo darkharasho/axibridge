@@ -1,19 +1,17 @@
 # Release Notes
 
-Version v1.21.0 — February 4, 2026
+Version v1.21.1 — February 4, 2026
 
 ## 🌟 Highlights
-- Major refactor of the modern slate theme for ArcBridge.
-- ArcBridge logo updated with gradient styling for a fresher look.
-- Web assets refreshed to support the new visuals.
+- Integration tests now cover healing stats rendering and aggregation.
+- Prevented duplicate Discord embed posts during automatic uploads.
 
 ## 🛠️ Improvements
-- Gradient styling applied to the logo and UI accents.
-- Refreshed class icons (Antiquary and Luminary) for clearer visuals.
-- UI assets and styles updated to align with the new theme.
+- Healing stats tests are clearer and more consistent.
 
 ## 🧯 Fixes
-- Prevent duplicate Discord embed posts during auto uploads.
+- Fixed how healing stats are read from computeStatsAggregation in healing integration tests.
+- Fixed healing tests to destructure stats from computeStatsAggregation results.
 
 ## ⚠️ Breaking Changes
-- Theme overhaul may change visuals and layout; some screens may look different from prior versions.
+- None.
