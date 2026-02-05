@@ -11,7 +11,7 @@ describe('StatsView (healing integration)', () => {
         const fixturePath = path.resolve(process.cwd(), 'test-fixtures/ei/20260130-193742.json');
         const details = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
         const log = { details, status: 'success', filePath: fixturePath };
-        const stats = computeStatsAggregation({ logs: [log] });
+        const { stats } = computeStatsAggregation({ logs: [log] });
 
         render(
             <StatsView
