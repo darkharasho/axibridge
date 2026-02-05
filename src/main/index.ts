@@ -811,6 +811,8 @@ let discord: DiscordNotifier | null = null
 let resolvedRetryCount = 0;
 const activeUploads = new Set<string>();
 const pendingDiscordLogs = new Map<string, { result: any, jsonDetails: any }>();
+const recentDiscordSends = new Map<string, number>();
+const DISCORD_DEDUPE_TTL_MS = 2 * 60 * 1000;
 let bulkUploadMode = false;
 const bulkLogDetailsCache = new Map<string, any>();
 const globalManifest: Array<any> = [];
@@ -1010,16 +1012,31 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
 
             if (shouldSendDiscord) {
                 try {
-                    if (notificationType === 'image' || notificationType === 'image-beta') {
-                        const logKey = result.id || filePath;
-                        if (!logKey) {
-                            console.error('[Main] Discord notification skipped: missing log identifier.');
-                        } else {
-                            pendingDiscordLogs.set(logKey, { result: { ...result, filePath, id: logKey }, jsonDetails });
-                            win?.webContents.send('request-screenshot', { ...result, id: logKey, filePath, details: jsonDetails, mode: notificationType });
-                        }
+                    const dedupeKey = cacheKey || result.id || filePath;
+                    const now = Date.now();
+                    const lastSentAt = recentDiscordSends.get(dedupeKey);
+                    if (lastSentAt && now - lastSentAt < DISCORD_DEDUPE_TTL_MS) {
+                        console.warn(`[Main] Skipping duplicate Discord post for ${filePath} (dedupe key: ${dedupeKey}).`);
                     } else {
-                        await discord?.sendLog({ ...result, filePath, mode: 'embed' }, jsonDetails);
+                        recentDiscordSends.set(dedupeKey, now);
+                        if (recentDiscordSends.size > 500) {
+                            for (const [key, timestamp] of recentDiscordSends) {
+                                if (now - timestamp > DISCORD_DEDUPE_TTL_MS) {
+                                    recentDiscordSends.delete(key);
+                                }
+                            }
+                        }
+                        if (notificationType === 'image' || notificationType === 'image-beta') {
+                            const logKey = result.id || filePath;
+                            if (!logKey) {
+                                console.error('[Main] Discord notification skipped: missing log identifier.');
+                            } else {
+                                pendingDiscordLogs.set(logKey, { result: { ...result, filePath, id: logKey }, jsonDetails });
+                                win?.webContents.send('request-screenshot', { ...result, id: logKey, filePath, details: jsonDetails, mode: notificationType });
+                            }
+                        } else {
+                            await discord?.sendLog({ ...result, filePath, mode: 'embed' }, jsonDetails);
+                        }
                     }
                 } catch (discordError: any) {
                     console.error('[Main] Discord notification failed:', discordError?.message || discordError);

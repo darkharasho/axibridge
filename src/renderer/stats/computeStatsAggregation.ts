@@ -359,7 +359,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 ? Number(Object.keys(details.skillMap).find((key) => details.skillMap?.[key]?.name === 'Battle Standard')?.replace(/^s/, ''))
                 : null;
 
-            players.forEach(p => {
+            players.forEach((p, playerIndex) => {
                 if (p.notInSquad) return;
                 const account = p.account || 'Unknown';
                 const key = account !== 'Unknown' ? account : (p.name || 'Unknown');
@@ -469,7 +469,27 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 }
 
                 // Healing
-                const addHealing = (key: string, val: number) => { if (Number.isFinite(val)) s.healingTotals[key] = (s.healingTotals[key] || 0) + val; };
+                const addHealing = (key: string, val: number) => {
+                    if (Number.isFinite(val)) s.healingTotals[key] = (s.healingTotals[key] || 0) + val;
+                };
+                const sumPhaseValue = (phases: any[] | undefined, field: string) => {
+                    if (!Array.isArray(phases)) return 0;
+                    return phases.reduce((sum, phase) => sum + Number(phase?.[field] ?? 0), 0);
+                };
+                const addHealingByCategory = (fieldBase: 'healing' | 'downedHealing' | 'barrier', allyIdx: number, value: number) => {
+                    if (!Number.isFinite(value) || value <= 0) return;
+                    const ally = players[allyIdx];
+                    const isSelf = allyIdx === playerIndex;
+                    const isOffSquad = ally?.notInSquad;
+                    const isSquad = !isOffSquad;
+                    const isGroup = isSquad && ally?.group != null && ally.group === p.group;
+
+                    addHealing(fieldBase, value);
+                    if (isSquad) addHealing(`squad${fieldBase[0].toUpperCase()}${fieldBase.slice(1)}`, value);
+                    if (isGroup) addHealing(`group${fieldBase[0].toUpperCase()}${fieldBase.slice(1)}`, value);
+                    if (isSelf) addHealing(`self${fieldBase[0].toUpperCase()}${fieldBase.slice(1)}`, value);
+                    if (isOffSquad) addHealing(`offSquad${fieldBase[0].toUpperCase()}${fieldBase.slice(1)}`, value);
+                };
                 if (Array.isArray(p.rotation)) {
                     let resCasts = 0;
                     p.rotation.forEach((rot: any) => {
@@ -479,7 +499,22 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     });
                     if (resCasts > 0) addHealing('resUtility', resCasts);
                 }
-                // (Ext Healing/Barrier omitted for brevity but should be here ideally, keeping simple for now)
+                const outgoingHealingAllies = p.extHealingStats?.outgoingHealingAllies;
+                if (Array.isArray(outgoingHealingAllies)) {
+                    outgoingHealingAllies.forEach((allyPhases, allyIdx) => {
+                        const healing = sumPhaseValue(allyPhases, 'healing');
+                        const downedHealing = sumPhaseValue(allyPhases, 'downedHealing');
+                        addHealingByCategory('healing', allyIdx, healing);
+                        addHealingByCategory('downedHealing', allyIdx, downedHealing);
+                    });
+                }
+                const outgoingBarrierAllies = p.extBarrierStats?.outgoingBarrierAllies;
+                if (Array.isArray(outgoingBarrierAllies)) {
+                    outgoingBarrierAllies.forEach((allyPhases, allyIdx) => {
+                        const barrier = sumPhaseValue(allyPhases, 'barrier');
+                        addHealingByCategory('barrier', allyIdx, barrier);
+                    });
+                }
 
                 // Offense
                 const statsAll = p.statsAll?.[0];

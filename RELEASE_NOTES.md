@@ -13,7 +13,7 @@ Version v1.21.0 — February 4, 2026
 - UI assets and styles updated to align with the new theme.
 
 ## 🧯 Fixes
-- None.
+- Prevent duplicate Discord embed posts during auto uploads.
 
 ## ⚠️ Breaking Changes
 - Theme overhaul may change visuals and layout; some screens may look different from prior versions.
