@@ -87,7 +87,7 @@ describe('computeStatsAggregation (healing totals)', () => {
         expect(expected.healing).toBeGreaterThan(0);
 
         const log = { details, status: 'success', filePath: fixturePath };
-        const stats = computeStatsAggregation({ logs: [log] });
+        const { stats } = computeStatsAggregation({ logs: [log] });
 
         const account = players[playerIndex].account || players[playerIndex].name || 'Unknown';
         const playerStats = stats.healingPlayers.find((entry: any) => entry.account === account);
