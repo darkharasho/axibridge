@@ -36,6 +36,7 @@ autoUpdater.logger = log;
 // Hook console logging to send to renderer
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
 
 if (!app.isPackaged) {
     const devUserDataDir = path.join(app.getPath('appData'), 'ArcBridge-Dev');
@@ -78,13 +79,21 @@ const safeSendToRenderer = (payload: { type: 'info' | 'error'; message: string; 
 };
 
 console.log = (...args) => {
-    originalConsoleLog(...args);
-    safeSendToRenderer({ type: 'info', message: formatLogArgs(args), timestamp: new Date().toISOString() });
+    const message = formatLogArgs(args);
+    originalConsoleLog(message);
+    safeSendToRenderer({ type: 'info', message, timestamp: new Date().toISOString() });
+};
+
+console.warn = (...args) => {
+    const message = formatLogArgs(args);
+    originalConsoleWarn(message);
+    safeSendToRenderer({ type: 'info', message, timestamp: new Date().toISOString() });
 };
 
 console.error = (...args) => {
-    originalConsoleError(...args);
-    safeSendToRenderer({ type: 'error', message: formatLogArgs(args), timestamp: new Date().toISOString() });
+    const message = formatLogArgs(args);
+    originalConsoleError(message);
+    safeSendToRenderer({ type: 'error', message, timestamp: new Date().toISOString() });
 };
 
 const Store = require('electron-store');
