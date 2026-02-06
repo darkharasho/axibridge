@@ -1,17 +1,17 @@
 # Release Notes
 
-Version v1.22.1 — February 5, 2026
+Version v1.22.2 — February 5, 2026
 
 ## 🌟 Highlights
-- Updated dist-web assets for ArcBridge's web version.
-- Web icons and images refreshed for a polished look.
+- Enhanced in-app console logging to include warnings and improved message formatting for clearer logs in the app UI.
 
 ## 🛠️ Improvements
-- Updated web build assets to ensure visuals render consistently.
-- Minor refinements to support the refreshed assets across platforms.
+- Warnings are now captured and shown in the app’s log view with clearer formatting.
+- Console messages (info, warning, error) are formatted consistently before they appear in the UI.
 
 ## 🧯 Fixes
-- Improve error handling for console logging to prevent crashes when logging complex objects.
+- Improved handling to ensure warnings are displayed alongside other logs without losing formatting.
+- Error messages are now presented with clearer, unified formatting in the log display.
 
 ## ⚠️ Breaking Changes
 - None.
