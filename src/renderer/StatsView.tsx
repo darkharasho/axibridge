@@ -53,7 +53,7 @@ interface StatsViewProps {
     embedded?: boolean;
     sectionVisibility?: (id: string) => boolean;
     dashboardTitle?: string;
-    uiTheme?: 'classic' | 'modern';
+    uiTheme?: 'classic' | 'modern' | 'crt';
     canShareDiscord?: boolean;
 }
 

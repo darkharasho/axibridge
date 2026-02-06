@@ -157,7 +157,7 @@ export function ReportApp() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
-    const [uiTheme, setUiTheme] = useState<'classic' | 'modern'>('classic');
+    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt'>('classic');
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
     const [activeGroup, setActiveGroup] = useState('overview');
     const statsWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -357,7 +357,7 @@ export function ReportApp() {
                 const normalized = normalizeCommanderDistance(data);
                 setReport(normalized);
                 const themeChoice = normalized?.stats?.uiTheme;
-                if (themeChoice === 'modern' || themeChoice === 'classic') {
+                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt') {
                     setUiTheme(themeChoice);
                 }
             })
@@ -397,8 +397,10 @@ export function ReportApp() {
     useEffect(() => {
         const body = document.body;
         body.classList.add('web-report');
-        body.classList.remove('theme-classic', 'theme-modern');
-        body.classList.add(uiTheme === 'modern' ? 'theme-modern' : 'theme-classic');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt');
+        if (uiTheme === 'modern') body.classList.add('theme-modern');
+        else if (uiTheme === 'crt') body.classList.add('theme-crt');
+        else body.classList.add('theme-classic');
     }, [uiTheme]);
 
     useEffect(() => {
@@ -425,7 +427,7 @@ export function ReportApp() {
             .then((data) => {
                 if (!isMounted) return;
                 const themeChoice = data?.theme;
-                if (themeChoice === 'modern' || themeChoice === 'classic') {
+                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt') {
                     setUiTheme(themeChoice);
                 }
             })

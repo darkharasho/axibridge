@@ -522,12 +522,228 @@ body.theme-modern .settings-view textarea::placeholder {
     color: rgba(122, 132, 148, 0.8);
 }
 
+body.theme-crt {
+    --brand-primary: #57ff9a;
+    --brand-secondary: #2fcf74;
+    --brand-gradient: linear-gradient(135deg, #57ff9a, #2fcf74);
+    --accent-bg: rgba(87, 255, 154, 0.12);
+    --accent-bg-strong: rgba(87, 255, 154, 0.18);
+    --accent-border: rgba(87, 255, 154, 0.4);
+    --glow-primary: rgba(87, 255, 154, 0.35);
+    --glow-secondary: rgba(47, 207, 116, 0.35);
+    --window-glow: 0 0 70px rgba(43, 255, 154, 0.18), 0 0 140px rgba(43, 255, 154, 0.08);
+    --bg-base: #050807;
+    --bg-elevated: #0a120f;
+    --bg-card: rgba(7, 16, 10, 0.8);
+    --bg-hover: rgba(10, 22, 14, 0.9);
+    --bg-input: rgba(6, 14, 10, 0.9);
+    --border-subtle: rgba(87, 255, 154, 0.08);
+    --border-default: rgba(87, 255, 154, 0.18);
+    --border-hover: rgba(87, 255, 154, 0.32);
+    --text-primary: #c7ffd8;
+    --text-secondary: #9ae9b6;
+    --text-muted: #5aa276;
+    background: radial-gradient(circle at top, rgba(20, 45, 30, 0.6), transparent 65%), #040806;
+    color: var(--text-primary);
+    font-family: "Share Tech Mono", "IBM Plex Mono", "Fira Mono", "SFMono-Regular", ui-monospace, monospace;
+    letter-spacing: 0.02em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body.theme-crt .app-shell {
+    position: relative;
+    background:
+        radial-gradient(circle at 15% 10%, rgba(40, 90, 55, 0.35), transparent 55%),
+        radial-gradient(circle at 85% 20%, rgba(22, 70, 45, 0.28), transparent 60%),
+        linear-gradient(180deg, rgba(5, 12, 8, 0.95), rgba(3, 7, 6, 0.98));
+    box-shadow: inset 0 0 40px rgba(12, 28, 18, 0.9), inset 0 0 140px rgba(6, 12, 9, 0.9);
+    text-shadow: 0 0 6px rgba(87, 255, 154, 0.25);
+}
+
+body.theme-crt .app-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.22)),
+        linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
+    background-size: 100% 100%, 100% 3px;
+    opacity: 0.35;
+    pointer-events: none;
+    animation: crt-scan 8s linear infinite;
+}
+
+body.theme-crt .app-shell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.35) 70%, rgba(0, 0, 0, 0.6) 100%);
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+body.theme-crt::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    pointer-events: none;
+    background:
+        linear-gradient(0deg, rgba(0, 0, 0, 0.22) 50%, rgba(0, 0, 0, 0) 50%),
+        linear-gradient(0deg, rgba(120, 255, 170, 0.18) 50%, rgba(0, 0, 0, 0) 50%);
+    background-size: 100% 4px, 100% 4px;
+    background-position: 0 0, 0 1px;
+    background-repeat: repeat;
+    opacity: 0.55;
+    mix-blend-mode: normal;
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+body.theme-crt::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse at center, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.7) 100%);
+    opacity: 0.6;
+    animation: crt-roll 7.5s linear infinite;
+}
+
+body.theme-crt .legacy-orb {
+    opacity: 0.2;
+    filter: hue-rotate(120deg) saturate(1.4);
+}
+
+body.theme-crt .app-shell .bg-white\/5 {
+    background-image: linear-gradient(145deg, rgba(12, 28, 18, 0.9), rgba(6, 16, 10, 0.95)) !important;
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-subtle) !important;
+}
+
+body.theme-crt .app-shell .bg-white\/10 {
+    background-image: linear-gradient(145deg, rgba(16, 34, 22, 0.9), rgba(9, 18, 12, 0.96)) !important;
+    background-color: var(--bg-hover) !important;
+    border-color: var(--border-default) !important;
+}
+
+body.theme-crt .app-shell .bg-black\/20,
+body.theme-crt .app-shell .bg-black\/30,
+body.theme-crt .app-shell .bg-black\/40 {
+    background-image: linear-gradient(145deg, rgba(10, 24, 16, 0.9), rgba(6, 14, 10, 0.96)) !important;
+    background-color: var(--bg-input) !important;
+}
+
+body.theme-crt .app-shell .border-white\/5,
+body.theme-crt .app-shell .border-white\/10,
+body.theme-crt .app-shell .border-white\/20 {
+    border-color: var(--border-default) !important;
+}
+
+body.theme-crt .app-shell .shadow-2xl {
+    box-shadow: 0 0 0 1px var(--border-subtle), 0 0 20px rgba(56, 255, 150, 0.2) !important;
+}
+
+body.theme-crt .app-shell .rounded-2xl,
+body.theme-crt .app-shell .rounded-xl,
+body.theme-crt .app-shell .rounded-lg,
+body.theme-crt .app-shell .rounded-md,
+body.theme-crt .app-shell .rounded-full {
+    border-radius: 2px !important;
+}
+
+body.theme-crt .app-shell .bg-gradient-to-br,
+body.theme-crt .app-shell .bg-gradient-to-r {
+    background-image: none !important;
+    background-color: var(--bg-card) !important;
+}
+
+body.theme-crt .app-shell .text-gray-200,
+body.theme-crt .app-shell .text-gray-300 {
+    color: var(--text-secondary) !important;
+}
+
+body.theme-crt .app-shell .text-gray-400,
+body.theme-crt .app-shell .text-gray-500 {
+    color: var(--text-muted) !important;
+}
+
+body.theme-crt .app-shell .text-white {
+    color: var(--text-primary) !important;
+}
+
+body.theme-crt .app-shell .bg-blue-500\/20,
+body.theme-crt .app-shell .bg-blue-500\/10,
+body.theme-crt .app-shell .bg-purple-500\/20,
+body.theme-crt .app-shell .bg-purple-500\/10,
+body.theme-crt .app-shell .bg-amber-500\/15,
+body.theme-crt .app-shell .bg-amber-500\/20,
+body.theme-crt .app-shell .bg-green-500\/20,
+body.theme-crt .app-shell .bg-green-500\/10,
+body.theme-crt .app-shell .bg-red-500\/20,
+body.theme-crt .app-shell .bg-red-500\/10 {
+    background-color: rgba(18, 42, 26, 0.7) !important;
+    border-color: var(--border-hover) !important;
+}
+
+body.theme-crt .app-shell .text-blue-400,
+body.theme-crt .app-shell .text-blue-500,
+body.theme-crt .app-shell .text-purple-400,
+body.theme-crt .app-shell .text-purple-500,
+body.theme-crt .app-shell .text-amber-200,
+body.theme-crt .app-shell .text-amber-500,
+body.theme-crt .app-shell .text-green-300,
+body.theme-crt .app-shell .text-green-400,
+body.theme-crt .app-shell .text-red-300,
+body.theme-crt .app-shell .text-red-400 {
+    color: var(--text-secondary) !important;
+}
+
+body.theme-crt .settings-view input,
+body.theme-crt .settings-view textarea,
+body.theme-crt .settings-view select {
+    background-color: var(--bg-input) !important;
+    border-color: var(--border-default) !important;
+    color: var(--text-primary) !important;
+}
+
+body.theme-crt .settings-view input::placeholder,
+body.theme-crt .settings-view textarea::placeholder {
+    color: rgba(90, 162, 118, 0.9);
+}
+
+body.theme-crt .settings-title {
+    text-shadow: none;
+    filter: none;
+    background-image: linear-gradient(90deg, #a8ffcb, #57ff9a, #2fcf74);
+}
+
+@keyframes crt-scan {
+    0% { opacity: 0.32; }
+    50% { opacity: 0.42; }
+    100% { opacity: 0.32; }
+}
+
+@keyframes crt-roll {
+    0% { transform: translateY(-1%); }
+    50% { transform: translateY(1%); }
+    100% { transform: translateY(-1%); }
+}
+
 :root {
     --arcbridge-gradient: linear-gradient(90deg, #7ad7f0, #8b7cf6);
 }
 
 body.theme-modern {
     --arcbridge-gradient: linear-gradient(90deg, #94a3b8, #cbd5e1);
+}
+
+body.theme-crt {
+    --arcbridge-gradient: linear-gradient(90deg, #57ff9a, #2fcf74);
 }
 
 .arcbridge-gradient-text {

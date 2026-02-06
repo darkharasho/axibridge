@@ -124,7 +124,7 @@ export interface IUploadRetryQueueState {
     entries: IUploadRetryQueueEntry[];
 }
 
-export type UiTheme = 'classic' | 'modern';
+export type UiTheme = 'classic' | 'modern' | 'crt';
 
 export type DisruptionMethod = 'count' | 'duration' | 'tiered';
 

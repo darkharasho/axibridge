@@ -473,7 +473,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         { key: 'webhooks', label: 'Webhook List', description: 'Saved webhook entries.', section: 'Discord' },
         { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
         { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
-        { key: 'uiTheme', label: 'UI Theme', description: 'Classic or modern theme.', section: 'App' },
+        { key: 'uiTheme', label: 'UI Theme', description: 'Classic, modern, or CRT Hacker theme.', section: 'App' },
         { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
         { key: 'mvpWeights', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
         { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
@@ -977,7 +977,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
-                    <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                    <h2 className="settings-title text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
                         Settings
                     </h2>
                 </div>
@@ -1062,7 +1062,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 <div ref={settingsScrollRef} className={`${isModernLayout ? 'min-h-0 overflow-y-auto pr-2 space-y-4' : 'flex-1 min-h-0 overflow-y-auto pr-2 space-y-4'}`}>
                 <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance">
                     <p className="text-sm text-gray-400 mb-4">
-                        Switch between the classic interface and the new slate redesign.
+                        Switch between Classic, Modern Slate, or the new CRT Hacker terminal look.
                     </p>
                     <div className="flex flex-wrap gap-3">
                         <button
@@ -1084,6 +1084,16 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                 }`}
                         >
                             Modern Slate
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setUiTheme('crt')}
+                            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'crt'
+                                ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60'
+                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                }`}
+                        >
+                            CRT Hacker
                         </button>
                     </div>
                 </SettingsSection>

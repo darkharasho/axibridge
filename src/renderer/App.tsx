@@ -52,7 +52,7 @@ function App() {
     const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
-    const [uiTheme, setUiTheme] = useState<'classic' | 'modern'>('classic');
+    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt'>('classic');
     const [webUploadState, setWebUploadState] = useState<IWebUploadState>(DEFAULT_WEB_UPLOAD_STATE);
     const webUploadClearTimerRef = useRef<number | null>(null);
 
@@ -163,7 +163,7 @@ function App() {
         if (state.disruptionMethod === 'count' || state.disruptionMethod === 'duration' || state.disruptionMethod === 'tiered') {
             setDisruptionMethod(state.disruptionMethod);
         }
-        if (state.uiTheme === 'classic' || state.uiTheme === 'modern') {
+        if (state.uiTheme === 'classic' || state.uiTheme === 'modern' || state.uiTheme === 'crt') {
             setUiTheme(state.uiTheme);
         }
         if (state.selectedWebhookId === null || typeof state.selectedWebhookId === 'string') {
@@ -538,8 +538,10 @@ function App() {
 
     useEffect(() => {
         const body = document.body;
-        body.classList.remove('theme-classic', 'theme-modern');
-        body.classList.add(uiTheme === 'modern' ? 'theme-modern' : 'theme-classic');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt');
+        if (uiTheme === 'modern') body.classList.add('theme-modern');
+        else if (uiTheme === 'crt') body.classList.add('theme-crt');
+        else body.classList.add('theme-classic');
     }, [uiTheme]);
 
 
@@ -1309,12 +1311,15 @@ function App() {
     };
 
     const isModernTheme = uiTheme === 'modern';
+    const isCrtTheme = uiTheme === 'crt';
     const appIconPath = `${import.meta.env.BASE_URL || './'}img/ArcBridge.svg`;
     const arcbridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;
     const isDev = import.meta.env.DEV;
     const shellClassName = isModernTheme
         ? 'app-shell h-screen w-screen text-white overflow-hidden flex flex-col'
-        : 'app-shell h-screen w-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black text-white font-sans overflow-hidden flex flex-col';
+        : isCrtTheme
+            ? 'app-shell h-screen w-screen text-white overflow-hidden flex flex-col'
+            : 'app-shell h-screen w-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black text-white font-sans overflow-hidden flex flex-col';
 
     const notificationTypePanel = (
         <div>
