@@ -205,7 +205,7 @@ const useFixedTooltipPosition = (
 const ProfessionIcon = ({
     profession,
     professionList,
-    className = 'w-4 h-4'
+    className = 'w-4 h-4 object-contain'
 }: {
     profession: string | undefined;
     professionList?: string[];
@@ -218,7 +218,8 @@ const ProfessionIcon = ({
     const [open, setOpen] = useState(false);
     const wrapperRef = useRef<HTMLSpanElement | null>(null);
     const tooltipRef = useRef<HTMLDivElement | null>(null);
-    const { placement, shiftX } = useSmartTooltipPlacement(open, [list.length, className], wrapperRef, tooltipRef);
+    const safeClassName = `${className} object-contain`;
+    const { placement, shiftX } = useSmartTooltipPlacement(open, [list.length, safeClassName], wrapperRef, tooltipRef);
 
     if (!iconPath) return null;
 
@@ -232,7 +233,7 @@ const ProfessionIcon = ({
             onMouseEnter={() => setOpen(true)}
             onMouseLeave={() => setOpen(false)}
         >
-            <img src={iconPath} alt={resolvedProfession || 'Unknown'} className={`${className} shrink-0`} />
+            <img src={iconPath} alt={resolvedProfession || 'Unknown'} className={`${safeClassName} shrink-0`} />
             {showMulti && (
                 <>
                     <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-amber-300 ring-1 ring-[#10141b]" />
@@ -248,7 +249,7 @@ const ProfessionIcon = ({
                                 return (
                                     <div key={prof} className="flex items-center gap-1">
                                         {itemIcon ? (
-                                            <img src={itemIcon} alt={prof || 'Unknown'} className="h-3.5 w-3.5" />
+                                            <img src={itemIcon} alt={prof || 'Unknown'} className="h-3.5 w-3.5 object-contain" />
                                         ) : null}
                                         <span className="text-gray-100">{prof || 'Unknown'}</span>
                                     </div>
@@ -265,7 +266,7 @@ const ProfessionIcon = ({
 export const renderProfessionIcon = (
     profession: string | undefined,
     professionList?: string[],
-    className = 'w-4 h-4'
+    className = 'w-4 h-4 object-contain'
 ) => (
     <ProfessionIcon profession={profession} professionList={professionList} className={className} />
 );
@@ -319,7 +320,7 @@ export const CountClassTooltip = ({
                                         return (
                                             <div key={profession} className="flex items-center gap-1">
                                                 {iconPath ? (
-                                                    <img src={iconPath} alt={profession || 'Unknown'} className="h-3.5 w-3.5" />
+                                                    <img src={iconPath} alt={profession || 'Unknown'} className="h-3.5 w-3.5 object-contain" />
                                                 ) : null}
                                                 <span className="text-gray-100">{profession || 'Unknown'}</span>
                                                 <span className="text-gray-400">·</span>

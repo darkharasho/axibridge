@@ -849,7 +849,8 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const renderProfessionIcon = (profession?: string, _professionList?: string[], className?: string) => {
         const iconPath = getProfessionIconPath(profession || '');
         if (!iconPath) return null;
-        return <img src={iconPath} alt={profession} className={className || "w-5 h-5 object-contain"} />;
+        const iconClass = className ? `${className} object-contain` : 'w-5 h-5 object-contain';
+        return <img src={iconPath} alt={profession} className={iconClass} />;
     };
 
     return (

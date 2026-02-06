@@ -62,7 +62,7 @@ export const SquadCompositionSection = ({
                                     <img
                                         src={getProfessionIconPath(entry.name) as string}
                                         alt={entry.name}
-                                        className="w-4 h-4 shrink-0"
+                                        className="w-4 h-4 shrink-0 object-contain"
                                     />
                                 ) : (
                                     <span className="inline-block w-4 h-4 rounded-sm border border-white/10" />
@@ -114,7 +114,7 @@ export const SquadCompositionSection = ({
                                     <img
                                         src={getProfessionIconPath(entry.name) as string}
                                         alt={entry.name}
-                                        className="w-4 h-4 shrink-0"
+                                        className="w-4 h-4 shrink-0 object-contain"
                                     />
                                 ) : (
                                     <span className="inline-block w-4 h-4 rounded-sm border border-white/10" />

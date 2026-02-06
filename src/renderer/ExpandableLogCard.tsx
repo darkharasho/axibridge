@@ -292,7 +292,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                                     <img
                                                         src={iconPath}
                                                         alt={profession}
-                                                        className={fullHeight ? 'w-5 h-5' : 'w-4 h-4'}
+                                                        className={fullHeight ? 'w-5 h-5 object-contain' : 'w-4 h-4 object-contain'}
                                                     />
                                                 ) : (
                                                     <span className="uppercase text-gray-400">{label}</span>
@@ -342,7 +342,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                                         <img
                                                             src={getProfessionIconPath(p.profession || 'Unknown') as string}
                                                             alt={p.profession || 'Unknown'}
-                                                            className="w-4 h-4 inline-block"
+                                                            className="w-4 h-4 inline-block object-contain"
                                                         />
                                                     ) : (
                                                         getClassToken(p)
