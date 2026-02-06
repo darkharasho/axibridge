@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Maximize2, Shield, X } from 'lucide-react';
+import { Maximize2, Shield, X, Columns, Users } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -149,6 +149,7 @@ export const DefenseSection = ({
                                 );
                             }}
                             onClear={() => setSelectedDefenseColumnIds([])}
+                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
                         />
                         <ColumnFilterDropdown
                             options={defensePlayerOptions}
@@ -160,6 +161,7 @@ export const DefenseSection = ({
                             }}
                             onClear={() => setSelectedDefensePlayers([])}
                             buttonLabel="Players"
+                            buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
                         <PillToggleGroup
                             value={defenseViewMode}

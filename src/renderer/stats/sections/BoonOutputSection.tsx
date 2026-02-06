@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Maximize2, ShieldCheck, X } from 'lucide-react';
+import { Maximize2, ShieldCheck, X, Columns, Users } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
@@ -69,6 +69,20 @@ export const BoonOutputSection = ({
         ? allBoonColumns.filter((boon: any) => selectedBoonColumnIds.includes(boon.id))
         : allBoonColumns;
     const visibleBoonColumns = selectedBoonColumns;
+    const boonColumnOptions = filteredBoonTables.map((boon: any) => ({
+        id: boon.id,
+        label: boon.name,
+        icon: boon.icon ? <img src={boon.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
+    }));
+    const boonPlayerOptions = Array.from(new Map((stats.boonTables || [])
+        .flatMap((table: any) => table.rows || [])
+        .filter((row: any) => row.account)
+        .map((row: any) => [row.account, row])).values())
+        .map((row: any) => ({
+            id: row.account,
+            label: row.account,
+            icon: renderProfessionIcon(row.profession, row.professionList, 'w-3 h-3')
+        }));
     const boonSearchSelectedIds = new Set([
         ...selectedBoonColumnIds.map((id) => `column:${id}`),
         ...selectedBoonPlayers.map((id) => `player:${id}`)
@@ -141,7 +155,7 @@ export const BoonOutputSection = ({
                             className="w-full sm:w-64"
                         />
                         <ColumnFilterDropdown
-                            options={filteredBoonTables.map((boon: any) => ({ id: boon.id, label: boon.name }))}
+                            options={boonColumnOptions}
                             selectedIds={selectedBoonColumnIds}
                             onToggle={(id) => {
                                 setSelectedBoonColumnIds((prev) =>
@@ -149,13 +163,10 @@ export const BoonOutputSection = ({
                                 );
                             }}
                             onClear={() => setSelectedBoonColumnIds([])}
+                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
                         />
                         <ColumnFilterDropdown
-                            options={Array.from(new Set((stats.boonTables || [])
-                                .flatMap((table: any) => table.rows || [])
-                                .map((row: any) => row.account)
-                                .filter(Boolean)))
-                                .map((account: string) => ({ id: account, label: account }))}
+                            options={boonPlayerOptions}
                             selectedIds={selectedBoonPlayers}
                             onToggle={(id) => {
                                 setSelectedBoonPlayers((prev) =>
@@ -164,6 +175,7 @@ export const BoonOutputSection = ({
                             }}
                             onClear={() => setSelectedBoonPlayers([])}
                             buttonLabel="Players"
+                            buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
                         <PillToggleGroup
                             value={activeBoonCategory}

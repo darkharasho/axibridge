@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HelpingHand, Maximize2, X } from 'lucide-react';
+import { HelpingHand, Maximize2, X, Columns, Users } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -153,6 +153,7 @@ export const SupportSection = ({
                                 );
                             }}
                             onClear={() => setSelectedSupportColumnIds([])}
+                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
                         />
                         <ColumnFilterDropdown
                             options={supportPlayerOptions}
@@ -164,6 +165,7 @@ export const SupportSection = ({
                             }}
                             onClear={() => setSelectedSupportPlayers([])}
                             buttonLabel="Players"
+                            buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
                         <PillToggleGroup
                             value={supportViewMode}

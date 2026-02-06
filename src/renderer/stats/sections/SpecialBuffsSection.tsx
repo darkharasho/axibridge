@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, Sparkles, X } from 'lucide-react';
+import { Maximize2, Sparkles, X, Columns, Users } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -64,6 +64,20 @@ export const SpecialBuffsSection = ({
         ? allSpecialColumns.filter((buff: any) => selectedSpecialColumns.includes(buff.id))
         : allSpecialColumns;
     const visibleSpecialTables = selectedSpecialTables;
+    const specialColumnOptions = filteredSpecialTables.map((buff: any) => ({
+        id: buff.id,
+        label: buff.name,
+        icon: buff.icon ? <img src={buff.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
+    }));
+    const specialPlayerOptions = Array.from(new Map((stats.specialTables || [])
+        .flatMap((table: any) => table.rows || [])
+        .filter((row: any) => row.account)
+        .map((row: any) => [row.account, row])).values())
+        .map((row: any) => ({
+            id: row.account,
+            label: row.account,
+            icon: renderProfessionIcon(row.profession, row.professionList, 'w-3 h-3')
+        }));
     const specialSearchSelectedIds = new Set([
         ...selectedSpecialColumns.map((id) => `column:${id}`),
         ...selectedSpecialPlayers.map((id) => `player:${id}`)
@@ -158,7 +172,7 @@ export const SpecialBuffsSection = ({
                             className="w-full sm:w-64"
                         />
                         <ColumnFilterDropdown
-                            options={filteredSpecialTables.map((buff: any) => ({ id: buff.id, label: buff.name }))}
+                            options={specialColumnOptions}
                             selectedIds={selectedSpecialColumns}
                             onToggle={(id) => {
                                 setSelectedSpecialColumns((prev) =>
@@ -166,13 +180,10 @@ export const SpecialBuffsSection = ({
                                 );
                             }}
                             onClear={() => setSelectedSpecialColumns([])}
+                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
                         />
                         <ColumnFilterDropdown
-                            options={Array.from(new Set((stats.specialTables || [])
-                                .flatMap((table: any) => table.rows || [])
-                                .map((row: any) => row.account)
-                                .filter(Boolean)))
-                                .map((account: string) => ({ id: account, label: account }))}
+                            options={specialPlayerOptions}
                             selectedIds={selectedSpecialPlayers}
                             onToggle={(id) => {
                                 setSelectedSpecialPlayers((prev) =>
@@ -181,6 +192,7 @@ export const SpecialBuffsSection = ({
                             }}
                             onClear={() => setSelectedSpecialPlayers([])}
                             buttonLabel="Players"
+                            buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
                         <PillToggleGroup
                             value={sortKey}

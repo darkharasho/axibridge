@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Maximize2, Skull, X } from 'lucide-react';
+import { Maximize2, Skull, X, Columns, Users } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
@@ -80,7 +80,11 @@ export const ConditionsSection = ({
     const filteredConditions = allConditions.filter((entry: any) =>
         entry.name.toLowerCase().includes(conditionSearch.trim().toLowerCase())
     );
-    const conditionColumnOptionsFiltered = filteredConditions.map((entry: any) => ({ id: entry.name, label: entry.name }));
+    const conditionColumnOptionsFiltered = filteredConditions.map((entry: any) => ({
+        id: entry.name,
+        label: entry.name,
+        icon: entry.icon ? <img src={entry.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
+    }));
     const selectedConditionEntries = selectedConditionColumns.length > 0
         ? allConditions.filter((entry: any) => selectedConditionColumns.includes(entry.name))
         : allConditions;
@@ -159,6 +163,7 @@ export const ConditionsSection = ({
                                 );
                             }}
                             onClear={() => setSelectedConditionColumns([])}
+                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
                         />
                         <ColumnFilterDropdown
                             options={conditionPlayerOptions}
@@ -170,6 +175,7 @@ export const ConditionsSection = ({
                             }}
                             onClear={() => setSelectedConditionPlayers([])}
                             buttonLabel="Players"
+                            buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
                         <PillToggleGroup
                                 value={conditionDirection}

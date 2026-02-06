@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ListTree, Maximize2, X } from 'lucide-react';
+import { ListTree, Maximize2, X, Columns, Users } from 'lucide-react';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
@@ -254,11 +254,13 @@ export const PlayerBreakdownSection = ({
                                             const skills = activePlayerBreakdown.skills || [];
                                             const playerOptions = playerSkillBreakdowns.map((player) => ({
                                                 id: player.key,
-                                                label: player.displayName || player.key
+                                                label: player.displayName || player.key,
+                                                icon: renderProfessionIcon(player.profession, player.professionList, 'w-3 h-3')
                                             }));
                                             const skillOptions = skills.map((skill) => ({
                                                 id: skill.id,
-                                                label: skill.name
+                                                label: skill.name,
+                                                icon: skill.icon ? <img src={skill.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
                                             }));
                                             const searchOptions = [
                                                 ...skills.map((skill) => ({
@@ -308,6 +310,7 @@ export const PlayerBreakdownSection = ({
                                                             }}
                                                             onClear={() => setSelectedSkillIds([])}
                                                             buttonLabel="Columns"
+                                                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
                                                         />
                                                         <ColumnFilterDropdown
                                                             options={playerOptions}
@@ -319,6 +322,7 @@ export const PlayerBreakdownSection = ({
                                                             }}
                                                             onClear={() => setSelectedPlayers([])}
                                                             buttonLabel="Players"
+                                                            buttonIcon={<Users className="h-3.5 w-3.5" />}
                                                         />
                                                     </div>
                                                     {(selectedSkillIds.length > 0 || selectedPlayers.length > 0) && (
@@ -482,11 +486,13 @@ export const PlayerBreakdownSection = ({
                                             const skills = activeClassBreakdown.skills || [];
                                             const playerOptions = activeClassRows.map((player) => ({
                                                 id: player.key,
-                                                label: player.displayName || player.key
+                                                label: player.displayName || player.key,
+                                                icon: renderProfessionIcon(player.profession, player.professionList, 'w-3 h-3')
                                             }));
                                             const skillOptions = skills.map((skill) => ({
                                                 id: skill.id,
-                                                label: skill.name
+                                                label: skill.name,
+                                                icon: skill.icon ? <img src={skill.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
                                             }));
                                             const searchOptions = [
                                                 ...skills.map((skill) => ({
@@ -536,6 +542,7 @@ export const PlayerBreakdownSection = ({
                                                             }}
                                                             onClear={() => setSelectedSkillIds([])}
                                                             buttonLabel="Columns"
+                                                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
                                                         />
                                                         <ColumnFilterDropdown
                                                             options={playerOptions}
@@ -547,6 +554,7 @@ export const PlayerBreakdownSection = ({
                                                             }}
                                                             onClear={() => setSelectedPlayers([])}
                                                             buttonLabel="Players"
+                                                            buttonIcon={<Users className="h-3.5 w-3.5" />}
                                                         />
                                                     </div>
                                                     {(selectedSkillIds.length > 0 || selectedPlayers.length > 0) && (

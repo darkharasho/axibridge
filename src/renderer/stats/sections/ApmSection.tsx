@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Activity, Maximize2, X } from 'lucide-react';
+import { Activity, Maximize2, X, Columns, Users } from 'lucide-react';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
@@ -205,11 +205,13 @@ export const ApmSection = ({
                                     const skills = activeApmSpecTable.skills || [];
                                     const playerOptions = (activeApmSpecTable.playerRows || []).map((row: ApmPlayerRow) => ({
                                         id: row.key,
-                                        label: row.displayName || row.account || row.key
+                                        label: row.displayName || row.account || row.key,
+                                        icon: renderProfessionIcon(row.profession, row.professionList, 'w-3 h-3')
                                     }));
                                     const skillOptions = skills.map((skill: ApmSkillEntry) => ({
                                         id: skill.id,
-                                        label: skill.name
+                                        label: skill.name,
+                                        icon: skill.icon ? <img src={skill.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
                                     }));
                                     const searchOptions = [
                                         ...skills.map((skill: ApmSkillEntry) => ({
@@ -259,6 +261,7 @@ export const ApmSection = ({
                                                     }}
                                                     onClear={() => setSelectedSkillIds([])}
                                                     buttonLabel="Columns"
+                                                    buttonIcon={<Columns className="h-3.5 w-3.5" />}
                                                 />
                                                 <ColumnFilterDropdown
                                                     options={playerOptions}
@@ -270,6 +273,7 @@ export const ApmSection = ({
                                                     }}
                                                     onClear={() => setSelectedPlayers([])}
                                                     buttonLabel="Players"
+                                                    buttonIcon={<Users className="h-3.5 w-3.5" />}
                                                 />
                                                 <PillToggleGroup
                                                     value={apmView}

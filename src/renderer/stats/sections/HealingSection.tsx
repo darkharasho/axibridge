@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Maximize2, X } from 'lucide-react';
+import { Activity, Maximize2, X, Columns, Users } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
@@ -161,6 +161,7 @@ export const HealingSection = ({
                                 );
                             }}
                             onClear={() => setSelectedHealingColumnIds([])}
+                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
                         />
                         <PillToggleGroup
                             value={activeResUtilitySkill}
@@ -186,6 +187,7 @@ export const HealingSection = ({
                             }}
                             onClear={() => setSelectedHealingPlayers([])}
                             buttonLabel="Players"
+                            buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
                     </div>
                     {(selectedHealingColumnIds.length > 0 || selectedHealingPlayers.length > 0) && (

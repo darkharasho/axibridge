@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 export type ColumnFilterOption = {
     id: string;
     label: string;
+    icon?: React.ReactNode;
 };
 
 type ColumnFilterDropdownProps = {
@@ -12,6 +13,7 @@ type ColumnFilterDropdownProps = {
     onClear: () => void;
     className?: string;
     buttonLabel?: string;
+    buttonIcon?: React.ReactNode;
 };
 
 export const ColumnFilterDropdown = ({
@@ -20,7 +22,8 @@ export const ColumnFilterDropdown = ({
     onToggle,
     onClear,
     className = '',
-    buttonLabel = 'Columns'
+    buttonLabel = 'Columns',
+    buttonIcon
 }: ColumnFilterDropdownProps) => {
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -44,6 +47,7 @@ export const ColumnFilterDropdown = ({
                 onClick={() => setOpen((value) => !value)}
                 className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-gray-300 hover:text-white hover:border-white/30 transition-colors"
             >
+                {buttonIcon ? <span className="h-3.5 w-3.5 text-gray-400">{buttonIcon}</span> : null}
                 <span>{buttonLabel}</span>
                 {selectedIds.length > 0 && (
                     <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-gray-200">
@@ -82,7 +86,8 @@ export const ColumnFilterDropdown = ({
                                         <span className={`h-2.5 w-2.5 rounded-full border ${
                                             selectedSet.has(option.id) ? 'bg-emerald-400/80 border-emerald-300' : 'border-gray-500'
                                         }`} />
-                                        <span className="truncate">{option.label}</span>
+                                        {option.icon ? <span className="flex h-4 w-4 items-center justify-center shrink-0">{option.icon}</span> : null}
+                                        <span className="truncate max-w-[140px]">{option.label}</span>
                                     </div>
                                 </button>
                             ))
