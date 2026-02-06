@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'node:path'
 import https from 'node:https'
 import { createHash } from 'node:crypto'
+import util from 'node:util'
 import { spawn } from 'node:child_process'
 import { DEFAULT_WEB_THEME_ID, WEB_THEMES } from '../shared/webThemes';
 import { computeOutgoingConditions } from '../shared/conditionsMetrics';
@@ -46,11 +47,20 @@ function formatLogArgs(args: any[]) {
         if (arg instanceof Error) {
             return arg.stack || arg.message;
         }
-        if (typeof arg === 'object') {
+        if (typeof arg === 'object' && arg !== null) {
             try {
-                return JSON.stringify(arg);
+                return util.inspect(arg, {
+                    depth: 4,
+                    maxArrayLength: 50,
+                    breakLength: 120,
+                    customInspect: false,
+                });
             } catch {
-                return String(arg);
+                try {
+                    return Object.prototype.toString.call(arg);
+                } catch {
+                    return '[Unserializable]';
+                }
             }
         }
         return String(arg);
