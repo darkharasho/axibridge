@@ -1,17 +1,17 @@
 # Release Notes
 
-Version v1.21.1 — February 4, 2026
+Version v1.22.0 — February 5, 2026
 
 ## 🌟 Highlights
-- Integration tests now cover healing stats rendering and aggregation.
-- Prevented duplicate Discord embed posts during automatic uploads.
+- Profession icons look better now with improved scaling.
+- Web assets updated for a refreshed visual experience.
 
 ## 🛠️ Improvements
-- Healing stats tests are clearer and more consistent.
+- None.
 
 ## 🧯 Fixes
-- Fixed how healing stats are read from computeStatsAggregation in healing integration tests.
-- Fixed healing tests to destructure stats from computeStatsAggregation results.
+- Fixed icon scaling by applying a consistent containment style to profession icons.
+- New high res icons powered by https://github.com/darkharasho/gw2-class-icons/releases/tag/v1.2.1
 
 ## ⚠️ Breaking Changes
 - None.
