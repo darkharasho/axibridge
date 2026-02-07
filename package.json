@@ -33,7 +33,8 @@
         "audit:boons": "node scripts/boon-validate.js",
         "audit:metrics": "node scripts/metrics-audit.mjs --all",
         "audit:conditions": "node scripts/conditions-audit.mjs --all",
-        "audit": "npm run audit:boons && npm run audit:metrics && npm run audit:conditions",
+        "audit:conditions:consistency": "node scripts/conditions-consistency.mjs --dir test-fixtures/boon --mode hosted",
+        "audit": "npm run audit:boons && npm run audit:metrics && npm run audit:conditions && npm run audit:conditions:consistency",
         "generate:conditions": "node scripts/conditions-audit.mjs --all --out test-fixtures/conditions",
         "generate:metrics": "node scripts/metrics-audit.mjs --all --out test-fixtures/metrics",
         "generate:fixtures": "for f in testdata/*.zevtc; do bash scripts/generate-json-fixture.sh \"$f\"; done",
@@ -44,7 +45,7 @@
         "pretest:e2e:electron": "npm run build:electron:test",
         "test:e2e:electron": "playwright test --config playwright.electron.config.ts",
         "test:all": "npm run test:unit && npm run test:e2e:web && npm run test:e2e:electron",
-        "ci:local": "npm run audit:boons && npm run audit:metrics && npm run test:unit && npm run test:e2e:web && npm run test:e2e:electron"
+        "ci:local": "npm run audit:boons && npm run audit:metrics && npm run audit:conditions:consistency && npm run test:unit && npm run test:e2e:web && npm run test:e2e:electron"
     },
     "dependencies": {
         "adm-zip": "^0.5.16",
