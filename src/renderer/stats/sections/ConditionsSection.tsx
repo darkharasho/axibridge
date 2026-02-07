@@ -4,8 +4,7 @@ import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
-import { StatsTableLayout } from '../ui/StatsTableLayout';
-import { StatsTableShell } from '../ui/StatsTableShell';
+import { StatsTableCard, StatsTableCardTable } from '../ui/StatsTableCard';
 import { InlineIconLabel, SkillBreakdownTooltip } from '../ui/StatsViewShared';
 
 type ConditionsSectionProps = {
@@ -343,10 +342,8 @@ export const ConditionsSection = ({
                     )}
                 </div>
             ) : (
-                <StatsTableLayout
+                <StatsTableCard
                 expanded={expandedSection === 'conditions-outgoing'}
-                sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'conditions-outgoing' ? 'h-full flex-1' : 'self-start'}`}
-                contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'conditions-outgoing' ? 'flex flex-col min-h-0' : ''}`}
                 sidebar={
                     <>
                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Conditions</div>
@@ -393,7 +390,7 @@ export const ConditionsSection = ({
                     </>
                 }
                 content={
-                    <StatsTableShell
+                    <StatsTableCardTable
                         expanded={expandedSection === 'conditions-outgoing'}
                         header={
                             <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">

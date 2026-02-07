@@ -4,8 +4,7 @@ import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
-import { StatsTableLayout } from '../ui/StatsTableLayout';
-import { StatsTableShell } from '../ui/StatsTableShell';
+import { StatsTableCard, StatsTableCardTable } from '../ui/StatsTableCard';
 
 type HealingSectionProps = {
     stats: any;
@@ -310,10 +309,8 @@ export const HealingSection = ({
                 </div>
             </div>
         ) : (
-            <StatsTableLayout
+            <StatsTableCard
                 expanded={expandedSection === 'healing-stats'}
-                sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'healing-stats' ? 'h-full flex-1' : 'self-start'}`}
-                contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'healing-stats' ? 'flex flex-col min-h-0' : ''}`}
                 sidebar={
                     <>
                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Healing Tabs</div>
@@ -369,7 +366,7 @@ export const HealingSection = ({
                                 });
 
                             return (
-                                <StatsTableShell
+                                <StatsTableCardTable
                                     expanded={expandedSection === 'healing-stats'}
                                     header={
                                         <div className="flex items-center justify-between px-4 py-3 bg-white/5">

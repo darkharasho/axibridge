@@ -4,8 +4,7 @@ import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
-import { StatsTableLayout } from '../ui/StatsTableLayout';
-import { StatsTableShell } from '../ui/StatsTableShell';
+import { StatsTableCard, StatsTableCardTable } from '../ui/StatsTableCard';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 
 type SpecialBuffsSectionProps = {
@@ -337,10 +336,8 @@ export const SpecialBuffsSection = ({
                 </div>
             </div>
         ) : (
-            <StatsTableLayout
+            <StatsTableCard
                 expanded={expandedSection === 'special-buffs'}
-                sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'special-buffs' ? 'h-full flex-1' : 'self-start'}`}
-                contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'special-buffs' ? 'flex flex-col min-h-0' : ''}`}
                 sidebar={
                     <>
                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Special Buffs</div>
@@ -382,7 +379,7 @@ export const SpecialBuffsSection = ({
                         {!activeSpecialTable ? (
                             <div className="px-4 py-10 text-center text-gray-500 italic text-sm">Select a special buff to view details</div>
                         ) : (
-                            <StatsTableShell
+                            <StatsTableCardTable
                                 expanded={expandedSection === 'special-buffs'}
                                 maxHeightClass="max-h-64"
                                 header={

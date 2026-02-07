@@ -4,8 +4,7 @@ import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
-import { StatsTableLayout } from '../ui/StatsTableLayout';
-import { StatsTableShell } from '../ui/StatsTableShell';
+import { StatsTableCard, StatsTableCardTable } from '../ui/StatsTableCard';
 
 type DefenseSectionProps = {
     stats: any;
@@ -292,10 +291,8 @@ export const DefenseSection = ({
                 </div>
             </div>
         ) : (
-            <StatsTableLayout
+            <StatsTableCard
                 expanded={expandedSection === 'defense-detailed'}
-                sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'defense-detailed' ? 'h-full flex-1' : 'self-start'}`}
-                contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'defense-detailed' ? 'flex flex-col min-h-0' : ''}`}
                 sidebar={
                     <>
                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Defensive Tabs</div>
@@ -350,7 +347,7 @@ export const DefenseSection = ({
                                 });
 
                             return (
-                                <StatsTableShell
+                                <StatsTableCardTable
                                     expanded={expandedSection === 'defense-detailed'}
                                     header={
                                         <div className="flex items-center justify-between px-4 py-3 bg-white/5">
