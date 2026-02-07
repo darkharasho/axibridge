@@ -460,7 +460,7 @@ export function ReportApp() {
         };
         requestAnimationFrame(tick);
     }, [activeGroup]);
-    const isMatteUi = uiTheme === 'matte' || theme?.id === MATTE_WEB_THEME_ID;
+    const isMatteUi = uiTheme === 'matte' || theme?.id === MATTE_WEB_THEME_ID || report?.stats?.webThemeId === MATTE_WEB_THEME_ID || theme?.label === 'Matte Slate' || (theme?.rgb || '').replace(/\s/g, '') === '93,163,194';
     const resolvedTheme = isMatteUi ? MATTE_WEB_THEME : (theme ?? DEFAULT_WEB_THEME);
     const accentRgb = resolvedTheme.rgb;
     const accentVars = {
@@ -582,11 +582,11 @@ export function ReportApp() {
         const body = document.body;
         body.classList.add('web-report');
         body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte');
-        if (uiTheme === 'modern') body.classList.add('theme-modern');
+        if (isMatteUi) body.classList.add('theme-matte');
+        else if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
-        else if (uiTheme === 'matte') body.classList.add('theme-matte');
         else body.classList.add('theme-classic');
-    }, [uiTheme]);
+    }, [uiTheme, isMatteUi]);
 
     useEffect(() => {
         if (isDevLocalWeb && report?.stats?.webThemeId) return;

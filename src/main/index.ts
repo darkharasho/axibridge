@@ -5,7 +5,7 @@ import https from 'node:https'
 import { createHash } from 'node:crypto'
 import util from 'node:util'
 import { spawn } from 'node:child_process'
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID } from '../shared/webThemes';
+import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import { computeOutgoingConditions } from '../shared/conditionsMetrics';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'

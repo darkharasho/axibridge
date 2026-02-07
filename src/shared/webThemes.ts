@@ -19,7 +19,7 @@ export const MATTE_WEB_THEME: WebTheme = {
     id: MATTE_WEB_THEME_ID,
     label: 'Matte Slate',
     rgb: '93, 163, 194',
-    pattern: 'none'
+    pattern: 'linear-gradient(to bottom, #222629, #222629)'
 };
 
 export const BASE_WEB_THEMES: WebTheme[] = [
