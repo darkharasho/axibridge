@@ -62,7 +62,7 @@ describe('StatsView (integration)', () => {
         expect(screen.getAllByText(/Total Damage/i).length).toBeGreaterThan(0);
     });
 
-    it('allows selecting a specific player skill from the sidebar sub-nav', async () => {
+    it('shows fullscreen Player Breakdown dense-table controls from the latest release', async () => {
         const skillOne = { id: 's1', name: 'Skill One', damage: 10000, downContribution: 100 };
         const skillTwo = { id: 's2', name: 'Skill Two', damage: 15000, downContribution: 250 };
         const stats = {
@@ -91,16 +91,19 @@ describe('StatsView (integration)', () => {
             />
         );
 
-        fireEvent.click(screen.getByRole('button', { name: /acct\.2345/i }));
-        fireEvent.click(screen.getByRole('button', { name: /Skill Two/i }));
+        const playerBreakdownSection = document.getElementById('player-breakdown');
+        expect(playerBreakdownSection).not.toBeNull();
+        fireEvent.click(within(playerBreakdownSection as HTMLElement).getByRole('button', { name: /Expand Player Breakdown/i }));
 
         await waitFor(() => {
-            expect(screen.queryByText(/Select a player and skill to view breakdown details/i)).toBeNull();
+            expect(within(playerBreakdownSection as HTMLElement).getByText(/Class Breakdown - Dense View/i)).toBeInTheDocument();
         });
-        expect(screen.getAllByText(/Skill Two/i).length).toBeGreaterThan(0);
+        expect(within(playerBreakdownSection as HTMLElement).getByPlaceholderText(/Search\.\.\./i)).toBeInTheDocument();
+        expect(within(playerBreakdownSection as HTMLElement).getByRole('button', { name: /^Columns$/i })).toBeInTheDocument();
+        expect(within(playerBreakdownSection as HTMLElement).getByRole('button', { name: /^Players$/i })).toBeInTheDocument();
     });
 
-    it('allows selecting a specific APM skill from the spec sub-nav', async () => {
+    it('shows fullscreen APM dense table controls and populated rows', async () => {
         const stats = {
             skillUsageData: {
                 logRecords: [],
@@ -136,12 +139,15 @@ describe('StatsView (integration)', () => {
 
         const apmSection = document.getElementById('apm-stats');
         expect(apmSection).not.toBeNull();
+        fireEvent.click(within(apmSection as HTMLElement).getByRole('button', { name: /Expand APM Breakdown/i }));
         fireEvent.click(within(apmSection as HTMLElement).getByRole('button', { name: /Guardian/i }));
-        fireEvent.click(within(apmSection as HTMLElement).getByRole('button', { name: /Burst Skill/i }));
 
         await waitFor(() => {
-            expect(within(apmSection as HTMLElement).queryByText(/APM \(No Auto\)/i)).toBeNull();
+            expect(within(apmSection as HTMLElement).getByText(/APM - Dense View/i)).toBeInTheDocument();
         });
-        expect(within(apmSection as HTMLElement).getAllByText(/Burst Skill/i).length).toBeGreaterThan(0);
+        expect(within(apmSection as HTMLElement).getByPlaceholderText(/Search\.\.\./i)).toBeInTheDocument();
+        expect(within(apmSection as HTMLElement).getByRole('button', { name: /^Columns$/i })).toBeInTheDocument();
+        expect(within(apmSection as HTMLElement).getByRole('button', { name: /^Players$/i })).toBeInTheDocument();
+        expect(within(apmSection as HTMLElement).getByText(/acct\.3456/i)).toBeInTheDocument();
     });
 });

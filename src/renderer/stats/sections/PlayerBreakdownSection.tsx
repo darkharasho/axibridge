@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, ListTree, Maximize2, X } from 'lucide-react';
+import { ListTree, Maximize2, X, Columns, Users } from 'lucide-react';
 import { InlineIconLabel } from '../ui/StatsViewShared';
+import { DenseStatsTable } from '../ui/DenseStatsTable';
+import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
+import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { formatTopStatValue, formatWithCommas } from '../utils/dashboardUtils';
 import type { PlayerSkillBreakdown, PlayerSkillDamageEntry } from '../statsTypes';
 
@@ -60,18 +63,10 @@ export const PlayerBreakdownSection = ({
     classSkillBreakdowns,
     activePlayerKey,
     setActivePlayerKey,
-    expandedPlayerKey,
-    setExpandedPlayerKey,
-    activePlayerSkillId,
     setActivePlayerSkillId,
     activeClassKey,
     setActiveClassKey,
-    expandedClassKey,
-    setExpandedClassKey,
-    activeClassSkillId,
     setActiveClassSkillId,
-    skillSearch,
-    setSkillSearch,
     activePlayerBreakdown,
     activePlayerSkill,
     activeClassBreakdown,
@@ -85,6 +80,10 @@ export const PlayerBreakdownSection = ({
         key: 'down',
         dir: 'desc'
     });
+    const isExpanded = expandedSection === 'player-breakdown';
+    const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
+    const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+    const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: '', dir: 'desc' });
     const sortedClassRows = useMemo(() => {
         if (!activeClassBreakdown || !activeClassSkill) return activeClassRows;
         const rows = [...activeClassRows];
@@ -155,45 +154,44 @@ export const PlayerBreakdownSection = ({
                         <div className={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'player-breakdown' ? 'h-full' : ''}`}>
                             <div className="flex items-center justify-between gap-2 mb-3">
                                 <div className="text-xs uppercase tracking-widest text-gray-500">
-                                    {viewMode === 'player' ? 'Squad Players' : 'Squad Classes'}
+                                    {(isExpanded ? 'Squad Classes' : viewMode === 'player' ? 'Squad Players' : 'Squad Classes')}
                                 </div>
-                                <div className="flex items-center gap-1 rounded-full bg-white/5 border border-white/10 p-1">
-                                    {([
-                                        { id: 'player', label: 'Player' },
-                                        { id: 'class', label: 'Class' }
-                                    ] as const).map((option) => {
-                                        const isActive = viewMode === option.id;
-                                        return (
-                                            <button
-                                                key={option.id}
-                                                type="button"
-                                                onClick={() => setViewMode(option.id)}
-                                                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                                                    isActive ? 'bg-sky-500/30 text-sky-100' : 'text-gray-400 hover:text-white'
-                                                }`}
-                                            >
-                                                {option.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                {!isExpanded && (
+                                    <div className="flex items-center gap-1 rounded-full bg-white/5 border border-white/10 p-1">
+                                        {([
+                                            { id: 'player', label: 'Player' },
+                                            { id: 'class', label: 'Class' }
+                                        ] as const).map((option) => {
+                                            const isActive = viewMode === option.id;
+                                            return (
+                                                <button
+                                                    key={option.id}
+                                                    type="button"
+                                                    onClick={() => setViewMode(option.id)}
+                                                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                                                        isActive ? 'bg-sky-500/30 text-sky-100' : 'text-gray-400 hover:text-white'
+                                                    }`}
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
-                            <div className={`${sidebarListClass} ${expandedSection === 'player-breakdown' ? 'max-h-none flex-1 min-h-0' : ''}`}>
-                                {viewMode === 'player'
+                            <div className={expandedSection === 'player-breakdown' ? 'overflow-y-auto space-y-1 pr-1 flex-1 min-h-0' : sidebarListClass}>
+                                {(isExpanded ? 'class' : viewMode) === 'player'
                                     ? playerSkillBreakdowns.map((player) => (
                                         <div key={player.key} className="space-y-1">
                                         <button
                                             onClick={() => {
-                                                if (activePlayerKey === player.key && expandedPlayerKey === player.key) {
-                                                    setExpandedPlayerKey(null);
-                                                    return;
-                                                    }
-                                                    if (activePlayerKey !== player.key) {
-                                                        setActivePlayerSkillId(null);
-                                                    }
-                                                    setActivePlayerKey(player.key);
-                                                    setExpandedPlayerKey(player.key);
-                                                }}
+                                                if (activePlayerKey !== player.key) {
+                                                    setActivePlayerSkillId(null);
+                                                    setSelectedSkillIds([]);
+                                                    setSelectedPlayers([]);
+                                                }
+                                                setActivePlayerKey(player.key);
+                                            }}
                                             className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
                                                 activePlayerKey === player.key
                                                     ? 'bg-sky-500/20 text-sky-200 border-sky-500/40'
@@ -208,81 +206,21 @@ export const PlayerBreakdownSection = ({
                                                 </div>
                                                 <div className="flex items-center gap-2 text-gray-400 shrink-0">
                                                     <span className="text-[10px] whitespace-nowrap">{player.skills.length} skills</span>
-                                                    {expandedPlayerKey === player.key ? (
-                                                        <ChevronDown className="w-3.5 h-3.5" />
-                                                    ) : (
-                                                            <ChevronRight className="w-3.5 h-3.5" />
-                                                        )}
-                                                    </div>
                                                 </div>
+                                            </div>
                                             </button>
-                                            {expandedPlayerKey === player.key && (
-                                                <div className="ml-4 space-y-2">
-                                                    <input
-                                                        type="search"
-                                                        value={skillSearch}
-                                                        onChange={(event) => setSkillSearch(event.target.value)}
-                                                        placeholder="Search skills..."
-                                                        className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-gray-200 focus:outline-none focus:border-sky-400"
-                                                    />
-                                                    {player.skills.length === 0 ? (
-                                                        <div className="px-3 py-2 text-[11px] text-gray-500 italic">
-                                                            No damage skills recorded.
-                                                        </div>
-                                                    ) : (
-                                                        (() => {
-                                                            const term = skillSearch.trim().toLowerCase();
-                                                            const filteredSkills = term
-                                                                ? player.skills.filter((skill) => skill.name.toLowerCase().includes(term))
-                                                                : player.skills;
-                                                            if (filteredSkills.length === 0) {
-                                                                return (
-                                                                    <div className="px-3 py-2 text-[11px] text-gray-500 italic">
-                                                                        No skills match this search.
-                                                                    </div>
-                                                                );
-                                                            }
-                                                            return filteredSkills.map((skill) => (
-                                                            <button
-                                                                key={skill.id}
-                                                                onClick={() => setActivePlayerSkillId(skill.id)}
-                                                                className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors overflow-hidden ${
-                                                                    activePlayerSkillId === skill.id
-                                                                        ? 'bg-sky-500/10 text-sky-100 border-sky-400/40'
-                                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                                }`}
-                                                                title={skill.name}
-                                                            >
-                                                                <div className="min-w-0 pr-4 w-full">
-                                                                    <InlineIconLabel
-                                                                        name={skill.name}
-                                                                        iconUrl={skill.icon}
-                                                                        iconClassName="h-4 w-4"
-                                                                        className="min-w-0 flex-1 w-full"
-                                                                        textClassName="truncate max-w-[140px] sm:max-w-full"
-                                                                    />
-                                                                </div>
-                                                            </button>
-                                                        ));
-                                                    })()
-                                                )}
-                                                </div>
-                                            )}
                                         </div>
                                     ))
                                     : classSkillBreakdowns.map((bucket) => (
                                         <div key={bucket.profession} className="space-y-1">
                                             <button
                                                 onClick={() => {
-                                                    if (activeClassKey === bucket.profession && expandedClassKey === bucket.profession) {
-                                                        setExpandedClassKey(null);
-                                                        return;
-                                                    }
                                                     if (activeClassKey !== bucket.profession) {
                                                         setActiveClassSkillId(null);
+                                                        setSelectedSkillIds([]);
+                                                        setSelectedPlayers([]);
                                                     }
                                                     setActiveClassKey(bucket.profession);
-                                                    setExpandedClassKey(bucket.profession);
                                                 }}
                                                 className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
                                                     activeClassKey === bucket.profession
@@ -297,189 +235,500 @@ export const PlayerBreakdownSection = ({
                                                     </div>
                                                     <div className="flex items-center gap-2 text-gray-400">
                                                         <span className="text-[10px]">{bucket.players.length}p</span>
-                                                        {expandedClassKey === bucket.profession ? (
-                                                            <ChevronDown className="w-3.5 h-3.5" />
-                                                        ) : (
-                                                            <ChevronRight className="w-3.5 h-3.5" />
-                                                        )}
                                                     </div>
                                                 </div>
                                             </button>
-                                            {expandedClassKey === bucket.profession && (
-                                                <div className="ml-4 space-y-2">
-                                                    <input
-                                                        type="search"
-                                                        value={skillSearch}
-                                                        onChange={(event) => setSkillSearch(event.target.value)}
-                                                        placeholder="Search skills..."
-                                                        className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-gray-200 focus:outline-none focus:border-sky-400"
-                                                    />
-                                                    {bucket.skills.length === 0 ? (
-                                                        <div className="px-3 py-2 text-[11px] text-gray-500 italic">
-                                                            No damage skills recorded.
-                                                        </div>
-                                                    ) : (
-                                                        (() => {
-                                                            const term = skillSearch.trim().toLowerCase();
-                                                            const filteredSkills = term
-                                                                ? bucket.skills.filter((skill) => skill.name.toLowerCase().includes(term))
-                                                                : bucket.skills;
-                                                            if (filteredSkills.length === 0) {
-                                                                return (
-                                                                    <div className="px-3 py-2 text-[11px] text-gray-500 italic">
-                                                                        No skills match this search.
-                                                                    </div>
-                                                                );
-                                                            }
-                                                            return filteredSkills.map((skill) => (
-                                                            <button
-                                                                key={skill.id}
-                                                                onClick={() => setActiveClassSkillId(skill.id)}
-                                                                className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors overflow-hidden ${
-                                                                    activeClassSkillId === skill.id
-                                                                        ? 'bg-sky-500/10 text-sky-100 border-sky-400/40'
-                                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                                }`}
-                                                                title={skill.name}
-                                                            >
-                                                                <div className="min-w-0 pr-4 w-full">
-                                                                    <InlineIconLabel
-                                                                        name={skill.name}
-                                                                        iconUrl={skill.icon}
-                                                                        iconClassName="h-4 w-4"
-                                                                        className="min-w-0 flex-1 w-full"
-                                                                        textClassName="truncate max-w-[140px] sm:max-w-full"
-                                                                    />
-                                                                </div>
-                                                            </button>
-                                                        ));
-                                                    })()
-                                                )}
-                                                </div>
-                                            )}
                                         </div>
                                     ))}
                             </div>
                         </div>
-                        <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'player-breakdown' ? 'flex flex-col min-h-0' : ''}`}>
-                            {viewMode === 'player' ? (
-                                !activePlayerBreakdown || !activePlayerSkill ? (
+                        <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden stats-share-table ${expandedSection === 'player-breakdown' ? 'flex flex-col min-h-0' : ''}`}>
+                            {(isExpanded ? 'class' : viewMode) === 'player' ? (
+                                !activePlayerBreakdown || (!isExpanded && !activePlayerSkill) ? (
                                     <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
                                         Select a player and skill to view breakdown details
                                     </div>
                                 ) : (
                                     <div className={expandedSection === 'player-breakdown' ? 'flex flex-col min-h-0' : ''}>
-                                        <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
-                                            <div className="flex flex-col gap-2 min-w-0">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    {renderProfessionIcon(activePlayerBreakdown.profession, activePlayerBreakdown.professionList, 'w-4 h-4')}
-                                                    <div className="text-sm font-semibold text-gray-200">{activePlayerBreakdown.displayName}</div>
-                                                    <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
-                                                    <div className="text-sm font-semibold text-gray-200 truncate">
-                                                        <InlineIconLabel name={activePlayerSkill.name} iconUrl={activePlayerSkill.icon} iconClassName="h-6 w-6" />
+                                        {isExpanded && (() => {
+                                            const skills = activePlayerBreakdown.skills || [];
+                                            const playerOptions = playerSkillBreakdowns.map((player) => ({
+                                                id: player.key,
+                                                label: player.displayName || player.key,
+                                                icon: renderProfessionIcon(player.profession, player.professionList, 'w-3 h-3')
+                                            }));
+                                            const skillOptions = skills.map((skill) => ({
+                                                id: skill.id,
+                                                label: skill.name,
+                                                icon: skill.icon ? <img src={skill.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
+                                            }));
+                                            const searchOptions = [
+                                                ...skills.map((skill) => ({
+                                                    id: skill.id,
+                                                    label: skill.name,
+                                                    type: 'column' as const,
+                                                    icon: skill.icon ? <img src={skill.icon} alt="" className="h-4 w-4" /> : undefined
+                                                })),
+                                                ...playerSkillBreakdowns.map((player) => ({
+                                                    id: player.key,
+                                                    label: player.displayName || player.key,
+                                                    type: 'player' as const,
+                                                    icon: renderProfessionIcon(player.profession, player.professionList, 'w-3 h-3')
+                                                }))
+                                            ];
+                                            const selectedIds = new Set([
+                                                ...selectedSkillIds.map((id) => `column:${id}`),
+                                                ...selectedPlayers.map((id) => `player:${id}`)
+                                            ]);
+                                            return (
+                                                <div className="bg-black/20 border border-white/5 rounded-xl px-4 py-3">
+                                                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Player Breakdown</div>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <SearchSelectDropdown
+                                                            options={searchOptions}
+                                                            selectedIds={selectedIds}
+                                                            onSelect={(option: SearchSelectOption) => {
+                                                                if (option.type === 'column') {
+                                                                    setSelectedSkillIds((prev) =>
+                                                                        prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
+                                                                    );
+                                                                } else {
+                                                                    setSelectedPlayers((prev) =>
+                                                                        prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className="w-full sm:w-64"
+                                                        />
+                                                        <ColumnFilterDropdown
+                                                            options={skillOptions}
+                                                            selectedIds={selectedSkillIds}
+                                                            onToggle={(id) => {
+                                                                setSelectedSkillIds((prev) =>
+                                                                    prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                                );
+                                                            }}
+                                                            onClear={() => setSelectedSkillIds([])}
+                                                            buttonLabel="Columns"
+                                                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
+                                                        />
+                                                        <ColumnFilterDropdown
+                                                            options={playerOptions}
+                                                            selectedIds={selectedPlayers}
+                                                            onToggle={(id) => {
+                                                                setSelectedPlayers((prev) =>
+                                                                    prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                                );
+                                                            }}
+                                                            onClear={() => setSelectedPlayers([])}
+                                                            buttonLabel="Players"
+                                                            buttonIcon={<Users className="h-3.5 w-3.5" />}
+                                                        />
+                                                    </div>
+                                                    {(selectedSkillIds.length > 0 || selectedPlayers.length > 0) && (
+                                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedSkillIds([]);
+                                                                    setSelectedPlayers([]);
+                                                                }}
+                                                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                            >
+                                                                Clear All
+                                                            </button>
+                                                            {selectedSkillIds.map((id) => {
+                                                                const label = skills.find((skill) => skill.id === id)?.name || id;
+                                                                return (
+                                                                    <button
+                                                                        key={id}
+                                                                        type="button"
+                                                                        onClick={() => setSelectedSkillIds((prev) => prev.filter((entry) => entry !== id))}
+                                                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                                    >
+                                                                        <span>{label}</span>
+                                                                        <span className="text-gray-400">×</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                            {selectedPlayers.map((id) => {
+                                                                const label = playerOptions.find((entry) => entry.id === id)?.label || id;
+                                                                return (
+                                                                    <button
+                                                                        key={id}
+                                                                        type="button"
+                                                                        onClick={() => setSelectedPlayers((prev) => prev.filter((entry) => entry !== id))}
+                                                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                                    >
+                                                                        <span>{label}</span>
+                                                                        <span className="text-gray-400">×</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+                                        {isExpanded ? (() => {
+                                            const skills = activePlayerBreakdown.skills || [];
+                                            const visibleSkills = selectedSkillIds.length > 0
+                                                ? skills.filter((skill) => selectedSkillIds.includes(skill.id))
+                                                : skills;
+                                            const visiblePlayers = selectedPlayers.length > 0
+                                                ? playerSkillBreakdowns.filter((player) => selectedPlayers.includes(player.key))
+                                                : playerSkillBreakdowns;
+                                            const resolvedSortColumnId = visibleSkills.find((skill) => skill.id === denseSort.columnId)?.id
+                                                || visibleSkills[0]?.id
+                                                || '';
+                                            const rows = visiblePlayers
+                                                .map((player) => {
+                                                    const values: Record<string, string> = {};
+                                                    const numericValues: Record<string, number> = {};
+                                                    visibleSkills.forEach((skill) => {
+                                                        const skillEntry = player.skillMap?.[skill.id];
+                                                        const damage = Number(skillEntry?.damage || 0);
+                                                        numericValues[skill.id] = damage;
+                                                        values[skill.id] = formatTopStatValue(damage);
+                                                    });
+                                                    return { player, values, numericValues };
+                                                })
+                                                .sort((a, b) => {
+                                                    const aValue = a.numericValues[resolvedSortColumnId] ?? 0;
+                                                    const bValue = b.numericValues[resolvedSortColumnId] ?? 0;
+                                                    const diff = denseSort.dir === 'desc' ? bValue - aValue : aValue - bValue;
+                                                    return diff || String(a.player.displayName || '').localeCompare(String(b.player.displayName || ''));
+                                                });
+                                            return (
+                                                <DenseStatsTable
+                                                    title="Player Breakdown - Dense View"
+                                                    subtitle="Damage"
+                                                    sortColumnId={resolvedSortColumnId}
+                                                    sortDirection={denseSort.dir}
+                                                    onSortColumn={(columnId) => {
+                                                        setDenseSort((prev) => ({
+                                                            columnId,
+                                                            dir: prev.columnId === columnId ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
+                                                        }));
+                                                    }}
+                                                    columns={visibleSkills.map((skill) => ({
+                                                        id: skill.id,
+                                                        label: <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-4 w-4" />,
+                                                        align: 'right',
+                                                        minWidth: 90
+                                                    }))}
+                                                    rows={rows.map((entry, idx) => ({
+                                                        id: `${entry.player.key}-${idx}`,
+                                                        label: (
+                                                            <>
+                                                                <span className="text-gray-500 font-mono">{idx + 1}</span>
+                                                                {renderProfessionIcon(entry.player.profession, entry.player.professionList, 'w-4 h-4')}
+                                                                <span className="truncate">{entry.player.displayName}</span>
+                                                            </>
+                                                        ),
+                                                        values: entry.values
+                                                    }))}
+                                                />
+                                            );
+                                        })() : (
+                                            <>
+                                                <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
+                                                    <div className="flex flex-col gap-2 min-w-0">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            {renderProfessionIcon(activePlayerBreakdown.profession, activePlayerBreakdown.professionList, 'w-4 h-4')}
+                                                            <div className="text-sm font-semibold text-gray-200">{activePlayerBreakdown.displayName}</div>
+                                                            <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
+                                                            <div className="text-sm font-semibold text-gray-200 truncate">
+                                                                <InlineIconLabel name={activePlayerSkill?.name || ''} iconUrl={activePlayerSkill?.icon} iconClassName="h-6 w-6" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-[11px] text-gray-500">
+                                                            {activePlayerBreakdown.skills.length} skills | {formatTopStatValue(totalPlayerDamage)} total damage
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-[11px] text-gray-500">
-                                                    {activePlayerBreakdown.skills.length} skills | {formatTopStatValue(totalPlayerDamage)} total damage
+                                                <div className="grid grid-cols-[1.2fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                                    <div>Metric</div>
+                                                    <div className="text-right">Value</div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-[1.2fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
-                                            <div>Metric</div>
-                                            <div className="text-right">Value</div>
-                                        </div>
-                                        <div className={expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}>
-                                            {([
-                                                { label: 'Down Contribution', value: formatTopStatValue(activePlayerSkill.downContribution) },
-                                                { label: 'Total Damage', value: formatTopStatValue(activePlayerSkill.damage) },
-                                                {
-                                                    label: 'DPS',
-                                                    value: formatWithCommas(
-                                                        activePlayerBreakdown.totalFightMs > 0
-                                                            ? activePlayerSkill.damage / (activePlayerBreakdown.totalFightMs / 1000)
-                                                            : 0,
-                                                        1
-                                                    )
-                                                }
-                                            ]).map((row) => (
-                                                <div key={row.label} className="grid grid-cols-[1.2fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
-                                                    <div className="font-semibold text-white">{row.label}</div>
-                                                    <div className="text-right font-mono text-gray-300">{row.value}</div>
+                                                <div className={expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}>
+                                                    {([
+                                                        { label: 'Down Contribution', value: formatTopStatValue(activePlayerSkill?.downContribution || 0) },
+                                                        { label: 'Total Damage', value: formatTopStatValue(activePlayerSkill?.damage || 0) },
+                                                        {
+                                                            label: 'DPS',
+                                                            value: formatWithCommas(
+                                                                activePlayerBreakdown.totalFightMs > 0
+                                                                    ? (activePlayerSkill?.damage || 0) / (activePlayerBreakdown.totalFightMs / 1000)
+                                                                    : 0,
+                                                                1
+                                                            )
+                                                        }
+                                                    ]).map((row) => (
+                                                        <div key={row.label} className="grid grid-cols-[1.2fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                            <div className="font-semibold text-white">{row.label}</div>
+                                                            <div className="text-right font-mono text-gray-300">{row.value}</div>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            ))}
-                                        </div>
+                                            </>
+                                        )}
                                     </div>
                                 )
                             ) : (
-                                !activeClassBreakdown || !activeClassSkill ? (
+                                !activeClassBreakdown || (!isExpanded && !activeClassSkill) ? (
                                     <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
                                         Select a class and skill to view breakdown details
                                     </div>
                                 ) : (
                                     <div className={expandedSection === 'player-breakdown' ? 'flex flex-col min-h-0' : ''}>
-                                        <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
-                                            <div className="flex flex-col gap-2 min-w-0">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    {renderProfessionIcon(activeClassBreakdown.profession, undefined, 'w-4 h-4')}
-                                                    <div className="text-sm font-semibold text-gray-200">{activeClassBreakdown.profession}</div>
-                                                    <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
-                                                    <div className="text-sm font-semibold text-gray-200 truncate">
-                                                        <InlineIconLabel name={activeClassSkill.name} iconUrl={activeClassSkill.icon} iconClassName="h-6 w-6" />
+                                        {isExpanded && (() => {
+                                            const skills = activeClassBreakdown.skills || [];
+                                            const playerOptions = activeClassRows.map((player) => ({
+                                                id: player.key,
+                                                label: player.displayName || player.key,
+                                                icon: renderProfessionIcon(player.profession, player.professionList, 'w-3 h-3')
+                                            }));
+                                            const skillOptions = skills.map((skill) => ({
+                                                id: skill.id,
+                                                label: skill.name,
+                                                icon: skill.icon ? <img src={skill.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
+                                            }));
+                                            const searchOptions = [
+                                                ...skills.map((skill) => ({
+                                                    id: skill.id,
+                                                    label: skill.name,
+                                                    type: 'column' as const,
+                                                    icon: skill.icon ? <img src={skill.icon} alt="" className="h-4 w-4" /> : undefined
+                                                })),
+                                                ...activeClassRows.map((player) => ({
+                                                    id: player.key,
+                                                    label: player.displayName || player.key,
+                                                    type: 'player' as const,
+                                                    icon: renderProfessionIcon(player.profession, player.professionList, 'w-3 h-3')
+                                                }))
+                                            ];
+                                            const selectedIds = new Set([
+                                                ...selectedSkillIds.map((id) => `column:${id}`),
+                                                ...selectedPlayers.map((id) => `player:${id}`)
+                                            ]);
+                                            return (
+                                                <div className="bg-black/20 border border-white/5 rounded-xl px-4 py-3">
+                                                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Class Breakdown</div>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <SearchSelectDropdown
+                                                            options={searchOptions}
+                                                            selectedIds={selectedIds}
+                                                            onSelect={(option: SearchSelectOption) => {
+                                                                if (option.type === 'column') {
+                                                                    setSelectedSkillIds((prev) =>
+                                                                        prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
+                                                                    );
+                                                                } else {
+                                                                    setSelectedPlayers((prev) =>
+                                                                        prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className="w-full sm:w-64"
+                                                        />
+                                                        <ColumnFilterDropdown
+                                                            options={skillOptions}
+                                                            selectedIds={selectedSkillIds}
+                                                            onToggle={(id) => {
+                                                                setSelectedSkillIds((prev) =>
+                                                                    prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                                );
+                                                            }}
+                                                            onClear={() => setSelectedSkillIds([])}
+                                                            buttonLabel="Columns"
+                                                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
+                                                        />
+                                                        <ColumnFilterDropdown
+                                                            options={playerOptions}
+                                                            selectedIds={selectedPlayers}
+                                                            onToggle={(id) => {
+                                                                setSelectedPlayers((prev) =>
+                                                                    prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                                );
+                                                            }}
+                                                            onClear={() => setSelectedPlayers([])}
+                                                            buttonLabel="Players"
+                                                            buttonIcon={<Users className="h-3.5 w-3.5" />}
+                                                        />
                                                     </div>
+                                                    {(selectedSkillIds.length > 0 || selectedPlayers.length > 0) && (
+                                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedSkillIds([]);
+                                                                    setSelectedPlayers([]);
+                                                                }}
+                                                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                            >
+                                                                Clear All
+                                                            </button>
+                                                            {selectedSkillIds.map((id) => {
+                                                                const label = skills.find((skill) => skill.id === id)?.name || id;
+                                                                return (
+                                                                    <button
+                                                                        key={id}
+                                                                        type="button"
+                                                                        onClick={() => setSelectedSkillIds((prev) => prev.filter((entry) => entry !== id))}
+                                                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                                    >
+                                                                        <span>{label}</span>
+                                                                        <span className="text-gray-400">×</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                            {selectedPlayers.map((id) => {
+                                                                const label = playerOptions.find((entry) => entry.id === id)?.label || id;
+                                                                return (
+                                                                    <button
+                                                                        key={id}
+                                                                        type="button"
+                                                                        onClick={() => setSelectedPlayers((prev) => prev.filter((entry) => entry !== id))}
+                                                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                                    >
+                                                                        <span>{label}</span>
+                                                                        <span className="text-gray-400">×</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="text-[11px] text-gray-500">
-                                                    {activeClassRows.length} players | {activeClassBreakdown.skills.length} skills
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
-                                            <div>Player</div>
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleClassSort('down')}
-                                                className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'down' ? 'text-sky-200' : 'text-gray-400 hover:text-gray-200'}`}
-                                            >
-                                                Down Contrib
-                                                <span className="text-[10px]">{classSort.key === 'down' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleClassSort('damage')}
-                                                className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'damage' ? 'text-sky-200' : 'text-gray-400 hover:text-gray-200'}`}
-                                            >
-                                                Damage
-                                                <span className="text-[10px]">{classSort.key === 'damage' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleClassSort('dps')}
-                                                className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'dps' ? 'text-sky-200' : 'text-gray-400 hover:text-gray-200'}`}
-                                            >
-                                                DPS
-                                                <span className="text-[10px]">{classSort.key === 'dps' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
-                                            </button>
-                                        </div>
-                                        <div className={expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}>
-                                            {sortedClassRows.map((player) => {
-                                                const skillEntry = player.skillMap?.[activeClassSkill.id];
-                                                const downContribution = Number(skillEntry?.downContribution || 0);
-                                                const damage = Number(skillEntry?.damage || 0);
-                                                const dps = player.totalFightMs > 0 ? damage / (player.totalFightMs / 1000) : 0;
-                                                return (
-                                                    <div key={`${activeClassBreakdown.profession}-${player.key}`} className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                            );
+                                        })()}
+                                        {isExpanded ? (() => {
+                                            const skills = activeClassBreakdown.skills || [];
+                                            const visibleSkills = selectedSkillIds.length > 0
+                                                ? skills.filter((skill) => selectedSkillIds.includes(skill.id))
+                                                : skills;
+                                            const visiblePlayers = selectedPlayers.length > 0
+                                                ? activeClassRows.filter((player) => selectedPlayers.includes(player.key))
+                                                : activeClassRows;
+                                            const resolvedSortColumnId = visibleSkills.find((skill) => skill.id === denseSort.columnId)?.id
+                                                || visibleSkills[0]?.id
+                                                || '';
+                                            const rows = visiblePlayers
+                                                .map((player) => {
+                                                    const values: Record<string, string> = {};
+                                                    const numericValues: Record<string, number> = {};
+                                                    visibleSkills.forEach((skill) => {
+                                                        const skillEntry = player.skillMap?.[skill.id];
+                                                        const damage = Number(skillEntry?.damage || 0);
+                                                        numericValues[skill.id] = damage;
+                                                        values[skill.id] = formatTopStatValue(damage);
+                                                    });
+                                                    return { player, values, numericValues };
+                                                })
+                                                .sort((a, b) => {
+                                                    const aValue = a.numericValues[resolvedSortColumnId] ?? 0;
+                                                    const bValue = b.numericValues[resolvedSortColumnId] ?? 0;
+                                                    const diff = denseSort.dir === 'desc' ? bValue - aValue : aValue - bValue;
+                                                    return diff || String(a.player.displayName || '').localeCompare(String(b.player.displayName || ''));
+                                                });
+                                            return (
+                                                <DenseStatsTable
+                                                    title="Class Breakdown - Dense View"
+                                                    subtitle="Damage"
+                                                    sortColumnId={resolvedSortColumnId}
+                                                    sortDirection={denseSort.dir}
+                                                    onSortColumn={(columnId) => {
+                                                        setDenseSort((prev) => ({
+                                                            columnId,
+                                                            dir: prev.columnId === columnId ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
+                                                        }));
+                                                    }}
+                                                    columns={visibleSkills.map((skill) => ({
+                                                        id: skill.id,
+                                                        label: <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-4 w-4" />,
+                                                        align: 'right',
+                                                        minWidth: 90
+                                                    }))}
+                                                    rows={rows.map((entry, idx) => ({
+                                                        id: `${entry.player.key}-${idx}`,
+                                                        label: (
+                                                            <>
+                                                                <span className="text-gray-500 font-mono">{idx + 1}</span>
+                                                                {renderProfessionIcon(entry.player.profession, entry.player.professionList, 'w-4 h-4')}
+                                                                <span className="truncate">{entry.player.displayName}</span>
+                                                            </>
+                                                        ),
+                                                        values: entry.values
+                                                    }))}
+                                                />
+                                            );
+                                        })() : (
+                                            <>
+                                                <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
+                                                    <div className="flex flex-col gap-2 min-w-0">
                                                         <div className="flex items-center gap-2 min-w-0">
-                                                            {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4')}
-                                                            <div className="min-w-0">
-                                                                <div className="font-semibold text-white truncate">{player.displayName}</div>
+                                                            {renderProfessionIcon(activeClassBreakdown.profession, undefined, 'w-4 h-4')}
+                                                            <div className="text-sm font-semibold text-gray-200">{activeClassBreakdown.profession}</div>
+                                                            <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
+                                                            <div className="text-sm font-semibold text-gray-200 truncate">
+                                                                <InlineIconLabel name={activeClassSkill?.name || ''} iconUrl={activeClassSkill?.icon} iconClassName="h-6 w-6" />
                                                             </div>
                                                         </div>
-                                                        <div className="text-right font-mono text-gray-300">{formatTopStatValue(downContribution)}</div>
-                                                        <div className="text-right font-mono text-gray-300">{formatTopStatValue(damage)}</div>
-                                                        <div className="text-right font-mono text-gray-300">{formatWithCommas(dps, 1)}</div>
+                                                        <div className="text-[11px] text-gray-500">
+                                                            {activeClassRows.length} players | {activeClassBreakdown.skills.length} skills
+                                                        </div>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
+                                                </div>
+                                                <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                                    <div>Player</div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleClassSort('down')}
+                                                        className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'down' ? 'text-sky-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                    >
+                                                        Down Contrib
+                                                        <span className="text-[10px]">{classSort.key === 'down' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleClassSort('damage')}
+                                                        className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'damage' ? 'text-sky-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                    >
+                                                        Damage
+                                                        <span className="text-[10px]">{classSort.key === 'damage' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleClassSort('dps')}
+                                                        className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'dps' ? 'text-sky-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                    >
+                                                        DPS
+                                                        <span className="text-[10px]">{classSort.key === 'dps' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
+                                                    </button>
+                                                </div>
+                                                <div className={expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}>
+                                                    {sortedClassRows.map((player) => {
+                                                        const skillEntry = player.skillMap?.[activeClassSkill?.id || ''];
+                                                        const downContribution = Number(skillEntry?.downContribution || 0);
+                                                        const damage = Number(skillEntry?.damage || 0);
+                                                        const dps = player.totalFightMs > 0 ? damage / (player.totalFightMs / 1000) : 0;
+                                                        return (
+                                                            <div key={`${activeClassBreakdown.profession}-${player.key}`} className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4')}
+                                                                    <div className="min-w-0">
+                                                                        <div className="font-semibold text-white truncate">{player.displayName}</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right font-mono text-gray-300">{formatTopStatValue(downContribution)}</div>
+                                                                <div className="text-right font-mono text-gray-300">{formatTopStatValue(damage)}</div>
+                                                                <div className="text-right font-mono text-gray-300">{formatWithCommas(dps, 1)}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 )
                             )}

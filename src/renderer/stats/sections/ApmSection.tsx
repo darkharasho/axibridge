@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Activity, ChevronDown, ChevronRight, Maximize2, X } from 'lucide-react';
+import { Activity, Maximize2, X, Columns, Users } from 'lucide-react';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
+import { DenseStatsTable } from '../ui/DenseStatsTable';
+import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
+import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import type { ApmPlayerRow, ApmSkillEntry } from '../statsTypes';
 
@@ -67,8 +70,20 @@ export const ApmSection = ({
     formatCastCountValue,
     renderProfessionIcon
 }: ApmSectionProps) => {
+    void expandedApmSpec;
+    void setExpandedApmSpec;
+    void activeApmSkillId;
+    void setActiveApmSkillId;
+    void ALL_SKILLS_KEY;
+    void apmSkillSearch;
+    void setApmSkillSearch;
+    void isAllApmSkills;
+    void activeApmSkill;
     const [allSkillsSort, setAllSkillsSort] = useState<{ key: 'apm' | 'apmNoAuto'; dir: 'asc' | 'desc' }>({ key: 'apm', dir: 'desc' });
-    const [skillSort, setSkillSort] = useState<{ key: 'apm' | 'casts'; dir: 'asc' | 'desc' }>({ key: 'apm', dir: 'desc' });
+    const isExpanded = expandedSection === 'apm-stats';
+    const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: '', dir: 'desc' });
+    const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
+    const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
 
     const toggleAllSkillsSort = (key: 'apm' | 'apmNoAuto') => {
         setAllSkillsSort((prev) => ({
@@ -76,13 +91,6 @@ export const ApmSection = ({
             dir: prev.key === key ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
         }));
     };
-    const toggleSkillSort = (key: 'apm' | 'casts') => {
-        setSkillSort((prev) => ({
-            key,
-            dir: prev.key === key ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
-        }));
-    };
-
     const sortedAllSkillsRows = useMemo(() => {
         const rows = [...(activeApmSpecTable?.playerRows || [])];
         rows.sort((a: any, b: any) => {
@@ -97,21 +105,6 @@ export const ApmSection = ({
         });
         return rows;
     }, [activeApmSpecTable, allSkillsSort, apmView]);
-
-    const sortedSkillRows = useMemo(() => {
-        const rows = [...(activeApmSkill?.playerRows || [])];
-        rows.sort((a: any, b: any) => {
-            const aVal = skillSort.key === 'apm'
-                ? Number(a.apm || 0)
-                : Number(apmView === 'perSecond' ? a.aps : a.count);
-            const bVal = skillSort.key === 'apm'
-                ? Number(b.apm || 0)
-                : Number(apmView === 'perSecond' ? b.aps : b.count);
-            const diff = skillSort.dir === 'desc' ? bVal - aVal : aVal - bVal;
-            return diff || String(a.displayName || '').localeCompare(String(b.displayName || ''));
-        });
-        return rows;
-    }, [activeApmSkill, skillSort, apmView]);
 
     return (
     <div
@@ -131,7 +124,7 @@ export const ApmSection = ({
             </h3>
             <div className="flex items-center gap-3 relative">
                 <div className="text-xs uppercase tracking-[0.3em] text-gray-500">
-                    {apmSpecTables.length} {apmSpecTables.length === 1 ? 'spec' : 'specs'}
+        {apmSpecTables.length} {apmSpecTables.length === 1 ? 'spec' : 'specs'}
                 </div>
                 <button
                     type="button"
@@ -156,17 +149,17 @@ export const ApmSection = ({
                 <div className={`grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 h-full' : ''}`}>
                     <div className={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'apm-stats' ? 'h-full' : ''}`}>
                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Elite Specs</div>
-                        <div className={`${sidebarListClass} ${expandedSection === 'apm-stats' ? 'max-h-none flex-1 min-h-0' : ''}`}>
+                        <div className={expandedSection === 'apm-stats' ? 'overflow-y-auto space-y-1 pr-1 flex-1 min-h-0' : sidebarListClass}>
                             {apmSpecTables.map((spec) => (
                                 <div key={spec.profession} className="space-y-1">
                                     <button
                                         onClick={() => {
-                                            if (activeApmSpec === spec.profession && expandedApmSpec === spec.profession) {
-                                                setExpandedApmSpec(null);
-                                                return;
-                                            }
                                             setActiveApmSpec(spec.profession);
-                                            setExpandedApmSpec(spec.profession);
+                                            setExpandedApmSpec(null);
+                                            setActiveApmSkillId(ALL_SKILLS_KEY);
+                                            setApmSkillSearch('');
+                                            setSelectedSkillIds([]);
+                                            setSelectedPlayers([]);
                                         }}
                                         className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeApmSpec === spec.profession
                                                 ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
@@ -180,114 +173,224 @@ export const ApmSection = ({
                                             </div>
                                             <div className="flex items-center gap-2 text-gray-400">
                                                 <span className="text-[10px]">{spec.players.length}p</span>
-                                                {expandedApmSpec === spec.profession ? (
-                                                    <ChevronDown className="w-3.5 h-3.5" />
-                                                ) : (
-                                                    <ChevronRight className="w-3.5 h-3.5" />
-                                                )}
                                             </div>
                                         </div>
                                     </button>
-                                    {expandedApmSpec === spec.profession && spec.skills.length > 0 && (
-                                        <div className="ml-4 space-y-2">
-                                            <input
-                                                type="search"
-                                                value={apmSkillSearch}
-                                                onChange={(event) => setApmSkillSearch(event.target.value)}
-                                                placeholder="Search skills..."
-                                                className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-gray-200 focus:outline-none focus:border-emerald-400"
-                                            />
-                                            <button
-                                                onClick={() => setActiveApmSkillId(ALL_SKILLS_KEY)}
-                                                className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${activeApmSkillId === ALL_SKILLS_KEY
-                                                        ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/40'
-                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                    }`}
-                                            >
-                                                <span className="truncate block">All Skills</span>
-                                            </button>
-                                            {(() => {
-                                                const term = apmSkillSearch.trim().toLowerCase();
-                                                const filteredSkills = term
-                                                    ? spec.skills.filter((skill: ApmSkillEntry) => skill.name.toLowerCase().includes(term))
-                                                    : spec.skills;
-                                                if (filteredSkills.length === 0) {
-                                                    return (
-                                                        <div className="px-3 py-2 text-[11px] text-gray-500 italic">
-                                                            No skills match this search.
-                                                        </div>
-                                                    );
-                                                }
-                                                return filteredSkills.map((skill: ApmSkillEntry) => (
-                                                    <button
-                                                        key={skill.id}
-                                                        onClick={() => setActiveApmSkillId(skill.id)}
-                                                        className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors ${activeApmSkillId === skill.id
-                                                                ? 'bg-emerald-500/10 text-emerald-100 border-emerald-400/40'
-                                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                            }`}
-                                                    >
-                                                        <div className="min-w-0">
-                                                            <InlineIconLabel
-                                                                name={skill.name}
-                                                                iconUrl={skill.icon}
-                                                                iconClassName="h-4 w-4"
-                                                                className="min-w-0"
-                                                                textClassName="truncate"
-                                                            />
-                                                        </div>
-                                                    </button>
-                                                ));
-                                            })()}
-                                        </div>
-                                    )}
                                 </div>
                             ))}
                         </div>
                     </div>
-                    <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`}>
-                        {!activeApmSpecTable || (!isAllApmSkills && !activeApmSkill) ? (
+                    <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden stats-share-table ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`}>
+                        {!activeApmSpecTable ? (
                             <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
-                                Select an elite spec and skill to view APM details
+                                Select an elite spec to view APM details
                             </div>
                         ) : (
                             <div className={expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}>
-                                <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
-                                    <div className="flex flex-col gap-2 min-w-0">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            {renderProfessionIcon(activeApmSpecTable.profession, undefined, 'w-4 h-4')}
-                                            <div className="text-sm font-semibold text-gray-200">{activeApmSpecTable.profession}</div>
-                                            <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
-                                            <div className="text-sm font-semibold text-gray-200 truncate">
-                                                {isAllApmSkills
-                                                    ? 'All Skills'
-                                                    : (
-                                                        <InlineIconLabel name={activeApmSkill?.name || ''} iconUrl={activeApmSkill?.icon} iconClassName="h-6 w-6" />
-                                                    )}
+                                {isExpanded && (() => {
+                                    const skills = activeApmSpecTable.skills || [];
+                                    const playerOptions = (activeApmSpecTable.playerRows || []).map((row: ApmPlayerRow) => ({
+                                        id: row.key,
+                                        label: row.displayName || row.account || row.key,
+                                        icon: renderProfessionIcon(row.profession, row.professionList, 'w-3 h-3')
+                                    }));
+                                    const skillOptions = skills.map((skill: ApmSkillEntry) => ({
+                                        id: skill.id,
+                                        label: skill.name,
+                                        icon: skill.icon ? <img src={skill.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
+                                    }));
+                                    const searchOptions = [
+                                        ...skills.map((skill: ApmSkillEntry) => ({
+                                            id: skill.id,
+                                            label: skill.name,
+                                            type: 'column' as const,
+                                            icon: skill.icon ? <img src={skill.icon} alt="" className="h-4 w-4" /> : undefined
+                                        })),
+                                        ...(activeApmSpecTable.playerRows || []).map((row: ApmPlayerRow) => ({
+                                            id: row.key,
+                                            label: row.displayName || row.account || row.key,
+                                            type: 'player' as const,
+                                            icon: renderProfessionIcon(row.profession, row.professionList, 'w-3 h-3')
+                                        }))
+                                    ];
+                                    const selectedIds = new Set([
+                                        ...selectedSkillIds.map((id) => `column:${id}`),
+                                        ...selectedPlayers.map((id) => `player:${id}`)
+                                    ]);
+                                    return (
+                                        <div className="bg-black/20 border border-white/5 rounded-xl px-4 py-3">
+                                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">APM</div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <SearchSelectDropdown
+                                                    options={searchOptions}
+                                                    selectedIds={selectedIds}
+                                                    onSelect={(option: SearchSelectOption) => {
+                                                        if (option.type === 'column') {
+                                                            setSelectedSkillIds((prev) =>
+                                                                prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
+                                                            );
+                                                        } else {
+                                                            setSelectedPlayers((prev) =>
+                                                                prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
+                                                            );
+                                                        }
+                                                    }}
+                                                    className="w-full sm:w-64"
+                                                />
+                                                <ColumnFilterDropdown
+                                                    options={skillOptions}
+                                                    selectedIds={selectedSkillIds}
+                                                    onToggle={(id) => {
+                                                        setSelectedSkillIds((prev) =>
+                                                            prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                        );
+                                                    }}
+                                                    onClear={() => setSelectedSkillIds([])}
+                                                    buttonLabel="Columns"
+                                                    buttonIcon={<Columns className="h-3.5 w-3.5" />}
+                                                />
+                                                <ColumnFilterDropdown
+                                                    options={playerOptions}
+                                                    selectedIds={selectedPlayers}
+                                                    onToggle={(id) => {
+                                                        setSelectedPlayers((prev) =>
+                                                            prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                        );
+                                                    }}
+                                                    onClear={() => setSelectedPlayers([])}
+                                                    buttonLabel="Players"
+                                                    buttonIcon={<Users className="h-3.5 w-3.5" />}
+                                                />
+                                                <PillToggleGroup
+                                                    value={apmView}
+                                                    onChange={setApmView}
+                                                    options={[
+                                                        { value: 'total', label: 'Total' },
+                                                        { value: 'perSecond', label: 'Per Sec' }
+                                                    ]}
+                                                    activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-400/40"
+                                                    inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                />
                                             </div>
+                                            {(selectedSkillIds.length > 0 || selectedPlayers.length > 0) && (
+                                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedSkillIds([]);
+                                                            setSelectedPlayers([]);
+                                                        }}
+                                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                    >
+                                                        Clear All
+                                                    </button>
+                                                    {selectedSkillIds.map((id) => {
+                                                        const label = skills.find((skill: ApmSkillEntry) => skill.id === id)?.name || id;
+                                                        return (
+                                                            <button
+                                                                key={id}
+                                                                type="button"
+                                                                onClick={() => setSelectedSkillIds((prev) => prev.filter((entry) => entry !== id))}
+                                                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                            >
+                                                                <span>{label}</span>
+                                                                <span className="text-gray-400">×</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                    {selectedPlayers.map((id) => {
+                                                        const label = playerOptions.find((entry: SearchSelectOption) => entry.id === id)?.label || id;
+                                                        return (
+                                                            <button
+                                                                key={id}
+                                                                type="button"
+                                                                onClick={() => setSelectedPlayers((prev) => prev.filter((entry) => entry !== id))}
+                                                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                            >
+                                                                <span>{label}</span>
+                                                                <span className="text-gray-400">×</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-2 text-right ml-auto mt-2">
-                                        <div className="text-[11px] text-gray-400">
-                                            {isAllApmSkills
-                                                ? `${activeApmSpecTable.players?.length ?? 0} ${activeApmSpecTable.players?.length === 1 ? 'player' : 'players'} | ${formatApmValue(apmView === 'perSecond' ? activeApmSpecTable.totalAps : activeApmSpecTable.totalApm)} ${apmView === 'perSecond' ? 'APS' : 'APM'} | ${formatApmValue(apmView === 'perSecond' ? activeApmSpecTable.totalApsNoAuto : activeApmSpecTable.totalApmNoAuto)} ${apmView === 'perSecond' ? 'APS' : 'APM'} (no auto)`
-                                                : `${activeApmSkill?.playerRows?.length ?? 0} ${activeApmSkill?.playerRows?.length === 1 ? 'player' : 'players'} | ${formatApmValue(activeApmSkill?.totalApm ?? 0)} APM | ${apmView === 'perSecond'
-                                                    ? `${formatCastRateValue(activeApmSkill?.totalCastsPerSecond ?? 0)} casts/sec`
-                                                    : `${formatCastCountValue(activeApmSkill?.totalCasts ?? 0)} casts`}`}
-                                        </div>
-                                        <PillToggleGroup
-                                            value={apmView}
-                                            onChange={setApmView}
-                                            options={[
-                                                { value: 'total', label: 'Total' },
-                                                { value: 'perSecond', label: 'Per Sec' }
-                                            ]}
-                                            activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-400/40"
-                                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                                        />
-                                    </div>
-                                </div>
-                                {isAllApmSkills ? (
+                                    );
+                                })()}
+                                {isExpanded ? (
+                                    (() => {
+                                        const skills = activeApmSpecTable.skills || [];
+                                        const visibleSkills = selectedSkillIds.length > 0
+                                            ? skills.filter((skill: ApmSkillEntry) => selectedSkillIds.includes(skill.id))
+                                            : skills;
+                                        const visiblePlayers = selectedPlayers.length > 0
+                                            ? (activeApmSpecTable.playerRows || []).filter((row: ApmPlayerRow) => selectedPlayers.includes(row.key))
+                                            : (activeApmSpecTable.playerRows || []);
+                                        if (skills.length === 0) {
+                                            return (
+                                                <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
+                                                    No skills available for this class.
+                                                </div>
+                                            );
+                                        }
+                                        const resolvedSortColumnId = visibleSkills.find((entry: ApmSkillEntry) => entry.id === denseSort.columnId)?.id
+                                            || visibleSkills[0]?.id
+                                            || '';
+                                        const rows = [...visiblePlayers]
+                                            .map((row: ApmPlayerRow) => {
+                                                const values: Record<string, string> = {};
+                                                const numericValues: Record<string, number> = {};
+                                                visibleSkills.forEach((skill: ApmSkillEntry) => {
+                                                    const count = Number(skill.playerCounts?.get(row.key) || 0);
+                                                    const value = apmView === 'perSecond'
+                                                        ? count / Math.max(1, row.totalActiveSeconds || 0)
+                                                        : count;
+                                                    numericValues[skill.id] = value;
+                                                    values[skill.id] = apmView === 'perSecond'
+                                                        ? formatCastRateValue(value)
+                                                        : formatCastCountValue(value);
+                                                });
+                                                return { row, values, numericValues };
+                                            })
+                                            .sort((a, b) => {
+                                                const aValue = a.numericValues[resolvedSortColumnId] ?? 0;
+                                                const bValue = b.numericValues[resolvedSortColumnId] ?? 0;
+                                                const diff = denseSort.dir === 'desc' ? bValue - aValue : aValue - bValue;
+                                                return diff || String(a.row.displayName || '').localeCompare(String(b.row.displayName || ''));
+                                            });
+                                        return (
+                                            <DenseStatsTable
+                                                title="APM - Dense View"
+                                                subtitle="Skills"
+                                                sortColumnId={resolvedSortColumnId}
+                                                sortDirection={denseSort.dir}
+                                                onSortColumn={(columnId) => {
+                                            setDenseSort((prev) => ({
+                                                columnId,
+                                                dir: prev.columnId === columnId ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
+                                            }));
+                                        }}
+                                                columns={visibleSkills.map((skill: ApmSkillEntry) => ({
+                                                    id: skill.id,
+                                                    label: <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-4 w-4" />,
+                                                    align: 'right',
+                                                    minWidth: 90
+                                                }))}
+                                                rows={rows.map((entry, index: number) => ({
+                                                    id: `${activeApmSpecTable.profession}-${entry.row.key}`,
+                                                    label: (
+                                                        <>
+                                                            <span className="text-gray-500 font-mono">{index + 1}</span>
+                                                            {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
+                                                            <span className="truncate">{entry.row.displayName}</span>
+                                                        </>
+                                                    ),
+                                                    values: entry.values
+                                                }))}
+                                            />
+                                        );
+                                    })()
+                                ) : (
                                     <>
                                         <div className="grid grid-cols-[1.6fr_0.7fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                             <div>Player</div>
@@ -324,50 +427,6 @@ export const ApmSection = ({
                                                     </div>
                                                     <div className="text-right font-mono text-gray-300">
                                                         {formatApmValue(apmView === 'perSecond' ? row.apsNoAuto : row.apmNoAuto)}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="grid grid-cols-[1.6fr_0.7fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
-                                            <div>Player</div>
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleSkillSort('apm')}
-                                                className={`text-right transition-colors ${skillSort.key === 'apm' ? 'text-emerald-200' : 'text-gray-400 hover:text-gray-200'}`}
-                                            >
-                                                APM{skillSort.key === 'apm' ? (skillSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleSkillSort('casts')}
-                                                className={`text-right transition-colors ${skillSort.key === 'casts' ? 'text-emerald-200' : 'text-gray-400 hover:text-gray-200'}`}
-                                            >
-                                                {apmView === 'perSecond' ? 'Casts/Sec' : 'Casts'}{skillSort.key === 'casts' ? (skillSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                            </button>
-                                        </div>
-                                        <div className={expandedSection === 'apm-stats' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}>
-                                            {sortedSkillRows.map((row: any, index: number) => (
-                                                <div
-                                                    key={`${activeApmSpecTable.profession}-${activeApmSkill?.id}-${row.key}`}
-                                                    className="grid grid-cols-[1.6fr_0.7fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5"
-                                                >
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">{`#${index + 1}`}</span>
-                                                        {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                        <div className="min-w-0">
-                                                            <div className="font-semibold text-white truncate">{row.displayName}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right font-mono text-gray-300">
-                                                        {formatApmValue(row.apm)}
-                                                    </div>
-                                                    <div className="text-right font-mono text-gray-300">
-                                                        {apmView === 'perSecond'
-                                                            ? formatCastRateValue(row.aps)
-                                                            : formatCastCountValue(row.count)}
                                                     </div>
                                                 </div>
                                             ))}
