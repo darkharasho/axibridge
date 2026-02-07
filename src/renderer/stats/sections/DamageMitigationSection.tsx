@@ -143,7 +143,7 @@ export const DamageMitigationSection = ({
                 </button>
             </div>
             <div className="text-xs text-amber-200/80 italic mb-3">
-                Damage mitigation is a rough estimate based on average enemy skill damage and defensive activity. High downed damage can exaggerate values.
+                Damage mitigation is an estimate based on enemy skill damage averages and avoidance events (block/evade/miss/invuln/interrupted). Use it for relative comparison rather than exact prevention totals.
             </div>
             {!hasMitigationData ? (
                 <div className="text-center text-gray-500 italic py-8">No damage mitigation stats available</div>

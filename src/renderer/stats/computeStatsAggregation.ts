@@ -444,6 +444,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 list?.forEach((entry: any) => {
                     if (!entry?.id) return;
                     const skillId = Number(entry.id);
+                    const keyName = (damageSkillMap?.[skillId]?.name || entry.name || entry.skillName || String(skillId)) as string;
                     const localId = localEnemyById.get(skillId) || { totalDamage: 0, connectedHits: 0, minTotal: 0, minCount: 0 };
                     localId.totalDamage += Number(entry.totalDamage || 0);
                     localId.connectedHits += Number(entry.connectedHits || 0);
@@ -1029,6 +1030,15 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
                             if (account === DEBUG_MITIGATION_ACCOUNT) {
                                 const bucket = globalEnemySkillStats.get(skillId);
+                                const enemy = resolveGlobalEnemyStats(skillId);
+                                const avg = enemy.hasSkill ? (enemy.hits > 0 ? enemy.avg : 0) : 1;
+                                const min = enemy.hasSkill ? (enemy.min || 0) : 1;
+                                const avoidDamage = enemy.hits > 0
+                                    ? glanced * avg / 2 + (blocked + evaded + missed + invulned + interrupted) * avg
+                                    : 0;
+                                const avoidMinDamage = enemy.hits > 0
+                                    ? glanced * min / 2 + (blocked + evaded + missed + invulned + interrupted) * min
+                                    : 0;
                                 debugPlayerMitigationRows.push({
                                     logId: log.filePath || log.id || logIndex,
                                     skillId: entry.id,
@@ -1118,6 +1128,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                                 const interrupted = readNumber(entry.interrupted);
                                 const skillHits = readNumber(entry.hits ?? entry.connectedHits);
                                 const skillId = Number(entry.id);
+                                const skillName = resolveDamageSkillName(skillId, skillMap, buffMap);
                                 updateCumulativeCounts(
                                     mitigationMinionCumulativeCounts,
                                     `${rowKey}::${skillId}`,
@@ -1135,7 +1146,16 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                                 );
 
                                 if (account === DEBUG_MITIGATION_ACCOUNT && minionName === DEBUG_MITIGATION_MINION) {
-                                    const bucket = globalEnemySkillStats.get(skillName);
+                                    const bucket = globalEnemySkillStats.get(skillId);
+                                    const enemy = resolveGlobalEnemyStats(skillId);
+                                    const avg = enemy.hasSkill ? (enemy.hits > 0 ? enemy.avg : 0) : 1;
+                                    const min = enemy.hasSkill ? (enemy.min || 0) : 1;
+                                    const avoidDamage = enemy.hits > 0
+                                        ? glanced * avg / 2 + (blocked + evaded + missed + invulned + interrupted) * avg
+                                        : 0;
+                                    const avoidMinDamage = enemy.hits > 0
+                                        ? glanced * min / 2 + (blocked + evaded + missed + invulned + interrupted) * min
+                                        : 0;
                                     debugMitigationRows.push({
                                         logId: log.filePath || log.id || logIndex,
                                         skillId: entry.id,

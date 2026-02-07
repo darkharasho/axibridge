@@ -149,6 +149,11 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [howToOpen, setHowToOpen] = useState(false);
     const [devSettingsOpen, setDevSettingsOpen] = useState(false);
     const [settingsNavOpen, setSettingsNavOpen] = useState(false);
+    const [metricsSpecSearch, setMetricsSpecSearch] = useState('');
+    const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; tag: string; section: string; hitId: number }>>([]);
+    const [metricsSpecSearchFocused, setMetricsSpecSearchFocused] = useState(false);
+    const metricsSpecSearchRef = useRef<HTMLDivElement | null>(null);
+    const metricsSpecHighlightRef = useRef<number | null>(null);
     const [activeSettingsSectionId, setActiveSettingsSectionId] = useState('appearance');
     const lastDevSettingsTriggerRef = useRef<number>(developerSettingsTrigger || 0);
     const settingsScrollRef = useRef<HTMLDivElement | null>(null);
@@ -168,6 +173,164 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         return [active, ...availableWebThemes.filter((theme) => theme.id !== githubWebTheme)];
     }, [availableWebThemes, githubWebTheme]);
     const isModernLayout = uiTheme === 'modern';
+    const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
+
+    const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
+    const extractHeadingText = (node: React.ReactNode): string => {
+        if (typeof node === 'string' || typeof node === 'number') return String(node);
+        if (Array.isArray(node)) return node.map(extractHeadingText).join('');
+        if (node && typeof node === 'object' && 'props' in node) {
+            return extractHeadingText((node as any).props?.children);
+        }
+        return '';
+    };
+    const slugifyHeading = (label: string) =>
+        label
+            .toLowerCase()
+            .trim()
+            .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+            .replace(/`([^`]+)`/g, '$1')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-');
+
+    const buildHeadingId = (label: string) => {
+        const key = slugifyHeading(label || 'section') || 'section';
+        const counts = metricsSpecHeadingCountsRef.current;
+        const next = (counts.get(key) ?? 0) + 1;
+        counts.set(key, next);
+        return next === 1 ? key : `${key}-${next}`;
+    };
+
+    const scrollMetricsSpecToMatch = (query: string) => {
+        const container = metricsSpecContentRef.current;
+        if (!container) return;
+        const trimmed = query.trim().toLowerCase();
+        if (!trimmed) return;
+        const nodes = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3, p, li, code'));
+        const match = nodes.find((node) => (node.textContent || '').toLowerCase().includes(trimmed));
+        if (!match) return;
+        const containerTop = container.getBoundingClientRect().top;
+        const targetTop = match.getBoundingClientRect().top;
+        const scrollOffset = Math.max(0, targetTop - containerTop + container.scrollTop - 12);
+        requestAnimationFrame(() => {
+            container.scrollTop = scrollOffset;
+        });
+    };
+
+    const updateMetricsSpecSearchResults = (query: string) => {
+        const container = metricsSpecContentRef.current;
+        const trimmed = query.trim().toLowerCase();
+        if (!container || trimmed.length < 2) {
+            setMetricsSpecSearchResults([]);
+            return;
+        }
+        const nodes = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3, p, li, code'));
+        nodes.forEach((node) => node.removeAttribute('data-search-hit'));
+        const results: Array<{ index: number; text: string; tag: string; section: string; hitId: number }> = [];
+        let hitId = 0;
+        nodes.forEach((node, index) => {
+            const text = (node.textContent || '').trim();
+            if (!text) return;
+            if (text.toLowerCase().includes(trimmed)) {
+                let section = '';
+                for (let i = index; i >= 0; i -= 1) {
+                    const candidate = nodes[i];
+                    if (candidate && ['H1', 'H2', 'H3'].includes(candidate.tagName)) {
+                        section = (candidate.textContent || '').trim();
+                        break;
+                    }
+                }
+                node.setAttribute('data-search-hit', String(hitId));
+                results.push({ index, text, tag: node.tagName.toLowerCase(), section: section || 'Unlabeled Section', hitId });
+                hitId += 1;
+            }
+        });
+        setMetricsSpecSearchResults(results.slice(0, 12));
+    };
+
+    const renderHighlightedMatch = (text: string, query: string) => {
+        const trimmed = query.trim();
+        if (!trimmed) return text;
+        const lower = text.toLowerCase();
+        const needle = trimmed.toLowerCase();
+        const idx = lower.indexOf(needle);
+        if (idx === -1) return text;
+        const before = text.slice(0, idx);
+        const match = text.slice(idx, idx + trimmed.length);
+        const after = text.slice(idx + trimmed.length);
+        return (
+            <>
+                {before}
+                <mark className="rounded bg-cyan-500/30 px-1 text-cyan-100">{match}</mark>
+                {after}
+            </>
+        );
+    };
+
+    const scrollMetricsSpecToNodeIndex = (hitId: number, text?: string) => {
+        const container = metricsSpecContentRef.current;
+        if (!container) return;
+        let node = container.querySelector<HTMLElement>(`[data-search-hit="${hitId}"]`);
+        if (!node && text) {
+            const normalized = text.trim().replace(/\s+/g, ' ');
+            const nodes = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3, p, li, code'));
+            node = nodes.find((item) => (item.textContent || '').trim().replace(/\s+/g, ' ') === normalized) || null;
+            if (!node) {
+                node = nodes.find((item) => (item.textContent || '').toLowerCase().includes(normalized.toLowerCase())) || null;
+            }
+        }
+        if (!node) return;
+        const scrollOffset = Math.max(0, node.offsetTop - 12);
+        requestAnimationFrame(() => {
+            container.scrollTop = scrollOffset;
+            node.scrollIntoView({ block: 'center' });
+            node.classList.add('ring-2', 'ring-cyan-400/70', 'bg-cyan-500/10');
+            if (metricsSpecHighlightRef.current) {
+                window.clearTimeout(metricsSpecHighlightRef.current);
+            }
+            metricsSpecHighlightRef.current = window.setTimeout(() => {
+                node.classList.remove('ring-2', 'ring-cyan-400/70', 'bg-cyan-500/10');
+            }, 1600);
+        });
+    };
+
+    useEffect(() => {
+        if (!proofOfWorkOpen) return;
+        const handleMouseDown = (event: MouseEvent) => {
+            const target = event.target as Node | null;
+            if (!target) return;
+            if (metricsSpecSearchRef.current?.contains(target)) return;
+            setMetricsSpecSearchFocused(false);
+            setMetricsSpecSearchResults([]);
+        };
+        window.addEventListener('mousedown', handleMouseDown);
+        return () => window.removeEventListener('mousedown', handleMouseDown);
+    }, [proofOfWorkOpen]);
+
+    const metricsSpecNav = useMemo(() => {
+        const lines = metricsSpecMarkdown.split('\n');
+        const counts = new Map<string, number>();
+        const items: Array<{ level: number; text: string; id: string }> = [];
+
+        const buildId = (label: string) => {
+            const key = slugifyHeading(label || 'section') || 'section';
+            const next = (counts.get(key) ?? 0) + 1;
+            counts.set(key, next);
+            return next === 1 ? key : `${key}-${next}`;
+        };
+
+        for (const line of lines) {
+            const match = /^(#{1,3})\s+(.*)\s*$/.exec(line);
+            if (!match) continue;
+            const level = match[1].length;
+            const text = match[2].trim();
+            if (!text) continue;
+            items.push({ level, text, id: buildId(text) });
+        }
+
+        return items;
+    }, [metricsSpecMarkdown]);
 
     useEffect(() => {
         if (uiTheme === 'crt') {
@@ -975,6 +1138,8 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         embedStats.showKills && embedStats.showDowns &&
         embedStats.showBreakbarDamage && embedStats.showDamageTaken &&
         embedStats.showDeaths && embedStats.showDodges;
+
+    metricsSpecHeadingCountsRef.current = new Map();
 
     return (
         <div className="settings-view flex flex-col h-full min-h-0">
@@ -2453,77 +2618,216 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                     <div className="text-lg font-bold text-white">Proof of Work</div>
                                     <div className="text-xs text-gray-400">Metrics Specification</div>
                                 </div>
-                                <button
-                                    onClick={() => setProofOfWorkOpen(false)}
-                                    className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
-                                >
-                                    <CloseIcon className="w-5 h-5" />
-                                </button>
-                            </div>
-                            <div className="max-h-[65vh] overflow-y-auto pr-2">
-                                <div className="space-y-4 text-sm text-gray-200">
-                                    <ReactMarkdown
-                                        remarkPlugins={[remarkGfm]}
-                                        components={{
-                                            h1: ({ children }) => <h1 className="text-2xl font-bold text-white">{children}</h1>,
-                                            h2: ({ children }) => <h2 className="text-xl font-semibold text-white">{children}</h2>,
-                                            h3: ({ children }) => <h3 className="text-lg font-semibold text-white">{children}</h3>,
-                                            p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
-                                            ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
-                                            ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
-                                            li: ({ children }) => <li className="leading-6">{children}</li>,
-                                            blockquote: ({ children }) => (
-                                                <blockquote className="border-l-2 border-blue-400/40 pl-4 text-gray-300 italic">
-                                                    {children}
-                                                </blockquote>
-                                            ),
-                                            a: ({ href, children }) => (
-                                                <button
-                                                    className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
-                                                    onClick={() => href && window.electronAPI.openExternal(href)}
-                                                >
-                                                    {children}
-                                                </button>
-                                            ),
-                                            table: ({ children }) => (
-                                                <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30">
-                                                    <table className="w-full border-collapse text-left text-sm">
-                                                        {children}
-                                                    </table>
-                                                </div>
-                                            ),
-                                            th: ({ children }) => (
-                                                <th className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-gray-300">
-                                                    {children}
-                                                </th>
-                                            ),
-                                            td: ({ children }) => (
-                                                <td className="border-b border-white/10 px-3 py-2 text-gray-200">
-                                                    {children}
-                                                </td>
-                                            ),
-                                            pre: ({ children }) => (
-                                                <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs text-blue-100">
-                                                    {children}
-                                                </pre>
-                                            ),
-                                            code: (props: any) => {
-                                                const { inline, className, children } = props;
-                                                const isInline = inline ?? !className;
-                                                return isInline ? (
-                                                    <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
-                                                        {children}
-                                                    </code>
-                                                ) : (
-                                                    <code className="whitespace-pre-wrap text-blue-100">
-                                                        {children}
-                                                    </code>
-                                                );
-                                            }
-                                        }}
+                                <div className="flex items-center gap-2">
+                                    <div className="relative" ref={metricsSpecSearchRef}>
+                                        <input
+                                            type="text"
+                                            value={metricsSpecSearch}
+                                            onChange={(event) => {
+                                                const value = event.target.value;
+                                                setMetricsSpecSearch(value);
+                                                updateMetricsSpecSearchResults(value);
+                                                if (value.trim().length >= 2) {
+                                                    scrollMetricsSpecToMatch(value);
+                                                }
+                                            }}
+                                            onFocus={() => {
+                                                setMetricsSpecSearchFocused(true);
+                                                updateMetricsSpecSearchResults(metricsSpecSearch);
+                                            }}
+                                            onBlur={(event) => {
+                                                const nextTarget = event.relatedTarget as Node | null;
+                                                if (nextTarget && metricsSpecSearchRef.current?.contains(nextTarget)) {
+                                                    return;
+                                                }
+                                                setMetricsSpecSearchFocused(false);
+                                            }}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    scrollMetricsSpecToMatch(metricsSpecSearch);
+                                                }
+                                            }}
+                                            placeholder="Search spec..."
+                                            className="w-52 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                                        />
+                                        {metricsSpecSearchFocused && metricsSpecSearchResults.length > 0 && metricsSpecSearch.trim().length >= 2 && (
+                                            <div className="absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#11161e]/95 shadow-xl z-10">
+                                                {metricsSpecSearchResults.map((result) => (
+                                                    <button
+                                                        key={`${result.tag}-${result.index}-${result.text}`}
+                                                        className="w-full text-left px-3 py-2 text-xs text-gray-200 hover:bg-white/10 border-b border-white/5 last:border-b-0"
+                                                        onMouseDown={(event) => {
+                                                            event.preventDefault();
+                                                            setMetricsSpecSearchFocused(true);
+                                                            scrollMetricsSpecToNodeIndex(result.hitId, result.text);
+                                                        }}
+                                                    >
+                                                        <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">{result.section}</div>
+                                                        <div className="truncate">
+                                                            {renderHighlightedMatch(result.text, metricsSpecSearch)}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => setProofOfWorkOpen(false)}
+                                        className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
                                     >
-                                        {metricsSpecMarkdown}
-                                    </ReactMarkdown>
+                                        <CloseIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="h-[65vh]">
+                                <div className="grid grid-cols-[220px_1fr] gap-4 h-full min-h-0">
+                                    <div className="h-full overflow-y-auto pr-2">
+                                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">On This Page</div>
+                                        <div className="space-y-1">
+                                            {metricsSpecNav.map((item) => (
+                                                <button
+                                                    key={`${item.id}-${item.level}`}
+                                                    className={`w-full text-left text-xs rounded-md px-2 py-1 transition-colors ${item.level === 1
+                                                        ? 'text-gray-300 hover:text-white'
+                                                        : item.level === 2
+                                                            ? 'text-gray-300 hover:text-white'
+                                                            : 'text-gray-400 hover:text-gray-200'
+                                                        }`}
+                                                    onClick={() => {
+                                                        const container = metricsSpecContentRef.current;
+                                                        if (!container) return;
+                                                        let target = container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`);
+                                                        if (!target) {
+                                                            const key = slugifyHeading(item.text);
+                                                            target = container.querySelector<HTMLElement>(`[data-heading-key="${key}"]`);
+                                                        }
+                                                        if (!target) {
+                                                            const normalized = item.text.trim().replace(/\s+/g, ' ');
+                                                            const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+                                                            target = headings.find((node) => (node.textContent || '').trim().replace(/\s+/g, ' ') === normalized) || null;
+                                                        }
+                                                        if (!target) {
+                                                            return;
+                                                        }
+                                                        const containerTop = container.getBoundingClientRect().top;
+                                                        const targetTop = target.getBoundingClientRect().top;
+                                                        const scrollOffset = Math.max(0, targetTop - containerTop + container.scrollTop - 12);
+                                                        requestAnimationFrame(() => {
+                                                            container.scrollTop = scrollOffset;
+                                                        });
+                                                    }}
+                                                >
+                                                    {item.level === 3 ? '• ' : ''}
+                                                    {item.text}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="h-full overflow-y-auto pr-2" ref={metricsSpecContentRef} id="metrics-spec-content">
+                                        <div className="space-y-4 text-sm text-gray-200">
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    h1: ({ children }) => {
+                                                        const label = extractHeadingText(children);
+                                                        const id = buildHeadingId(label);
+                                                        return (
+                                                            <h1
+                                                                id={id}
+                                                                data-heading-id={id}
+                                                                data-heading-key={slugifyHeading(label)}
+                                                                className="text-2xl font-bold text-white scroll-mt-6"
+                                                            >
+                                                                {children}
+                                                            </h1>
+                                                        );
+                                                    },
+                                                    h2: ({ children }) => {
+                                                        const label = extractHeadingText(children);
+                                                        const id = buildHeadingId(label);
+                                                        return (
+                                                            <h2
+                                                                id={id}
+                                                                data-heading-id={id}
+                                                                data-heading-key={slugifyHeading(label)}
+                                                                className="text-xl font-semibold text-white scroll-mt-6"
+                                                            >
+                                                                {children}
+                                                            </h2>
+                                                        );
+                                                    },
+                                                    h3: ({ children }) => {
+                                                        const label = extractHeadingText(children);
+                                                        const id = buildHeadingId(label);
+                                                        return (
+                                                            <h3
+                                                                id={id}
+                                                                data-heading-id={id}
+                                                                data-heading-key={slugifyHeading(label)}
+                                                                className="text-lg font-semibold text-white scroll-mt-6"
+                                                            >
+                                                                {children}
+                                                            </h3>
+                                                        );
+                                                    },
+                                                    p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
+                                                    ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
+                                                    ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
+                                                    li: ({ children }) => <li className="leading-6">{children}</li>,
+                                                    blockquote: ({ children }) => (
+                                                        <blockquote className="border-l-2 border-blue-400/40 pl-4 text-gray-300 italic">
+                                                            {children}
+                                                        </blockquote>
+                                                    ),
+                                                    a: ({ href, children }) => (
+                                                        <button
+                                                            className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                                                            onClick={() => href && window.electronAPI.openExternal(href)}
+                                                        >
+                                                            {children}
+                                                        </button>
+                                                    ),
+                                                    table: ({ children }) => (
+                                                        <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30">
+                                                            <table className="w-full border-collapse text-left text-sm">
+                                                                {children}
+                                                            </table>
+                                                        </div>
+                                                    ),
+                                                    th: ({ children }) => (
+                                                        <th className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-gray-300">
+                                                            {children}
+                                                        </th>
+                                                    ),
+                                                    td: ({ children }) => (
+                                                        <td className="border-b border-white/10 px-3 py-2 text-gray-200">
+                                                            {children}
+                                                        </td>
+                                                    ),
+                                                    pre: ({ children }) => (
+                                                        <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs text-blue-100">
+                                                            {children}
+                                                        </pre>
+                                                    ),
+                                                    code: (props: any) => {
+                                                        const { inline, className, children } = props;
+                                                        const isInline = inline ?? !className;
+                                                        return isInline ? (
+                                                            <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
+                                                                {children}
+                                                            </code>
+                                                        ) : (
+                                                            <code className="whitespace-pre-wrap text-blue-100">
+                                                                {children}
+                                                            </code>
+                                                        );
+                                                    }
+                                                }}
+                                            >
+                                                {metricsSpecMarkdown}
+                                            </ReactMarkdown>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>

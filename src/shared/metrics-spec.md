@@ -6,7 +6,7 @@ independently from any third-party implementation while staying consistent
 with EI JSON inputs. It also records the exact fields and aggregation rules
 so the stats dashboard, Discord, and cards produce identical values.
 
-Spec version: `v3` (see `src/shared/metrics-methods.json`).
+Spec version: `v4` (see `src/shared/metrics-methods.json`).
 
 ## Input Contract (EI JSON)
 
@@ -142,6 +142,125 @@ Incoming damage per skill (incoming damage distribution) is derived from
 `players[*].totalDamageTaken[*]` entries and summed across players for the
 squad view. This total can be large for siege skills because it aggregates
 all hits and all players (and across multiple logs when viewing aggregates).
+
+## Damage Mitigation (Player + Minion)
+
+Damage mitigation is an **estimate** of avoided damage based on enemy skill
+damage averages and avoidance events (block/evade/miss/invuln/interrupted).
+It is intended for relative comparisons between players/minions and logs, not
+as a literal “damage prevented” total.
+
+### Inputs Used
+
+Per-log data sources:
+
+- Enemy damage distribution: `targets[*].totalDamageDist[0]`
+- Player avoided events: `players[*].totalDamageTaken[0]`
+- Minion avoided events: `players[*].minions[*].totalDamageTakenDist[0]`
+- Skill names: `skillMap` / `buffMap` (for UI labels only)
+
+### Enemy Skill Damage Averages
+
+For each skill id across **all logs in the aggregation**:
+
+1. Gather `totalDamage` and `connectedHits` from every target’s
+   `totalDamageDist[0]` entry with the same `id`.
+2. Compute:
+   - `avgDamage = sum(totalDamage) / sum(connectedHits)`
+   - `minDamage = average(entry.min over all occurrences)`
+
+These averages are computed **once for the aggregation window** and used for
+all player/minion mitigation calculations.
+
+### Avoided Damage Per Skill (Formula)
+
+For a given skill id `S` with enemy averages `avgDamage` and `minDamage`:
+
+```
+avoidCount = blocked + evaded + missed + invulned + interrupted
+avoidDamage = (glanced * avgDamage / 2) + (avoidCount * avgDamage)
+minAvoidDamage = (glanced * minDamage / 2) + (avoidCount * minDamage)
+```
+
+Notes:
+- `glanced` is treated as half damage.
+- If `connectedHits` for the enemy skill is `0`, the skill is excluded from
+  mitigation totals (both avoid and min avoid).
+
+### Player Mitigation Aggregation
+
+For each player (account key):
+
+1. Sum avoidance counts **per skill id** across all logs:
+   - `hits`, `blocked`, `evaded`, `glanced`, `missed`, `invulned`, `interrupted`.
+2. For each skill id, compute `avoidDamage` / `minAvoidDamage` using the global
+   enemy averages (above).
+3. **Include only skills with `avoidDamage > 0`** in totals.
+4. Totals are the sum of:
+   - `totalHits` (from `hits`)
+   - `blocked`, `evaded`, `glanced`, `missed`, `invulned`, `interrupted`
+   - `totalMitigation` (sum of avoidDamage)
+   - `minMitigation` (sum of minAvoidDamage)
+
+### Minion Mitigation Aggregation
+
+For each minion (player account + minion name):
+
+1. Sum avoidance counts **per skill id** across all logs using
+   `minion.totalDamageTakenDist[0]`.
+2. Use the **same enemy averages** (from targets).
+3. Compute totals using the same formula and inclusion rules as player
+   mitigation.
+
+Minion names are normalized by:
+- Removing `"Juvenile "` prefix.
+- Converting names containing `"UNKNOWN"` to `"Unknown"`.
+
+### Field Mapping in UI
+
+The Damage Mitigation table uses the following totals:
+
+- `Total Hits` → summed `hits` for included skills
+- `Evaded`, `Blocked`, `Glanced`, `Missed`, `Invulned`, `Interrupted`
+- `Damage Mitigation` → `totalMitigation`
+- `Min Damage Mitigation` → `minMitigation`
+
+### Why This Diverges From Some External Tools
+
+Some tools compute mitigation differently (e.g., per-log accumulation with
+running averages, name-based skill bucketing, or repeated adding across logs).
+This spec intentionally computes **one consistent estimate** across all logs
+using **global enemy averages** and **per-skill cumulative counts**, which
+avoids log-count bias.
+
+### Known Limitations
+
+- If a skill’s `connectedHits` is zero in targets data, mitigation for that
+  skill is excluded.
+- Some skills share names across different ids; we bucket by **skill id** to
+  avoid collisions.
+- Enemy damage averages are computed from `targets[*].totalDamageDist[0]` and
+  can be skewed by target mix, fake targets, or atypical fights.
+
+### How-To: Validate Against Raw EI JSON
+
+1. Choose a player or minion and a specific skill id from:
+   - `players[*].totalDamageTaken[0]` or `minions[*].totalDamageTakenDist[0]`.
+2. Compute counts: `blocked`, `evaded`, `glanced`, `missed`, `invulned`,
+   `interrupted`, `hits`.
+3. Compute enemy averages from all logs’ `targets[*].totalDamageDist[0]` for
+   the same skill id.
+4. Apply the formula above and verify the per-skill avoided damage.
+5. Sum over skills with `avoidDamage > 0` to confirm table totals.
+
+### How-To: Debug Mismatches
+
+1. Confirm the same log set is being aggregated.
+2. Verify skill ids match (name collisions can hide differences).
+3. Check if the target data includes the skill id with non-zero
+   `connectedHits`.
+4. Validate that minion names are normalized (`Juvenile` prefix removed).
+5. Compare against a single skill id first, then widen to all skills.
 
 ## Conditions (Outgoing + Incoming)
 
