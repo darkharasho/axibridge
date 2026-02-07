@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FolderOpen, UploadCloud, FileText, Settings, Minus, Square, X, Image as ImageIcon, Layout, RefreshCw, Trophy, ChevronDown, ChevronLeft, ChevronRight, Grid3X3, LayoutGrid, Trash2, FilePlus2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
@@ -95,6 +96,9 @@ function App() {
     const [webhookModalOpen, setWebhookModalOpen] = useState(false);
     const [webhookDropdownOpen, setWebhookDropdownOpen] = useState(false);
     const webhookDropdownRef = useRef<HTMLDivElement | null>(null);
+    const webhookDropdownButtonRef = useRef<HTMLButtonElement | null>(null);
+    const webhookDropdownPortalRef = useRef<HTMLDivElement | null>(null);
+    const [webhookDropdownStyle, setWebhookDropdownStyle] = useState<CSSProperties | null>(null);
 
     // File picker modal state
     const [filePickerOpen, setFilePickerOpen] = useState(false);
@@ -517,9 +521,23 @@ function App() {
 
     useEffect(() => {
         if (!webhookDropdownOpen) return;
+        const updatePosition = () => {
+            if (!webhookDropdownButtonRef.current) return;
+            const rect = webhookDropdownButtonRef.current.getBoundingClientRect();
+            setWebhookDropdownStyle({
+                position: 'fixed',
+                top: Math.round(rect.bottom + 8),
+                left: Math.round(rect.left),
+                width: Math.round(rect.width),
+                zIndex: 9999
+            });
+        };
+        updatePosition();
         const handleMouseDown = (event: MouseEvent) => {
             const target = event.target as Node;
-            if (webhookDropdownRef.current && !webhookDropdownRef.current.contains(target)) {
+            const inAnchor = webhookDropdownRef.current?.contains(target);
+            const inPortal = webhookDropdownPortalRef.current?.contains(target);
+            if (!inAnchor && !inPortal) {
                 setWebhookDropdownOpen(false);
             }
         };
@@ -530,9 +548,13 @@ function App() {
         };
         document.addEventListener('mousedown', handleMouseDown);
         document.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('resize', updatePosition);
+        window.addEventListener('scroll', updatePosition, true);
         return () => {
             document.removeEventListener('mousedown', handleMouseDown);
             document.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('resize', updatePosition);
+            window.removeEventListener('scroll', updatePosition, true);
         };
     }, [webhookDropdownOpen]);
 
@@ -1321,43 +1343,80 @@ function App() {
             ? 'app-shell h-screen w-screen text-white overflow-hidden flex flex-col'
             : 'app-shell h-screen w-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black text-white font-sans overflow-hidden flex flex-col';
 
-    const notificationTypePanel = (
-        <div>
-            <label className={`text-xs uppercase tracking-wider text-gray-500 font-semibold ${isModernTheme ? 'mb-3 block' : 'mb-2 block'}`}>Notification Type</label>
-            <div className={isModernTheme ? 'flex flex-col gap-2' : 'flex flex-col gap-2'}>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => {
-                            setNotificationType('image');
-                            handleUpdateSettings({ discordNotificationType: 'image' });
-                        }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'image' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
-                    >
-                        <ImageIcon className="w-4 h-4" />
-                        <span className="text-sm font-medium">Image</span>
-                    </button>
-                    <button
-                        onClick={() => {
-                            setNotificationType('embed');
-                            handleUpdateSettings({ discordNotificationType: 'embed' });
-                        }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'embed' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
-                    >
-                        <Layout className="w-4 h-4" />
-                        <span className="text-sm font-medium">Embed</span>
-                    </button>
-                </div>
+    const notificationTypeButtons = isModernTheme ? (
+        <div className="grid grid-cols-3 gap-1.5">
+            <button
+                onClick={() => {
+                    setNotificationType('image');
+                    handleUpdateSettings({ discordNotificationType: 'image' });
+                }}
+                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-xl border transition-all ${notificationType === 'image' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+            >
+                <ImageIcon className="w-4 h-4" />
+                <span className="font-medium">Image</span>
+            </button>
+            <button
+                onClick={() => {
+                    setNotificationType('embed');
+                    handleUpdateSettings({ discordNotificationType: 'embed' });
+                }}
+                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-xl border transition-all ${notificationType === 'embed' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+            >
+                <Layout className="w-4 h-4" />
+                <span className="font-medium">Embed</span>
+            </button>
+            <button
+                onClick={() => {
+                    setNotificationType('image-beta');
+                    handleUpdateSettings({ discordNotificationType: 'image-beta' });
+                }}
+                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-xl border transition-all ${notificationType === 'image-beta' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+            >
+                <Grid3X3 className="w-4 h-4" />
+                <span className="font-medium">Tiled</span>
+            </button>
+        </div>
+    ) : (
+        <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
                 <button
                     onClick={() => {
-                        setNotificationType('image-beta');
-                        handleUpdateSettings({ discordNotificationType: 'image-beta' });
+                        setNotificationType('image');
+                        handleUpdateSettings({ discordNotificationType: 'image' });
                     }}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'image-beta' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'image' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
                 >
-                    <Grid3X3 className="w-4 h-4" />
-                    <span className="text-sm font-medium">Tiled</span>
+                    <ImageIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">Image</span>
+                </button>
+                <button
+                    onClick={() => {
+                        setNotificationType('embed');
+                        handleUpdateSettings({ discordNotificationType: 'embed' });
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'embed' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                >
+                    <Layout className="w-4 h-4" />
+                    <span className="text-sm font-medium">Embed</span>
                 </button>
             </div>
+            <button
+                onClick={() => {
+                    setNotificationType('image-beta');
+                    handleUpdateSettings({ discordNotificationType: 'image-beta' });
+                }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${notificationType === 'image-beta' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+            >
+                <Grid3X3 className="w-4 h-4" />
+                <span className="text-sm font-medium">Tiled</span>
+            </button>
+        </div>
+    );
+
+    const notificationTypePanel = (
+        <div className={isModernTheme ? 'space-y-1 min-w-0' : ''}>
+            <label className={`text-xs uppercase tracking-wider text-gray-500 font-semibold ${isModernTheme ? 'mb-1 block' : 'mb-2 block'}`}>Notification Type</label>
+            {notificationTypeButtons}
         </div>
     );
 
@@ -1369,115 +1428,74 @@ function App() {
             className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl hover:border-white/20 transition-colors"
         >
             {isModernTheme ? (
-                <div className="grid grid-cols-[minmax(0,1fr)_240px] gap-6">
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold w-28 shrink-0">Log Directory</label>
-                            <div className="flex gap-2 w-full max-w-full">
-                                <div className="flex-1 min-w-0 bg-black/40 border border-white/5 rounded-xl px-2 h-11 flex items-center gap-3 hover:border-blue-500/50 transition-colors">
-                                    <div className="pl-2 shrink-0">
-                                        <FolderOpen className="w-5 h-5 text-blue-400" />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        value={logDirectory || ''}
-                                        placeholder="C:\...\arcdps.cbtlogs"
-                                        className="flex-1 bg-transparent border-none text-sm text-gray-300 placeholder-gray-600 focus:ring-0 px-2 min-w-0 w-full h-full"
-                                        onChange={(e) => setLogDirectory(e.target.value)}
-                                        onBlur={(e) => {
-                                            if (e.target.value) {
-                                                window.electronAPI.startWatching(e.target.value);
-                                            }
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && logDirectory) {
-                                                window.electronAPI.startWatching(logDirectory);
-                                            }
-                                        }}
-                                    />
+                <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,360px)] gap-3 items-start p-2">
+                    <div className="space-y-1 min-w-0">
+                        <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Log Directory</label>
+                        <div className="flex gap-1 w-full max-w-full">
+                            <div className="flex-1 min-w-0 bg-black/40 border border-white/5 rounded-xl px-1.5 h-8 flex items-center gap-2 hover:border-blue-500/50 transition-colors">
+                                <div className="pl-1 shrink-0">
+                                    <FolderOpen className="w-4 h-4 text-blue-400" />
                                 </div>
-                                <button
-                                    onClick={handleSelectDirectory}
-                                    className="shrink-0 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl w-11 h-11 flex items-center justify-center transition-colors"
-                                    title="Browse..."
-                                >
-                                    <FolderOpen className="w-5 h-5" />
-                                </button>
+                                <input
+                                    type="text"
+                                    value={logDirectory || ''}
+                                    placeholder="C:\...\arcdps.cbtlogs"
+                                className="flex-1 bg-transparent border-none text-[11px] text-gray-300 placeholder-gray-600 focus:ring-0 px-2 min-w-0 w-full h-full"
+                                    onChange={(e) => setLogDirectory(e.target.value)}
+                                    onBlur={(e) => {
+                                        if (e.target.value) {
+                                            window.electronAPI.startWatching(e.target.value);
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && logDirectory) {
+                                            window.electronAPI.startWatching(logDirectory);
+                                        }
+                                    }}
+                                />
                             </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold w-28 shrink-0">Discord Webhook</label>
-                            <div className="flex gap-2 w-full">
-                                <div ref={webhookDropdownRef} className="relative flex-1 min-w-0">
-                                    <button
-                                        type="button"
-                                        onClick={() => setWebhookDropdownOpen((prev) => !prev)}
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-3 h-11 flex items-center justify-between gap-2 text-sm text-gray-300 hover:border-purple-500/50 hover:bg-black/50 transition-colors"
-                                        aria-haspopup="listbox"
-                                        aria-expanded={webhookDropdownOpen}
-                                    >
-                                        <span className="truncate">
-                                            {selectedWebhook?.name || 'Disabled'}
-                                        </span>
-                                        <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {webhookDropdownOpen && (
-                                        <div
-                                            className="glass-dropdown absolute z-30 mt-2 w-full rounded-xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden"
-                                            role="listbox"
-                                        >
-                                            <div className="relative z-10 max-h-64 overflow-y-auto">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelectedWebhookId(null);
-                                                        handleUpdateSettings({ selectedWebhookId: null });
-                                                        setWebhookDropdownOpen(false);
-                                                    }}
-                                                    className={`w-full px-3 py-2 text-left text-sm transition-colors ${!selectedWebhookId
-                                                        ? 'bg-purple-500/20 text-purple-100'
-                                                        : 'text-gray-300 hover:bg-white/10'
-                                                        }`}
-                                                    role="option"
-                                                    aria-selected={!selectedWebhookId}
-                                                >
-                                                    Disabled
-                                                </button>
-                                                {webhooks.map((hook) => (
-                                                    <button
-                                                        key={hook.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setSelectedWebhookId(hook.id);
-                                                            handleUpdateSettings({ selectedWebhookId: hook.id });
-                                                            setWebhookDropdownOpen(false);
-                                                        }}
-                                                        className={`w-full px-3 py-2 text-left text-sm transition-colors ${selectedWebhookId === hook.id
-                                                            ? 'bg-purple-500/20 text-purple-100'
-                                                            : 'text-gray-300 hover:bg-white/10'
-                                                            }`}
-                                                        role="option"
-                                                        aria-selected={selectedWebhookId === hook.id}
-                                                    >
-                                                        {hook.name}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                <button
-                                    onClick={() => setWebhookModalOpen(true)}
-                                    className="shrink-0 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-xl w-11 h-11 flex items-center justify-center gap-2 transition-colors"
-                                    title="Manage Webhooks"
-                                >
-                                    <Settings className="w-4 h-4" />
-                                </button>
-                            </div>
+                            <button
+                                onClick={handleSelectDirectory}
+                                className="shrink-0 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl w-8 h-8 flex items-center justify-center transition-colors"
+                                title="Browse..."
+                            >
+                                <FolderOpen className="w-3.5 h-3.5" />
+                            </button>
                         </div>
                     </div>
-                    {notificationTypePanel}
+
+                    <div className="space-y-1 min-w-0">
+                        <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Discord Webhook</label>
+                        <div className="flex gap-1 w-full">
+                            <div ref={webhookDropdownRef} className="relative flex-1 min-w-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setWebhookDropdownOpen((prev) => !prev)}
+                                    ref={webhookDropdownButtonRef}
+                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-2.5 h-8 flex items-center justify-between gap-2 text-[11px] text-gray-300 hover:border-purple-500/50 hover:bg-black/50 transition-colors"
+                                    aria-haspopup="listbox"
+                                    aria-expanded={webhookDropdownOpen}
+                                >
+                                    <span className="truncate">
+                                        {selectedWebhook?.name || 'Disabled'}
+                                    </span>
+                                    <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => setWebhookModalOpen(true)}
+                                className="shrink-0 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-xl w-8 h-8 flex items-center justify-center gap-2 transition-colors"
+                                title="Manage Webhooks"
+                            >
+                                <Settings className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-1 min-w-0">
+                        <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Notification Type</label>
+                        {notificationTypeButtons}
+                    </div>
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -1523,6 +1541,7 @@ function App() {
                                 <button
                                     type="button"
                                     onClick={() => setWebhookDropdownOpen((prev) => !prev)}
+                                    ref={webhookDropdownButtonRef}
                                     className="w-full bg-black/40 border border-white/5 rounded-xl px-3 h-11 flex items-center justify-between gap-2 text-sm text-gray-300 hover:border-purple-500/50 hover:bg-black/50 transition-colors"
                                     aria-haspopup="listbox"
                                     aria-expanded={webhookDropdownOpen}
@@ -1532,50 +1551,6 @@ function App() {
                                     </span>
                                     <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
                                 </button>
-                                {webhookDropdownOpen && (
-                                    <div
-                                        className="glass-dropdown absolute z-30 mt-2 w-full rounded-xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden"
-                                        role="listbox"
-                                    >
-                                        <div className="relative z-10 max-h-64 overflow-y-auto">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setSelectedWebhookId(null);
-                                                    handleUpdateSettings({ selectedWebhookId: null });
-                                                    setWebhookDropdownOpen(false);
-                                                }}
-                                                className={`w-full px-3 py-2 text-left text-sm transition-colors ${!selectedWebhookId
-                                                    ? 'bg-purple-500/20 text-purple-100'
-                                                    : 'text-gray-300 hover:bg-white/10'
-                                                    }`}
-                                                role="option"
-                                                aria-selected={!selectedWebhookId}
-                                            >
-                                                Disabled
-                                            </button>
-                                            {webhooks.map((hook) => (
-                                                <button
-                                                    key={hook.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelectedWebhookId(hook.id);
-                                                        handleUpdateSettings({ selectedWebhookId: hook.id });
-                                                        setWebhookDropdownOpen(false);
-                                                    }}
-                                                    className={`w-full px-3 py-2 text-left text-sm transition-colors ${selectedWebhookId === hook.id
-                                                        ? 'bg-purple-500/20 text-purple-100'
-                                                        : 'text-gray-300 hover:bg-white/10'
-                                                        }`}
-                                                    role="option"
-                                                    aria-selected={selectedWebhookId === hook.id}
-                                                >
-                                                    {hook.name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                             <button
                                 onClick={() => setWebhookModalOpen(true)}
@@ -2001,7 +1976,7 @@ function App() {
             <div className="legacy-orb absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
             <div className="legacy-orb absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/20 blur-[100px] pointer-events-none" />
 
-        <div className={`app-content relative z-10 ${isModernTheme ? 'max-w-none' : 'max-w-5xl mx-auto'} flex-1 w-full min-w-0 flex flex-col min-h-0 ${view === 'stats' ? 'pt-8 px-8 pb-2 overflow-hidden' : 'p-8 overflow-hidden'}`}>
+        <div className={`app-content relative z-10 ${isModernTheme ? 'max-w-none' : 'max-w-5xl mx-auto'} flex-1 w-full min-w-0 flex flex-col min-h-0 ${view === 'stats' ? 'pt-8 px-8 pb-2 overflow-hidden' : (isModernTheme ? 'p-8 overflow-visible' : 'p-8 overflow-hidden')}`}>
                 <header className="app-header flex flex-wrap justify-between items-center gap-3 mb-10 shrink-0">
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
@@ -2236,7 +2211,7 @@ function App() {
                     />
                 ) : view === 'stats' ? null : (
                     isModernTheme ? (
-                        <div className="dashboard-view dashboard-modern flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto pr-1">
+                        <div className="dashboard-view dashboard-modern flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overflow-x-visible pr-1">
                             {statsTilesPanel}
                             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4 flex-1 min-h-0 content-start">
                                 <div className="order-2 xl:order-1 min-h-0">
@@ -3153,6 +3128,54 @@ function App() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {webhookDropdownOpen && webhookDropdownStyle && createPortal(
+                <div
+                    ref={webhookDropdownPortalRef}
+                    className="glass-dropdown rounded-xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden"
+                    style={webhookDropdownStyle}
+                    role="listbox"
+                >
+                    <div className="relative z-10 max-h-64 overflow-y-auto">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedWebhookId(null);
+                                handleUpdateSettings({ selectedWebhookId: null });
+                                setWebhookDropdownOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left ${uiTheme === 'modern' ? 'text-xs' : 'text-sm'} transition-colors ${!selectedWebhookId
+                                ? 'bg-purple-500/20 text-purple-100'
+                                : 'text-gray-300 hover:bg-white/10'
+                                }`}
+                            role="option"
+                            aria-selected={!selectedWebhookId}
+                        >
+                            Disabled
+                        </button>
+                        {webhooks.map((hook) => (
+                            <button
+                                key={hook.id}
+                                type="button"
+                                onClick={() => {
+                                    setSelectedWebhookId(hook.id);
+                                    handleUpdateSettings({ selectedWebhookId: hook.id });
+                                    setWebhookDropdownOpen(false);
+                                }}
+                                className={`w-full px-3 py-2 text-left ${uiTheme === 'modern' ? 'text-xs' : 'text-sm'} transition-colors ${selectedWebhookId === hook.id
+                                    ? 'bg-purple-500/20 text-purple-100'
+                                    : 'text-gray-300 hover:bg-white/10'
+                                    }`}
+                                role="option"
+                                aria-selected={selectedWebhookId === hook.id}
+                            >
+                                {hook.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>,
+                document.body
+            )}
 
             {/* Webhook Management Modal */}
             <WebhookModal
