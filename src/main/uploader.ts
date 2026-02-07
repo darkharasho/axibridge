@@ -17,9 +17,12 @@ export interface UploadResult {
 export class Uploader {
     private static API_URL = 'https://dps.report/uploadContent';
     private static BACKUP_API_URL = 'https://b.dps.report/uploadContent';
-    private httpsAgent = new https.Agent({ keepAlive: false });
+    private static MAX_CONCURRENT_UPLOADS = 3;
+    private static RATE_LIMIT_COOLDOWN_MS = 60000;
+    private static MAX_STANDARD_BACKOFF_MS = 15000;
+    private httpsAgent = new https.Agent({ keepAlive: true });
     private uploadQueue: { filePath: string; resolve: (value: UploadResult) => void }[] = [];
-    private isUploading = false;
+    private activeUploads = 0;
     private userToken: string | null = null;
 
     // Set user token for authenticated uploads
@@ -37,47 +40,41 @@ export class Uploader {
     }
 
     private async processQueue() {
-        if (this.isUploading || this.uploadQueue.length === 0) return;
+        while (this.activeUploads < Uploader.MAX_CONCURRENT_UPLOADS && this.uploadQueue.length > 0) {
+            const task = this.uploadQueue.shift();
+            if (!task) return;
+            this.activeUploads += 1;
+            void this.runTask(task);
+        }
+    }
 
-        this.isUploading = true;
-        const task = this.uploadQueue.shift();
-
-        if (task) {
-            let result: UploadResult | undefined;
-            try {
-                result = await this.performUpload(task.filePath);
-                task.resolve(result);
-            } catch (err: any) {
-                console.error("Critical queue error:", err);
-                task.resolve({
-                    id: '',
-                    permalink: '',
-                    userToken: '',
-                    error: err.message || 'Unknown queue error'
-                });
-            } finally {
-                // Adaptive Throttling
-                // If we hit a 429, wait significantly longer (60s) to let the rate limit bucket reset.
-                // Otherwise, wait 15s to be extremely safe for anonymous uploads by default.
-                let delay = 15000;
-
-                if (result && result.statusCode === 429) {
-                    console.warn("[Queue] Hit Rate Limit (429) in result. Pausing queue for 60 seconds...");
-                    delay = 60000;
-                }
-
-                await new Promise(r => setTimeout(r, delay));
-                this.isUploading = false;
-                this.processQueue();
+    private async runTask(task: { filePath: string; resolve: (value: UploadResult) => void }) {
+        let result: UploadResult | undefined;
+        try {
+            result = await this.performUpload(task.filePath);
+            task.resolve(result);
+        } catch (err: any) {
+            console.error("Critical queue error:", err);
+            task.resolve({
+                id: '',
+                permalink: '',
+                userToken: '',
+                error: err.message || 'Unknown queue error'
+            });
+        } finally {
+            const delay = this.getInterUploadDelayMs(result);
+            if (delay >= Uploader.RATE_LIMIT_COOLDOWN_MS) {
+                console.warn(`[Queue] Cooling down for ${delay}ms before next upload.`);
             }
-        } else {
-            this.isUploading = false;
+            await new Promise(r => setTimeout(r, delay));
+            this.activeUploads = Math.max(0, this.activeUploads - 1);
+            this.processQueue();
         }
     }
 
     private async performUpload(filePath: string): Promise<UploadResult> {
         let lastError: any;
-        const maxRetries = 10; // Increase retries significantly
+        const maxRetries = 10;
 
         try {
             const stats = fs.statSync(filePath);
@@ -134,13 +131,14 @@ export class Uploader {
                 console.error(`[Uploader] Upload attempt ${attempt} failed with status ${statusCode || 'unknown'}:`, error.message || error);
 
                 if (attempt < maxRetries) {
-                    let backoff = 1000 * Math.pow(2, attempt - 1);
+                    let backoff = Math.min(1000 * Math.pow(2, attempt - 1), Uploader.MAX_STANDARD_BACKOFF_MS);
+                    const retryAfterMs = this.getRetryAfterMs(error);
 
-                    if (error.response && error.response.status === 429) {
+                    if (retryAfterMs > 0) {
+                        backoff = retryAfterMs;
+                    } else if (error.response && error.response.status === 429) {
                         console.warn("HIT RATE LIMIT (429). Sleeping for 60 seconds...");
-                        backoff = 60000; // Force 60s wait
-                    } else if (backoff > 30000) {
-                        backoff = 30000; // Cap normal exponential backoff to 30s
+                        backoff = Uploader.RATE_LIMIT_COOLDOWN_MS;
                     }
 
                     console.log(`Retrying in ${backoff}ms...`);
@@ -185,5 +183,30 @@ export class Uploader {
             }
             return null;
         }
+    }
+
+    private getInterUploadDelayMs(result?: UploadResult): number {
+        if (result?.statusCode === 429) {
+            return Uploader.RATE_LIMIT_COOLDOWN_MS;
+        }
+        if (result?.error) {
+            return this.userToken ? 500 : 1000;
+        }
+        // Keep slots hot on success; rely on retry/backoff when the service pushes back.
+        return 0;
+    }
+
+    private getRetryAfterMs(error: any): number {
+        const raw = error?.response?.headers?.['retry-after'];
+        if (!raw) return 0;
+        const asNumber = Number(raw);
+        if (Number.isFinite(asNumber) && asNumber > 0) {
+            return Math.round(asNumber * 1000);
+        }
+        const retryDate = Date.parse(String(raw));
+        if (!Number.isNaN(retryDate)) {
+            return Math.max(retryDate - Date.now(), 0);
+        }
+        return 0;
     }
 }

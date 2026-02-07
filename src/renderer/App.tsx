@@ -212,10 +212,9 @@ function App() {
         if (!bulkStatsAwaitingRef.current) {
             return;
         }
-        if (bulkFlushIdRef.current === null) {
-            return;
-        }
-        if (lastComputedFlushId !== bulkFlushIdRef.current) {
+        // Allow later flushes to satisfy completion. Strict equality can deadlock
+        // when incremental refreshes issue additional flush requests.
+        if (bulkFlushIdRef.current !== null && lastComputedFlushId !== null && lastComputedFlushId < bulkFlushIdRef.current) {
             return;
         }
         if (lastComputedToken !== activeToken) {
@@ -231,6 +230,9 @@ function App() {
             let changed = false;
             const next = currentLogs.map<ILogData>((log) => {
                 if (log.status === 'calculating') {
+                    if (log.detailsAvailable && !log.details) {
+                        return log;
+                    }
                     changed = true;
                     return { ...log, status: 'success' as const };
                 }
@@ -349,6 +351,7 @@ function App() {
 
     const pendingDetailsRef = useRef<Set<string>>(new Set());
     const hydrateDetailsQueueRef = useRef<number | null>(null);
+    const incrementalStatsRefreshRef = useRef<number | null>(null);
 
     const scheduleDetailsHydration = useCallback((force = false) => {
         if (hydrateDetailsQueueRef.current !== null && !force) return;
@@ -400,7 +403,16 @@ function App() {
             };
             await Promise.all(Array.from({ length: Math.min(maxConcurrent, candidates.length) }, () => runWorker()));
         });
-    }, [logs]);
+    }, []);
+
+    const scheduleIncrementalStatsRefresh = useCallback(() => {
+        if (incrementalStatsRefreshRef.current !== null) return;
+        incrementalStatsRefreshRef.current = window.setTimeout(() => {
+            incrementalStatsRefreshRef.current = null;
+            setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
+            requestFlush?.();
+        }, 700);
+    }, [requestFlush]);
 
     const endBulkUpload = useCallback(() => {
         bulkUploadExpectedRef.current = null;
@@ -415,6 +427,15 @@ function App() {
         window.setTimeout(() => scheduleDetailsHydration(true), 0);
         window.setTimeout(() => scheduleDetailsHydration(true), 500);
     }, [scheduleDetailsHydration, requestFlush]);
+
+    useEffect(() => {
+        return () => {
+            if (incrementalStatsRefreshRef.current !== null) {
+                window.clearTimeout(incrementalStatsRefreshRef.current);
+                incrementalStatsRefreshRef.current = null;
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!webhookDropdownOpen) return;
@@ -468,8 +489,18 @@ function App() {
     // Stats calculation
     const { totalUploads, statusCounts, uploadPieData, avgSquadSize, avgEnemies, winLoss, squadKdr } = useMemo(() => {
         const totalUploads = logs.length;
+        const resolveDashboardStatus = (log: ILogData) => {
+            if (log.error || log.status === 'error') return 'error';
+            if (log.status === 'queued' || log.status === 'pending' || log.status === 'uploading' || log.status === 'retrying' || log.status === 'discord') {
+                return log.status;
+            }
+            if (log.detailsAvailable && !log.details) return 'calculating';
+            if (log.status === 'success' || log.details) return 'success';
+            if (log.status === 'calculating') return 'calculating';
+            return log.status || 'queued';
+        };
         const statusCounts = logs.reduce<Record<string, number>>((acc, log) => {
-            const key = log.status || 'queued';
+            const key = resolveDashboardStatus(log);
             acc[key] = (acc[key] || 0) + 1;
             return acc;
         }, {});
@@ -639,22 +670,37 @@ function App() {
                 setUploadRetryQueue(queue);
             })
             : null;
+        const upsertIncomingLog = (currentLogs: ILogData[], incoming: ILogData) => {
+            const identity = incoming.filePath || incoming.id;
+            if (!identity) return currentLogs;
+            const existingIndex = currentLogs.findIndex((log) => (log.filePath || log.id) === identity);
+            const normalizeStatus = (candidate: ILogData): ILogData => {
+                if (candidate.status === 'success' && candidate.detailsAvailable && !candidate.details) {
+                    return { ...candidate, status: 'calculating' as const };
+                }
+                return candidate;
+            };
+            if (existingIndex < 0) {
+                return [normalizeStatus(incoming), ...currentLogs];
+            }
+            const existing = currentLogs[existingIndex];
+            const merged = normalizeStatus({ ...existing, ...incoming });
+            const hasChanges = Object.keys(merged).some((key) => {
+                const typedKey = key as keyof ILogData;
+                return existing[typedKey] !== merged[typedKey];
+            });
+            if (!hasChanges) return currentLogs;
+            const updated = [...currentLogs];
+            updated[existingIndex] = merged;
+            return updated;
+        };
 
         // Listen for status updates during upload process
         const cleanupStatus = window.electronAPI.onUploadStatus((data: ILogData) => {
             if (data.filePath && canceledLogsRef.current.has(data.filePath)) {
                 return;
             }
-            setLogs((currentLogs) => {
-                const existingIndex = currentLogs.findIndex(log => log.filePath === data.filePath);
-                if (existingIndex >= 0) {
-                    const updated = [...currentLogs];
-                    updated[existingIndex] = { ...updated[existingIndex], ...data };
-                    return updated;
-                } else {
-                    return [data, ...currentLogs];
-                }
-            });
+            setLogs((currentLogs) => upsertIncomingLog(currentLogs, data));
         });
 
         const cleanupUpload = window.electronAPI.onUploadComplete((data: ILogData) => {
@@ -669,31 +715,18 @@ function App() {
                 playerCount: data.details?.players?.length
             });
             if (bulkUploadModeRef.current) {
-                setLogs((currentLogs) => {
-                    const existingIndex = currentLogs.findIndex(log => log.filePath === data.filePath);
-                    if (existingIndex >= 0) {
-                        const updated = [...currentLogs];
-                        updated[existingIndex] = { ...updated[existingIndex], ...data };
-                        return updated;
-                    }
-                    return [data, ...currentLogs];
-                });
+                setLogs((currentLogs) => upsertIncomingLog(currentLogs, data));
+                if (data.detailsAvailable) {
+                    scheduleDetailsHydration();
+                    scheduleIncrementalStatsRefresh();
+                }
                 bulkUploadCompletedRef.current += 1;
                 if (bulkUploadExpectedRef.current !== null && bulkUploadCompletedRef.current >= bulkUploadExpectedRef.current) {
                     endBulkUpload();
                 }
                 return;
             }
-            setLogs((currentLogs) => {
-                const existingIndex = currentLogs.findIndex(log => log.filePath === data.filePath);
-                if (existingIndex >= 0) {
-                    const updated = [...currentLogs];
-                    updated[existingIndex] = data;
-                    return updated;
-                } else {
-                    return [data, ...currentLogs];
-                }
-            });
+            setLogs((currentLogs) => upsertIncomingLog(currentLogs, data));
         });
 
         const cleanupScreenshot = window.electronAPI.onRequestScreenshot(async (data: ILogData) => {
@@ -1214,7 +1247,12 @@ function App() {
 
     const successCount = statusCounts.success || 0;
     const errorCount = statusCounts.error || 0;
-    const uploadingCount = (statusCounts.uploading || 0) + (statusCounts.retrying || 0);
+    const uploadingCount = (statusCounts.queued || 0)
+        + (statusCounts.pending || 0)
+        + (statusCounts.uploading || 0)
+        + (statusCounts.retrying || 0)
+        + (statusCounts.discord || 0)
+        + (statusCounts.calculating || 0);
     const winRate = totalUploads > 0 ? Math.round((winLoss.wins / totalUploads) * 100) : 0;
 
     const statsTilesPanel = isModernTheme ? (

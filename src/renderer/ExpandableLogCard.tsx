@@ -1,4 +1,4 @@
-import { forwardRef, memo } from 'react';
+import { forwardRef, memo, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { applyStabilityGeneration, getIncomingDisruptions, getPlayerDamage, getPlayerDps, getPlayerDownsTaken, getPlayerDeaths, getPlayerDamageTaken, getPlayerDodges, getPlayerMissed, getPlayerBlocked, getPlayerEvaded, getPlayerResurrects, getPlayerDownContribution, getPlayerOutgoingCrowdControl, getPlayerSquadBarrier, getPlayerSquadHealing, getTargetStatTotal } from '../shared/dashboardMetrics';
@@ -55,18 +55,104 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                     : isDiscord ? 'Preparing Discord preview'
                         : null;
     const isCancellable = Boolean(!log.details && !isExpanded && onCancel && (isQueued || isPending || isUploading || isRetrying));
+    const [relativeNow, setRelativeNow] = useState(() => Date.now());
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            setRelativeNow(Date.now());
+        }, 30000);
+        return () => window.clearInterval(timer);
+    }, []);
+    const parseFilenameTimestampMs = (value: unknown) => {
+        if (typeof value !== 'string' || value.trim().length === 0) return null;
+        const withoutPath = value.split(/[\\\/]/).pop() || value;
+        const stem = withoutPath.replace(/\.[^/.]+$/, '');
+
+        // Formats handled:
+        // YYYYMMDD-HHMMSS / YYYYMMDD_HHMMSS / YYYYMMDDHHMMSS
+        // YYYY-MM-DD-HH-MM-SS / YYYY-MM-DD HH:MM:SS (and similar separators)
+        const compactMatch = stem.match(/(?:^|[^\d])(20\d{2})(\d{2})(\d{2})[-_ ]?(\d{2})(\d{2})(\d{2})(?:[^\d]|$)/);
+        const separatedMatch = compactMatch
+            ? null
+            : stem.match(/(?:^|[^\d])(20\d{2})[-_.\/ ](\d{2})[-_.\/ ](\d{2})[-_.\/ T](\d{2})[:._ -](\d{2})[:._ -](\d{2})(?:[^\d]|$)/);
+        const parts = compactMatch
+            ? compactMatch.slice(1, 7).map((p) => Number(p))
+            : separatedMatch
+                ? separatedMatch.slice(1, 7).map((p) => Number(p))
+                : null;
+        if (!parts) return null;
+        const [year, month, day, hour, minute, second] = parts;
+        if (
+            !Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)
+            || !Number.isFinite(hour) || !Number.isFinite(minute) || !Number.isFinite(second)
+            || month < 1 || month > 12
+            || day < 1 || day > 31
+            || hour < 0 || hour > 23
+            || minute < 0 || minute > 59
+            || second < 0 || second > 59
+        ) {
+            return null;
+        }
+        const date = new Date(year, month - 1, day, hour, minute, second);
+        const time = date.getTime();
+        return Number.isFinite(time) ? time : null;
+    };
     const resolveTimestampMs = () => {
         const raw = log.uploadTime || details.uploadTime;
-        if (!raw) return null;
-        const value = Number(raw);
-        if (!Number.isFinite(value)) return null;
-        return value > 1e12 ? value : value * 1000;
+        if (raw) {
+            const value = Number(raw);
+            if (Number.isFinite(value)) {
+                return value > 1e12 ? value : value * 1000;
+            }
+        }
+        return parseFilenameTimestampMs(log.filePath) || parseFilenameTimestampMs(log.fightName) || parseFilenameTimestampMs(details.fightName);
     };
     const formattedTime = () => {
         const ts = resolveTimestampMs();
         if (!ts) return 'Just now';
-        return new Date(ts).toLocaleTimeString();
+        const elapsedMs = Math.max(0, relativeNow - ts);
+        const seconds = Math.floor(elapsedMs / 1000);
+        if (seconds < 10) return 'Just now';
+        if (seconds < 60) return `${seconds}s ago`;
+        const minutes = Math.floor(seconds / 60);
+        if (minutes === 1) return '1 minute ago';
+        if (minutes < 60) return `${minutes} minutes ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours === 1) return '1 hour ago';
+        if (hours < 24) return `${hours} hours ago`;
+        const days = Math.floor(hours / 24);
+        if (days === 1) return '1 day ago';
+        if (days < 7) return `${days} days ago`;
+        return new Date(ts).toLocaleDateString();
     };
+    const formattedDateTime = () => {
+        const ts = resolveTimestampMs();
+        if (!ts) return 'Unknown time';
+        return new Date(ts).toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+    };
+    const borderlandLabel = () => {
+        const candidates = [
+            details.mapName,
+            details.map,
+            details.location,
+            details.zoneName,
+            details.zone,
+            details.fightName,
+            log.fightName
+        ];
+        const raw = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+        if (!raw) return 'Unknown Borderland';
+        const normalized = String(raw).trim();
+        if (/borderlands?/i.test(normalized)) {
+            return normalized.replace(/\bborderlands?\b/i, 'Borderland');
+        }
+        return normalized;
+    };
+    const cardTitle = `${formattedDateTime()} - ${borderlandLabel()}`;
 
     // --- Stats Calculation ---
     let totalDps = 0;
@@ -749,7 +835,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                        <h4 className="text-sm font-bold text-gray-200 truncate">{details.fightName || log.fightName || log.filePath.split(/[\\\/]/).pop()}</h4>
+                        <h4 className="text-sm font-bold text-gray-200 truncate">{cardTitle}</h4>
                         <span className="text-xs text-gray-500 font-mono">{details.encounterDuration || log.encounterDuration || '--:--'}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">

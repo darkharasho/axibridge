@@ -850,6 +850,7 @@ const pendingDiscordLogs = new Map<string, { result: any, jsonDetails: any }>();
 const recentDiscordSends = new Map<string, number>();
 const DISCORD_DEDUPE_TTL_MS = 2 * 60 * 1000;
 let bulkUploadMode = false;
+const BULK_PROCESS_CONCURRENCY = 3;
 const bulkLogDetailsCache = new Map<string, any>();
 const globalManifest: Array<any> = [];
 const globalManifestPath = () => path.join(process.cwd(), 'dev', 'manifest.json');
@@ -3032,13 +3033,21 @@ if (!gotTheLock) {
                     win?.webContents.send('upload-status', { id: fileId, filePath, status: 'queued' });
                 });
             }
-            // Process sequentially to avoid overwhelming the system
+            // Bounded concurrency lets non-upload steps overlap without flooding dps.report.
             (async () => {
                 bulkUploadMode = filePaths.length > 1;
-                for (const filePath of filePaths) {
-                    await processLogFile(filePath);
-                    // Small delay to allow UI updates to breathe
-                    await new Promise(resolve => setTimeout(resolve, 50));
+                const queue = [...filePaths];
+                const workerCount = Math.min(BULK_PROCESS_CONCURRENCY, queue.length);
+                const workers = Array.from({ length: workerCount }, async () => {
+                    while (queue.length > 0) {
+                        const nextPath = queue.shift();
+                        if (!nextPath) return;
+                        await processLogFile(nextPath);
+                        await new Promise((resolve) => setTimeout(resolve, 25));
+                    }
+                });
+                if (workers.length > 0) {
+                    await Promise.all(workers);
                 }
                 bulkUploadMode = false;
             })();
