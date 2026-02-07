@@ -19,7 +19,7 @@ export const OverviewSection = ({
             data-section-first={isFirstVisibleSection('overview')}
             className={sectionClass('overview', 'grid grid-cols-1 md:grid-cols-2 gap-4 scroll-mt-24')}
         >
-            <div className="bg-gradient-to-br from-green-500/20 to-emerald-900/20 border border-green-500/30 rounded-2xl px-5 py-4">
+            <div className="overview-card overview-card--green bg-gradient-to-br from-green-500/20 to-emerald-900/20 border border-green-500/30 rounded-2xl px-5 py-4">
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <div className="text-left">
                         <div className="text-lg font-semibold text-green-100">{stats.avgSquadSize}</div>
@@ -35,7 +35,7 @@ export const OverviewSection = ({
                     </div>
                 </div>
             </div>
-            <div className="bg-gradient-to-br from-red-500/20 to-rose-900/20 border border-red-500/30 rounded-2xl px-5 py-4">
+            <div className="overview-card overview-card--red bg-gradient-to-br from-red-500/20 to-rose-900/20 border border-red-500/30 rounded-2xl px-5 py-4">
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <div className="text-left">
                         <div className="text-lg font-semibold text-red-100">{stats.avgEnemies}</div>

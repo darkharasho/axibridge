@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID } from '../shared/webThemes';
+import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -44,11 +44,11 @@ function Toggle({ enabled, onChange, label, description }: {
                 )}
             </div>
             <div
-                className={`relative w-11 h-6 rounded-full transition-colors ${enabled ? 'bg-blue-500' : 'bg-gray-700'
-                    }`}
+                className={`relative w-11 h-6 rounded-md transition-colors border ${enabled ? 'bg-blue-500/30 border-blue-500/40 toggle-track--on' : 'bg-white/5 border-white/10 toggle-track--off'
+                    } toggle-track`}
             >
                 <div
-                    className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-md transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'
+                    className={`absolute top-1 w-4 h-4 rounded-md bg-white shadow-md transition-transform toggle-knob ${enabled ? 'translate-x-6' : 'translate-x-1'
                         }`}
                 />
             </div>
@@ -166,13 +166,17 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const logoSyncInFlightRef = useRef(false);
     const queuedLogoPathRef = useRef<string | null>(null);
     const favoriteRepoSet = useMemo(() => new Set(githubFavoriteRepos), [githubFavoriteRepos]);
-    const availableWebThemes = useMemo(() => (uiTheme === 'crt' ? [CRT_WEB_THEME] : BASE_WEB_THEMES), [uiTheme]);
+    const availableWebThemes = useMemo(() => {
+        if (uiTheme === 'crt') return [CRT_WEB_THEME];
+        if (uiTheme === 'matte') return [MATTE_WEB_THEME];
+        return BASE_WEB_THEMES;
+    }, [uiTheme]);
     const orderedThemes = useMemo(() => {
         const active = availableWebThemes.find((theme) => theme.id === githubWebTheme);
         if (!active) return availableWebThemes;
         return [active, ...availableWebThemes.filter((theme) => theme.id !== githubWebTheme)];
     }, [availableWebThemes, githubWebTheme]);
-    const isModernLayout = uiTheme === 'modern';
+    const isModernLayout = uiTheme === 'modern' || uiTheme === 'matte';
     const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
 
     const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
@@ -339,7 +343,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             }
             return;
         }
-        if (githubWebTheme === CRT_WEB_THEME_ID) {
+        if (uiTheme === 'matte') {
+            if (githubWebTheme !== MATTE_WEB_THEME_ID) {
+                setGithubWebTheme(MATTE_WEB_THEME_ID);
+            }
+            return;
+        }
+        if (githubWebTheme === CRT_WEB_THEME_ID || githubWebTheme === MATTE_WEB_THEME_ID) {
             setGithubWebTheme(DEFAULT_WEB_THEME_ID);
         }
     }, [uiTheme, githubWebTheme]);
@@ -451,42 +461,8 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         };
     }, []);
 
-    useEffect(() => {
-        if (importModalOpen || devSettingsOpen || githubManageOpen || proofOfWorkOpen || howToOpen) {
-            return;
-        }
-
-        const canScroll = (element: HTMLElement, deltaY: number) => {
-            if (deltaY < 0) return element.scrollTop > 0;
-            if (deltaY > 0) return element.scrollTop + element.clientHeight < element.scrollHeight;
-            return false;
-        };
-
-        const handleWheel = (event: WheelEvent) => {
-            const container = settingsScrollRef.current;
-            if (!container) return;
-            const target = event.target as HTMLElement | null;
-            if (!target) return;
-
-            let node: HTMLElement | null = target;
-            while (node && node !== container) {
-                const style = window.getComputedStyle(node);
-                const isScrollable = (style.overflowY === 'auto' || style.overflowY === 'scroll' || style.overflowY === 'overlay')
-                    && node.scrollHeight > node.clientHeight + 1;
-                if (isScrollable && canScroll(node, event.deltaY)) {
-                    return;
-                }
-                node = node.parentElement;
-            }
-
-            if (!canScroll(container, event.deltaY)) return;
-            container.scrollTop += event.deltaY;
-            event.preventDefault();
-        };
-
-        window.addEventListener('wheel', handleWheel, { passive: false });
-        return () => window.removeEventListener('wheel', handleWheel);
-    }, [importModalOpen, devSettingsOpen, githubManageOpen, proofOfWorkOpen, howToOpen]);
+    // Optimized: Removed manual wheel listener that was causing severe scroll lag and conflicts with overlay elements (Terminal)
+    // The container uses standard CSS overflow-y-auto which handles scrolling natively and efficiently.
 
     const handleExportSettings = async () => {
         setSettingsTransferStatus(null);
@@ -649,7 +625,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         { key: 'webhooks', label: 'Webhook List', description: 'Saved webhook entries.', section: 'Discord' },
         { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
         { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
-        { key: 'uiTheme', label: 'UI Theme', description: 'Classic, modern, or CRT Hacker theme.', section: 'App' },
+        { key: 'uiTheme', label: 'UI Theme', description: 'Classic, Modern Slate, Matte Slate, or CRT Hacker theme.', section: 'App' },
         { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
         { key: 'mvpWeights', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
         { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
@@ -1214,19 +1190,19 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                         </div>
                         <div className="rounded-2xl border border-white/10 bg-white/5 p-3 flex-1 min-h-0">
                             <div className="text-[11px] uppercase tracking-[0.25em] text-gray-500 mb-2">Sections</div>
-                            <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1">
+                            <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
                                 {settingsSections.map((item, index) => {
                                     const isActive = item.id === activeSettingsSectionId;
                                     return (
                                         <button
                                             key={item.id}
                                             onClick={() => scrollToSettingsSection(item.id)}
-                                            className={`w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-gray-200 border transition-colors min-w-0 ${isActive
-                                                ? 'bg-white/10 border-white/20'
-                                                : 'border-transparent hover:border-white/10 hover:bg-white/10'
+                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 ${isActive
+                                                ? 'text-white'
+                                                : 'text-gray-400'
                                                 }`}
                                         >
-                                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 border border-white/10 text-[10px] text-[color:var(--accent)]">
+                                            <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
                                                 {index + 1}
                                             </span>
                                             <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
@@ -1238,1014 +1214,1023 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                     </aside>
                 )}
                 <div ref={settingsScrollRef} className={`${isModernLayout ? 'min-h-0 overflow-y-auto pr-2 space-y-4' : 'flex-1 min-h-0 overflow-y-auto pr-2 space-y-4'}`}>
-                <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance">
-                    <p className="text-sm text-gray-400 mb-4">
-                        Switch between Classic, Modern Slate, or CRT Hacker.
-                    </p>
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setUiTheme('classic')}
-                            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'classic'
-                                ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
-                                }`}
-                        >
-                            Classic (Default)
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setUiTheme('modern')}
-                            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'modern'
-                                ? 'bg-purple-500/20 text-purple-200 border-purple-500/40'
-                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
-                                }`}
-                        >
-                            Modern Slate
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setUiTheme('crt')}
-                            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'crt'
-                                ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60'
-                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
-                                }`}
-                        >
-                            CRT Hacker
-                        </button>
-                    </div>
-                </SettingsSection>
-                {/* DPS Report Token Section */}
-                <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token">
-                    <p className="text-sm text-gray-400 mb-4">
-                        Optional: Add your dps.report user token to associate uploads with your account.
-                        You can find your token at{' '}
-                        <button
-                            onClick={() => window.electronAPI?.openExternal?.('https://dps.report/getUserToken')}
-                            className="text-blue-400 hover:text-blue-300 underline transition-colors"
-                        >
-                            dps.report/getUserToken
-                        </button>
-                    </p>
-                    <input
-                        type="text"
-                        value={dpsReportToken}
-                        onChange={(e) => setDpsReportToken(e.target.value)}
-                        placeholder="Enter your dps.report token..."
-                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
-                    />
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
-                        <button
-                            onClick={handleClearDpsCache}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={dpsCacheBusy}
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            {dpsCacheBusy ? 'Clearing cache…' : 'Clear dps.report cache'}
-                        </button>
-                        <div className="text-xs text-gray-500">
-                            Removes cached dps.report results stored locally (does not delete your log files).
-                        </div>
-                        {dpsCacheStatus && (
-                            <div className="text-xs text-gray-400">{dpsCacheStatus}</div>
-                        )}
-                        {dpsCacheBusy && (
-                            <div className="w-full max-w-sm">
-                                <div className="text-[11px] text-gray-400 mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
-                                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                                    <div
-                                        className="h-full bg-amber-400 transition-all duration-150"
-                                        style={{ width: `${dpsCacheProgress}%` }}
-                                    />
-                                </div>
-                                <div className="text-[11px] text-gray-500 mt-1">{Math.round(dpsCacheProgress)}%</div>
-                            </div>
-                        )}
-                    </div>
-                </SettingsSection>
-
-                {/* GitHub Pages Hosting */}
-                <SettingsSection
-                    title="GitHub Pages Web Reports"
-                    icon={Cloud}
-                    delay={0.08}
-                    sectionId="github-pages"
-                    action={githubAuthStatus === 'connected' ? (
-                        <button
-                            onClick={() => {
-                                setGithubManageOpen(true);
-                                loadGithubReports();
-                            }}
-                            className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30 transition-colors"
-                        >
-                            Manage
-                        </button>
-                    ) : null}
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Connect a GitHub OAuth App to publish web reports to GitHub Pages.
-                    </p>
-                    <div className="text-xs text-gray-500 mb-4">
-                        Sign in with GitHub (device flow). We will create a repo and enable Pages automatically if needed.
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 mb-4">
-                        <button
-                            onClick={handleGithubConnect}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-colors"
-                        >
-                            <LinkIcon className="w-4 h-4" />
-                            {githubAuthStatus === 'connected' ? 'Re-connect GitHub' : 'Connect GitHub'}
-                        </button>
-                        <div className={`text-xs px-3 py-1 rounded-full border ${githubAuthStatus === 'connected'
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                            : githubAuthStatus === 'pending'
-                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
-                                : 'bg-white/5 text-gray-400 border-white/10'
-                            }`}
-                        >
-                            {githubAuthStatus === 'connected' ? 'Connected' : githubAuthStatus === 'pending' ? 'Waiting for OAuth...' : 'Not connected'}
-                        </div>
-                        <div className="ml-auto">
-                            <button
-                                onClick={() => {
-                                    setGithubToken('');
-                                    setGithubAuthStatus('idle');
-                                    setGithubAuthMessage('Disconnected from GitHub.');
-                                    setGithubRepos([]);
-                                    setGithubRepoName('');
-                                }}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 transition-colors"
-                            >
-                                Disconnect
-                            </button>
-                        </div>
-                        {githubAuthMessage && (
-                            <div className="text-xs text-gray-400">{githubAuthMessage}</div>
-                        )}
-                    </div>
-                    {githubUserCode && githubVerificationUri && (
-                        <div className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 mb-4 animate-[fadeUp_0.6s_ease-out]">
-                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-1">Authorize in Browser</div>
-                            <div className="flex items-center justify-between gap-3">
-                                <div className="font-mono text-lg text-white">{githubUserCode}</div>
-                                <button
-                                    onClick={() => navigator.clipboard.writeText(githubUserCode)}
-                                    className="px-3 py-1 rounded-full text-[10px] border bg-white/5 text-gray-300 border-white/10 hover:text-white"
-                                >
-                                    Copy Code
-                                </button>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">{githubVerificationUri}</div>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                        <div className="md:col-span-2 bg-black/30 border border-white/10 rounded-xl p-3">
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="text-xs uppercase tracking-widest text-gray-500">Repository</div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setGithubRepoMode('select')}
-                                        className={`px-2 py-1 rounded-full text-[10px] border ${githubRepoMode === 'select'
-                                            ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
-                                            : 'bg-white/5 text-gray-400 border-white/10'
-                                            }`}
-                                    >
-                                        Choose Existing
-                                    </button>
-                                    <button
-                                        onClick={() => setGithubRepoMode('create')}
-                                        className={`px-2 py-1 rounded-full text-[10px] border ${githubRepoMode === 'create'
-                                            ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
-                                            : 'bg-white/5 text-gray-400 border-white/10'
-                                            }`}
-                                    >
-                                        Create New
-                                    </button>
-                                </div>
-                            </div>
-
-                            {githubRepoMode === 'select' ? (
-                                <>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <input
-                                            type="text"
-                                            value={githubRepoSearch}
-                                            onChange={(e) => setGithubRepoSearch(e.target.value)}
-                                            placeholder="Search repositories..."
-                                            className="flex-1 bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-xs text-gray-300 placeholder-gray-600 focus:border-cyan-400/50 focus:outline-none"
-                                        />
-                                        <button
-                                            onClick={refreshGithubRepos}
-                                            className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300"
-                                            title="Refresh repos"
-                                        >
-                                            <RefreshCw className={`w-4 h-4 ${loadingRepos ? 'animate-spin' : ''}`} />
-                                        </button>
-                                    </div>
-                                    <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
-                                        {(githubRepos.length ? githubRepos : [{ full_name: '', name: '', owner: '' }])
-                                            .filter((repo) => repo.full_name.toLowerCase().includes(githubRepoSearch.trim().toLowerCase()))
-                                            .sort((a, b) => {
-                                                const aFav = favoriteRepoSet.has(a.full_name);
-                                                const bFav = favoriteRepoSet.has(b.full_name);
-                                                if (aFav !== bFav) return aFav ? -1 : 1;
-                                                if (a.name === githubRepoName) return -1;
-                                                if (b.name === githubRepoName) return 1;
-                                                return a.full_name.localeCompare(b.full_name);
-                                            })
-                                            .map((repo, idx) => {
-                                                const isFavorite = favoriteRepoSet.has(repo.full_name);
-                                                return (
-                                                    <div
-                                                        key={`${repo.full_name}-${idx}`}
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        onClick={() => {
-                                                            setGithubRepoName(repo.name);
-                                                            setGithubRepoOwner(repo.owner || '');
-                                                        }}
-                                                        onKeyDown={(event) => {
-                                                            if (event.key === 'Enter' || event.key === ' ') {
-                                                                event.preventDefault();
-                                                                setGithubRepoName(repo.name);
-                                                                setGithubRepoOwner(repo.owner || '');
-                                                            }
-                                                        }}
-                                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors flex items-center justify-between gap-2 cursor-pointer ${githubRepoName === repo.name
-                                                            ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
-                                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                                            }`}
-                                                    >
-                                                        <span className="truncate">{repo.full_name || 'No repos loaded'}</span>
-                                                        {repo.full_name ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    toggleFavoriteRepo(repo.full_name);
-                                                                }}
-                                                                className={`p-1 rounded-md transition-colors ${isFavorite ? 'text-amber-300' : 'text-gray-500 hover:text-gray-200'}`}
-                                                                title={isFavorite ? 'Remove favorite' : 'Favorite repo'}
-                                                            >
-                                                                <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-amber-300' : 'fill-transparent'}`} />
-                                                            </button>
-                                                        ) : null}
-                                                    </div>
-                                                );
-                                            })}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        value={githubRepoName}
-                                        onChange={(e) => {
-                                            const next = e.target.value.trim();
-                                            setGithubRepoName(next);
-                                            setGithubRepoError(validateRepoName(next));
-                                        }}
-                                        placeholder="New repository name"
-                                        className={`flex-1 bg-black/40 border rounded-lg px-3 py-2 text-xs text-gray-300 placeholder-gray-600 focus:outline-none ${githubRepoError ? 'border-rose-500/60 focus:border-rose-500/80' : 'border-white/5 focus:border-cyan-400/50'}`}
-                                    />
-                                    <div className="text-xs text-gray-500 flex items-center gap-1">
-                                        <Plus className="w-4 h-4 text-cyan-300" />
-                                    </div>
-                                    <button
-                                        onClick={handleCreateGithubRepo}
-                                        disabled={creatingRepo || !!githubRepoError || githubAuthStatus !== 'connected'}
-                                        className="px-3 py-2 rounded-lg text-xs font-semibold border bg-cyan-600/20 text-cyan-200 border-cyan-500/40 disabled:opacity-50"
-                                    >
-                                        {creatingRepo ? 'Creating...' : 'Create Now'}
-                                    </button>
-                                </div>
-                            )}
-                            {githubRepoMode === 'create' && githubRepoError && (
-                                <div className="text-xs text-rose-400 mt-2">{githubRepoError}</div>
-                            )}
-                            {githubRepoMode === 'create' && githubRepoStatus && (
-                                <div className={`text-xs mt-2 ${githubRepoStatusKind === 'success'
-                                    ? 'text-emerald-300'
-                                    : githubRepoStatusKind === 'error'
-                                        ? 'text-rose-400'
-                                        : 'text-cyan-300'
-                                    }`}
-                                >
-                                    {githubRepoStatus}
-                                </div>
-                            )}
-                            {githubRepoMode === 'select' && githubTemplateStatus && (
-                                <div className={`text-xs mt-2 ${githubTemplateStatusKind === 'success'
-                                    ? 'text-emerald-300'
-                                    : githubTemplateStatusKind === 'error'
-                                        ? 'text-rose-400'
-                                        : 'text-cyan-300'
-                                    }`}
-                                >
-                                    {githubTemplateStatus}
-                                </div>
-                            )}
-                            <div className="bg-black/40 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-3 mt-3">
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-1">GitHub Pages URL</div>
-                                    <input
-                                        type="text"
-                                        value={inferredPagesUrl || 'Connect GitHub and select a repo'}
-                                        readOnly
-                                        className="w-full bg-transparent text-sm text-gray-200 focus:outline-none"
-                                    />
-                                </div>
-                                <button
-                                    onClick={handleCopyPagesUrl}
-                                    disabled={!inferredPagesUrl}
-                                    className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-200 border-white/10 hover:border-white/30 disabled:opacity-50"
-                                >
-                                    {pagesUrlCopied ? 'Copied' : 'Copy'}
-                                </button>
-                            </div>
-                        </div>
-
-                    </div>
-                    <div className="bg-black/30 border border-white/10 rounded-xl p-4 mb-4">
-                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Web Theme</div>
-                        <div className={`mb-3 rounded-lg border px-3 py-2 text-xs ${githubThemeStatusKind === 'success'
-                            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
-                            : githubThemeStatusKind === 'error'
-                                ? 'border-rose-500/40 bg-rose-500/10 text-rose-200'
-                                : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-200'
-                            }`}
-                        >
-                            {githubThemeStatus || 'Theme changes publish automatically to GitHub Pages.'}
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-56 overflow-y-auto pr-1">
-                            {orderedThemes.map((theme) => {
-                                const isActive = theme.id === githubWebTheme;
-                                return (
-                                    <button
-                                        key={theme.id}
-                                        onClick={() => setGithubWebTheme(theme.id)}
-                                        className={`rounded-xl border px-3 py-3 text-left transition-colors ${isActive
-                                            ? 'border-cyan-400/60 bg-cyan-500/10'
-                                            : 'border-white/10 bg-white/5 hover:border-white/30'
-                                            }`}
-                                        style={{ boxShadow: isActive ? `0 0 18px rgba(${theme.rgb}, 0.25)` : undefined }}
-                                    >
-                                        <div
-                                            className="w-full h-12 rounded-lg mb-2 border border-white/10"
-                                        style={{ backgroundImage: theme.pattern, backgroundColor: '#10141b' }}
-                                        />
-                                        <div className="text-xs font-semibold text-gray-200">{theme.label}</div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                    <div className="bg-black/30 border border-white/10 rounded-xl p-4 mb-4">
-                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Logo</div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={async () => {
-                                    if (!window.electronAPI?.selectGithubLogo) return;
-                                    const path = await window.electronAPI.selectGithubLogo();
-                                    if (path) {
-                                        setGithubLogoPath(path);
-                                    }
-                                }}
-                                className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white"
-                            >
-                                {githubLogoPath ? 'Replace Logo' : 'Choose Logo'}
-                            </button>
-                            {githubLogoPath && (
-                                <button
-                                    onClick={() => setGithubLogoPath(null)}
-                                    className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white"
-                                >
-                                    Remove
-                                </button>
-                            )}
-                            <div className="text-xs text-gray-500 truncate">
-                                {githubLogoPath ? githubLogoPath.split(/[\\/]/).pop() : 'No logo selected'}
-                            </div>
-                        </div>
-                        {githubLogoStatus && (
-                            <div className={`mt-3 text-xs ${githubLogoStatusKind === 'success'
-                                ? 'text-emerald-300'
-                                : githubLogoStatusKind === 'error'
-                                    ? 'text-rose-300'
-                                    : 'text-cyan-300'
-                                }`}
-                            >
-                                {githubLogoStatus}
-                            </div>
-                        )}
-                    </div>
-                </SettingsSection>
-
-                {/* Discord Embed Stats - Summary Sections */}
-                <SettingsSection title="Discord Embed - Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary">
-                    <p className="text-sm text-gray-400 mb-4">
-                        Configure which summary sections appear in Discord embed notifications.
-                    </p>
-                    <div className="divide-y divide-white/5">
-                        <Toggle
-                            enabled={embedStats.showSquadSummary}
-                            onChange={(v) => updateEmbedStat('showSquadSummary', v)}
-                            label="Squad Summary"
-                            description="Players, total damage, DPS, downs, and deaths"
-                        />
-                        <Toggle
-                            enabled={embedStats.showEnemySummary}
-                            onChange={(v) => updateEmbedStat('showEnemySummary', v)}
-                            label="Enemy Summary"
-                            description="Enemy count, damage taken, incoming DPS, enemy downs/kills"
-                        />
-                        <Toggle
-                            enabled={embedStats.showClassSummary}
-                            onChange={(v) => updateEmbedStat('showClassSummary', v)}
-                            label="Class Summary"
-                            description="Squad and enemy class breakdowns"
-                        />
-                        <Toggle
-                            enabled={embedStats.showIncomingStats}
-                            onChange={(v) => updateEmbedStat('showIncomingStats', v)}
-                            label="Incoming Stats"
-                            description="Attacks, CC, and strips received (with miss/block rates)"
-                        />
-                    </div>
-                </SettingsSection>
-
-                {/* Discord Embed Stats - Top Lists */}
-                <SettingsSection title="Discord Embed - Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top">
-                    <p className="text-sm text-gray-400 mb-2">
-                        Configure which top stat player lists appear in Discord embed notifications.
-                    </p>
-                    <div className="mb-4 pb-4 border-b border-white/10">
-                        <label className="text-xs text-gray-500 block mb-2">Max rows per top stat list</label>
-                        <div className="flex items-center gap-3">
-                            <input
-                                type="range"
-                                min={1}
-                                max={10}
-                                step={1}
-                                value={embedStats.maxTopListRows}
-                                onChange={(e) => updateMaxTopRows(Number(e.target.value))}
-                                className="flex-1 accent-blue-400"
-                            />
-                            <div className="min-w-8 shrink-0 text-right text-sm text-gray-300 font-mono">
-                                {embedStats.maxTopListRows}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mb-4 pb-4 border-b border-white/10">
-                        <label className="text-xs text-gray-500 block mb-2">Class display</label>
-                        <div className="grid grid-cols-3 gap-2">
-                            <button
-                                onClick={() => updateClassDisplay('off')}
-                                className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'off'
-                                    ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                    : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
-                                    }`}
-                            >
-                                Off
-                            </button>
-                            <button
-                                onClick={() => updateClassDisplay('short')}
-                                className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'short'
-                                    ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                    : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
-                                    }`}
-                            >
-                                Short name
-                            </button>
-                            <button
-                                onClick={() => updateClassDisplay('emoji')}
-                                className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'emoji'
-                                    ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                    : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
-                                    }`}
-                            >
-                                Emoji
-                            </button>
-                        </div>
-                    </div>
-                    <div className="flex justify-end mb-2">
-                        <button
-                            onClick={() => setAllTopLists(!allTopListsEnabled)}
-                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                        >
-                            {allTopListsEnabled ? 'Disable All' : 'Enable All'}
-                        </button>
-                    </div>
-                    <div className="divide-y divide-white/5">
-                        <Toggle
-                            enabled={embedStats.showDamage}
-                            onChange={(v) => updateEmbedStat('showDamage', v)}
-                            label="Damage"
-                            description="Total damage dealt by each player"
-                        />
-                        <Toggle
-                            enabled={embedStats.showDownContribution}
-                            onChange={(v) => updateEmbedStat('showDownContribution', v)}
-                            label="Down Contribution"
-                            description="Damage dealt to enemies who went into downstate"
-                        />
-                        <Toggle
-                            enabled={embedStats.showHealing}
-                            onChange={(v) => updateEmbedStat('showHealing', v)}
-                            label="Healing"
-                            description="Outgoing healing to squad members"
-                        />
-                        <Toggle
-                            enabled={embedStats.showBarrier}
-                            onChange={(v) => updateEmbedStat('showBarrier', v)}
-                            label="Barrier"
-                            description="Outgoing barrier to squad members"
-                        />
-                        <Toggle
-                            enabled={embedStats.showCleanses}
-                            onChange={(v) => updateEmbedStat('showCleanses', v)}
-                            label="Cleanses"
-                            description="Conditions cleansed (self and allies)"
-                        />
-                        <Toggle
-                            enabled={embedStats.showBoonStrips}
-                            onChange={(v) => updateEmbedStat('showBoonStrips', v)}
-                            label="Boon Strips"
-                            description="Enemy boons stripped"
-                        />
-                        <Toggle
-                            enabled={embedStats.showCC}
-                            onChange={(v) => updateEmbedStat('showCC', v)}
-                            label="Crowd Control (CC)"
-                            description="Hard CC applied to enemies"
-                        />
-                        <Toggle
-                            enabled={embedStats.showStability}
-                            onChange={(v) => updateEmbedStat('showStability', v)}
-                            label="Stability"
-                            description="Stability boon generation"
-                        />
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-white/10">
-                        <p className="text-xs text-gray-500 mb-3">Additional Stats (disabled by default)</p>
-                        <div className="divide-y divide-white/5">
-                            <Toggle
-                                enabled={embedStats.showResurrects}
-                                onChange={(v) => updateEmbedStat('showResurrects', v)}
-                                label="Resurrects"
-                                description="Downed allies revived"
-                            />
-                            <Toggle
-                                enabled={embedStats.showDistanceToTag}
-                                onChange={(v) => updateEmbedStat('showDistanceToTag', v)}
-                                label="Distance to Tag"
-                                description="Average distance to commander (lower is better)"
-                            />
-                            <Toggle
-                                enabled={embedStats.showKills}
-                                onChange={(v) => updateEmbedStat('showKills', v)}
-                                label="Kills"
-                                description="Enemy kill count"
-                            />
-                            <Toggle
-                                enabled={embedStats.showDowns}
-                                onChange={(v) => updateEmbedStat('showDowns', v)}
-                                label="Downs"
-                                description="Enemy down count"
-                            />
-                            <Toggle
-                                enabled={embedStats.showBreakbarDamage}
-                                onChange={(v) => updateEmbedStat('showBreakbarDamage', v)}
-                                label="Breakbar Damage"
-                                description="Breakbar damage dealt to enemies"
-                            />
-                            <Toggle
-                                enabled={embedStats.showDamageTaken}
-                                onChange={(v) => updateEmbedStat('showDamageTaken', v)}
-                                label="Damage Taken"
-                                description="Damage received from enemies"
-                            />
-                            <Toggle
-                                enabled={embedStats.showDeaths}
-                                onChange={(v) => updateEmbedStat('showDeaths', v)}
-                                label="Deaths"
-                                description="Times the player died"
-                            />
-                            <Toggle
-                                enabled={embedStats.showDodges}
-                                onChange={(v) => updateEmbedStat('showDodges', v)}
-                                label="Dodges"
-                                description="Number of dodges performed"
-                            />
-                        </div>
-                    </div>
-                </SettingsSection>
-
-                <div ref={helpUpdatesRef}>
-                    <SettingsSection title="Help & Updates" icon={Sparkles} delay={0.18} sectionId="help-updates">
+                    <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance">
                         <p className="text-sm text-gray-400 mb-4">
-                            Review release notes, reopen onboarding, or browse the complete feature guide.
+                            Switch between Classic, Modern Slate, Matte Slate, or CRT Hacker.
                         </p>
-                        <div className="space-y-2">
+                        <div className="flex flex-wrap gap-3">
                             <button
-                                onClick={() => setHowToOpen(true)}
-                                className="w-full flex items-center justify-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-200 hover:bg-cyan-500/20 transition-colors"
+                                type="button"
+                                onClick={() => setUiTheme('classic')}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'classic'
+                                    ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
+                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                    }`}
                             >
-                                <BookOpen className="w-4 h-4" />
-                                How To
+                                Classic (Default)
                             </button>
                             <button
-                                onClick={() => onOpenWalkthrough?.()}
-                                className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium text-gray-200 hover:bg-white/10 transition-colors"
+                                type="button"
+                                onClick={() => setUiTheme('modern')}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'modern'
+                                    ? 'bg-purple-500/20 text-purple-200 border-purple-500/40'
+                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                    }`}
                             >
-                                <Compass className="w-4 h-4" />
-                                Open Walkthrough
+                                Modern Slate
                             </button>
                             <button
-                                onClick={() => onOpenWhatsNew?.()}
-                                className="w-full flex items-center justify-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-200 hover:bg-blue-500/20 transition-colors"
+                                type="button"
+                                onClick={() => setUiTheme('matte')}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'matte'
+                                    ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50'
+                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                    }`}
                             >
-                                <Sparkles className="w-4 h-4" />
-                                View What's New
+                                Matte Slate
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setUiTheme('crt')}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'crt'
+                                    ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60'
+                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                    }`}
+                            >
+                                CRT Hacker
                             </button>
                         </div>
                     </SettingsSection>
-                </div>
+                    {/* DPS Report Token Section */}
+                    <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token">
+                        <p className="text-sm text-gray-400 mb-4">
+                            Optional: Add your dps.report user token to associate uploads with your account.
+                            You can find your token at{' '}
+                            <button
+                                onClick={() => window.electronAPI?.openExternal?.('https://dps.report/getUserToken')}
+                                className="text-blue-400 hover:text-blue-300 underline transition-colors"
+                            >
+                                dps.report/getUserToken
+                            </button>
+                        </p>
+                        <input
+                            type="text"
+                            value={dpsReportToken}
+                            onChange={(e) => setDpsReportToken(e.target.value)}
+                            placeholder="Enter your dps.report token..."
+                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
+                        />
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                            <button
+                                onClick={handleClearDpsCache}
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={dpsCacheBusy}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                {dpsCacheBusy ? 'Clearing cache…' : 'Clear dps.report cache'}
+                            </button>
+                            <div className="text-xs text-gray-500">
+                                Removes cached dps.report results stored locally (does not delete your log files).
+                            </div>
+                            {dpsCacheStatus && (
+                                <div className="text-xs text-gray-400">{dpsCacheStatus}</div>
+                            )}
+                            {dpsCacheBusy && (
+                                <div className="w-full max-w-sm">
+                                    <div className="text-[11px] text-gray-400 mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
+                                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                        <div
+                                            className="h-full bg-amber-400 transition-all duration-150"
+                                            style={{ width: `${dpsCacheProgress}%` }}
+                                        />
+                                    </div>
+                                    <div className="text-[11px] text-gray-500 mt-1">{Math.round(dpsCacheProgress)}%</div>
+                                </div>
+                            )}
+                        </div>
+                    </SettingsSection>
 
-                <SettingsSection title="Dashboard - Top Stats & MVP" icon={BarChart3} delay={0.18} sectionId="dashboard-stats">
-                    <p className="text-sm text-gray-400 mb-4">
-                        Control the calculation and display of the top stats cards and MVP highlights.
-                    </p>
-                    <div className="divide-y divide-white/5">
-                        <Toggle
-                            enabled={statsViewSettings.showTopStats}
-                            onChange={(v) => updateStatsViewSetting('showTopStats', v)}
-                            label="Show Top Stats Section"
-                            description="Top players cards and leader breakdowns"
-                        />
-                        <Toggle
-                            enabled={statsViewSettings.showMvp}
-                            onChange={(v) => updateStatsViewSetting('showMvp', v)}
-                            label="Calculate MVP"
-                            description="MVP scoring + squad/silver/bronze highlights"
-                        />
-                        <Toggle
-                            enabled={statsViewSettings.roundCountStats}
-                            onChange={(v) => updateStatsViewSetting('roundCountStats', v)}
-                            label="Round count stats to whole numbers"
-                            description="Percent-based stats keep decimals"
-                        />
-                        <div className="py-3">
-                            <div className="text-sm font-medium text-gray-200 mb-2">Top Stats Calculation</div>
-                            <div className="flex gap-2">
-                                {([
-                                    { id: 'total', label: 'Total' },
-                                    { id: 'perSecond', label: 'Per Second' }
-                                ] as const).map((option) => (
+                    {/* GitHub Pages Hosting */}
+                    <SettingsSection
+                        title="GitHub Pages Web Reports"
+                        icon={Cloud}
+                        delay={0.08}
+                        sectionId="github-pages"
+                        action={githubAuthStatus === 'connected' ? (
+                            <button
+                                onClick={() => {
+                                    setGithubManageOpen(true);
+                                    loadGithubReports();
+                                }}
+                                className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30 transition-colors"
+                            >
+                                Manage
+                            </button>
+                        ) : null}
+                    >
+                        <p className="text-sm text-gray-400 mb-4">
+                            Connect a GitHub OAuth App to publish web reports to GitHub Pages.
+                        </p>
+                        <div className="text-xs text-gray-500 mb-4">
+                            Sign in with GitHub (device flow). We will create a repo and enable Pages automatically if needed.
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 mb-4">
+                            <button
+                                onClick={handleGithubConnect}
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-colors"
+                            >
+                                <LinkIcon className="w-4 h-4" />
+                                {githubAuthStatus === 'connected' ? 'Re-connect GitHub' : 'Connect GitHub'}
+                            </button>
+                            <div className={`text-xs px-3 py-1 rounded-full border ${githubAuthStatus === 'connected'
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                : githubAuthStatus === 'pending'
+                                    ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
+                                    : 'bg-white/5 text-gray-400 border-white/10'
+                                }`}
+                            >
+                                {githubAuthStatus === 'connected' ? 'Connected' : githubAuthStatus === 'pending' ? 'Waiting for OAuth...' : 'Not connected'}
+                            </div>
+                            <div className="ml-auto">
+                                <button
+                                    onClick={() => {
+                                        setGithubToken('');
+                                        setGithubAuthStatus('idle');
+                                        setGithubAuthMessage('Disconnected from GitHub.');
+                                        setGithubRepos([]);
+                                        setGithubRepoName('');
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 transition-colors"
+                                >
+                                    Disconnect
+                                </button>
+                            </div>
+                            {githubAuthMessage && (
+                                <div className="text-xs text-gray-400">{githubAuthMessage}</div>
+                            )}
+                        </div>
+                        {githubUserCode && githubVerificationUri && (
+                            <div className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 mb-4 animate-[fadeUp_0.6s_ease-out]">
+                                <div className="text-xs uppercase tracking-widest text-gray-500 mb-1">Authorize in Browser</div>
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="font-mono text-lg text-white">{githubUserCode}</div>
                                     <button
-                                        key={option.id}
-                                        type="button"
-                                        onClick={() => updateTopStatsMode(option.id)}
-                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                                            statsViewSettings.topStatsMode === option.id
-                                                ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                        onClick={() => navigator.clipboard.writeText(githubUserCode)}
+                                        className="px-3 py-1 rounded-full text-[10px] border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                    >
+                                        Copy Code
+                                    </button>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">{githubVerificationUri}</div>
+                            </div>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                            <div className="md:col-span-2 bg-black/30 border border-white/10 rounded-xl p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="text-xs uppercase tracking-widest text-gray-500">Repository</div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setGithubRepoMode('select')}
+                                            className={`px-2 py-1 rounded-full text-[10px] border ${githubRepoMode === 'select'
+                                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
+                                                : 'bg-white/5 text-gray-400 border-white/10'
+                                                }`}
+                                        >
+                                            Choose Existing
+                                        </button>
+                                        <button
+                                            onClick={() => setGithubRepoMode('create')}
+                                            className={`px-2 py-1 rounded-full text-[10px] border ${githubRepoMode === 'create'
+                                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
+                                                : 'bg-white/5 text-gray-400 border-white/10'
+                                                }`}
+                                        >
+                                            Create New
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {githubRepoMode === 'select' ? (
+                                    <>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <input
+                                                type="text"
+                                                value={githubRepoSearch}
+                                                onChange={(e) => setGithubRepoSearch(e.target.value)}
+                                                placeholder="Search repositories..."
+                                                className="flex-1 bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-xs text-gray-300 placeholder-gray-600 focus:border-cyan-400/50 focus:outline-none"
+                                            />
+                                            <button
+                                                onClick={refreshGithubRepos}
+                                                className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300"
+                                                title="Refresh repos"
+                                            >
+                                                <RefreshCw className={`w-4 h-4 ${loadingRepos ? 'animate-spin' : ''}`} />
+                                            </button>
+                                        </div>
+                                        <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
+                                            {(githubRepos.length ? githubRepos : [{ full_name: '', name: '', owner: '' }])
+                                                .filter((repo) => repo.full_name.toLowerCase().includes(githubRepoSearch.trim().toLowerCase()))
+                                                .sort((a, b) => {
+                                                    const aFav = favoriteRepoSet.has(a.full_name);
+                                                    const bFav = favoriteRepoSet.has(b.full_name);
+                                                    if (aFav !== bFav) return aFav ? -1 : 1;
+                                                    if (a.name === githubRepoName) return -1;
+                                                    if (b.name === githubRepoName) return 1;
+                                                    return a.full_name.localeCompare(b.full_name);
+                                                })
+                                                .map((repo, idx) => {
+                                                    const isFavorite = favoriteRepoSet.has(repo.full_name);
+                                                    return (
+                                                        <div
+                                                            key={`${repo.full_name}-${idx}`}
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            onClick={() => {
+                                                                setGithubRepoName(repo.name);
+                                                                setGithubRepoOwner(repo.owner || '');
+                                                            }}
+                                                            onKeyDown={(event) => {
+                                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                                    event.preventDefault();
+                                                                    setGithubRepoName(repo.name);
+                                                                    setGithubRepoOwner(repo.owner || '');
+                                                                }
+                                                            }}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors flex items-center justify-between gap-2 cursor-pointer ${githubRepoName === repo.name
+                                                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
+                                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                                }`}
+                                                        >
+                                                            <span className="truncate">{repo.full_name || 'No repos loaded'}</span>
+                                                            {repo.full_name ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        toggleFavoriteRepo(repo.full_name);
+                                                                    }}
+                                                                    className={`p-1 rounded-md transition-colors ${isFavorite ? 'text-amber-300' : 'text-gray-500 hover:text-gray-200'}`}
+                                                                    title={isFavorite ? 'Remove favorite' : 'Favorite repo'}
+                                                                >
+                                                                    <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-amber-300' : 'fill-transparent'}`} />
+                                                                </button>
+                                                            ) : null}
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={githubRepoName}
+                                            onChange={(e) => {
+                                                const next = e.target.value.trim();
+                                                setGithubRepoName(next);
+                                                setGithubRepoError(validateRepoName(next));
+                                            }}
+                                            placeholder="New repository name"
+                                            className={`flex-1 bg-black/40 border rounded-lg px-3 py-2 text-xs text-gray-300 placeholder-gray-600 focus:outline-none ${githubRepoError ? 'border-rose-500/60 focus:border-rose-500/80' : 'border-white/5 focus:border-cyan-400/50'}`}
+                                        />
+                                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                                            <Plus className="w-4 h-4 text-cyan-300" />
+                                        </div>
+                                        <button
+                                            onClick={handleCreateGithubRepo}
+                                            disabled={creatingRepo || !!githubRepoError || githubAuthStatus !== 'connected'}
+                                            className="px-3 py-2 rounded-lg text-xs font-semibold border bg-cyan-600/20 text-cyan-200 border-cyan-500/40 disabled:opacity-50"
+                                        >
+                                            {creatingRepo ? 'Creating...' : 'Create Now'}
+                                        </button>
+                                    </div>
+                                )}
+                                {githubRepoMode === 'create' && githubRepoError && (
+                                    <div className="text-xs text-rose-400 mt-2">{githubRepoError}</div>
+                                )}
+                                {githubRepoMode === 'create' && githubRepoStatus && (
+                                    <div className={`text-xs mt-2 ${githubRepoStatusKind === 'success'
+                                        ? 'text-emerald-300'
+                                        : githubRepoStatusKind === 'error'
+                                            ? 'text-rose-400'
+                                            : 'text-cyan-300'
                                         }`}
                                     >
-                                        {option.label}
+                                        {githubRepoStatus}
+                                    </div>
+                                )}
+                                {githubRepoMode === 'select' && githubTemplateStatus && (
+                                    <div className={`text-xs mt-2 ${githubTemplateStatusKind === 'success'
+                                        ? 'text-emerald-300'
+                                        : githubTemplateStatusKind === 'error'
+                                            ? 'text-rose-400'
+                                            : 'text-cyan-300'
+                                        }`}
+                                    >
+                                        {githubTemplateStatus}
+                                    </div>
+                                )}
+                                <div className="bg-black/40 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-3 mt-3">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-1">GitHub Pages URL</div>
+                                        <input
+                                            type="text"
+                                            value={inferredPagesUrl || 'Connect GitHub and select a repo'}
+                                            readOnly
+                                            className="w-full bg-transparent text-sm text-gray-200 focus:outline-none"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleCopyPagesUrl}
+                                        disabled={!inferredPagesUrl}
+                                        className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-200 border-white/10 hover:border-white/30 disabled:opacity-50"
+                                    >
+                                        {pagesUrlCopied ? 'Copied' : 'Copy'}
                                     </button>
-                                ))}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">Applies to Top Stats cards and breakdown.</div>
-                        </div>
-                        <div className="py-3 border-t border-white/5">
-                            <div className="text-sm font-medium text-gray-200 mb-2">Top Skills Source</div>
-                            <div className="text-xs text-gray-500 mb-3">
-                                Pick which damage bucket ranks skills.
-                            </div>
-                            <div className="grid gap-3">
-                                {([
-                                    {
-                                        id: 'target',
-                                        label: 'Target Damage',
-                                        summary: 'Enemy-attributed damage (matches log combiner).',
-                                        implications: [
-                                            'Best for cross-tool comparisons.',
-                                            'Excludes unassigned damage.'
-                                        ]
-                                    },
-                                    {
-                                        id: 'total',
-                                        label: 'All Damage',
-                                        summary: 'All recorded damage events.',
-                                        implications: [
-                                            'Includes non-target damage.',
-                                            'Can exceed enemy totals.'
-                                        ]
-                                    }
-                                ] as const).map((option) => {
-                                    const isActive = statsViewSettings.topSkillDamageSource === option.id;
-                                    return (
-                                        <button
-                                            key={option.id}
-                                            type="button"
-                                            onClick={() => updateStatsViewSettingValue('topSkillDamageSource', option.id)}
-                                            className={`text-left rounded-xl border px-4 py-3 transition-colors ${isActive
-                                                ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
-                                                : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
-                                                }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm font-semibold">{option.label}</div>
-                                                <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
-                                                    {isActive ? 'Selected' : 'Select'}
-                                                </div>
-                                            </div>
-                                            <div className="text-xs text-gray-400 mt-1">{option.summary}</div>
-                                            <ul className="mt-2 space-y-1 text-xs text-gray-500">
-                                                {option.implications.map((item, idx) => (
-                                                    <li key={`${option.id}-${idx}`}>• {item}</li>
-                                                ))}
-                                            </ul>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        <div className="py-3 border-t border-white/5">
-                            <div className="text-sm font-medium text-gray-200 mb-2">Top Skills Metric</div>
-                            <div className="text-xs text-gray-500 mb-3">
-                                Choose how skills are ranked.
-                            </div>
-                            <div className="grid gap-3">
-                                {([
-                                    {
-                                        id: 'damage',
-                                        label: 'All Damage',
-                                        summary: 'Ranks by total damage dealt.',
-                                        implications: [
-                                            'Standard damage leaderboard.',
-                                            'Best for raw output.'
-                                        ]
-                                    },
-                                    {
-                                        id: 'downContribution',
-                                        label: 'Down Contribution',
-                                        summary: 'Ranks by down contribution damage.',
-                                        implications: [
-                                            'Highlights finishing pressure.',
-                                            'Matches down contribution totals.'
-                                        ]
-                                    }
-                                ] as const).map((option) => {
-                                    const isActive = statsViewSettings.topSkillsMetric === option.id;
-                                    return (
-                                        <button
-                                            key={option.id}
-                                            type="button"
-                                            onClick={() => updateStatsViewSettingValue('topSkillsMetric', option.id)}
-                                            className={`text-left rounded-xl border px-4 py-3 transition-colors ${isActive
-                                                ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
-                                                : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
-                                                }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm font-semibold">{option.label}</div>
-                                                <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
-                                                    {isActive ? 'Selected' : 'Select'}
-                                                </div>
-                                            </div>
-                                            <div className="text-xs text-gray-400 mt-1">{option.summary}</div>
-                                            <ul className="mt-2 space-y-1 text-xs text-gray-500">
-                                                {option.implications.map((item, idx) => (
-                                                    <li key={`${option.id}-${idx}`}>• {item}</li>
-                                                ))}
-                                            </ul>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        <div className="py-4 border-t border-white/10">
-                            <div className="flex items-center gap-2 text-sm font-medium text-gray-200 mb-2">
-                                <Zap className="w-4 h-4 text-blue-300" />
-                                CC/Strip Methodology
-                            </div>
-                            <div className="text-xs text-gray-500 mb-3">
-                                Choose how crowd control and strip totals are calculated across the app.
-                            </div>
-                            <div className="grid gap-3">
-                                {Object.entries(METRICS_SPEC.methods).map(([key, method]) => {
-                                    const isActive = disruptionMethod === key;
-                                    return (
-                                        <button
-                                            key={key}
-                                            onClick={() => setDisruptionMethod(key as DisruptionMethod)}
-                                            className={`text-left rounded-xl border px-4 py-3 transition-colors ${isActive
-                                                ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
-                                                : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
-                                                }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm font-semibold">{method.label}</div>
-                                                <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
-                                                    {isActive ? 'Selected' : 'Select'}
-                                                </div>
-                                            </div>
-                                            <div className="text-xs text-gray-400 mt-1">{method.summary}</div>
-                                            <ul className="mt-2 space-y-1 text-xs text-gray-500">
-                                                {method.implications.map((item, idx) => (
-                                                    <li key={`${key}-${idx}`}>• {item}</li>
-                                                ))}
-                                            </ul>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </SettingsSection>
-
-                {/* Close Behavior Section */}
-                <SettingsSection title="MVP Weighting" icon={BarChart3} delay={0.18} sectionId="mvp-weighting">
-                    <div className="flex items-center justify-between mb-4">
-                        <p className="text-sm text-gray-400">
-                            Adjust how each stat influences MVP scoring. 0 disables a stat.
-                        </p>
-                        <button
-                            onClick={() => setMvpWeights(DEFAULT_MVP_WEIGHTS)}
-                            className="text-xs font-semibold text-blue-300 hover:text-blue-200 transition-colors"
-                        >
-                            Reset
-                        </button>
-                    </div>
-                    <div className="space-y-2">
-                        {([
-                            { key: 'downContribution', label: 'Down Contribution' },
-                            { key: 'healing', label: 'Healing' },
-                            { key: 'cleanses', label: 'Cleanses' },
-                            { key: 'strips', label: 'Strips' },
-                            { key: 'stability', label: 'Stability' },
-                            { key: 'cc', label: 'CC' },
-                            { key: 'revives', label: 'Revives' },
-                            { key: 'distanceToTag', label: 'Distance to Tag' },
-                            { key: 'participation', label: 'Participation' },
-                            { key: 'dodging', label: 'Dodging' },
-                            { key: 'dps', label: 'DPS' },
-                            { key: 'damage', label: 'Damage' }
-                        ] as Array<{ key: keyof IMvpWeights; label: string }>).map(item => (
-                            <div key={item.key} className="flex items-center gap-3 py-2">
-                                <div className="flex-1 text-sm text-gray-200">{item.label}</div>
-                                <input
-                                    type="range"
-                                    min={0}
-                                    max={1}
-                                    step={0.05}
-                                    value={mvpWeights[item.key]}
-                                    onChange={(e) => updateMvpWeight(item.key, Number(e.target.value))}
-                                    className="flex-1 accent-blue-400"
-                                />
-                                <div className="w-12 text-right text-xs text-gray-300 font-mono">
-                                    {formatWeight(mvpWeights[item.key])}
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </SettingsSection>
 
-                {/* Close Behavior Section */}
-                <SettingsSection title="Window Close Behavior" icon={Minimize} delay={0.2} sectionId="close-behavior">
-                    <p className="text-sm text-gray-400 mb-4">
-                        Choose what happens when you click the close button.
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                        <button
-                            onClick={() => setCloseBehavior('minimize')}
-                            className={`flex flex-col items-center justify-center gap-3 py-4 rounded-xl border transition-all ${closeBehavior === 'minimize'
-                                ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
-                                : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'
-                                }`}
-                        >
-                            <Minimize className="w-6 h-6" />
-                            <div className="text-center">
-                                <div className="text-sm font-medium">Minimize to Tray</div>
-                                <div className="text-xs text-gray-500 mt-1">Keep running in background</div>
-                            </div>
-                        </button>
-
-                        <button
-                            onClick={() => setCloseBehavior('quit')}
-                            className={`flex flex-col items-center justify-center gap-3 py-4 rounded-xl border transition-all ${closeBehavior === 'quit'
-                                ? 'bg-red-500/20 border-red-500/50 text-red-400'
-                                : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'
-                                }`}
-                        >
-                            <CloseIcon className="w-6 h-6" />
-                            <div className="text-center">
-                                <div className="text-sm font-medium">Quit Application</div>
-                                <div className="text-xs text-gray-500 mt-1">Fully close the app</div>
-                            </div>
-                        </button>
-                    </div>
-                </SettingsSection>
-
-                <SettingsSection title="Export / Import Settings" icon={Download} delay={0.2} sectionId="export-import">
-                    <p className="text-sm text-gray-400 mb-4">
-                        Save your current configuration to a file or import it on another machine.
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                        <button
-                            type="button"
-                            onClick={handleExportSettings}
-                            className="flex items-center justify-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-200 hover:bg-blue-500/20 transition-colors"
-                        >
-                            <Download className="w-4 h-4" />
-                            Export Settings
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleImportSettings}
-                            className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200 hover:bg-emerald-500/20 transition-colors"
-                        >
-                            <Upload className="w-4 h-4" />
-                            Import Settings
-                        </button>
-                    </div>
-                    {settingsTransferStatus && (
-                        <div className={`mt-3 text-xs ${settingsTransferStatus.kind === 'success' ? 'text-emerald-300' : 'text-red-300'}`}>
-                            {settingsTransferStatus.message}
                         </div>
-                    )}
-                </SettingsSection>
+                        <div className="bg-black/30 border border-white/10 rounded-xl p-4 mb-4">
+                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Web Theme</div>
+                            <div className={`mb-3 rounded-lg border px-3 py-2 text-xs ${githubThemeStatusKind === 'success'
+                                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+                                : githubThemeStatusKind === 'error'
+                                    ? 'border-rose-500/40 bg-rose-500/10 text-rose-200'
+                                    : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-200'
+                                }`}
+                            >
+                                {githubThemeStatus || 'Theme changes publish automatically to GitHub Pages.'}
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-56 overflow-y-auto pr-1">
+                                {orderedThemes.map((theme) => {
+                                    const isActive = theme.id === githubWebTheme;
+                                    return (
+                                        <button
+                                            key={theme.id}
+                                            onClick={() => setGithubWebTheme(theme.id)}
+                                            className={`rounded-xl border px-3 py-3 text-left transition-colors ${isActive
+                                                ? 'border-cyan-400/60 bg-cyan-500/10'
+                                                : 'border-white/10 bg-white/5 hover:border-white/30'
+                                                }`}
+                                            style={{ boxShadow: isActive ? `0 0 18px rgba(${theme.rgb}, 0.25)` : undefined }}
+                                        >
+                                            <div
+                                                className="w-full h-12 rounded-lg mb-2 border border-white/10"
+                                                style={{ backgroundImage: theme.pattern, backgroundColor: '#10141b' }}
+                                            />
+                                            <div className="text-xs font-semibold text-gray-200">{theme.label}</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="bg-black/30 border border-white/10 rounded-xl p-4 mb-4">
+                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Logo</div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={async () => {
+                                        if (!window.electronAPI?.selectGithubLogo) return;
+                                        const path = await window.electronAPI.selectGithubLogo();
+                                        if (path) {
+                                            setGithubLogoPath(path);
+                                        }
+                                    }}
+                                    className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                >
+                                    {githubLogoPath ? 'Replace Logo' : 'Choose Logo'}
+                                </button>
+                                {githubLogoPath && (
+                                    <button
+                                        onClick={() => setGithubLogoPath(null)}
+                                        className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white"
+                                    >
+                                        Remove
+                                    </button>
+                                )}
+                                <div className="text-xs text-gray-500 truncate">
+                                    {githubLogoPath ? githubLogoPath.split(/[\\/]/).pop() : 'No logo selected'}
+                                </div>
+                            </div>
+                            {githubLogoStatus && (
+                                <div className={`mt-3 text-xs ${githubLogoStatusKind === 'success'
+                                    ? 'text-emerald-300'
+                                    : githubLogoStatusKind === 'error'
+                                        ? 'text-rose-300'
+                                        : 'text-cyan-300'
+                                    }`}
+                                >
+                                    {githubLogoStatus}
+                                </div>
+                            )}
+                        </div>
+                    </SettingsSection>
 
-                <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-gray-400">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-semibold text-gray-200">Legal Notice</div>
-                        <div className="flex items-center gap-2">
+                    {/* Discord Embed Stats - Summary Sections */}
+                    <SettingsSection title="Discord Embed - Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary">
+                        <p className="text-sm text-gray-400 mb-4">
+                            Configure which summary sections appear in Discord embed notifications.
+                        </p>
+                        <div className="divide-y divide-white/5">
+                            <Toggle
+                                enabled={embedStats.showSquadSummary}
+                                onChange={(v) => updateEmbedStat('showSquadSummary', v)}
+                                label="Squad Summary"
+                                description="Players, total damage, DPS, downs, and deaths"
+                            />
+                            <Toggle
+                                enabled={embedStats.showEnemySummary}
+                                onChange={(v) => updateEmbedStat('showEnemySummary', v)}
+                                label="Enemy Summary"
+                                description="Enemy count, damage taken, incoming DPS, enemy downs/kills"
+                            />
+                            <Toggle
+                                enabled={embedStats.showClassSummary}
+                                onChange={(v) => updateEmbedStat('showClassSummary', v)}
+                                label="Class Summary"
+                                description="Squad and enemy class breakdowns"
+                            />
+                            <Toggle
+                                enabled={embedStats.showIncomingStats}
+                                onChange={(v) => updateEmbedStat('showIncomingStats', v)}
+                                label="Incoming Stats"
+                                description="Attacks, CC, and strips received (with miss/block rates)"
+                            />
+                        </div>
+                    </SettingsSection>
+
+                    {/* Discord Embed Stats - Top Lists */}
+                    <SettingsSection title="Discord Embed - Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top">
+                        <p className="text-sm text-gray-400 mb-2">
+                            Configure which top stat player lists appear in Discord embed notifications.
+                        </p>
+                        <div className="mb-4 pb-4 border-b border-white/10">
+                            <label className="text-xs text-gray-500 block mb-2">Max rows per top stat list</label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="range"
+                                    min={1}
+                                    max={10}
+                                    step={1}
+                                    value={embedStats.maxTopListRows}
+                                    onChange={(e) => updateMaxTopRows(Number(e.target.value))}
+                                    className="flex-1 accent-blue-400"
+                                />
+                                <div className="min-w-8 shrink-0 text-right text-sm text-gray-300 font-mono">
+                                    {embedStats.maxTopListRows}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mb-4 pb-4 border-b border-white/10">
+                            <label className="text-xs text-gray-500 block mb-2">Class display</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                <button
+                                    onClick={() => updateClassDisplay('off')}
+                                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'off'
+                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
+                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
+                                        }`}
+                                >
+                                    Off
+                                </button>
+                                <button
+                                    onClick={() => updateClassDisplay('short')}
+                                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'short'
+                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
+                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
+                                        }`}
+                                >
+                                    Short name
+                                </button>
+                                <button
+                                    onClick={() => updateClassDisplay('emoji')}
+                                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'emoji'
+                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
+                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
+                                        }`}
+                                >
+                                    Emoji
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex justify-end mb-2">
+                            <button
+                                onClick={() => setAllTopLists(!allTopListsEnabled)}
+                                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                            >
+                                {allTopListsEnabled ? 'Disable All' : 'Enable All'}
+                            </button>
+                        </div>
+                        <div className="divide-y divide-white/5">
+                            <Toggle
+                                enabled={embedStats.showDamage}
+                                onChange={(v) => updateEmbedStat('showDamage', v)}
+                                label="Damage"
+                                description="Total damage dealt by each player"
+                            />
+                            <Toggle
+                                enabled={embedStats.showDownContribution}
+                                onChange={(v) => updateEmbedStat('showDownContribution', v)}
+                                label="Down Contribution"
+                                description="Damage dealt to enemies who went into downstate"
+                            />
+                            <Toggle
+                                enabled={embedStats.showHealing}
+                                onChange={(v) => updateEmbedStat('showHealing', v)}
+                                label="Healing"
+                                description="Outgoing healing to squad members"
+                            />
+                            <Toggle
+                                enabled={embedStats.showBarrier}
+                                onChange={(v) => updateEmbedStat('showBarrier', v)}
+                                label="Barrier"
+                                description="Outgoing barrier to squad members"
+                            />
+                            <Toggle
+                                enabled={embedStats.showCleanses}
+                                onChange={(v) => updateEmbedStat('showCleanses', v)}
+                                label="Cleanses"
+                                description="Conditions cleansed (self and allies)"
+                            />
+                            <Toggle
+                                enabled={embedStats.showBoonStrips}
+                                onChange={(v) => updateEmbedStat('showBoonStrips', v)}
+                                label="Boon Strips"
+                                description="Enemy boons stripped"
+                            />
+                            <Toggle
+                                enabled={embedStats.showCC}
+                                onChange={(v) => updateEmbedStat('showCC', v)}
+                                label="Crowd Control (CC)"
+                                description="Hard CC applied to enemies"
+                            />
+                            <Toggle
+                                enabled={embedStats.showStability}
+                                onChange={(v) => updateEmbedStat('showStability', v)}
+                                label="Stability"
+                                description="Stability boon generation"
+                            />
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                            <p className="text-xs text-gray-500 mb-3">Additional Stats (disabled by default)</p>
+                            <div className="divide-y divide-white/5">
+                                <Toggle
+                                    enabled={embedStats.showResurrects}
+                                    onChange={(v) => updateEmbedStat('showResurrects', v)}
+                                    label="Resurrects"
+                                    description="Downed allies revived"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDistanceToTag}
+                                    onChange={(v) => updateEmbedStat('showDistanceToTag', v)}
+                                    label="Distance to Tag"
+                                    description="Average distance to commander (lower is better)"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showKills}
+                                    onChange={(v) => updateEmbedStat('showKills', v)}
+                                    label="Kills"
+                                    description="Enemy kill count"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDowns}
+                                    onChange={(v) => updateEmbedStat('showDowns', v)}
+                                    label="Downs"
+                                    description="Enemy down count"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showBreakbarDamage}
+                                    onChange={(v) => updateEmbedStat('showBreakbarDamage', v)}
+                                    label="Breakbar Damage"
+                                    description="Breakbar damage dealt to enemies"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDamageTaken}
+                                    onChange={(v) => updateEmbedStat('showDamageTaken', v)}
+                                    label="Damage Taken"
+                                    description="Damage received from enemies"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDeaths}
+                                    onChange={(v) => updateEmbedStat('showDeaths', v)}
+                                    label="Deaths"
+                                    description="Times the player died"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDodges}
+                                    onChange={(v) => updateEmbedStat('showDodges', v)}
+                                    label="Dodges"
+                                    description="Number of dodges performed"
+                                />
+                            </div>
+                        </div>
+                    </SettingsSection>
+
+                    <div ref={helpUpdatesRef}>
+                        <SettingsSection title="Help & Updates" icon={Sparkles} delay={0.18} sectionId="help-updates">
+                            <p className="text-sm text-gray-400 mb-4">
+                                Review release notes, reopen onboarding, or browse the complete feature guide.
+                            </p>
+                            <div className="space-y-2">
+                                <button
+                                    onClick={() => setHowToOpen(true)}
+                                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-200 hover:bg-cyan-500/20 transition-colors"
+                                >
+                                    <BookOpen className="w-4 h-4" />
+                                    How To
+                                </button>
+                                <button
+                                    onClick={() => onOpenWalkthrough?.()}
+                                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium text-gray-200 hover:bg-white/10 transition-colors"
+                                >
+                                    <Compass className="w-4 h-4" />
+                                    Open Walkthrough
+                                </button>
+                                <button
+                                    onClick={() => onOpenWhatsNew?.()}
+                                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-200 hover:bg-blue-500/20 transition-colors"
+                                >
+                                    <Sparkles className="w-4 h-4" />
+                                    View What's New
+                                </button>
+                            </div>
+                        </SettingsSection>
+                    </div>
+
+                    <SettingsSection title="Dashboard - Top Stats & MVP" icon={BarChart3} delay={0.18} sectionId="dashboard-stats">
+                        <p className="text-sm text-gray-400 mb-4">
+                            Control the calculation and display of the top stats cards and MVP highlights.
+                        </p>
+                        <div className="divide-y divide-white/5">
+                            <Toggle
+                                enabled={statsViewSettings.showTopStats}
+                                onChange={(v) => updateStatsViewSetting('showTopStats', v)}
+                                label="Show Top Stats Section"
+                                description="Top players cards and leader breakdowns"
+                            />
+                            <Toggle
+                                enabled={statsViewSettings.showMvp}
+                                onChange={(v) => updateStatsViewSetting('showMvp', v)}
+                                label="Calculate MVP"
+                                description="MVP scoring + squad/silver/bronze highlights"
+                            />
+                            <Toggle
+                                enabled={statsViewSettings.roundCountStats}
+                                onChange={(v) => updateStatsViewSetting('roundCountStats', v)}
+                                label="Round count stats to whole numbers"
+                                description="Percent-based stats keep decimals"
+                            />
+                            <div className="py-3">
+                                <div className="text-sm font-medium text-gray-200 mb-2">Top Stats Calculation</div>
+                                <div className="flex gap-2">
+                                    {([
+                                        { id: 'total', label: 'Total' },
+                                        { id: 'perSecond', label: 'Per Second' }
+                                    ] as const).map((option) => (
+                                        <button
+                                            key={option.id}
+                                            type="button"
+                                            onClick={() => updateTopStatsMode(option.id)}
+                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${statsViewSettings.topStatsMode === option.id
+                                                ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
+                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                }`}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">Applies to Top Stats cards and breakdown.</div>
+                            </div>
+                            <div className="py-3 border-t border-white/5">
+                                <div className="text-sm font-medium text-gray-200 mb-2">Top Skills Source</div>
+                                <div className="text-xs text-gray-500 mb-3">
+                                    Pick which damage bucket ranks skills.
+                                </div>
+                                <div className="grid gap-3">
+                                    {([
+                                        {
+                                            id: 'target',
+                                            label: 'Target Damage',
+                                            summary: 'Enemy-attributed damage (matches log combiner).',
+                                            implications: [
+                                                'Best for cross-tool comparisons.',
+                                                'Excludes unassigned damage.'
+                                            ]
+                                        },
+                                        {
+                                            id: 'total',
+                                            label: 'All Damage',
+                                            summary: 'All recorded damage events.',
+                                            implications: [
+                                                'Includes non-target damage.',
+                                                'Can exceed enemy totals.'
+                                            ]
+                                        }
+                                    ] as const).map((option) => {
+                                        const isActive = statsViewSettings.topSkillDamageSource === option.id;
+                                        return (
+                                            <button
+                                                key={option.id}
+                                                type="button"
+                                                onClick={() => updateStatsViewSettingValue('topSkillDamageSource', option.id)}
+                                                className={`text-left rounded-xl border px-4 py-3 transition-colors ${isActive
+                                                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
+                                                    : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="text-sm font-semibold">{option.label}</div>
+                                                    <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
+                                                        {isActive ? 'Selected' : 'Select'}
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-1">{option.summary}</div>
+                                                <ul className="mt-2 space-y-1 text-xs text-gray-500">
+                                                    {option.implications.map((item, idx) => (
+                                                        <li key={`${option.id}-${idx}`}>• {item}</li>
+                                                    ))}
+                                                </ul>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            <div className="py-3 border-t border-white/5">
+                                <div className="text-sm font-medium text-gray-200 mb-2">Top Skills Metric</div>
+                                <div className="text-xs text-gray-500 mb-3">
+                                    Choose how skills are ranked.
+                                </div>
+                                <div className="grid gap-3">
+                                    {([
+                                        {
+                                            id: 'damage',
+                                            label: 'All Damage',
+                                            summary: 'Ranks by total damage dealt.',
+                                            implications: [
+                                                'Standard damage leaderboard.',
+                                                'Best for raw output.'
+                                            ]
+                                        },
+                                        {
+                                            id: 'downContribution',
+                                            label: 'Down Contribution',
+                                            summary: 'Ranks by down contribution damage.',
+                                            implications: [
+                                                'Highlights finishing pressure.',
+                                                'Matches down contribution totals.'
+                                            ]
+                                        }
+                                    ] as const).map((option) => {
+                                        const isActive = statsViewSettings.topSkillsMetric === option.id;
+                                        return (
+                                            <button
+                                                key={option.id}
+                                                type="button"
+                                                onClick={() => updateStatsViewSettingValue('topSkillsMetric', option.id)}
+                                                className={`text-left rounded-xl border px-4 py-3 transition-colors ${isActive
+                                                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
+                                                    : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="text-sm font-semibold">{option.label}</div>
+                                                    <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
+                                                        {isActive ? 'Selected' : 'Select'}
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-1">{option.summary}</div>
+                                                <ul className="mt-2 space-y-1 text-xs text-gray-500">
+                                                    {option.implications.map((item, idx) => (
+                                                        <li key={`${option.id}-${idx}`}>• {item}</li>
+                                                    ))}
+                                                </ul>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            <div className="py-4 border-t border-white/10">
+                                <div className="flex items-center gap-2 text-sm font-medium text-gray-200 mb-2">
+                                    <Zap className="w-4 h-4 text-blue-300" />
+                                    CC/Strip Methodology
+                                </div>
+                                <div className="text-xs text-gray-500 mb-3">
+                                    Choose how crowd control and strip totals are calculated across the app.
+                                </div>
+                                <div className="grid gap-3">
+                                    {Object.entries(METRICS_SPEC.methods).map(([key, method]) => {
+                                        const isActive = disruptionMethod === key;
+                                        return (
+                                            <button
+                                                key={key}
+                                                onClick={() => setDisruptionMethod(key as DisruptionMethod)}
+                                                className={`text-left rounded-xl border px-4 py-3 transition-colors ${isActive
+                                                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
+                                                    : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="text-sm font-semibold">{method.label}</div>
+                                                    <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
+                                                        {isActive ? 'Selected' : 'Select'}
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-1">{method.summary}</div>
+                                                <ul className="mt-2 space-y-1 text-xs text-gray-500">
+                                                    {method.implications.map((item, idx) => (
+                                                        <li key={`${key}-${idx}`}>• {item}</li>
+                                                    ))}
+                                                </ul>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </SettingsSection>
+
+                    {/* Close Behavior Section */}
+                    <SettingsSection title="MVP Weighting" icon={BarChart3} delay={0.18} sectionId="mvp-weighting">
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-sm text-gray-400">
+                                Adjust how each stat influences MVP scoring. 0 disables a stat.
+                            </p>
+                            <button
+                                onClick={() => setMvpWeights(DEFAULT_MVP_WEIGHTS)}
+                                className="text-xs font-semibold text-blue-300 hover:text-blue-200 transition-colors"
+                            >
+                                Reset
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {([
+                                { key: 'downContribution', label: 'Down Contribution' },
+                                { key: 'healing', label: 'Healing' },
+                                { key: 'cleanses', label: 'Cleanses' },
+                                { key: 'strips', label: 'Strips' },
+                                { key: 'stability', label: 'Stability' },
+                                { key: 'cc', label: 'CC' },
+                                { key: 'revives', label: 'Revives' },
+                                { key: 'distanceToTag', label: 'Distance to Tag' },
+                                { key: 'participation', label: 'Participation' },
+                                { key: 'dodging', label: 'Dodging' },
+                                { key: 'dps', label: 'DPS' },
+                                { key: 'damage', label: 'Damage' }
+                            ] as Array<{ key: keyof IMvpWeights; label: string }>).map(item => (
+                                <div key={item.key} className="flex items-center gap-3 py-2">
+                                    <div className="flex-1 text-sm text-gray-200">{item.label}</div>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={1}
+                                        step={0.05}
+                                        value={mvpWeights[item.key]}
+                                        onChange={(e) => updateMvpWeight(item.key, Number(e.target.value))}
+                                        className="flex-1 accent-blue-400"
+                                    />
+                                    <div className="w-12 text-right text-xs text-gray-300 font-mono">
+                                        {formatWeight(mvpWeights[item.key])}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </SettingsSection>
+
+                    {/* Close Behavior Section */}
+                    <SettingsSection title="Window Close Behavior" icon={Minimize} delay={0.2} sectionId="close-behavior">
+                        <p className="text-sm text-gray-400 mb-4">
+                            Choose what happens when you click the close button.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => setCloseBehavior('minimize')}
+                                className={`flex flex-col items-center justify-center gap-3 py-4 rounded-xl border transition-all ${closeBehavior === 'minimize'
+                                    ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
+                                    : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'
+                                    }`}
+                            >
+                                <Minimize className="w-6 h-6" />
+                                <div className="text-center">
+                                    <div className="text-sm font-medium">Minimize to Tray</div>
+                                    <div className="text-xs text-gray-500 mt-1">Keep running in background</div>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => setCloseBehavior('quit')}
+                                className={`flex flex-col items-center justify-center gap-3 py-4 rounded-xl border transition-all ${closeBehavior === 'quit'
+                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                    : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'
+                                    }`}
+                            >
+                                <CloseIcon className="w-6 h-6" />
+                                <div className="text-center">
+                                    <div className="text-sm font-medium">Quit Application</div>
+                                    <div className="text-xs text-gray-500 mt-1">Fully close the app</div>
+                                </div>
+                            </button>
+                        </div>
+                    </SettingsSection>
+
+                    <SettingsSection title="Export / Import Settings" icon={Download} delay={0.2} sectionId="export-import">
+                        <p className="text-sm text-gray-400 mb-4">
+                            Save your current configuration to a file or import it on another machine.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
                             <button
                                 type="button"
-                                onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/ArcBridge')}
-                                className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                onClick={handleExportSettings}
+                                className="flex items-center justify-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-200 hover:bg-blue-500/20 transition-colors"
                             >
-                                GitHub
+                                <Download className="w-4 h-4" />
+                                Export Settings
                             </button>
                             <button
                                 type="button"
-                                onClick={() => window.electronAPI?.openExternal?.('https://discord.gg/UjzMXMGXEg')}
-                                className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                onClick={handleImportSettings}
+                                className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200 hover:bg-emerald-500/20 transition-colors"
                             >
-                                Discord
-                            </button>
-                            <button
-                                onClick={() => setProofOfWorkOpen(true)}
-                                className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
-                            >
-                                Proof of Work
+                                <Upload className="w-4 h-4" />
+                                Import Settings
                             </button>
                         </div>
-                    </div>
-                    <p>
-                        ArcBridge is free software by harasho: you can redistribute it and/or modify it under the terms
-                        of the GNU General Public License v3.0 only. This program comes with ABSOLUTELY NO WARRANTY.
-                    </p>
-                    <p className="mt-2">
-                        Class Icons, artwork, and skill icons are created and owned by Arenanet as detailed in their{' '}
-                        <button
-                            type="button"
-                            onClick={() => window.electronAPI?.openExternal?.('https://www.arena.net/en/legal/content-terms-of-use')}
-                            className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
-                        >
-                            Content Terms of Use
-                        </button>
-                        . I do not own or profit from this work in any way. Assets were obtained from asset packs distributed by Arenanet.
-                        The official statement from the Content Terms of Use:
-                    </p>
-                    <p className="mt-2">
-                        © ArenaNet LLC. All rights reserved. NCSOFT, ArenaNet, Guild Wars, Guild Wars 2, GW2, Guild Wars 2: Heart of Thorns, Guild Wars 2: Path of Fire, Guild Wars 2: End of Dragons, and Guild Wars 2: Secrets of the Obscure and all associated logos, designs, and composite marks are trademarks or registered trademarks of NCSOFT Corporation.
-                    </p>
-                    <p className="mt-2">
-                        See the{' '}
-                        <button
-                            type="button"
-                            onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/ArcBridge/blob/main/LICENSE')}
-                            className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
-                        >
-                            LICENSE
-                        </button>
-                        {' '}and{' '}
-                        <button
-                            type="button"
-                            onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/ArcBridge/blob/main/THIRD_PARTY_NOTICES.md')}
-                            className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
-                        >
-                            THIRD_PARTY_NOTICES.md
-                        </button>
-                        {' '}files for full terms and upstream attributions.
-                    </p>
-                </div>
+                        {settingsTransferStatus && (
+                            <div className={`mt-3 text-xs ${settingsTransferStatus.kind === 'success' ? 'text-emerald-300' : 'text-red-300'}`}>
+                                {settingsTransferStatus.message}
+                            </div>
+                        )}
+                    </SettingsSection>
 
-                <div className="h-[12vh] min-h-10 max-h-28" />
-                {/* Save Button (hidden with auto-save) */}
+                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-gray-400">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="text-sm font-semibold text-gray-200">Legal Notice</div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/ArcBridge')}
+                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                >
+                                    GitHub
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => window.electronAPI?.openExternal?.('https://discord.gg/UjzMXMGXEg')}
+                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                >
+                                    Discord
+                                </button>
+                                <button
+                                    onClick={() => setProofOfWorkOpen(true)}
+                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                >
+                                    Proof of Work
+                                </button>
+                            </div>
+                        </div>
+                        <p>
+                            ArcBridge is free software by harasho: you can redistribute it and/or modify it under the terms
+                            of the GNU General Public License v3.0 only. This program comes with ABSOLUTELY NO WARRANTY.
+                        </p>
+                        <p className="mt-2">
+                            Class Icons, artwork, and skill icons are created and owned by Arenanet as detailed in their{' '}
+                            <button
+                                type="button"
+                                onClick={() => window.electronAPI?.openExternal?.('https://www.arena.net/en/legal/content-terms-of-use')}
+                                className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                            >
+                                Content Terms of Use
+                            </button>
+                            . I do not own or profit from this work in any way. Assets were obtained from asset packs distributed by Arenanet.
+                            The official statement from the Content Terms of Use:
+                        </p>
+                        <p className="mt-2">
+                            © ArenaNet LLC. All rights reserved. NCSOFT, ArenaNet, Guild Wars, Guild Wars 2, GW2, Guild Wars 2: Heart of Thorns, Guild Wars 2: Path of Fire, Guild Wars 2: End of Dragons, and Guild Wars 2: Secrets of the Obscure and all associated logos, designs, and composite marks are trademarks or registered trademarks of NCSOFT Corporation.
+                        </p>
+                        <p className="mt-2">
+                            See the{' '}
+                            <button
+                                type="button"
+                                onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/ArcBridge/blob/main/LICENSE')}
+                                className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                            >
+                                LICENSE
+                            </button>
+                            {' '}and{' '}
+                            <button
+                                type="button"
+                                onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/ArcBridge/blob/main/THIRD_PARTY_NOTICES.md')}
+                                className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                            >
+                                THIRD_PARTY_NOTICES.md
+                            </button>
+                            {' '}files for full terms and upstream attributions.
+                        </p>
+                    </div>
+
+                    <div className="h-[12vh] min-h-10 max-h-28" />
+                    {/* Save Button (hidden with auto-save) */}
                 </div>
             </div>
 
@@ -2295,7 +2280,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                 <CloseIcon className="w-4 h-4" />
                             </button>
                         </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1 pb-4">
+                        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 pb-4">
                             {settingsSections.map((item) => {
                                 const isActive = item.id === activeSettingsSectionId;
                                 return (
@@ -2305,12 +2290,12 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                             scrollToSettingsSection(item.id);
                                             setSettingsNavOpen(false);
                                         }}
-                                        className={`w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-gray-200 border transition-colors min-w-0 ${isActive
-                                            ? 'bg-white/10 border-white/20'
-                                            : 'border-transparent hover:border-white/10 hover:bg-white/10'
+                                        className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 ${isActive
+                                            ? 'text-white'
+                                            : 'text-gray-400'
                                             }`}
                                     >
-                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 border border-white/10 text-[10px] text-[color:var(--accent)]">
+                                        <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
                                             {settingsSections.findIndex((section) => section.id === item.id) + 1}
                                         </span>
                                         <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
@@ -2501,7 +2486,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="w-full max-w-3xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6"
+                            className="web-reports-modal w-full max-w-3xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -2556,7 +2541,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                     githubReports.map((report) => (
                                         <div
                                             key={report.id}
-                                            className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${githubReportsSelected.has(report.id)
+                                            className={`web-report-item flex items-center gap-3 rounded-xl border px-4 py-3 ${githubReportsSelected.has(report.id)
                                                 ? 'bg-cyan-500/10 border-cyan-400/40'
                                                 : 'bg-white/5 border-white/10'
                                                 }`}
@@ -2601,22 +2586,26 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             <AnimatePresence>
                 {proofOfWorkOpen && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-lg"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={(event) => event.target === event.currentTarget && setProofOfWorkOpen(false)}
                     >
                         <motion.div
-                            className="w-full max-w-4xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6"
+                            className="proof-of-work-modal relative w-full max-w-4xl bg-[#10151b]/95 border border-white/10 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.55)] p-6 overflow-hidden"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
                         >
+                            <div className="pointer-events-none absolute inset-0 opacity-60">
+                                <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-cyan-500/8 blur-3xl" />
+                                <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-slate-500/10 blur-3xl" />
+                            </div>
                             <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <div className="text-lg font-bold text-white">Proof of Work</div>
-                                    <div className="text-xs text-gray-400">Metrics Specification</div>
+                                    <div className="text-[10px] uppercase tracking-[0.35em] text-cyan-300/70">Proof of Work</div>
+                                    <div className="text-xl font-semibold text-white mt-1">Metrics Specification</div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="relative" ref={metricsSpecSearchRef}>
@@ -2648,10 +2637,10 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                                 }
                                             }}
                                             placeholder="Search spec..."
-                                            className="w-52 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                                            className="proof-of-work-search w-56 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
                                         />
                                         {metricsSpecSearchFocused && metricsSpecSearchResults.length > 0 && metricsSpecSearch.trim().length >= 2 && (
-                                            <div className="absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#11161e]/95 shadow-xl z-10">
+                                            <div className="absolute right-0 mt-2 w-80 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#0d1218]/95 shadow-2xl z-10">
                                                 {metricsSpecSearchResults.map((result) => (
                                                     <button
                                                         key={`${result.tag}-${result.index}-${result.text}`}
@@ -2673,25 +2662,30 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                     </div>
                                     <button
                                         onClick={() => setProofOfWorkOpen(false)}
-                                        className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                                        className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
                                     >
                                         <CloseIcon className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
                             <div className="h-[65vh]">
-                                <div className="grid grid-cols-[220px_1fr] gap-4 h-full min-h-0">
-                                    <div className="h-full overflow-y-auto pr-2">
-                                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">On This Page</div>
+                                <div className="grid grid-cols-[230px_1fr] gap-4 h-full min-h-0">
+                                    <div className="proof-of-work-sidebar h-full overflow-y-auto pr-2 rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <div className="text-[10px] uppercase tracking-[0.3em] text-gray-400 mb-2">On This Page</div>
                                         <div className="space-y-1">
                                             {metricsSpecNav.map((item) => (
                                                 <button
                                                     key={`${item.id}-${item.level}`}
-                                                    className={`w-full text-left text-xs rounded-md px-2 py-1 transition-colors ${item.level === 1
+                                                    className={`w-full text-left flex items-center gap-2 py-1 min-w-0 transition-colors ${item.level === 1
                                                         ? 'text-gray-300 hover:text-white'
                                                         : item.level === 2
-                                                            ? 'text-gray-300 hover:text-white'
-                                                            : 'text-gray-400 hover:text-gray-200'
+                                                            ? 'text-gray-400 hover:text-gray-200'
+                                                            : 'text-gray-500 hover:text-gray-300'
+                                                        } ${item.level === 1
+                                                            ? ''
+                                                            : item.level === 2
+                                                                ? 'pl-4'
+                                                                : 'pl-6'
                                                         }`}
                                                     onClick={() => {
                                                         const container = metricsSpecContentRef.current;
@@ -2717,13 +2711,12 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                                         });
                                                     }}
                                                 >
-                                                    {item.level === 3 ? '• ' : ''}
-                                                    {item.text}
+                                                    <span className="text-[13px] font-medium truncate min-w-0">{item.text}</span>
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="h-full overflow-y-auto pr-2" ref={metricsSpecContentRef} id="metrics-spec-content">
+                                    <div className="proof-of-work-content h-full overflow-y-auto pr-2 rounded-xl border border-white/10 bg-black/30 p-4" ref={metricsSpecContentRef} id="metrics-spec-content">
                                         <div className="space-y-4 text-sm text-gray-200">
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}

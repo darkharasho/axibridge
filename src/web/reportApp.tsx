@@ -1,6 +1,6 @@
 import { CSSProperties, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
-import { DEFAULT_WEB_THEME, WebTheme, WEB_THEMES } from '../shared/webThemes';
+import { DEFAULT_WEB_THEME, MATTE_WEB_THEME, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -61,7 +61,7 @@ interface ReportIndexEntry {
     };
 }
 
-const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md';
+const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md glass-card';
 
 const formatLocalRange = (start: string, end: string) => {
     try {
@@ -159,7 +159,7 @@ export function ReportApp() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
-    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt'>('classic');
+    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte'>('classic');
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
     const [metricsSpecSearch, setMetricsSpecSearch] = useState('');
     const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; section: string; hitId: number }>>([]);
@@ -460,7 +460,8 @@ export function ReportApp() {
         };
         requestAnimationFrame(tick);
     }, [activeGroup]);
-    const resolvedTheme = theme ?? DEFAULT_WEB_THEME;
+    const isMatteUi = uiTheme === 'matte' || theme?.id === MATTE_WEB_THEME_ID || report?.stats?.webThemeId === MATTE_WEB_THEME_ID || theme?.label === 'Matte Slate' || (theme?.rgb || '').replace(/\s/g, '') === '93,163,194';
+    const resolvedTheme = isMatteUi ? MATTE_WEB_THEME : (theme ?? DEFAULT_WEB_THEME);
     const accentRgb = resolvedTheme.rgb;
     const accentVars = {
         '--accent': `rgb(${accentRgb})`,
@@ -471,17 +472,21 @@ export function ReportApp() {
         '--accent-glow': `rgba(${accentRgb}, 0.18)`,
         '--accent-glow-soft': `rgba(${accentRgb}, 0.08)`
     } as CSSProperties;
-    const isModernUi = uiTheme === 'modern';
+    const isModernUi = uiTheme === 'modern' || uiTheme === 'matte';
     const reportBackgroundImage = resolvedTheme.pattern
-        ? (isModernUi
-            ? `linear-gradient(180deg, rgba(14, 18, 26, 0.72), rgba(18, 24, 34, 0.78)), ${resolvedTheme.pattern}`
-            : resolvedTheme.pattern)
+        ? (isMatteUi
+            ? undefined
+            : isModernUi
+                ? `linear-gradient(180deg, rgba(14, 18, 26, 0.72), rgba(18, 24, 34, 0.78)), ${resolvedTheme.pattern}`
+                : resolvedTheme.pattern)
         : undefined;
-    const glassCardStyle: CSSProperties = {
-        backgroundImage: isModernUi
-            ? 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.06) 70%)'
-            : 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.26), rgba(var(--accent-rgb), 0.08) 70%)'
-    };
+    const glassCardStyle: CSSProperties = isMatteUi
+        ? { backgroundImage: 'none', backgroundColor: 'var(--bg-card)' }
+        : {
+            backgroundImage: isModernUi
+                ? 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.06) 70%)'
+                : 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.26), rgba(var(--accent-rgb), 0.08) 70%)'
+        };
 
     useEffect(() => {
         let isMounted = true;
@@ -517,8 +522,10 @@ export function ReportApp() {
                 const normalized = normalizeCommanderDistance(data);
                 setReport(normalized);
                 const themeChoice = normalized?.stats?.uiTheme;
-                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt') {
+                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte') {
                     setUiTheme(themeChoice);
+                } else if (normalized?.stats?.webThemeId === MATTE_WEB_THEME_ID) {
+                    setUiTheme('matte');
                 }
             })
             .catch(() => {
@@ -536,7 +543,7 @@ export function ReportApp() {
                     .catch(() => {
                         if (!isMounted) return;
                         setError('No report data found.');
-                });
+                    });
             });
         return () => {
             isMounted = false;
@@ -556,6 +563,12 @@ export function ReportApp() {
 
     useEffect(() => {
         if (!report) return;
+        if (uiTheme === 'matte') {
+            if (!theme || theme.id !== MATTE_WEB_THEME_ID) {
+                setTheme(MATTE_WEB_THEME);
+            }
+            return;
+        }
         const requestedThemeId = report.stats?.webThemeId;
         if (!requestedThemeId) return;
         if (!isDevLocalWeb && theme?.id === requestedThemeId) return;
@@ -563,19 +576,21 @@ export function ReportApp() {
         if (matched && (!theme || theme.id !== matched.id || isDevLocalWeb)) {
             setTheme(matched);
         }
-    }, [report, theme, isDevLocalWeb]);
+    }, [report, theme, isDevLocalWeb, uiTheme]);
 
     useEffect(() => {
         const body = document.body;
         body.classList.add('web-report');
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt');
-        if (uiTheme === 'modern') body.classList.add('theme-modern');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte');
+        if (isMatteUi) body.classList.add('theme-matte');
+        else if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
         else body.classList.add('theme-classic');
-    }, [uiTheme]);
+    }, [uiTheme, isMatteUi]);
 
     useEffect(() => {
         if (isDevLocalWeb && report?.stats?.webThemeId) return;
+        if (uiTheme === 'matte') return;
         let isMounted = true;
         fetch(`${assetBasePath}theme.json`, { cache: 'no-store' })
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
@@ -599,13 +614,13 @@ export function ReportApp() {
             .then((data) => {
                 if (!isMounted) return;
                 const themeChoice = data?.theme;
-                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt') {
+                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte') {
                     setUiTheme(themeChoice);
                 }
             })
             .catch(() => {
                 if (!isMounted) return;
-                setUiTheme('classic');
+                // Do not force classic on failure; keep existing theme (e.g. from report)
             });
         return () => {
             isMounted = false;
@@ -777,11 +792,11 @@ export function ReportApp() {
                                         <button
                                             key={`${result.index}-${result.text}`}
                                             className="w-full text-left px-3 py-2 text-xs text-gray-200 hover:bg-white/10 border-b border-white/5 last:border-b-0"
-                                        onMouseDown={(event) => {
-                                            event.preventDefault();
-                                            setMetricsSpecSearchFocused(true);
-                                            scrollMetricsSpecToNodeIndex(result.hitId, result.text);
-                                        }}
+                                            onMouseDown={(event) => {
+                                                event.preventDefault();
+                                                setMetricsSpecSearchFocused(true);
+                                                scrollMetricsSpecToNodeIndex(result.hitId, result.text);
+                                            }}
                                         >
                                             <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">{result.section}</div>
                                             <div className="truncate">
@@ -1082,27 +1097,27 @@ export function ReportApp() {
                 <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 border-r border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-20">
                     <div className="flex flex-col w-full">
                         <div className="px-6 pt-6 pb-5">
-                                <div className="flex items-center gap-3">
-                                    <div
-                                        className="h-10 w-10 rounded-2xl bg-white/10 border border-white/20"
-                                        style={{
-                                            backgroundColor: 'var(--accent)',
-                                            maskImage: `url(${arcbridgeLogoUrl})`,
-                                            WebkitMaskImage: `url(${arcbridgeLogoUrl})`,
-                                            maskRepeat: 'no-repeat',
-                                            WebkitMaskRepeat: 'no-repeat',
-                                            maskPosition: 'center',
-                                            WebkitMaskPosition: 'center',
-                                            maskSize: '65%',
-                                            WebkitMaskSize: '65%'
-                                        }}
-                                        aria-label="ArcBridge logo"
-                                    />
-                                    <div>
-                                        <div className="text-[11px] uppercase tracking-[0.4em] text-gray-400">ArcBridge Reports</div>
-                                        <div className="text-sm font-semibold text-white">Navigation</div>
-                                    </div>
+                            <div className="flex items-center gap-3">
+                                <div
+                                    className="h-10 w-10 rounded-2xl bg-white/10 border border-white/20"
+                                    style={{
+                                        backgroundColor: 'var(--accent)',
+                                        maskImage: `url(${arcbridgeLogoUrl})`,
+                                        WebkitMaskImage: `url(${arcbridgeLogoUrl})`,
+                                        maskRepeat: 'no-repeat',
+                                        WebkitMaskRepeat: 'no-repeat',
+                                        maskPosition: 'center',
+                                        WebkitMaskPosition: 'center',
+                                        maskSize: '65%',
+                                        WebkitMaskSize: '65%'
+                                    }}
+                                    aria-label="ArcBridge logo"
+                                />
+                                <div>
+                                    <div className="text-[11px] uppercase tracking-[0.4em] text-gray-400">ArcBridge Reports</div>
+                                    <div className="text-sm font-semibold text-white">Navigation</div>
                                 </div>
+                            </div>
                         </div>
                         <nav className="px-4 space-y-4 text-sm flex-1 overflow-y-auto" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
@@ -1239,11 +1254,12 @@ export function ReportApp() {
                         <div id="stats-view-top">
                             <StatsView
                                 logs={[]}
-                                onBack={() => {}}
+                                onBack={() => { }}
                                 mvpWeights={undefined}
                                 precomputedStats={report.stats}
                                 statsViewSettings={report.stats?.statsViewSettings}
                                 embedded
+                                uiTheme={uiTheme}
                                 sectionVisibility={(id) => activeSectionIds.has(id)}
                                 dashboardTitle={`Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`}
                             />
@@ -1287,26 +1303,28 @@ export function ReportApp() {
         <div
             className="min-h-screen text-white relative overflow-x-hidden"
             style={{
-                backgroundColor: isModernUi ? '#0f141c' : '#0f172a',
-                backgroundImage: reportBackgroundImage,
+                backgroundColor: isMatteUi ? 'var(--bg-base)' : (isModernUi ? '#0f141c' : '#0f172a'),
+                backgroundImage: isMatteUi ? 'none' : reportBackgroundImage,
                 ...accentVars
             }}
         >
-            <div className="absolute inset-0 pointer-events-none">
-                <div
-                    className="absolute -top-32 -right-24 h-80 w-80 rounded-full blur-[140px]"
-                    style={{ backgroundColor: 'var(--accent-glow)' }}
-                />
-                <div
-                    className="absolute top-40 -left-20 h-72 w-72 rounded-full blur-[120px]"
-                    style={{ backgroundColor: 'var(--accent-glow-soft)' }}
-                />
-                <div
-                    className="absolute bottom-10 right-10 h-64 w-64 rounded-full blur-[120px]"
-                    style={{ backgroundColor: 'var(--accent-glow-soft)' }}
-                />
-            </div>
-                <div className="max-w-[1600px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10">
+            {!isMatteUi && (
+                <div className="absolute inset-0 pointer-events-none">
+                    <div
+                        className="absolute -top-32 -right-24 h-80 w-80 rounded-full blur-[140px]"
+                        style={{ backgroundColor: 'var(--accent-glow)' }}
+                    />
+                    <div
+                        className="absolute top-40 -left-20 h-72 w-72 rounded-full blur-[120px]"
+                        style={{ backgroundColor: 'var(--accent-glow-soft)' }}
+                    />
+                    <div
+                        className="absolute bottom-10 right-10 h-64 w-64 rounded-full blur-[120px]"
+                        style={{ backgroundColor: 'var(--accent-glow-soft)' }}
+                    />
+                </div>
+            )}
+            <div className="max-w-[1600px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10">
                 <div id="report-list-container" className="rounded-2xl border border-white/5 bg-black/20 p-4 sm:p-6">
                     <div id="report-top" className={`${glassCard} p-5 sm:p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`} style={glassCardStyle}>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-h-[56px] text-center sm:text-left">
@@ -1341,11 +1359,11 @@ export function ReportApp() {
                                 <p className="text-xs sm:text-sm text-gray-400 mt-1">Select a report to view the full stats dashboard.</p>
                             </div>
                         </div>
-                    <div className="flex items-center gap-3">
-                        <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300">
-                            {filteredIndex.length} Reports
+                        <div className="flex items-center gap-3">
+                            <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300">
+                                {filteredIndex.length} Reports
+                            </div>
                         </div>
-                    </div>
                     </div>
 
                     <div className={`${glassCard} px-4 py-3 mb-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between`} style={glassCardStyle}>

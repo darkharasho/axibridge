@@ -7,11 +7,19 @@ export type WebTheme = {
 
 export const DEFAULT_WEB_THEME_ID = 'Arcane';
 export const CRT_WEB_THEME_ID = 'CRT';
+export const MATTE_WEB_THEME_ID = 'MatteSlate';
 export const DEFAULT_WEB_THEME: WebTheme = {
     id: DEFAULT_WEB_THEME_ID,
     label: 'Arcane',
     rgb: '136, 116, 255',
     pattern: 'radial-gradient(at 0% 0%, hsla(250, 70%, 18%, 1) 0, transparent 70%), radial-gradient(at 100% 0%, hsla(220, 80%, 22%, 1) 0, transparent 70%), radial-gradient(at 50% 100%, hsla(270, 65%, 20%, 1) 0, transparent 70%)'
+};
+
+export const MATTE_WEB_THEME: WebTheme = {
+    id: MATTE_WEB_THEME_ID,
+    label: 'Matte Slate',
+    rgb: '93, 163, 194',
+    pattern: 'linear-gradient(to bottom, #222629, #222629)'
 };
 
 export const BASE_WEB_THEMES: WebTheme[] = [
@@ -253,4 +261,4 @@ export const CRT_WEB_THEME: WebTheme = {
     pattern: 'radial-gradient(circle at 12% 10%, rgba(44, 120, 78, 0.42), transparent 60%), radial-gradient(circle at 88% 22%, rgba(22, 86, 52, 0.38), transparent 62%), linear-gradient(180deg, rgba(5, 12, 8, 0.92), rgba(3, 7, 6, 0.98))'
 };
 
-export const WEB_THEMES: WebTheme[] = [...BASE_WEB_THEMES, CRT_WEB_THEME];
+export const WEB_THEMES: WebTheme[] = [...BASE_WEB_THEMES, CRT_WEB_THEME, MATTE_WEB_THEME];

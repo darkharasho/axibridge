@@ -34,7 +34,13 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
     useEffect(() => {
         // Subscribe to logs from main process
         const cleanup = window.electronAPI.onConsoleLog((log: LogEntry) => {
-            setLogs(prev => [...prev, log]);
+            setLogs(prev => {
+                const next = [...prev, log];
+                if (next.length > 500) {
+                    return next.slice(next.length - 500);
+                }
+                return next;
+            });
         });
 
         return () => cleanup();
@@ -52,15 +58,15 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                     animate={{ y: 0 }}
                     exit={{ y: "100%" }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="fixed bottom-0 left-0 right-0 h-[50vh] bg-[#161c24] border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-50 flex flex-col font-mono"
+                    className="terminal-window fixed bottom-0 left-0 right-0 h-[50vh] bg-[#161c24] border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-[100] flex flex-col font-mono"
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-2 bg-black/40 border-b border-white/10 shrink-0">
+                    <div className="terminal-header flex items-center justify-between px-4 py-2 bg-black/40 border-b border-white/10 shrink-0">
                         <div className="flex items-center gap-2 text-gray-400">
                             <TerminalIcon className="w-4 h-4" />
                             <span className="text-xs font-bold uppercase tracking-wider">System Terminal</span>
                             <span className="text-xs text-gray-600">|</span>
-                            <span className="text-xs text-gray-500">{logs.length} events</span>
+                            <span className="text-xs text-gray-500">{logs.length} events (capped at 500)</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
@@ -89,7 +95,7 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                         onScroll={(event) => {
                             event.stopPropagation();
                             const container = event.currentTarget;
-                            const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 8;
+                            const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 20;
                             shouldAutoScrollRef.current = atBottom;
                         }}
                     >
@@ -100,11 +106,11 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                             </div>
                         ) : (
                             logs.map((log, index) => (
-                                <div key={index} className="flex gap-3 text-xs md:text-sm group hover:bg-white/5 p-1 -mx-1 rounded px-2">
-                                    <span className="text-gray-600 shrink-0 select-none">
+                                <div key={`${log.timestamp}-${index}`} className="flex gap-3 text-xs md:text-sm group hover:bg-white/5 p-1 -mx-1 rounded px-2">
+                                    <span className="text-gray-600 shrink-0 select-none w-20">
                                         {new Date(log.timestamp).toLocaleTimeString()}
                                     </span>
-                                    <div className={`flex-1 break-all whitespace-pre-wrap ${log.type === 'error' ? 'text-red-400' : 'text-gray-300'
+                                    <div className={`flex-1 break-all whitespace-pre-wrap font-mono ${log.type === 'error' ? 'text-red-400' : 'text-gray-300'
                                         }`}>
                                         {log.type === 'error' && <span className="text-red-500 font-bold mr-2">[ERROR]</span>}
                                         {log.message}

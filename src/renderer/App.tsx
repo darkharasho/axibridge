@@ -53,7 +53,7 @@ function App() {
     const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
-    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt'>('classic');
+    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte'>('classic');
     const [webUploadState, setWebUploadState] = useState<IWebUploadState>(DEFAULT_WEB_UPLOAD_STATE);
     const webUploadClearTimerRef = useRef<number | null>(null);
 
@@ -167,7 +167,7 @@ function App() {
         if (state.disruptionMethod === 'count' || state.disruptionMethod === 'duration' || state.disruptionMethod === 'tiered') {
             setDisruptionMethod(state.disruptionMethod);
         }
-        if (state.uiTheme === 'classic' || state.uiTheme === 'modern' || state.uiTheme === 'crt') {
+        if (state.uiTheme === 'classic' || state.uiTheme === 'modern' || state.uiTheme === 'crt' || state.uiTheme === 'matte') {
             setUiTheme(state.uiTheme);
         }
         if (state.selectedWebhookId === null || typeof state.selectedWebhookId === 'string') {
@@ -560,9 +560,10 @@ function App() {
 
     useEffect(() => {
         const body = document.body;
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte');
         if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
+        else if (uiTheme === 'matte') body.classList.add('theme-matte');
         else body.classList.add('theme-classic');
     }, [uiTheme]);
 
@@ -1425,7 +1426,7 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl hover:border-white/20 transition-colors"
+            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl hover:border-white/20 transition-colors matte-config-panel"
         >
             {isModernTheme ? (
                 <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,360px)] gap-3 items-start p-2">
@@ -1440,7 +1441,7 @@ function App() {
                                     type="text"
                                     value={logDirectory || ''}
                                     placeholder="C:\...\arcdps.cbtlogs"
-                                className="flex-1 bg-transparent border-none text-[11px] text-gray-300 placeholder-gray-600 focus:ring-0 px-2 min-w-0 w-full h-full"
+                                    className="flex-1 bg-transparent border-none text-[11px] text-gray-300 placeholder-gray-600 focus:ring-0 px-2 min-w-0 w-full h-full"
                                     onChange={(e) => setLogDirectory(e.target.value)}
                                     onBlur={(e) => {
                                         if (e.target.value) {
@@ -1577,10 +1578,10 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="space-y-3"
+            className="space-y-3 matte-tiles-shell"
         >
             <div className="grid grid-cols-4 gap-4">
-                <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-upload-card matte-stat-card">
                     <div className="min-w-0">
                         <div className="text-blue-200 text-xs font-medium uppercase tracking-wider">Upload Status</div>
                         <div className="mt-2 text-2xl font-bold text-white leading-none">{totalUploads}</div>
@@ -1622,7 +1623,7 @@ function App() {
                         </div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">W / L</div>
                         <div className="text-2xl font-bold text-white leading-none">
@@ -1638,7 +1639,7 @@ function App() {
                         <div className="text-[11px] text-gray-500">{totalUploads} logs</div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Avg Players</div>
                         <div className="text-2xl font-bold text-white leading-none">
@@ -1654,7 +1655,7 @@ function App() {
                         <div className="text-[11px] text-gray-500">Ratio {(avgEnemies ? (avgSquadSize / avgEnemies) : 0).toFixed(2)}</div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Squad KDR</div>
                         <div className="text-2xl font-bold text-emerald-300 leading-none">{squadKdr}</div>
@@ -1673,9 +1674,9 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 gap-4"
+            className="grid grid-cols-2 gap-4 matte-tiles-shell"
         >
-            <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col">
+            <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col matte-upload-card matte-stat-card">
                 <div className="text-blue-200 text-xs font-medium uppercase tracking-wider">Upload Status</div>
                 <div className="flex-1 min-h-0 flex items-center justify-center">
                     <div className="w-full h-full max-h-[63px]">
@@ -1720,7 +1721,7 @@ function App() {
                     </div>
                 </div>
             </div>
-            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col">
+            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card">
                 <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">W / L</div>
                 <div className="flex-1 flex items-center">
                     <div className="text-2xl font-bold text-white leading-none">
@@ -1730,7 +1731,7 @@ function App() {
                     </div>
                 </div>
             </div>
-            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col">
+            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card">
                 <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Avg Players</div>
                 <div className="flex-1 flex items-center">
                     <div className="text-2xl font-bold text-white leading-none">
@@ -1740,7 +1741,7 @@ function App() {
                     </div>
                 </div>
             </div>
-            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col">
+            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card">
                 <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Squad KDR</div>
                 <div className="flex-1 flex items-center">
                     <div className="text-2xl font-bold text-emerald-300 leading-none">{squadKdr}</div>
@@ -1754,7 +1755,7 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`bg-white/5 backdrop-blur-xl border ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-white/10'} rounded-2xl p-6 flex flex-col h-full shadow-2xl transition-all duration-300 relative`}
+            className={`bg-white/5 backdrop-blur-xl border ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-white/10'} rounded-2xl p-6 flex flex-col h-full shadow-2xl transition-all duration-300 relative matte-activity-panel`}
             onDragOver={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1903,7 +1904,7 @@ function App() {
             )}
 
             <div
-                className="flex-1 overflow-y-auto pr-2"
+                className="flex-1 overflow-y-auto pr-2 matte-log-list"
                 ref={logsListRef}
             >
                 {logs.length === 0 ? (
@@ -1976,7 +1977,7 @@ function App() {
             <div className="legacy-orb absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
             <div className="legacy-orb absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/20 blur-[100px] pointer-events-none" />
 
-        <div className={`app-content relative z-10 ${isModernTheme ? 'max-w-none' : 'max-w-5xl mx-auto'} flex-1 w-full min-w-0 flex flex-col min-h-0 ${view === 'stats' ? 'pt-8 px-8 pb-2 overflow-hidden' : (isModernTheme ? 'p-8 overflow-visible' : 'p-8 overflow-hidden')}`}>
+            <div className={`app-content relative z-10 ${isModernTheme ? 'max-w-none' : 'max-w-5xl mx-auto'} flex-1 w-full min-w-0 flex flex-col min-h-0 ${view === 'stats' ? 'pt-8 px-8 pb-2 overflow-hidden' : (isModernTheme ? 'p-8 overflow-visible' : 'p-8 overflow-hidden')}`}>
                 <header className="app-header flex flex-wrap justify-between items-center gap-3 mb-10 shrink-0">
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
@@ -2120,11 +2121,10 @@ function App() {
 
                 {(webUploadState.uploading || webUploadState.stage) && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg">
-                        <div className={`w-full bg-white/10 border border-white/15 rounded-2xl p-6 shadow-2xl backdrop-blur-2xl ${
-                            isDev && (webUploadState.stage === 'Upload failed' || webUploadState.buildStatus === 'errored')
+                        <div className={`w-full bg-white/10 border border-white/15 rounded-2xl p-6 shadow-2xl backdrop-blur-2xl ${isDev && (webUploadState.stage === 'Upload failed' || webUploadState.buildStatus === 'errored')
                                 ? 'max-w-2xl'
                                 : 'max-w-md'
-                        }`}>
+                            }`}>
                             <div className="text-sm uppercase tracking-widest text-cyan-300/70">Web Upload</div>
                             <div className="text-2xl font-bold text-white mt-2">{webUploadState.stage || 'Uploading'}</div>
                             <div className="text-sm text-gray-400 mt-2">
@@ -2211,24 +2211,26 @@ function App() {
                     />
                 ) : view === 'stats' ? null : (
                     isModernTheme ? (
-                        <div className="dashboard-view dashboard-modern flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overflow-x-visible pr-1">
-                            {statsTilesPanel}
+                        <div className="dashboard-view dashboard-modern flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overflow-x-visible pr-1 matte-dashboard-shell">
+                            <div className="matte-panel-shell">
+                                {statsTilesPanel}
+                            </div>
                             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4 flex-1 min-h-0 content-start">
-                                <div className="order-2 xl:order-1 min-h-0">
+                                <div className="order-2 xl:order-1 min-h-0 matte-activity-shell">
                                     {activityPanel}
                                 </div>
-                                <div className="dashboard-rail order-1 xl:order-2 flex flex-col gap-4 overflow-y-auto pr-0">
+                                <div className="dashboard-rail order-1 xl:order-2 flex flex-col gap-4 overflow-y-auto pr-0 matte-panel-shell matte-rail-shell">
                                     {configurationPanel}
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="dashboard-view grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-y-auto pr-1">
-                            <div className="space-y-6 overflow-y-auto pr-2">
+                        <div className="dashboard-view grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-y-auto pr-1 matte-dashboard-shell">
+                            <div className="space-y-6 overflow-y-auto pr-2 matte-panel-shell matte-rail-shell">
                                 {configurationPanel}
                                 {statsTilesPanel}
                             </div>
-                            <div className="lg:col-span-2 flex flex-col min-h-0">
+                            <div className="lg:col-span-2 flex flex-col min-h-0 matte-activity-shell">
                                 {activityPanel}
                             </div>
                         </div>
@@ -2706,13 +2708,13 @@ function App() {
             <AnimatePresence>
                 {filePickerOpen && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg file-picker-modal"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="w-full max-w-2xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6"
+                            className="w-full max-w-2xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6 file-picker-card"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -2728,14 +2730,14 @@ function App() {
                                         setFilePickerError(null);
                                         setFilePickerSelected(new Set());
                                     }}
-                                    className="p-2 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-white/30"
+                                    className="p-2 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-white/30 file-picker-close"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
 
                             <div className="space-y-4">
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-4 relative">
+                                <div className="bg-white/5 border border-white/10 rounded-xl p-4 relative file-picker-panel">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="text-xs uppercase tracking-widest text-gray-500">Available Logs</div>
                                         <div className="flex items-center gap-2">
@@ -2784,7 +2786,7 @@ function App() {
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                                 exit={{ opacity: 0, y: -6, scale: 0.98 }}
                                                 transition={{ duration: 0.18, ease: 'easeOut' }}
-                                                className="absolute z-20 left-4 right-4 top-[56px] rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur-md shadow-2xl shadow-black/40"
+                                                className="absolute z-20 left-4 right-4 top-[56px] rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur-md shadow-2xl shadow-black/40 file-picker-popover"
                                             >
                                                 <div className="flex items-center justify-between mb-3">
                                                     <div className="text-xs uppercase tracking-widest text-gray-400">Select Since</div>
@@ -2818,7 +2820,7 @@ function App() {
                                                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                                                             exit={{ opacity: 0, y: -6, scale: 0.98 }}
                                                                             transition={{ duration: 0.14, ease: 'easeOut' }}
-                                                                            className="absolute z-10 mt-2 w-44 rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-2xl p-2"
+                                                                            className="absolute z-10 mt-2 w-44 rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-2xl p-2 file-picker-popover"
                                                                         >
                                                                             <div className="flex items-center justify-between mb-2">
                                                                                 <button

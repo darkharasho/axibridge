@@ -5,7 +5,7 @@ import https from 'node:https'
 import { createHash } from 'node:crypto'
 import util from 'node:util'
 import { spawn } from 'node:child_process'
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID } from '../shared/webThemes';
+import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import { computeOutgoingConditions } from '../shared/conditionsMetrics';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'
@@ -2337,7 +2337,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -2421,7 +2421,7 @@ if (!gotTheLock) {
             }
         };
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             applySettings(settings);
         });
 
@@ -3875,10 +3875,10 @@ if (!gotTheLock) {
                 queueFile(withPagesPath(pagesPath, 'ui-theme.json'), uiThemeBuffer);
                 const logoPath = store.get('githubLogoPath') as string | undefined;
                 if (logoPath && fs.existsSync(logoPath)) {
-                const logoBuffer = fs.readFileSync(logoPath);
-                queueFile(withPagesPath(pagesPath, 'logo.png'), logoBuffer);
-                const logoJson = Buffer.from(JSON.stringify({ path: 'logo.png', updatedAt: new Date().toISOString() }, null, 2));
-                queueFile(withPagesPath(pagesPath, 'logo.json'), logoJson);
+                    const logoBuffer = fs.readFileSync(logoPath);
+                    queueFile(withPagesPath(pagesPath, 'logo.png'), logoBuffer);
+                    const logoJson = Buffer.from(JSON.stringify({ path: 'logo.png', updatedAt: new Date().toISOString() }, null, 2));
+                    queueFile(withPagesPath(pagesPath, 'logo.json'), logoJson);
                 }
 
                 if (pendingEntries.length === 0) {
@@ -3963,7 +3963,7 @@ if (!gotTheLock) {
                 const uiTheme = store.get('uiTheme', 'classic') as string;
                 const availableThemes = uiTheme === 'crt' ? [CRT_WEB_THEME] : BASE_WEB_THEMES;
                 const requestedThemeId = (store.get('githubWebTheme', DEFAULT_WEB_THEME_ID) as string) || DEFAULT_WEB_THEME_ID;
-                const themeId = uiTheme === 'crt' ? CRT_WEB_THEME_ID : requestedThemeId;
+                const themeId = uiTheme === 'crt' ? CRT_WEB_THEME_ID : (uiTheme === 'matte' ? MATTE_WEB_THEME_ID : requestedThemeId);
                 const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
                 const reportPayload = {
                     meta: reportMeta,

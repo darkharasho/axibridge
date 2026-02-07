@@ -54,7 +54,7 @@ interface StatsViewProps {
     embedded?: boolean;
     sectionVisibility?: (id: string) => boolean;
     dashboardTitle?: string;
-    uiTheme?: 'classic' | 'modern' | 'crt';
+    uiTheme?: 'classic' | 'modern' | 'crt' | 'matte';
     canShareDiscord?: boolean;
 }
 
@@ -367,6 +367,64 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const activeClassSkill = activeClassBreakdown && activeClassBreakdownSkillId
         ? activeClassBreakdown.skillMap?.[activeClassBreakdownSkillId] || null
         : null;
+
+    useEffect(() => {
+        if (playerSkillBreakdowns.length === 0) {
+            if (activePlayerBreakdownKey !== null) setActivePlayerBreakdownKey(null);
+            if (activePlayerBreakdownSkillId !== null) setActivePlayerBreakdownSkillId(null);
+            return;
+        }
+        if (!activePlayerBreakdownKey || !playerSkillBreakdownMap.has(activePlayerBreakdownKey)) {
+            const nextPlayerKey = playerSkillBreakdowns[0].key;
+            setActivePlayerBreakdownKey(nextPlayerKey);
+            setExpandedPlayerBreakdownKey(null);
+        }
+    }, [
+        playerSkillBreakdowns,
+        playerSkillBreakdownMap,
+        activePlayerBreakdownKey,
+        activePlayerBreakdownSkillId
+    ]);
+
+    useEffect(() => {
+        if (!activePlayerBreakdown || activePlayerBreakdown.skills.length === 0) {
+            if (activePlayerBreakdownSkillId !== null) setActivePlayerBreakdownSkillId(null);
+            return;
+        }
+        const hasSkill = activePlayerBreakdown.skills.some((skill) => skill.id === activePlayerBreakdownSkillId);
+        if (!activePlayerBreakdownSkillId || !hasSkill) {
+            setActivePlayerBreakdownSkillId(activePlayerBreakdown.skills[0].id);
+        }
+    }, [activePlayerBreakdown, activePlayerBreakdownSkillId]);
+
+    useEffect(() => {
+        if (classSkillBreakdowns.length === 0) {
+            if (activeClassBreakdownKey !== null) setActiveClassBreakdownKey(null);
+            if (activeClassBreakdownSkillId !== null) setActiveClassBreakdownSkillId(null);
+            return;
+        }
+        if (!activeClassBreakdownKey || !classBreakdownMap.has(activeClassBreakdownKey)) {
+            const nextClassKey = classSkillBreakdowns[0].profession;
+            setActiveClassBreakdownKey(nextClassKey);
+            setExpandedClassBreakdownKey(null);
+        }
+    }, [
+        classSkillBreakdowns,
+        classBreakdownMap,
+        activeClassBreakdownKey,
+        activeClassBreakdownSkillId
+    ]);
+
+    useEffect(() => {
+        if (!activeClassBreakdown || activeClassBreakdown.skills.length === 0) {
+            if (activeClassBreakdownSkillId !== null) setActiveClassBreakdownSkillId(null);
+            return;
+        }
+        const hasSkill = activeClassBreakdown.skills.some((skill) => skill.id === activeClassBreakdownSkillId);
+        if (!activeClassBreakdownSkillId || !hasSkill) {
+            setActiveClassBreakdownSkillId(activeClassBreakdown.skills[0].id);
+        }
+    }, [activeClassBreakdown, activeClassBreakdownSkillId]);
 
     const {
         playerMapByKey,
@@ -837,11 +895,11 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         ? 'stats-view min-h-screen flex flex-col p-0 w-full max-w-none'
         : 'stats-view h-full flex flex-col p-1 w-full max-w-6xl mx-auto overflow-hidden';
     const scrollContainerClass = embedded
-        ? `stats-sections space-y-0 min-h-0 px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4 rounded-xl bg-black/20 border border-white/5 ${expandedSection ? '' : 'backdrop-blur-xl'
+        ? `stats-sections space-y-0 min-h-0 px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4 rounded-xl border border-white/5 ${expandedSection ? '' : 'backdrop-blur-xl'
         }`
-        : `flex-1 overflow-y-auto pr-2 space-y-6 min-h-0 bg-black/30 border border-white/5 p-4 rounded-xl ${expandedSection ? '' : 'backdrop-blur-2xl'
+        : `flex-1 overflow-y-auto pr-2 space-y-6 min-h-0 border border-white/5 p-4 rounded-xl ${expandedSection ? '' : 'backdrop-blur-2xl'
         }`;
-    const scrollContainerStyle: CSSProperties | undefined = embedded
+    const scrollContainerStyle: CSSProperties | undefined = (embedded && uiTheme !== 'matte')
         ? {
             backgroundColor: 'rgba(3, 7, 18, 0.75)',
             backgroundImage: 'linear-gradient(160deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.04) 70%)'
@@ -1281,363 +1339,363 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                 ) : (
                     <>
 
-                <OverviewSection
-                    stats={safeStats}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                />
+                        <OverviewSection
+                            stats={safeStats}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
 
-                <FightBreakdownSection
-                    stats={safeStats}
-                    fightBreakdownTab={fightBreakdownTab}
-                    setFightBreakdownTab={setFightBreakdownTab}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                />
+                        <FightBreakdownSection
+                            stats={safeStats}
+                            fightBreakdownTab={fightBreakdownTab}
+                            setFightBreakdownTab={setFightBreakdownTab}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
 
-                <TopPlayersSection
-                    stats={safeStats}
-                    showTopStats={showTopStats}
-                    showMvp={showMvp}
-                    topStatsMode={topStatsMode}
-                    expandedLeader={expandedLeader}
-                    setExpandedLeader={setExpandedLeader}
-                    formatTopStatValue={formatTopStatValue}
-                    formatWithCommas={formatWithCommas}
-                    isMvpStatEnabled={isMvpStatEnabled}
-                    renderProfessionIcon={renderProfessionIcon}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                />
+                        <TopPlayersSection
+                            stats={safeStats}
+                            showTopStats={showTopStats}
+                            showMvp={showMvp}
+                            topStatsMode={topStatsMode}
+                            expandedLeader={expandedLeader}
+                            setExpandedLeader={setExpandedLeader}
+                            formatTopStatValue={formatTopStatValue}
+                            formatWithCommas={formatWithCommas}
+                            isMvpStatEnabled={isMvpStatEnabled}
+                            renderProfessionIcon={renderProfessionIcon}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
 
-                <TopSkillsSection
-                    stats={safeStats}
-                    topSkillsMetric={topSkillsMetric}
-                    onTopSkillsMetricChange={updateTopSkillsMetric}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                />
+                        <TopSkillsSection
+                            stats={safeStats}
+                            topSkillsMetric={topSkillsMetric}
+                            onTopSkillsMetricChange={updateTopSkillsMetric}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
 
-                <SquadCompositionSection
-                    sortedSquadClassData={sortedSquadClassData}
-                    sortedEnemyClassData={sortedEnemyClassData}
-                    getProfessionIconPath={getProfessionIconPath}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                />
+                        <SquadCompositionSection
+                            sortedSquadClassData={sortedSquadClassData}
+                            sortedEnemyClassData={sortedEnemyClassData}
+                            getProfessionIconPath={getProfessionIconPath}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
 
-                <TimelineSection
-                    timelineData={safeStats.timelineData}
-                    timelineFriendlyScope={timelineFriendlyScope}
-                    setTimelineFriendlyScope={setTimelineFriendlyScope}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                />
+                        <TimelineSection
+                            timelineData={safeStats.timelineData}
+                            timelineFriendlyScope={timelineFriendlyScope}
+                            setTimelineFriendlyScope={setTimelineFriendlyScope}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
 
-                <MapDistributionSection
-                    mapData={safeStats.mapData}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                />
+                        <MapDistributionSection
+                            mapData={safeStats.mapData}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
 
-                <OffenseSection
-                    stats={safeStats}
-                    OFFENSE_METRICS={OFFENSE_METRICS}
-                    roundCountStats={roundCountStats}
-                    offenseSearch={offenseSearch}
-                    setOffenseSearch={setOffenseSearch}
-                    activeOffenseStat={activeOffenseStat}
-                    setActiveOffenseStat={setActiveOffenseStat}
-                    offenseViewMode={offenseViewMode}
-                    setOffenseViewMode={setOffenseViewMode}
-                    formatWithCommas={formatWithCommas}
-                    renderProfessionIcon={renderProfessionIcon}
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                    sidebarListClass={sidebarListClass}
-                />
+                        <OffenseSection
+                            stats={safeStats}
+                            OFFENSE_METRICS={OFFENSE_METRICS}
+                            roundCountStats={roundCountStats}
+                            offenseSearch={offenseSearch}
+                            setOffenseSearch={setOffenseSearch}
+                            activeOffenseStat={activeOffenseStat}
+                            setActiveOffenseStat={setActiveOffenseStat}
+                            offenseViewMode={offenseViewMode}
+                            setOffenseViewMode={setOffenseViewMode}
+                            formatWithCommas={formatWithCommas}
+                            renderProfessionIcon={renderProfessionIcon}
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            sidebarListClass={sidebarListClass}
+                        />
 
-                <ConditionsSection
-                    conditionSummary={conditionSummary}
-                    conditionPlayers={conditionPlayers}
-                    conditionSearch={conditionSearch}
-                    setConditionSearch={setConditionSearch}
-                    activeConditionName={activeConditionName}
-                    setActiveConditionName={setActiveConditionName}
-                    conditionDirection={conditionDirection}
-                    setConditionDirection={setConditionDirection}
-                    conditionGridClass={conditionGridClass}
-                    effectiveConditionSort={effectiveConditionSort as any}
-                    setConditionSort={setConditionSort as any}
-                    showConditionDamage={showConditionDamage}
-                    renderProfessionIcon={renderProfessionIcon}
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                    sidebarListClass={sidebarListClass}
-                />
+                        <ConditionsSection
+                            conditionSummary={conditionSummary}
+                            conditionPlayers={conditionPlayers}
+                            conditionSearch={conditionSearch}
+                            setConditionSearch={setConditionSearch}
+                            activeConditionName={activeConditionName}
+                            setActiveConditionName={setActiveConditionName}
+                            conditionDirection={conditionDirection}
+                            setConditionDirection={setConditionDirection}
+                            conditionGridClass={conditionGridClass}
+                            effectiveConditionSort={effectiveConditionSort as any}
+                            setConditionSort={setConditionSort as any}
+                            showConditionDamage={showConditionDamage}
+                            renderProfessionIcon={renderProfessionIcon}
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            sidebarListClass={sidebarListClass}
+                        />
 
-                <DefenseSection
-                    stats={safeStats}
-                    DEFENSE_METRICS={DEFENSE_METRICS}
-                    defenseSearch={defenseSearch}
-                    setDefenseSearch={setDefenseSearch}
-                    activeDefenseStat={activeDefenseStat}
-                    setActiveDefenseStat={setActiveDefenseStat}
-                    defenseViewMode={defenseViewMode}
-                    setDefenseViewMode={setDefenseViewMode}
-                    roundCountStats={roundCountStats}
-                    formatWithCommas={formatWithCommas}
-                    renderProfessionIcon={renderProfessionIcon}
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                    sidebarListClass={sidebarListClass}
-                />
+                        <DefenseSection
+                            stats={safeStats}
+                            DEFENSE_METRICS={DEFENSE_METRICS}
+                            defenseSearch={defenseSearch}
+                            setDefenseSearch={setDefenseSearch}
+                            activeDefenseStat={activeDefenseStat}
+                            setActiveDefenseStat={setActiveDefenseStat}
+                            defenseViewMode={defenseViewMode}
+                            setDefenseViewMode={setDefenseViewMode}
+                            roundCountStats={roundCountStats}
+                            formatWithCommas={formatWithCommas}
+                            renderProfessionIcon={renderProfessionIcon}
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            sidebarListClass={sidebarListClass}
+                        />
 
-                <DamageMitigationSection
-                    stats={safeStats}
-                    DAMAGE_MITIGATION_METRICS={DAMAGE_MITIGATION_METRICS}
-                    damageMitigationSearch={damageMitigationSearch}
-                    setDamageMitigationSearch={setDamageMitigationSearch}
-                    activeDamageMitigationStat={activeDamageMitigationStat}
-                    setActiveDamageMitigationStat={setActiveDamageMitigationStat}
-                    damageMitigationViewMode={damageMitigationViewMode}
-                    setDamageMitigationViewMode={setDamageMitigationViewMode}
-                    damageMitigationScope={damageMitigationScope}
-                    setDamageMitigationScope={setDamageMitigationScope}
-                    roundCountStats={roundCountStats}
-                    formatWithCommas={formatWithCommas}
-                    renderProfessionIcon={renderProfessionIcon}
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                    sidebarListClass={sidebarListClass}
-                />
+                        <DamageMitigationSection
+                            stats={safeStats}
+                            DAMAGE_MITIGATION_METRICS={DAMAGE_MITIGATION_METRICS}
+                            damageMitigationSearch={damageMitigationSearch}
+                            setDamageMitigationSearch={setDamageMitigationSearch}
+                            activeDamageMitigationStat={activeDamageMitigationStat}
+                            setActiveDamageMitigationStat={setActiveDamageMitigationStat}
+                            damageMitigationViewMode={damageMitigationViewMode}
+                            setDamageMitigationViewMode={setDamageMitigationViewMode}
+                            damageMitigationScope={damageMitigationScope}
+                            setDamageMitigationScope={setDamageMitigationScope}
+                            roundCountStats={roundCountStats}
+                            formatWithCommas={formatWithCommas}
+                            renderProfessionIcon={renderProfessionIcon}
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            sidebarListClass={sidebarListClass}
+                        />
 
-                <BoonOutputSection
-                    stats={safeStats}
-                    activeBoonCategory={activeBoonCategory}
-                    setActiveBoonCategory={(val: string) => setActiveBoonCategory(val as BoonCategory)}
-                    activeBoonMetric={activeBoonMetric}
-                    setActiveBoonMetric={setActiveBoonMetric}
-                    activeBoonTab={activeBoonTab}
-                    setActiveBoonTab={setActiveBoonTab}
-                    activeBoonTable={activeBoonTable}
-                    filteredBoonTables={filteredBoonTables}
-                    boonSearch={boonSearch}
-                    setBoonSearch={setBoonSearch}
-                    formatBoonMetricDisplay={formatBoonMetricDisplay}
-                    getBoonMetricValue={getBoonMetricValue}
-                    renderProfessionIcon={renderProfessionIcon}
-                    roundCountStats={roundCountStats}
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                    sidebarListClass={sidebarListClass}
-                />
+                        <BoonOutputSection
+                            stats={safeStats}
+                            activeBoonCategory={activeBoonCategory}
+                            setActiveBoonCategory={(val: string) => setActiveBoonCategory(val as BoonCategory)}
+                            activeBoonMetric={activeBoonMetric}
+                            setActiveBoonMetric={setActiveBoonMetric}
+                            activeBoonTab={activeBoonTab}
+                            setActiveBoonTab={setActiveBoonTab}
+                            activeBoonTable={activeBoonTable}
+                            filteredBoonTables={filteredBoonTables}
+                            boonSearch={boonSearch}
+                            setBoonSearch={setBoonSearch}
+                            formatBoonMetricDisplay={formatBoonMetricDisplay}
+                            getBoonMetricValue={getBoonMetricValue}
+                            renderProfessionIcon={renderProfessionIcon}
+                            roundCountStats={roundCountStats}
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            sidebarListClass={sidebarListClass}
+                        />
 
-                <SupportSection
-                    stats={safeStats}
-                    SUPPORT_METRICS={SUPPORT_METRICS}
-                    supportSearch={supportSearch}
-                    setSupportSearch={setSupportSearch}
-                    activeSupportStat={activeSupportStat}
-                    setActiveSupportStat={setActiveSupportStat}
-                    supportViewMode={supportViewMode}
-                    setSupportViewMode={setSupportViewMode}
-                    cleanseScope={cleanseScope}
-                    setCleanseScope={setCleanseScope}
-                    roundCountStats={roundCountStats}
-                    formatWithCommas={formatWithCommas}
-                    renderProfessionIcon={renderProfessionIcon}
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                    sidebarListClass={sidebarListClass}
-                />
+                        <SupportSection
+                            stats={safeStats}
+                            SUPPORT_METRICS={SUPPORT_METRICS}
+                            supportSearch={supportSearch}
+                            setSupportSearch={setSupportSearch}
+                            activeSupportStat={activeSupportStat}
+                            setActiveSupportStat={setActiveSupportStat}
+                            supportViewMode={supportViewMode}
+                            setSupportViewMode={setSupportViewMode}
+                            cleanseScope={cleanseScope}
+                            setCleanseScope={setCleanseScope}
+                            roundCountStats={roundCountStats}
+                            formatWithCommas={formatWithCommas}
+                            renderProfessionIcon={renderProfessionIcon}
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            sidebarListClass={sidebarListClass}
+                        />
 
-                <HealingSection
-                    stats={safeStats}
-                    HEALING_METRICS={HEALING_METRICS}
-                    activeHealingMetric={activeHealingMetric}
-                    setActiveHealingMetric={setActiveHealingMetric}
-                    healingCategory={healingCategory}
-                    setHealingCategory={setHealingCategory}
-                    activeResUtilitySkill={activeResUtilitySkill}
-                    setActiveResUtilitySkill={setActiveResUtilitySkill}
-                    skillUsageData={skillUsageData}
-                    formatWithCommas={formatWithCommas}
-                    renderProfessionIcon={renderProfessionIcon}
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                />
+                        <HealingSection
+                            stats={safeStats}
+                            HEALING_METRICS={HEALING_METRICS}
+                            activeHealingMetric={activeHealingMetric}
+                            setActiveHealingMetric={setActiveHealingMetric}
+                            healingCategory={healingCategory}
+                            setHealingCategory={setHealingCategory}
+                            activeResUtilitySkill={activeResUtilitySkill}
+                            setActiveResUtilitySkill={setActiveResUtilitySkill}
+                            skillUsageData={skillUsageData}
+                            formatWithCommas={formatWithCommas}
+                            renderProfessionIcon={renderProfessionIcon}
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
 
-                <SpecialBuffsSection
-                    stats={safeStats}
-                    specialSearch={specialSearch}
-                    setSpecialSearch={setSpecialSearch}
-                    filteredSpecialTables={filteredSpecialTables}
-                    activeSpecialTab={activeSpecialTab}
-                    setActiveSpecialTab={setActiveSpecialTab}
-                    activeSpecialTable={activeSpecialTable}
-                    formatWithCommas={formatWithCommas}
-                    renderProfessionIcon={renderProfessionIcon}
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                    sidebarListClass={sidebarListClass}
-                />
+                        <SpecialBuffsSection
+                            stats={safeStats}
+                            specialSearch={specialSearch}
+                            setSpecialSearch={setSpecialSearch}
+                            filteredSpecialTables={filteredSpecialTables}
+                            activeSpecialTab={activeSpecialTab}
+                            setActiveSpecialTab={setActiveSpecialTab}
+                            activeSpecialTable={activeSpecialTable}
+                            formatWithCommas={formatWithCommas}
+                            renderProfessionIcon={renderProfessionIcon}
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            sidebarListClass={sidebarListClass}
+                        />
 
-                <SkillUsageSection
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                    selectedPlayers={selectedPlayers}
-                    setSelectedPlayers={setSelectedPlayers}
-                    removeSelectedPlayer={removeSelectedPlayer}
-                    playerMapByKey={playerMapByKey}
-                    groupedSkillUsagePlayers={groupedSkillUsagePlayers}
-                    expandedSkillUsageClass={expandedSkillUsageClass}
-                    setExpandedSkillUsageClass={setExpandedSkillUsageClass}
-                    togglePlayerSelection={togglePlayerSelection}
-                    skillUsagePlayerFilter={skillUsagePlayerFilter}
-                    setSkillUsagePlayerFilter={setSkillUsagePlayerFilter}
-                    skillUsageView={skillUsageView}
-                    setSkillUsageView={setSkillUsageView}
-                    skillUsageData={skillUsageData}
-                    skillUsageSkillFilter={skillUsageSkillFilter}
-                    setSkillUsageSkillFilter={setSkillUsageSkillFilter}
-                    selectedSkillId={selectedSkillId}
-                    setSelectedSkillId={setSelectedSkillId}
-                    skillBarData={skillBarData}
-                    selectedSkillName={selectedSkillName}
-                    selectedSkillIcon={selectedSkillIcon}
-                    skillUsageReady={skillUsageReady}
-                    skillUsageAvailable={skillUsageAvailable}
-                    isSkillUsagePerSecond={isSkillUsagePerSecond}
-                    skillChartData={skillChartData}
-                    skillChartMaxY={skillChartMaxY}
-                    playerTotalsForSkill={playerTotalsForSkill}
-                    hoveredSkillPlayer={hoveredSkillPlayer}
-                    setHoveredSkillPlayer={setHoveredSkillPlayer}
-                    getLineStrokeColor={getLineStrokeColor}
-                    getLineDashForPlayer={getLineDashForPlayer}
-                    formatSkillUsageValue={formatSkillUsageValue}
+                        <SkillUsageSection
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            selectedPlayers={selectedPlayers}
+                            setSelectedPlayers={setSelectedPlayers}
+                            removeSelectedPlayer={removeSelectedPlayer}
+                            playerMapByKey={playerMapByKey}
+                            groupedSkillUsagePlayers={groupedSkillUsagePlayers}
+                            expandedSkillUsageClass={expandedSkillUsageClass}
+                            setExpandedSkillUsageClass={setExpandedSkillUsageClass}
+                            togglePlayerSelection={togglePlayerSelection}
+                            skillUsagePlayerFilter={skillUsagePlayerFilter}
+                            setSkillUsagePlayerFilter={setSkillUsagePlayerFilter}
+                            skillUsageView={skillUsageView}
+                            setSkillUsageView={setSkillUsageView}
+                            skillUsageData={skillUsageData}
+                            skillUsageSkillFilter={skillUsageSkillFilter}
+                            setSkillUsageSkillFilter={setSkillUsageSkillFilter}
+                            selectedSkillId={selectedSkillId}
+                            setSelectedSkillId={setSelectedSkillId}
+                            skillBarData={skillBarData}
+                            selectedSkillName={selectedSkillName}
+                            selectedSkillIcon={selectedSkillIcon}
+                            skillUsageReady={skillUsageReady}
+                            skillUsageAvailable={skillUsageAvailable}
+                            isSkillUsagePerSecond={isSkillUsagePerSecond}
+                            skillChartData={skillChartData}
+                            skillChartMaxY={skillChartMaxY}
+                            playerTotalsForSkill={playerTotalsForSkill}
+                            hoveredSkillPlayer={hoveredSkillPlayer}
+                            setHoveredSkillPlayer={setHoveredSkillPlayer}
+                            getLineStrokeColor={getLineStrokeColor}
+                            getLineDashForPlayer={getLineDashForPlayer}
+                            formatSkillUsageValue={formatSkillUsageValue}
 
-                    renderProfessionIcon={renderProfessionIcon}
-                />
+                            renderProfessionIcon={renderProfessionIcon}
+                        />
 
-                <ApmSection
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                    sidebarListClass={sidebarListClass}
-                    apmSpecAvailable={apmSpecAvailable}
-                    skillUsageAvailable={skillUsageAvailable}
-                    apmSpecTables={apmSpecTables}
-                    activeApmSpec={activeApmSpec}
-                    setActiveApmSpec={setActiveApmSpec}
-                    expandedApmSpec={expandedApmSpec}
-                    setExpandedApmSpec={setExpandedApmSpec}
-                    activeApmSkillId={activeApmSkillId}
-                    setActiveApmSkillId={setActiveApmSkillId}
-                    ALL_SKILLS_KEY={ALL_SKILLS_KEY}
-                    apmSkillSearch={apmSkillSearch}
-                    setApmSkillSearch={setApmSkillSearch}
-                    activeApmSpecTable={activeApmSpecTable}
-                    activeApmSkill={activeApmSkill}
-                    isAllApmSkills={isAllApmSkills}
-                    apmView={apmView}
-                    setApmView={setApmView}
-                    formatApmValue={formatApmValue}
-                    formatCastRateValue={formatCastRateValue}
-                    formatCastCountValue={formatCastCountValue}
-                    renderProfessionIcon={renderProfessionIcon}
-                />
+                        <ApmSection
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            sidebarListClass={sidebarListClass}
+                            apmSpecAvailable={apmSpecAvailable}
+                            skillUsageAvailable={skillUsageAvailable}
+                            apmSpecTables={apmSpecTables}
+                            activeApmSpec={activeApmSpec}
+                            setActiveApmSpec={setActiveApmSpec}
+                            expandedApmSpec={expandedApmSpec}
+                            setExpandedApmSpec={setExpandedApmSpec}
+                            activeApmSkillId={activeApmSkillId}
+                            setActiveApmSkillId={setActiveApmSkillId}
+                            ALL_SKILLS_KEY={ALL_SKILLS_KEY}
+                            apmSkillSearch={apmSkillSearch}
+                            setApmSkillSearch={setApmSkillSearch}
+                            activeApmSpecTable={activeApmSpecTable}
+                            activeApmSkill={activeApmSkill}
+                            isAllApmSkills={isAllApmSkills}
+                            apmView={apmView}
+                            setApmView={setApmView}
+                            formatApmValue={formatApmValue}
+                            formatCastRateValue={formatCastRateValue}
+                            formatCastCountValue={formatCastCountValue}
+                            renderProfessionIcon={renderProfessionIcon}
+                        />
 
-                <PlayerBreakdownSection
-                    expandedSection={expandedSection}
-                    expandedSectionClosing={expandedSectionClosing}
-                    openExpandedSection={openExpandedSection}
-                    closeExpandedSection={closeExpandedSection}
-                    isSectionVisible={isSectionVisible}
-                    isFirstVisibleSection={isFirstVisibleSection}
-                    sectionClass={sectionClass}
-                    sidebarListClass={sidebarListClass}
-                    viewMode={playerBreakdownViewMode}
-                    setViewMode={setPlayerBreakdownViewMode}
-                    playerSkillBreakdowns={playerSkillBreakdowns}
-                    classSkillBreakdowns={classSkillBreakdowns}
-                    activePlayerKey={activePlayerBreakdownKey}
-                    setActivePlayerKey={setActivePlayerBreakdownKey}
-                    expandedPlayerKey={expandedPlayerBreakdownKey}
-                    setExpandedPlayerKey={setExpandedPlayerBreakdownKey}
-                    activePlayerSkillId={activePlayerBreakdownSkillId}
-                    setActivePlayerSkillId={setActivePlayerBreakdownSkillId}
-                    activeClassKey={activeClassBreakdownKey}
-                    setActiveClassKey={setActiveClassBreakdownKey}
-                    expandedClassKey={expandedClassBreakdownKey}
-                    setExpandedClassKey={setExpandedClassBreakdownKey}
-                    activeClassSkillId={activeClassBreakdownSkillId}
-                    setActiveClassSkillId={setActiveClassBreakdownSkillId}
-                    skillSearch={playerBreakdownSkillSearch}
-                    setSkillSearch={setPlayerBreakdownSkillSearch}
-                    activePlayerBreakdown={activePlayerBreakdown}
-                    activePlayerSkill={activePlayerSkill}
-                    activeClassBreakdown={activeClassBreakdown}
-                    activeClassSkill={activeClassSkill}
-                    renderProfessionIcon={renderProfessionIcon}
-                />
+                        <PlayerBreakdownSection
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            sidebarListClass={sidebarListClass}
+                            viewMode={playerBreakdownViewMode}
+                            setViewMode={setPlayerBreakdownViewMode}
+                            playerSkillBreakdowns={playerSkillBreakdowns}
+                            classSkillBreakdowns={classSkillBreakdowns}
+                            activePlayerKey={activePlayerBreakdownKey}
+                            setActivePlayerKey={setActivePlayerBreakdownKey}
+                            expandedPlayerKey={expandedPlayerBreakdownKey}
+                            setExpandedPlayerKey={setExpandedPlayerBreakdownKey}
+                            activePlayerSkillId={activePlayerBreakdownSkillId}
+                            setActivePlayerSkillId={setActivePlayerBreakdownSkillId}
+                            activeClassKey={activeClassBreakdownKey}
+                            setActiveClassKey={setActiveClassBreakdownKey}
+                            expandedClassKey={expandedClassBreakdownKey}
+                            setExpandedClassKey={setExpandedClassBreakdownKey}
+                            activeClassSkillId={activeClassBreakdownSkillId}
+                            setActiveClassSkillId={setActiveClassBreakdownSkillId}
+                            skillSearch={playerBreakdownSkillSearch}
+                            setSkillSearch={setPlayerBreakdownSkillSearch}
+                            activePlayerBreakdown={activePlayerBreakdown}
+                            activePlayerSkill={activePlayerSkill}
+                            activeClassBreakdown={activeClassBreakdown}
+                            activeClassSkill={activeClassSkill}
+                            renderProfessionIcon={renderProfessionIcon}
+                        />
                     </>
                 )}
                 {!embedded && <div className="h-24" aria-hidden="true" />}
