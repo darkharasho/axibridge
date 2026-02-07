@@ -53,7 +53,7 @@ function App() {
     const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
-    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt'>('classic');
+    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte'>('classic');
     const [webUploadState, setWebUploadState] = useState<IWebUploadState>(DEFAULT_WEB_UPLOAD_STATE);
     const webUploadClearTimerRef = useRef<number | null>(null);
 
@@ -560,9 +560,10 @@ function App() {
 
     useEffect(() => {
         const body = document.body;
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte');
         if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
+        else if (uiTheme === 'matte') body.classList.add('theme-matte');
         else body.classList.add('theme-classic');
     }, [uiTheme]);
 
@@ -1425,7 +1426,7 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl hover:border-white/20 transition-colors"
+            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl hover:border-white/20 transition-colors matte-config-panel"
         >
             {isModernTheme ? (
                 <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,360px)] gap-3 items-start p-2">
@@ -1577,10 +1578,10 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="space-y-3"
+            className="space-y-3 matte-tiles-shell"
         >
             <div className="grid grid-cols-4 gap-4">
-                <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-upload-card">
                     <div className="min-w-0">
                         <div className="text-blue-200 text-xs font-medium uppercase tracking-wider">Upload Status</div>
                         <div className="mt-2 text-2xl font-bold text-white leading-none">{totalUploads}</div>
@@ -1673,9 +1674,9 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 gap-4"
+            className="grid grid-cols-2 gap-4 matte-tiles-shell"
         >
-            <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col">
+            <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col matte-upload-card">
                 <div className="text-blue-200 text-xs font-medium uppercase tracking-wider">Upload Status</div>
                 <div className="flex-1 min-h-0 flex items-center justify-center">
                     <div className="w-full h-full max-h-[63px]">
@@ -1754,7 +1755,7 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`bg-white/5 backdrop-blur-xl border ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-white/10'} rounded-2xl p-6 flex flex-col h-full shadow-2xl transition-all duration-300 relative`}
+            className={`bg-white/5 backdrop-blur-xl border ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-white/10'} rounded-2xl p-6 flex flex-col h-full shadow-2xl transition-all duration-300 relative matte-activity-panel`}
             onDragOver={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1903,7 +1904,7 @@ function App() {
             )}
 
             <div
-                className="flex-1 overflow-y-auto pr-2"
+                className="flex-1 overflow-y-auto pr-2 matte-log-list"
                 ref={logsListRef}
             >
                 {logs.length === 0 ? (
@@ -2211,24 +2212,26 @@ function App() {
                     />
                 ) : view === 'stats' ? null : (
                     isModernTheme ? (
-                        <div className="dashboard-view dashboard-modern flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overflow-x-visible pr-1">
-                            {statsTilesPanel}
+                        <div className="dashboard-view dashboard-modern flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overflow-x-visible pr-1 matte-dashboard-shell">
+                            <div className="matte-panel-shell">
+                                {statsTilesPanel}
+                            </div>
                             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4 flex-1 min-h-0 content-start">
-                                <div className="order-2 xl:order-1 min-h-0">
+                                <div className="order-2 xl:order-1 min-h-0 matte-activity-shell">
                                     {activityPanel}
                                 </div>
-                                <div className="dashboard-rail order-1 xl:order-2 flex flex-col gap-4 overflow-y-auto pr-0">
+                                <div className="dashboard-rail order-1 xl:order-2 flex flex-col gap-4 overflow-y-auto pr-0 matte-panel-shell matte-rail-shell">
                                     {configurationPanel}
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="dashboard-view grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-y-auto pr-1">
-                            <div className="space-y-6 overflow-y-auto pr-2">
+                        <div className="dashboard-view grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-y-auto pr-1 matte-dashboard-shell">
+                            <div className="space-y-6 overflow-y-auto pr-2 matte-panel-shell matte-rail-shell">
                                 {configurationPanel}
                                 {statsTilesPanel}
                             </div>
-                            <div className="lg:col-span-2 flex flex-col min-h-0">
+                            <div className="lg:col-span-2 flex flex-col min-h-0 matte-activity-shell">
                                 {activityPanel}
                             </div>
                         </div>
@@ -2706,13 +2709,13 @@ function App() {
             <AnimatePresence>
                 {filePickerOpen && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg file-picker-modal"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="w-full max-w-2xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6"
+                            className="w-full max-w-2xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6 file-picker-card"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -2728,14 +2731,14 @@ function App() {
                                         setFilePickerError(null);
                                         setFilePickerSelected(new Set());
                                     }}
-                                    className="p-2 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-white/30"
+                                    className="p-2 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-white/30 file-picker-close"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
 
                             <div className="space-y-4">
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-4 relative">
+                                <div className="bg-white/5 border border-white/10 rounded-xl p-4 relative file-picker-panel">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="text-xs uppercase tracking-widest text-gray-500">Available Logs</div>
                                         <div className="flex items-center gap-2">
@@ -2784,7 +2787,7 @@ function App() {
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                                 exit={{ opacity: 0, y: -6, scale: 0.98 }}
                                                 transition={{ duration: 0.18, ease: 'easeOut' }}
-                                                className="absolute z-20 left-4 right-4 top-[56px] rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur-md shadow-2xl shadow-black/40"
+                                                className="absolute z-20 left-4 right-4 top-[56px] rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur-md shadow-2xl shadow-black/40 file-picker-popover"
                                             >
                                                 <div className="flex items-center justify-between mb-3">
                                                     <div className="text-xs uppercase tracking-widest text-gray-400">Select Since</div>
@@ -2813,13 +2816,13 @@ function App() {
                                                                 </button>
                                                                 <AnimatePresence>
                                                                     {selectSinceMonthOpen && (
-                                                                        <motion.div
-                                                                            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                                                                            transition={{ duration: 0.14, ease: 'easeOut' }}
-                                                                            className="absolute z-10 mt-2 w-44 rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-2xl p-2"
-                                                                        >
+                                                                    <motion.div
+                                                                        initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                        exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                                                                        transition={{ duration: 0.14, ease: 'easeOut' }}
+                                                                        className="absolute z-10 mt-2 w-44 rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-2xl p-2 file-picker-popover"
+                                                                    >
                                                                             <div className="flex items-center justify-between mb-2">
                                                                                 <button
                                                                                     onClick={() => setSelectSinceView((prev) => new Date(prev.getFullYear() - 1, prev.getMonth(), 1))}

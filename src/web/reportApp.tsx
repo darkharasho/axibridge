@@ -159,7 +159,7 @@ export function ReportApp() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
-    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt'>('classic');
+    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte'>('classic');
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
     const [metricsSpecSearch, setMetricsSpecSearch] = useState('');
     const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; section: string; hitId: number }>>([]);
@@ -471,7 +471,7 @@ export function ReportApp() {
         '--accent-glow': `rgba(${accentRgb}, 0.18)`,
         '--accent-glow-soft': `rgba(${accentRgb}, 0.08)`
     } as CSSProperties;
-    const isModernUi = uiTheme === 'modern';
+    const isModernUi = uiTheme === 'modern' || uiTheme === 'matte';
     const reportBackgroundImage = resolvedTheme.pattern
         ? (isModernUi
             ? `linear-gradient(180deg, rgba(14, 18, 26, 0.72), rgba(18, 24, 34, 0.78)), ${resolvedTheme.pattern}`
@@ -517,7 +517,7 @@ export function ReportApp() {
                 const normalized = normalizeCommanderDistance(data);
                 setReport(normalized);
                 const themeChoice = normalized?.stats?.uiTheme;
-                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt') {
+                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte') {
                     setUiTheme(themeChoice);
                 }
             })
@@ -568,9 +568,10 @@ export function ReportApp() {
     useEffect(() => {
         const body = document.body;
         body.classList.add('web-report');
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte');
         if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
+        else if (uiTheme === 'matte') body.classList.add('theme-matte');
         else body.classList.add('theme-classic');
     }, [uiTheme]);
 
@@ -599,7 +600,7 @@ export function ReportApp() {
             .then((data) => {
                 if (!isMounted) return;
                 const themeChoice = data?.theme;
-                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt') {
+                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte') {
                     setUiTheme(themeChoice);
                 }
             })

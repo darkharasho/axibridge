@@ -730,8 +730,9 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         <Container
             ref={ref}
             {...motionProps}
-            className="bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 transition-all mb-3 group shadow-xl"
+            className="bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all mb-3 group shadow-xl"
         >
+            <div className="rounded-xl overflow-hidden">
             {/* Collapsed View */}
             <div className="p-4 flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all shrink-0 ${isQueued ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
@@ -915,6 +916,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 )
                 }
             </AnimatePresence >
+            </div>
         </Container >
     );
 });

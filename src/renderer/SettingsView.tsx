@@ -172,7 +172,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         if (!active) return availableWebThemes;
         return [active, ...availableWebThemes.filter((theme) => theme.id !== githubWebTheme)];
     }, [availableWebThemes, githubWebTheme]);
-    const isModernLayout = uiTheme === 'modern';
+    const isModernLayout = uiTheme === 'modern' || uiTheme === 'matte';
     const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
 
     const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
@@ -649,7 +649,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         { key: 'webhooks', label: 'Webhook List', description: 'Saved webhook entries.', section: 'Discord' },
         { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
         { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
-        { key: 'uiTheme', label: 'UI Theme', description: 'Classic, modern, or CRT Hacker theme.', section: 'App' },
+        { key: 'uiTheme', label: 'UI Theme', description: 'Classic, Modern Slate, Matte Slate, or CRT Hacker theme.', section: 'App' },
         { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
         { key: 'mvpWeights', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
         { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
@@ -1240,7 +1240,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 <div ref={settingsScrollRef} className={`${isModernLayout ? 'min-h-0 overflow-y-auto pr-2 space-y-4' : 'flex-1 min-h-0 overflow-y-auto pr-2 space-y-4'}`}>
                 <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance">
                     <p className="text-sm text-gray-400 mb-4">
-                        Switch between Classic, Modern Slate, or CRT Hacker.
+                        Switch between Classic, Modern Slate, Matte Slate, or CRT Hacker.
                     </p>
                     <div className="flex flex-wrap gap-3">
                         <button
@@ -1262,6 +1262,16 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                 }`}
                         >
                             Modern Slate
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setUiTheme('matte')}
+                            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'matte'
+                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50'
+                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                }`}
+                        >
+                            Matte Slate
                         </button>
                         <button
                             type="button"
