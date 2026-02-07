@@ -259,8 +259,10 @@ export const computeOutgoingConditions = (payload: {
             const buffId = Number(buff?.id);
             if (!Number.isFinite(buffId)) return;
             const buffMeta = buffMap?.[`b${buffId}`];
-            if (buffMeta?.classification !== 'Condition') return;
-            const conditionName = buffMeta?.name || getConditionName(buffMeta?.name);
+            const normalizedName = getConditionName(buffMeta?.name);
+            if (!normalizedName) return;
+            if (buffMeta?.classification && buffMeta.classification !== 'Condition') return;
+            const conditionName = normalizedName;
             if (!conditionName) return;
             const statesPerSource = buff.statesPerSource || {};
             targetBuffEntriesSeen += 1;

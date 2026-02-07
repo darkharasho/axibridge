@@ -3,8 +3,8 @@ import { applyStabilityGeneration, getPlayerCleanses, getPlayerStrips, getPlayer
 import { Player } from '../../shared/dpsReportTypes';
 import { buildBoonTables } from "../../shared/boonGeneration";
 import { DisruptionMethod, IMvpWeights, IStatsViewSettings, DEFAULT_DISRUPTION_METHOD, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS } from '../global.d';
-import { buildConditionIconMap, computeOutgoingConditions, resolveConditionNameFromEntry } from '../../shared/conditionsMetrics';
-import { OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS } from './statsMetrics';
+import { buildConditionIconMap, computeOutgoingConditions, normalizeConditionLabel, resolveConditionNameFromEntry } from '../../shared/conditionsMetrics';
+import { OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS, NON_DAMAGING_CONDITIONS } from './statsMetrics';
 import { isResUtilitySkill, formatDurationMs } from './utils/dashboardUtils';
 import { SkillUsageLogRecord, SkillUsagePlayer, PlayerSkillDamageEntry } from './statsTypes';
 import { PROFESSION_COLORS, getProfessionColor } from '../../shared/professionUtils';
@@ -624,6 +624,51 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                         const uptimeFactor = stacking ? uptime : uptime / 100;
                         const totalMs = uptimeFactor * activeMs;
                         if (!Number.isFinite(totalMs) || totalMs <= 0) return;
+
+                        const conditionName = normalizeConditionLabel(meta?.name);
+                        if (conditionName && NON_DAMAGING_CONDITIONS.has(conditionName) && (!meta?.classification || meta.classification === 'Condition')) {
+                            const seconds = totalMs / 1000;
+                            const conditionIcon = meta?.icon;
+                            const outgoingSummary = outgoingCondiTotals[conditionName] || {
+                                name: conditionName,
+                                icon: conditionIcon,
+                                applications: 0,
+                                damage: 0
+                            };
+                            outgoingSummary.applicationsFromUptime = (outgoingSummary.applicationsFromUptime || 0) + seconds;
+                            if (!outgoingSummary.icon && conditionIcon) outgoingSummary.icon = conditionIcon;
+                            outgoingCondiTotals[conditionName] = outgoingSummary;
+
+                            const outgoingEntry = s.outgoingConditions[conditionName] || {
+                                applications: 0,
+                                damage: 0,
+                                skills: {},
+                                icon: conditionIcon
+                            };
+                            outgoingEntry.applicationsFromUptime = (outgoingEntry.applicationsFromUptime || 0) + seconds;
+                            if (!outgoingEntry.icon && conditionIcon) outgoingEntry.icon = conditionIcon;
+                            s.outgoingConditions[conditionName] = outgoingEntry;
+
+                            const incomingSummary = incomingCondiTotals[conditionName] || {
+                                name: conditionName,
+                                icon: conditionIcon,
+                                applications: 0,
+                                damage: 0
+                            };
+                            incomingSummary.applicationsFromUptime = (incomingSummary.applicationsFromUptime || 0) + seconds;
+                            if (!incomingSummary.icon && conditionIcon) incomingSummary.icon = conditionIcon;
+                            incomingCondiTotals[conditionName] = incomingSummary;
+
+                            const incomingEntry = s.incomingConditions[conditionName] || {
+                                applications: 0,
+                                damage: 0,
+                                skills: {},
+                                icon: conditionIcon
+                            };
+                            incomingEntry.applicationsFromUptime = (incomingEntry.applicationsFromUptime || 0) + seconds;
+                            if (!incomingEntry.icon && conditionIcon) incomingEntry.icon = conditionIcon;
+                            s.incomingConditions[conditionName] = incomingEntry;
+                        }
 
                         if (!specialBuffMeta.has(buffId)) {
                             specialBuffMeta.set(buffId, { name: meta?.name, stacking, icon: meta?.icon });

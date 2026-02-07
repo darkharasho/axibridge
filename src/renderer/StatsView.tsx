@@ -409,11 +409,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                     icon: entry?.icon || iconByName.get(name) || getDefaultConditionIcon(name),
                     applications: 0,
                     damage: 0,
+                    applicationsFromUptime: 0,
                     applicationsFromBuffs: 0,
                     applicationsFromBuffsActive: 0
                 };
                 existing.applications += Number(entry?.applications || 0);
                 existing.damage += Number(entry?.damage || 0);
+                if (entry?.applicationsFromUptime) {
+                    existing.applicationsFromUptime += Number(entry.applicationsFromUptime || 0);
+                }
                 if (entry?.applicationsFromBuffs) {
                     existing.applicationsFromBuffs += Number(entry.applicationsFromBuffs || 0);
                 }
@@ -436,12 +440,16 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                     icon: cond?.icon || iconByName.get(name) || getDefaultConditionIcon(name),
                     applications: 0,
                     damage: 0,
+                    applicationsFromUptime: 0,
                     applicationsFromBuffs: 0,
                     applicationsFromBuffsActive: 0,
                     skills: {}
                 };
                 existing.applications += Number(cond?.applications || 0);
                 existing.damage += Number(cond?.damage || 0);
+                if (cond?.applicationsFromUptime) {
+                    existing.applicationsFromUptime += Number(cond.applicationsFromUptime || 0);
+                }
                 if (cond?.applicationsFromBuffs) {
                     existing.applicationsFromBuffs += Number(cond.applicationsFromBuffs || 0);
                 }
