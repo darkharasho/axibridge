@@ -70,8 +70,15 @@ export const ApmSection = ({
     formatCastCountValue,
     renderProfessionIcon
 }: ApmSectionProps) => {
+    void expandedApmSpec;
+    void setExpandedApmSpec;
+    void activeApmSkillId;
+    void setActiveApmSkillId;
+    void ALL_SKILLS_KEY;
+    void apmSkillSearch;
+    void setApmSkillSearch;
+    void isAllApmSkills;
     const [allSkillsSort, setAllSkillsSort] = useState<{ key: 'apm' | 'apmNoAuto'; dir: 'asc' | 'desc' }>({ key: 'apm', dir: 'desc' });
-    const [skillSort, setSkillSort] = useState<{ key: 'apm' | 'casts'; dir: 'asc' | 'desc' }>({ key: 'apm', dir: 'desc' });
     const isExpanded = expandedSection === 'apm-stats';
     const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: '', dir: 'desc' });
     const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
@@ -83,13 +90,6 @@ export const ApmSection = ({
             dir: prev.key === key ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
         }));
     };
-    const toggleSkillSort = (key: 'apm' | 'casts') => {
-        setSkillSort((prev) => ({
-            key,
-            dir: prev.key === key ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
-        }));
-    };
-
     const sortedAllSkillsRows = useMemo(() => {
         const rows = [...(activeApmSpecTable?.playerRows || [])];
         rows.sort((a: any, b: any) => {
@@ -104,21 +104,6 @@ export const ApmSection = ({
         });
         return rows;
     }, [activeApmSpecTable, allSkillsSort, apmView]);
-
-    const sortedSkillRows = useMemo(() => {
-        const rows = [...(activeApmSkill?.playerRows || [])];
-        rows.sort((a: any, b: any) => {
-            const aVal = skillSort.key === 'apm'
-                ? Number(a.apm || 0)
-                : Number(apmView === 'perSecond' ? a.aps : a.count);
-            const bVal = skillSort.key === 'apm'
-                ? Number(b.apm || 0)
-                : Number(apmView === 'perSecond' ? b.aps : b.count);
-            const diff = skillSort.dir === 'desc' ? bVal - aVal : aVal - bVal;
-            return diff || String(a.displayName || '').localeCompare(String(b.displayName || ''));
-        });
-        return rows;
-    }, [activeApmSkill, skillSort, apmView]);
 
     return (
     <div
@@ -313,7 +298,7 @@ export const ApmSection = ({
                                                         );
                                                     })}
                                                     {selectedPlayers.map((id) => {
-                                                        const label = playerOptions.find((entry) => entry.id === id)?.label || id;
+                                                        const label = playerOptions.find((entry: SearchSelectOption) => entry.id === id)?.label || id;
                                                         return (
                                                             <button
                                                                 key={id}

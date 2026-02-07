@@ -247,13 +247,13 @@ export const BoonOutputSection = ({
                     ) : (
                         (() => {
                             const columnTables = visibleBoonColumns;
-                            const resolvedSortColumnId = columnTables.find((item) => item.id === denseSort.columnId)?.id
-                                || (activeBoonTab && columnTables.some((item) => item.id === activeBoonTab) ? activeBoonTab : undefined)
+                            const resolvedSortColumnId = columnTables.find((item: any) => item.id === denseSort.columnId)?.id
+                                || (activeBoonTab && columnTables.some((item: any) => item.id === activeBoonTab) ? activeBoonTab : undefined)
                                 || columnTables[0]?.id
                                 || '';
                             const tableRowMaps = new Map<string, Map<string, any>>();
                             const playerMap = new Map<string, any>();
-                            columnTables.forEach((table) => {
+                            columnTables.forEach((table: any) => {
                                 const rowMap = new Map<string, any>();
                                 table.rows.forEach((row: any) => {
                                     const key = row.account || row.name || row.id;
@@ -269,7 +269,7 @@ export const BoonOutputSection = ({
                                 .filter(([key]) => selectedBoonPlayers.length === 0 || selectedBoonPlayers.includes(String(key)))
                                 .map(([key, row]) => {
                                 const values: Record<string, string> = {};
-                                columnTables.forEach((table) => {
+                                columnTables.forEach((table: any) => {
                                     const tableRow = tableRowMaps.get(table.id)?.get(key);
                                     values[table.id] = tableRow
                                         ? formatBoonMetricDisplay(tableRow, activeBoonCategory, table.stacking, activeBoonMetric, { roundCountStats })
@@ -278,7 +278,7 @@ export const BoonOutputSection = ({
                                 return { key, row, values };
                             }).sort((a, b) => {
                                 if (!resolvedSortColumnId) return String(a.key).localeCompare(String(b.key));
-                                const table = columnTables.find((item) => item.id === resolvedSortColumnId);
+                                const table = columnTables.find((item: any) => item.id === resolvedSortColumnId);
                                 const aRow = table ? tableRowMaps.get(table.id)?.get(a.key) : null;
                                 const bRow = table ? tableRowMaps.get(table.id)?.get(b.key) : null;
                                 const aVal = aRow ? getBoonMetricValue(aRow, activeBoonCategory, table?.stacking, activeBoonMetric) : 0;
@@ -298,7 +298,7 @@ export const BoonOutputSection = ({
                                             dir: prev.columnId === columnId ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
                                         }));
                                     }}
-                                    columns={columnTables.map((boon) => ({
+                                    columns={columnTables.map((boon: any) => ({
                                         id: boon.id,
                                         label: <InlineIconLabel name={boon.name} iconUrl={boon.icon} iconClassName="h-4 w-4" />,
                                         align: 'right',

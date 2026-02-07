@@ -957,7 +957,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 Object.entries(mitigationSource).forEach(([rawKey, skillMap]) => {
                     if (!skillMap || typeof skillMap !== 'object') return;
                     const base = parseMitigationKey(rawKey);
-                    const row = ensureMitigationRow(damageMitigationPlayersMap, base.account, base);
+                    ensureMitigationRow(damageMitigationPlayersMap, base.account, base);
                     Object.values(skillMap as any).forEach((entry: any) => {
                         const avoided = readNumber(entry?.avoided_damage ?? entry?.avoidedDamage);
                         if (avoided <= 0) return;
@@ -997,7 +997,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                             name: player.name || account,
                             profession: resolveProfessionLabel(player.profession || 'Unknown')
                         };
-                        const row = ensureMitigationRow(damageMitigationPlayersMap, account, base);
+                        ensureMitigationRow(damageMitigationPlayersMap, account, base);
                         const skillMap = details.skillMap || {};
                         const buffMap = details.buffMap || {};
                         const list = Array.isArray(entries) ? entries[0] : null;
@@ -1087,7 +1087,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                             debugPlayerMitigationSummary.push({
                                 logId: log.filePath || log.id || logIndex,
                                 variant: 'current_global_name_taken0',
-                                ...computeTotals(list, (_id, name) => {
+                                ...computeTotals(list, (_id, _name) => {
                                     const enemy = resolveGlobalEnemyStats(_id);
                                     const avg = enemy.hasSkill ? (enemy.hits > 0 ? enemy.avg : 0) : 1;
                                     const min = enemy.hasSkill ? (enemy.min || 0) : 1;
@@ -1116,7 +1116,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                             let minionName = String(minion?.name || 'Unknown').replace(/^Juvenile\s+/i, '') || 'Unknown';
                             if (minionName.toUpperCase().includes('UNKNOWN')) minionName = 'Unknown';
                             const rowKey = `${account}::${minionName}`;
-                            const row = ensureMitigationMinionRow(damageMitigationMinionsMap, rowKey, { ...base, minion: minionName });
+                            ensureMitigationMinionRow(damageMitigationMinionsMap, rowKey, { ...base, minion: minionName });
                             const list = Array.isArray(minionEntries) ? minionEntries[0] : null;
                             list?.forEach((entry: any) => {
                                 if (!entry?.id) return;
@@ -1208,7 +1208,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                                 debugMitigationSummary.push({
                                     logId: log.filePath || log.id || logIndex,
                                     variant: 'current_global_name_dist0',
-                                    ...computeTotals(entriesDist, (_id, name) => {
+                                    ...computeTotals(entriesDist, (_id, _name) => {
                                         const enemy = resolveGlobalEnemyStats(_id);
                                         const avg = enemy.hasSkill ? (enemy.hits > 0 ? enemy.avg : 0) : 1;
                                         const min = enemy.hasSkill ? (enemy.min || 0) : 0;
@@ -1228,7 +1228,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                                 debugMitigationSummary.push({
                                     logId: log.filePath || log.id || logIndex,
                                     variant: 'global_name_alllists',
-                                    ...computeTotals(entriesAll, (_id, name) => {
+                                    ...computeTotals(entriesAll, (_id, _name) => {
                                         const enemy = resolveGlobalEnemyStats(_id);
                                         const avg = enemy.hasSkill ? (enemy.hits > 0 ? enemy.avg : 0) : 1;
                                         const min = enemy.hasSkill ? (enemy.min || 0) : 0;
@@ -1238,7 +1238,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                                 debugMitigationSummary.push({
                                     logId: log.filePath || log.id || logIndex,
                                     variant: 'global_name_taken0',
-                                    ...computeTotals(entriesTaken, (_id, name) => {
+                                    ...computeTotals(entriesTaken, (_id, _name) => {
                                         const enemy = resolveGlobalEnemyStats(_id);
                                         const avg = enemy.hasSkill ? (enemy.hits > 0 ? enemy.avg : 0) : 1;
                                         const min = enemy.hasSkill ? (enemy.min || 0) : 0;

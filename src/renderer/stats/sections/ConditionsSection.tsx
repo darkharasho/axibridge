@@ -271,13 +271,13 @@ export const ConditionsSection = ({
                                             {
                                                 id: 'all',
                                                 label: 'All',
-                                                align: 'right',
+                                                align: 'right' as const,
                                                 minWidth: 90
                                             },
                                             ...visibleConditionEntries.map((entry: any) => ({
                                                 id: entry.name,
                                                 label: <InlineIconLabel name={entry.name} iconUrl={entry.icon} iconClassName="h-4 w-4" />,
-                                                align: 'right',
+                                                align: 'right' as const,
                                                 minWidth: 90
                                             }))
                                         ]}

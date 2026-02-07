@@ -60,7 +60,6 @@ export const HealingSection = ({
         dir: 'desc'
     });
     const isExpanded = expandedSection === 'healing-stats';
-    const filteredHealingMetrics = HEALING_METRICS;
     const [selectedHealingPlayers, setSelectedHealingPlayers] = useState<string[]>([]);
     const [selectedHealingColumnIds, setSelectedHealingColumnIds] = useState<string[]>([]);
     const healingPlayerOptions = Array.from(new Map(

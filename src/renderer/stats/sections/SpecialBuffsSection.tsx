@@ -254,7 +254,7 @@ export const SpecialBuffsSection = ({
                             const columnTables = visibleSpecialTables;
                             const tableRowMaps = new Map<string, Map<string, any>>();
                             const playerMap = new Map<string, any>();
-                            columnTables.forEach((table) => {
+                            columnTables.forEach((table: any) => {
                                 const rowMap = new Map<string, any>();
                                 table.rows.forEach((row: any) => {
                                     const key = row.account || row.name || row.id;
@@ -271,7 +271,7 @@ export const SpecialBuffsSection = ({
                                 .map(([key, row]) => {
                                 const values: Record<string, string> = {};
                                 const numericValues: Record<string, number> = {};
-                                columnTables.forEach((table) => {
+                                columnTables.forEach((table: any) => {
                                     const tableRow = tableRowMaps.get(table.id)?.get(key);
                                     if (!tableRow) {
                                         values[table.id] = '-';
@@ -290,8 +290,8 @@ export const SpecialBuffsSection = ({
                                 });
                                 return { key, row, values, numericValues };
                             });
-                            const resolvedSortColumnId = columnTables.find((item) => item.id === denseSort.columnId)?.id
-                                || (activeSpecialTab && columnTables.some((item) => item.id === activeSpecialTab) ? activeSpecialTab : undefined)
+                            const resolvedSortColumnId = columnTables.find((item: any) => item.id === denseSort.columnId)?.id
+                                || (activeSpecialTab && columnTables.some((item: any) => item.id === activeSpecialTab) ? activeSpecialTab : undefined)
                                 || columnTables[0]?.id
                                 || '';
                             const sortedRows = [...rows].sort((a, b) => {
@@ -313,7 +313,7 @@ export const SpecialBuffsSection = ({
                                             dir: prev.columnId === columnId ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
                                         }));
                                     }}
-                                    columns={columnTables.map((buff) => ({
+                                    columns={columnTables.map((buff: any) => ({
                                         id: buff.id,
                                         label: <InlineIconLabel name={buff.name} iconUrl={buff.icon} iconClassName="h-4 w-4" />,
                                         align: 'right',

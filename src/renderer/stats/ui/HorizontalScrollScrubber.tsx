@@ -9,7 +9,6 @@ export const HorizontalScrollScrubber = ({ containerRef, className = '' }: Horiz
     const trackRef = useRef<HTMLDivElement | null>(null);
     const [thumbWidth, setThumbWidth] = useState(0);
     const [thumbLeft, setThumbLeft] = useState(0);
-    const [hasOverflow, setHasOverflow] = useState(true);
     const draggingRef = useRef(false);
     const dragStartXRef = useRef(0);
     const dragStartLeftRef = useRef(0);
@@ -22,7 +21,6 @@ export const HorizontalScrollScrubber = ({ containerRef, className = '' }: Horiz
         const updateThumb = () => {
             const { scrollWidth, clientWidth, scrollLeft } = container;
             const overflow = scrollWidth > clientWidth;
-            setHasOverflow(overflow);
             const track = trackRef.current;
             const trackWidth = track?.clientWidth || 0;
             if (!trackWidth) {

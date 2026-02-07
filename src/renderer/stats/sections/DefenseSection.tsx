@@ -222,9 +222,10 @@ export const DefenseSection = ({
                         (() => {
                             const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
                             const formatValue = (value: number, metricEntry: typeof DEFENSE_METRICS[number]) => {
-                                const decimals = roundCountStats && !metricEntry.isPercent && defenseViewMode === 'total' ? 0 : 2;
+                                const isPercent = (metricEntry as any).isPercent;
+                                const decimals = roundCountStats && !isPercent && defenseViewMode === 'total' ? 0 : 2;
                                 const formatted = formatWithCommas(value, decimals);
-                                return metricEntry.isPercent ? `${formatted}%` : formatted;
+                                return isPercent ? `${formatted}%` : formatted;
                             };
                             const resolvedSortColumnId = visibleDefenseMetrics.find((entry) => entry.id === denseSort.columnId)?.id
                                 || visibleDefenseMetrics[0]?.id
@@ -236,9 +237,10 @@ export const DefenseSection = ({
                                     const numericValues: Record<string, number> = {};
                                     visibleDefenseMetrics.forEach((metricEntry) => {
                                         const total = row.defenseTotals?.[metricEntry.id] || 0;
+                                        const isPercent = (metricEntry as any).isPercent;
                                         const value = defenseViewMode === 'total'
                                             ? total
-                                            : metricEntry.isPercent
+                                            : isPercent
                                                 ? total
                                                 : defenseViewMode === 'per1s'
                                                     ? total / totalSeconds(row)
