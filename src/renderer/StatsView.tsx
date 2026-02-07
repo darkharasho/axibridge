@@ -58,7 +58,7 @@ interface StatsViewProps {
     canShareDiscord?: boolean;
 }
 
-const sidebarListClass = 'max-h-80 overflow-y-auto space-y-1 pr-1';
+const sidebarListClass = 'space-y-1 pr-1';
 const NON_DAMAGING_CONDITIONS = new Set(['Vulnerability', 'Weakness', 'Blind', 'Chill', 'Cripple', 'Slow', 'Taunt', 'Fear', 'Immobilize']);
 
 export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, uiTheme, canShareDiscord = true }: StatsViewProps) {

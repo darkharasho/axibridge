@@ -1909,6 +1909,12 @@ button:focus-visible,
     color: #bfdbfe;
 }
 
+.stats-table-sidebar > :last-child {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
 .scroll-scrubber {
     padding: 0 1rem 0.5rem;
 }
