@@ -1,6 +1,6 @@
 {
-  "id": "CRT",
-  "label": "CRT Hacker",
-  "rgb": "87, 255, 154",
-  "pattern": "radial-gradient(circle at 12% 10%, rgba(44, 120, 78, 0.42), transparent 60%), radial-gradient(circle at 88% 22%, rgba(22, 86, 52, 0.38), transparent 62%), linear-gradient(180deg, rgba(5, 12, 8, 0.92), rgba(3, 7, 6, 0.98))"
+  "id": "Arcane",
+  "label": "Arcane",
+  "rgb": "136, 116, 255",
+  "pattern": "radial-gradient(at 0% 0%, hsla(250, 70%, 18%, 1) 0, transparent 70%), radial-gradient(at 100% 0%, hsla(220, 80%, 22%, 1) 0, transparent 70%), radial-gradient(at 50% 100%, hsla(270, 65%, 20%, 1) 0, transparent 70%)"
 }

@@ -730,7 +730,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         <Container
             ref={ref}
             {...motionProps}
-            className="bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all mb-3 group shadow-xl"
+            className="bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all mb-3 group shadow-xl matte-log-card"
         >
             <div className="rounded-xl overflow-hidden">
             {/* Collapsed View */}

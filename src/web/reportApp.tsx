@@ -1,6 +1,6 @@
 import { CSSProperties, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
-import { DEFAULT_WEB_THEME, WebTheme, WEB_THEMES } from '../shared/webThemes';
+import { DEFAULT_WEB_THEME, MATTE_WEB_THEME, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -61,7 +61,7 @@ interface ReportIndexEntry {
     };
 }
 
-const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md';
+const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md glass-card';
 
 const formatLocalRange = (start: string, end: string) => {
     try {
@@ -460,7 +460,8 @@ export function ReportApp() {
         };
         requestAnimationFrame(tick);
     }, [activeGroup]);
-    const resolvedTheme = theme ?? DEFAULT_WEB_THEME;
+    const isMatteUi = uiTheme === 'matte';
+    const resolvedTheme = isMatteUi ? MATTE_WEB_THEME : (theme ?? DEFAULT_WEB_THEME);
     const accentRgb = resolvedTheme.rgb;
     const accentVars = {
         '--accent': `rgb(${accentRgb})`,
@@ -473,15 +474,19 @@ export function ReportApp() {
     } as CSSProperties;
     const isModernUi = uiTheme === 'modern' || uiTheme === 'matte';
     const reportBackgroundImage = resolvedTheme.pattern
-        ? (isModernUi
-            ? `linear-gradient(180deg, rgba(14, 18, 26, 0.72), rgba(18, 24, 34, 0.78)), ${resolvedTheme.pattern}`
-            : resolvedTheme.pattern)
+        ? (isMatteUi
+            ? undefined
+            : isModernUi
+                ? `linear-gradient(180deg, rgba(14, 18, 26, 0.72), rgba(18, 24, 34, 0.78)), ${resolvedTheme.pattern}`
+                : resolvedTheme.pattern)
         : undefined;
-    const glassCardStyle: CSSProperties = {
-        backgroundImage: isModernUi
-            ? 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.06) 70%)'
-            : 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.26), rgba(var(--accent-rgb), 0.08) 70%)'
-    };
+    const glassCardStyle: CSSProperties = isMatteUi
+        ? { backgroundImage: 'none', backgroundColor: 'var(--bg-card)' }
+        : {
+            backgroundImage: isModernUi
+                ? 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.06) 70%)'
+                : 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.26), rgba(var(--accent-rgb), 0.08) 70%)'
+        };
 
     useEffect(() => {
         let isMounted = true;
@@ -556,6 +561,12 @@ export function ReportApp() {
 
     useEffect(() => {
         if (!report) return;
+        if (uiTheme === 'matte') {
+            if (!theme || theme.id !== MATTE_WEB_THEME_ID) {
+                setTheme(MATTE_WEB_THEME);
+            }
+            return;
+        }
         const requestedThemeId = report.stats?.webThemeId;
         if (!requestedThemeId) return;
         if (!isDevLocalWeb && theme?.id === requestedThemeId) return;
@@ -563,7 +574,7 @@ export function ReportApp() {
         if (matched && (!theme || theme.id !== matched.id || isDevLocalWeb)) {
             setTheme(matched);
         }
-    }, [report, theme, isDevLocalWeb]);
+    }, [report, theme, isDevLocalWeb, uiTheme]);
 
     useEffect(() => {
         const body = document.body;
@@ -577,6 +588,7 @@ export function ReportApp() {
 
     useEffect(() => {
         if (isDevLocalWeb && report?.stats?.webThemeId) return;
+        if (uiTheme === 'matte') return;
         let isMounted = true;
         fetch(`${assetBasePath}theme.json`, { cache: 'no-store' })
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
@@ -1288,25 +1300,27 @@ export function ReportApp() {
         <div
             className="min-h-screen text-white relative overflow-x-hidden"
             style={{
-                backgroundColor: isModernUi ? '#0f141c' : '#0f172a',
+                backgroundColor: isMatteUi ? '#1B1D1E' : (isModernUi ? '#0f141c' : '#0f172a'),
                 backgroundImage: reportBackgroundImage,
                 ...accentVars
             }}
         >
-            <div className="absolute inset-0 pointer-events-none">
-                <div
-                    className="absolute -top-32 -right-24 h-80 w-80 rounded-full blur-[140px]"
-                    style={{ backgroundColor: 'var(--accent-glow)' }}
-                />
-                <div
-                    className="absolute top-40 -left-20 h-72 w-72 rounded-full blur-[120px]"
-                    style={{ backgroundColor: 'var(--accent-glow-soft)' }}
-                />
-                <div
-                    className="absolute bottom-10 right-10 h-64 w-64 rounded-full blur-[120px]"
-                    style={{ backgroundColor: 'var(--accent-glow-soft)' }}
-                />
-            </div>
+            {!isMatteUi && (
+                <div className="absolute inset-0 pointer-events-none">
+                    <div
+                        className="absolute -top-32 -right-24 h-80 w-80 rounded-full blur-[140px]"
+                        style={{ backgroundColor: 'var(--accent-glow)' }}
+                    />
+                    <div
+                        className="absolute top-40 -left-20 h-72 w-72 rounded-full blur-[120px]"
+                        style={{ backgroundColor: 'var(--accent-glow-soft)' }}
+                    />
+                    <div
+                        className="absolute bottom-10 right-10 h-64 w-64 rounded-full blur-[120px]"
+                        style={{ backgroundColor: 'var(--accent-glow-soft)' }}
+                    />
+                </div>
+            )}
                 <div className="max-w-[1600px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10">
                 <div id="report-list-container" className="rounded-2xl border border-white/5 bg-black/20 p-4 sm:p-6">
                     <div id="report-top" className={`${glassCard} p-5 sm:p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`} style={glassCardStyle}>

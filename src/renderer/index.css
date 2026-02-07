@@ -426,7 +426,7 @@ body.theme-matte .app-content {
     width: 100%;
     margin-left: 0;
     margin-right: 0;
-    padding-top: 18px;
+    padding-top: 22px;
 }
 
 body.theme-matte .app-header h1,
@@ -608,8 +608,8 @@ body.theme-matte {
     --text-primary: #E1E1E1;
     --text-secondary: #C7CBCC;
     --text-muted: #8A8F93;
-    --matte-light: rgba(255, 255, 255, 0.07);
-    --matte-dark: rgba(0, 0, 0, 0.5);
+    --matte-light: rgba(255, 255, 255, 0.05);
+    --matte-dark: rgba(0, 0, 0, 0.6);
     background: #1B1D1E;
     color: var(--text-primary);
     font-family: "Manrope", "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
@@ -650,12 +650,12 @@ body.theme-matte .legacy-orb {
 
 body.theme-matte .app-shell .bg-white\/5 {
     background-color: var(--bg-card) !important;
-    box-shadow: -6px -6px 12px var(--matte-light), 6px 6px 12px var(--matte-dark);
+    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark);
 }
 
 body.theme-matte .app-shell .bg-white\/10 {
     background-color: var(--bg-hover) !important;
-    box-shadow: -6px -6px 12px var(--matte-light), 6px 6px 12px var(--matte-dark);
+    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark);
 }
 
 body.theme-matte .app-shell .bg-black\/20 {
@@ -665,12 +665,12 @@ body.theme-matte .app-shell .bg-black\/20 {
 
 body.theme-matte .app-shell .bg-black\/30 {
     background-color: var(--bg-card) !important;
-    box-shadow: -6px -6px 12px var(--matte-light), 6px 6px 12px var(--matte-dark);
+    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark);
 }
 
 body.theme-matte .app-shell .bg-black\/40 {
     background-color: var(--bg-elevated) !important;
-    box-shadow: -6px -6px 12px var(--matte-light), 6px 6px 12px var(--matte-dark);
+    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark);
 }
 
 
@@ -714,6 +714,44 @@ body.theme-matte .app-shell .rounded-full {
     border-radius: 9999px;
 }
 
+body.theme-matte button.rounded-full,
+body.theme-matte a.rounded-full,
+body.theme-matte .rounded-full,
+body.theme-matte .rounded-full.text-xs,
+body.theme-matte .rounded-full.text-[10px],
+body.theme-matte .rounded-full.text-[11px],
+body.theme-matte .rounded-full.uppercase {
+    border-radius: 8px !important;
+}
+
+body.web-report.theme-matte button.rounded-full,
+body.web-report.theme-matte a.rounded-full,
+body.web-report.theme-matte .rounded-full,
+body.web-report.theme-matte .rounded-full.text-xs,
+body.web-report.theme-matte .rounded-full.text-[9px],
+body.web-report.theme-matte .rounded-full.text-[10px],
+body.web-report.theme-matte .rounded-full.uppercase {
+    border-radius: 8px !important;
+}
+
+body.theme-matte .toggle-track {
+    background-color: var(--bg-input) !important;
+    border-color: var(--border-default) !important;
+    box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.65), inset -3px -3px 6px rgba(255, 255, 255, 0.05);
+}
+
+body.theme-matte .toggle-track.toggle-track--on {
+    border-color: rgba(77, 139, 168, 0.5) !important;
+}
+
+body.theme-matte .toggle-knob {
+    background-color: var(--bg-card) !important;
+    box-shadow: -3px -3px 6px rgba(255, 255, 255, 0.06), 4px 4px 8px rgba(0, 0, 0, 0.6);
+}
+
+body.theme-matte .toggle-track--on .toggle-knob {
+    background-color: #2b3134 !important;
+}
 body.theme-matte .app-shell .backdrop-blur-xl,
 body.theme-matte .app-shell .backdrop-blur-2xl,
 body.theme-matte .app-shell .backdrop-blur-md {
@@ -816,18 +854,24 @@ body.theme-matte .app-shell .border-red-500\/40 {
 
 body.theme-matte .app-shell button,
 body.theme-matte .app-shell [role="button"] {
-    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark);
+    box-shadow: -3px -3px 6px var(--matte-light), 5px 5px 10px var(--matte-dark);
     transition: box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 body.theme-matte .app-shell button:hover,
 body.theme-matte .app-shell [role="button"]:hover {
-    box-shadow: -3px -3px 6px rgba(255, 255, 255, 0.05), 5px 5px 10px rgba(0, 0, 0, 0.65);
+    box-shadow: -2px -2px 5px rgba(255, 255, 255, 0.05), 4px 4px 8px rgba(0, 0, 0, 0.6);
 }
 
 body.theme-matte .app-shell button:active,
 body.theme-matte .app-shell [role="button"]:active {
-    box-shadow: inset 5px 5px 10px rgba(0, 0, 0, 0.7), inset -5px -5px 10px rgba(255, 255, 255, 0.05);
+    box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.7), inset -4px -4px 8px rgba(255, 255, 255, 0.05);
+}
+
+body.theme-matte .app-shell .settings-nav-item,
+body.theme-matte .app-shell .settings-nav-item:hover,
+body.theme-matte .app-shell .settings-nav-item:active {
+    box-shadow: none;
 }
 
 body.theme-matte .app-shell input,
@@ -878,14 +922,14 @@ body.theme-matte .modal-backdrop {
 }
 
 body.theme-matte .matte-activity-shell {
-    padding: 18px 18px 18px 12px;
-    margin: -18px -18px -18px -12px;
+    padding: 22px 22px 22px 16px;
+    margin: -22px -22px -22px -16px;
     overflow: visible;
 }
 
 body.theme-matte .matte-panel-shell {
-    padding: 10px;
-    margin: -10px;
+    padding: 14px;
+    margin: -14px;
     overflow: visible;
 }
 
@@ -906,12 +950,12 @@ body.theme-matte .dashboard-view .space-y-6 {
 }
 
 body.theme-matte .dashboard-view {
-    padding-right: 10px;
-    padding-bottom: 10px;
-    padding-top: 16px;
-    margin-top: -16px;
-    padding-left: 16px;
-    margin-left: -16px;
+    padding-right: 18px;
+    padding-bottom: 18px;
+    padding-top: 20px;
+    margin-top: -20px;
+    padding-left: 20px;
+    margin-left: -20px;
 }
 
 body.theme-matte .matte-dashboard-shell {
@@ -923,8 +967,8 @@ body.theme-matte .matte-activity-panel {
     background-color: #25282a !important;
     border-color: rgba(255, 255, 255, 0.02) !important;
     box-shadow:
-        -6px -6px 12px rgba(255, 255, 255, 0.07),
-        6px 6px 12px rgba(0, 0, 0, 0.5) !important;
+        -4px -4px 8px rgba(255, 255, 255, 0.06),
+        6px 6px 12px rgba(0, 0, 0, 0.6) !important;
     backdrop-filter: none !important;
 }
 
@@ -932,8 +976,8 @@ body.theme-matte .matte-config-panel {
     background-color: #25282a !important;
     border-color: rgba(255, 255, 255, 0.02) !important;
     box-shadow:
-        -6px -6px 12px rgba(255, 255, 255, 0.07),
-        6px 6px 12px rgba(0, 0, 0, 0.5) !important;
+        -4px -4px 8px rgba(255, 255, 255, 0.06),
+        6px 6px 12px rgba(0, 0, 0, 0.6) !important;
     backdrop-filter: none !important;
 }
 
@@ -942,9 +986,23 @@ body.theme-matte .matte-upload-card {
     background-image: none !important;
     border-color: rgba(255, 255, 255, 0.02) !important;
     box-shadow:
-        -6px -6px 12px rgba(255, 255, 255, 0.08),
-        6px 6px 12px rgba(0, 0, 0, 0.5) !important;
+        -4px -4px 8px rgba(255, 255, 255, 0.06),
+        6px 6px 12px rgba(0, 0, 0, 0.6) !important;
     backdrop-filter: none !important;
+}
+
+body.theme-matte .matte-stat-card {
+    background-color: var(--bg-card) !important;
+    background-image: none !important;
+    border-color: rgba(255, 255, 255, 0.02) !important;
+    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark) !important;
+    backdrop-filter: none !important;
+}
+
+body.theme-matte .matte-log-card {
+    background-color: var(--bg-card) !important;
+    border-color: rgba(255, 255, 255, 0.02) !important;
+    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark) !important;
 }
 
 body.theme-matte .matte-log-list {
@@ -999,22 +1057,25 @@ body.theme-matte .file-picker-popover {
 }
 
 body.web-report.theme-matte {
-    background: var(--bg-base);
+    background: #1B1D1E;
     color: var(--text-primary);
 }
 
 body.web-report.theme-matte .bg-white\/5 {
     background-color: var(--bg-card) !important;
+    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark);
 }
 
 body.web-report.theme-matte .bg-white\/10 {
     background-color: var(--bg-hover) !important;
+    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark);
 }
 
 body.web-report.theme-matte .bg-black\/20,
 body.web-report.theme-matte .bg-black\/30,
 body.web-report.theme-matte .bg-black\/40 {
     background-color: var(--bg-elevated) !important;
+    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark);
 }
 
 body.web-report.theme-matte .border-white\/5 {
@@ -1038,6 +1099,66 @@ body.web-report.theme-matte .text-white {
 body.web-report.theme-matte .text-gray-400,
 body.web-report.theme-matte .text-gray-500 {
     color: var(--text-secondary) !important;
+}
+
+body.web-report.theme-matte .glass-card {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-default) !important;
+    box-shadow: -4px -4px 8px var(--matte-light), 6px 6px 12px var(--matte-dark) !important;
+    backdrop-filter: none !important;
+}
+
+body.web-report.theme-matte #stats-dashboard-container,
+body.web-report.theme-matte #report-list-container {
+    background-color: var(--bg-elevated) !important;
+    border-color: var(--border-default) !important;
+    box-shadow: -6px -6px 12px var(--matte-light), 8px 8px 14px var(--matte-dark) !important;
+}
+
+body.web-report.theme-matte .backdrop-blur-xl,
+body.web-report.theme-matte .backdrop-blur-2xl,
+body.web-report.theme-matte .backdrop-blur-md,
+body.web-report.theme-matte .backdrop-blur-sm,
+body.web-report.theme-matte .backdrop-blur-lg {
+    backdrop-filter: none !important;
+}
+
+body.web-report.theme-matte .bg-white\/5 {
+    background-color: var(--bg-card) !important;
+}
+
+body.web-report.theme-matte .bg-black\/20,
+body.web-report.theme-matte .bg-black\/30,
+body.web-report.theme-matte .bg-black\/40 {
+    background-color: var(--bg-elevated) !important;
+}
+
+body.web-report.theme-matte .bg-gradient-to-br,
+body.web-report.theme-matte .bg-gradient-to-r,
+body.web-report.theme-matte .from-white\/10,
+body.web-report.theme-matte .via-white\/5,
+body.web-report.theme-matte .to-transparent {
+    background-image: none !important;
+}
+
+body.web-report.theme-matte .bg-slate-950\/70 {
+    background-color: #1b1d1e !important;
+}
+
+body.web-report.theme-matte .stats-view .bg-gradient-to-br,
+body.web-report.theme-matte .stats-view .bg-gradient-to-r {
+    background-image: none !important;
+    background-color: var(--bg-card) !important;
+}
+
+body.web-report.theme-matte .stats-view .border-green-500\/30,
+body.web-report.theme-matte .stats-view .border-green-500\/40 {
+    border-color: rgba(157, 195, 174, 0.32) !important;
+}
+
+body.web-report.theme-matte .stats-view .border-red-500\/30,
+body.web-report.theme-matte .stats-view .border-red-500\/40 {
+    border-color: rgba(209, 160, 160, 0.32) !important;
 }
 
 body.theme-crt {

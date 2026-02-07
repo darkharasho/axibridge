@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID } from '../shared/webThemes';
+import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -44,11 +44,11 @@ function Toggle({ enabled, onChange, label, description }: {
                 )}
             </div>
             <div
-                className={`relative w-11 h-6 rounded-full transition-colors ${enabled ? 'bg-blue-500' : 'bg-gray-700'
-                    }`}
+                className={`relative w-11 h-6 rounded-md transition-colors border ${enabled ? 'bg-blue-500/30 border-blue-500/40 toggle-track--on' : 'bg-white/5 border-white/10 toggle-track--off'
+                    } toggle-track`}
             >
                 <div
-                    className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-md transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'
+                    className={`absolute top-1 w-4 h-4 rounded-md bg-white shadow-md transition-transform toggle-knob ${enabled ? 'translate-x-6' : 'translate-x-1'
                         }`}
                 />
             </div>
@@ -166,7 +166,11 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const logoSyncInFlightRef = useRef(false);
     const queuedLogoPathRef = useRef<string | null>(null);
     const favoriteRepoSet = useMemo(() => new Set(githubFavoriteRepos), [githubFavoriteRepos]);
-    const availableWebThemes = useMemo(() => (uiTheme === 'crt' ? [CRT_WEB_THEME] : BASE_WEB_THEMES), [uiTheme]);
+    const availableWebThemes = useMemo(() => {
+        if (uiTheme === 'crt') return [CRT_WEB_THEME];
+        if (uiTheme === 'matte') return [MATTE_WEB_THEME];
+        return BASE_WEB_THEMES;
+    }, [uiTheme]);
     const orderedThemes = useMemo(() => {
         const active = availableWebThemes.find((theme) => theme.id === githubWebTheme);
         if (!active) return availableWebThemes;
@@ -339,7 +343,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             }
             return;
         }
-        if (githubWebTheme === CRT_WEB_THEME_ID) {
+        if (uiTheme === 'matte') {
+            if (githubWebTheme !== MATTE_WEB_THEME_ID) {
+                setGithubWebTheme(MATTE_WEB_THEME_ID);
+            }
+            return;
+        }
+        if (githubWebTheme === CRT_WEB_THEME_ID || githubWebTheme === MATTE_WEB_THEME_ID) {
             setGithubWebTheme(DEFAULT_WEB_THEME_ID);
         }
     }, [uiTheme, githubWebTheme]);
@@ -1214,19 +1224,19 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                         </div>
                         <div className="rounded-2xl border border-white/10 bg-white/5 p-3 flex-1 min-h-0">
                             <div className="text-[11px] uppercase tracking-[0.25em] text-gray-500 mb-2">Sections</div>
-                            <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1">
+                            <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
                                 {settingsSections.map((item, index) => {
                                     const isActive = item.id === activeSettingsSectionId;
                                     return (
                                         <button
                                             key={item.id}
                                             onClick={() => scrollToSettingsSection(item.id)}
-                                            className={`w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-gray-200 border transition-colors min-w-0 ${isActive
-                                                ? 'bg-white/10 border-white/20'
-                                                : 'border-transparent hover:border-white/10 hover:bg-white/10'
+                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 ${isActive
+                                                ? 'text-white'
+                                                : 'text-gray-400'
                                                 }`}
                                         >
-                                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 border border-white/10 text-[10px] text-[color:var(--accent)]">
+                                            <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
                                                 {index + 1}
                                             </span>
                                             <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
@@ -2305,7 +2315,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                 <CloseIcon className="w-4 h-4" />
                             </button>
                         </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1 pb-4">
+                        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 pb-4">
                             {settingsSections.map((item) => {
                                 const isActive = item.id === activeSettingsSectionId;
                                 return (
@@ -2315,12 +2325,12 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                             scrollToSettingsSection(item.id);
                                             setSettingsNavOpen(false);
                                         }}
-                                        className={`w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-gray-200 border transition-colors min-w-0 ${isActive
-                                            ? 'bg-white/10 border-white/20'
-                                            : 'border-transparent hover:border-white/10 hover:bg-white/10'
+                                        className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 ${isActive
+                                            ? 'text-white'
+                                            : 'text-gray-400'
                                             }`}
                                     >
-                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 border border-white/10 text-[10px] text-[color:var(--accent)]">
+                                        <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
                                             {settingsSections.findIndex((section) => section.id === item.id) + 1}
                                         </span>
                                         <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
@@ -2611,22 +2621,26 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             <AnimatePresence>
                 {proofOfWorkOpen && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-lg"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={(event) => event.target === event.currentTarget && setProofOfWorkOpen(false)}
                     >
                         <motion.div
-                            className="w-full max-w-4xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6"
+                            className="relative w-full max-w-4xl bg-[#10151b]/95 border border-white/10 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.55)] p-6 overflow-hidden"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
                         >
+                            <div className="pointer-events-none absolute inset-0 opacity-60">
+                                <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-cyan-500/8 blur-3xl" />
+                                <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-slate-500/10 blur-3xl" />
+                            </div>
                             <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <div className="text-lg font-bold text-white">Proof of Work</div>
-                                    <div className="text-xs text-gray-400">Metrics Specification</div>
+                                    <div className="text-[10px] uppercase tracking-[0.35em] text-cyan-300/70">Proof of Work</div>
+                                    <div className="text-xl font-semibold text-white mt-1">Metrics Specification</div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="relative" ref={metricsSpecSearchRef}>
@@ -2658,10 +2672,10 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                                 }
                                             }}
                                             placeholder="Search spec..."
-                                            className="w-52 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                                            className="w-56 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
                                         />
                                         {metricsSpecSearchFocused && metricsSpecSearchResults.length > 0 && metricsSpecSearch.trim().length >= 2 && (
-                                            <div className="absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#11161e]/95 shadow-xl z-10">
+                                            <div className="absolute right-0 mt-2 w-80 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#0d1218]/95 shadow-2xl z-10">
                                                 {metricsSpecSearchResults.map((result) => (
                                                     <button
                                                         key={`${result.tag}-${result.index}-${result.text}`}
@@ -2683,25 +2697,30 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                     </div>
                                     <button
                                         onClick={() => setProofOfWorkOpen(false)}
-                                        className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                                        className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
                                     >
                                         <CloseIcon className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
                             <div className="h-[65vh]">
-                                <div className="grid grid-cols-[220px_1fr] gap-4 h-full min-h-0">
-                                    <div className="h-full overflow-y-auto pr-2">
-                                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">On This Page</div>
+                                <div className="grid grid-cols-[230px_1fr] gap-4 h-full min-h-0">
+                                    <div className="h-full overflow-y-auto pr-2 rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <div className="text-[10px] uppercase tracking-[0.3em] text-gray-400 mb-2">On This Page</div>
                                         <div className="space-y-1">
                                             {metricsSpecNav.map((item) => (
                                                 <button
                                                     key={`${item.id}-${item.level}`}
-                                                    className={`w-full text-left text-xs rounded-md px-2 py-1 transition-colors ${item.level === 1
-                                                        ? 'text-gray-300 hover:text-white'
+                                                    className={`w-full text-left text-xs rounded-lg px-2.5 py-1.5 transition-colors ${item.level === 1
+                                                        ? 'text-gray-200 hover:text-white hover:bg-white/10'
                                                         : item.level === 2
-                                                            ? 'text-gray-300 hover:text-white'
+                                                            ? 'text-gray-300 hover:text-white hover:bg-white/5'
                                                             : 'text-gray-400 hover:text-gray-200'
+                                                        } ${item.level === 1
+                                                            ? ''
+                                                            : item.level === 2
+                                                                ? 'pl-4'
+                                                                : 'pl-6'
                                                         }`}
                                                     onClick={() => {
                                                         const container = metricsSpecContentRef.current;
@@ -2727,13 +2746,12 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                                         });
                                                     }}
                                                 >
-                                                    {item.level === 3 ? '• ' : ''}
-                                                    {item.text}
+                                                    <span className="truncate block">{item.text}</span>
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="h-full overflow-y-auto pr-2" ref={metricsSpecContentRef} id="metrics-spec-content">
+                                    <div className="h-full overflow-y-auto pr-2 rounded-xl border border-white/10 bg-black/30 p-4" ref={metricsSpecContentRef} id="metrics-spec-content">
                                         <div className="space-y-4 text-sm text-gray-200">
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}

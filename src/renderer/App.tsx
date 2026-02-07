@@ -1581,7 +1581,7 @@ function App() {
             className="space-y-3 matte-tiles-shell"
         >
             <div className="grid grid-cols-4 gap-4">
-                <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-upload-card">
+                <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-upload-card matte-stat-card">
                     <div className="min-w-0">
                         <div className="text-blue-200 text-xs font-medium uppercase tracking-wider">Upload Status</div>
                         <div className="mt-2 text-2xl font-bold text-white leading-none">{totalUploads}</div>
@@ -1623,7 +1623,7 @@ function App() {
                         </div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">W / L</div>
                         <div className="text-2xl font-bold text-white leading-none">
@@ -1639,7 +1639,7 @@ function App() {
                         <div className="text-[11px] text-gray-500">{totalUploads} logs</div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Avg Players</div>
                         <div className="text-2xl font-bold text-white leading-none">
@@ -1655,7 +1655,7 @@ function App() {
                         <div className="text-[11px] text-gray-500">Ratio {(avgEnemies ? (avgSquadSize / avgEnemies) : 0).toFixed(2)}</div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Squad KDR</div>
                         <div className="text-2xl font-bold text-emerald-300 leading-none">{squadKdr}</div>
@@ -1676,7 +1676,7 @@ function App() {
             transition={{ delay: 0.2 }}
             className="grid grid-cols-2 gap-4 matte-tiles-shell"
         >
-            <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col matte-upload-card">
+            <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col matte-upload-card matte-stat-card">
                 <div className="text-blue-200 text-xs font-medium uppercase tracking-wider">Upload Status</div>
                 <div className="flex-1 min-h-0 flex items-center justify-center">
                     <div className="w-full h-full max-h-[63px]">
@@ -1721,7 +1721,7 @@ function App() {
                     </div>
                 </div>
             </div>
-            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col">
+            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card">
                 <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">W / L</div>
                 <div className="flex-1 flex items-center">
                     <div className="text-2xl font-bold text-white leading-none">
@@ -1731,7 +1731,7 @@ function App() {
                     </div>
                 </div>
             </div>
-            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col">
+            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card">
                 <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Avg Players</div>
                 <div className="flex-1 flex items-center">
                     <div className="text-2xl font-bold text-white leading-none">
@@ -1741,7 +1741,7 @@ function App() {
                     </div>
                 </div>
             </div>
-            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col">
+            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card">
                 <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Squad KDR</div>
                 <div className="flex-1 flex items-center">
                     <div className="text-2xl font-bold text-emerald-300 leading-none">{squadKdr}</div>
