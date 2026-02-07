@@ -1033,6 +1033,36 @@ body.theme-matte .settings-view textarea::placeholder {
     color: rgba(199, 203, 204, 0.6);
 }
 
+body.theme-matte .settings-view .github-pages-url-card {
+    background-color: var(--bg-input) !important;
+    border-color: var(--border-subtle) !important;
+    box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.62), inset -4px -4px 8px rgba(255, 255, 255, 0.04) !important;
+}
+
+body.theme-matte .settings-view .github-pages-url-value {
+    color: var(--text-primary) !important;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+body.theme-matte .settings-view .github-pages-url-copy {
+    background-color: var(--bg-glass) !important;
+    border-color: var(--border-subtle) !important;
+    color: var(--text-primary) !important;
+    box-shadow: -2px -2px 5px var(--matte-light), 3px 3px 6px var(--matte-dark) !important;
+}
+
+body.theme-matte .settings-view .github-pages-url-copy:hover:not(:disabled) {
+    box-shadow: -3px -3px 6px var(--matte-light), 4px 4px 8px var(--matte-dark) !important;
+}
+
+body.theme-matte .settings-view .github-pages-url-copy:active:not(:disabled) {
+    box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.45), inset -2px -2px 4px var(--matte-light) !important;
+}
+
 body.theme-matte .modal-pane {
     background-color: var(--bg-elevated);
     border-color: var(--border-subtle);

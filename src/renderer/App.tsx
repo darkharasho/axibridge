@@ -1220,19 +1220,27 @@ function App() {
                                     type="button"
                                     onClick={() => setWebhookDropdownOpen((prev) => !prev)}
                                     ref={webhookDropdownButtonRef}
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-3 h-11 flex items-center justify-between gap-2 text-sm text-gray-300 hover:border-purple-500/50 hover:bg-black/50 transition-colors"
+                                    className={`w-full rounded-xl px-3 h-11 flex items-center justify-between gap-2 text-sm transition-all ${uiTheme === 'matte'
+                                        ? `bg-[#222629] text-slate-400 ${webhookDropdownOpen
+                                            ? 'shadow-[inset_-2px_-2px_4px_#2b3034,inset_2px_2px_4px_#191c1e]'
+                                            : 'shadow-[-2px_-2px_4px_#2b3034,2px_2px_4px_#191c1e] hover:text-slate-200'}`
+                                        : 'bg-black/40 border border-white/5 text-gray-300 hover:border-purple-500/50 hover:bg-black/50'
+                                        }`}
                                     aria-haspopup="listbox"
                                     aria-expanded={webhookDropdownOpen}
                                 >
                                     <span className="truncate">
                                         {selectedWebhook?.name || 'Disabled'}
                                     </span>
-                                    <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
+                                    <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''} ${uiTheme === 'matte' ? 'text-slate-500' : 'text-gray-500'}`} />
                                 </button>
                             </div>
                             <button
                                 onClick={() => setWebhookModalOpen(true)}
-                                className="shrink-0 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-xl w-11 h-11 flex items-center justify-center gap-2 transition-colors"
+                                className={`shrink-0 rounded-xl w-11 h-11 flex items-center justify-center gap-2 transition-all ${uiTheme === 'matte'
+                                    ? 'bg-[#222629] text-slate-400 shadow-[-2px_-2px_4px_#2b3034,2px_2px_4px_#191c1e] hover:text-slate-200 active:shadow-[inset_-2px_-2px_4px_#2b3034,inset_2px_2px_4px_#191c1e]'
+                                    : 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                                    }`}
                                 title="Manage Webhooks"
                             >
                                 <Settings className="w-4 h-4" />
@@ -1286,6 +1294,7 @@ function App() {
                                         stroke="rgba(15, 23, 42, 0.9)"
                                         strokeWidth={1}
                                         paddingAngle={1}
+                                        isAnimationActive={false}
                                     >
                                         {uploadPieData.map((entry) => (
                                             <Cell key={entry.key} fill={entry.color} />
@@ -1375,6 +1384,7 @@ function App() {
                                     stroke="rgba(15, 23, 42, 0.9)"
                                     strokeWidth={1}
                                     paddingAngle={1}
+                                    isAnimationActive={false}
                                 >
                                     {uploadPieData.map((entry) => (
                                         <Cell key={entry.key} fill={entry.color} />

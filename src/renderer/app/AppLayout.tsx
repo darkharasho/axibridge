@@ -346,7 +346,10 @@ export function AppLayout({ ctx }: { ctx: any }) {
             {webhookDropdownOpen && webhookDropdownStyle && createPortal(
                 <div
                     ref={webhookDropdownPortalRef}
-                    className="glass-dropdown rounded-xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden"
+                    className={`rounded-xl overflow-hidden ${uiTheme === 'matte'
+                        ? 'bg-[#222629] shadow-[-5px_-5px_10px_#2b3034,5px_5px_10px_#191c1e]'
+                        : 'glass-dropdown border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)]'
+                        }`}
                     style={webhookDropdownStyle}
                     role="listbox"
                 >

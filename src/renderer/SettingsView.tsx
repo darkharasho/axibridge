@@ -1197,7 +1197,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                         <button
                                             key={item.id}
                                             onClick={() => scrollToSettingsSection(item.id)}
-                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 ${isActive
+                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden ${isActive
                                                 ? 'text-white'
                                                 : 'text-gray-400'
                                                 }`}
@@ -1205,7 +1205,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                             <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
                                                 {index + 1}
                                             </span>
-                                            <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
+                                            <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{item.label}</span>
                                         </button>
                                     );
                                 })}
@@ -1531,20 +1531,20 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                         {githubTemplateStatus}
                                     </div>
                                 )}
-                                <div className="bg-black/40 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-3 mt-3">
+                                <div className="github-pages-url-card bg-black/40 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-3 mt-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-1">GitHub Pages URL</div>
                                         <input
                                             type="text"
                                             value={inferredPagesUrl || 'Connect GitHub and select a repo'}
                                             readOnly
-                                            className="w-full bg-transparent text-sm text-gray-200 focus:outline-none"
+                                            className="github-pages-url-value w-full bg-transparent text-sm text-gray-200 focus:outline-none"
                                         />
                                     </div>
                                     <button
                                         onClick={handleCopyPagesUrl}
                                         disabled={!inferredPagesUrl}
-                                        className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-200 border-white/10 hover:border-white/30 disabled:opacity-50"
+                                        className="github-pages-url-copy px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-200 border-white/10 hover:border-white/30 disabled:opacity-50"
                                     >
                                         {pagesUrlCopied ? 'Copied' : 'Copy'}
                                     </button>
@@ -2290,7 +2290,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                             scrollToSettingsSection(item.id);
                                             setSettingsNavOpen(false);
                                         }}
-                                        className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 ${isActive
+                                        className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden ${isActive
                                             ? 'text-white'
                                             : 'text-gray-400'
                                             }`}
@@ -2298,7 +2298,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                         <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
                                             {settingsSections.findIndex((section) => section.id === item.id) + 1}
                                         </span>
-                                        <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
+                                        <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{item.label}</span>
                                     </button>
                                 );
                             })}
