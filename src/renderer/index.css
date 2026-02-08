@@ -2583,3 +2583,19 @@ body.theme-matte.web-report .text-gray-500.rounded-xl {
     border: 1px solid var(--border-subtle) !important;
     box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2) !important;
 }
+
+/* Matte: inset main content area inside What's New modal */
+body.theme-matte .whats-new-modal__body {
+    padding: 0 !important;
+    background: var(--bg-input);
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.7), inset -1px -1px 3px rgba(255, 255, 255, 0.05);
+}
+
+body.theme-matte .whats-new-modal__scroll {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 1.25rem 1rem 1.25rem 1.5rem;
+    max-height: 65vh;
+}
