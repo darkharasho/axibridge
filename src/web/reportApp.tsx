@@ -187,7 +187,50 @@ export function ReportApp() {
         const isLocalhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(window.location.host);
         return isLocalhost && window.location.pathname.startsWith('/web/');
     }, []);
-    const assetBasePath = isDevLocalWeb ? '/' : basePath;
+    const assetBasePathCandidates = useMemo(() => {
+        const primary = isDevLocalWeb ? '/' : basePath;
+        const candidates = [primary, './', '/'];
+        const deduped: string[] = [];
+        candidates.forEach((value) => {
+            let normalized = value || '/';
+            if (normalized !== './' && !normalized.endsWith('/')) {
+                normalized = `${normalized}/`;
+            }
+            if (!deduped.includes(normalized)) {
+                deduped.push(normalized);
+            }
+        });
+        return deduped;
+    }, [basePath, isDevLocalWeb]);
+    const [assetBasePath, setAssetBasePath] = useState<string>(assetBasePathCandidates[0] || '/');
+    const joinAssetPath = (base: string, relative: string) => {
+        const normalizedBase = base === './'
+            ? './'
+            : (base.endsWith('/') ? base : `${base}/`);
+        const normalizedRelative = String(relative || '').replace(/^\/+/, '');
+        return `${normalizedBase}${normalizedRelative}`;
+    };
+    useEffect(() => {
+        setAssetBasePath(assetBasePathCandidates[0] || '/');
+        let isMounted = true;
+        const resolve = async () => {
+            for (const candidate of assetBasePathCandidates) {
+                try {
+                    const response = await fetch(joinAssetPath(candidate, 'ui-theme.json'), { cache: 'no-store' });
+                    if (response.ok) {
+                        if (isMounted) setAssetBasePath(candidate);
+                        return;
+                    }
+                } catch {
+                    // Try next candidate.
+                }
+            }
+        };
+        void resolve();
+        return () => {
+            isMounted = false;
+        };
+    }, [assetBasePathCandidates]);
     const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
     const metricsSpecNav = useMemo(() => {
         const lines = metricsSpecMarkdown.split('\n');
@@ -538,7 +581,6 @@ export function ReportApp() {
                     .then((data) => {
                         if (!isMounted) return;
                         setIndex(Array.isArray(data) ? data : []);
-                        setUiTheme('classic');
                     })
                     .catch(() => {
                         if (!isMounted) return;
@@ -592,7 +634,7 @@ export function ReportApp() {
         if (isDevLocalWeb && report?.stats?.webThemeId) return;
         if (uiTheme === 'matte') return;
         let isMounted = true;
-        fetch(`${assetBasePath}theme.json`, { cache: 'no-store' })
+        fetch(joinAssetPath(assetBasePath, 'theme.json'), { cache: 'no-store' })
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
             .then((data) => {
                 if (!isMounted) return;
@@ -609,7 +651,7 @@ export function ReportApp() {
 
     useEffect(() => {
         let isMounted = true;
-        fetch(`${assetBasePath}ui-theme.json`, { cache: 'no-store' })
+        fetch(joinAssetPath(assetBasePath, 'ui-theme.json'), { cache: 'no-store' })
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
             .then((data) => {
                 if (!isMounted) return;
@@ -629,14 +671,14 @@ export function ReportApp() {
 
     useEffect(() => {
         let isMounted = true;
-        fetch(`${assetBasePath}logo.json`, { cache: 'no-store' })
+        fetch(joinAssetPath(assetBasePath, 'logo.json'), { cache: 'no-store' })
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
             .then((data) => {
                 if (!isMounted) return;
                 const defaultPath = 'img/ArcBridge.svg';
                 const path = data?.path ? String(data.path) : defaultPath;
                 const version = data?.updatedAt ? String(data.updatedAt) : '';
-                const urlBase = `${assetBasePath}${path}`.replace(/\/{2,}/g, '/');
+                const urlBase = joinAssetPath(assetBasePath, path);
                 const url = version ? `${urlBase}?v=${encodeURIComponent(version)}` : urlBase;
                 setLogoUrl(url);
                 setLogoIsDefault(!data?.path || path === defaultPath);
@@ -948,7 +990,7 @@ export function ReportApp() {
     );
 
     if (report) {
-        const arcbridgeLogoUrl = `${assetBasePath}img/ArcBridge.svg`.replace(/\/{2,}/g, '/');
+        const arcbridgeLogoUrl = joinAssetPath(assetBasePath, 'img/ArcBridge.svg');
         const handleGroupSelect = (groupId: string) => {
             pendingScrollIdRef.current = null;
             setActiveGroup(groupId);
