@@ -43,29 +43,50 @@ if (!app.isPackaged) {
     app.setPath('userData', devUserDataDir);
 }
 
-function formatLogArgs(args: any[]) {
-    return args.map(arg => {
+function formatLogArg(arg: any): string {
+    try {
         if (arg instanceof Error) {
-            return arg.stack || arg.message;
+            try {
+                if (typeof arg.stack === 'string' && arg.stack.length > 0) {
+                    return arg.stack;
+                }
+            } catch {
+                // Some stack getters can throw; fall through to message.
+            }
+            const errorName = typeof arg.name === 'string' && arg.name.length > 0 ? arg.name : 'Error';
+            const errorMessage = typeof arg.message === 'string' && arg.message.length > 0 ? arg.message : '[no message]';
+            return `${errorName}: ${errorMessage}`;
         }
         if (typeof arg === 'object' && arg !== null) {
             try {
                 return util.inspect(arg, {
-                    depth: 4,
+                    depth: 3,
                     maxArrayLength: 50,
+                    maxStringLength: 5000,
                     breakLength: 120,
                     customInspect: false,
+                    getters: false
                 });
             } catch {
                 try {
                     return Object.prototype.toString.call(arg);
                 } catch {
-                    return '[Unserializable]';
+                    return '[Unserializable object]';
                 }
             }
         }
         return String(arg);
-    }).join(' ');
+    } catch {
+        return '[Unserializable argument]';
+    }
+}
+
+function formatLogArgs(args: any[]) {
+    try {
+        return args.map((arg) => formatLogArg(arg)).join(' ');
+    } catch {
+        return '[Log formatting failed]';
+    }
 }
 
 const safeSendToRenderer = (payload: { type: 'info' | 'error'; message: string; timestamp: string }) => {
@@ -76,6 +97,16 @@ const safeSendToRenderer = (payload: { type: 'info' | 'error'; message: string; 
     } catch {
         // Swallow send errors to avoid recursive console errors when the renderer is gone.
     }
+};
+
+const sendCrashDiagDirect = (message: string) => {
+    const line = String(message);
+    try {
+        originalConsoleError(line);
+    } catch {
+        // Last-resort: ignore console transport failures.
+    }
+    safeSendToRenderer({ type: 'error', message: line, timestamp: new Date().toISOString() });
 };
 
 console.log = (...args) => {
@@ -95,6 +126,84 @@ console.error = (...args) => {
     originalConsoleError(message);
     safeSendToRenderer({ type: 'error', message, timestamp: new Date().toISOString() });
 };
+
+const isStackOverflowRangeError = (errorLike: any): boolean => {
+    const message = String(errorLike?.message || errorLike || '');
+    const name = String(errorLike?.name || '');
+    return (name === 'RangeError' && /maximum call stack size exceeded/i.test(message))
+        || /RangeError:\s*Maximum call stack size exceeded/i.test(message);
+};
+
+const buildMainCrashDiagnostics = () => {
+    let rssMb = 'n/a';
+    let heapUsedMb = 'n/a';
+    let heapTotalMb = 'n/a';
+    try {
+        const mem = process.memoryUsage();
+        rssMb = (mem.rss / 1024 / 1024).toFixed(1);
+        heapUsedMb = (mem.heapUsed / 1024 / 1024).toFixed(1);
+        heapTotalMb = (mem.heapTotal / 1024 / 1024).toFixed(1);
+    } catch {
+        // Ignore memory probe errors.
+    }
+    return {
+        processType: 'main',
+        pid: process.pid,
+        platform: process.platform,
+        arch: process.arch,
+        node: process.version,
+        electron: process.versions?.electron || 'unknown',
+        chrome: process.versions?.chrome || 'unknown',
+        appVersion: app.getVersion(),
+        isPackaged: app.isPackaged,
+        uptimeSec: Math.round(process.uptime()),
+        cwd: process.cwd(),
+        rssMb,
+        heapUsedMb,
+        heapTotalMb
+    };
+};
+
+const serializeCrashReason = (value: any): { name: string; message: string; stack: string | null } => {
+    if (value instanceof Error) {
+        return {
+            name: value.name || 'Error',
+            message: value.message || '[no message]',
+            stack: value.stack || null
+        };
+    }
+    const asString = String(value ?? 'Unknown error');
+    return {
+        name: 'NonError',
+        message: asString,
+        stack: null
+    };
+};
+
+const emitMainCrashDiagnostics = (source: 'uncaughtExceptionMonitor' | 'uncaughtException' | 'unhandledRejection', reason: any) => {
+    const payload = serializeCrashReason(reason);
+    const diagnostics = buildMainCrashDiagnostics();
+    sendCrashDiagDirect(`[CrashDiag] ${source} | name=${payload.name} | message=${payload.message}`);
+    sendCrashDiagDirect(`[CrashDiag] Runtime: ${JSON.stringify(diagnostics)}`);
+    if (payload.stack) {
+        sendCrashDiagDirect(`[CrashDiag] Stack:\n${payload.stack}`);
+    }
+};
+
+process.on('uncaughtExceptionMonitor', (error) => {
+    // Monitor fires before uncaughtException and helps capture diagnostics even if later handlers fail.
+    emitMainCrashDiagnostics('uncaughtExceptionMonitor', error);
+});
+
+process.on('uncaughtException', (error) => {
+    if (!isStackOverflowRangeError(error)) return;
+    emitMainCrashDiagnostics('uncaughtException', error);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+    if (!isStackOverflowRangeError(reason)) return;
+    emitMainCrashDiagnostics('unhandledRejection', reason);
+});
 
 const Store = require('electron-store');
 const store = new Store();
@@ -850,6 +959,7 @@ const pendingDiscordLogs = new Map<string, { result: any, jsonDetails: any }>();
 const recentDiscordSends = new Map<string, number>();
 const DISCORD_DEDUPE_TTL_MS = 2 * 60 * 1000;
 let bulkUploadMode = false;
+const BULK_PROCESS_CONCURRENCY = 3;
 const bulkLogDetailsCache = new Map<string, any>();
 const globalManifest: Array<any> = [];
 const globalManifestPath = () => path.join(process.cwd(), 'dev', 'manifest.json');
@@ -3032,13 +3142,21 @@ if (!gotTheLock) {
                     win?.webContents.send('upload-status', { id: fileId, filePath, status: 'queued' });
                 });
             }
-            // Process sequentially to avoid overwhelming the system
+            // Bounded concurrency lets non-upload steps overlap without flooding dps.report.
             (async () => {
                 bulkUploadMode = filePaths.length > 1;
-                for (const filePath of filePaths) {
-                    await processLogFile(filePath);
-                    // Small delay to allow UI updates to breathe
-                    await new Promise(resolve => setTimeout(resolve, 50));
+                const queue = [...filePaths];
+                const workerCount = Math.min(BULK_PROCESS_CONCURRENCY, queue.length);
+                const workers = Array.from({ length: workerCount }, async () => {
+                    while (queue.length > 0) {
+                        const nextPath = queue.shift();
+                        if (!nextPath) return;
+                        await processLogFile(nextPath);
+                        await new Promise((resolve) => setTimeout(resolve, 25));
+                    }
+                });
+                if (workers.length > 0) {
+                    await Promise.all(workers);
                 }
                 bulkUploadMode = false;
             })();

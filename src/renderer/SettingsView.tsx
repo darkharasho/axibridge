@@ -152,6 +152,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [metricsSpecSearch, setMetricsSpecSearch] = useState('');
     const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; tag: string; section: string; hitId: number }>>([]);
     const [metricsSpecSearchFocused, setMetricsSpecSearchFocused] = useState(false);
+    const [activeMetricsSpecHeadingId, setActiveMetricsSpecHeadingId] = useState('');
     const metricsSpecSearchRef = useRef<HTMLDivElement | null>(null);
     const metricsSpecHighlightRef = useRef<number | null>(null);
     const [activeSettingsSectionId, setActiveSettingsSectionId] = useState('appearance');
@@ -335,6 +336,34 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
 
         return items;
     }, [metricsSpecMarkdown]);
+
+    useEffect(() => {
+        if (!proofOfWorkOpen) {
+            setActiveMetricsSpecHeadingId('');
+            return;
+        }
+        const container = metricsSpecContentRef.current;
+        if (!container) return;
+
+        const syncActiveHeading = () => {
+            const headings = Array.from(container.querySelectorAll<HTMLElement>('[data-heading-id]'));
+            if (headings.length === 0) return;
+            const threshold = container.scrollTop + 18;
+            let nextId = metricsSpecNav[0]?.id || '';
+            for (const heading of headings) {
+                const id = heading.dataset.headingId || '';
+                if (!id) continue;
+                if (heading.offsetTop <= threshold) nextId = id;
+                else break;
+            }
+            if (nextId) setActiveMetricsSpecHeadingId(nextId);
+        };
+
+        syncActiveHeading();
+        const onScroll = () => requestAnimationFrame(syncActiveHeading);
+        container.addEventListener('scroll', onScroll, { passive: true });
+        return () => container.removeEventListener('scroll', onScroll);
+    }, [proofOfWorkOpen, metricsSpecNav]);
 
     useEffect(() => {
         if (uiTheme === 'crt') {
@@ -1197,7 +1226,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                         <button
                                             key={item.id}
                                             onClick={() => scrollToSettingsSection(item.id)}
-                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 ${isActive
+                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden ${isActive
                                                 ? 'text-white'
                                                 : 'text-gray-400'
                                                 }`}
@@ -1205,7 +1234,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                             <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
                                                 {index + 1}
                                             </span>
-                                            <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
+                                            <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{item.label}</span>
                                         </button>
                                     );
                                 })}
@@ -1531,20 +1560,20 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                         {githubTemplateStatus}
                                     </div>
                                 )}
-                                <div className="bg-black/40 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-3 mt-3">
+                                <div className="github-pages-url-card bg-black/40 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-3 mt-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-1">GitHub Pages URL</div>
                                         <input
                                             type="text"
                                             value={inferredPagesUrl || 'Connect GitHub and select a repo'}
                                             readOnly
-                                            className="w-full bg-transparent text-sm text-gray-200 focus:outline-none"
+                                            className="github-pages-url-value w-full bg-transparent text-sm text-gray-200 focus:outline-none"
                                         />
                                     </div>
                                     <button
                                         onClick={handleCopyPagesUrl}
                                         disabled={!inferredPagesUrl}
-                                        className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-200 border-white/10 hover:border-white/30 disabled:opacity-50"
+                                        className="github-pages-url-copy px-3 py-2 rounded-lg text-xs font-semibold border bg-white/5 text-gray-200 border-white/10 hover:border-white/30 disabled:opacity-50"
                                     >
                                         {pagesUrlCopied ? 'Copied' : 'Copy'}
                                     </button>
@@ -2290,7 +2319,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                             scrollToSettingsSection(item.id);
                                             setSettingsNavOpen(false);
                                         }}
-                                        className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 ${isActive
+                                        className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden ${isActive
                                             ? 'text-white'
                                             : 'text-gray-400'
                                             }`}
@@ -2298,7 +2327,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                         <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
                                             {settingsSections.findIndex((section) => section.id === item.id) + 1}
                                         </span>
-                                        <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
+                                        <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{item.label}</span>
                                     </button>
                                 );
                             })}
@@ -2671,49 +2700,49 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                             <div className="h-[65vh]">
                                 <div className="grid grid-cols-[230px_1fr] gap-4 h-full min-h-0">
                                     <div className="proof-of-work-sidebar h-full overflow-y-auto pr-2 rounded-xl border border-white/10 bg-white/5 p-3">
-                                        <div className="text-[10px] uppercase tracking-[0.3em] text-gray-400 mb-2">On This Page</div>
+                                        <div className="proof-of-work-toc-header text-[10px] uppercase tracking-[0.3em] text-gray-400 mb-2">On This Page</div>
                                         <div className="space-y-1">
-                                            {metricsSpecNav.map((item) => (
-                                                <button
-                                                    key={`${item.id}-${item.level}`}
-                                                    className={`w-full text-left flex items-center gap-2 py-1 min-w-0 transition-colors ${item.level === 1
-                                                        ? 'text-gray-300 hover:text-white'
-                                                        : item.level === 2
-                                                            ? 'text-gray-400 hover:text-gray-200'
-                                                            : 'text-gray-500 hover:text-gray-300'
-                                                        } ${item.level === 1
-                                                            ? ''
-                                                            : item.level === 2
-                                                                ? 'pl-4'
-                                                                : 'pl-6'
-                                                        }`}
-                                                    onClick={() => {
-                                                        const container = metricsSpecContentRef.current;
-                                                        if (!container) return;
-                                                        let target = container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`);
-                                                        if (!target) {
-                                                            const key = slugifyHeading(item.text);
-                                                            target = container.querySelector<HTMLElement>(`[data-heading-key="${key}"]`);
-                                                        }
-                                                        if (!target) {
-                                                            const normalized = item.text.trim().replace(/\s+/g, ' ');
-                                                            const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
-                                                            target = headings.find((node) => (node.textContent || '').trim().replace(/\s+/g, ' ') === normalized) || null;
-                                                        }
-                                                        if (!target) {
-                                                            return;
-                                                        }
-                                                        const containerTop = container.getBoundingClientRect().top;
-                                                        const targetTop = target.getBoundingClientRect().top;
-                                                        const scrollOffset = Math.max(0, targetTop - containerTop + container.scrollTop - 12);
-                                                        requestAnimationFrame(() => {
-                                                            container.scrollTop = scrollOffset;
-                                                        });
-                                                    }}
-                                                >
-                                                    <span className="text-[13px] font-medium truncate min-w-0">{item.text}</span>
-                                                </button>
-                                            ))}
+                                            {metricsSpecNav.map((item) => {
+                                                const isActive = item.id === activeMetricsSpecHeadingId;
+                                                const levelClass = item.level === 1
+                                                    ? 'proof-of-work-toc-item--l1'
+                                                    : item.level === 2
+                                                        ? 'proof-of-work-toc-item--l2'
+                                                        : 'proof-of-work-toc-item--l3';
+                                                return (
+                                                    <button
+                                                        key={`${item.id}-${item.level}`}
+                                                        className={`proof-of-work-toc-item ${levelClass} ${isActive ? 'proof-of-work-toc-item--active' : ''} w-full text-left flex items-center gap-2 min-w-0 transition-colors`}
+                                                        onClick={() => {
+                                                            const container = metricsSpecContentRef.current;
+                                                            if (!container) return;
+                                                            let target = container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`);
+                                                            if (!target) {
+                                                                const key = slugifyHeading(item.text);
+                                                                target = container.querySelector<HTMLElement>(`[data-heading-key="${key}"]`);
+                                                            }
+                                                            if (!target) {
+                                                                const normalized = item.text.trim().replace(/\s+/g, ' ');
+                                                                const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+                                                                target = headings.find((node) => (node.textContent || '').trim().replace(/\s+/g, ' ') === normalized) || null;
+                                                            }
+                                                            if (!target) {
+                                                                return;
+                                                            }
+                                                            const containerTop = container.getBoundingClientRect().top;
+                                                            const targetTop = target.getBoundingClientRect().top;
+                                                            const scrollOffset = Math.max(0, targetTop - containerTop + container.scrollTop - 12);
+                                                            requestAnimationFrame(() => {
+                                                                container.scrollTop = scrollOffset;
+                                                            });
+                                                            setActiveMetricsSpecHeadingId(item.id);
+                                                        }}
+                                                    >
+                                                        <span className="proof-of-work-toc-dot" aria-hidden="true" />
+                                                        <span className="proof-of-work-toc-label text-[13px] font-medium truncate min-w-0">{item.text}</span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                     <div className="proof-of-work-content h-full overflow-y-auto pr-2 rounded-xl border border-white/10 bg-black/30 p-4" ref={metricsSpecContentRef} id="metrics-spec-content">

@@ -63,10 +63,18 @@ export const PlayerBreakdownSection = ({
     classSkillBreakdowns,
     activePlayerKey,
     setActivePlayerKey,
+    expandedPlayerKey,
+    setExpandedPlayerKey,
+    activePlayerSkillId,
     setActivePlayerSkillId,
     activeClassKey,
     setActiveClassKey,
+    expandedClassKey,
+    setExpandedClassKey,
+    activeClassSkillId,
     setActiveClassSkillId,
+    skillSearch,
+    setSkillSearch,
     activePlayerBreakdown,
     activePlayerSkill,
     activeClassBreakdown,
@@ -84,6 +92,11 @@ export const PlayerBreakdownSection = ({
     const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
     const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
     const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: '', dir: 'desc' });
+    const [subSkillSearchByPlayer, setSubSkillSearchByPlayer] = useState<Record<string, string>>({});
+    const [subSkillSearchByClass, setSubSkillSearchByClass] = useState<Record<string, string>>({});
+    const sidebarBodyClass = isExpanded
+        ? 'overflow-y-auto space-y-1 pr-1 flex-1 min-h-0'
+        : `${sidebarListClass} max-h-72 overflow-y-auto`;
     const sortedClassRows = useMemo(() => {
         if (!activeClassBreakdown || !activeClassSkill) return activeClassRows;
         const rows = [...activeClassRows];
@@ -179,18 +192,33 @@ export const PlayerBreakdownSection = ({
                                     </div>
                                 )}
                             </div>
-                            <div className={expandedSection === 'player-breakdown' ? 'overflow-y-auto space-y-1 pr-1 flex-1 min-h-0' : sidebarListClass}>
+                            <div className="mb-2">
+                                <input
+                                    type="text"
+                                    value={skillSearch}
+                                    onChange={(event) => setSkillSearch(event.target.value)}
+                                    placeholder="Search skills..."
+                                    className="w-full rounded-lg border border-white/10 bg-black/30 px-2.5 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sky-500/60"
+                                />
+                            </div>
+                            <div className={sidebarBodyClass}>
                                 {(isExpanded ? 'class' : viewMode) === 'player'
                                     ? playerSkillBreakdowns.map((player) => (
                                         <div key={player.key} className="space-y-1">
                                         <button
                                             onClick={() => {
-                                                if (activePlayerKey !== player.key) {
+                                                const switchedPlayer = activePlayerKey !== player.key;
+                                                if (switchedPlayer) {
                                                     setActivePlayerSkillId(null);
                                                     setSelectedSkillIds([]);
                                                     setSelectedPlayers([]);
                                                 }
                                                 setActivePlayerKey(player.key);
+                                                setExpandedPlayerKey(
+                                                    switchedPlayer
+                                                        ? player.key
+                                                        : (expandedPlayerKey === player.key ? null : player.key)
+                                                );
                                             }}
                                             className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
                                                 activePlayerKey === player.key
@@ -209,18 +237,74 @@ export const PlayerBreakdownSection = ({
                                                 </div>
                                             </div>
                                             </button>
+                                            {!isExpanded && expandedPlayerKey === player.key && (
+                                                <div className="ml-2 space-y-1 border-l border-white/10 pl-2">
+                                                    <input
+                                                        type="text"
+                                                        value={subSkillSearchByPlayer[player.key] || ''}
+                                                        onChange={(event) => {
+                                                            const value = event.target.value;
+                                                            setSubSkillSearchByPlayer((prev) => ({ ...prev, [player.key]: value }));
+                                                        }}
+                                                        placeholder="Filter this player's skills..."
+                                                        className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sky-500/60"
+                                                    />
+                                                    {player.skills
+                                                        .filter((skill) => {
+                                                            const query = (subSkillSearchByPlayer[player.key] || '').trim().toLowerCase();
+                                                            if (!query) return true;
+                                                            return String(skill.name || '').toLowerCase().includes(query);
+                                                        })
+                                                        .map((skill) => (
+                                                            <button
+                                                                key={skill.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setActivePlayerKey(player.key);
+                                                                    setActivePlayerSkillId(skill.id);
+                                                                }}
+                                                                className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] border transition-colors ${
+                                                                    activePlayerKey === player.key && activePlayerSkillId === skill.id
+                                                                        ? 'bg-sky-500/20 text-sky-200 border-sky-500/30'
+                                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                                }`}
+                                                                title={skill.name}
+                                                            >
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    {skill.icon ? (
+                                                                        <img src={skill.icon} alt="" className="h-3.5 w-3.5 object-contain shrink-0" />
+                                                                    ) : null}
+                                                                    <span className="truncate">{skill.name}</span>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    {player.skills.filter((skill) => {
+                                                        const query = (subSkillSearchByPlayer[player.key] || '').trim().toLowerCase();
+                                                        if (!query) return true;
+                                                        return String(skill.name || '').toLowerCase().includes(query);
+                                                    }).length === 0 && (
+                                                        <div className="px-2 py-1 text-[10px] text-gray-500">No matching skills</div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ))
                                     : classSkillBreakdowns.map((bucket) => (
                                         <div key={bucket.profession} className="space-y-1">
                                             <button
                                                 onClick={() => {
-                                                    if (activeClassKey !== bucket.profession) {
+                                                    const switchedClass = activeClassKey !== bucket.profession;
+                                                    if (switchedClass) {
                                                         setActiveClassSkillId(null);
                                                         setSelectedSkillIds([]);
                                                         setSelectedPlayers([]);
                                                     }
                                                     setActiveClassKey(bucket.profession);
+                                                    setExpandedClassKey(
+                                                        switchedClass
+                                                            ? bucket.profession
+                                                            : (expandedClassKey === bucket.profession ? null : bucket.profession)
+                                                    );
                                                 }}
                                                 className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
                                                     activeClassKey === bucket.profession
@@ -238,6 +322,56 @@ export const PlayerBreakdownSection = ({
                                                     </div>
                                                 </div>
                                             </button>
+                                            {!isExpanded && expandedClassKey === bucket.profession && (
+                                                <div className="ml-2 space-y-1 border-l border-white/10 pl-2">
+                                                    <input
+                                                        type="text"
+                                                        value={subSkillSearchByClass[bucket.profession] || ''}
+                                                        onChange={(event) => {
+                                                            const value = event.target.value;
+                                                            setSubSkillSearchByClass((prev) => ({ ...prev, [bucket.profession]: value }));
+                                                        }}
+                                                        placeholder="Filter this class's skills..."
+                                                        className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sky-500/60"
+                                                    />
+                                                    {bucket.skills
+                                                        .filter((skill) => {
+                                                            const query = (subSkillSearchByClass[bucket.profession] || '').trim().toLowerCase();
+                                                            if (!query) return true;
+                                                            return String(skill.name || '').toLowerCase().includes(query);
+                                                        })
+                                                        .map((skill) => (
+                                                            <button
+                                                                key={skill.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setActiveClassKey(bucket.profession);
+                                                                    setActiveClassSkillId(skill.id);
+                                                                }}
+                                                                className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] border transition-colors ${
+                                                                    activeClassKey === bucket.profession && activeClassSkillId === skill.id
+                                                                        ? 'bg-sky-500/20 text-sky-200 border-sky-500/30'
+                                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                                }`}
+                                                                title={skill.name}
+                                                            >
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    {skill.icon ? (
+                                                                        <img src={skill.icon} alt="" className="h-3.5 w-3.5 object-contain shrink-0" />
+                                                                    ) : null}
+                                                                    <span className="truncate">{skill.name}</span>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    {bucket.skills.filter((skill) => {
+                                                        const query = (subSkillSearchByClass[bucket.profession] || '').trim().toLowerCase();
+                                                        if (!query) return true;
+                                                        return String(skill.name || '').toLowerCase().includes(query);
+                                                    }).length === 0 && (
+                                                        <div className="px-2 py-1 text-[10px] text-gray-500">No matching skills</div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                             </div>

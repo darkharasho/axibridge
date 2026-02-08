@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
 
@@ -58,8 +58,26 @@ interface StatsViewProps {
     canShareDiscord?: boolean;
 }
 
-const sidebarListClass = 'max-h-80 overflow-y-auto space-y-1 pr-1';
+const sidebarListClass = 'space-y-1 pr-1 max-h-72 overflow-y-auto';
 const NON_DAMAGING_CONDITIONS = new Set(['Vulnerability', 'Weakness', 'Blind', 'Chill', 'Cripple', 'Slow', 'Taunt', 'Fear', 'Immobilize']);
+const ORDERED_SECTION_IDS = [
+    'overview',
+    'fight-breakdown',
+    'top-players',
+    'top-skills-outgoing',
+    'squad-composition',
+    'timeline',
+    'map-distribution',
+    'boon-output',
+    'offense-detailed',
+    'conditions-outgoing',
+    'defense-detailed',
+    'support-detailed',
+    'healing-stats',
+    'special-buffs',
+    'skill-usage',
+    'apm-stats'
+] as const;
 
 export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, uiTheme, canShareDiscord = true }: StatsViewProps) {
     const activeMvpWeights = mvpWeights || DEFAULT_MVP_WEIGHTS;
@@ -426,6 +444,8 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         }
     }, [activeClassBreakdown, activeClassBreakdownSkillId]);
 
+    const selectedPlayersSet = useMemo(() => new Set(selectedPlayers), [selectedPlayers]);
+
     const {
         playerMapByKey,
         playerTotalsForSkill,
@@ -435,7 +455,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     } = useSkillCharts({
         skillUsageData,
         selectedSkillId,
-        selectedPlayers: new Set(selectedPlayers),
+        selectedPlayers: selectedPlayersSet,
         skillUsageView: skillUsageView === 'perSecond' ? 'perSecond' : 'total'
     });
 
@@ -541,9 +561,9 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
 
     const conditionRawSummary = conditionDirection === 'outgoing' ? safeStats.outgoingConditionSummary : safeStats.incomingConditionSummary;
     const conditionRawPlayers = conditionDirection === 'outgoing' ? safeStats.outgoingConditionPlayers : safeStats.incomingConditionPlayers;
-    const { summary: conditionSummary, players: conditionPlayers } = normalizeConditionData(
-        conditionRawSummary || [],
-        conditionRawPlayers || []
+    const { summary: conditionSummary, players: conditionPlayers } = useMemo(
+        () => normalizeConditionData(conditionRawSummary || [], conditionRawPlayers || []),
+        [normalizeConditionData, conditionRawSummary, conditionRawPlayers]
     );
     useEffect(() => {
         if (activeConditionName === 'all') return;
@@ -570,33 +590,21 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         return totals;
     }, [playerTotalsForSkill, playerMapByKey]);
 
-    const isSectionVisible = (id: string) => (sectionVisibility ? sectionVisibility(id) : true);
-    const sectionClass = (id: string, base: string) => {
+    const isSectionVisible = useCallback(
+        (id: string) => (sectionVisibility ? sectionVisibility(id) : true),
+        [sectionVisibility]
+    );
+    const sectionClass = useCallback((id: string, base: string) => {
         const visible = isSectionVisible(id);
         return `${base} transition-[opacity,transform] duration-700 ease-in-out ${visible
             ? 'opacity-100 translate-y-0 max-h-[99999px]'
             : 'opacity-0 -translate-y-2 max-h-0 h-0 min-h-0 overflow-hidden pointer-events-none p-0 !p-0 m-0 !mb-0 !mt-0 border-0 !border-0 border-transparent'}`;
-    };
-    const orderedSectionIds = [
-        'overview',
-        'fight-breakdown',
-        'top-players',
-        'top-skills-outgoing',
-        'squad-composition',
-        'timeline',
-        'map-distribution',
-        'boon-output',
-        'offense-detailed',
-        'conditions-outgoing',
-        'defense-detailed',
-        'support-detailed',
-        'healing-stats',
-        'special-buffs',
-        'skill-usage',
-        'apm-stats'
-    ];
-    const firstVisibleSectionId = orderedSectionIds.find((id) => isSectionVisible(id)) || null;
-    const isFirstVisibleSection = (id: string) => id === firstVisibleSectionId;
+    }, [isSectionVisible]);
+    const firstVisibleSectionId = useMemo(
+        () => ORDERED_SECTION_IDS.find((id) => isSectionVisible(id)) || null,
+        [isSectionVisible]
+    );
+    const isFirstVisibleSection = useCallback((id: string) => id === firstVisibleSectionId, [firstVisibleSectionId]);
 
 
 
@@ -887,8 +895,8 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     };
     const squadClassData = Array.isArray(safeStats?.squadClassData) ? safeStats.squadClassData : [];
     const enemyClassData = Array.isArray(safeStats?.enemyClassData) ? safeStats.enemyClassData : [];
-    const sortedSquadClassData = [...squadClassData].sort(sortByCountDesc);
-    const sortedEnemyClassData = [...enemyClassData].sort(sortByCountDesc);
+    const sortedSquadClassData = useMemo(() => [...squadClassData].sort(sortByCountDesc), [squadClassData]);
+    const sortedEnemyClassData = useMemo(() => [...enemyClassData].sort(sortByCountDesc), [enemyClassData]);
 
     const useModernLayout = false;
     const containerClass = embedded
@@ -920,12 +928,12 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         return '0.0';
     };
 
-    const renderProfessionIcon = (profession?: string, _professionList?: string[], className?: string) => {
+    const renderProfessionIcon = useCallback((profession?: string, _professionList?: string[], className?: string) => {
         const iconPath = getProfessionIconPath(profession || '');
         if (!iconPath) return null;
         const iconClass = className ? `${className} object-contain` : 'w-5 h-5 object-contain';
         return <img src={iconPath} alt={profession} className={iconClass} />;
-    };
+    }, []);
 
     return (
         <div className={containerClass}>
