@@ -1,6 +1,6 @@
 import { CSSProperties, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
-import { DEFAULT_WEB_THEME, MATTE_WEB_THEME, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
+import { DEFAULT_WEB_THEME, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -61,7 +61,34 @@ interface ReportIndexEntry {
     };
 }
 
+type UiThemeChoice = 'classic' | 'modern' | 'crt' | 'matte';
+
 const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md glass-card';
+const WEB_THEME_OVERRIDE_COOKIE = 'arcbridge_web_theme_override';
+const DEFAULT_THEME_SELECT_VALUE = '__default__';
+
+const readCookieValue = (name: string): string | null => {
+    if (typeof document === 'undefined') return null;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+    if (!match) return null;
+    try {
+        return decodeURIComponent(match[1]);
+    } catch {
+        return match[1];
+    }
+};
+
+const writeCookieValue = (name: string, value: string, days = 365) => {
+    if (typeof document === 'undefined') return;
+    const maxAge = Math.max(0, Math.floor(days * 24 * 60 * 60));
+    document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+};
+
+const clearCookieValue = (name: string) => {
+    if (typeof document === 'undefined') return;
+    document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+};
 
 const formatLocalRange = (start: string, end: string) => {
     try {
@@ -176,7 +203,10 @@ export function ReportApp() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
-    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte'>('classic');
+    const [uiTheme, setUiTheme] = useState<UiThemeChoice>('classic');
+    const [defaultUiTheme, setDefaultUiTheme] = useState<UiThemeChoice>('classic');
+    const [defaultThemeId, setDefaultThemeId] = useState<string>(DEFAULT_WEB_THEME.id);
+    const [themeIdOverride, setThemeIdOverride] = useState<string | null>(null);
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
     const [proofOfWorkTocItems, setProofOfWorkTocItems] = useState<TocHeading[]>([]);
     const [metricsSpecSearch, setMetricsSpecSearch] = useState('');
@@ -228,6 +258,43 @@ export function ReportApp() {
         const normalizedRelative = String(relative || '').replace(/^\/+/, '');
         return `${normalizedBase}${normalizedRelative}`;
     };
+
+    useEffect(() => {
+        const persisted = readCookieValue(WEB_THEME_OVERRIDE_COOKIE);
+        if (!persisted) return;
+        try {
+            const parsed = JSON.parse(persisted);
+            const themeId = typeof parsed?.themeId === 'string' ? parsed.themeId : null;
+            if (themeId && WEB_THEMES.some((entry) => entry.id === themeId)) {
+                setThemeIdOverride(themeId);
+            }
+        } catch {
+            // Ignore invalid cookie payload.
+        }
+    }, []);
+
+    useEffect(() => {
+        const effectiveThemeId = themeIdOverride || defaultThemeId;
+        const matchedTheme = WEB_THEMES.find((entry) => entry.id === effectiveThemeId) || DEFAULT_WEB_THEME;
+        setTheme(matchedTheme);
+    }, [themeIdOverride, defaultThemeId]);
+
+    useEffect(() => {
+        if (!themeIdOverride) {
+            setUiTheme(defaultUiTheme);
+            return;
+        }
+        if (themeIdOverride === MATTE_WEB_THEME_ID) {
+            setUiTheme('matte');
+            return;
+        }
+        if (themeIdOverride === 'CRT') {
+            setUiTheme('crt');
+            return;
+        }
+        setUiTheme('classic');
+    }, [themeIdOverride, defaultUiTheme]);
+
     useEffect(() => {
         setAssetBasePath(assetBasePathCandidates[0] || '/');
         let isMounted = true;
@@ -487,8 +554,8 @@ export function ReportApp() {
         };
         requestAnimationFrame(tick);
     }, [activeGroup]);
-    const isMatteUi = uiTheme === 'matte' || theme?.id === MATTE_WEB_THEME_ID || report?.stats?.webThemeId === MATTE_WEB_THEME_ID || theme?.label === 'Matte Slate' || (theme?.rgb || '').replace(/\s/g, '') === '93,163,194';
-    const resolvedTheme = isMatteUi ? MATTE_WEB_THEME : (theme ?? DEFAULT_WEB_THEME);
+    const isMatteUi = uiTheme === 'matte';
+    const resolvedTheme = theme ?? DEFAULT_WEB_THEME;
     const accentRgb = resolvedTheme.rgb;
     const defaultLogoColor = isMatteUi ? '#d8e1eb' : 'var(--accent)';
     const accentVars = {
@@ -551,9 +618,12 @@ export function ReportApp() {
                 setReport(normalized);
                 const themeChoice = normalized?.stats?.uiTheme;
                 if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte') {
-                    setUiTheme(themeChoice);
+                    setDefaultUiTheme(themeChoice);
                 } else if (normalized?.stats?.webThemeId === MATTE_WEB_THEME_ID) {
-                    setUiTheme('matte');
+                    setDefaultUiTheme('matte');
+                }
+                if (typeof normalized?.stats?.webThemeId === 'string' && normalized.stats.webThemeId) {
+                    setDefaultThemeId(normalized.stats.webThemeId);
                 }
             })
             .catch(() => {
@@ -589,21 +659,11 @@ export function ReportApp() {
     }, [report]);
 
     useEffect(() => {
-        if (!report) return;
-        if (uiTheme === 'matte') {
-            if (!theme || theme.id !== MATTE_WEB_THEME_ID) {
-                setTheme(MATTE_WEB_THEME);
-            }
-            return;
+        const requestedThemeId = report?.stats?.webThemeId;
+        if (typeof requestedThemeId === 'string' && requestedThemeId) {
+            setDefaultThemeId(requestedThemeId);
         }
-        const requestedThemeId = report.stats?.webThemeId;
-        if (!requestedThemeId) return;
-        if (!isDevLocalWeb && theme?.id === requestedThemeId) return;
-        const matched = WEB_THEMES.find((entry) => entry.id === requestedThemeId);
-        if (matched && (!theme || theme.id !== matched.id || isDevLocalWeb)) {
-            setTheme(matched);
-        }
-    }, [report, theme, isDevLocalWeb, uiTheme]);
+    }, [report]);
 
     useEffect(() => {
         const body = document.body;
@@ -617,17 +677,17 @@ export function ReportApp() {
 
     useEffect(() => {
         if (isDevLocalWeb && report?.stats?.webThemeId) return;
-        if (uiTheme === 'matte') return;
         let isMounted = true;
         fetch(joinAssetPath(assetBasePath, 'theme.json'), { cache: 'no-store' })
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
             .then((data) => {
                 if (!isMounted) return;
-                setTheme(data);
+                if (typeof data?.id === 'string' && data.id) {
+                    setDefaultThemeId(data.id);
+                }
             })
             .catch(() => {
                 if (!isMounted) return;
-                setTheme(null);
             });
         return () => {
             isMounted = false;
@@ -642,7 +702,7 @@ export function ReportApp() {
                 if (!isMounted) return;
                 const themeChoice = data?.theme;
                 if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte') {
-                    setUiTheme(themeChoice);
+                    setDefaultUiTheme(themeChoice);
                 }
             })
             .catch(() => {
@@ -698,11 +758,49 @@ export function ReportApp() {
         });
     }, [sortedIndex, searchTerm]);
 
+    const persistOverridesCookie = (nextThemeIdOverride: string | null) => {
+        if (!nextThemeIdOverride) {
+            clearCookieValue(WEB_THEME_OVERRIDE_COOKIE);
+            return;
+        }
+        writeCookieValue(WEB_THEME_OVERRIDE_COOKIE, JSON.stringify({
+            themeId: nextThemeIdOverride
+        }));
+    };
+
+    const selectThemeOverride = (value: string) => {
+        const nextThemeIdOverride = value === DEFAULT_THEME_SELECT_VALUE ? null : value;
+        if (nextThemeIdOverride && !WEB_THEMES.some((entry) => entry.id === nextThemeIdOverride)) return;
+        setThemeIdOverride(nextThemeIdOverride);
+        persistOverridesCookie(nextThemeIdOverride);
+    };
+
+    const themeSelectControl = (
+        <div className="flex items-center gap-2">
+            <div className="text-[9px] uppercase tracking-widest text-gray-400 whitespace-nowrap">Theme</div>
+            <select
+                value={themeIdOverride || DEFAULT_THEME_SELECT_VALUE}
+                onChange={(event) => selectThemeOverride(event.target.value)}
+                className="w-[132px] bg-white/5 border border-white/10 rounded-full px-2.5 py-1 text-[9px] uppercase tracking-widest text-white focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+            >
+                <option value={DEFAULT_THEME_SELECT_VALUE}>Default</option>
+                {WEB_THEMES.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                        {entry.label}
+                    </option>
+                ))}
+            </select>
+        </div>
+    );
+
     const legalNoticePane = (
         <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-[11px] text-gray-500">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.35em] text-gray-400">Legal Notice</div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-end gap-2">
+                    <div className="min-w-[160px]">
+                        {themeSelectControl}
+                    </div>
                     <a
                         href="https://github.com/darkharasho/ArcBridge"
                         target="_blank"
@@ -1375,7 +1473,7 @@ export function ReportApp() {
                                 <p className="text-xs sm:text-sm text-gray-400 mt-1">Select a report to view the full stats dashboard.</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
                             <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300">
                                 {filteredIndex.length} Reports
                             </div>
