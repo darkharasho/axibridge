@@ -117,6 +117,61 @@ console.error = (...args) => {
     safeSendToRenderer({ type: 'error', message, timestamp: new Date().toISOString() });
 };
 
+const isStackOverflowRangeError = (errorLike: any): boolean => {
+    const message = String(errorLike?.message || errorLike || '');
+    const name = String(errorLike?.name || '');
+    return (name === 'RangeError' && /maximum call stack size exceeded/i.test(message))
+        || /RangeError:\s*Maximum call stack size exceeded/i.test(message);
+};
+
+const buildMainCrashDiagnostics = () => {
+    let rssMb = 'n/a';
+    let heapUsedMb = 'n/a';
+    let heapTotalMb = 'n/a';
+    try {
+        const mem = process.memoryUsage();
+        rssMb = (mem.rss / 1024 / 1024).toFixed(1);
+        heapUsedMb = (mem.heapUsed / 1024 / 1024).toFixed(1);
+        heapTotalMb = (mem.heapTotal / 1024 / 1024).toFixed(1);
+    } catch {
+        // Ignore memory probe errors.
+    }
+    return {
+        processType: 'main',
+        pid: process.pid,
+        platform: process.platform,
+        arch: process.arch,
+        node: process.version,
+        electron: process.versions?.electron || 'unknown',
+        chrome: process.versions?.chrome || 'unknown',
+        appVersion: app.getVersion(),
+        isPackaged: app.isPackaged,
+        uptimeSec: Math.round(process.uptime()),
+        cwd: process.cwd(),
+        rssMb,
+        heapUsedMb,
+        heapTotalMb
+    };
+};
+
+process.on('uncaughtException', (error) => {
+    if (!isStackOverflowRangeError(error)) return;
+    console.error('[CrashDiag] Caught uncaughtException: RangeError maximum call stack size exceeded.');
+    console.error('[CrashDiag] Main runtime diagnostics:', buildMainCrashDiagnostics());
+    console.error('[CrashDiag] Stack:', error?.stack || error?.message || String(error));
+});
+
+process.on('unhandledRejection', (reason: any) => {
+    if (!isStackOverflowRangeError(reason)) return;
+    console.error('[CrashDiag] Caught unhandledRejection: RangeError maximum call stack size exceeded.');
+    console.error('[CrashDiag] Main runtime diagnostics:', buildMainCrashDiagnostics());
+    console.error('[CrashDiag] Rejection reason:', {
+        name: reason?.name,
+        message: reason?.message || String(reason),
+        stack: reason?.stack || null
+    });
+});
+
 const Store = require('electron-store');
 const store = new Store();
 

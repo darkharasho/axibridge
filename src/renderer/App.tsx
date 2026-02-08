@@ -203,6 +203,63 @@ function App() {
         precomputedStats: precomputedStats || undefined
     });
     const { stats: computedStats, skillUsageData: computedSkillUsageData } = aggregationResult;
+    const lastRangeErrorLogAtRef = useRef(0);
+
+    useEffect(() => {
+        const shouldLog = (name: unknown, message: unknown) => {
+            const n = String(name || '');
+            const m = String(message || '');
+            return (n === 'RangeError' && /maximum call stack size exceeded/i.test(m))
+                || /RangeError:\s*Maximum call stack size exceeded/i.test(m)
+                || /maximum call stack size exceeded/i.test(m);
+        };
+        const throttle = () => {
+            const now = Date.now();
+            if (now - lastRangeErrorLogAtRef.current < 2000) return false;
+            lastRangeErrorLogAtRef.current = now;
+            return true;
+        };
+        const onWindowError = (event: ErrorEvent) => {
+            if (!shouldLog(event.error?.name, event.message) || !throttle()) return;
+            window.electronAPI.logToMain({
+                level: 'error',
+                message: '[CrashDiag] Renderer window error: RangeError maximum call stack size exceeded.',
+                meta: {
+                    processType: 'renderer',
+                    href: window.location.href,
+                    userAgent: navigator.userAgent,
+                    message: event.message,
+                    filename: event.filename,
+                    lineno: event.lineno,
+                    colno: event.colno,
+                    stack: event.error?.stack || null
+                }
+            });
+        };
+        const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+            const reason: any = event.reason;
+            if (!shouldLog(reason?.name, reason?.message || reason) || !throttle()) return;
+            window.electronAPI.logToMain({
+                level: 'error',
+                message: '[CrashDiag] Renderer unhandled rejection: RangeError maximum call stack size exceeded.',
+                meta: {
+                    processType: 'renderer',
+                    href: window.location.href,
+                    userAgent: navigator.userAgent,
+                    name: reason?.name,
+                    message: reason?.message || String(reason),
+                    stack: reason?.stack || null
+                }
+            });
+        };
+
+        window.addEventListener('error', onWindowError);
+        window.addEventListener('unhandledrejection', onUnhandledRejection);
+        return () => {
+            window.removeEventListener('error', onWindowError);
+            window.removeEventListener('unhandledrejection', onUnhandledRejection);
+        };
+    }, []);
 
     const lastUploadCompleteAtRef = useRef(0);
     const bulkStatsAwaitingRef = useRef(false);
