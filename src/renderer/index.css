@@ -444,20 +444,25 @@ body.theme-matte .app-titlebar .text-gray-400 {
 
 body.theme-matte .app-titlebar button {
     color: var(--text-secondary) !important;
-    background: var(--bg-elevated);
-    border-radius: 8px;
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    border-radius: 0 !important;
     width: 28px;
     height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
-    box-shadow: none;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    transition: color 0.2s ease;
 }
 
 body.theme-matte .app-titlebar button:hover {
     color: var(--text-primary) !important;
-    box-shadow: none;
+    background: transparent !important;
+    box-shadow: none !important;
 }
 
 body.theme-matte .app-titlebar button:active {
@@ -1989,7 +1994,7 @@ button:focus-visible,
     color: #bfdbfe;
 }
 
-.stats-table-sidebar > :last-child {
+.stats-table-sidebar> :last-child {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
