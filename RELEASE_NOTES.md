@@ -1,16 +1,18 @@
 # Release Notes
 
-Version v1.26.1 — February 8, 2026
+Version v1.26.2 — February 8, 2026
 
 ## 🌟 Highlights
-- Matte theme gets a visual polish: titlebar buttons look cleaner and feel smoother.
-- UI navigation feels more consistent thanks to a corrected sidebar selector.
+- Theme dropdown updated for easier theme selection.
+- Spike drilldown markers across app and web unified; dashboard UI parity improved.
+- Matte table surfaces and nav/list styling unified across app and web reports.
 
 ## 🛠️ Improvements
-- Titlebar buttons in matte theme no longer show backgrounds or borders; colors transition smoothly on hover and focus.
+- UI styling refreshed for a more consistent look across stats views.
+- Web assets updated to align visuals with the app.
 
 ## 🧯 Fixes
-- Corrected the sidebar selector to ensure the active section is highlighted reliably.
+None.
 
 ## ⚠️ Breaking Changes
-- None.
+None.
