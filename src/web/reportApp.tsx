@@ -87,6 +87,23 @@ const formatReportTitle = (start: string) => {
     return `${dateLabel} - ${dayName} ${period} Raid`;
 };
 
+type TocHeading = {
+    level: number;
+    text: string;
+    id: string;
+    nodeIndex: number;
+};
+
+const slugifyHeadingText = (label: string) =>
+    label
+        .toLowerCase()
+        .trim()
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+
 const MapDonut = ({ slices }: { slices: Array<{ value: number; color: string }> }) => {
     const radius = 18;
     const circumference = 2 * Math.PI * radius;
@@ -161,6 +178,7 @@ export function ReportApp() {
     const [tocOpen, setTocOpen] = useState(false);
     const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte'>('classic');
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
+    const [proofOfWorkTocItems, setProofOfWorkTocItems] = useState<TocHeading[]>([]);
     const [metricsSpecSearch, setMetricsSpecSearch] = useState('');
     const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; section: string; hitId: number }>>([]);
     const [metricsSpecSearchFocused, setMetricsSpecSearchFocused] = useState(false);
@@ -231,68 +249,6 @@ export function ReportApp() {
             isMounted = false;
         };
     }, [assetBasePathCandidates]);
-    const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
-    const metricsSpecNav = useMemo(() => {
-        const lines = metricsSpecMarkdown.split('\n');
-        const counts = new Map<string, number>();
-        const items: Array<{ level: number; text: string; id: string }> = [];
-
-        const slugifyHeading = (label: string) =>
-            label
-                .toLowerCase()
-                .trim()
-                .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-                .replace(/`([^`]+)`/g, '$1')
-                .replace(/[^a-z0-9\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-');
-
-        const buildId = (label: string) => {
-            const key = slugifyHeading(label || 'section') || 'section';
-            const next = (counts.get(key) ?? 0) + 1;
-            counts.set(key, next);
-            return next === 1 ? key : `${key}-${next}`;
-        };
-
-        for (const line of lines) {
-            const match = /^(#{1,3})\s+(.*)\s*$/.exec(line);
-            if (!match) continue;
-            const level = match[1].length;
-            const text = match[2].trim();
-            if (!text) continue;
-            items.push({ level, text, id: buildId(text) });
-        }
-
-        return items;
-    }, [metricsSpecMarkdown]);
-
-    const slugifyHeading = (label: string) =>
-        label
-            .toLowerCase()
-            .trim()
-            .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-            .replace(/`([^`]+)`/g, '$1')
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-');
-
-    const extractHeadingText = (node: React.ReactNode): string => {
-        if (typeof node === 'string' || typeof node === 'number') return String(node);
-        if (Array.isArray(node)) return node.map(extractHeadingText).join('');
-        if (node && typeof node === 'object' && 'props' in node) {
-            return extractHeadingText((node as any).props?.children);
-        }
-        return '';
-    };
-
-    const buildHeadingId = (label: string) => {
-        const key = slugifyHeading(label || 'section') || 'section';
-        const counts = metricsSpecHeadingCountsRef.current;
-        const next = (counts.get(key) ?? 0) + 1;
-        counts.set(key, next);
-        return next === 1 ? key : `${key}-${next}`;
-    };
-
     const renderHighlightedMatch = (text: string, query: string) => {
         const trimmed = query.trim();
         if (!trimmed) return text;
@@ -372,6 +328,29 @@ export function ReportApp() {
 
     useEffect(() => {
         if (!proofOfWorkOpen) return;
+        setProofOfWorkTocItems([]);
+        const collectHeadings = () => {
+            const container = metricsSpecContentRef.current;
+            if (!container) return;
+            const headingNodes = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+            const counts = new Map<string, number>();
+            const nextItems: TocHeading[] = [];
+            headingNodes.forEach((node, nodeIndex) => {
+                const level = Number.parseInt(node.tagName.replace('H', ''), 10);
+                if (!Number.isFinite(level) || level < 1 || level > 3) return;
+                const text = (node.textContent || '').trim();
+                if (!text) return;
+                const key = slugifyHeadingText(text) || 'section';
+                const count = (counts.get(key) ?? 0) + 1;
+                counts.set(key, count);
+                const id = count === 1 ? key : `${key}-${count}`;
+                node.id = id;
+                node.dataset.headingId = id;
+                nextItems.push({ level, text, id, nodeIndex });
+            });
+            setProofOfWorkTocItems(nextItems);
+        };
+        const frame = window.requestAnimationFrame(collectHeadings);
         const handleMouseDown = (event: MouseEvent) => {
             const target = event.target as Node | null;
             if (!target) return;
@@ -380,8 +359,12 @@ export function ReportApp() {
             setMetricsSpecSearchResults([]);
         };
         window.addEventListener('mousedown', handleMouseDown);
-        return () => window.removeEventListener('mousedown', handleMouseDown);
+        return () => {
+            window.cancelAnimationFrame(frame);
+            window.removeEventListener('mousedown', handleMouseDown);
+        };
     }, [proofOfWorkOpen]);
+
     const navGroups = useMemo(() => ([
         {
             id: 'overview',
@@ -734,12 +717,16 @@ export function ReportApp() {
                     >
                         Discord
                     </a>
-                    <button
-                        onClick={() => setProofOfWorkOpen(true)}
+                    <a
+                        href="#proof-of-work"
+                        onClick={(event) => {
+                            event.preventDefault();
+                            setProofOfWorkOpen(true);
+                        }}
                         className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 text-gray-400 border-white/10 hover:text-white"
                     >
                         Proof of Work
-                    </button>
+                    </a>
                 </div>
             </div>
             <p>
@@ -793,7 +780,7 @@ export function ReportApp() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
             onClick={(event) => event.target === event.currentTarget && setProofOfWorkOpen(false)}
         >
-            <div className="w-full max-w-4xl bg-[#101826]/90 border border-white/10 rounded-2xl shadow-2xl p-6">
+            <div className="proof-of-work-modal w-full max-w-4xl bg-[#101826]/90 border border-white/10 rounded-2xl shadow-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <div className="text-lg font-bold text-white">Proof of Work</div>
@@ -826,10 +813,10 @@ export function ReportApp() {
                                     }
                                 }}
                                 placeholder="Search spec..."
-                                className="w-52 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                                className="proof-of-work-search w-52 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
                             />
                             {metricsSpecSearchFocused && metricsSpecSearchResults.length > 0 && metricsSpecSearch.trim().length >= 2 && (
-                                <div className="absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#11161e]/95 shadow-xl z-10">
+                                <div className="proof-of-work-search-results absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#11161e]/95 shadow-xl z-10">
                                     {metricsSpecSearchResults.map((result) => (
                                         <button
                                             key={`${result.index}-${result.text}`}
@@ -860,13 +847,16 @@ export function ReportApp() {
                 </div>
                 <div className="h-[65vh]">
                     <div className="grid grid-cols-[220px_1fr] gap-4 h-full min-h-0">
-                        <div className="h-full overflow-y-auto pr-2">
-                            <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">On This Page</div>
+                        <div className="proof-of-work-sidebar h-full overflow-y-auto pr-2">
+                            <div className="proof-of-work-toc-header text-xs uppercase tracking-wide text-gray-500 mb-2">On This Page</div>
                             <div className="space-y-1">
-                                {metricsSpecNav.map((item) => (
+                                {proofOfWorkTocItems.length === 0 && (
+                                    <div className="px-2 py-1 text-[11px] text-gray-500">Loading sections…</div>
+                                )}
+                                {proofOfWorkTocItems.map((item) => (
                                     <button
                                         key={`${item.id}-${item.level}`}
-                                        className={`w-full text-left text-xs rounded-md px-2 py-1 transition-colors ${item.level === 1
+                                        className={`proof-of-work-toc-item ${item.level === 1 ? 'proof-of-work-toc-item--l1' : item.level === 2 ? 'proof-of-work-toc-item--l2' : 'proof-of-work-toc-item--l3'} w-full text-left text-xs rounded-md px-2 py-1 transition-colors ${item.level === 1
                                             ? 'text-gray-300 hover:text-white'
                                             : item.level === 2
                                                 ? 'text-gray-300 hover:text-white'
@@ -875,54 +865,34 @@ export function ReportApp() {
                                         onClick={() => {
                                             const container = metricsSpecContentRef.current;
                                             if (!container) return;
-                                            const target = container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`);
+                                            const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+                                            const target = headings[item.nodeIndex]
+                                                || container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`)
+                                                || container.querySelector<HTMLElement>(`#${item.id}`);
                                             if (!target) return;
-                                            const containerTop = container.getBoundingClientRect().top;
-                                            const targetTop = target.getBoundingClientRect().top;
-                                            const scrollOffset = Math.max(0, targetTop - containerTop + container.scrollTop - 12);
                                             requestAnimationFrame(() => {
-                                                container.scrollTop = scrollOffset;
+                                                target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+                                                const containerRect = container.getBoundingClientRect();
+                                                const targetRect = target.getBoundingClientRect();
+                                                const scrollOffset = container.scrollTop + (targetRect.top - containerRect.top) - 12;
+                                                container.scrollTo({ top: Math.max(0, scrollOffset), behavior: 'smooth' });
                                             });
                                         }}
                                     >
-                                        {item.level === 3 ? '• ' : ''}
-                                        {item.text}
+                                        {item.level === 3 && <span className="proof-of-work-toc-dot mr-1 inline-block align-middle" />}
+                                        <span className="proof-of-work-toc-label">{item.text}</span>
                                     </button>
                                 ))}
                             </div>
                         </div>
-                        <div className="h-full overflow-y-auto pr-2" ref={metricsSpecContentRef} id="metrics-spec-content">
+                        <div className="proof-of-work-content h-full overflow-y-auto px-4 py-3" ref={metricsSpecContentRef} id="metrics-spec-content">
                             <div className="space-y-4 text-sm text-gray-200">
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
-                                        h1: ({ children }) => {
-                                            const label = extractHeadingText(children);
-                                            const id = buildHeadingId(label);
-                                            return (
-                                                <h1 id={id} data-heading-id={id} className="text-2xl font-bold text-white scroll-mt-6">
-                                                    {children}
-                                                </h1>
-                                            );
-                                        },
-                                        h2: ({ children }) => {
-                                            const label = extractHeadingText(children);
-                                            const id = buildHeadingId(label);
-                                            return (
-                                                <h2 id={id} data-heading-id={id} className="text-xl font-semibold text-white scroll-mt-6">
-                                                    {children}
-                                                </h2>
-                                            );
-                                        },
-                                        h3: ({ children }) => {
-                                            const label = extractHeadingText(children);
-                                            const id = buildHeadingId(label);
-                                            return (
-                                                <h3 id={id} data-heading-id={id} className="text-lg font-semibold text-white scroll-mt-6">
-                                                    {children}
-                                                </h3>
-                                            );
-                                        },
+                                        h1: ({ children }) => <h1 className="text-2xl font-bold text-white scroll-mt-6">{children}</h1>,
+                                        h2: ({ children }) => <h2 className="text-xl font-semibold text-white scroll-mt-6">{children}</h2>,
+                                        h3: ({ children }) => <h3 className="text-lg font-semibold text-white scroll-mt-6">{children}</h3>,
                                         p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
                                         ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
                                         ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
@@ -965,8 +935,8 @@ export function ReportApp() {
                                             </pre>
                                         ),
                                         code: (props: any) => {
-                                            const { inline, className, children } = props;
-                                            const isInline = inline ?? !className;
+                                            const { inline, children } = props;
+                                            const isInline = inline === true;
                                             return isInline ? (
                                                 <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
                                                     {children}

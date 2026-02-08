@@ -2263,7 +2263,7 @@ body.theme-matte .proof-of-work-content li {
     color: var(--text-secondary) !important;
 }
 
-body.theme-matte .proof-of-work-content code {
+body.theme-matte .proof-of-work-content :not(pre)>code {
     background-color: var(--bg-input) !important;
     border: 1px solid var(--border-subtle) !important;
     color: #93c5fd !important;
@@ -2273,6 +2273,13 @@ body.theme-matte .proof-of-work-content code {
 body.theme-matte .proof-of-work-content pre {
     background-color: var(--bg-input) !important;
     border: 1px solid var(--border-subtle) !important;
+}
+
+body.theme-matte .proof-of-work-content pre code {
+    background: transparent !important;
+    border: 0 !important;
+    color: #d9e6f7 !important;
+    padding: 0 !important;
 }
 
 /* =========================================
