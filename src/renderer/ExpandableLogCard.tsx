@@ -146,7 +146,12 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         ];
         const raw = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
         if (!raw) return 'Unknown Borderland';
-        const normalized = String(raw).trim().replace(/^Detailed\s+WvW\s*-\s*/i, '');
+        const normalized = String(raw)
+            .trim()
+            .replace(/^Detailed\s*WvW\s*-\s*/i, '')
+            .replace(/^World\s*vs\s*World\s*-\s*/i, '')
+            .replace(/^WvW\s*-\s*/i, '')
+            .trim();
         if (/borderlands?/i.test(normalized)) {
             return normalized.replace(/\bborderlands?\b/i, 'Borderland');
         }

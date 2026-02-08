@@ -728,6 +728,8 @@ const pruneDetailsForStats = (details: any) => {
                 'buffUptimes',
                 'totalDamageDist',
                 'targetDamageDist',
+                'damage1S',
+                'targetDamage1S',
                 'totalDamageTaken',
                 'totalDamageTakenDist',
                 'minions',

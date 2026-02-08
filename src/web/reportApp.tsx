@@ -395,9 +395,10 @@ export function ReportApp() {
             id: 'offense',
             label: 'Offensive Stats',
             icon: Swords,
-            sectionIds: ['offense-detailed', 'conditions-outgoing'],
+            sectionIds: ['offense-detailed', 'spike-damage', 'conditions-outgoing'],
             items: [
                 { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords },
+                { id: 'spike-damage', label: 'Spike Damage', icon: Zap },
                 { id: 'conditions-outgoing', label: 'Conditions', icon: Skull }
             ]
         },

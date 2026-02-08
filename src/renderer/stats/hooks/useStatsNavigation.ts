@@ -16,6 +16,7 @@ export const useStatsNavigation = (embedded: boolean) => {
         { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon },
         { id: 'boon-output', label: 'Boon Output', icon: ShieldCheck },
         { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords },
+        { id: 'spike-damage', label: 'Spike Damage', icon: Zap },
         { id: 'conditions-outgoing', label: 'Conditions', icon: Skull },
         { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
         { id: 'defense-mitigation', label: 'Damage Mitigation', icon: ShieldAlert },

@@ -42,7 +42,11 @@ export const FightBreakdownSection = ({
             })
             : '--';
         const rawMap = fight?.mapName || fight?.map || 'Unknown Map';
-        const mapLabel = String(rawMap).replace(/^Detailed\s*WvW\s*-\s*/i, '').trim();
+        const mapLabel = String(rawMap)
+            .replace(/^Detailed\s*WvW\s*-\s*/i, '')
+            .replace(/^World\s*vs\s*World\s*-\s*/i, '')
+            .replace(/^WvW\s*-\s*/i, '')
+            .trim();
         return `${dateLabel} • ${mapLabel}`;
     };
 

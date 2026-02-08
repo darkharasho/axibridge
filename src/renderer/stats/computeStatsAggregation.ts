@@ -1922,6 +1922,252 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             })
             .filter(Boolean);
 
+        const getHighestSingleHit = (player: any, details: any) => {
+            const skillMap = details?.skillMap || {};
+            const buffMap = details?.buffMap || {};
+            let bestValue = 0;
+            let bestName = '';
+            const resolveSkillName = (rawId: any) => {
+                const idNum = Number(rawId);
+                if (!Number.isFinite(idNum)) return String(rawId || 'Unknown Skill');
+                const mapped = skillMap?.[`s${idNum}`] || skillMap?.[`${idNum}`];
+                if (mapped?.name) return String(mapped.name);
+                const buffMapped = buffMap?.[`b${idNum}`] || buffMap?.[`${idNum}`];
+                if (buffMapped?.name) return String(buffMapped.name);
+                return `Skill ${idNum}`;
+            };
+            const readEntryPeak = (entry: any) => {
+                if (!entry || typeof entry !== 'object') return;
+                const candidates = [
+                    Number(entry.max),
+                    Number(entry.maxDamage),
+                    Number(entry.maxHit),
+                    Number(entry.totalDamage) > 0 && Number(entry.connectedHits) > 0
+                        ? Number(entry.totalDamage) / Number(entry.connectedHits)
+                        : 0
+                ].filter((n) => Number.isFinite(n));
+                const peak = candidates.length > 0 ? Math.max(...candidates) : 0;
+                if (peak > bestValue) {
+                    bestValue = peak;
+                    bestName = resolveSkillName(entry.id);
+                }
+            };
+            if (Array.isArray(player?.totalDamageDist)) {
+                player.totalDamageDist.forEach((list: any) => {
+                    if (!Array.isArray(list)) return;
+                    list.forEach((entry: any) => readEntryPeak(entry));
+                });
+            }
+            if (Array.isArray(player?.targetDamageDist)) {
+                player.targetDamageDist.forEach((targetGroup: any) => {
+                    if (!Array.isArray(targetGroup)) return;
+                    targetGroup.forEach((list: any) => {
+                        if (!Array.isArray(list)) return;
+                        list.forEach((entry: any) => readEntryPeak(entry));
+                    });
+                });
+            }
+            return { peak: bestValue, skillName: bestName || 'Unknown Skill' };
+        };
+
+        const spikeDamage = (() => {
+            const sanitizeWvwLabel = (value: any) => String(value || '')
+                .replace(/^Detailed\s*WvW\s*-\s*/i, '')
+                .replace(/^World\s*vs\s*World\s*-\s*/i, '')
+                .replace(/^WvW\s*-\s*/i, '')
+                .trim();
+            const tokenizeLabel = (value: string) => sanitizeWvwLabel(value)
+                .toLowerCase()
+                .split(/[^a-z0-9]+/i)
+                .map((token) => token.trim())
+                .filter(Boolean)
+                .map((token) => (token.length > 3 && token.endsWith('s') ? token.slice(0, -1) : token));
+            const buildFightLabel = (fightNameRaw: string, mapNameRaw: string) => {
+                const fightName = sanitizeWvwLabel(fightNameRaw);
+                const mapName = sanitizeWvwLabel(mapNameRaw);
+                if (!mapName) return fightName;
+                if (!fightName) return mapName;
+                const fightTokens = tokenizeLabel(fightName);
+                const mapTokens = tokenizeLabel(mapName);
+                const fightSet = new Set(fightTokens);
+                const mapSet = new Set(mapTokens);
+                const mapCovered = mapTokens.length > 0 && mapTokens.every((token) => fightSet.has(token));
+                const fightCovered = fightTokens.length > 0 && fightTokens.every((token) => mapSet.has(token));
+                if (mapCovered || fightCovered) return fightName;
+                return `${fightName} - ${mapName}`;
+            };
+            const fights: Array<{
+                id: string;
+                shortLabel: string;
+                fullLabel: string;
+                timestamp: number;
+                values: Record<string, { hit: number; burst1s: number; burst5s: number; skillName: string }>;
+                maxHit: number;
+                max1s: number;
+                max5s: number;
+            }> = [];
+            const playerMap = new Map<string, {
+                key: string;
+                account: string;
+                displayName: string;
+                characterName: string;
+                profession: string;
+                professionList: string[];
+                logs: number;
+                peakHit: number;
+                peak1s: number;
+                peak5s: number;
+                peakFightLabel: string;
+                peakSkillName: string;
+            }>();
+
+            const getBurstFromTimeline = (player: any, seconds: number) => {
+                const toPerSecond = (series: number[]) => {
+                    if (!Array.isArray(series) || series.length === 0) return [] as number[];
+                    const deltas: number[] = [];
+                    for (let i = 0; i < series.length; i += 1) {
+                        const current = Number(series[i] || 0);
+                        const prev = i > 0 ? Number(series[i - 1] || 0) : 0;
+                        deltas.push(Math.max(0, current - prev));
+                    }
+                    return deltas;
+                };
+                const maxRolling = (values: number[], window: number) => {
+                    if (!Array.isArray(values) || values.length === 0 || window <= 0) return 0;
+                    let sum = 0;
+                    let best = 0;
+                    for (let i = 0; i < values.length; i += 1) {
+                        sum += Number(values[i] || 0);
+                        if (i >= window) {
+                            sum -= Number(values[i - window] || 0);
+                        }
+                        if (i >= window - 1 && sum > best) best = sum;
+                    }
+                    return Math.max(0, best);
+                };
+                const sumCumulativeTargets = (targetSeries: any[]) => {
+                    if (!Array.isArray(targetSeries)) return [] as number[];
+                    const maxLen = targetSeries.reduce((len, series) => Math.max(len, Array.isArray(series) ? series.length : 0), 0);
+                    if (maxLen <= 0) return [] as number[];
+                    const summed = new Array<number>(maxLen).fill(0);
+                    targetSeries.forEach((series) => {
+                        if (!Array.isArray(series)) return;
+                        for (let i = 0; i < maxLen; i += 1) {
+                            summed[i] += Number(series[i] || 0);
+                        }
+                    });
+                    return summed;
+                };
+                const normalizeNumberSeries = (series: any) =>
+                    Array.isArray(series) ? series.map((value: any) => Number(value || 0)) : null;
+                const extractTargetPhase0 = (targetDamage1S: any) => {
+                    if (!Array.isArray(targetDamage1S) || targetDamage1S.length === 0) return null;
+                    const first = targetDamage1S[0];
+                    if (!Array.isArray(first)) return null;
+
+                    // Shape A: [phase][target][time]
+                    if (Array.isArray(first[0]) && Array.isArray(first[0][0])) {
+                        return sumCumulativeTargets(first);
+                    }
+
+                    // Shape B: [target][phase][time]
+                    if (Array.isArray(first[0]) && !Array.isArray(first[0][0])) {
+                        const phaseSeries = targetDamage1S
+                            .map((target: any) => normalizeNumberSeries(Array.isArray(target) ? target[0] : null))
+                            .filter((series: number[] | null): series is number[] => Array.isArray(series) && series.length > 0);
+                        if (phaseSeries.length > 0) return sumCumulativeTargets(phaseSeries);
+                    }
+
+                    return null;
+                };
+                const targetPhase0 = extractTargetPhase0(player?.targetDamage1S);
+                const totalPhase0 = Array.isArray(player?.damage1S) && Array.isArray(player.damage1S[0])
+                    ? player.damage1S[0]
+                    : null;
+                const cumulative = targetPhase0
+                    ? targetPhase0
+                    : (Array.isArray(totalPhase0) ? totalPhase0.map((v: any) => Number(v || 0)) : []);
+                const perSecond = toPerSecond(cumulative);
+                return maxRolling(perSecond, seconds);
+            };
+
+            validLogs
+                .map((log) => ({ log, ts: resolveFightTimestamp(log?.details, log) }))
+                .sort((a, b) => a.ts - b.ts)
+                .forEach(({ log }, index) => {
+                    const details = log?.details;
+                    if (!details) return;
+                    const fightName = sanitizeWvwLabel(details.fightName || log.fightName || `Fight ${index + 1}`);
+                    const mapName = resolveMapName(details, log);
+                    const fullLabel = buildFightLabel(fightName, String(mapName || ''));
+                    const values: Record<string, { hit: number; burst1s: number; burst5s: number; skillName: string }> = {};
+                    const players = Array.isArray(details.players) ? details.players : [];
+                    players.forEach((player: any) => {
+                        if (player?.notInSquad) return;
+                        const account = String(player?.account || player?.name || 'Unknown');
+                        const characterName = String(player?.character_name || player?.display_name || player?.name || '');
+                        const profession = String(player?.profession || 'Unknown');
+                        const key = `${account}|${profession}`;
+                        const spike = getHighestSingleHit(player, details);
+                        const hit = Number(spike.peak || 0);
+                        const burst1s = Number(getBurstFromTimeline(player, 1) || 0);
+                        const burst5s = Number(getBurstFromTimeline(player, 5) || 0);
+                        values[key] = { hit, burst1s, burst5s, skillName: spike.skillName || 'Unknown Skill' };
+
+                        const existing = playerMap.get(key) || {
+                            key,
+                            account,
+                            displayName: account,
+                            characterName,
+                            profession,
+                            professionList: [profession],
+                            logs: 0,
+                            peakHit: 0,
+                            peak1s: 0,
+                            peak5s: 0,
+                            peakFightLabel: '',
+                            peakSkillName: ''
+                        };
+                        existing.logs += 1;
+                        if (!existing.professionList.includes(profession)) {
+                            existing.professionList.push(profession);
+                        }
+                        if (!existing.characterName && characterName) {
+                            existing.characterName = characterName;
+                        }
+                        if (hit > existing.peakHit) {
+                            existing.peakHit = hit;
+                            existing.peakFightLabel = fullLabel;
+                            existing.peakSkillName = spike.skillName || 'Unknown Skill';
+                        }
+                        if (burst1s > existing.peak1s) existing.peak1s = burst1s;
+                        if (burst5s > existing.peak5s) existing.peak5s = burst5s;
+                        playerMap.set(key, existing);
+                    });
+
+                    const maxHit = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.hit || 0)), 0);
+                    const max1s = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.burst1s || 0)), 0);
+                    const max5s = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.burst5s || 0)), 0);
+                    fights.push({
+                        id: log.filePath || log.id || `fight-${index + 1}`,
+                        shortLabel: `F${index + 1}`,
+                        fullLabel,
+                        timestamp: resolveFightTimestamp(details, log),
+                        values,
+                        maxHit,
+                        max1s,
+                        max5s
+                    });
+                });
+
+            const players = Array.from(playerMap.values()).sort((a, b) => {
+                if (b.peakHit !== a.peakHit) return b.peakHit - a.peakHit;
+                return a.displayName.localeCompare(b.displayName);
+            });
+
+            return { fights, players };
+        })();
+
         const specialTables = Array.from(specialBuffAgg.entries()).map(([buffId, players]) => {
             const meta = specialBuffMeta.get(buffId) || {};
             const rows = Array.from(players.values()).map((entry) => {
@@ -2020,6 +2266,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             squadClassData,
             enemyClassData,
             fightBreakdown,
+            spikeDamage,
             specialTables,
             topStatsPerSecond,
             topStatsLeaderboardsPerSecond: perSecondLeaderboards,
