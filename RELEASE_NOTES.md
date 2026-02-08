@@ -1,18 +1,17 @@
 # Release Notes
 
-Version v1.26.2 — February 8, 2026
+Version v1.26.3 — February 8, 2026
 
 ## 🌟 Highlights
-- Theme dropdown updated for easier theme selection.
-- Spike drilldown markers across app and web unified; dashboard UI parity improved.
-- Matte table surfaces and nav/list styling unified across app and web reports.
+- Spike damage calculations added to the metrics spec for clearer spike tracking.
+- Metrics documentation updated to describe the new calculations.
 
 ## 🛠️ Improvements
-- UI styling refreshed for a more consistent look across stats views.
-- Web assets updated to align visuals with the app.
+- Spike damage calculations are now formalized in the metrics spec.
+- Documentation for metrics has been updated to reflect this change.
 
 ## 🧯 Fixes
-None.
+- None.
 
 ## ⚠️ Breaking Changes
-None.
+- None.
