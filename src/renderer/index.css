@@ -2187,7 +2187,69 @@ body.theme-matte .proof-of-work-sidebar button {
 
 body.theme-matte .proof-of-work-sidebar button:hover {
     color: var(--text-primary);
-    background-color: var(--bg-hover) !important;
+    background-color: transparent !important;
+}
+
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-header {
+    color: var(--text-tertiary) !important;
+    padding: 0.15rem 0.35rem;
+}
+
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item {
+    position: relative;
+    width: 100%;
+    border: none;
+    border-radius: 0.5rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.55rem;
+    color: var(--text-secondary);
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--l1 {
+    padding-left: 0.55rem;
+}
+
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--l2 {
+    padding-left: 1rem;
+}
+
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--l3 {
+    padding-left: 1.35rem;
+}
+
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.18);
+    flex: 0 0 auto;
+}
+
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item .proof-of-work-toc-label {
+    color: inherit;
+    letter-spacing: 0.01em;
+}
+
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item:hover {
+    color: var(--text-primary);
+    border-color: transparent;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--active,
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--active:hover {
+    color: #8cc2dd;
+    border-color: transparent;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--active .proof-of-work-toc-dot {
+    background: #8cc2dd;
+    box-shadow: none;
 }
 
 body.theme-matte .proof-of-work-content h1,
