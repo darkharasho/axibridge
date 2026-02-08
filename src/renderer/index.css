@@ -1211,6 +1211,41 @@ body.theme-matte .file-picker-popover {
     backdrop-filter: none !important;
 }
 
+body.theme-matte .file-picker-popover button {
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.theme-matte .file-picker-popover button:hover {
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.theme-matte .file-picker-popover button:active {
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.theme-matte .file-picker-popover .file-picker-time-list {
+    background-color: var(--bg-input) !important;
+    border-color: var(--border-subtle) !important;
+    box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.35), inset -2px -2px 4px rgba(255, 255, 255, 0.02) !important;
+}
+
+body.theme-matte .file-picker-popover .file-picker-time-option {
+    color: var(--text-secondary) !important;
+}
+
+body.theme-matte .file-picker-popover .file-picker-time-option:hover {
+    color: var(--text-primary) !important;
+    background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+body.theme-matte .file-picker-popover .file-picker-time-option--active {
+    background-color: rgba(77, 139, 168, 0.28) !important;
+    color: #d8f0ff !important;
+}
+
 body.web-report.theme-matte {
     background: #1B1D1E;
     color: var(--text-primary);

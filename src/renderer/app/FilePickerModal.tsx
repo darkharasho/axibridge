@@ -37,7 +37,8 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
         filePickerAtBottom,
         setFilePickerMonthWindow,
         ensureMonthWindowForSince,
-        handleAddSelectedFiles
+        handleAddSelectedFiles,
+        uiTheme
     } = ctx;
 
     return (
@@ -250,13 +251,13 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
                                                     <div className="grid grid-cols-3 gap-2">
                                                         <div>
                                                             <div className="text-[10px] text-gray-400 mb-1">Hour</div>
-                                                            <div className="h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5">
+                                                            <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5">
                                                                 {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
                                                                     <button
                                                                         key={`hour-${hour}`}
                                                                         onClick={() => setSelectSinceHour(hour)}
-                                                                        className={`w-full py-1 text-[10px] border-b border-white/5 last:border-0 transition-colors ${selectSinceHour === hour
-                                                                            ? 'bg-cyan-500/30 text-cyan-100'
+                                                                        className={`file-picker-time-option w-full py-1 text-[10px] border-b border-white/5 last:border-0 transition-all ${selectSinceHour === hour
+                                                                            ? 'file-picker-time-option--active bg-cyan-500/30 text-cyan-100'
                                                                             : 'text-gray-300 hover:text-white'
                                                                             }`}
                                                                     >
@@ -267,13 +268,13 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
                                                         </div>
                                                         <div>
                                                             <div className="text-[10px] text-gray-400 mb-1">Minute</div>
-                                                            <div className="h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5">
+                                                            <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5">
                                                                 {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
                                                                     <button
                                                                         key={`minute-${minute}`}
                                                                         onClick={() => setSelectSinceMinute(minute)}
-                                                                        className={`w-full py-1 text-[10px] border-b border-white/5 last:border-0 transition-colors ${selectSinceMinute === minute
-                                                                            ? 'bg-cyan-500/30 text-cyan-100'
+                                                                        className={`file-picker-time-option w-full py-1 text-[10px] border-b border-white/5 last:border-0 transition-all ${selectSinceMinute === minute
+                                                                            ? 'file-picker-time-option--active bg-cyan-500/30 text-cyan-100'
                                                                             : 'text-gray-300 hover:text-white'
                                                                             }`}
                                                                     >
@@ -284,13 +285,13 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
                                                         </div>
                                                         <div>
                                                             <div className="text-[10px] text-gray-400 mb-1">AM/PM</div>
-                                                            <div className="h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5">
+                                                            <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5">
                                                                 {(['AM', 'PM'] as const).map((period) => (
                                                                     <button
                                                                         key={period}
                                                                         onClick={() => setSelectSinceMeridiem(period)}
-                                                                        className={`w-full py-2 text-[10px] border-b border-white/5 last:border-0 transition-colors ${selectSinceMeridiem === period
-                                                                            ? 'bg-cyan-500/30 text-cyan-100'
+                                                                        className={`file-picker-time-option w-full py-2 text-[10px] border-b border-white/5 last:border-0 transition-all ${selectSinceMeridiem === period
+                                                                            ? 'file-picker-time-option--active bg-cyan-500/30 text-cyan-100'
                                                                             : 'text-gray-300 hover:text-white'
                                                                             }`}
                                                                     >
@@ -321,13 +322,19 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
                                                         });
                                                         setSelectSinceOpen(false);
                                                     }}
-                                                    className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-cyan-600/20 text-cyan-200 border-cyan-500/40 hover:bg-cyan-600/30"
+                                                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${uiTheme === 'matte'
+                                                        ? 'bg-[#222629] text-cyan-200 border-transparent shadow-[-2px_-2px_4px_#2b3034,2px_2px_4px_#191c1e] hover:text-cyan-100 active:shadow-[inset_-2px_-2px_4px_#2b3034,inset_2px_2px_4px_#191c1e]'
+                                                        : 'bg-cyan-600/20 text-cyan-200 border-cyan-500/40 hover:bg-cyan-600/30'
+                                                        }`}
                                                 >
                                                     Apply
                                                 </button>
                                                 <button
                                                     onClick={() => setSelectSinceOpen(false)}
-                                                    className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${uiTheme === 'matte'
+                                                        ? 'bg-[#222629] text-gray-400 border-transparent shadow-[-2px_-2px_4px_#2b3034,2px_2px_4px_#191c1e] hover:text-gray-200 active:shadow-[inset_-2px_-2px_4px_#2b3034,inset_2px_2px_4px_#191c1e]'
+                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                        }`}
                                                 >
                                                     Cancel
                                                 </button>
@@ -425,7 +432,8 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
                         </div>
                     </motion.div>
                 </motion.div>
-            )}
-        </AnimatePresence>
+            )
+            }
+        </AnimatePresence >
     );
 }
