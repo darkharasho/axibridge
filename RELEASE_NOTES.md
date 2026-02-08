@@ -1,17 +1,22 @@
 # Release Notes
 
-Version v1.25.5 — February 7, 2026
+Version v1.25.6 — February 7, 2026
 
 ## 🌟 Highlights
-- Added crash diagnostics for RangeError maximum call stack size exceeded, now monitored in both main and renderer processes.
-- Diagnostics capture memory usage and environment details to help pinpoint where things go wrong.
+- Clearer crash reports when something goes wrong.
+- Crash diagnostics are now sent automatically to help fix issues faster.
+- More robust crash logging that works even if parts of the app are failing.
 
 ## 🛠️ Improvements
-- Main process now detects the RangeError and logs a structured crash report with memory usage and environment info.
-- Renderer now reports RangeError events to the main process with context like the page URL and user agent; reports are throttled to avoid log floods.
+- Added a crash diagnostics flow that captures error name, message, and stack when available.
+- Diagnostics cover uncaughtExceptionMonitor, uncaughtException, and unhandledRejection to provide fuller context.
+- Diagnostics include runtime app details to aid debugging.
+- Non-Error crash reasons are handled gracefully and reported with a clear name.
 
 ## 🧯 Fixes
-- Ensure that RangeError stack overflow crashes trigger crash diagnostics rather than failing silently.
+- Crash reporting uses a direct path with a fallback to avoid breaking logging if something goes wrong.
+- Stack traces are included when available to help pinpoint the source.
+- Non-Error crash reasons are captured and reported with a descriptive name.
 
 ## ⚠️ Breaking Changes
-- None.
+None.
