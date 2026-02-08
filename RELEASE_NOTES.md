@@ -1,17 +1,16 @@
 # Release Notes
 
-Version v1.26.3 — February 8, 2026
+Version v1.26.4 — February 8, 2026
 
 ## 🌟 Highlights
-- Spike damage calculations added to the metrics spec for clearer spike tracking.
-- Metrics documentation updated to describe the new calculations.
+- Spike breakdown now includes an extra 30 seconds for more precise analysis.
+- What's New on the Slate Matte theme uses neumorphism styling for a refreshed look.
 
 ## 🛠️ Improvements
-- Spike damage calculations are now formalized in the metrics spec.
-- Documentation for metrics has been updated to reflect this change.
+None.
 
 ## 🧯 Fixes
-- None.
+None.
 
 ## ⚠️ Breaking Changes
-- None.
+None.
