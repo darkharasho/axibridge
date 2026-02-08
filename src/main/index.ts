@@ -99,6 +99,16 @@ const safeSendToRenderer = (payload: { type: 'info' | 'error'; message: string; 
     }
 };
 
+const sendCrashDiagDirect = (message: string) => {
+    const line = String(message);
+    try {
+        originalConsoleError(line);
+    } catch {
+        // Last-resort: ignore console transport failures.
+    }
+    safeSendToRenderer({ type: 'error', message: line, timestamp: new Date().toISOString() });
+};
+
 console.log = (...args) => {
     const message = formatLogArgs(args);
     originalConsoleLog(message);
@@ -154,22 +164,45 @@ const buildMainCrashDiagnostics = () => {
     };
 };
 
+const serializeCrashReason = (value: any): { name: string; message: string; stack: string | null } => {
+    if (value instanceof Error) {
+        return {
+            name: value.name || 'Error',
+            message: value.message || '[no message]',
+            stack: value.stack || null
+        };
+    }
+    const asString = String(value ?? 'Unknown error');
+    return {
+        name: 'NonError',
+        message: asString,
+        stack: null
+    };
+};
+
+const emitMainCrashDiagnostics = (source: 'uncaughtExceptionMonitor' | 'uncaughtException' | 'unhandledRejection', reason: any) => {
+    const payload = serializeCrashReason(reason);
+    const diagnostics = buildMainCrashDiagnostics();
+    sendCrashDiagDirect(`[CrashDiag] ${source} | name=${payload.name} | message=${payload.message}`);
+    sendCrashDiagDirect(`[CrashDiag] Runtime: ${JSON.stringify(diagnostics)}`);
+    if (payload.stack) {
+        sendCrashDiagDirect(`[CrashDiag] Stack:\n${payload.stack}`);
+    }
+};
+
+process.on('uncaughtExceptionMonitor', (error) => {
+    // Monitor fires before uncaughtException and helps capture diagnostics even if later handlers fail.
+    emitMainCrashDiagnostics('uncaughtExceptionMonitor', error);
+});
+
 process.on('uncaughtException', (error) => {
     if (!isStackOverflowRangeError(error)) return;
-    console.error('[CrashDiag] Caught uncaughtException: RangeError maximum call stack size exceeded.');
-    console.error('[CrashDiag] Main runtime diagnostics:', buildMainCrashDiagnostics());
-    console.error('[CrashDiag] Stack:', error?.stack || error?.message || String(error));
+    emitMainCrashDiagnostics('uncaughtException', error);
 });
 
 process.on('unhandledRejection', (reason: any) => {
     if (!isStackOverflowRangeError(reason)) return;
-    console.error('[CrashDiag] Caught unhandledRejection: RangeError maximum call stack size exceeded.');
-    console.error('[CrashDiag] Main runtime diagnostics:', buildMainCrashDiagnostics());
-    console.error('[CrashDiag] Rejection reason:', {
-        name: reason?.name,
-        message: reason?.message || String(reason),
-        stack: reason?.stack || null
-    });
+    emitMainCrashDiagnostics('unhandledRejection', reason);
 });
 
 const Store = require('electron-store');
