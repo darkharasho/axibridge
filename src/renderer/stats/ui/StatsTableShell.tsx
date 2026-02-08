@@ -16,8 +16,8 @@ export const StatsTableShell = ({
     maxHeightClass = 'max-h-80'
 }: StatsTableShellProps) => (
     <>
-        {header}
-        {columns}
+        <div className="stats-table-shell__header">{header}</div>
+        <div className="stats-table-shell__columns">{columns}</div>
         <div className={`${expanded ? 'flex-1 min-h-0 overflow-y-auto' : `${maxHeightClass} overflow-y-auto`}`}>
             {rows}
         </div>

@@ -307,6 +307,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
     const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
     const [selectedSpikePlayerKey, setSelectedSpikePlayerKey] = useState<string | null>(null);
+    const [selectedSpikeFightIndex, setSelectedSpikeFightIndex] = useState<number | null>(null);
     const [spikeMode, setSpikeMode] = useState<'hit' | '1s' | '5s'>('hit');
     const [hoveredSkillPlayer, setHoveredSkillPlayer] = useState<string[]>([]);
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -787,6 +788,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         };
         return spikeDamageData.fights.map((fight, index) => ({
             index,
+            fightId: fight.id,
             shortLabel: fight.shortLabel,
             fullLabel: fight.fullLabel,
             timestamp: Number(fight.timestamp || 0),
@@ -801,6 +803,94 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         const fightPeak = spikeChartData.reduce((best, entry) => Math.max(best, Number(entry.maxDamage || 0)), 0);
         return Math.max(1, selectedPeak, fightPeak);
     }, [spikeChartData]);
+
+    const spikeDrilldown = useMemo(() => {
+        const selectedPoint = selectedSpikeFightIndex === null
+            ? null
+            : spikeChartData.find((point) => point.index === selectedSpikeFightIndex) || null;
+        if (!selectedPoint || !selectedSpikePlayerKey) {
+            return { title: 'Fight Breakdown', data: [] as Array<{ label: string; value: number }> };
+        }
+        const [account, profession] = selectedSpikePlayerKey.split('|');
+        const selectedLog = logs.find((log) => {
+            const id = String(log?.filePath || log?.id || '');
+            return id === String(selectedPoint.fightId || '');
+        });
+        const details = selectedLog?.details;
+        const fightLabel = selectedPoint.shortLabel || 'Fight';
+        if (!details || !Array.isArray(details.players)) {
+            return { title: `Fight Breakdown - ${fightLabel}`, data: [] as Array<{ label: string; value: number }> };
+        }
+        const selectedPlayer = details.players.find((player: any) =>
+            String(player?.account || player?.name || 'Unknown') === account
+            && String(player?.profession || 'Unknown') === profession
+        );
+        if (!selectedPlayer) {
+            return { title: `Fight Breakdown - ${fightLabel}`, data: [] as Array<{ label: string; value: number }> };
+        }
+        const selectedPlayerAny = selectedPlayer as any;
+
+        const toPerSecond = (series: number[]) => {
+            if (!Array.isArray(series) || series.length === 0) return [] as number[];
+            const deltas: number[] = [];
+            for (let i = 0; i < series.length; i += 1) {
+                const current = Number(series[i] || 0);
+                const prev = i > 0 ? Number(series[i - 1] || 0) : 0;
+                deltas.push(Math.max(0, current - prev));
+            }
+            return deltas;
+        };
+        const sumCumulativeTargets = (targetSeries: any[]) => {
+            if (!Array.isArray(targetSeries)) return [] as number[];
+            const maxLen = targetSeries.reduce((len, series) => Math.max(len, Array.isArray(series) ? series.length : 0), 0);
+            if (maxLen <= 0) return [] as number[];
+            const summed = new Array<number>(maxLen).fill(0);
+            targetSeries.forEach((series) => {
+                if (!Array.isArray(series)) return;
+                for (let i = 0; i < maxLen; i += 1) {
+                    summed[i] += Number(series[i] || 0);
+                }
+            });
+            return summed;
+        };
+        const normalizeNumberSeries = (series: any) =>
+            Array.isArray(series) ? series.map((value: any) => Number(value || 0)) : null;
+        const extractTargetPhase0 = (targetDamage1S: any) => {
+            if (!Array.isArray(targetDamage1S) || targetDamage1S.length === 0) return null;
+            const first = targetDamage1S[0];
+            if (!Array.isArray(first)) return null;
+            if (Array.isArray(first[0]) && Array.isArray(first[0][0])) {
+                return sumCumulativeTargets(first);
+            }
+            if (Array.isArray(first[0]) && !Array.isArray(first[0][0])) {
+                const phaseSeries = targetDamage1S
+                    .map((target: any) => normalizeNumberSeries(Array.isArray(target) ? target[0] : null))
+                    .filter((series: number[] | null): series is number[] => Array.isArray(series) && series.length > 0);
+                if (phaseSeries.length > 0) return sumCumulativeTargets(phaseSeries);
+            }
+            return null;
+        };
+        const targetPhase0 = extractTargetPhase0(selectedPlayerAny?.targetDamage1S);
+        const totalPhase0 = Array.isArray(selectedPlayerAny?.damage1S) && Array.isArray(selectedPlayerAny.damage1S[0])
+            ? selectedPlayerAny.damage1S[0]
+            : null;
+        const cumulative = targetPhase0
+            ? targetPhase0
+            : (Array.isArray(totalPhase0) ? totalPhase0.map((v: any) => Number(v || 0)) : []);
+        const perSecond = toPerSecond(cumulative);
+        const bucketSizeSeconds = 5;
+        const data: Array<{ label: string; value: number }> = [];
+        for (let i = 0; i < perSecond.length; i += bucketSizeSeconds) {
+            const start = i;
+            const end = Math.min(i + bucketSizeSeconds, perSecond.length);
+            const value = perSecond.slice(start, end).reduce((sum, entry) => sum + Number(entry || 0), 0);
+            data.push({
+                label: `${start}s-${end}s`,
+                value
+            });
+        }
+        return { title: `Fight Breakdown - ${fightLabel} (5s Damage Buckets)`, data };
+    }, [selectedSpikeFightIndex, spikeChartData, selectedSpikePlayerKey, logs]);
 
     useEffect(() => {
         if (playerSkillBreakdowns.length === 0) {
@@ -869,6 +959,16 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
             if (selectedSpikePlayerKey !== null) setSelectedSpikePlayerKey(null);
         }
     }, [spikeDamageData.players, spikePlayerMap, selectedSpikePlayerKey]);
+
+    useEffect(() => {
+        setSelectedSpikeFightIndex(null);
+    }, [selectedSpikePlayerKey, spikeMode]);
+
+    useEffect(() => {
+        if (selectedSpikeFightIndex === null) return;
+        const exists = spikeChartData.some((point) => point.index === selectedSpikeFightIndex);
+        if (!exists) setSelectedSpikeFightIndex(null);
+    }, [spikeChartData, selectedSpikeFightIndex]);
 
     const selectedPlayersSet = useMemo(() => new Set(selectedPlayers), [selectedPlayers]);
 
@@ -1518,6 +1618,10 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                                 selectedSpikePlayer={selectedSpikePlayer}
                                 spikeChartData={spikeChartData}
                                 spikeChartMaxY={spikeChartMaxY}
+                                selectedSpikeFightIndex={selectedSpikeFightIndex}
+                                setSelectedSpikeFightIndex={setSelectedSpikeFightIndex}
+                                spikeDrilldownTitle={spikeDrilldown.title}
+                                spikeDrilldownData={spikeDrilldown.data}
                                 formatWithCommas={formatWithCommas}
                                 renderProfessionIcon={renderProfessionIcon}
                             />
@@ -1901,6 +2005,10 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
                             selectedSpikePlayer={selectedSpikePlayer}
                             spikeChartData={spikeChartData}
                             spikeChartMaxY={spikeChartMaxY}
+                            selectedSpikeFightIndex={selectedSpikeFightIndex}
+                            setSelectedSpikeFightIndex={setSelectedSpikeFightIndex}
+                            spikeDrilldownTitle={spikeDrilldown.title}
+                            spikeDrilldownData={spikeDrilldown.data}
                             formatWithCommas={formatWithCommas}
                             renderProfessionIcon={renderProfessionIcon}
                         />

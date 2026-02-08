@@ -998,6 +998,14 @@ body.theme-matte .app-shell .settings-nav-item:active {
     box-shadow: none;
 }
 
+/* Keep non-dense table headers/columns flat in Matte Slate. */
+body.theme-matte .app-shell .stats-table-shell__header button,
+body.theme-matte .app-shell .stats-table-shell__columns button,
+body.theme-matte .app-shell .stats-table-shell__header [role="button"],
+body.theme-matte .app-shell .stats-table-shell__columns [role="button"] {
+    box-shadow: none !important;
+}
+
 body.theme-matte .app-shell input,
 body.theme-matte .app-shell textarea,
 body.theme-matte .app-shell select {

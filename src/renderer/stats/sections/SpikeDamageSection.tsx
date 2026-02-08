@@ -20,12 +20,17 @@ type SpikeDamagePlayer = {
 
 type SpikeDamageFightPoint = {
     index: number;
+    fightId: string;
     shortLabel: string;
     fullLabel: string;
     timestamp: number;
     damage: number;
     maxDamage: number;
     skillName: string;
+};
+type SpikeDrilldownPoint = {
+    label: string;
+    value: number;
 };
 
 type SpikeDamageSectionProps = {
@@ -46,6 +51,10 @@ type SpikeDamageSectionProps = {
     selectedSpikePlayer: SpikeDamagePlayer | null;
     spikeChartData: SpikeDamageFightPoint[];
     spikeChartMaxY: number;
+    selectedSpikeFightIndex: number | null;
+    setSelectedSpikeFightIndex: (value: number | null) => void;
+    spikeDrilldownTitle: string;
+    spikeDrilldownData: SpikeDrilldownPoint[];
     formatWithCommas: (value: number, decimals: number) => string;
     renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => JSX.Element | null;
 };
@@ -68,6 +77,10 @@ export const SpikeDamageSection = ({
     selectedSpikePlayer,
     spikeChartData,
     spikeChartMaxY,
+    selectedSpikeFightIndex,
+    setSelectedSpikeFightIndex,
+    spikeDrilldownTitle,
+    spikeDrilldownData,
     formatWithCommas,
     renderProfessionIcon
 }: SpikeDamageSectionProps) => {
@@ -225,7 +238,14 @@ export const SpikeDamageSection = ({
                             </div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={spikeChartData}>
+                                <LineChart
+                                    data={spikeChartData}
+                                    onClick={(state: any) => {
+                                        const idx = Number(state?.activeTooltipIndex);
+                                        if (!Number.isFinite(idx)) return;
+                                        setSelectedSpikeFightIndex(selectedSpikeFightIndex === idx ? null : idx);
+                                    }}
+                                >
                                     <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                     <XAxis dataKey="shortLabel" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
                                     <YAxis
@@ -252,7 +272,37 @@ export const SpikeDamageSection = ({
                                         name={selectedSpikePlayer.displayName}
                                         stroke={selectedLineColor}
                                         strokeWidth={3}
-                                        dot={{ r: 2 }}
+                                        dot={(props: any) => {
+                                            const idx = Number(props?.payload?.index);
+                                            if (!Number.isFinite(idx)) return null;
+                                            const isSelected = selectedSpikeFightIndex === idx;
+                                            return (
+                                                <g
+                                                    style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        setSelectedSpikeFightIndex(isSelected ? null : idx);
+                                                    }}
+                                                >
+                                                    <circle
+                                                        cx={props.cx}
+                                                        cy={props.cy}
+                                                        r={10}
+                                                        fill="transparent"
+                                                        style={{ pointerEvents: 'all' }}
+                                                    />
+                                                    <circle
+                                                        cx={props.cx}
+                                                        cy={props.cy}
+                                                        r={isSelected ? 4 : 3}
+                                                        fill={selectedLineColor}
+                                                        stroke={isSelected ? 'rgba(251,191,36,0.95)' : 'rgba(15,23,42,0.9)'}
+                                                        strokeWidth={isSelected ? 2 : 1}
+                                                        style={{ pointerEvents: 'all' }}
+                                                    />
+                                                </g>
+                                            );
+                                        }}
                                         activeDot={{ r: 4 }}
                                     />
                                     <Line
@@ -304,6 +354,52 @@ export const SpikeDamageSection = ({
                                     : fightWithTime;
                             })()}
                         </div>
+                    </div>
+                </div>
+            )}
+            {selectedSpikePlayer && selectedSpikeFightIndex !== null && (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">{spikeDrilldownTitle}</div>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedSpikeFightIndex(null)}
+                            className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-gray-200"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                    <div className="h-[220px]">
+                        {spikeDrilldownData.length === 0 ? (
+                            <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                                No detailed data available for this fight.
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={spikeDrilldownData}>
+                                    <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
+                                    <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
+                                    <YAxis
+                                        tick={{ fill: '#e2e8f0', fontSize: 10 }}
+                                        tickFormatter={(value: number) => formatWithCommas(value, 0)}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
+                                        formatter={(value: any) => [formatWithCommas(Number(value || 0), 0), 'Damage']}
+                                        labelFormatter={(value: any) => String(value || '')}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="value"
+                                        name="Damage"
+                                        stroke={selectedLineColor}
+                                        strokeWidth={2.5}
+                                        dot={spikeMode === 'hit' ? { r: 2 } : false}
+                                        activeDot={{ r: 4 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             )}
