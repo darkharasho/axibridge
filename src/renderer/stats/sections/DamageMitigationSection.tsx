@@ -449,41 +449,32 @@ export const DamageMitigationSection = ({
                                         }
                                         columns={
                                             <>
-                                                <div className="flex items-center justify-between px-4 py-2 bg-white/5 gap-2 flex-wrap">
-                                                    {damageMitigationScope === 'minions' && (
-                                                        <ColumnFilterDropdown
-                                                            options={mitigationMinionOptions}
-                                                            selectedIds={selectedMinionTypes}
-                                                            onToggle={(id) => {
-                                                                setSelectedMinionTypes((prev) =>
-                                                                    prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
-                                                                );
-                                                            }}
-                                                            onClear={() => setSelectedMinionTypes([])}
-                                                            buttonLabel="Minions"
+                                                <div className="px-4 py-2 bg-white/5">
+                                                    <div className="flex items-center gap-2">
+                                                        <PillToggleGroup
+                                                            value={damageMitigationScope}
+                                                            onChange={setDamageMitigationScope}
+                                                            options={[
+                                                                { value: 'player', label: 'Player' },
+                                                                { value: 'minions', label: 'Minions' }
+                                                            ]}
+                                                            activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-500/40"
+                                                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
                                                         />
-                                                    )}
-                                                    <PillToggleGroup
-                                                        value={damageMitigationScope}
-                                                        onChange={setDamageMitigationScope}
-                                                        options={[
-                                                            { value: 'player', label: 'Player' },
-                                                            { value: 'minions', label: 'Minions' }
-                                                        ]}
-                                                        activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-500/40"
-                                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                                                    />
-                                                    <PillToggleGroup
-                                                        value={damageMitigationViewMode}
-                                                        onChange={setDamageMitigationViewMode}
-                                                        options={[
-                                                            { value: 'total', label: 'Total' },
-                                                            { value: 'per1s', label: 'Stat/1s' },
-                                                            { value: 'per60s', label: 'Stat/60s' }
-                                                        ]}
-                                                        activeClassName="bg-sky-500/20 text-sky-200 border border-sky-500/40"
-                                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                                                    />
+                                                        <div className="ml-auto">
+                                                            <PillToggleGroup
+                                                                value={damageMitigationViewMode}
+                                                                onChange={setDamageMitigationViewMode}
+                                                                options={[
+                                                                    { value: 'total', label: 'Total' },
+                                                                    { value: 'per1s', label: 'Stat/1s' },
+                                                                    { value: 'per60s', label: 'Stat/60s' }
+                                                                ]}
+                                                                activeClassName="bg-sky-500/20 text-sky-200 border border-sky-500/40"
+                                                                inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <div className="grid grid-cols-[0.4fr_1.6fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                     <div className="text-center">#</div>

@@ -1,16 +1,17 @@
 # Release Notes
 
-Version v1.26.4 — February 8, 2026
+Version v1.26.5 — February 8, 2026
 
 ## 🌟 Highlights
-- Spike breakdown now includes an extra 30 seconds for more precise analysis.
-- What's New on the Slate Matte theme uses neumorphism styling for a refreshed look.
+- Stats view improvements for mobile, making numbers and charts easier to read on small screens.
+- More robust rendering of top contributors in the stats panel.
 
 ## 🛠️ Improvements
-None.
+- None.
 
 ## 🧯 Fixes
-None.
+- Correct mobile compact formatting in web-stats for clearer, more consistent display.
+- Harden top-down-contribution rendering in Stats view to prevent display issues.
 
 ## ⚠️ Breaking Changes
-None.
+- None.
