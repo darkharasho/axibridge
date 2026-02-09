@@ -3,15 +3,15 @@
 Version v1.26.5 — February 8, 2026
 
 ## 🌟 Highlights
-- Stats view improvements for mobile, making numbers and charts easier to read on small screens.
-- More robust rendering of top contributors in the stats panel.
+- Bug fixes and UI polish for web stats.
 
 ## 🛠️ Improvements
 - None.
 
 ## 🧯 Fixes
-- Correct mobile compact formatting in web-stats for clearer, more consistent display.
-- Harden top-down-contribution rendering in Stats view to prevent display issues.
+- Fixed a bug with the damage mitigation toggle.
+- Corrected mobile compact formatting in web stats.
+- Hardened the top-down contribution rendering in web stats.
 
 ## ⚠️ Breaking Changes
 - None.
