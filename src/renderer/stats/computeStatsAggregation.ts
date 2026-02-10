@@ -2113,6 +2113,17 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 }
                 return out;
             };
+            const resolveSkillMeta = (rawId: any, details: any) => {
+                const idNum = Number(rawId);
+                if (!Number.isFinite(idNum)) return { name: String(rawId || 'Unknown Skill'), icon: undefined as string | undefined };
+                const skillMap = details?.skillMap || {};
+                const buffMap = details?.buffMap || {};
+                const mapped = skillMap?.[`s${idNum}`] || skillMap?.[`${idNum}`];
+                if (mapped?.name) return { name: String(mapped.name), icon: mapped?.icon };
+                const buffMapped = buffMap?.[`b${idNum}`] || buffMap?.[`${idNum}`];
+                if (buffMapped?.name) return { name: String(buffMapped.name), icon: buffMapped?.icon };
+                return { name: `Skill ${idNum}`, icon: undefined as string | undefined };
+            };
             const toPairs = (value: any): Array<[number, number]> => {
                 if (!Array.isArray(value)) return [];
                 return value
@@ -2186,6 +2197,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                         buckets5s: number[];
                         downIndices5s: number[];
                         deathIndices5s: number[];
+                        skillRows?: Array<{ skillName: string; damage: number; hits: number; icon?: string }>;
                     }> = {};
                     const players = Array.isArray(details.players) ? details.players : [];
                     const allReplayStarts = players
@@ -2212,6 +2224,36 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                         const bucketCount = Math.max(durationBuckets, damageBuckets);
                         const rawBuckets = getBuckets(perSecond, 5);
                         const buckets5s = Array.from({ length: bucketCount }, (_, idx) => Number(rawBuckets[idx] || 0));
+                        const skillRowsMap = new Map<string, { skillName: string; damage: number; hits: number; icon?: string }>();
+                        const consumeDamageEntry = (entry: any) => {
+                            if (!entry || typeof entry !== 'object') return;
+                            if (entry.indirectDamage) return;
+                            const damage = Number(entry.totalDamage || 0);
+                            if (!Number.isFinite(damage) || damage <= 0) return;
+                            const hits = Number(entry.connectedHits || entry.hits || 0);
+                            const skillMeta = resolveSkillMeta(entry.id, details);
+                            const skillName = skillMeta.name;
+                            const row = skillRowsMap.get(skillName) || { skillName, damage: 0, hits: 0, icon: skillMeta.icon };
+                            row.damage += damage;
+                            row.hits += Number.isFinite(hits) ? hits : 0;
+                            if (!row.icon && skillMeta.icon) row.icon = skillMeta.icon;
+                            skillRowsMap.set(skillName, row);
+                        };
+                        if (Array.isArray(player?.targetDamageDist)) {
+                            player.targetDamageDist.forEach((targetGroup: any) => {
+                                if (!Array.isArray(targetGroup)) return;
+                                targetGroup.forEach((list: any) => {
+                                    if (!Array.isArray(list)) return;
+                                    list.forEach((entry: any) => consumeDamageEntry(entry));
+                                });
+                            });
+                        }
+                        if (skillRowsMap.size === 0 && Array.isArray(player?.totalDamageDist)) {
+                            player.totalDamageDist.forEach((list: any) => {
+                                if (!Array.isArray(list)) return;
+                                list.forEach((entry: any) => consumeDamageEntry(entry));
+                            });
+                        }
                         const replayEntries = (() => {
                             const replay = player?.combatReplayData;
                             if (Array.isArray(replay)) return replay.filter((entry: any) => entry && typeof entry === 'object');
@@ -2230,7 +2272,10 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                             skillName: spike.skillName || 'Unknown Skill',
                             buckets5s,
                             downIndices5s: markerIndicesFromTimes(downTimes, replayStarts, allReplayStarts, bucketCount, Number(details?.durationMS || 0)),
-                            deathIndices5s: markerIndicesFromTimes(deathTimes, replayStarts, allReplayStarts, bucketCount, Number(details?.durationMS || 0))
+                            deathIndices5s: markerIndicesFromTimes(deathTimes, replayStarts, allReplayStarts, bucketCount, Number(details?.durationMS || 0)),
+                            skillRows: Array.from(skillRowsMap.values())
+                                .sort((a, b) => b.damage - a.damage)
+                                .slice(0, 50)
                         };
 
                         const existing = playerMap.get(key) || {

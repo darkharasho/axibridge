@@ -1423,6 +1423,20 @@ type SpikeFight = {
             .sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))
             .slice(0, 30);
     }, [selectedIncomingStrikeFightIndex, selectedIncomingStrikePlayerKey, incomingStrikeChartData, incomingStrikeDamageData.fights]);
+    const spikeFightSkillRows = useMemo(() => {
+        if (selectedSpikeFightIndex === null || !selectedSpikePlayerKey) return [];
+        const selectedPoint = spikeChartData.find((point) => point.index === selectedSpikeFightIndex);
+        if (!selectedPoint) return [];
+        const selectedFight = spikeDamageData.fights.find((fight, index) => (
+            String(fight.id || '') === String(selectedPoint.fightId || '')
+            || index === selectedPoint.index
+        ));
+        const rows = selectedFight?.values?.[selectedSpikePlayerKey]?.skillRows || [];
+        return [...rows]
+            .filter((row) => Number(row?.damage || 0) > 0)
+            .sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))
+            .slice(0, 30);
+    }, [selectedSpikeFightIndex, selectedSpikePlayerKey, spikeChartData, spikeDamageData.fights]);
 
     useEffect(() => {
         if (playerSkillBreakdowns.length === 0) {
@@ -2199,6 +2213,8 @@ type SpikeFight = {
                                 spikeDrilldownData={spikeDrilldown.data}
                                 spikeDrilldownDownIndices={spikeDrilldown.downIndices}
                                 spikeDrilldownDeathIndices={spikeDrilldown.deathIndices}
+                                spikeFightSkillRows={spikeFightSkillRows}
+                                spikeFightSkillTitle="Outgoing Skill Damage (Selected Fight)"
                                 formatWithCommas={formatWithCommas}
                                 renderProfessionIcon={renderProfessionIcon}
                             />
@@ -2624,6 +2640,8 @@ type SpikeFight = {
                             spikeDrilldownData={spikeDrilldown.data}
                             spikeDrilldownDownIndices={spikeDrilldown.downIndices}
                             spikeDrilldownDeathIndices={spikeDrilldown.deathIndices}
+                            spikeFightSkillRows={spikeFightSkillRows}
+                            spikeFightSkillTitle="Outgoing Skill Damage (Selected Fight)"
                             formatWithCommas={formatWithCommas}
                             renderProfessionIcon={renderProfessionIcon}
                         />
