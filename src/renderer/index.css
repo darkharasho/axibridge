@@ -2484,14 +2484,14 @@ body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item:hover {
 
 body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--active,
 body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--active:hover {
-    color: #8cc2dd;
+    color: #8cc2dd !important;
     border-color: transparent;
     background: transparent !important;
     box-shadow: none !important;
 }
 
 body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--active .proof-of-work-toc-dot {
-    background: #8cc2dd;
+    background: #8cc2dd !important;
     box-shadow: none;
 }
 

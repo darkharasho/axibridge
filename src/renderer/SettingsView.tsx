@@ -356,31 +356,32 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             if (headings.length === 0) return;
             const containerTop = container.getBoundingClientRect().top;
             const activationTop = containerTop + 18;
-            const candidates = headings
-                .map((heading) => ({
-                    id: heading.dataset.headingId || '',
-                    top: heading.getBoundingClientRect().top
-                }))
-                .filter((entry) => !!entry.id);
+            const candidates = headings.map((heading, idx) => ({
+                index: idx,
+                id: heading.dataset.headingId || '',
+                top: heading.getBoundingClientRect().top
+            }));
             if (candidates.length === 0) return;
-            let nextId = candidates[0]?.id || metricsSpecNav[0]?.id || '';
+            let nextIndex = 0;
             let foundPast = false;
             for (const entry of candidates) {
                 if (entry.top <= activationTop) {
-                    nextId = entry.id;
+                    nextIndex = entry.index;
                     foundPast = true;
                     continue;
                 }
                 if (!foundPast) {
-                    nextId = entry.id;
+                    nextIndex = entry.index;
                 }
                 break;
             }
             const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 2;
             if (nearBottom) {
-                const lastId = candidates[candidates.length - 1]?.id || '';
-                if (lastId) nextId = lastId;
+                nextIndex = Math.max(0, candidates.length - 1);
             }
+            const navMatch = metricsSpecNav[nextIndex];
+            const domFallback = candidates[nextIndex]?.id || '';
+            const nextId = navMatch?.id || domFallback;
             if (nextId) setActiveMetricsSpecHeadingId(nextId);
         };
 
@@ -2783,7 +2784,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                                 return (
                                                     <button
                                                         key={`${item.id}-${item.level}`}
-                                                        className={`proof-of-work-toc-item ${levelClass} ${isActive ? 'proof-of-work-toc-item--active' : ''} w-full text-left flex items-center gap-2 min-w-0 transition-colors ${item.level === 1 ? 'text-white hover:text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                                                        className={`proof-of-work-toc-item ${levelClass} ${isActive ? 'proof-of-work-toc-item--active text-cyan-300' : ''} w-full text-left flex items-center gap-2 min-w-0 transition-colors ${item.level === 1 ? 'text-white hover:text-white' : 'text-gray-400 hover:text-gray-200'}`}
                                                         onClick={() => {
                                                             const container = metricsSpecContentRef.current;
                                                             if (!container) return;
@@ -2809,7 +2810,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                                             setActiveMetricsSpecHeadingId(item.id);
                                                         }}
                                                     >
-                                                        <span className="proof-of-work-toc-dot" aria-hidden="true" />
+                                                        <span className={`proof-of-work-toc-dot ${isActive ? 'bg-cyan-300' : ''}`} aria-hidden="true" />
                                                         <span className="proof-of-work-toc-label text-[13px] font-medium truncate min-w-0">{item.text}</span>
                                                     </button>
                                                 );

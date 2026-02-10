@@ -1118,11 +1118,13 @@ export function ReportApp() {
                                 {proofOfWorkTocItems.length === 0 && (
                                     <div className="px-2 py-1 text-[11px] text-gray-500">Loading sections…</div>
                                 )}
-                                {proofOfWorkTocItems.map((item) => (
+                                {proofOfWorkTocItems.map((item) => {
+                                    const isActive = item.id === activeProofOfWorkHeadingId;
+                                    return (
                                     <button
                                         key={`${item.id}-${item.level}`}
-                                        data-toc-active={item.id === activeProofOfWorkHeadingId ? 'true' : 'false'}
-                                        className={`proof-of-work-toc-item ${item.level === 1 ? 'proof-of-work-toc-item--l1' : item.level === 2 ? 'proof-of-work-toc-item--l2' : 'proof-of-work-toc-item--l3'} w-full text-left flex items-center gap-2 min-w-0 transition-colors ${item.level === 1 ? 'text-white hover:text-white' : 'text-gray-400 hover:text-gray-200'} ${item.id === activeProofOfWorkHeadingId ? 'proof-of-work-toc-item--active' : ''}`}
+                                        data-toc-active={isActive ? 'true' : 'false'}
+                                        className={`proof-of-work-toc-item ${item.level === 1 ? 'proof-of-work-toc-item--l1' : item.level === 2 ? 'proof-of-work-toc-item--l2' : 'proof-of-work-toc-item--l3'} w-full text-left flex items-center gap-2 min-w-0 transition-colors ${item.level === 1 ? 'text-white hover:text-white' : 'text-gray-400 hover:text-gray-200'} ${isActive ? 'proof-of-work-toc-item--active text-cyan-300' : ''}`}
                                         onClick={() => {
                                             const container = metricsSpecContentRef.current;
                                             if (!container) return;
@@ -1141,10 +1143,10 @@ export function ReportApp() {
                                             });
                                         }}
                                     >
-                                        <span className="proof-of-work-toc-dot" aria-hidden="true" />
+                                        <span className={`proof-of-work-toc-dot ${isActive ? 'bg-cyan-300' : ''}`} aria-hidden="true" />
                                         <span className="proof-of-work-toc-label text-[13px] font-medium truncate min-w-0">{item.text}</span>
                                     </button>
-                                ))}
+                                );})}
                             </div>
                         </div>
                         <div className="proof-of-work-content h-full overflow-y-auto px-4 py-3" ref={metricsSpecContentRef} id="metrics-spec-content">
