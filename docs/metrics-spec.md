@@ -26,6 +26,8 @@ minimum fields consumed are:
 - `players[*].extHealingStats.outgoingHealingAllies`
 - `players[*].extBarrierStats.outgoingBarrierAllies`
 - `players[*].totalDamageDist`, `players[*].targetDamageDist`, `players[*].totalDamageTaken`
+- `players[*].damage1S`, `players[*].targetDamage1S`,
+  `players[*].powerDamageTaken1S`, `players[*].targetPowerDamage1S`
 - `players[*].activeTimes`
 - `players[*].rotation`
 - `players[*].buffUptimes`
@@ -37,6 +39,8 @@ minimum fields consumed are:
 - `details.fightName`, `details.uploadTime` (or `details.timeStartStd` / `details.timeStart` fallback),
   `details.zone`/`mapName`/`map`/`location`, `details.success`,
   `details.targets`, `details.durationMS`
+- `targets[*].totalDamageDist`, `targets[*].powerDamage1S`, `targets[*].damage1S`,
+  `targets[*].enemyPlayer`, `targets[*].isFake`, `targets[*].profession`
 
 If any of these are missing, the metric falls back to `0` as defined below.
 
@@ -569,6 +573,140 @@ Implementation:
 - Aggregation/precompute: `src/renderer/stats/computeStatsAggregation.ts`
 - Runtime selection/drilldown + fallbacks: `src/renderer/StatsView.tsx`
 - Chart rendering/interaction: `src/renderer/stats/sections/SpikeDamageSection.tsx`
+
+## Incoming Strike Damage
+
+Incoming Strike Damage mirrors Spike Damage interactions (same chart modes,
+selection, drilldown, animations, and fight navigation) but changes the data
+source and grouping:
+
+- grouped by **enemy class** (`targets[*].profession`) instead of squad player
+- uses **incoming strike timelines** and target damage distributions
+- selected-fight expansion includes a **skill-level incoming strike table**
+
+### Identity and Grouping
+
+Per-fight keys are enemy profession labels:
+
+- `key = resolveProfessionLabel(target.profession || target.name || target.id)`
+- fallback key: `"Unknown"`
+
+All enemy targets in a fight that resolve to the same profession are merged
+into one class bucket for that fight.
+
+### Damage Modes (`hit`, `1s`, `5s`, `30s`)
+
+Modes are defined the same way as Spike Damage:
+
+- `hit`: highest single incoming strike hit seen in the class bucket
+- `1s`: highest rolling 1-second incoming strike burst
+- `5s`: highest rolling 5-second incoming strike burst
+- `30s`: highest rolling 30-second incoming strike burst
+
+`hit` source:
+
+- scan target strike distributions (`totalDamageDist`) and keep max of:
+  - `entry.max`
+  - `entry.maxDamage`
+  - `entry.maxHit`
+  - fallback estimate: `entry.totalDamage / entry.connectedHits` when valid
+- ignore `indirectDamage` entries
+
+### Incoming Timeline Construction
+
+For each enemy target, incoming strike series is built with the following
+priority:
+
+1. Squad-attributed incoming-vs-target cumulative strike:
+   - sum `players[*].targetPowerDamage1S[targetIndex]` across all squad players
+2. Fallback target timeline:
+   - `targets[targetIndex].powerDamage1S`
+3. Final fallback:
+   - `targets[targetIndex].damage1S`
+
+Each chosen cumulative series is converted to per-second deltas:
+
+- `delta[i] = max(0, cumulative[i] - cumulative[i-1])`
+- `delta[0] = max(0, cumulative[0])`
+
+Class series is then:
+
+- sum of target delta series for all targets in that class
+
+Burst windows are computed from class per-second deltas with the same rolling
+window logic used by Spike Damage.
+
+### Timeline Fallback When Target Timelines Are Missing
+
+If enemy target timelines are empty/unusable for a fight:
+
+1. Build squad incoming strike series from `players[*].powerDamageTaken1S`
+   (cumulative -> per-second deltas).
+2. Compute enemy class counts from `targets[*]` (enemy player targets only).
+3. Distribute squad incoming per-second totals across classes proportionally by
+   class count in that fight.
+
+This preserves non-zero burst/drilldown behavior for logs lacking complete
+target timeline detail.
+
+### Per-Fight Max Reference Line
+
+For each fight:
+
+- `maxHit = max(values[*].hit)`
+- `max1s = max(values[*].burst1s)`
+- `max5s = max(values[*].burst5s)`
+- `max30s = max(values[*].burst30s)`
+
+The selected mode uses its corresponding fight max as the dashed reference
+series in the chart.
+
+### Fight Drilldown (5s Buckets)
+
+Selected-fight drilldown is 5-second buckets from class per-second deltas:
+
+- `bucket[k] = sum(delta[k*5 .. k*5+4])`
+
+Bucket count extends to at least `ceil(durationMS / 5000)` so late-fight
+marker events can still be shown even when trailing bucket damage is zero.
+
+Down/death markers use replay event times from squad players and are converted
+to indices with the same normalization/indexing logic as Spike Damage
+(ms/sec scaling, offset hints, then `floor(timeMs / 5000)` clamp).
+
+### Selected Fight Skill Table (Incoming Skill Damage)
+
+The expanded table for the selected fight/class is generated from enemy target
+strike distributions:
+
+1. For each target in the selected class:
+   - read `target.totalDamageDist` entries
+   - ignore `indirectDamage`
+2. Resolve each skill id via:
+   - `skillMap[s{id}]`, then `skillMap[id]`
+   - fallback `buffMap[b{id}]`, then `buffMap[id]`
+3. Aggregate per skill name:
+   - `damage += entry.totalDamage`
+   - `hits += entry.connectedHits || entry.hits`
+   - preserve first available icon URL
+4. Sort desc by damage and keep top rows for rendering.
+
+### Why Some Skill Names Can Look Off-Class
+
+Skill names in incoming strike tables are tied to damage event ids in EI
+damage distributions, not to profession skill catalogs. Because of that,
+off-class-looking names can appear in a class bucket (for example via
+reflected/returned projectiles, transformed skills, or attribution context).
+This is expected under the current event-id attribution model.
+
+### Implementation
+
+- Aggregation/precompute:
+  - `src/renderer/stats/computeStatsAggregation.ts` (`incomingStrikeDamage`)
+- Runtime selection/drilldown/table rows:
+  - `src/renderer/StatsView.tsx`
+- UI rendering (card, chart, drilldown, skill table):
+  - `src/renderer/stats/sections/SpikeDamageSection.tsx`
 
 ## Timeline / Map Distribution / Fight Breakdown
 
