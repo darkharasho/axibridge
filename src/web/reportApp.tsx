@@ -4,6 +4,7 @@ import { DEFAULT_WEB_THEME, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
+import { ProofOfWorkModal } from '../renderer/ui/ProofOfWorkModal';
 import {
     ShieldCheck,
     Shield,
@@ -25,7 +26,6 @@ import {
     Zap,
     ArrowLeft,
     ArrowUp,
-    X as CloseIcon,
     ListTree,
     Keyboard
 } from 'lucide-react';
@@ -225,11 +225,17 @@ export function ReportApp() {
     const pendingScrollIdRef = useRef<string | null>(null);
     const basePath = useMemo(() => {
         let pathName = window.location.pathname || '/';
+        const isLocalhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(window.location.host);
         if (pathName.endsWith('/index.html')) {
             pathName = pathName.slice(0, -'/index.html'.length);
         }
         if (pathName.includes('/reports/')) {
             pathName = pathName.replace(/\/reports\/[^/]+\/?$/, '');
+        }
+        // In dev mock reports we open `/web/web/index.html`, but report/theme payloads
+        // live under `/web/*`; collapse the duplicated segment for fetch paths.
+        if (isLocalhost) {
+            pathName = pathName.replace(/^\/web\/web(?=\/|$)/, '/web');
         }
         if (!pathName.endsWith('/')) {
             pathName = `${pathName}/`;
@@ -241,7 +247,7 @@ export function ReportApp() {
         return isLocalhost && window.location.pathname.startsWith('/web/');
     }, []);
     const assetBasePathCandidates = useMemo(() => {
-        const primary = isDevLocalWeb ? '/' : basePath;
+        const primary = basePath;
         const candidates = [primary, './', '/'];
         const deduped: string[] = [];
         candidates.forEach((value) => {
@@ -1040,204 +1046,139 @@ export function ReportApp() {
         </div>
     );
 
-    const proofOfWorkModal = proofOfWorkOpen && (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
-            onClick={(event) => event.target === event.currentTarget && setProofOfWorkOpen(false)}
+    const proofOfWorkModal = (
+        <ProofOfWorkModal
+            isOpen={proofOfWorkOpen}
+            onClose={() => setProofOfWorkOpen(false)}
+            searchValue={metricsSpecSearch}
+            searchFocused={metricsSpecSearchFocused}
+            searchResults={metricsSpecSearchResults}
+            onSearchChange={(value) => {
+                setMetricsSpecSearch(value);
+                updateMetricsSpecSearchResults(value);
+            }}
+            onSearchFocus={() => {
+                setMetricsSpecSearchFocused(true);
+                updateMetricsSpecSearchResults(metricsSpecSearch);
+            }}
+            onSearchBlur={(nextTarget) => {
+                if (nextTarget && metricsSpecSearchRef.current?.contains(nextTarget)) return;
+                setMetricsSpecSearchFocused(false);
+            }}
+            onSearchEnter={() => {
+                if (metricsSpecSearchResults.length > 0) {
+                    scrollMetricsSpecToNodeIndex(metricsSpecSearchResults[0].hitId, metricsSpecSearchResults[0].text);
+                }
+            }}
+            onSearchResultMouseDown={(result) => {
+                setMetricsSpecSearchFocused(true);
+                scrollMetricsSpecToNodeIndex(result.hitId, result.text);
+            }}
+            renderHighlightedMatch={renderHighlightedMatch}
+            searchRef={metricsSpecSearchRef}
+            tocItems={proofOfWorkTocItems}
+            activeTocId={activeProofOfWorkHeadingId}
+            onTocClick={(item) => {
+                const container = metricsSpecContentRef.current;
+                if (!container) return;
+                const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+                const target = headings[(item as TocHeading).nodeIndex]
+                    || container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`)
+                    || container.querySelector<HTMLElement>(`#${item.id}`);
+                if (!target) return;
+                setActiveProofOfWorkHeadingId(item.id);
+                requestAnimationFrame(() => {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+                    const containerRect = container.getBoundingClientRect();
+                    const targetRect = target.getBoundingClientRect();
+                    const scrollOffset = container.scrollTop + (targetRect.top - containerRect.top) - 12;
+                    container.scrollTo({ top: Math.max(0, scrollOffset), behavior: 'smooth' });
+                });
+            }}
+            contentRef={metricsSpecContentRef}
         >
-            <div className="proof-of-work-modal w-full max-w-4xl bg-[#101826]/90 border border-white/10 rounded-2xl shadow-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <div className="text-lg font-bold text-white">Proof of Work</div>
-                        <div className="text-xs text-gray-400">Metrics Specification</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="relative" ref={metricsSpecSearchRef}>
-                            <input
-                                type="text"
-                                value={metricsSpecSearch}
-                                onChange={(event) => {
-                                    const value = event.target.value;
-                                    setMetricsSpecSearch(value);
-                                    updateMetricsSpecSearchResults(value);
-                                }}
-                                onFocus={() => {
-                                    setMetricsSpecSearchFocused(true);
-                                    updateMetricsSpecSearchResults(metricsSpecSearch);
-                                }}
-                                onBlur={(event) => {
-                                    const nextTarget = event.relatedTarget as Node | null;
-                                    if (nextTarget && metricsSpecSearchRef.current?.contains(nextTarget)) {
-                                        return;
-                                    }
-                                    setMetricsSpecSearchFocused(false);
-                                }}
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Enter' && metricsSpecSearchResults.length > 0) {
-                                        scrollMetricsSpecToNodeIndex(metricsSpecSearchResults[0].hitId, metricsSpecSearchResults[0].text);
-                                    }
-                                }}
-                                placeholder="Search spec..."
-                                className="proof-of-work-search w-52 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-                            />
-                            {metricsSpecSearchFocused && metricsSpecSearchResults.length > 0 && metricsSpecSearch.trim().length >= 2 && (
-                                <div className="proof-of-work-search-results absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#11161e]/95 shadow-xl z-10">
-                                    {metricsSpecSearchResults.map((result) => (
-                                        <button
-                                            key={`${result.index}-${result.text}`}
-                                            className="w-full text-left px-3 py-2 text-xs text-gray-200 hover:bg-white/10 border-b border-white/5 last:border-b-0"
-                                            onMouseDown={(event) => {
-                                                event.preventDefault();
-                                                setMetricsSpecSearchFocused(true);
-                                                scrollMetricsSpecToNodeIndex(result.hitId, result.text);
-                                            }}
-                                        >
-                                            <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">{result.section}</div>
-                                            <div className="truncate">
-                                                {renderHighlightedMatch(result.text, metricsSpecSearch)}
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <button
-                            onClick={() => setProofOfWorkOpen(false)}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
-                            aria-label="Close proof of work"
+            {(() => {
+                // Keep heading ids deterministic on every render so TOC active state stays in sync.
+                metricsSpecHeadingCountsRef.current = new Map();
+                return null;
+            })()}
+            <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                    h1: ({ children }) => {
+                        const label = extractHeadingText(children);
+                        const id = buildMetricsSpecHeadingId(label);
+                        return <h1 id={id} data-heading-id={id} className="text-2xl font-bold text-white scroll-mt-6">{children}</h1>;
+                    },
+                    h2: ({ children }) => {
+                        const label = extractHeadingText(children);
+                        const id = buildMetricsSpecHeadingId(label);
+                        return <h2 id={id} data-heading-id={id} className="text-xl font-semibold text-white scroll-mt-6">{children}</h2>;
+                    },
+                    h3: ({ children }) => {
+                        const label = extractHeadingText(children);
+                        const id = buildMetricsSpecHeadingId(label);
+                        return <h3 id={id} data-heading-id={id} className="text-lg font-semibold text-white scroll-mt-6">{children}</h3>;
+                    },
+                    p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
+                    ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
+                    li: ({ children }) => <li className="leading-6">{children}</li>,
+                    blockquote: ({ children }) => (
+                        <blockquote className="border-l-2 border-blue-400/40 pl-4 text-gray-300 italic">
+                            {children}
+                        </blockquote>
+                    ),
+                    a: ({ href, children }) => (
+                        <a
+                            className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                            href={href}
+                            target="_blank"
+                            rel="noreferrer"
                         >
-                            <CloseIcon className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-                <div className="h-[65vh]">
-                    <div className="grid grid-cols-[220px_1fr] gap-4 h-full min-h-0">
-                        <div className="proof-of-work-sidebar h-full overflow-y-auto pr-2">
-                            <div className="proof-of-work-toc-header text-xs uppercase tracking-wide text-gray-500 mb-2">On This Page</div>
-                            <div className="space-y-1">
-                                {proofOfWorkTocItems.length === 0 && (
-                                    <div className="px-2 py-1 text-[11px] text-gray-500">Loading sections…</div>
-                                )}
-                                {proofOfWorkTocItems.map((item) => {
-                                    const isActive = item.id === activeProofOfWorkHeadingId;
-                                    return (
-                                    <button
-                                        key={`${item.id}-${item.level}`}
-                                        data-toc-active={isActive ? 'true' : 'false'}
-                                        className={`proof-of-work-toc-item ${item.level === 1 ? 'proof-of-work-toc-item--l1' : item.level === 2 ? 'proof-of-work-toc-item--l2' : 'proof-of-work-toc-item--l3'} w-full text-left flex items-center gap-2 min-w-0 transition-colors ${item.level === 1 ? 'text-white hover:text-white' : 'text-gray-400 hover:text-gray-200'} ${isActive ? 'proof-of-work-toc-item--active text-cyan-300' : ''}`}
-                                        onClick={() => {
-                                            const container = metricsSpecContentRef.current;
-                                            if (!container) return;
-                                            const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
-                                            const target = headings[item.nodeIndex]
-                                                || container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`)
-                                                || container.querySelector<HTMLElement>(`#${item.id}`);
-                                            if (!target) return;
-                                            setActiveProofOfWorkHeadingId(item.id);
-                                            requestAnimationFrame(() => {
-                                                target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
-                                                const containerRect = container.getBoundingClientRect();
-                                                const targetRect = target.getBoundingClientRect();
-                                                const scrollOffset = container.scrollTop + (targetRect.top - containerRect.top) - 12;
-                                                container.scrollTo({ top: Math.max(0, scrollOffset), behavior: 'smooth' });
-                                            });
-                                        }}
-                                    >
-                                        <span className={`proof-of-work-toc-dot ${isActive ? 'bg-cyan-300' : ''}`} aria-hidden="true" />
-                                        <span className="proof-of-work-toc-label text-[13px] font-medium truncate min-w-0">{item.text}</span>
-                                    </button>
-                                );})}
-                            </div>
+                            {children}
+                        </a>
+                    ),
+                    table: ({ children }) => (
+                        <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30">
+                            <table className="w-full border-collapse text-left text-sm">
+                                {children}
+                            </table>
                         </div>
-                        <div className="proof-of-work-content h-full overflow-y-auto px-4 py-3" ref={metricsSpecContentRef} id="metrics-spec-content">
-                            <div className="space-y-4 text-sm text-gray-200">
-                                {(() => {
-                                    // Keep heading ids deterministic on every render so TOC active state stays in sync.
-                                    metricsSpecHeadingCountsRef.current = new Map();
-                                    return null;
-                                })()}
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                        h1: ({ children }) => {
-                                            const label = extractHeadingText(children);
-                                            const id = buildMetricsSpecHeadingId(label);
-                                            return <h1 id={id} data-heading-id={id} className="text-2xl font-bold text-white scroll-mt-6">{children}</h1>;
-                                        },
-                                        h2: ({ children }) => {
-                                            const label = extractHeadingText(children);
-                                            const id = buildMetricsSpecHeadingId(label);
-                                            return <h2 id={id} data-heading-id={id} className="text-xl font-semibold text-white scroll-mt-6">{children}</h2>;
-                                        },
-                                        h3: ({ children }) => {
-                                            const label = extractHeadingText(children);
-                                            const id = buildMetricsSpecHeadingId(label);
-                                            return <h3 id={id} data-heading-id={id} className="text-lg font-semibold text-white scroll-mt-6">{children}</h3>;
-                                        },
-                                        p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
-                                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
-                                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
-                                        li: ({ children }) => <li className="leading-6">{children}</li>,
-                                        blockquote: ({ children }) => (
-                                            <blockquote className="border-l-2 border-blue-400/40 pl-4 text-gray-300 italic">
-                                                {children}
-                                            </blockquote>
-                                        ),
-                                        a: ({ href, children }) => (
-                                            <a
-                                                className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
-                                                href={href}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                            >
-                                                {children}
-                                            </a>
-                                        ),
-                                        table: ({ children }) => (
-                                            <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30">
-                                                <table className="w-full border-collapse text-left text-sm">
-                                                    {children}
-                                                </table>
-                                            </div>
-                                        ),
-                                        th: ({ children }) => (
-                                            <th className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-gray-300">
-                                                {children}
-                                            </th>
-                                        ),
-                                        td: ({ children }) => (
-                                            <td className="border-b border-white/10 px-3 py-2 text-gray-200">
-                                                {children}
-                                            </td>
-                                        ),
-                                        pre: ({ children }) => (
-                                            <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs text-blue-100">
-                                                {children}
-                                            </pre>
-                                        ),
-                                        code: (props: any) => {
-                                            const { inline, children } = props;
-                                            const isInline = inline === true;
-                                            return isInline ? (
-                                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
-                                                    {children}
-                                                </code>
-                                            ) : (
-                                                <code className="whitespace-pre-wrap text-blue-100">
-                                                    {children}
-                                                </code>
-                                            );
-                                        }
-                                    }}
-                                >
-                                    {metricsSpecMarkdown}
-                                </ReactMarkdown>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    ),
+                    th: ({ children }) => (
+                        <th className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-gray-300">
+                            {children}
+                        </th>
+                    ),
+                    td: ({ children }) => (
+                        <td className="border-b border-white/10 px-3 py-2 text-gray-200">
+                            {children}
+                        </td>
+                    ),
+                    pre: ({ children }) => (
+                        <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs text-blue-100">
+                            {children}
+                        </pre>
+                    ),
+                    code: (props: any) => {
+                        const { inline, children } = props;
+                        const isInline = inline === true;
+                        return isInline ? (
+                            <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
+                                {children}
+                            </code>
+                        ) : (
+                            <code className="whitespace-pre-wrap text-blue-100">
+                                {children}
+                            </code>
+                        );
+                    }
+                }}
+            >
+                {metricsSpecMarkdown}
+            </ReactMarkdown>
+        </ProofOfWorkModal>
     );
 
     if (report) {

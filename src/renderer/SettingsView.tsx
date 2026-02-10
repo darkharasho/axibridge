@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
 import { HowToModal } from './HowToModal';
+import { ProofOfWorkModal } from './ui/ProofOfWorkModal';
 
 interface SettingsViewProps {
     onBack: () => void;
@@ -2684,149 +2685,66 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 )}
             </AnimatePresence>
 
-            <AnimatePresence>
-                {proofOfWorkOpen && (
-                    <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-lg"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={(event) => event.target === event.currentTarget && setProofOfWorkOpen(false)}
-                    >
-                        <motion.div
-                            className="proof-of-work-modal relative w-full max-w-4xl bg-[#10151b]/95 border border-white/10 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.55)] p-6 overflow-hidden"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                        >
-                            <div className="pointer-events-none absolute inset-0 opacity-60">
-                                <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-cyan-500/8 blur-3xl" />
-                                <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-slate-500/10 blur-3xl" />
-                            </div>
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <div className="text-[10px] uppercase tracking-[0.35em] text-cyan-300/70">Proof of Work</div>
-                                    <div className="text-xl font-semibold text-white mt-1">Metrics Specification</div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="relative" ref={metricsSpecSearchRef}>
-                                        <input
-                                            type="text"
-                                            value={metricsSpecSearch}
-                                            onChange={(event) => {
-                                                const value = event.target.value;
-                                                setMetricsSpecSearch(value);
-                                                updateMetricsSpecSearchResults(value);
-                                                if (value.trim().length >= 2) {
-                                                    scrollMetricsSpecToMatch(value);
-                                                }
-                                            }}
-                                            onFocus={() => {
-                                                setMetricsSpecSearchFocused(true);
-                                                updateMetricsSpecSearchResults(metricsSpecSearch);
-                                            }}
-                                            onBlur={(event) => {
-                                                const nextTarget = event.relatedTarget as Node | null;
-                                                if (nextTarget && metricsSpecSearchRef.current?.contains(nextTarget)) {
-                                                    return;
-                                                }
-                                                setMetricsSpecSearchFocused(false);
-                                            }}
-                                            onKeyDown={(event) => {
-                                                if (event.key === 'Enter') {
-                                                    scrollMetricsSpecToMatch(metricsSpecSearch);
-                                                }
-                                            }}
-                                            placeholder="Search spec..."
-                                            className="proof-of-work-search w-56 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-                                        />
-                                        {metricsSpecSearchFocused && metricsSpecSearchResults.length > 0 && metricsSpecSearch.trim().length >= 2 && (
-                                            <div className="absolute right-0 mt-2 w-80 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#0d1218]/95 shadow-2xl z-10">
-                                                {metricsSpecSearchResults.map((result) => (
-                                                    <button
-                                                        key={`${result.tag}-${result.index}-${result.text}`}
-                                                        className="w-full text-left px-3 py-2 text-xs text-gray-200 hover:bg-white/10 border-b border-white/5 last:border-b-0"
-                                                        onMouseDown={(event) => {
-                                                            event.preventDefault();
-                                                            setMetricsSpecSearchFocused(true);
-                                                            scrollMetricsSpecToNodeIndex(result.hitId, result.text);
-                                                        }}
-                                                    >
-                                                        <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">{result.section}</div>
-                                                        <div className="truncate">
-                                                            {renderHighlightedMatch(result.text, metricsSpecSearch)}
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={() => setProofOfWorkOpen(false)}
-                                        className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
-                                    >
-                                        <CloseIcon className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="h-[65vh]">
-                                <div className="grid grid-cols-[230px_1fr] gap-4 h-full min-h-0">
-                                    <div className="proof-of-work-sidebar h-full overflow-y-auto pr-2 rounded-xl border border-white/10 bg-white/5 p-3">
-                                        <div className="proof-of-work-toc-header text-[10px] uppercase tracking-[0.3em] text-gray-400 mb-2">On This Page</div>
-                                        <div className="space-y-1">
-                                            {metricsSpecNav.map((item) => {
-                                                const isActive = item.id === activeMetricsSpecHeadingId;
-                                                const levelClass = item.level === 1
-                                                    ? 'proof-of-work-toc-item--l1'
-                                                    : item.level === 2
-                                                        ? 'proof-of-work-toc-item--l2'
-                                                        : 'proof-of-work-toc-item--l3';
-                                                return (
-                                                    <button
-                                                        key={`${item.id}-${item.level}`}
-                                                        className={`proof-of-work-toc-item ${levelClass} ${isActive ? 'proof-of-work-toc-item--active text-cyan-300' : ''} w-full text-left flex items-center gap-2 min-w-0 transition-colors ${item.level === 1 ? 'text-white hover:text-white' : 'text-gray-400 hover:text-gray-200'}`}
-                                                        onClick={() => {
-                                                            const container = metricsSpecContentRef.current;
-                                                            if (!container) return;
-                                                            let target = container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`);
-                                                            if (!target) {
-                                                                const key = slugifyHeading(item.text);
-                                                                target = container.querySelector<HTMLElement>(`[data-heading-key="${key}"]`);
-                                                            }
-                                                            if (!target) {
-                                                                const normalized = item.text.trim().replace(/\s+/g, ' ');
-                                                                const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
-                                                                target = headings.find((node) => (node.textContent || '').trim().replace(/\s+/g, ' ') === normalized) || null;
-                                                            }
-                                                            if (!target) {
-                                                                return;
-                                                            }
-                                                            const containerTop = container.getBoundingClientRect().top;
-                                                            const targetTop = target.getBoundingClientRect().top;
-                                                            const scrollOffset = Math.max(0, targetTop - containerTop + container.scrollTop - 12);
-                                                            requestAnimationFrame(() => {
-                                                                container.scrollTop = scrollOffset;
-                                                            });
-                                                            setActiveMetricsSpecHeadingId(item.id);
-                                                        }}
-                                                    >
-                                                        <span className={`proof-of-work-toc-dot ${isActive ? 'bg-cyan-300' : ''}`} aria-hidden="true" />
-                                                        <span className="proof-of-work-toc-label text-[13px] font-medium truncate min-w-0">{item.text}</span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                    <div className="proof-of-work-content h-full overflow-y-auto pr-2 rounded-xl border border-white/10 bg-black/30 p-4" ref={metricsSpecContentRef} id="metrics-spec-content">
-                                        <div className="space-y-4 text-sm text-gray-200">
-                                            {(() => {
-                                                // Keep heading ids deterministic on every render so TOC active state stays in sync.
-                                                metricsSpecHeadingCountsRef.current = new Map();
-                                                return null;
-                                            })()}
-                                            <ReactMarkdown
-                                                remarkPlugins={[remarkGfm]}
-                                                components={{
+            <ProofOfWorkModal
+                isOpen={proofOfWorkOpen}
+                onClose={() => setProofOfWorkOpen(false)}
+                searchValue={metricsSpecSearch}
+                searchFocused={metricsSpecSearchFocused}
+                searchResults={metricsSpecSearchResults}
+                onSearchChange={(value) => {
+                    setMetricsSpecSearch(value);
+                    updateMetricsSpecSearchResults(value);
+                    if (value.trim().length >= 2) scrollMetricsSpecToMatch(value);
+                }}
+                onSearchFocus={() => {
+                    setMetricsSpecSearchFocused(true);
+                    updateMetricsSpecSearchResults(metricsSpecSearch);
+                }}
+                onSearchBlur={(nextTarget) => {
+                    if (nextTarget && metricsSpecSearchRef.current?.contains(nextTarget)) return;
+                    setMetricsSpecSearchFocused(false);
+                }}
+                onSearchEnter={() => scrollMetricsSpecToMatch(metricsSpecSearch)}
+                onSearchResultMouseDown={(result) => {
+                    setMetricsSpecSearchFocused(true);
+                    scrollMetricsSpecToNodeIndex(result.hitId, result.text);
+                }}
+                renderHighlightedMatch={renderHighlightedMatch}
+                searchRef={metricsSpecSearchRef}
+                tocItems={metricsSpecNav}
+                activeTocId={activeMetricsSpecHeadingId}
+                onTocClick={(item) => {
+                    const container = metricsSpecContentRef.current;
+                    if (!container) return;
+                    let target = container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`);
+                    if (!target) {
+                        const key = slugifyHeading(item.text);
+                        target = container.querySelector<HTMLElement>(`[data-heading-key="${key}"]`);
+                    }
+                    if (!target) {
+                        const normalized = item.text.trim().replace(/\s+/g, ' ');
+                        const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+                        target = headings.find((node) => (node.textContent || '').trim().replace(/\s+/g, ' ') === normalized) || null;
+                    }
+                    if (!target) return;
+                    const containerTop = container.getBoundingClientRect().top;
+                    const targetTop = target.getBoundingClientRect().top;
+                    const scrollOffset = Math.max(0, targetTop - containerTop + container.scrollTop - 12);
+                    requestAnimationFrame(() => {
+                        container.scrollTop = scrollOffset;
+                    });
+                    setActiveMetricsSpecHeadingId(item.id);
+                }}
+                contentRef={metricsSpecContentRef}
+            >
+                {(() => {
+                    // Keep heading ids deterministic on every render so TOC active state stays in sync.
+                    metricsSpecHeadingCountsRef.current = new Map();
+                    return null;
+                })()}
+                <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
                                                     h1: ({ children }) => {
                                                         const label = extractHeadingText(children);
                                                         const id = buildHeadingId(label);
@@ -2921,18 +2839,11 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                                             </code>
                                                         );
                                                     }
-                                                }}
-                                            >
-                                                {metricsSpecMarkdown}
-                                            </ReactMarkdown>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    }}
+                >
+                    {metricsSpecMarkdown}
+                </ReactMarkdown>
+            </ProofOfWorkModal>
 
             <HowToModal isOpen={howToOpen} onClose={() => setHowToOpen(false)} />
         </div>

@@ -4127,24 +4127,16 @@ if (!gotTheLock) {
                 if (!webRootExists) {
                     fs.mkdirSync(webRoot, { recursive: true });
                 }
-                if (webRootEmpty) {
+                if (webRootEmpty || !isWebTemplateReady(webRoot)) {
                     const templateDir = path.join(appRoot, 'dist-web');
-                    const built = await buildWebTemplate(appRoot);
-                    if (!built.ok || !fs.existsSync(templateDir)) {
-                        return { success: false, error: built.error || 'Failed to generate the web template automatically.', errorDetail: built.errorDetail };
-                    }
-                    copyDir(templateDir, webRoot);
-                } else {
-                    // Keep local mock reports on current frontend assets instead of stale bundles.
-                    const templateDir = path.join(appRoot, 'dist-web');
-                    const built = await buildWebTemplate(appRoot);
-                    if (!built.ok || !fs.existsSync(templateDir)) {
-                        return { success: false, error: built.error || 'Failed to generate the web template automatically.', errorDetail: built.errorDetail };
+                    if (!fs.existsSync(templateDir)) {
+                        const built = await buildWebTemplate(appRoot);
+                        if (!built.ok || !fs.existsSync(templateDir)) {
+                            return { success: false, error: built.error || 'Failed to generate the web template automatically.', errorDetail: built.errorDetail };
+                        }
                     }
                     copyDir(templateDir, webRoot);
                 }
-                // Always ensure dev index points at the web entry.
-                ensureDevWebIndex(webRoot);
                 const reportMeta = {
                     ...payload.meta,
                     appVersion: app.getVersion()
@@ -4171,23 +4163,21 @@ if (!gotTheLock) {
                 fs.writeFileSync(path.join(reportDir, 'report.json'), JSON.stringify(reportPayload, null, 2));
                 if (selectedTheme) {
                     const themePayload = JSON.stringify(selectedTheme, null, 2);
-                    fs.writeFileSync(path.join(appRoot, 'theme.json'), themePayload);
                     fs.writeFileSync(path.join(webRoot, 'theme.json'), themePayload);
                 }
                 const uiThemePayload = JSON.stringify({ theme: uiThemeValue }, null, 2);
-                fs.writeFileSync(path.join(appRoot, 'ui-theme.json'), uiThemePayload);
                 fs.writeFileSync(path.join(webRoot, 'ui-theme.json'), uiThemePayload);
 
                 const redirectHtml = `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content="0; url=../../index.html?report=${reportMeta.id}" />
+    <meta http-equiv="refresh" content="0; url=../../web/web/index.html?report=${reportMeta.id}" />
     <title>Redirecting...</title>
   </head>
   <body>
     <script>
-      window.location.replace('../../index.html?report=${reportMeta.id}');
+      window.location.replace('../../web/web/index.html?report=${reportMeta.id}');
     </script>
     <p>Redirecting to report...</p>
   </body>
@@ -4202,7 +4192,7 @@ if (!gotTheLock) {
                     dateStart: reportMeta.dateStart,
                     dateEnd: reportMeta.dateEnd,
                     dateLabel: reportMeta.dateLabel,
-                    url: `./?report=${reportMeta.id}`,
+                    url: `./web/web/index.html?report=${reportMeta.id}`,
                     summary: (() => {
                         const stats = payload?.stats || {};
                         const mapData = Array.isArray(stats.mapData) ? stats.mapData : [];
@@ -4238,11 +4228,19 @@ if (!gotTheLock) {
                 } catch {
                     existingIndex = [];
                 }
-                const mergedIndex = [indexEntry, ...(Array.isArray(existingIndex) ? existingIndex.filter((entry) => entry?.id !== reportMeta.id) : [])];
+                const normalizedExistingIndex = (Array.isArray(existingIndex) ? existingIndex : []).map((entry) => {
+                    if (!entry || typeof entry !== 'object') return entry;
+                    const currentUrl = typeof entry.url === 'string' ? entry.url : '';
+                    const normalizedUrl = currentUrl
+                        .replace('./?report=', './web/web/index.html?report=')
+                        .replace('./web/index.html?report=', './web/web/index.html?report=');
+                    return normalizedUrl === currentUrl ? entry : { ...entry, url: normalizedUrl };
+                });
+                const mergedIndex = [indexEntry, ...normalizedExistingIndex.filter((entry) => entry?.id !== reportMeta.id)];
                 fs.writeFileSync(indexPath, JSON.stringify(mergedIndex, null, 2));
 
                 const baseUrl = VITE_DEV_SERVER_URL.replace(/\/$/, '');
-                return { success: true, url: `${baseUrl}/web/index.html?report=${reportMeta.id}` };
+                return { success: true, url: `${baseUrl}/web/web/index.html?report=${reportMeta.id}` };
             } catch (err: any) {
                 return { success: false, error: err?.message || 'Failed to create local web report.' };
             }
