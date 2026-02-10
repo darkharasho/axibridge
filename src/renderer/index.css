@@ -2419,6 +2419,22 @@ body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-header {
     padding: 0.15rem 0.35rem;
 }
 
+/* Shared TOC structure for in-app + web Proof of Work sidebars. */
+.proof-of-work-sidebar .proof-of-work-toc-item--l1 {
+    padding-left: 0.55rem;
+    color: #ffffff;
+}
+
+.proof-of-work-sidebar .proof-of-work-toc-item--l2 {
+    padding-left: 1.25rem;
+    color: #ffffff;
+}
+
+.proof-of-work-sidebar .proof-of-work-toc-item--l3 {
+    padding-left: 1.85rem;
+    color: #9ca3af;
+}
+
 body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item {
     position: relative;
     width: 100%;
@@ -2432,15 +2448,18 @@ body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item {
 }
 
 body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--l1 {
-    padding-left: 0.55rem;
+    padding-left: 0.55rem !important;
+    color: #ffffff !important;
 }
 
 body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--l2 {
-    padding-left: 1rem;
+    padding-left: 1.25rem !important;
+    color: #ffffff !important;
 }
 
 body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-item--l3 {
-    padding-left: 1.35rem;
+    padding-left: 1.85rem !important;
+    color: #9ca3af !important;
 }
 
 body.theme-matte .proof-of-work-sidebar .proof-of-work-toc-dot {

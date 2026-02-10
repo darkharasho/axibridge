@@ -211,6 +211,7 @@ export function ReportApp() {
     const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
     const [proofOfWorkTocItems, setProofOfWorkTocItems] = useState<TocHeading[]>([]);
+    const [activeProofOfWorkHeadingId, setActiveProofOfWorkHeadingId] = useState('');
     const [metricsSpecSearch, setMetricsSpecSearch] = useState('');
     const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; section: string; hitId: number }>>([]);
     const [metricsSpecSearchFocused, setMetricsSpecSearchFocused] = useState(false);
@@ -220,6 +221,7 @@ export function ReportApp() {
     const metricsSpecSearchRef = useRef<HTMLDivElement | null>(null);
     const themeDropdownRef = useRef<HTMLDivElement | null>(null);
     const metricsSpecHighlightRef = useRef<number | null>(null);
+    const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
     const pendingScrollIdRef = useRef<string | null>(null);
     const basePath = useMemo(() => {
         let pathName = window.location.pathname || '/';
@@ -254,6 +256,21 @@ export function ReportApp() {
         return deduped;
     }, [basePath, isDevLocalWeb]);
     const [assetBasePath, setAssetBasePath] = useState<string>(assetBasePathCandidates[0] || '/');
+    const extractHeadingText = (node: React.ReactNode): string => {
+        if (typeof node === 'string' || typeof node === 'number') return String(node);
+        if (Array.isArray(node)) return node.map(extractHeadingText).join('');
+        if (node && typeof node === 'object' && 'props' in node) {
+            return extractHeadingText((node as any).props?.children);
+        }
+        return '';
+    };
+    const buildMetricsSpecHeadingId = (label: string) => {
+        const key = slugifyHeadingText(label || 'section') || 'section';
+        const counts = metricsSpecHeadingCountsRef.current;
+        const next = (counts.get(key) ?? 0) + 1;
+        counts.set(key, next);
+        return next === 1 ? key : `${key}-${next}`;
+    };
     const joinAssetPath = (base: string, relative: string) => {
         const normalizedBase = base === './'
             ? './'
@@ -399,6 +416,7 @@ export function ReportApp() {
     useEffect(() => {
         if (!proofOfWorkOpen) return;
         setProofOfWorkTocItems([]);
+        setActiveProofOfWorkHeadingId('');
         const collectHeadings = () => {
             const container = metricsSpecContentRef.current;
             if (!container) return;
@@ -419,6 +437,9 @@ export function ReportApp() {
                 nextItems.push({ level, text, id, nodeIndex });
             });
             setProofOfWorkTocItems(nextItems);
+            if (nextItems.length > 0) {
+                setActiveProofOfWorkHeadingId(nextItems[0].id);
+            }
         };
         const frame = window.requestAnimationFrame(collectHeadings);
         const handleMouseDown = (event: MouseEvent) => {
@@ -434,6 +455,62 @@ export function ReportApp() {
             window.removeEventListener('mousedown', handleMouseDown);
         };
     }, [proofOfWorkOpen]);
+
+    useEffect(() => {
+        if (!proofOfWorkOpen) {
+            setActiveProofOfWorkHeadingId('');
+            return;
+        }
+        const container = metricsSpecContentRef.current;
+        if (!container) return;
+        let raf = 0;
+
+        const syncActiveHeading = () => {
+            const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+            if (headings.length === 0) return;
+            const containerTop = container.getBoundingClientRect().top;
+            const activationTop = containerTop + 18;
+            const candidates = headings
+                .map((heading) => ({
+                    id: heading.dataset.headingId || heading.id || '',
+                    top: heading.getBoundingClientRect().top
+                }))
+                .filter((entry) => !!entry.id);
+            if (candidates.length === 0) return;
+            let nextId = candidates[0]?.id || '';
+            let foundPast = false;
+            for (const entry of candidates) {
+                if (entry.top <= activationTop) {
+                    nextId = entry.id;
+                    foundPast = true;
+                    continue;
+                }
+                if (!foundPast) {
+                    nextId = entry.id;
+                }
+                break;
+            }
+            const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 2;
+            if (nearBottom) {
+                const lastId = candidates[candidates.length - 1]?.id || '';
+                if (lastId) nextId = lastId;
+            }
+            if (nextId) setActiveProofOfWorkHeadingId(nextId);
+        };
+
+        syncActiveHeading();
+        const onScroll = () => {
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(syncActiveHeading);
+        };
+        container.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll);
+        return () => {
+            if (raf) cancelAnimationFrame(raf);
+            container.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+        };
+    }, [proofOfWorkOpen, proofOfWorkTocItems]);
 
     const navGroups = useMemo(() => ([
         {
@@ -1044,12 +1121,8 @@ export function ReportApp() {
                                 {proofOfWorkTocItems.map((item) => (
                                     <button
                                         key={`${item.id}-${item.level}`}
-                                        className={`proof-of-work-toc-item ${item.level === 1 ? 'proof-of-work-toc-item--l1' : item.level === 2 ? 'proof-of-work-toc-item--l2' : 'proof-of-work-toc-item--l3'} w-full text-left text-xs rounded-md px-2 py-1 transition-colors ${item.level === 1
-                                            ? 'text-gray-300 hover:text-white'
-                                            : item.level === 2
-                                                ? 'text-gray-300 hover:text-white'
-                                                : 'text-gray-400 hover:text-gray-200'
-                                            }`}
+                                        data-toc-active={item.id === activeProofOfWorkHeadingId ? 'true' : 'false'}
+                                        className={`proof-of-work-toc-item ${item.level === 1 ? 'proof-of-work-toc-item--l1' : item.level === 2 ? 'proof-of-work-toc-item--l2' : 'proof-of-work-toc-item--l3'} w-full text-left flex items-center gap-2 min-w-0 transition-colors ${item.level === 1 ? 'text-white hover:text-white' : 'text-gray-400 hover:text-gray-200'} ${item.id === activeProofOfWorkHeadingId ? 'proof-of-work-toc-item--active' : ''}`}
                                         onClick={() => {
                                             const container = metricsSpecContentRef.current;
                                             if (!container) return;
@@ -1058,6 +1131,7 @@ export function ReportApp() {
                                                 || container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`)
                                                 || container.querySelector<HTMLElement>(`#${item.id}`);
                                             if (!target) return;
+                                            setActiveProofOfWorkHeadingId(item.id);
                                             requestAnimationFrame(() => {
                                                 target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
                                                 const containerRect = container.getBoundingClientRect();
@@ -1067,20 +1141,37 @@ export function ReportApp() {
                                             });
                                         }}
                                     >
-                                        {item.level === 3 && <span className="proof-of-work-toc-dot mr-1 inline-block align-middle" />}
-                                        <span className="proof-of-work-toc-label">{item.text}</span>
+                                        <span className="proof-of-work-toc-dot" aria-hidden="true" />
+                                        <span className="proof-of-work-toc-label text-[13px] font-medium truncate min-w-0">{item.text}</span>
                                     </button>
                                 ))}
                             </div>
                         </div>
                         <div className="proof-of-work-content h-full overflow-y-auto px-4 py-3" ref={metricsSpecContentRef} id="metrics-spec-content">
                             <div className="space-y-4 text-sm text-gray-200">
+                                {(() => {
+                                    // Keep heading ids deterministic on every render so TOC active state stays in sync.
+                                    metricsSpecHeadingCountsRef.current = new Map();
+                                    return null;
+                                })()}
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
-                                        h1: ({ children }) => <h1 className="text-2xl font-bold text-white scroll-mt-6">{children}</h1>,
-                                        h2: ({ children }) => <h2 className="text-xl font-semibold text-white scroll-mt-6">{children}</h2>,
-                                        h3: ({ children }) => <h3 className="text-lg font-semibold text-white scroll-mt-6">{children}</h3>,
+                                        h1: ({ children }) => {
+                                            const label = extractHeadingText(children);
+                                            const id = buildMetricsSpecHeadingId(label);
+                                            return <h1 id={id} data-heading-id={id} className="text-2xl font-bold text-white scroll-mt-6">{children}</h1>;
+                                        },
+                                        h2: ({ children }) => {
+                                            const label = extractHeadingText(children);
+                                            const id = buildMetricsSpecHeadingId(label);
+                                            return <h2 id={id} data-heading-id={id} className="text-xl font-semibold text-white scroll-mt-6">{children}</h2>;
+                                        },
+                                        h3: ({ children }) => {
+                                            const label = extractHeadingText(children);
+                                            const id = buildMetricsSpecHeadingId(label);
+                                            return <h3 id={id} data-heading-id={id} className="text-lg font-semibold text-white scroll-mt-6">{children}</h3>;
+                                        },
                                         p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
                                         ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
                                         ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,

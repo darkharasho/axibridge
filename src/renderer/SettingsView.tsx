@@ -349,25 +349,53 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         }
         const container = metricsSpecContentRef.current;
         if (!container) return;
+        let raf = 0;
 
         const syncActiveHeading = () => {
             const headings = Array.from(container.querySelectorAll<HTMLElement>('[data-heading-id]'));
             if (headings.length === 0) return;
-            const threshold = container.scrollTop + 18;
-            let nextId = metricsSpecNav[0]?.id || '';
-            for (const heading of headings) {
-                const id = heading.dataset.headingId || '';
-                if (!id) continue;
-                if (heading.offsetTop <= threshold) nextId = id;
-                else break;
+            const containerTop = container.getBoundingClientRect().top;
+            const activationTop = containerTop + 18;
+            const candidates = headings
+                .map((heading) => ({
+                    id: heading.dataset.headingId || '',
+                    top: heading.getBoundingClientRect().top
+                }))
+                .filter((entry) => !!entry.id);
+            if (candidates.length === 0) return;
+            let nextId = candidates[0]?.id || metricsSpecNav[0]?.id || '';
+            let foundPast = false;
+            for (const entry of candidates) {
+                if (entry.top <= activationTop) {
+                    nextId = entry.id;
+                    foundPast = true;
+                    continue;
+                }
+                if (!foundPast) {
+                    nextId = entry.id;
+                }
+                break;
+            }
+            const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 2;
+            if (nearBottom) {
+                const lastId = candidates[candidates.length - 1]?.id || '';
+                if (lastId) nextId = lastId;
             }
             if (nextId) setActiveMetricsSpecHeadingId(nextId);
         };
 
         syncActiveHeading();
-        const onScroll = () => requestAnimationFrame(syncActiveHeading);
+        const onScroll = () => {
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(syncActiveHeading);
+        };
         container.addEventListener('scroll', onScroll, { passive: true });
-        return () => container.removeEventListener('scroll', onScroll);
+        window.addEventListener('resize', onScroll);
+        return () => {
+            if (raf) cancelAnimationFrame(raf);
+            container.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+        };
     }, [proofOfWorkOpen, metricsSpecNav]);
 
     useEffect(() => {
@@ -2755,7 +2783,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                                 return (
                                                     <button
                                                         key={`${item.id}-${item.level}`}
-                                                        className={`proof-of-work-toc-item ${levelClass} ${isActive ? 'proof-of-work-toc-item--active' : ''} w-full text-left flex items-center gap-2 min-w-0 transition-colors`}
+                                                        className={`proof-of-work-toc-item ${levelClass} ${isActive ? 'proof-of-work-toc-item--active' : ''} w-full text-left flex items-center gap-2 min-w-0 transition-colors ${item.level === 1 ? 'text-white hover:text-white' : 'text-gray-400 hover:text-gray-200'}`}
                                                         onClick={() => {
                                                             const container = metricsSpecContentRef.current;
                                                             if (!container) return;
@@ -2790,6 +2818,11 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                     </div>
                                     <div className="proof-of-work-content h-full overflow-y-auto pr-2 rounded-xl border border-white/10 bg-black/30 p-4" ref={metricsSpecContentRef} id="metrics-spec-content">
                                         <div className="space-y-4 text-sm text-gray-200">
+                                            {(() => {
+                                                // Keep heading ids deterministic on every render so TOC active state stays in sync.
+                                                metricsSpecHeadingCountsRef.current = new Map();
+                                                return null;
+                                            })()}
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 components={{
