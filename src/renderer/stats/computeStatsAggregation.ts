@@ -545,7 +545,6 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             };
 
             const squadPlayers = players.filter(p => !p.notInSquad);
-            const enemyPlayers = players.filter(p => p.notInSquad);
             totalSquadSizeAccum += squadPlayers.length;
             totalEnemiesAccum += targets.filter((t: any) => !t.isFake).length;
 
@@ -911,8 +910,9 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 }
             });
 
-            enemyPlayers.forEach((p: any) => {
-                const name = resolveProfessionLabel(p.profession || p.name);
+            targets.forEach((t: any) => {
+                if (t?.isFake) return;
+                const name = resolveProfessionLabel(t?.profession || t?.name || t?.id);
                 if (!name) return;
                 enemyProfessionCounts[name] = (enemyProfessionCounts[name] || 0) + 1;
             });
