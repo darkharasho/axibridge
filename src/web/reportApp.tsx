@@ -9,6 +9,7 @@ import { SupportPlusIcon } from '../renderer/ui/SupportPlusIcon';
 import { OffenseSwordIcon } from '../renderer/ui/OffenseSwordIcon';
 import { Gw2ApmIcon } from '../renderer/ui/Gw2ApmIcon';
 import { Gw2BoonIcon } from '../renderer/ui/Gw2BoonIcon';
+import { Gw2DamMitIcon } from '../renderer/ui/Gw2DamMitIcon';
 import { Gw2SigilIcon } from '../renderer/ui/Gw2SigilIcon';
 import {
     ShieldCheck,
@@ -566,7 +567,7 @@ export function ReportApp() {
             items: [
                 { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
                 { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: Zap },
-                { id: 'defense-mitigation', label: 'Damage Mitigation', icon: ShieldAlert },
+                { id: 'defense-mitigation', label: 'Damage Mitigation', icon: Gw2DamMitIcon },
                 { id: 'boon-output', label: 'Boon Output', icon: Gw2BoonIcon },
                 { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
                 { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse }

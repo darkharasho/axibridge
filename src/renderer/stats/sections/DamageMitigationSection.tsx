@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Maximize2, ShieldAlert, X, Columns, Users } from 'lucide-react';
+import { Maximize2, X, Columns, Users } from 'lucide-react';
+import { Gw2DamMitIcon } from '../../ui/Gw2DamMitIcon';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -129,7 +130,7 @@ export const DamageMitigationSection = ({
         >
             <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                    <ShieldAlert className="w-5 h-5 text-emerald-300" />
+                    <Gw2DamMitIcon className="w-5 h-5 text-emerald-300" />
                     Defenses - Damage Mitigation
                 </h3>
                 <button

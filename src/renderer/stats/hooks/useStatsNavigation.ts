@@ -4,6 +4,7 @@ import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
 import { OffenseSwordIcon } from '../../ui/OffenseSwordIcon';
 import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
+import { Gw2DamMitIcon } from '../../ui/Gw2DamMitIcon';
 import { Gw2SigilIcon } from '../../ui/Gw2SigilIcon';
 
 export const useStatsNavigation = (embedded: boolean) => {
@@ -26,7 +27,7 @@ export const useStatsNavigation = (embedded: boolean) => {
         { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert },
         { id: 'conditions-outgoing', label: 'Conditions', icon: Skull },
         { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
-        { id: 'defense-mitigation', label: 'Damage Mitigation', icon: ShieldAlert },
+        { id: 'defense-mitigation', label: 'Damage Mitigation', icon: Gw2DamMitIcon },
         { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
         { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
         { id: 'special-buffs', label: 'Special Buffs', icon: Star },
