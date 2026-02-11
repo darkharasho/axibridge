@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
 import { ProofOfWorkModal } from '../renderer/ui/ProofOfWorkModal';
+import { Gw2SigilIcon } from '../renderer/ui/Gw2SigilIcon';
 import {
     ShieldCheck,
     Shield,
@@ -18,7 +19,6 @@ import {
     Activity,
     Map as MapIcon,
     Sparkles,
-    Gem,
     Plus,
     HeartPulse,
     Star,
@@ -576,7 +576,7 @@ export function ReportApp() {
             sectionIds: ['special-buffs', 'sigil-relic-uptime', 'skill-usage', 'apm-stats'],
             items: [
                 { id: 'special-buffs', label: 'Special Buffs', icon: Star },
-                { id: 'sigil-relic-uptime', label: 'Sigil/Relic Uptime', icon: Gem },
+                { id: 'sigil-relic-uptime', label: 'Sigil/Relic Uptime', icon: Gw2SigilIcon },
                 { id: 'skill-usage', label: 'Skill Usage', icon: Keyboard },
                 { id: 'apm-stats', label: 'APM Breakdown', icon: Activity }
             ]

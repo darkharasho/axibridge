@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Gem, Maximize2, X } from 'lucide-react';
+import { Maximize2, X } from 'lucide-react';
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { InlineIconLabel } from '../ui/StatsViewShared';
+import { Gw2SigilIcon } from '../../ui/Gw2SigilIcon';
 
 type SigilRelicUptimeSectionProps = {
     hasSigilRelicTables: boolean;
@@ -76,7 +77,7 @@ export const SigilRelicUptimeSection = ({
         >
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                    <Gem className="w-5 h-5 text-fuchsia-300" />
+                    <Gw2SigilIcon className="w-5 h-5 text-fuchsia-300" />
                     Sigil/Relic Uptime
                 </h3>
                 <button
