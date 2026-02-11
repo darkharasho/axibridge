@@ -45,6 +45,15 @@ test('web report renders and navigates', async ({ page }) => {
     const sigilRelicSpecHeading = page.getByText(/Sigil\/Relic Uptime \(Other Metrics\)/i).first();
     await expect(sigilRelicSpecHeading).toBeVisible();
 
+    const proofOfWorkSearch = page.getByPlaceholder(/Search spec\.\.\./i);
+    await proofOfWorkSearch.fill('sigil');
+    const sigilSearchResult = page.locator('.proof-of-work-search-results').getByRole('button', {
+        name: /Sigil\/Relic Uptime \(Other Metrics\)/i
+    }).first();
+    await expect(sigilSearchResult).toBeVisible();
+    await sigilSearchResult.click();
+    await expect(sigilRelicSpecHeading).toBeVisible();
+
     const sigilRelicTocItem = page
         .locator('.proof-of-work-sidebar')
         .getByRole('button', { name: /Sigil\/Relic Uptime \(Other Metrics\)/i });

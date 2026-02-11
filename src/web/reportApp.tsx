@@ -119,7 +119,6 @@ type TocHeading = {
     level: number;
     text: string;
     id: string;
-    nodeIndex: number;
 };
 
 const slugifyHeadingText = (label: string) =>
@@ -210,7 +209,6 @@ export function ReportApp() {
     const [themeIdOverride, setThemeIdOverride] = useState<string | null>(null);
     const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
-    const [proofOfWorkTocItems, setProofOfWorkTocItems] = useState<TocHeading[]>([]);
     const [activeProofOfWorkHeadingId, setActiveProofOfWorkHeadingId] = useState('');
     const [metricsSpecSearch, setMetricsSpecSearch] = useState('');
     const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; section: string; hitId: number }>>([]);
@@ -277,6 +275,29 @@ export function ReportApp() {
         counts.set(key, next);
         return next === 1 ? key : `${key}-${next}`;
     };
+    const metricsSpecNav = useMemo(() => {
+        const lines = metricsSpecMarkdown.split('\n');
+        const counts = new Map<string, number>();
+        const items: TocHeading[] = [];
+
+        const buildId = (label: string) => {
+            const key = slugifyHeadingText(label || 'section') || 'section';
+            const next = (counts.get(key) ?? 0) + 1;
+            counts.set(key, next);
+            return next === 1 ? key : `${key}-${next}`;
+        };
+
+        for (const line of lines) {
+            const match = /^(#{1,3})\s+(.*)\s*$/.exec(line);
+            if (!match) continue;
+            const level = match[1].length;
+            const text = match[2].trim();
+            if (!text) continue;
+            items.push({ level, text, id: buildId(text) });
+        }
+
+        return items;
+    }, [metricsSpecMarkdown]);
     const joinAssetPath = (base: string, relative: string) => {
         const normalizedBase = base === './'
             ? './'
@@ -378,7 +399,7 @@ export function ReportApp() {
             const containerRect = container.getBoundingClientRect();
             const nodeRect = node.getBoundingClientRect();
             const scrollOffset = Math.max(0, container.scrollTop + (nodeRect.top - containerRect.top) - 12);
-            container.scrollTo({ top: scrollOffset, behavior: 'smooth' });
+            container.scrollTop = scrollOffset;
             node.classList.add('ring-2', 'ring-cyan-400/70', 'bg-cyan-500/10');
             if (metricsSpecHighlightRef.current) {
                 window.clearTimeout(metricsSpecHighlightRef.current);
@@ -422,33 +443,7 @@ export function ReportApp() {
 
     useEffect(() => {
         if (!proofOfWorkOpen) return;
-        setProofOfWorkTocItems([]);
-        setActiveProofOfWorkHeadingId('');
-        const collectHeadings = () => {
-            const container = metricsSpecContentRef.current;
-            if (!container) return;
-            const headingNodes = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
-            const counts = new Map<string, number>();
-            const nextItems: TocHeading[] = [];
-            headingNodes.forEach((node, nodeIndex) => {
-                const level = Number.parseInt(node.tagName.replace('H', ''), 10);
-                if (!Number.isFinite(level) || level < 1 || level > 3) return;
-                const text = (node.textContent || '').trim();
-                if (!text) return;
-                const key = slugifyHeadingText(text) || 'section';
-                const count = (counts.get(key) ?? 0) + 1;
-                counts.set(key, count);
-                const id = count === 1 ? key : `${key}-${count}`;
-                node.id = id;
-                node.dataset.headingId = id;
-                nextItems.push({ level, text, id, nodeIndex });
-            });
-            setProofOfWorkTocItems(nextItems);
-            if (nextItems.length > 0) {
-                setActiveProofOfWorkHeadingId(nextItems[0].id);
-            }
-        };
-        const frame = window.requestAnimationFrame(collectHeadings);
+        setActiveProofOfWorkHeadingId(metricsSpecNav[0]?.id || '');
         const handleMouseDown = (event: MouseEvent) => {
             const target = event.target as Node | null;
             if (!target) return;
@@ -458,10 +453,9 @@ export function ReportApp() {
         };
         window.addEventListener('mousedown', handleMouseDown);
         return () => {
-            window.cancelAnimationFrame(frame);
             window.removeEventListener('mousedown', handleMouseDown);
         };
-    }, [proofOfWorkOpen]);
+    }, [proofOfWorkOpen, metricsSpecNav]);
 
     useEffect(() => {
         if (!proofOfWorkOpen) {
@@ -473,35 +467,38 @@ export function ReportApp() {
         let raf = 0;
 
         const syncActiveHeading = () => {
-            const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+            const headings = Array.from(container.querySelectorAll<HTMLElement>('[data-heading-id]'));
             if (headings.length === 0) return;
             const containerTop = container.getBoundingClientRect().top;
             const activationTop = containerTop + 18;
             const candidates = headings
-                .map((heading) => ({
+                .map((heading, idx) => ({
+                    index: idx,
                     id: heading.dataset.headingId || heading.id || '',
                     top: heading.getBoundingClientRect().top
                 }))
                 .filter((entry) => !!entry.id);
             if (candidates.length === 0) return;
-            let nextId = candidates[0]?.id || '';
+            let nextIndex = 0;
             let foundPast = false;
             for (const entry of candidates) {
                 if (entry.top <= activationTop) {
-                    nextId = entry.id;
+                    nextIndex = entry.index;
                     foundPast = true;
                     continue;
                 }
                 if (!foundPast) {
-                    nextId = entry.id;
+                    nextIndex = entry.index;
                 }
                 break;
             }
             const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 2;
             if (nearBottom) {
-                const lastId = candidates[candidates.length - 1]?.id || '';
-                if (lastId) nextId = lastId;
+                nextIndex = Math.max(0, candidates.length - 1);
             }
+            const navMatch = metricsSpecNav[nextIndex];
+            const domFallback = candidates[nextIndex]?.id || '';
+            const nextId = navMatch?.id || domFallback;
             if (nextId) setActiveProofOfWorkHeadingId(nextId);
         };
 
@@ -517,7 +514,7 @@ export function ReportApp() {
             container.removeEventListener('scroll', onScroll);
             window.removeEventListener('resize', onScroll);
         };
-    }, [proofOfWorkOpen, proofOfWorkTocItems]);
+    }, [proofOfWorkOpen, metricsSpecNav]);
 
     const navGroups = useMemo(() => ([
         {
@@ -1057,11 +1054,11 @@ export function ReportApp() {
             searchResults={metricsSpecSearchResults}
             onSearchChange={(value) => {
                 setMetricsSpecSearch(value);
-                updateMetricsSpecSearchResults(value);
+                requestAnimationFrame(() => updateMetricsSpecSearchResults(value));
             }}
             onSearchFocus={() => {
                 setMetricsSpecSearchFocused(true);
-                updateMetricsSpecSearchResults(metricsSpecSearch);
+                requestAnimationFrame(() => updateMetricsSpecSearchResults(metricsSpecSearch));
             }}
             onSearchBlur={(nextTarget) => {
                 if (nextTarget && metricsSpecSearchRef.current?.contains(nextTarget)) return;
@@ -1078,22 +1075,24 @@ export function ReportApp() {
             }}
             renderHighlightedMatch={renderHighlightedMatch}
             searchRef={metricsSpecSearchRef}
-            tocItems={proofOfWorkTocItems}
+            tocItems={metricsSpecNav}
             activeTocId={activeProofOfWorkHeadingId}
             onTocClick={(item) => {
                 const container = metricsSpecContentRef.current;
                 if (!container) return;
-                const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
-                const target = headings[(item as TocHeading).nodeIndex]
-                    || container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`)
-                    || container.querySelector<HTMLElement>(`#${item.id}`);
+                let target = container.querySelector<HTMLElement>(`[data-heading-id="${item.id}"]`);
+                if (!target) {
+                    const normalized = item.text.trim().replace(/\s+/g, ' ');
+                    const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+                    target = headings.find((node) => (node.textContent || '').trim().replace(/\s+/g, ' ') === normalized) || null;
+                }
                 if (!target) return;
                 setActiveProofOfWorkHeadingId(item.id);
                 requestAnimationFrame(() => {
                     const containerRect = container.getBoundingClientRect();
                     const targetRect = target.getBoundingClientRect();
                     const scrollOffset = container.scrollTop + (targetRect.top - containerRect.top) - 12;
-                    container.scrollTo({ top: Math.max(0, scrollOffset), behavior: 'smooth' });
+                    container.scrollTop = Math.max(0, scrollOffset);
                 });
             }}
             contentRef={metricsSpecContentRef}

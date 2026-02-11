@@ -4123,20 +4123,18 @@ if (!gotTheLock) {
                 const webRoot = path.join(appRoot, 'web');
                 const devRoot = path.join(appRoot, 'dev');
                 const webRootExists = fs.existsSync(webRoot);
-                const webRootEmpty = webRootExists ? fs.readdirSync(webRoot).length === 0 : true;
                 if (!webRootExists) {
                     fs.mkdirSync(webRoot, { recursive: true });
                 }
-                if (webRootEmpty || !isWebTemplateReady(webRoot)) {
-                    const templateDir = path.join(appRoot, 'dist-web');
-                    if (!fs.existsSync(templateDir)) {
-                        const built = await buildWebTemplate(appRoot);
-                        if (!built.ok || !fs.existsSync(templateDir)) {
-                            return { success: false, error: built.error || 'Failed to generate the web template automatically.', errorDetail: built.errorDetail };
-                        }
+                const templateDir = path.join(appRoot, 'dist-web');
+                if (!fs.existsSync(templateDir)) {
+                    const built = await buildWebTemplate(appRoot);
+                    if (!built.ok || !fs.existsSync(templateDir)) {
+                        return { success: false, error: built.error || 'Failed to generate the web template automatically.', errorDetail: built.errorDetail };
                     }
-                    copyDir(templateDir, webRoot);
                 }
+                // Always refresh local web template so dev reports pick up latest web fixes.
+                copyDir(templateDir, webRoot);
                 const reportMeta = {
                     ...payload.meta,
                     appVersion: app.getVersion()
