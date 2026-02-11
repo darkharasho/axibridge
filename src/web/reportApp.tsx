@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
 import { ProofOfWorkModal } from '../renderer/ui/ProofOfWorkModal';
+import { Gw2BoonIcon } from '../renderer/ui/Gw2BoonIcon';
 import { Gw2SigilIcon } from '../renderer/ui/Gw2SigilIcon';
 import {
     ShieldCheck,
@@ -564,7 +565,7 @@ export function ReportApp() {
                 { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
                 { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: Zap },
                 { id: 'defense-mitigation', label: 'Damage Mitigation', icon: ShieldAlert },
-                { id: 'boon-output', label: 'Boon Output', icon: ShieldCheck },
+                { id: 'boon-output', label: 'Boon Output', icon: Gw2BoonIcon },
                 { id: 'support-detailed', label: 'Support Detailed', icon: Plus },
                 { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse }
             ]

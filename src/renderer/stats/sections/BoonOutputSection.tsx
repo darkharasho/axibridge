@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Maximize2, ShieldCheck, X, Columns, Users } from 'lucide-react';
+import { Maximize2, X, Columns, Users } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
@@ -7,6 +7,7 @@ import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { InlineIconLabel } from '../ui/StatsViewShared';
+import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 
 type BoonOutputSectionProps = {
     stats: any;
@@ -106,7 +107,7 @@ export const BoonOutputSection = ({
     >
         <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-cyan-400" />
+                <Gw2BoonIcon className="w-5 h-5 text-cyan-400" />
                 Boon Output
             </h3>
             <button

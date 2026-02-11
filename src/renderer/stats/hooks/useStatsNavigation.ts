@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { Trophy, Swords, Shield, ShieldAlert, Zap, Activity, Plus, ShieldCheck, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree } from 'lucide-react';
+import { Trophy, Swords, Shield, ShieldAlert, Zap, Activity, Plus, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree } from 'lucide-react';
+import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { Gw2SigilIcon } from '../../ui/Gw2SigilIcon';
 
 export const useStatsNavigation = (embedded: boolean) => {
@@ -15,7 +16,7 @@ export const useStatsNavigation = (embedded: boolean) => {
         { id: 'top-skills-outgoing', label: 'Top Skills', icon: Swords },
         { id: 'timeline', label: 'Squad vs Enemy', icon: Users },
         { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon },
-        { id: 'boon-output', label: 'Boon Output', icon: ShieldCheck },
+        { id: 'boon-output', label: 'Boon Output', icon: Gw2BoonIcon },
         { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords },
         { id: 'player-breakdown', label: 'Player Breakdown', icon: ListTree },
         { id: 'spike-damage', label: 'Spike Damage', icon: Zap },
