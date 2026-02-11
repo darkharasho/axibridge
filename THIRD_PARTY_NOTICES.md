@@ -37,3 +37,7 @@ Project: https://github.com/Drevarr/GW2_EI_log_combiner
 Portions of this codebase are adapted from or inspired by the project above,
 which is licensed under GPL-3.0. This project is licensed under GPL-3.0-only;
 see LICENSE for the full GPLv3 text that governs this combined work.
+
+
+## Guild Wars 2
+© ArenaNet LLC. All rights reserved. NCSOFT, ArenaNet, Guild Wars, Guild Wars 2, GW2, Heart of Thorns, Path of Fire, End of Dragons, Secrets of the Obscure, Janthir Wilds, Visions of Eternity, and all associated logos, designs, and composite marks are trademarks or registered trademarks of NCSOFT Corporation. All other trademarks are the property of their respective owners.

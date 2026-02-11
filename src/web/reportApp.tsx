@@ -1021,9 +1021,7 @@ export function ReportApp() {
                 The official statement from the Content Terms of Use:
             </p>
             <p className="mt-2">
-                © ArenaNet LLC. All rights reserved. NCSOFT, ArenaNet, Guild Wars, Guild Wars 2, GW2, Guild Wars 2: Heart of Thorns,
-                Guild Wars 2: Path of Fire, Guild Wars 2: End of Dragons, and Guild Wars 2: Secrets of the Obscure and all associated logos,
-                designs, and composite marks are trademarks or registered trademarks of NCSOFT Corporation.
+                © ArenaNet LLC. All rights reserved. NCSOFT, ArenaNet, Guild Wars, Guild Wars 2, GW2, Heart of Thorns, Path of Fire, End of Dragons, Secrets of the Obscure, Janthir Wilds, Visions of Eternity, and all associated logos, designs, and composite marks are trademarks or registered trademarks of NCSOFT Corporation. All other trademarks are the property of their respective owners.
             </p>
             <p className="mt-2">
                 See the{' '}
