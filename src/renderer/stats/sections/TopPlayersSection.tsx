@@ -108,6 +108,20 @@ const normalizeLeaderboardRows = (rows: any[], higherIsBetter: boolean) => {
     });
 };
 
+const formatMvpPillValue = (value: unknown, formatTopStatValue: (n: number) => string) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return formatTopStatValue(value);
+    }
+    if (typeof value === 'string') {
+        const parsed = Number(value.replace(/,/g, '').trim());
+        if (Number.isFinite(parsed)) {
+            return formatTopStatValue(parsed);
+        }
+        return value;
+    }
+    return '--';
+};
+
 export const TopPlayersSection = ({
     stats,
     showTopStats,
@@ -164,23 +178,10 @@ export const TopPlayersSection = ({
 
                                 <div className="mt-auto flex flex-wrap gap-2">
                                     {stats.mvp.topStats && stats.mvp.topStats.filter((stat: any) => isMvpStatEnabled(stat.name)).map((stat: any, i: number) => {
-                                        const rank = Math.max(1, Math.round(stat.ratio));
-                                        const mod100 = rank % 100;
-                                        const mod10 = rank % 10;
-                                        const suffix = mod100 >= 11 && mod100 <= 13
-                                            ? 'th'
-                                            : mod10 === 1
-                                                ? 'st'
-                                                : mod10 === 2
-                                                    ? 'nd'
-                                                    : mod10 === 3
-                                                        ? 'rd'
-                                                        : 'th';
                                         return (
                                             <div key={i} className="inline-flex items-baseline gap-2 px-2.5 py-0.5 bg-yellow-500/10 border border-yellow-500/30 rounded-full text-[11px] leading-none">
                                                 <span className="text-yellow-200 font-bold">{stat.name}</span>
-                                                <span className="text-yellow-50 font-mono tabular-nums">{stat.val}</span>
-                                                <span className="text-yellow-400/60">({rank}{suffix})</span>
+                                                <span className="text-yellow-50 font-mono tabular-nums">{formatMvpPillValue(stat.val, formatTopStatValue)}</span>
                                             </div>
                                         );
                                     })}
@@ -230,18 +231,6 @@ export const TopPlayersSection = ({
                                 {entry.data?.topStats?.some((stat: any) => isMvpStatEnabled(stat.name)) ? (
                                     <div className={`mt-auto flex flex-wrap items-center gap-2 text-[10px] ${entry.label === 'Silver' ? 'text-slate-200' : 'text-orange-200'}`}>
                                         {entry.data.topStats.filter((stat: any) => isMvpStatEnabled(stat.name)).map((stat: any, idx: number) => {
-                                            const rank = Math.max(1, Math.round(stat.ratio));
-                                            const mod100 = rank % 100;
-                                            const mod10 = rank % 10;
-                                            const suffix = mod100 >= 11 && mod100 <= 13
-                                                ? 'th'
-                                                : mod10 === 1
-                                                    ? 'st'
-                                                    : mod10 === 2
-                                                        ? 'nd'
-                                                        : mod10 === 3
-                                                            ? 'rd'
-                                                            : 'th';
                                             return (
                                                 <span
                                                     key={idx}
@@ -251,7 +240,7 @@ export const TopPlayersSection = ({
                                                         }`}
                                                 >
                                                     <span className="leading-none">{stat.name}</span>
-                                                    <span className="tabular-nums leading-none">{rank}{suffix}</span>
+                                                    <span className="tabular-nums leading-none">{formatMvpPillValue(stat.val, formatTopStatValue)}</span>
                                                 </span>
                                             );
                                         })}
