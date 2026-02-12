@@ -1,17 +1,18 @@
 # Release Notes
 
-Version v1.28.1 — February 11, 2026
+Version v1.29.0 — February 12, 2026
 
 ## 🌟 Highlights
-- New scalable SVG class icons for a sharper, clearer look
-- Legal notices updated
+- Documentation updated to mention the new Discord "Split Enemies by Team" setting in the Settings guide.
+- Replaced fight color split with dynamic enemy TeamID columns; GW2 world-color mapping is removed.
 
 ## 🛠️ Improvements
-- World vs World data handling improved: ignore detailed totalDamageDist outliers and prefer target-side max hit data
+- Added the option to Split Enemies by Team in Discord Embed - Summary Sections (Settings -> Discord Embed - Summary Sections) to separate enemy summaries and class breakdowns by enemy Team ID (excluding ally team) across Embed, Image, and Tiled notifications.
+- Replaced the previous fight color split with dynamic enemy TeamID columns for enemy breakdown.
+- Removed GW2 world-color mapping (internal cleanup).
 
 ## 🧯 Fixes
-- Fixed missing spec fixture
-- Lint issues fixed
+None.
 
 ## ⚠️ Breaking Changes
 None.
