@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown } from 'lucide-react';
-import { IEmbedStatSettings, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME } from './global.d';
+import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
@@ -94,6 +94,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
     const [embedStats, setEmbedStats] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
+    const [splitEnemiesByTeam, setSplitEnemiesByTeam] = useState<boolean>(false);
     const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
@@ -423,6 +424,8 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         setDpsReportToken(settings.dpsReportToken || '');
         setCloseBehavior(settings.closeBehavior || 'minimize');
         setEmbedStats({ ...DEFAULT_EMBED_STATS, ...(settings.embedStatSettings || {}) });
+        const discordEnemySplitSettings = { ...DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, ...(settings.discordEnemySplitSettings || {}) };
+        setSplitEnemiesByTeam(Boolean(settings.discordSplitEnemiesByTeam) || Boolean(discordEnemySplitSettings.image || discordEnemySplitSettings.embed || discordEnemySplitSettings.tiled));
         setMvpWeights({ ...DEFAULT_MVP_WEIGHTS, ...(settings.mvpWeights || {}) });
         setStatsViewSettings({ ...DEFAULT_STATS_VIEW_SETTINGS, ...(settings.statsViewSettings || {}) });
         setUiTheme((settings.uiTheme as UiTheme) || DEFAULT_UI_THEME);
@@ -571,6 +574,12 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         dpsReportToken,
         closeBehavior,
         embedStatSettings: embedStats,
+        discordEnemySplitSettings: {
+            image: splitEnemiesByTeam,
+            embed: splitEnemiesByTeam,
+            tiled: splitEnemiesByTeam
+        },
+        discordSplitEnemiesByTeam: splitEnemiesByTeam,
         mvpWeights,
         statsViewSettings,
         disruptionMethod,
@@ -687,6 +696,8 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         { key: 'logDirectory', label: 'Log Directory', description: 'Path to the ArcDPS log folder.', section: 'Logs & Uploads' },
         { key: 'dpsReportToken', label: 'dps.report Token', description: 'User token for uploads.', section: 'Logs & Uploads' },
         { key: 'discordNotificationType', label: 'Discord Post Type', description: 'Image vs embed post format.', section: 'Discord' },
+        { key: 'discordEnemySplitSettings', label: 'Discord Team Split', description: 'Split enemy sections by Team ID.', section: 'Discord' },
+        { key: 'discordSplitEnemiesByTeam', label: 'Split Enemies by Team', description: 'Single toggle for all Discord notification types.', section: 'Discord' },
         { key: 'discordWebhookUrl', label: 'Discord Webhook URL', description: 'Legacy single webhook URL.', section: 'Discord' },
         { key: 'webhooks', label: 'Webhook List', description: 'Saved webhook entries.', section: 'Discord' },
         { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
@@ -713,6 +724,12 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             dpsReportToken: dpsReportToken || null,
             closeBehavior,
             embedStatSettings: embedStats,
+            discordEnemySplitSettings: {
+                image: splitEnemiesByTeam,
+                embed: splitEnemiesByTeam,
+                tiled: splitEnemiesByTeam
+            },
+            discordSplitEnemiesByTeam: splitEnemiesByTeam,
             mvpWeights: mvpWeights,
             statsViewSettings: statsViewSettings,
             disruptionMethod: disruptionMethod,
@@ -747,6 +764,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         dpsReportToken,
         closeBehavior,
         embedStats,
+        splitEnemiesByTeam,
         mvpWeights,
         statsViewSettings,
         disruptionMethod,
@@ -1759,6 +1777,22 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                 onChange={(v) => updateEmbedStat('showIncomingStats', v)}
                                 label="Incoming Stats"
                                 description="Attacks, CC, and strips received (with miss/block rates)"
+                            />
+                            <Toggle
+                                enabled={splitEnemiesByTeam}
+                                onChange={(v) => {
+                                    setSplitEnemiesByTeam(v);
+                                    window.electronAPI?.saveSettings?.({
+                                        discordEnemySplitSettings: {
+                                            image: v,
+                                            embed: v,
+                                            tiled: v
+                                        },
+                                        discordSplitEnemiesByTeam: v
+                                    });
+                                }}
+                                label="Split Enemies by Team"
+                                description="Use Team ID sections for enemy summary/class breakdown in image, embed, and tiled posts"
                             />
                         </div>
                     </SettingsSection>

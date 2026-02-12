@@ -793,7 +793,11 @@ function App() {
                 console.error('Screenshot request missing log identifier.');
                 return;
             }
-            setScreenshotData({ ...data, id: logKey });
+            setScreenshotData({
+                ...data,
+                id: logKey,
+                splitEnemiesByTeam: Boolean((data as any)?.splitEnemiesByTeam)
+            });
 
             const escapeSelector = (value: string) => {
                 if (typeof window !== 'undefined' && (window as any).CSS?.escape) {
@@ -838,10 +842,48 @@ function App() {
 
                 if (mode === 'image-beta') {
                     const selector = `[data-screenshot-id="${escapeSelector(logKey)}"]`;
-                    const summaryTileCount = (embedStatSettings.showSquadSummary ? 1 : 0)
-                        + (embedStatSettings.showEnemySummary ? 1 : 0);
+                    const resolveTeamIdsForScreenshot = () => {
+                        if (!(data as any)?.splitEnemiesByTeam) return [] as number[];
+                        const details: any = (data as any)?.details || {};
+                        const players = Array.isArray(details.players) ? details.players : [];
+                        const targets = Array.isArray(details.targets) ? details.targets : [];
+                        const normalizeTeamId = (raw: any): number | null => {
+                            const value = raw?.teamID ?? raw?.teamId ?? raw?.team;
+                            const num = Number(value);
+                            return Number.isFinite(num) && num > 0 ? num : null;
+                        };
+                        const allyTeamIds = new Set<number>();
+                        players.forEach((player: any) => {
+                            if (player?.notInSquad) return;
+                            const teamId = normalizeTeamId(player);
+                            if (teamId !== null) allyTeamIds.add(teamId);
+                        });
+                        const enemyTeamIds = new Set<number>();
+                        targets.forEach((target: any) => {
+                            if (target?.isFake) return;
+                            if (target?.enemyPlayer === false) return;
+                            const teamId = normalizeTeamId(target);
+                            if (teamId === null || allyTeamIds.has(teamId)) return;
+                            enemyTeamIds.add(teamId);
+                        });
+                        players.forEach((player: any) => {
+                            if (!player?.notInSquad) return;
+                            const teamId = normalizeTeamId(player);
+                            if (teamId === null || allyTeamIds.has(teamId)) return;
+                            enemyTeamIds.add(teamId);
+                        });
+                        return Array.from(enemyTeamIds).sort((a, b) => a - b);
+                    };
+                    const enemyTeamIds = resolveTeamIdsForScreenshot();
+                    const enemySummaryTileCount = embedStatSettings.showEnemySummary
+                        ? ((data as any)?.splitEnemiesByTeam ? enemyTeamIds.length : 1)
+                        : 0;
+                    const summaryTileCount = (embedStatSettings.showSquadSummary ? 1 : 0) + enemySummaryTileCount;
                     const expectedCount = summaryTileCount
-                        + (embedStatSettings.showClassSummary ? summaryTileCount : 0)
+                        + (embedStatSettings.showClassSummary ? (
+                            (embedStatSettings.showSquadSummary ? 1 : 0)
+                            + (embedStatSettings.showEnemySummary ? (((data as any)?.splitEnemiesByTeam ? enemyTeamIds.length : 1)) : 0)
+                        ) : 0)
                         + (embedStatSettings.showIncomingStats ? 4 : 0)
                         + enabledTopListCount;
                     const nodes = await waitForNodes(selector, Math.max(1, expectedCount), 5000);
@@ -1017,6 +1059,7 @@ function App() {
     const handleUpdateSettings = (updates: any) => {
         window.electronAPI.saveSettings(updates);
     };
+
 
     const handleRetryFailedUploads = async () => {
         if (!window.electronAPI?.retryFailedUploads) return;

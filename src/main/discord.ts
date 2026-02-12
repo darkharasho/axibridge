@@ -123,6 +123,128 @@ const formatFightTitleForDiscord = (jsonDetails: any, logData: any) => {
     return jsonDetails?.fightName || 'Log Uploaded';
 };
 
+const normalizeTeamId = (raw: any): number | null => {
+    const value = raw?.teamID ?? raw?.teamId ?? raw?.team;
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+};
+
+const resolveTargetProfession = (target: any): string => {
+    const direct = String(target?.profession || '').trim();
+    if (direct) return direct;
+    const name = String(target?.name || '').trim();
+    if (!name) return '';
+    const match = name.match(/^(.+?)\s+pl-\d+$/i);
+    if (match?.[1]) return match[1].trim();
+    return '';
+};
+
+const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: number) => {
+    const allyTeamIds = new Set<number>();
+    players.forEach((player: any) => {
+        if (player?.notInSquad) return;
+        const teamId = normalizeTeamId(player);
+        if (teamId !== null) allyTeamIds.add(teamId);
+    });
+
+    const targetIndexTeamId = new Map<number, number>();
+    const enemyTeamCountMap = new Map<number, number>();
+    const enemyTeamDmgMap = new Map<number, number>();
+    const enemyTeamDmgFallbackMap = new Map<number, number>();
+    const enemyTeamClassMap = new Map<number, Record<string, number>>();
+    const seenEnemyIdsByTeam = new Map<number, Set<string>>();
+    targets.forEach((target: any, index: number) => {
+        if (target?.isFake) return;
+        if (target?.enemyPlayer === false) return;
+        const teamId = normalizeTeamId(target);
+        if (teamId === null || allyTeamIds.has(teamId)) return;
+        targetIndexTeamId.set(index, teamId);
+        if (!seenEnemyIdsByTeam.has(teamId)) {
+            seenEnemyIdsByTeam.set(teamId, new Set());
+        }
+        const seen = seenEnemyIdsByTeam.get(teamId)!;
+        const rawName = String(target?.name || `target-${index}`);
+        const rawId = target?.instanceID ?? target?.instid ?? target?.id ?? rawName;
+        const uniqueKey = String(rawId ?? rawName);
+        if (!seen.has(uniqueKey)) {
+            seen.add(uniqueKey);
+            enemyTeamCountMap.set(teamId, (enemyTeamCountMap.get(teamId) || 0) + 1);
+        }
+        const targetDamage = Number(target?.dpsAll?.[0]?.damage || 0);
+        if (targetDamage > 0) {
+            enemyTeamDmgMap.set(teamId, (enemyTeamDmgMap.get(teamId) || 0) + targetDamage);
+        }
+
+        const profession = resolveTargetProfession(target);
+        if (profession) {
+            if (!enemyTeamClassMap.has(teamId)) enemyTeamClassMap.set(teamId, {});
+            const classCounts = enemyTeamClassMap.get(teamId)!;
+            classCounts[profession] = (classCounts[profession] || 0) + 1;
+        }
+    });
+
+    players.forEach((player: any) => {
+        if (!player?.notInSquad) return;
+        const teamId = normalizeTeamId(player);
+        if (teamId === null || allyTeamIds.has(teamId)) return;
+        enemyTeamCountMap.set(teamId, (enemyTeamCountMap.get(teamId) || 0) + 1);
+        const playerDamage = getPlayerDamage(player);
+        if (playerDamage > 0) {
+            enemyTeamDmgFallbackMap.set(teamId, (enemyTeamDmgFallbackMap.get(teamId) || 0) + playerDamage);
+        }
+        const profession = String(player?.profession || '').trim();
+        if (profession) {
+            if (!enemyTeamClassMap.has(teamId)) enemyTeamClassMap.set(teamId, {});
+            const classCounts = enemyTeamClassMap.get(teamId)!;
+            if (classCounts[profession] === undefined) {
+                classCounts[profession] = 1;
+            }
+        }
+    });
+    enemyTeamDmgFallbackMap.forEach((fallbackDamage, teamId) => {
+        const targetDamage = enemyTeamDmgMap.get(teamId) || 0;
+        if (targetDamage <= 0 && fallbackDamage > 0) {
+            enemyTeamDmgMap.set(teamId, fallbackDamage);
+        }
+    });
+
+    const enemyTeamDownsMap = new Map<number, number>();
+    const enemyTeamKillsMap = new Map<number, number>();
+    players.forEach((player: any) => {
+        if (player?.notInSquad) return;
+        if (!Array.isArray(player?.statsTargets)) return;
+        player.statsTargets.forEach((targetStats: any, index: number) => {
+            if (!Array.isArray(targetStats) || targetStats.length === 0) return;
+            const teamId = targetIndexTeamId.get(index);
+            if (teamId === undefined) return;
+            const phase = targetStats[0] || {};
+            enemyTeamDownsMap.set(teamId, (enemyTeamDownsMap.get(teamId) || 0) + (phase.downed || 0));
+            enemyTeamKillsMap.set(teamId, (enemyTeamKillsMap.get(teamId) || 0) + (phase.killed || 0));
+        });
+    });
+
+    const teamIds = Array.from(new Set<number>([
+        ...enemyTeamCountMap.keys(),
+        ...enemyTeamDmgMap.keys(),
+        ...enemyTeamDownsMap.keys(),
+        ...enemyTeamKillsMap.keys()
+    ])).sort((a, b) => a - b);
+
+    return teamIds.map((teamId) => {
+        const dmg = enemyTeamDmgMap.get(teamId) || 0;
+        const classCounts = enemyTeamClassMap.get(teamId) || {};
+        return {
+            teamId,
+            count: enemyTeamCountMap.get(teamId) || 0,
+            dmg,
+            dps: Math.round(dmg / durationSec),
+            downs: enemyTeamDownsMap.get(teamId) || 0,
+            kills: enemyTeamKillsMap.get(teamId) || 0,
+            classCounts
+        };
+    });
+};
+
 export class DiscordNotifier {
     private webhookUrl: string | null = null;
     private embedStatSettings: IEmbedStatSettings = DEFAULT_EMBED_STATS;
@@ -143,7 +265,7 @@ export class DiscordNotifier {
         this.disruptionMethod = method || DEFAULT_DISRUPTION_METHOD;
     }
 
-    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed' }, jsonDetails?: any) {
+    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean }, jsonDetails?: any) {
         if (!this.webhookUrl) {
             console.log("No webhook URL configured, skipping Discord notification.");
             return;
@@ -201,6 +323,7 @@ export class DiscordNotifier {
                     console.log('[Discord] Building Complex Rich Embed...');
                     const players: Player[] = jsonDetails.players || [];
                     const settings = this.embedStatSettings;
+                    const splitEnemiesByTeam = Boolean(logData.splitEnemiesByTeam);
 
                     // Pre-calculate stability
                     applyStabilityGeneration(players, { durationMS: jsonDetails.durationMS, buffMap: jsonDetails.buffMap });
@@ -289,6 +412,8 @@ export class DiscordNotifier {
                     let enemyDowns = 0;
                     let enemyDeaths = 0;
                     let enemyCount = 0;
+                    const durationSec = jsonDetails.durationMS ? jsonDetails.durationMS / 1000 : 1;
+                    const enemyTeams = computeEnemyTeamBreakdown(players as any[], targets, durationSec || 1);
 
                     // Count non-fake targets
                     targets.forEach((t: any) => {
@@ -346,7 +471,6 @@ export class DiscordNotifier {
                     });
 
                     // Parse Duration
-                    const durationSec = jsonDetails.durationMS ? jsonDetails.durationMS / 1000 : 1;
                     const totalIncomingDps = Math.round(totalDmgTaken / durationSec);
 
                     // Build Description
@@ -381,22 +505,39 @@ export class DiscordNotifier {
 
                     // Enemy Summary (conditionally shown)
                     if (settings.showEnemySummary) {
-                        const enemySummaryLines = [
-                            formatStatLine('Count:', enemyCount),
-                            formatStatLine('DMG:', fmtInt(totalDmgTaken)),
-                            formatStatLine('DPS:', fmtInt(totalIncomingDps)),
-                            formatStatLine('Downs:', enemyDowns),
-                            formatStatLine('Kills:', enemyDeaths)
-                        ].join('\n');
+                        if (splitEnemiesByTeam && enemyTeams.length > 0) {
+                            enemyTeams.forEach((team) => {
+                                const teamSummaryLines = [
+                                    formatStatLine('Count:', team.count),
+                                    formatStatLine('DMG:', fmtInt(team.dmg)),
+                                    formatStatLine('DPS:', fmtInt(team.dps)),
+                                    formatStatLine('Downs:', team.downs),
+                                    formatStatLine('Kills:', team.kills)
+                                ].join('\n');
+                                embedFields.push({
+                                    name: `Team ${team.teamId}:`,
+                                    value: `\`\`\`\n${teamSummaryLines}\n\`\`\``,
+                                    inline: true
+                                });
+                            });
+                        } else {
+                            const enemySummaryLines = [
+                                formatStatLine('Count:', enemyCount),
+                                formatStatLine('DMG:', fmtInt(totalDmgTaken)),
+                                formatStatLine('DPS:', fmtInt(totalIncomingDps)),
+                                formatStatLine('Downs:', enemyDowns),
+                                formatStatLine('Kills:', enemyDeaths)
+                            ].join('\n');
 
-                        embedFields.push({
-                            name: "Enemy Summary:",
-                            value: `\`\`\`\n${enemySummaryLines}\n\`\`\``,
-                            inline: true
-                        });
+                            embedFields.push({
+                                name: "Enemy Summary:",
+                                value: `\`\`\`\n${enemySummaryLines}\n\`\`\``,
+                                inline: true
+                            });
+                        }
                     }
 
-                    const formatClassLines = (counts: Record<string, number>, useAbbrev = true, maxItems?: number, includeSummary?: boolean) => {
+                    const formatClassLines = (counts: Record<string, number>, useAbbrev = true, maxItems?: number, includeSummary?: boolean, maxColumns?: number) => {
                         const entries = Object.entries(counts)
                             .filter(([, count]) => count > 0)
                             .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
@@ -409,7 +550,7 @@ export class DiscordNotifier {
                             });
                         if (entries.length === 0) return 'No Data';
 
-                        const limitedEntries = (() => {
+                        let limitedEntries = (() => {
                             if (!maxItems || entries.length <= maxItems) {
                                 return entries;
                             }
@@ -422,6 +563,24 @@ export class DiscordNotifier {
                         })();
 
                         const maxRows = 5;
+                        if (maxColumns && maxColumns > 0) {
+                            const maxVisibleEntries = maxRows * maxColumns;
+                            if (limitedEntries.length > maxVisibleEntries) {
+                                const overflowStart = Math.max(0, maxVisibleEntries - 1);
+                                const overflowTotal = limitedEntries
+                                    .slice(overflowStart)
+                                    .reduce((sum, entry) => {
+                                        if (entry.startsWith('+')) {
+                                            return sum + Number(entry.replace('+', '').trim() || 0);
+                                        }
+                                        return sum + Number(entry.split(':')[1] || 0);
+                                    }, 0);
+                                limitedEntries = [
+                                    ...limitedEntries.slice(0, overflowStart),
+                                    `+ ${overflowTotal}`
+                                ];
+                            }
+                        }
                         const columns: string[][] = [];
                         for (let i = 0; i < limitedEntries.length; i += maxRows) {
                             columns.push(limitedEntries.slice(i, i + maxRows));
@@ -451,11 +610,21 @@ export class DiscordNotifier {
                     }
 
                     if (settings.showClassSummary && settings.showEnemySummary) {
-                        embedFields.push({
-                            name: "Enemy Classes:",
-                            value: `\`\`\`\n${formatClassLines(enemyClassCounts, true, 14, true)}\n\`\`\``,
-                            inline: true
-                        });
+                        if (splitEnemiesByTeam && enemyTeams.length > 0) {
+                            enemyTeams.forEach((team) => {
+                                embedFields.push({
+                                    name: `Team ${team.teamId} Classes:`,
+                                    value: `\`\`\`\n${formatClassLines(team.classCounts, true, undefined, true, 2)}\n\`\`\``,
+                                    inline: true
+                                });
+                            });
+                        } else {
+                            embedFields.push({
+                                name: "Enemy Classes:",
+                                value: `\`\`\`\n${formatClassLines(enemyClassCounts, true, 14, true)}\n\`\`\``,
+                                inline: true
+                            });
+                        }
                     }
 
                     // Add spacer if we showed summary sections

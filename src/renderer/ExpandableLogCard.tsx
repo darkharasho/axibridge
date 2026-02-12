@@ -23,7 +23,8 @@ interface ExpandableLogCardProps {
         count?: number;
         showHeader?: boolean;
         tileKind?: 'summary' | 'incoming' | 'toplist';
-        tileId?: 'squad' | 'enemy' | 'squad-classes' | 'enemy-classes' | 'incoming-attacks' | 'incoming-cc' | 'incoming-strips' | 'incoming-blank';
+        tileId?: 'squad' | 'enemy' | 'squad-classes' | 'enemy-classes' | 'enemy-team' | 'enemy-team-classes' | 'incoming-attacks' | 'incoming-cc' | 'incoming-strips' | 'incoming-blank';
+        teamId?: number;
         tileIndex?: number;
     };
 }
@@ -38,6 +39,22 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const squadPlayers = players.filter((p: any) => !p.notInSquad);
     const nonSquadPlayers = players.filter((p: any) => p.notInSquad);
     const shouldComputeDetails = isExpanded || screenshotMode || Boolean(screenshotSection);
+    const splitEnemiesByTeam = Boolean((log as any)?.splitEnemiesByTeam);
+
+    const normalizeTeamId = (raw: any): number | null => {
+        const value = raw?.teamID ?? raw?.teamId ?? raw?.team;
+        const numeric = Number(value);
+        return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+    };
+    const resolveTargetProfession = (target: any): string => {
+        const direct = String(target?.profession || '').trim();
+        if (direct) return direct;
+        const name = String(target?.name || '').trim();
+        if (!name) return '';
+        const match = name.match(/^(.+?)\s+pl-\d+$/i);
+        if (match?.[1]) return match[1].trim();
+        return '';
+    };
 
     const isQueued = log.status === 'queued';
     const isPending = log.status === 'pending';
@@ -244,6 +261,20 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
 
     let squadClassCounts: Array<{ profession: string; count: number }> = [];
     let enemyClassCounts: Array<{ profession: string; count: number }> = [];
+    type TeamSummaryStats = {
+        teamId: number;
+        count: number;
+        dmg: number;
+        dps: number;
+        downs: number;
+        kills: number;
+    };
+    type TeamClassSummary = {
+        teamId: number;
+        classes: Array<{ profession: string; count: number }>;
+    };
+    let enemyTeamSummaryStats: TeamSummaryStats[] = [];
+    let enemyTeamClassSummaries: TeamClassSummary[] = [];
 
     if (shouldComputeDetails) {
         applyStabilityGeneration(players, { durationMS: details.durationMS, buffMap: details.buffMap });
@@ -346,6 +377,123 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
                 .map(([profession, count]) => ({ profession, count }));
         })();
+
+        const allyTeamIds = new Set<number>();
+        squadPlayers.forEach((player: any) => {
+            const teamId = normalizeTeamId(player);
+            if (teamId !== null) allyTeamIds.add(teamId);
+        });
+
+        const enemyTeamCountMap = new Map<number, number>();
+        const enemyTeamDmgMap = new Map<number, number>();
+        const enemyTeamDmgFallbackMap = new Map<number, number>();
+        const enemyTeamDownsMap = new Map<number, number>();
+        const enemyTeamKillsMap = new Map<number, number>();
+        const enemyTeamClassMap = new Map<number, Record<string, number>>();
+
+        const targetIndexTeamId = new Map<number, number>();
+        const seenTargetIdsByTeam = new Map<number, Set<string>>();
+        targets.forEach((target: any, index: number) => {
+            if (target?.isFake) return;
+            if (target?.enemyPlayer === false) return;
+            const teamId = normalizeTeamId(target);
+            if (teamId === null || allyTeamIds.has(teamId)) return;
+            targetIndexTeamId.set(index, teamId);
+
+            const rawName = String(target?.name || `target-${index}`);
+            const rawId = target?.instanceID ?? target?.instid ?? target?.id ?? rawName;
+            const uniqueKey = String(rawId ?? rawName);
+            if (!seenTargetIdsByTeam.has(teamId)) {
+                seenTargetIdsByTeam.set(teamId, new Set());
+            }
+            const seen = seenTargetIdsByTeam.get(teamId)!;
+            if (!seen.has(uniqueKey)) {
+                seen.add(uniqueKey);
+                enemyTeamCountMap.set(teamId, (enemyTeamCountMap.get(teamId) || 0) + 1);
+            }
+            const targetDamage = Number(target?.dpsAll?.[0]?.damage || 0);
+            if (targetDamage > 0) {
+                enemyTeamDmgMap.set(teamId, (enemyTeamDmgMap.get(teamId) || 0) + targetDamage);
+            }
+
+            const profession = resolveTargetProfession(target);
+            if (profession) {
+                if (!enemyTeamClassMap.has(teamId)) {
+                    enemyTeamClassMap.set(teamId, {});
+                }
+                const classes = enemyTeamClassMap.get(teamId)!;
+                classes[profession] = (classes[profession] || 0) + 1;
+            }
+        });
+
+        nonSquadPlayers.forEach((player: any) => {
+            const teamId = normalizeTeamId(player);
+            if (teamId === null || allyTeamIds.has(teamId)) return;
+            if (!enemyTeamCountMap.has(teamId)) {
+                enemyTeamCountMap.set(teamId, 0);
+            }
+            enemyTeamCountMap.set(teamId, (enemyTeamCountMap.get(teamId) || 0) + 1);
+            const playerDamage = getPlayerDamage(player);
+            if (playerDamage > 0) {
+                enemyTeamDmgFallbackMap.set(teamId, (enemyTeamDmgFallbackMap.get(teamId) || 0) + playerDamage);
+            }
+            const profession = String(player?.profession || '').trim();
+            if (profession) {
+                if (!enemyTeamClassMap.has(teamId)) {
+                    enemyTeamClassMap.set(teamId, {});
+                }
+                const classes = enemyTeamClassMap.get(teamId)!;
+                if (classes[profession] === undefined) {
+                    classes[profession] = 1;
+                }
+            }
+        });
+        enemyTeamDmgFallbackMap.forEach((fallbackDamage, teamId) => {
+            const targetDamage = enemyTeamDmgMap.get(teamId) || 0;
+            if (targetDamage <= 0 && fallbackDamage > 0) {
+                enemyTeamDmgMap.set(teamId, fallbackDamage);
+            }
+        });
+
+        squadPlayers.forEach((player: any) => {
+            if (!Array.isArray(player?.statsTargets)) return;
+            player.statsTargets.forEach((targetStats: any, index: number) => {
+                if (!Array.isArray(targetStats) || targetStats.length === 0) return;
+                const teamId = targetIndexTeamId.get(index);
+                if (teamId === undefined) return;
+                const phase = targetStats[0] || {};
+                enemyTeamDownsMap.set(teamId, (enemyTeamDownsMap.get(teamId) || 0) + (phase.downed || 0));
+                enemyTeamKillsMap.set(teamId, (enemyTeamKillsMap.get(teamId) || 0) + (phase.killed || 0));
+            });
+        });
+
+        enemyTeamSummaryStats = Array.from(new Set<number>([
+            ...enemyTeamCountMap.keys(),
+            ...enemyTeamDmgMap.keys(),
+            ...enemyTeamDownsMap.keys(),
+            ...enemyTeamKillsMap.keys()
+        ]))
+            .sort((a, b) => a - b)
+            .map((teamId) => {
+                const dmg = enemyTeamDmgMap.get(teamId) || 0;
+                return {
+                    teamId,
+                    count: enemyTeamCountMap.get(teamId) || 0,
+                    dmg,
+                    dps: Math.round(dmg / durationSec),
+                    downs: enemyTeamDownsMap.get(teamId) || 0,
+                    kills: enemyTeamKillsMap.get(teamId) || 0
+                };
+            });
+
+        enemyTeamClassSummaries = enemyTeamSummaryStats.map((entry) => {
+            const classCounts = enemyTeamClassMap.get(entry.teamId) || {};
+            const classes = Object.entries(classCounts)
+                .filter(([, count]) => count > 0)
+                .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
+                .map(([profession, count]) => ({ profession, count }));
+            return { teamId: entry.teamId, classes };
+        });
     }
 
     const getDistanceToTag = (p: any) => {
@@ -391,6 +539,19 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             ];
         }
         const maxRows = fullHeight ? 7 : 10;
+        const maxColumns = !fullHeight && classColumnCount >= 3 ? 2 : Number.POSITIVE_INFINITY;
+        if (Number.isFinite(maxColumns)) {
+            const hardLimit = maxRows * Number(maxColumns);
+            if (limitedCounts.length > hardLimit) {
+                const overflowTotal = limitedCounts
+                    .slice(hardLimit)
+                    .reduce((sum, item: any) => sum + (item?.count || 0), 0);
+                limitedCounts = [
+                    ...limitedCounts.slice(0, hardLimit),
+                    ...(overflowTotal > 0 ? [{ profession: '+', count: overflowTotal, isSummary: true } as any] : [])
+                ];
+            }
+        }
         const columns: Array<Array<{ profession: string; count: number }>> = [];
         for (let i = 0; i < limitedCounts.length; i += maxRows) {
             columns.push(limitedCounts.slice(i, i + maxRows));
@@ -625,6 +786,14 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const tileTopList = screenshotSection?.tileKind === 'toplist' && screenshotSection.tileIndex !== undefined
         ? visibleTopLists[screenshotSection.tileIndex]
         : undefined;
+    const enemySummaryColumnCount = splitEnemiesByTeam && enemyTeamSummaryStats.length > 0
+        ? enemyTeamSummaryStats.length
+        : (settings.showEnemySummary ? 1 : 0);
+    const summaryColumnCount = Math.max(1, (settings.showSquadSummary ? 1 : 0) + enemySummaryColumnCount);
+    const enemyClassColumnCount = splitEnemiesByTeam && enemyTeamClassSummaries.length > 0
+        ? enemyTeamClassSummaries.length
+        : (settings.showEnemySummary ? 1 : 0);
+    const classColumnCount = Math.max(1, (settings.showSquadSummary ? 1 : 0) + enemyClassColumnCount);
 
     const renderSquadSummary = (compact?: boolean, fullHeight?: boolean) => (
         <div className={`bg-white/5 rounded-xl ${compact ? 'p-3' : 'p-4'} border border-white/10 shadow-lg ${fullHeight ? 'h-full' : ''}`}>
@@ -648,6 +817,19 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{enemyDps.toLocaleString()}</span></div>
                 <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{enemyDowns}</span></div>
                 <div className="flex justify-between"><span>Kills:</span> <span className="text-white font-bold">{enemyDeaths}</span></div>
+            </div>
+        </div>
+    );
+
+    const renderTeamSummary = (team: TeamSummaryStats, compact?: boolean, fullHeight?: boolean) => (
+        <div className={`bg-white/5 rounded-xl ${compact ? 'p-3' : 'p-4'} border border-white/10 shadow-lg ${fullHeight ? 'h-full' : ''}`}>
+            <h5 className={`font-black text-red-400 mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'} border-b border-red-400/20 pb-2`}>{`Team ${team.teamId}`}</h5>
+            <div className={`font-mono text-gray-200 space-y-2 text-left ${fullHeight ? 'text-lg' : 'text-sm'}`}>
+                <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{team.count}</span></div>
+                <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{team.dmg.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{team.dps.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{team.downs}</span></div>
+                <div className="flex justify-between"><span>Kills:</span> <span className="text-white font-bold">{team.kills}</span></div>
             </div>
         </div>
     );
@@ -679,8 +861,16 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 if (screenshotSection.tileKind === 'summary') {
                     if (screenshotSection.tileId === 'squad') return renderSquadSummary(true, true);
                     if (screenshotSection.tileId === 'enemy') return renderEnemySummary(true, true);
+                    if (screenshotSection.tileId === 'enemy-team' && typeof screenshotSection.teamId === 'number') {
+                        const team = enemyTeamSummaryStats.find((entry) => entry.teamId === screenshotSection.teamId);
+                        return team ? renderTeamSummary(team, true, true) : null;
+                    }
                     if (screenshotSection.tileId === 'squad-classes' && showClassSummary) return renderClassSummary('Squad Classes', squadClassCounts, 'text-green-400', true, true);
                     if (screenshotSection.tileId === 'enemy-classes' && showClassSummary) return renderClassSummary('Enemy Classes', enemyClassCounts, 'text-red-400', true, true);
+                    if (screenshotSection.tileId === 'enemy-team-classes' && showClassSummary && typeof screenshotSection.teamId === 'number') {
+                        const team = enemyTeamClassSummaries.find((entry) => entry.teamId === screenshotSection.teamId);
+                        return team ? renderClassSummary(`Team ${team.teamId} Classes`, team.classes, 'text-red-400', true, true) : null;
+                    }
                 }
                 if (screenshotSection.tileKind === 'incoming') {
                     if (screenshotSection.tileId === 'incoming-attacks') return renderIncoming('attacks', true);
@@ -764,7 +954,10 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 )}
                 <div className="p-6 space-y-6 bg-black/40">
                     {(screenshotSection?.type !== 'toplists' && showSummarySection) && (
-                        <div className="grid grid-cols-2 gap-4 text-base">
+                        <div
+                            className="grid gap-4 text-base items-start"
+                            style={{ gridTemplateColumns: `repeat(${summaryColumnCount}, minmax(0, 1fr))` }}
+                        >
                             {settings.showSquadSummary && (
                                 <div className="bg-white/5 rounded-xl p-4 border border-white/10 shadow-lg">
                                     <h5 className="font-black text-green-400 mb-3 uppercase tracking-widest text-xs border-b border-green-400/20 pb-2">Squad Summary</h5>
@@ -777,28 +970,30 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     </div>
                                 </div>
                             )}
-                            {settings.showEnemySummary && (
-                                <div className="bg-white/5 rounded-xl p-4 border border-white/10 shadow-lg">
-                                    <h5 className="font-black text-red-400 mb-3 uppercase tracking-widest text-xs border-b border-red-400/20 pb-2">Enemy Summary</h5>
-                                    <div className="font-mono text-gray-200 space-y-2 text-left text-sm">
-                                        <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{enemyCount}</span></div>
-                                        <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{totalDmgTaken.toLocaleString()}</span></div>
-                                        <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{enemyDps.toLocaleString()}</span></div>
-                                        <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{enemyDowns}</span></div>
-                                        <div className="flex justify-between"><span>Kills:</span> <span className="text-white font-bold">{enemyDeaths}</span></div>
-                                    </div>
+                            {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamSummaryStats.length === 0) && renderEnemySummary()}
+                            {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamSummaryStats.map((team) => (
+                                <div key={`team-summary-${team.teamId}`}>
+                                    {renderTeamSummary(team)}
                                 </div>
-                            )}
+                            ))}
                         </div>
                     )}
                     {(screenshotSection?.type !== 'toplists' && showSummarySection && showClassSummary) && (
-                        <div className="grid grid-cols-2 gap-4 text-base">
+                        <div
+                            className="grid gap-4 text-base items-start"
+                            style={{ gridTemplateColumns: `repeat(${classColumnCount}, minmax(0, 1fr))` }}
+                        >
                             {settings.showSquadSummary && (
                                 renderClassSummary('Squad Classes', squadClassCounts, 'text-green-400')
                             )}
-                            {settings.showEnemySummary && (
+                            {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamClassSummaries.length === 0) && (
                                 renderClassSummary('Enemy Classes', enemyClassCounts, 'text-red-400')
                             )}
+                            {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamClassSummaries.map((team) => (
+                                <div key={`team-classes-${team.teamId}`}>
+                                    {renderClassSummary(`Team ${team.teamId} Classes`, team.classes, 'text-red-400')}
+                                </div>
+                            ))}
                         </div>
                     )}
                     {(screenshotSection?.type !== 'toplists' && showIncomingSection) && (
@@ -931,7 +1126,10 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                     >
                         <div className="p-4 space-y-4">
                             {(settings.showSquadSummary || settings.showEnemySummary) && (
-                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div
+                                    className="grid gap-3 text-xs items-start"
+                                    style={{ gridTemplateColumns: `repeat(${summaryColumnCount}, minmax(0, 1fr))` }}
+                                >
                                     {settings.showSquadSummary && (
                                         <div className="bg-white/5 rounded-lg p-3 border border-white/5">
                                             <h5 className="font-semibold text-green-400 mb-2 uppercase tracking-wider text-[10px]">Squad Summary</h5>
@@ -944,7 +1142,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                             </div>
                                         </div>
                                     )}
-                                    {settings.showEnemySummary && (
+                                    {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamSummaryStats.length === 0) && (
                                         <div className="bg-white/5 rounded-lg p-3 border border-white/5">
                                             <h5 className="font-semibold text-red-400 mb-2 uppercase tracking-wider text-[10px]">Enemy Summary</h5>
                                             <div className="font-mono text-gray-300 space-y-1">
@@ -956,16 +1154,36 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                             </div>
                                         </div>
                                     )}
+                                    {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamSummaryStats.map((team) => (
+                                        <div key={`expanded-team-summary-${team.teamId}`} className="bg-white/5 rounded-lg p-3 border border-white/5">
+                                            <h5 className="font-semibold text-red-400 mb-2 uppercase tracking-wider text-[10px]">{`Team ${team.teamId}`}</h5>
+                                            <div className="font-mono text-gray-300 space-y-1">
+                                                <div className="flex justify-between"><span>Count:</span> <span>{team.count}</span></div>
+                                                <div className="flex justify-between"><span>DMG:</span> <span>{team.dmg.toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>DPS:</span> <span>{team.dps.toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>Downs:</span> <span>{team.downs}</span></div>
+                                                <div className="flex justify-between"><span>Kills:</span> <span>{team.kills}</span></div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                             {(settings.showSquadSummary || settings.showEnemySummary) && showClassSummary && (
-                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div
+                                    className="grid gap-3 text-xs items-start"
+                                    style={{ gridTemplateColumns: `repeat(${classColumnCount}, minmax(0, 1fr))` }}
+                                >
                                     {settings.showSquadSummary && (
                                         renderClassSummary('Squad Classes', squadClassCounts, 'text-green-400', true)
                                     )}
-                                    {settings.showEnemySummary && (
+                                    {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamClassSummaries.length === 0) && (
                                         renderClassSummary('Enemy Classes', enemyClassCounts, 'text-red-400', true)
                                     )}
+                                    {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamClassSummaries.map((team) => (
+                                        <div key={`expanded-team-classes-${team.teamId}`}>
+                                            {renderClassSummary(`Team ${team.teamId} Classes`, team.classes, 'text-red-400', true)}
+                                        </div>
+                                    ))}
                                 </div>
                             )}
 

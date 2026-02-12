@@ -59,6 +59,12 @@ export interface IStatsViewSettings {
     topSkillsMetric: 'damage' | 'downContribution';
 }
 
+export interface IDiscordEnemySplitSettings {
+    image: boolean;
+    embed: boolean;
+    tiled: boolean;
+}
+
 export type WebUploadBuildStatus = 'idle' | 'checking' | 'building' | 'built' | 'errored' | 'unknown';
 
 export interface IWebUploadState {
@@ -191,6 +197,12 @@ export const DEFAULT_WEB_UPLOAD_STATE: IWebUploadState = {
     buildStatus: 'idle'
 };
 
+export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS: IDiscordEnemySplitSettings = {
+    image: false,
+    embed: false,
+    tiled: false
+};
+
 export const DEFAULT_UI_THEME: UiTheme = 'classic';
 
 export interface IElectronAPI {
@@ -205,6 +217,8 @@ export interface IElectronAPI {
         logDirectory: string | null;
         discordWebhookUrl: string | null;
         discordNotificationType: 'image' | 'image-beta' | 'embed';
+        discordEnemySplitSettings: IDiscordEnemySplitSettings;
+        discordSplitEnemiesByTeam?: boolean;
         webhooks: IWebhook[];
         selectedWebhookId: string | null;
         dpsReportToken: string | null;
@@ -238,6 +252,8 @@ export interface IElectronAPI {
         logDirectory?: string | null;
         discordWebhookUrl?: string | null;
         discordNotificationType?: 'image' | 'image-beta' | 'embed';
+        discordEnemySplitSettings?: IDiscordEnemySplitSettings;
+        discordSplitEnemiesByTeam?: boolean;
         webhooks?: IWebhook[];
         selectedWebhookId?: string | null;
         dpsReportToken?: string | null;
@@ -333,6 +349,7 @@ declare global {
         fightName?: string;
         detailsLoading?: boolean;
         detailsAvailable?: boolean;
+        splitEnemiesByTeam?: boolean;
         details?: {
             fightName: string;
             encounterDuration: string;
