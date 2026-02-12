@@ -902,7 +902,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                             });
                         });
                     });
-                    const allowTotalSupplement = !Boolean(details?.detailedWvW);
+                    const allowTotalSupplement = !details?.detailedWvW;
                     if (allowTotalSupplement) {
                         // Some logs under-report or omit entries in targetDamageDist; supplement from totalDamageDist.
                         p.totalDamageDist?.forEach((list: any) => {
@@ -2309,7 +2309,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                                 });
                             });
                         }
-                        const allowTotalSupplement = !Boolean(details?.detailedWvW);
+                        const allowTotalSupplement = !details?.detailedWvW;
                         if (allowTotalSupplement && Array.isArray(player?.totalDamageDist)) {
                             player.totalDamageDist.forEach((list: any) => {
                                 if (!Array.isArray(list)) return;
