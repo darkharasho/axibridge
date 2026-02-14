@@ -27,7 +27,7 @@ export const SquadCompositionSection = ({
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
             <h3 className="text-lg font-bold text-gray-200 mb-6 flex items-center gap-2">
                 <Users className="w-5 h-5 text-green-400" />
-                Squad Composition
+                Classes
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_150px] sm:h-[300px] gap-4">
                 <div className="h-[240px] sm:h-full">

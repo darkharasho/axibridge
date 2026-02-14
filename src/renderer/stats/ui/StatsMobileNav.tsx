@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react';
 import { ChevronDown, X } from 'lucide-react';
 
 type TocItem = { id: string; label: string; icon: React.ComponentType<any> };
+type TocGroup = { id: string; label: string; icon: React.ComponentType<any>; items: TocItem[] };
 
 type StatsMobileNavProps = {
     embedded: boolean;
     mobileNavOpen: boolean;
     setMobileNavOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
+    tocGroups: TocGroup[];
     tocItems: TocItem[];
     activeNavId: string;
     scrollToSection: (id: string) => void;
@@ -16,11 +19,32 @@ export const StatsMobileNav = ({
     embedded,
     mobileNavOpen,
     setMobileNavOpen,
+    tocGroups,
     tocItems,
     activeNavId,
     scrollToSection,
     stepSection
 }: StatsMobileNavProps) => {
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+    useEffect(() => {
+        if (tocGroups.length === 0) return;
+        setExpandedGroups((prev) => {
+            if (Object.keys(prev).length > 0) return prev;
+            const init: Record<string, boolean> = {};
+            tocGroups.forEach((group, idx) => {
+                init[group.id] = idx === 0;
+            });
+            return init;
+        });
+    }, [tocGroups]);
+
+    useEffect(() => {
+        const group = tocGroups.find((entry) => entry.items.some((item) => item.id === activeNavId));
+        if (!group) return;
+        setExpandedGroups((prev) => ({ ...prev, [group.id]: true }));
+    }, [activeNavId, tocGroups]);
+
     if (embedded) return null;
     return (
         <>
@@ -82,25 +106,53 @@ export const StatsMobileNav = ({
                             onWheel={(event) => event.stopPropagation()}
                             onTouchMove={(event) => event.stopPropagation()}
                         >
-                            {tocItems.map((item) => {
-                                const Icon = item.icon;
-                                const isActive = item.id === activeNavId;
-                                return (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => scrollToSection(item.id)}
-                                        className={`stats-nav-entry stats-nav-entry--item w-full text-left flex items-center gap-2 px-2 py-2 text-gray-200 transition-colors min-w-0 ${isActive
-                                            ? 'bg-white/10'
-                                            : 'hover:bg-white/[0.03]'
-                                            }`}
-                                    >
-                                        <span className="flex items-center justify-center w-6 h-6">
-                                            <Icon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
-                                        </span>
-                                        <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
-                                    </button>
-                                );
-                            })}
+                            <div className="space-y-3">
+                                {tocGroups.map((group) => {
+                                    const GroupIcon = group.icon;
+                                    const open = expandedGroups[group.id] ?? false;
+                                    const activeInGroup = group.items.some((item) => item.id === activeNavId);
+                                    return (
+                                        <div key={group.id} className="space-y-1">
+                                            <button
+                                                onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.id]: !open }))}
+                                                className={`w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg border transition-colors ${activeInGroup
+                                                    ? 'bg-white/10 border-white/15 text-white'
+                                                    : 'bg-white/5 border-white/10 text-gray-200 hover:bg-white/[0.08]'
+                                                    }`}
+                                            >
+                                                <span className="flex items-center justify-center w-6 h-6">
+                                                    <GroupIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
+                                                </span>
+                                                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] truncate">{group.label}</span>
+                                                <ChevronDown className={`ml-auto w-4 h-4 text-gray-300 transition-transform ${open ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            {open && (
+                                                <div className="space-y-1 pl-2">
+                                                    {group.items.map((item) => {
+                                                        const Icon = item.icon;
+                                                        const isActive = item.id === activeNavId;
+                                                        return (
+                                                            <button
+                                                                key={item.id}
+                                                                onClick={() => scrollToSection(item.id)}
+                                                                className={`stats-nav-entry stats-nav-entry--item w-full text-left flex items-center gap-2 px-2 py-2 text-gray-200 transition-colors min-w-0 rounded-md ${isActive
+                                                                    ? 'bg-white/10'
+                                                                    : 'hover:bg-white/[0.03]'
+                                                                    }`}
+                                                            >
+                                                                <span className="flex items-center justify-center w-6 h-6">
+                                                                    <Icon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
+                                                                </span>
+                                                                <span className="text-[13px] font-medium truncate min-w-0">{item.label}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>

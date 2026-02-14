@@ -39,6 +39,7 @@ import { MapDistributionSection } from './stats/sections/MapDistributionSection'
 import { SpikeDamageSection } from './stats/sections/SpikeDamageSection';
 import { AttendanceSection } from './stats/sections/AttendanceSection';
 import { SquadCompByFightSection } from './stats/sections/SquadCompByFightSection';
+import { FightCompSection } from './stats/sections/FightCompSection';
 import { StatsHeader } from './stats/ui/StatsHeader';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
@@ -72,6 +73,7 @@ const ORDERED_SECTION_IDS = [
     'squad-composition',
     'attendance-ledger',
     'squad-comp-fight',
+    'fight-comp',
     'timeline',
     'map-distribution',
     'boon-output',
@@ -245,6 +247,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         setMobileNavOpen,
         activeNavId,
         scrollContainerRef,
+        tocGroups,
         tocItems,
         scrollToSection,
         stepSection
@@ -2017,6 +2020,21 @@ type SpikeFight = {
     const enemyClassData = Array.isArray(safeStats?.enemyClassData) ? safeStats.enemyClassData : [];
     const attendanceData = Array.isArray(safeStats?.attendanceData) ? safeStats.attendanceData : [];
     const squadCompByFight = Array.isArray(safeStats?.squadCompByFight) ? safeStats.squadCompByFight : [];
+    const fightBreakdownRows = Array.isArray(safeStats?.fightBreakdown) ? safeStats.fightBreakdown : [];
+    const fightCompByFight = useMemo(() => {
+        const breakdownById = new Map<string, any>();
+        fightBreakdownRows.forEach((fight: any) => {
+            const id = String(fight?.id || '');
+            if (id) breakdownById.set(id, fight);
+        });
+        return squadCompByFight.map((fight: any) => {
+            const match = breakdownById.get(String(fight?.id || '')) || null;
+            return {
+                ...fight,
+                enemyClassCounts: match?.enemyClassCounts || {}
+            };
+        });
+    }, [squadCompByFight, fightBreakdownRows]);
     const sortedSquadClassData = useMemo(() => [...squadClassData].sort(sortByCountDesc), [squadClassData]);
     const sortedEnemyClassData = useMemo(() => [...enemyClassData].sort(sortByCountDesc), [enemyClassData]);
 
@@ -2548,6 +2566,14 @@ type SpikeFight = {
                                 sectionClass={sectionClass}
                             />
 
+                            <FightCompSection
+                                fights={fightCompByFight}
+                                getProfessionIconPath={getProfessionIconPath}
+                                isSectionVisible={isSectionVisible}
+                                isFirstVisibleSection={isFirstVisibleSection}
+                                sectionClass={sectionClass}
+                            />
+
                             <MapDistributionSection
                                 mapData={safeStats.mapData}
                                 isSectionVisible={isSectionVisible}
@@ -2628,6 +2654,14 @@ type SpikeFight = {
 
                         <SquadCompByFightSection
                             fights={squadCompByFight}
+                            getProfessionIconPath={getProfessionIconPath}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
+
+                        <FightCompSection
+                            fights={fightCompByFight}
                             getProfessionIconPath={getProfessionIconPath}
                             isSectionVisible={isSectionVisible}
                             isFirstVisibleSection={isFirstVisibleSection}
@@ -3038,6 +3072,7 @@ type SpikeFight = {
                 embedded={embedded}
                 mobileNavOpen={mobileNavOpen}
                 setMobileNavOpen={setMobileNavOpen}
+                tocGroups={tocGroups}
                 tocItems={tocItems}
                 activeNavId={activeNavId}
                 scrollToSection={scrollToSection}

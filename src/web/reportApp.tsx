@@ -551,7 +551,7 @@ export function ReportApp() {
                 { id: 'fight-breakdown', label: 'Fight Breakdown', icon: Swords },
                 { id: 'top-players', label: 'Top Players', icon: Trophy },
                 { id: 'top-skills-outgoing', label: 'Top Skills', icon: ArrowBigUp },
-                { id: 'squad-composition', label: 'Squad Composition', icon: Users },
+                { id: 'squad-composition', label: 'Classes', icon: Users },
                 { id: 'timeline', label: 'Squad vs Enemy Size', icon: Users },
                 { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon }
             ]
@@ -560,10 +560,11 @@ export function ReportApp() {
             id: 'roster',
             label: 'Roster Intel',
             icon: FileText,
-            sectionIds: ['attendance-ledger', 'squad-comp-fight'],
+            sectionIds: ['attendance-ledger', 'squad-comp-fight', 'fight-comp'],
             items: [
                 { id: 'attendance-ledger', label: 'Attendance', icon: FileText },
-                { id: 'squad-comp-fight', label: 'Squad Comp', icon: Users }
+                { id: 'squad-comp-fight', label: 'Squad Comp', icon: Users },
+                { id: 'fight-comp', label: 'Fight Comp', icon: Swords }
             ]
         },
         {
