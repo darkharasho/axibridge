@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FilePlus2, LayoutGrid, Minus, RefreshCw, Settings, Square, Trophy, X } from 'lucide-react';
 import { Terminal as TerminalIcon } from 'lucide-react';
@@ -88,6 +89,35 @@ export function AppLayout({ ctx }: { ctx: any }) {
         handleWalkthroughClose,
         handleWalkthroughLearnMore
     } = ctx;
+
+    const [activeNavView, setActiveNavView] = useState(view);
+    const navSwitchRafRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        setActiveNavView(view);
+    }, [view]);
+
+    useEffect(() => {
+        return () => {
+            if (navSwitchRafRef.current !== null) {
+                window.cancelAnimationFrame(navSwitchRafRef.current);
+                navSwitchRafRef.current = null;
+            }
+        };
+    }, []);
+
+    const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'settings') => {
+        setActiveNavView(nextView);
+        if (view === nextView) return;
+        if (navSwitchRafRef.current !== null) {
+            window.cancelAnimationFrame(navSwitchRafRef.current);
+            navSwitchRafRef.current = null;
+        }
+        navSwitchRafRef.current = window.requestAnimationFrame(() => {
+            navSwitchRafRef.current = null;
+            setView(nextView);
+        });
+    };
 
     return (
         <div className={shellClassName}>
@@ -221,22 +251,22 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             v{appVersion}
                         </motion.div>
                         <button
-                            onClick={() => setView('dashboard')}
-                            className={`p-2 rounded-xl transition-all ${view === 'dashboard' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
+                            onClick={() => handleNavViewChange('dashboard')}
+                            className={`p-2 rounded-xl transition-all ${activeNavView === 'dashboard' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
                             title="Dashboard"
                         >
                             <LayoutGrid className="w-5 h-5" />
                         </button>
                         <button
-                            onClick={() => setView('stats')}
-                            className={`p-2 rounded-xl transition-all ${view === 'stats' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
+                            onClick={() => handleNavViewChange('stats')}
+                            className={`p-2 rounded-xl transition-all ${activeNavView === 'stats' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
                             title="View Stats"
                         >
                             <Trophy className="w-5 h-5" />
                         </button>
                         <button
-                            onClick={() => setView('settings')}
-                            className={`p-2 rounded-xl transition-all ${view === 'settings' ? 'bg-purple-500/20 text-purple-500 border border-purple-500/30' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
+                            onClick={() => handleNavViewChange('settings')}
+                            className={`p-2 rounded-xl transition-all ${activeNavView === 'settings' ? 'bg-purple-500/20 text-purple-500 border border-purple-500/30' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
                             title="Settings"
                         >
                             <Settings className="w-5 h-5" />
