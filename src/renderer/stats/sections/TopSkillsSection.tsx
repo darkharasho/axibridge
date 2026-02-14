@@ -63,7 +63,7 @@ export const TopSkillsSection = ({
                     <div className="text-xs text-gray-500 mt-1">{metricLabel}</div>
                 </div>
                 {showMetricToggle && (
-                    <div className="flex items-center gap-1 rounded-full bg-white/5 border border-white/10 p-1">
+                    <div className="pill-toggle-group flex items-center gap-1 rounded-full bg-white/5 border border-white/10 p-1">
                         {([
                             { id: 'damage', label: 'Damage' },
                             { id: 'downContribution', label: 'Down Contrib' }
@@ -74,9 +74,9 @@ export const TopSkillsSection = ({
                                     key={option.id}
                                     type="button"
                                     onClick={() => onTopSkillsMetricChange?.(option.id)}
-                                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                                    className={`pill-toggle-option px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
                                         isActive
-                                            ? 'bg-orange-500/30 text-orange-200'
+                                            ? 'pill-toggle-option--active bg-orange-500/30 text-orange-200'
                                             : 'text-gray-400 hover:text-white'
                                     }`}
                                 >
