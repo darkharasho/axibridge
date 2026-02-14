@@ -1730,7 +1730,7 @@ function App() {
                                 }}
                                 embedStatSettings={embedStatSettings}
                                 disruptionMethod={disruptionMethod}
-                                useClassIcons={showClassIcons}
+                                useClassIcons={true}
                             />
                         ))}
                     </div>

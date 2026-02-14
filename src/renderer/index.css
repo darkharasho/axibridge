@@ -1485,13 +1485,12 @@ body.theme-crt .app-shell::before {
     content: "";
     position: absolute;
     inset: 0;
-    background:
-        linear-gradient(rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.22)),
-        linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
-    background-size: 100% 100%, 100% 3px;
-    opacity: 0.35;
+    z-index: 0;
+    background: linear-gradient(rgba(255, 255, 255, 0.015), rgba(0, 0, 0, 0.1));
+    background-size: 100% 100%;
+    opacity: 0.2;
     pointer-events: none;
-    animation: crt-scan 8s linear infinite;
+    animation: none;
 }
 
 body.theme-crt .app-shell::after {
@@ -1499,8 +1498,8 @@ body.theme-crt .app-shell::after {
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.35) 70%, rgba(0, 0, 0, 0.6) 100%);
-    opacity: 0.7;
+        radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.2) 72%, rgba(0, 0, 0, 0.35) 100%);
+    opacity: 0.42;
     pointer-events: none;
 }
 
@@ -1511,15 +1510,35 @@ body.theme-crt::before {
     z-index: 999;
     pointer-events: none;
     background:
-        linear-gradient(0deg, rgba(0, 0, 0, 0.22) 50%, rgba(0, 0, 0, 0) 50%),
-        linear-gradient(0deg, rgba(120, 255, 170, 0.18) 50%, rgba(0, 0, 0, 0) 50%);
+        linear-gradient(0deg, rgba(0, 0, 0, 0.12) 50%, rgba(0, 0, 0, 0) 50%),
+        linear-gradient(0deg, rgba(120, 255, 170, 0.16) 50%, rgba(0, 0, 0, 0) 50%);
     background-size: 100% 4px, 100% 4px;
     background-position: 0 0, 0 1px;
     background-repeat: repeat;
-    opacity: 0.55;
+    opacity: 0.42;
     mix-blend-mode: normal;
     transform: translateZ(0);
-    will-change: transform;
+    will-change: background-position;
+    animation: crt-scanline-drift 6s steps(42, end) infinite;
+}
+
+/* Web report uses a dedicated scanline pass to avoid shimmer/gap artifacts. */
+body.web-report.theme-crt::before {
+    inset: 0;
+    background:
+        linear-gradient(0deg, rgba(0, 0, 0, 0.12) 50%, rgba(0, 0, 0, 0) 50%),
+        linear-gradient(0deg, rgba(120, 255, 170, 0.16) 50%, rgba(0, 0, 0, 0) 50%);
+    background-repeat: repeat;
+    background-size: 100% 4px, 100% 4px;
+    background-position: 0 0, 0 1px;
+    opacity: 0.42;
+    will-change: background-position;
+    animation: crt-scanline-drift-web 6s linear infinite;
+}
+
+/* Web report: drop extra vignette layer to avoid perceived black-band motion. */
+body.web-report.theme-crt::after {
+    content: none;
 }
 
 body.theme-crt::after {
@@ -1529,9 +1548,9 @@ body.theme-crt::after {
     z-index: 1000;
     pointer-events: none;
     background:
-        radial-gradient(ellipse at center, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.7) 100%);
-    opacity: 0.6;
-    animation: crt-roll 7.5s linear infinite;
+        radial-gradient(ellipse at center, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.26) 68%, rgba(0, 0, 0, 0.45) 100%);
+    opacity: 0.3;
+    animation: none;
 }
 
 body.theme-crt .legacy-orb {
@@ -1600,8 +1619,6 @@ body.theme-crt .app-shell .bg-blue-500\/20,
 body.theme-crt .app-shell .bg-blue-500\/10,
 body.theme-crt .app-shell .bg-purple-500\/20,
 body.theme-crt .app-shell .bg-purple-500\/10,
-body.theme-crt .app-shell .bg-amber-500\/15,
-body.theme-crt .app-shell .bg-amber-500\/20,
 body.theme-crt .app-shell .bg-green-500\/20,
 body.theme-crt .app-shell .bg-green-500\/10,
 body.theme-crt .app-shell .bg-red-500\/20,
@@ -1614,8 +1631,6 @@ body.theme-crt .app-shell .text-blue-400,
 body.theme-crt .app-shell .text-blue-500,
 body.theme-crt .app-shell .text-purple-400,
 body.theme-crt .app-shell .text-purple-500,
-body.theme-crt .app-shell .text-amber-200,
-body.theme-crt .app-shell .text-amber-500,
 body.theme-crt .app-shell .text-green-300,
 body.theme-crt .app-shell .text-green-400,
 body.theme-crt .app-shell .text-red-300,
@@ -1639,7 +1654,9 @@ body.theme-crt .settings-view textarea::placeholder {
 body.theme-crt .settings-title {
     text-shadow: none;
     filter: none;
-    background-image: linear-gradient(90deg, #a8ffcb, #57ff9a, #2fcf74);
+    background-image: none !important;
+    color: var(--text-primary) !important;
+    -webkit-text-fill-color: var(--text-primary);
 }
 
 @keyframes crt-scan {
@@ -1653,6 +1670,26 @@ body.theme-crt .settings-title {
 
     100% {
         opacity: 0.32;
+    }
+}
+
+@keyframes crt-scanline-drift {
+    0% {
+        background-position: 0 0, 0 1px;
+    }
+
+    100% {
+        background-position: 0 42px, 0 43px;
+    }
+}
+
+@keyframes crt-scanline-drift-web {
+    0% {
+        background-position: 0 0, 0 1px;
+    }
+
+    100% {
+        background-position: 0 9px, 0 10px;
     }
 }
 

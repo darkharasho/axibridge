@@ -515,6 +515,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const maxTopRows = clampTopRows(settings.maxTopListRows ?? 5);
     const classDisplay = settings.classDisplay ?? 'off';
     const showClassIcons = classDisplay === 'emoji' && useClassIcons;
+    const alwaysShowDetailedClassInfo = !screenshotMode;
     const getClassToken = (p: any) => {
         if (classDisplay === 'short') {
             return getProfessionAbbrev(p.profession || 'Unknown');
@@ -577,20 +578,22 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     }
                                     const iconPath = getProfessionIconPath(profession);
                                     const label = getProfessionAbbrev(profession).toUpperCase();
+                                    const displayName = profession || 'Unknown';
+                                    const shouldShowIcon = (alwaysShowDetailedClassInfo || useClassIcons) && Boolean(iconPath);
                                     return (
                                         <div key={profession} className="flex items-center justify-between gap-2 bg-white/5 rounded-md px-2 py-1 border border-white/10">
                                             <span className="flex items-center gap-1 text-gray-100">
-                                                {useClassIcons && iconPath ? (
+                                                {shouldShowIcon ? (
                                                     <img
-                                                        src={iconPath}
+                                                        src={iconPath ?? undefined}
                                                         alt={profession}
                                                         className={fullHeight ? 'w-5 h-5 object-contain' : 'w-4 h-4 object-contain'}
                                                     />
                                                 ) : (
-                                                    <span className="uppercase text-gray-400">{label}</span>
+                                                    <span className="uppercase text-gray-400">{alwaysShowDetailedClassInfo ? displayName : label}</span>
                                                 )}
-                                                {useClassIcons && iconPath ? (
-                                                    <span className="uppercase text-gray-400">{label}</span>
+                                                {shouldShowIcon ? (
+                                                    <span className={`${alwaysShowDetailedClassInfo ? '' : 'uppercase '}text-gray-400`}>{alwaysShowDetailedClassInfo ? displayName : label}</span>
                                                 ) : null}
                                             </span>
                                             <span className="font-bold text-white">{count}</span>
