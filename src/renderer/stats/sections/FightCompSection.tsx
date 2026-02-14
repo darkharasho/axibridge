@@ -3,7 +3,7 @@ import { Swords } from 'lucide-react';
 
 type FightCompPartyRow = {
     party: number;
-    players?: Array<{ profession: string }>;
+    players?: Array<{ profession: string; account?: string; characterName?: string }>;
     classCounts: Record<string, number>;
 };
 
@@ -112,39 +112,53 @@ export const FightCompSection = ({
                                 <div className="grid grid-cols-2 gap-3 min-w-[640px]">
                                     <div className="fight-comp-card rounded-xl border border-white/10 bg-black/20 overflow-hidden">
                                         <div className="px-3 py-2 bg-white/5 text-[10px] uppercase tracking-widest text-gray-400">Squad Parties</div>
-                                        <div className="p-2.5 space-y-1.5">
+                                        <div className="p-2 rounded-lg border border-white/10 bg-white/[0.03] divide-y divide-white/10">
                                             {activeFight.parties.map((party) => {
                                                 const classIcons = Array.isArray(party.players) && party.players.length > 0
                                                     ? party.players
-                                                        .map((player) => String(player?.profession || 'Unknown'))
-                                                        .filter((profession) => profession && profession !== 'Unknown')
-                                                        .sort((a, b) => a.localeCompare(b))
+                                                        .map((player) => ({
+                                                            profession: String(player?.profession || 'Unknown'),
+                                                            account: String(player?.account || ''),
+                                                            characterName: String(player?.characterName || '')
+                                                        }))
+                                                        .filter((entry) => entry.profession && entry.profession !== 'Unknown')
+                                                        .sort((a, b) =>
+                                                            a.profession.localeCompare(b.profession)
+                                                            || a.characterName.localeCompare(b.characterName)
+                                                            || a.account.localeCompare(b.account)
+                                                        )
                                                     : Object.entries(party.classCounts || {})
                                                         .flatMap(([profession, count]) =>
-                                                            Array.from({ length: Math.max(0, Number(count || 0)) }, () => String(profession))
+                                                            Array.from({ length: Math.max(0, Number(count || 0)) }, () => ({
+                                                                profession: String(profession),
+                                                                account: '',
+                                                                characterName: ''
+                                                            }))
                                                         )
-                                                        .filter((profession) => profession && profession !== 'Unknown')
-                                                        .sort((a, b) => a.localeCompare(b));
+                                                        .filter((entry) => entry.profession && entry.profession !== 'Unknown')
+                                                        .sort((a, b) => a.profession.localeCompare(b.profession));
                                                 return (
-                                                    <div key={`${activeFight.id}-party-${party.party}`} className="fight-comp-row grid grid-cols-[42px_minmax(0,1fr)] gap-2 items-center rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5">
+                                                    <div key={`${activeFight.id}-party-${party.party}`} className="fight-comp-row grid grid-cols-[42px_minmax(0,1fr)] gap-2 items-center px-2 py-1 first:pt-0 last:pb-0">
                                                         <div className="fight-comp-party-badge text-[10px] font-semibold uppercase tracking-widest text-gray-300 text-center rounded-md border border-white/10 bg-black/20 py-1">
                                                             {party.party > 0 ? `P${party.party}` : 'Unk'}
                                                         </div>
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {classIcons.length > 0 ? classIcons.map((profession, idx) => (
+                                                        <div className="flex flex-wrap gap-x-2.5 gap-y-1">
+                                                            {classIcons.length > 0 ? classIcons.map((entry, idx) => (
                                                                 <span
-                                                                    key={`${activeFight.id}-party-${party.party}-${profession}-${idx}`}
-                                                                    title={profession}
-                                                                    className="fight-comp-class-icon inline-flex items-center justify-center rounded-md border border-white/10 bg-black/20 px-1.5 py-1"
+                                                                    key={`${activeFight.id}-party-${party.party}-${entry.profession}-${entry.account || entry.characterName || idx}-${idx}`}
+                                                                    title={entry.characterName || entry.account
+                                                                        ? `${entry.profession} — ${entry.characterName || 'Unknown'} (${entry.account || 'Unknown'})`
+                                                                        : entry.profession}
+                                                                    className="fight-comp-class-icon inline-flex items-center justify-center"
                                                                 >
-                                                                    {getProfessionIconPath(profession) ? (
+                                                                    {getProfessionIconPath(entry.profession) ? (
                                                                         <img
-                                                                            src={getProfessionIconPath(profession) as string}
-                                                                            alt={profession}
-                                                                            className="w-3.5 h-3.5 object-contain"
+                                                                            src={getProfessionIconPath(entry.profession) as string}
+                                                                            alt={entry.profession}
+                                                                            className="w-4 h-4 object-contain"
                                                                         />
                                                                     ) : (
-                                                                        <span className="inline-block w-3.5 h-3.5 rounded-sm border border-white/15" />
+                                                                        <span className="inline-block w-4 h-4 rounded-sm border border-white/15" />
                                                                     )}
                                                                 </span>
                                                             )) : <span className="text-gray-500 text-[11px]">-</span>}
