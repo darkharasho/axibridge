@@ -22,6 +22,8 @@ type AttendanceSectionProps = {
     sectionClass: (id: string, base: string) => string;
 };
 
+const MAX_LEDGER_ROWS_BEFORE_SCROLL = 10;
+
 const formatDuration = (timeMs: number) => {
     const totalSeconds = Math.max(0, Math.floor(Number(timeMs || 0) / 1000));
     const hours = Math.floor(totalSeconds / 3600);
@@ -71,6 +73,7 @@ export const AttendanceSection = ({
         setSortKey(nextKey);
         setSortDir('desc');
     };
+    const shouldScrollLedger = visibleRows.length > MAX_LEDGER_ROWS_BEFORE_SCROLL;
 
     return (
         <section
@@ -100,7 +103,7 @@ export const AttendanceSection = ({
                 {attendanceRows.length === 0 ? (
                     <div className="text-center text-gray-500 italic py-6">No attendance data available.</div>
                 ) : (
-                    <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                    <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${shouldScrollLedger ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
                         <table className="w-full text-xs table-auto min-w-[900px]">
                             <thead>
                                 <tr className="text-gray-400 uppercase tracking-widest text-[10px] bg-white/5">
