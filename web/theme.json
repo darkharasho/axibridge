@@ -1,6 +1,6 @@
 {
-  "id": "CRT",
-  "label": "CRT Hacker",
-  "rgb": "87, 255, 154",
-  "pattern": "radial-gradient(circle at 12% 10%, rgba(44, 120, 78, 0.42), transparent 60%), radial-gradient(circle at 88% 22%, rgba(22, 86, 52, 0.38), transparent 62%), linear-gradient(180deg, rgba(5, 12, 8, 0.92), rgba(3, 7, 6, 0.98))"
+  "id": "MatteSlate",
+  "label": "Matte Slate",
+  "rgb": "93, 163, 194",
+  "pattern": "linear-gradient(to bottom, #222629, #222629)"
 }

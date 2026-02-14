@@ -4,6 +4,7 @@ import { DEFAULT_WEB_THEME, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
+import { motion } from 'framer-motion';
 import { ProofOfWorkModal } from '../renderer/ui/ProofOfWorkModal';
 import { SupportPlusIcon } from '../renderer/ui/SupportPlusIcon';
 import { OffenseSwordIcon } from '../renderer/ui/OffenseSwordIcon';
@@ -31,7 +32,8 @@ import {
     ArrowUp,
     ArrowBigUp,
     ListTree,
-    Keyboard
+    Keyboard,
+    ChevronDown
 } from 'lucide-react';
 
 interface ReportMeta {
@@ -218,6 +220,12 @@ export function ReportApp() {
     const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; section: string; hitId: number }>>([]);
     const [metricsSpecSearchFocused, setMetricsSpecSearchFocused] = useState(false);
     const [activeGroup, setActiveGroup] = useState('overview');
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+        overview: true,
+        offense: false,
+        defense: false,
+        other: false
+    });
     const statsWrapperRef = useRef<HTMLDivElement | null>(null);
     const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
     const metricsSpecSearchRef = useRef<HTMLDivElement | null>(null);
@@ -585,6 +593,18 @@ export function ReportApp() {
             ]
         }
     ]), []);
+    const navGroupByAnchor = useMemo(() => {
+        const map = new Map<string, string>();
+        navGroups.forEach((group) => {
+            map.set(group.id.toLowerCase(), group.id);
+            (group.sectionIds || []).forEach((id) => map.set(String(id).toLowerCase(), group.id));
+            (group.items || []).forEach((item) => map.set(String(item.id).toLowerCase(), group.id));
+        });
+        map.set('report-top', 'overview');
+        map.set('overview', 'overview');
+        map.set('kdr', 'overview');
+        return map;
+    }, [navGroups]);
     const activeGroupDef = useMemo(
         () => navGroups.find((group) => group.id === activeGroup) || navGroups[0],
         [navGroups, activeGroup]
@@ -627,6 +647,18 @@ export function ReportApp() {
     };
 
     useEffect(() => {
+        if (!report) return;
+        // Warm up submenu measurements so first accordion open is as smooth as subsequent opens.
+        const raf = requestAnimationFrame(() => {
+            const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-nav-submenu-content]'));
+            nodes.forEach((node) => {
+                void node.scrollHeight;
+            });
+        });
+        return () => cancelAnimationFrame(raf);
+    }, [report]);
+
+    useEffect(() => {
         const pendingId = pendingScrollIdRef.current;
         if (!pendingId) return;
         let attempts = 0;
@@ -644,6 +676,38 @@ export function ReportApp() {
         };
         requestAnimationFrame(tick);
     }, [activeGroup]);
+
+    useEffect(() => {
+        const syncFromHash = () => {
+            const raw = (window.location.hash || '').replace(/^#/, '').trim();
+            if (!raw) return;
+            let anchor = raw;
+            try {
+                anchor = decodeURIComponent(raw);
+            } catch {
+                anchor = raw;
+            }
+            const normalizedAnchor = anchor.toLowerCase();
+            const nextGroup = navGroupByAnchor.get(normalizedAnchor);
+            if (!nextGroup) return;
+            setActiveGroup(nextGroup);
+            setExpandedGroups(() => {
+                const next: Record<string, boolean> = {};
+                navGroups.forEach((group) => {
+                    next[group.id] = group.id === nextGroup;
+                });
+                return next;
+            });
+            pendingScrollIdRef.current = normalizedAnchor === 'report-top'
+                ? 'kdr'
+                : normalizedAnchor;
+        };
+        syncFromHash();
+        window.addEventListener('hashchange', syncFromHash);
+        return () => {
+            window.removeEventListener('hashchange', syncFromHash);
+        };
+    }, [navGroupByAnchor, navGroups]);
     const isMatteUi = uiTheme === 'matte';
     const resolvedTheme = theme ?? DEFAULT_WEB_THEME;
     const accentRgb = resolvedTheme.rgb;
@@ -1185,12 +1249,37 @@ export function ReportApp() {
 
     if (report) {
         const arcbridgeLogoUrl = joinAssetPath(assetBasePath, 'svg/ArcBridge.svg');
+        const expandOnlyGroup = (groupId: string) => {
+            setExpandedGroups(() => {
+                const next: Record<string, boolean> = {};
+                navGroups.forEach((group) => {
+                    next[group.id] = group.id === groupId;
+                });
+                return next;
+            });
+        };
         const handleGroupSelect = (groupId: string) => {
             pendingScrollIdRef.current = null;
             setActiveGroup(groupId);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
+        const handleGroupHeaderClick = (groupId: string) => {
+            const isExpanded = !!expandedGroups[groupId];
+            if (!isExpanded) {
+                expandOnlyGroup(groupId);
+                handleGroupSelect(groupId);
+                return;
+            }
+            if (groupId !== activeGroup) {
+                handleGroupSelect(groupId);
+                return;
+            }
+            setExpandedGroups((prev) => ({ ...prev, [groupId]: false }));
+        };
         const handleSubNavClick = (groupId: string, id: string) => {
+            if (!expandedGroups[groupId]) {
+                expandOnlyGroup(groupId);
+            }
             const isSameGroup = groupId === activeGroup;
             if (!isSameGroup) {
                 pendingScrollIdRef.current = id;
@@ -1237,6 +1326,30 @@ export function ReportApp() {
                 }
                 node = node.parentElement;
             }
+        };
+        const navTimingForCount = (itemCount: number) => {
+            const delta = Math.max(0, 6 - itemCount);
+            return {
+                accordionDuration: 0.5 + (delta * 0.07),
+                itemDuration: 0.34 + (delta * 0.035),
+                stagger: 0.05 + (delta * 0.01),
+                delayChildren: 0.06 + (delta * 0.015)
+            };
+        };
+        const navItemsMotionForCount = (itemCount: number) => {
+            const timing = navTimingForCount(itemCount);
+            return {
+                open: {
+                    transition: { staggerChildren: timing.stagger, delayChildren: timing.delayChildren }
+                },
+                closed: {
+                    transition: { staggerChildren: Math.max(0.02, timing.stagger * 0.7), staggerDirection: -1 as const }
+                }
+            };
+        };
+        const navItemMotion = {
+            open: { opacity: 1, y: 0 },
+            closed: { opacity: 0, y: -2 }
         };
         return (
             <div
@@ -1292,41 +1405,76 @@ export function ReportApp() {
                                 Back to Reports
                             </a>
                         </div>
-                        <nav className="px-3 pb-6 space-y-3 text-sm overflow-y-auto" onWheel={handleNavWheel}>
+                        <nav className="px-3 pb-6 space-y-3 text-sm overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
                                 const isActive = group.id === activeGroup;
+                                const isExpanded = !!expandedGroups[group.id];
+                                const navTiming = navTimingForCount(group.items.length);
+                                const navItemsMotion = navItemsMotionForCount(group.items.length);
                                 return (
-                                    <div key={group.id} className="space-y-2">
+                                    <motion.div
+                                        key={group.id}
+                                        layout="position"
+                                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                                        className="space-y-2"
+                                    >
                                         <button
-                                            onClick={() => handleGroupSelect(group.id)}
+                                            onClick={() => handleGroupHeaderClick(group.id)}
                                             className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${isActive
                                                 ? 'bg-white/10 text-white border-white/20'
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
                                                 }`}
                                         >
                                             <GroupIcon className="w-4 h-4 text-[color:var(--accent)]" />
-                                            <span className="text-[11px] uppercase tracking-[0.35em]">{group.label}</span>
+                                            <span className="text-[11px] uppercase tracking-[0.22em] whitespace-nowrap">{group.label}</span>
+                                            <motion.span
+                                                className="ml-auto inline-flex"
+                                                animate={{ rotate: isExpanded ? 0 : -90 }}
+                                                transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.86 }}
+                                            >
+                                                <ChevronDown className="w-4 h-4 text-gray-300" />
+                                            </motion.span>
                                         </button>
-                                        <div className="space-y-1 pl-2">
-                                            {group.items.map((item) => {
-                                                const ItemIcon = item.icon;
-                                                return (
-                                                    <button
-                                                        key={item.id}
-                                                        onClick={() => {
-                                                            handleSubNavClick(group.id, item.id);
-                                                            setTocOpen(false);
-                                                        }}
-                                                        className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-gray-200 border border-transparent hover:border-white/10 hover:bg-white/10 transition-colors"
-                                                    >
-                                                        <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
-                                                        {item.label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
+                                        <motion.div
+                                            key={`${group.id}-submenu-mobile`}
+                                            initial={false}
+                                            animate={isExpanded ? 'open' : 'closed'}
+                                            variants={{
+                                                open: { height: 'auto', opacity: 1 },
+                                                closed: { height: 0, opacity: 0 }
+                                            }}
+                                            transition={{ duration: navTiming.accordionDuration, ease: [0.2, 0.9, 0.25, 1] }}
+                                            className="overflow-hidden will-change-[height,opacity]"
+                                        >
+                                            <motion.div
+                                                variants={navItemsMotion}
+                                                initial={false}
+                                                animate={isExpanded ? 'open' : 'closed'}
+                                                className="space-y-1 pl-2 pt-1"
+                                                data-nav-submenu-content
+                                            >
+                                                {group.items.map((item) => {
+                                                    const ItemIcon = item.icon;
+                                                    return (
+                                                        <motion.button
+                                                            key={item.id}
+                                                            variants={navItemMotion}
+                                                            transition={{ duration: navTiming.itemDuration, ease: [0.2, 0.9, 0.25, 1] }}
+                                                            onClick={() => {
+                                                                handleSubNavClick(group.id, item.id);
+                                                                setTocOpen(false);
+                                                            }}
+                                                            className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-gray-200 border border-transparent hover:border-white/10 hover:bg-white/10 transition-colors transform-gpu"
+                                                        >
+                                                            <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
+                                                            {item.label}
+                                                        </motion.button>
+                                                    );
+                                                })}
+                                            </motion.div>
+                                        </motion.div>
+                                    </motion.div>
                                 );
                             })}
                         </nav>
@@ -1357,38 +1505,73 @@ export function ReportApp() {
                                 </div>
                             </div>
                         </div>
-                        <nav className="px-4 space-y-4 text-sm flex-1 overflow-y-auto" onWheel={handleNavWheel}>
+                        <nav className="px-4 space-y-4 text-sm flex-1 overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
                                 const isActive = group.id === activeGroup;
+                                const isExpanded = !!expandedGroups[group.id];
+                                const navTiming = navTimingForCount(group.items.length);
+                                const navItemsMotion = navItemsMotionForCount(group.items.length);
                                 return (
-                                    <div key={group.id} className="space-y-2">
+                                    <motion.div
+                                        key={group.id}
+                                        layout="position"
+                                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                                        className="space-y-2"
+                                    >
                                         <button
-                                            onClick={() => handleGroupSelect(group.id)}
+                                            onClick={() => handleGroupHeaderClick(group.id)}
                                             className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${isActive
                                                 ? 'bg-white/10 text-white border-white/20'
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
                                                 }`}
                                         >
                                             <GroupIcon className="w-4 h-4 text-[color:var(--accent)]" />
-                                            <span className="text-[11px] uppercase tracking-[0.35em]">{group.label}</span>
+                                            <span className="text-[11px] uppercase tracking-[0.22em] whitespace-nowrap">{group.label}</span>
+                                            <motion.span
+                                                className="ml-auto inline-flex"
+                                                animate={{ rotate: isExpanded ? 0 : -90 }}
+                                                transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.86 }}
+                                            >
+                                                <ChevronDown className="w-4 h-4 text-gray-300" />
+                                            </motion.span>
                                         </button>
-                                        <div className="space-y-1 pl-2">
-                                            {group.items.map((item) => {
-                                                const ItemIcon = item.icon;
-                                                return (
-                                                    <button
-                                                        key={item.id}
-                                                        onClick={() => handleSubNavClick(group.id, item.id)}
-                                                        className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-gray-200 border border-transparent hover:border-white/10 hover:bg-white/10 transition-colors"
-                                                    >
-                                                        <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
-                                                        {item.label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
+                                        <motion.div
+                                            key={`${group.id}-submenu-desktop`}
+                                            initial={false}
+                                            animate={isExpanded ? 'open' : 'closed'}
+                                            variants={{
+                                                open: { height: 'auto', opacity: 1 },
+                                                closed: { height: 0, opacity: 0 }
+                                            }}
+                                            transition={{ duration: navTiming.accordionDuration, ease: [0.2, 0.9, 0.25, 1] }}
+                                            className="overflow-hidden will-change-[height,opacity]"
+                                        >
+                                            <motion.div
+                                                variants={navItemsMotion}
+                                                initial={false}
+                                                animate={isExpanded ? 'open' : 'closed'}
+                                                className="space-y-1 pl-2 pt-1"
+                                                data-nav-submenu-content
+                                            >
+                                                {group.items.map((item) => {
+                                                    const ItemIcon = item.icon;
+                                                    return (
+                                                        <motion.button
+                                                            key={item.id}
+                                                            variants={navItemMotion}
+                                                            transition={{ duration: navTiming.itemDuration, ease: [0.2, 0.9, 0.25, 1] }}
+                                                            onClick={() => handleSubNavClick(group.id, item.id)}
+                                                            className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-gray-200 border border-transparent hover:border-white/10 hover:bg-white/10 transition-colors transform-gpu"
+                                                        >
+                                                            <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
+                                                            {item.label}
+                                                        </motion.button>
+                                                    );
+                                                })}
+                                            </motion.div>
+                                        </motion.div>
+                                    </motion.div>
                                 );
                             })}
                         </nav>

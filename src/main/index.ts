@@ -1959,6 +1959,28 @@ const copyDir = (src: string, dest: string) => {
     });
 };
 
+const refreshDevWebTemplate = (templateDir: string, webRoot: string) => {
+    const resetTargets = [
+        'assets',
+        'img',
+        'svg',
+        'web',
+        'index.html',
+        'theme.json',
+        'ui-theme.json',
+        'logo.json',
+        'logo.png'
+    ];
+    resetTargets.forEach((target) => {
+        const targetPath = path.join(webRoot, target);
+        if (fs.existsSync(targetPath)) {
+            fs.rmSync(targetPath, { recursive: true, force: true });
+        }
+    });
+    copyDir(templateDir, webRoot);
+    ensureWebRootIndex(webRoot);
+};
+
 const isWebTemplateReady = (webRoot: string) => {
     try {
         const indexPath = path.join(webRoot, 'index.html');
@@ -2064,6 +2086,15 @@ const sendGithubThemeStatus = (stage: string, message?: string, progress?: numbe
 };
 
 const buildWebTemplate = async (appRoot: string) => {
+    // In dev, local mock/web uploads overwrite `web/index.html` with built output.
+    // Restore the source entrypoint before each build so Vite recompiles from src/web/main.tsx.
+    if (!app.isPackaged) {
+        try {
+            ensureDevWebIndex(path.join(appRoot, 'web'));
+        } catch {
+            // Best effort; build may still fail with a clear error if entry is invalid.
+        }
+    }
     return new Promise<{ ok: boolean; error?: string; errorDetail?: string }>((resolve) => {
         const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
         const child = spawn(npmCmd, ['run', 'build:web'], { cwd: appRoot });
@@ -4207,14 +4238,14 @@ if (!gotTheLock) {
                     fs.mkdirSync(webRoot, { recursive: true });
                 }
                 const templateDir = path.join(appRoot, 'dist-web');
-                if (!fs.existsSync(templateDir)) {
-                    const built = await buildWebTemplate(appRoot);
-                    if (!built.ok || !fs.existsSync(templateDir)) {
-                        return { success: false, error: built.error || 'Failed to generate the web template automatically.', errorDetail: built.errorDetail };
-                    }
+                // Always rebuild in dev so local mock reports include the latest web changes.
+                const built = await buildWebTemplate(appRoot);
+                if (!built.ok || !fs.existsSync(templateDir)) {
+                    return { success: false, error: built.error || 'Failed to generate the web template automatically.', errorDetail: built.errorDetail };
                 }
                 // Always refresh local web template so dev reports pick up latest web fixes.
-                copyDir(templateDir, webRoot);
+                // Purge stale hashed assets first so old bundles cannot be served accidentally.
+                refreshDevWebTemplate(templateDir, webRoot);
                 const reportMeta = {
                     ...payload.meta,
                     appVersion: app.getVersion()
@@ -4250,12 +4281,12 @@ if (!gotTheLock) {
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content="0; url=../../web/web/index.html?report=${reportMeta.id}" />
+    <meta http-equiv="refresh" content="0; url=../../?report=${reportMeta.id}" />
     <title>Redirecting...</title>
   </head>
   <body>
     <script>
-      window.location.replace('../../web/web/index.html?report=${reportMeta.id}');
+      window.location.replace('../../?report=${reportMeta.id}');
     </script>
     <p>Redirecting to report...</p>
   </body>
@@ -4270,7 +4301,7 @@ if (!gotTheLock) {
                     dateStart: reportMeta.dateStart,
                     dateEnd: reportMeta.dateEnd,
                     dateLabel: reportMeta.dateLabel,
-                    url: `./web/web/index.html?report=${reportMeta.id}`,
+                    url: `./?report=${reportMeta.id}`,
                     summary: (() => {
                         const stats = payload?.stats || {};
                         const mapData = Array.isArray(stats.mapData) ? stats.mapData : [];
@@ -4310,15 +4341,15 @@ if (!gotTheLock) {
                     if (!entry || typeof entry !== 'object') return entry;
                     const currentUrl = typeof entry.url === 'string' ? entry.url : '';
                     const normalizedUrl = currentUrl
-                        .replace('./?report=', './web/web/index.html?report=')
-                        .replace('./web/index.html?report=', './web/web/index.html?report=');
+                        .replace('./web/web/index.html?report=', './?report=')
+                        .replace('./web/index.html?report=', './?report=');
                     return normalizedUrl === currentUrl ? entry : { ...entry, url: normalizedUrl };
                 });
                 const mergedIndex = [indexEntry, ...normalizedExistingIndex.filter((entry) => entry?.id !== reportMeta.id)];
                 fs.writeFileSync(indexPath, JSON.stringify(mergedIndex, null, 2));
 
                 const baseUrl = VITE_DEV_SERVER_URL.replace(/\/$/, '');
-                return { success: true, url: `${baseUrl}/web/web/index.html?report=${reportMeta.id}` };
+                return { success: true, url: `${baseUrl}/web/?report=${reportMeta.id}` };
             } catch (err: any) {
                 return { success: false, error: err?.message || 'Failed to create local web report.' };
             }
