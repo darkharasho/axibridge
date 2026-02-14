@@ -105,13 +105,13 @@ export const FightCompSection = ({
                             </div>
                         </aside>
 
-                        <div className="fight-comp-board rounded-xl border border-white/10 bg-black/30 p-3 overflow-x-auto">
+                        <div className="fight-comp-board rounded-xl border border-white/10 bg-black/30 p-2.5 overflow-hidden">
                             {!activeFight ? (
                                 <div className="text-gray-500 italic py-6 text-center">Select a fight.</div>
                             ) : (
-                                <div className="grid grid-cols-2 gap-3 min-w-[640px]">
+                                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.78fr)] gap-2.5 min-w-0">
                                     <div className="fight-comp-card rounded-xl border border-white/10 bg-black/20 overflow-hidden">
-                                        <div className="px-3 py-2 bg-white/5 text-[10px] uppercase tracking-widest text-gray-400">Squad Parties</div>
+                                        <div className="px-2.5 py-1.5 bg-white/5 text-[10px] uppercase tracking-widest text-gray-400">Squad Parties</div>
                                         <div className="p-2 rounded-lg border border-white/10 bg-white/[0.03] divide-y divide-white/10">
                                             {activeFight.parties.map((party) => {
                                                 const classIcons = Array.isArray(party.players) && party.players.length > 0
@@ -138,11 +138,11 @@ export const FightCompSection = ({
                                                         .filter((entry) => entry.profession && entry.profession !== 'Unknown')
                                                         .sort((a, b) => a.profession.localeCompare(b.profession));
                                                 return (
-                                                    <div key={`${activeFight.id}-party-${party.party}`} className="fight-comp-row grid grid-cols-[42px_minmax(0,1fr)] gap-2 items-center px-2 py-1 first:pt-0 last:pb-0">
-                                                        <div className="fight-comp-party-badge text-[10px] font-semibold uppercase tracking-widest text-gray-300 text-center rounded-md border border-white/10 bg-black/20 py-1">
+                                                    <div key={`${activeFight.id}-party-${party.party}`} className="fight-comp-row grid grid-cols-[36px_minmax(0,1fr)] gap-1.5 items-center px-1.5 py-1 first:pt-0 last:pb-0">
+                                                        <div className="fight-comp-party-badge text-[10px] font-semibold uppercase tracking-widest text-gray-300 text-center rounded-md border border-white/10 bg-black/20 py-0.5">
                                                             {party.party > 0 ? `P${party.party}` : 'Unk'}
                                                         </div>
-                                                        <div className="flex flex-wrap gap-x-2.5 gap-y-1">
+                                                        <div className="flex flex-wrap gap-x-1.5 gap-y-1">
                                                             {classIcons.length > 0 ? classIcons.map((entry, idx) => (
                                                                 <span
                                                                     key={`${activeFight.id}-party-${party.party}-${entry.profession}-${entry.account || entry.characterName || idx}-${idx}`}
@@ -155,10 +155,10 @@ export const FightCompSection = ({
                                                                         <img
                                                                             src={getProfessionIconPath(entry.profession) as string}
                                                                             alt={entry.profession}
-                                                                            className="w-4 h-4 object-contain"
+                                                                            className="w-3.5 h-3.5 object-contain"
                                                                         />
                                                                     ) : (
-                                                                        <span className="inline-block w-4 h-4 rounded-sm border border-white/15" />
+                                                                        <span className="inline-block w-3.5 h-3.5 rounded-sm border border-white/15" />
                                                                     )}
                                                                 </span>
                                                             )) : <span className="text-gray-500 text-[11px]">-</span>}
@@ -170,24 +170,24 @@ export const FightCompSection = ({
                                     </div>
 
                                     <div className="fight-comp-card rounded-xl border border-white/10 bg-black/20 overflow-hidden">
-                                        <div className="px-3 py-2 bg-white/5 text-[10px] uppercase tracking-widest text-gray-400">Enemy Classes</div>
-                                        <div className="p-2.5">
+                                        <div className="px-2.5 py-1.5 bg-white/5 text-[10px] uppercase tracking-widest text-gray-400">Enemy Classes</div>
+                                        <div className="p-2">
                                             {enemyRows.length > 0 ? (
-                                                <div className="flex flex-wrap gap-1.5">
+                                                <div className="flex flex-wrap gap-1">
                                                     {enemyRows.map((entry) => (
-                                                        <div key={`${activeFight.id}-enemy-${entry.profession}`} className="fight-comp-row inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1">
-                                                            <span className="fight-comp-class-icon inline-flex items-center justify-center rounded-md border border-white/10 bg-black/20 px-1.5 py-1" title={entry.profession}>
+                                                        <div key={`${activeFight.id}-enemy-${entry.profession}`} className="fight-comp-row inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-1.5 py-0.5">
+                                                            <span className="fight-comp-class-icon inline-flex items-center justify-center rounded-md border border-white/10 bg-black/20 px-1 py-0.5" title={entry.profession}>
                                                                 {getProfessionIconPath(entry.profession) ? (
                                                                     <img
                                                                         src={getProfessionIconPath(entry.profession) as string}
                                                                         alt={entry.profession}
-                                                                        className="w-3.5 h-3.5 object-contain"
+                                                                        className="w-3 h-3 object-contain"
                                                                     />
                                                                 ) : (
-                                                                    <span className="inline-block w-3.5 h-3.5 rounded-sm border border-white/15" />
+                                                                    <span className="inline-block w-3 h-3 rounded-sm border border-white/15" />
                                                                 )}
                                                             </span>
-                                                            <span className="text-[11px] font-mono text-gray-200">{entry.count}</span>
+                                                            <span className="text-[10px] font-mono text-gray-200">{entry.count}</span>
                                                         </div>
                                                     ))}
                                                 </div>

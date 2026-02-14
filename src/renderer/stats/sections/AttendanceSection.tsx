@@ -104,26 +104,26 @@ export const AttendanceSection = ({
                     <div className="text-center text-gray-500 italic py-6">No attendance data available.</div>
                 ) : (
                     <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${shouldScrollLedger ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
-                        <table className="w-full text-xs table-auto min-w-[900px] border-separate border-spacing-0">
+                        <table className="w-full text-xs table-auto min-w-full border-separate border-spacing-0">
                             <thead>
                                 <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
                                     <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Account</th>
                                     <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Character(s)</th>
                                     <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Classes Played</th>
-                                    <th className="text-right py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">
+                                    <th className="text-right py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)] whitespace-nowrap">
                                         <button
                                             type="button"
                                             onClick={() => updateSort('fight')}
-                                            className={`transition-colors ${sortKey === 'fight' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                            className={`transition-colors whitespace-nowrap ${sortKey === 'fight' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
                                         >
                                             Total Fight Time{sortKey === 'fight' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
                                         </button>
                                     </th>
-                                    <th className="text-right py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">
+                                    <th className="text-right py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)] whitespace-nowrap">
                                         <button
                                             type="button"
                                             onClick={() => updateSort('squad')}
-                                            className={`transition-colors ${sortKey === 'squad' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                            className={`transition-colors whitespace-nowrap ${sortKey === 'squad' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
                                         >
                                             Total Squad Time{sortKey === 'squad' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
                                         </button>
