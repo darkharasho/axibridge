@@ -3070,6 +3070,7 @@ type SpikeFight = {
 
             <StatsMobileNav
                 embedded={embedded}
+                uiTheme={uiTheme}
                 mobileNavOpen={mobileNavOpen}
                 setMobileNavOpen={setMobileNavOpen}
                 tocGroups={tocGroups}

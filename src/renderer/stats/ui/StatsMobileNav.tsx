@@ -6,6 +6,7 @@ type TocGroup = { id: string; label: string; icon: React.ComponentType<any>; ite
 
 type StatsMobileNavProps = {
     embedded: boolean;
+    uiTheme?: 'classic' | 'modern' | 'crt' | 'matte';
     mobileNavOpen: boolean;
     setMobileNavOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
     tocGroups: TocGroup[];
@@ -17,6 +18,7 @@ type StatsMobileNavProps = {
 
 export const StatsMobileNav = ({
     embedded,
+    uiTheme = 'classic',
     mobileNavOpen,
     setMobileNavOpen,
     tocGroups,
@@ -25,6 +27,34 @@ export const StatsMobileNav = ({
     scrollToSection,
     stepSection
 }: StatsMobileNavProps) => {
+    const isMatte = uiTheme === 'matte';
+    const isModern = uiTheme === 'modern';
+    const isCrt = uiTheme === 'crt';
+
+    const barClass = isMatte
+        ? 'rounded-2xl border border-white/10 bg-[#222629] shadow-[-4px_-4px_8px_rgba(255,255,255,0.03),6px_6px_12px_rgba(0,0,0,0.45)]'
+        : isCrt
+            ? 'rounded-sm border border-green-400/35 bg-[#07110c]'
+            : isModern
+                ? 'rounded-2xl border border-white/15 bg-[#1b2430]'
+                : 'rounded-2xl border border-white/25 bg-white/5 backdrop-blur-2xl shadow-[0_24px_65px_rgba(0,0,0,0.55)]';
+
+    const navButtonClass = isMatte
+        ? 'rounded-xl bg-[#2a2e31] border border-white/10 text-[10px] uppercase tracking-widest text-gray-200 shadow-[inset_1px_1px_2px_rgba(255,255,255,0.04),inset_-1px_-1px_2px_rgba(0,0,0,0.35)]'
+        : isCrt
+            ? 'rounded-sm bg-[#0b1a12] border border-green-400/35 text-[10px] uppercase tracking-widest text-green-200'
+            : isModern
+                ? 'rounded-xl bg-[#202830] border border-white/10 text-[10px] uppercase tracking-widest text-gray-200'
+                : 'rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200';
+
+    const panelClass = isMatte
+        ? 'w-full max-w-sm max-h-[68vh] rounded-2xl p-4 border border-white/15 bg-[#222629] flex flex-col overflow-hidden'
+        : isCrt
+            ? 'w-full max-w-sm max-h-[68vh] rounded-sm p-4 border border-green-400/35 bg-[#07110c] flex flex-col overflow-hidden'
+            : isModern
+                ? 'w-full max-w-sm max-h-[68vh] rounded-2xl p-4 border border-white/20 bg-[#1f252b] flex flex-col overflow-hidden'
+                : 'w-full max-w-sm max-h-[68vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col overflow-hidden';
+
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
@@ -53,17 +83,17 @@ export const StatsMobileNav = ({
                 onClick={() => setMobileNavOpen(false)}
             />
             <div className="fixed bottom-4 left-4 right-4 z-50">
-                <div className="flex items-center justify-between gap-2 rounded-2xl border border-white/15 bg-[#1f252b] px-3 py-1.5">
+                <div className={`flex items-center justify-between gap-2 px-3 py-1.5 ${barClass}`}>
                     <button
                         onClick={() => stepSection(-1)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#202830] border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                        className={`flex items-center gap-2 px-3 py-1.5 ${navButtonClass}`}
                     >
                         <ChevronDown className="w-4 h-4 rotate-90 text-[color:var(--accent)]" />
                         Prev
                     </button>
                     <button
                         onClick={() => setMobileNavOpen((open) => !open)}
-                        className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-[#202830] border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                        className={`flex items-center gap-2 px-4 py-1.5 ${navButtonClass}`}
                     >
                         <span className="truncate max-w-[160px]">
                             {tocItems.find((item) => item.id === activeNavId)?.label || 'Sections'}
@@ -72,7 +102,7 @@ export const StatsMobileNav = ({
                     </button>
                     <button
                         onClick={() => stepSection(1)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#202830] border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                        className={`flex items-center gap-2 px-3 py-1.5 ${navButtonClass}`}
                     >
                         Next
                         <ChevronDown className="w-4 h-4 -rotate-90 text-[color:var(--accent)]" />
@@ -89,7 +119,7 @@ export const StatsMobileNav = ({
                         }
                     }}
                 >
-                    <div data-stats-mobile-nav="panel" className="w-full max-w-sm max-h-[68vh] rounded-2xl p-4 border border-white/20 bg-[#1f252b] flex flex-col overflow-hidden">
+                    <div data-stats-mobile-nav="panel" className={panelClass}>
                         <div className="flex items-center justify-between mb-3">
                             <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
                             <button

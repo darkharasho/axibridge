@@ -28,6 +28,10 @@
     --text-secondary: #c0c7d2;
     --text-muted: #7a8494;
     --text-inverse: #0c1015;
+    --scrollbar-size: 10px;
+    --scrollbar-track: rgba(8, 12, 18, 0.78);
+    --scrollbar-thumb: rgba(146, 163, 184, 0.35);
+    --scrollbar-thumb-hover: rgba(148, 163, 184, 0.56);
 }
 
 html,
@@ -51,6 +55,9 @@ body.theme-modern:not(.web-report) {
     --text-primary: #eef2f7;
     --text-secondary: #c7d0de;
     --text-muted: #8a97ab;
+    --scrollbar-track: rgba(16, 20, 27, 0.84);
+    --scrollbar-thumb: rgba(143, 214, 234, 0.34);
+    --scrollbar-thumb-hover: rgba(143, 214, 234, 0.52);
     background: var(--bg-base);
     color: var(--text-primary);
     font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -310,6 +317,9 @@ body.web-report.theme-modern {
     font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    --scrollbar-track: rgba(16, 20, 27, 0.84);
+    --scrollbar-thumb: rgba(143, 214, 234, 0.34);
+    --scrollbar-thumb-hover: rgba(143, 214, 234, 0.52);
 }
 
 body.web-report.theme-modern .bg-white\/5 {
@@ -623,6 +633,9 @@ body.theme-matte {
     /* Neumorphic Lighting */
     --matte-light: rgba(255, 255, 255, 0.035);
     --matte-dark: rgba(0, 0, 0, 0.4);
+    --scrollbar-track: rgba(18, 22, 24, 0.82);
+    --scrollbar-thumb: rgba(157, 163, 168, 0.33);
+    --scrollbar-thumb-hover: rgba(186, 192, 198, 0.48);
 
     background: #222629;
     color: var(--text-primary);
@@ -1120,7 +1133,7 @@ body.theme-matte .matte-rail-shell {
 body.theme-matte .dashboard-view,
 body.theme-matte .dashboard-rail,
 body.theme-matte .dashboard-view .space-y-6 {
-    overflow-x: visible !important;
+    overflow-x: hidden !important;
 }
 
 body.theme-matte .dashboard-view {
@@ -1183,7 +1196,7 @@ body.theme-matte .matte-log-card {
 body.theme-matte .matte-log-list {
     padding-left: 18px;
     padding-right: 12px;
-    overflow-x: visible;
+    overflow-x: hidden;
 }
 
 body.theme-matte .matte-log-list>.space-y-3 {
@@ -1463,6 +1476,9 @@ body.theme-crt {
     --text-primary: #c7ffd8;
     --text-secondary: #9ae9b6;
     --text-muted: #5aa276;
+    --scrollbar-track: rgba(6, 14, 10, 0.9);
+    --scrollbar-thumb: rgba(87, 255, 154, 0.3);
+    --scrollbar-thumb-hover: rgba(87, 255, 154, 0.48);
     background: radial-gradient(circle at top, rgba(20, 45, 30, 0.6), transparent 65%), #040806;
     color: var(--text-primary);
     font-family: "Share Tech Mono", "IBM Plex Mono", "Fira Mono", "SFMono-Regular", ui-monospace, monospace;
@@ -1735,6 +1751,22 @@ body.web-report {
     height: auto;
     min-height: 100%;
     overflow: auto;
+    --scrollbar-size: 12px;
+}
+
+body.web-report * {
+    scrollbar-width: auto;
+    scrollbar-gutter: stable;
+}
+
+body.web-report *::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+
+body.web-report #top-skills-outgoing .max-h-80,
+body.web-report #top-skills-incoming .max-h-80 {
+    padding-right: 0.5rem;
 }
 
 body.web-report #root {
@@ -1761,17 +1793,33 @@ body.web-report #root {
     -webkit-app-region: no-drag;
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-::-webkit-scrollbar {
-    display: none;
+/* Minimal, theme-aware scrollbars across app + web report. */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
-/* Hide scrollbar for IE, Edge and Firefox */
-* {
-    -ms-overflow-style: none;
-    /* IE and Edge */
-    scrollbar-width: none;
-    /* Firefox */
+*::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 2px solid var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+    background: transparent;
 }
 
 svg {

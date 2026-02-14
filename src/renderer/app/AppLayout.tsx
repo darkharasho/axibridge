@@ -304,7 +304,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     />
                 ) : view === 'stats' ? null : (
                     isModernTheme ? (
-                        <div className="dashboard-view dashboard-modern flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overflow-x-visible pr-1 matte-dashboard-shell">
+                        <div className="dashboard-view dashboard-modern flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 matte-dashboard-shell">
                             <div className="matte-panel-shell">
                                 {statsTilesPanel}
                             </div>

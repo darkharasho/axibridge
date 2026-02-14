@@ -138,7 +138,7 @@ export const SquadCompByFightSection = ({
                                                     {party.party > 0 ? party.party : '-'}
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-1.5 min-w-0">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-1 min-w-0">
                                                 {party.players.map((player, index) => (
                                                     (() => {
                                                         const isMatch = matchesPlayer(player);
