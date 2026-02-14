@@ -11,7 +11,15 @@ interface UseStatsAggregationProps {
 }
 
 export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod }: UseStatsAggregationProps) => {
-    const [result, setResult] = useState(() => computeStatsAggregation({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod }));
+    const workerLogLimit = 8;
+    const shouldUseWorker = logs.length > workerLogLimit;
+    const [result, setResult] = useState(() => {
+        if (typeof Worker !== 'undefined' && shouldUseWorker) {
+            // Avoid blocking initial mount on large datasets; worker will publish the first full result.
+            return computeStatsAggregation({ logs: [], precomputedStats: undefined, mvpWeights, statsViewSettings, disruptionMethod });
+        }
+        return computeStatsAggregation({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod });
+    });
     const [computeTick, setComputeTick] = useState(0);
     const [lastComputedLogCount, setLastComputedLogCount] = useState(0);
     const [lastComputedToken, setLastComputedToken] = useState(0);
@@ -23,8 +31,6 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const workerRef = useRef<Worker | null>(null);
     const [workerFailed, setWorkerFailed] = useState(false);
     const streamTimerRef = useRef<number | null>(null);
-    const workerLogLimit = 8;
-    const shouldUseWorker = logs.length > workerLogLimit;
     const aggregationSettingsKeyRef = useRef<string>('');
     const aggregationSettingsRef = useRef<IStatsViewSettings | undefined>(undefined);
 

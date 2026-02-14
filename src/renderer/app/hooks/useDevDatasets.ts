@@ -13,6 +13,7 @@ import {
 
 interface UseDevDatasetsOptions {
     view: 'dashboard' | 'stats' | 'settings';
+    bulkUploadMode: boolean;
     setView: Dispatch<SetStateAction<'dashboard' | 'stats' | 'settings'>>;
     logs: ILogData[];
     setLogs: Dispatch<SetStateAction<ILogData[]>>;
@@ -29,6 +30,7 @@ interface UseDevDatasetsOptions {
 
 export function useDevDatasets({
     view,
+    bulkUploadMode,
     setView,
     logs,
     setLogs,
@@ -63,6 +65,7 @@ export function useDevDatasets({
     const statsBatchTimerRef = useRef<number | null>(null);
     const logsRef = useRef<ILogData[]>(logs);
     const [statsViewMounted, setStatsViewMounted] = useState(false);
+    const hasPendingStatsDetails = logs.some((log) => log.detailsAvailable && !log.details);
 
     const applyDevDatasetSnapshot = useCallback((snapshot: IDevDatasetSnapshot | null | undefined) => {
         const state = snapshot?.state;
@@ -141,24 +144,56 @@ export function useDevDatasets({
     }, [logs]);
 
     useEffect(() => {
+        if (bulkUploadMode && view !== 'stats') {
+            if (statsBatchTimerRef.current) {
+                window.clearTimeout(statsBatchTimerRef.current);
+                statsBatchTimerRef.current = null;
+            }
+            return;
+        }
+        if (view === 'stats' && hasPendingStatsDetails) {
+            if (statsBatchTimerRef.current) {
+                window.clearTimeout(statsBatchTimerRef.current);
+                statsBatchTimerRef.current = null;
+            }
+            return;
+        }
         if (statsBatchTimerRef.current) return;
         statsBatchTimerRef.current = window.setTimeout(() => {
             statsBatchTimerRef.current = null;
             setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
         }, 5000);
-    }, [logs]);
+    }, [logs, view, hasPendingStatsDetails, bulkUploadMode]);
 
     useEffect(() => {
         logsRef.current = logs;
     }, [logs]);
 
     useEffect(() => {
+        return () => {
+            if (statsBatchTimerRef.current) {
+                window.clearTimeout(statsBatchTimerRef.current);
+                statsBatchTimerRef.current = null;
+            }
+        };
+    }, []);
+
+    useEffect(() => {
         if (view === 'stats') {
             setStatsViewMounted(true);
-            // Ensure stats-dependent sections (APM/Player Breakdown) have fresh data immediately on navigation.
-            setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
+            // During initial hydration, defer refreshes to avoid visibly jumping totals.
+            if (!hasPendingStatsDetails) {
+                setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
+            }
         }
-    }, [view]);
+    }, [view, hasPendingStatsDetails]);
+
+    useEffect(() => {
+        if (view !== 'stats') return;
+        if (hasPendingStatsDetails) return;
+        // Publish a single full snapshot when pending detail hydration settles.
+        setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
+    }, [view, hasPendingStatsDetails]);
 
     useEffect(() => {
         if (!devDatasetsEnabled || !window.electronAPI?.onDevDatasetLogsChunk) return;

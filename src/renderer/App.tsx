@@ -101,6 +101,7 @@ function App() {
     const { webUploadState, setWebUploadState, handleWebUpload } = useWebUpload();
     const devDatasetsState = useDevDatasets({
         view,
+        bulkUploadMode,
         setView,
         logs,
         setLogs,
@@ -463,13 +464,13 @@ function App() {
     }, []);
 
     const scheduleIncrementalStatsRefresh = useCallback(() => {
+        if (view !== 'stats') return;
         if (incrementalStatsRefreshRef.current !== null) return;
         incrementalStatsRefreshRef.current = window.setTimeout(() => {
             incrementalStatsRefreshRef.current = null;
             setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
-            requestFlush?.();
-        }, 700);
-    }, [requestFlush]);
+        }, 1500);
+    }, [view]);
 
     const endBulkUpload = useCallback(() => {
         bulkUploadExpectedRef.current = null;
