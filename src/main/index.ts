@@ -2034,6 +2034,23 @@ const getWebRootIndexBuffer = (templateDir: string) => {
     }
 };
 
+// Compatibility patch:
+// Older web bundles hardcode custom icon masks to `/svg/custom-icons/*`, which breaks
+// on GitHub Pages project subpaths. Rewrite those to `./svg/custom-icons/*` at upload
+// time so reports self-heal even if the uploader is on an older template snapshot.
+const patchLegacyCustomIconUrls = (relPath: string, content: Buffer) => {
+    const normalizedPath = relPath.replace(/\\/g, '/');
+    if (!/^assets\/index-.*\.js$/i.test(normalizedPath)) {
+        return content;
+    }
+    const source = content.toString('utf8');
+    const patched = source.replace(/url\(\/svg\/custom-icons\//g, 'url(./svg/custom-icons/');
+    if (patched === source) {
+        return content;
+    }
+    return Buffer.from(patched, 'utf8');
+};
+
 const sendWebUploadStatus = (stage: string, message?: string, progress?: number) => {
     if (win && !win.isDestroyed()) {
         win.webContents.send('web-upload-status', { stage, message, progress });
@@ -3670,7 +3687,8 @@ if (!gotTheLock) {
                 const rootIndexBuffer = getWebRootIndexBuffer(templateDir);
                 const rootFiles = collectFiles(templateDir);
                 for (const file of rootFiles) {
-                    const content = fs.readFileSync(file.absPath);
+                    const rawContent = fs.readFileSync(file.absPath);
+                    const content = patchLegacyCustomIconUrls(file.relPath, rawContent);
                     queueFile(withPagesPath(pagesPath, file.relPath), content);
                 }
                 if (rootIndexBuffer) {
@@ -4093,7 +4111,8 @@ if (!gotTheLock) {
                 const rootFiles = collectFiles(templateDir);
                 for (const file of rootFiles) {
                     const repoPath = file.relPath;
-                    const content = fs.readFileSync(file.absPath);
+                    const rawContent = fs.readFileSync(file.absPath);
+                    const content = patchLegacyCustomIconUrls(file.relPath, rawContent);
                     queueFile(withPagesPath(pagesPath, repoPath), content);
                 }
                 if (rootIndexBuffer) {

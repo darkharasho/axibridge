@@ -1,21 +1,26 @@
+import { resolvePublicAssetPath } from './resolvePublicAssetPath';
+
 type Gw2SigilIconProps = {
     className?: string;
 };
 
-export const Gw2SigilIcon = ({ className = '' }: Gw2SigilIconProps) => (
-    <span
-        aria-hidden="true"
-        className={`inline-block shrink-0 ${className}`.trim()}
-        style={{
-            backgroundColor: 'currentColor',
-            maskImage: 'url(/svg/custom-icons/gw2_sigil.svg)',
-            WebkitMaskImage: 'url(/svg/custom-icons/gw2_sigil.svg)',
-            maskRepeat: 'no-repeat',
-            WebkitMaskRepeat: 'no-repeat',
-            maskPosition: 'center',
-            WebkitMaskPosition: 'center',
-            maskSize: 'contain',
-            WebkitMaskSize: 'contain'
-        }}
-    />
-);
+export const Gw2SigilIcon = ({ className = '' }: Gw2SigilIconProps) => {
+    const iconPath = resolvePublicAssetPath('svg/custom-icons/gw2_sigil.svg');
+    return (
+        <span
+            aria-hidden="true"
+            className={`inline-block shrink-0 ${className}`.trim()}
+            style={{
+                backgroundColor: 'currentColor',
+                maskImage: `url(${iconPath})`,
+                WebkitMaskImage: `url(${iconPath})`,
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                WebkitMaskPosition: 'center',
+                maskSize: 'contain',
+                WebkitMaskSize: 'contain'
+            }}
+        />
+    );
+};
