@@ -46,6 +46,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         disruptionMethod,
         statsViewSettings,
         precomputedStats,
+        computedStats,
+        computedSkillUsageData,
         setStatsViewSettings,
         uiTheme,
         handleWebUpload,
@@ -307,6 +309,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             disruptionMethod={disruptionMethod}
                             statsViewSettings={statsViewSettings}
                             precomputedStats={precomputedStats || undefined}
+                            aggregationResult={{ stats: computedStats, skillUsageData: computedSkillUsageData }}
                             onStatsViewSettingsChange={(next) => {
                                 setStatsViewSettings(next);
                                 window.electronAPI?.saveSettings?.({ statsViewSettings: next });

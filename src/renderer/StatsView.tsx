@@ -61,6 +61,10 @@ interface StatsViewProps {
     dashboardTitle?: string;
     uiTheme?: 'classic' | 'modern' | 'crt' | 'matte';
     canShareDiscord?: boolean;
+    aggregationResult?: {
+        stats: any;
+        skillUsageData: SkillUsageSummary;
+    };
 }
 
 const sidebarListClass = 'space-y-1 pr-1 max-h-72 overflow-y-auto';
@@ -90,7 +94,7 @@ const ORDERED_SECTION_IDS = [
     'apm-stats'
 ] as const;
 
-export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, uiTheme, canShareDiscord = true }: StatsViewProps) {
+export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, uiTheme, canShareDiscord = true, aggregationResult: externalAggregationResult }: StatsViewProps) {
     const activeMvpWeights = mvpWeights || DEFAULT_MVP_WEIGHTS;
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
     const activeWebUploadState = webUploadState || DEFAULT_WEB_UPLOAD_STATE;
@@ -109,7 +113,15 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const devMockAvailable = !embedded && import.meta.env.DEV && !!window.electronAPI?.mockWebReport;
 
     // --- Hook Integration ---
-    const { result: aggregationResult } = useStatsAggregationWorker({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod });
+    const useExternalAggregation = !!externalAggregationResult;
+    const { result: internalAggregationResult } = useStatsAggregationWorker({
+        logs: useExternalAggregation ? [] : logs,
+        precomputedStats: useExternalAggregation ? undefined : precomputedStats,
+        mvpWeights,
+        statsViewSettings,
+        disruptionMethod
+    });
+    const aggregationResult = externalAggregationResult || internalAggregationResult;
     const { stats, skillUsageData: computedSkillUsageData } = aggregationResult;
 
     const safeStats = useMemo(() => {

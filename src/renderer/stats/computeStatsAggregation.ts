@@ -58,12 +58,6 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
     const validLogs = (() => {
         const filtered = logs.filter(l => l.details && l.details.players && l.details.players.length > 0);
-        console.log('[useStatsAggregation] Filtering logs:', {
-            total: logs.length,
-            passed: filtered.length,
-            statuses: logs.map(l => l.status),
-            hasDetails: logs.map(l => !!l.details)
-        });
         return filtered;
     })();
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
@@ -371,8 +365,6 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         };
         const hasMitigationTotals = (totals: DamageMitigationTotals) => Object.values(totals).some((value) => value > 0);
 
-        console.log('[useStatsAggregation] Starting aggregation loop', { validLogsCount: validLogs.length });
-
         const resolveDamageSkillName = (skillId: number, skillMap?: Record<string, any>, buffMap?: Record<string, any>) => {
             const skillKey = `s${skillId}`;
             if (skillMap?.[skillKey]?.name) return skillMap[skillKey].name;
@@ -440,11 +432,6 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             const details = log.details;
             if (!details) return;
             const players = details.players as unknown as Player[];
-            console.log(`[useStatsAggregation] Processing log ${logIndex}:`, {
-                playerCount: players?.length,
-                hasTargets: !!details.targets,
-                firstPlayer: players?.[0] ? { account: players[0].account, notInSquad: players[0].notInSquad } : 'none'
-            });
             const targets = details.targets || [];
             const damageSkillMap = details.skillMap || {};
             const damageBuffMap = details.buffMap || {};

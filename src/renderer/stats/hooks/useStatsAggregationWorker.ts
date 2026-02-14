@@ -24,7 +24,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const [workerFailed, setWorkerFailed] = useState(false);
     const streamTimerRef = useRef<number | null>(null);
     const workerLogLimit = 8;
-    const shouldUseWorker = logs.length <= workerLogLimit;
+    const shouldUseWorker = logs.length > workerLogLimit;
     const aggregationSettingsKeyRef = useRef<string>('');
     const aggregationSettingsRef = useRef<IStatsViewSettings | undefined>(undefined);
 
