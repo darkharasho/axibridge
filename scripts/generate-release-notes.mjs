@@ -125,6 +125,9 @@ const prompt = [
     `## ⚠️ Breaking Changes`,
     `If a section has nothing, write "None."`,
     `Aim for 2-5 bullets per section. Avoid repeating the same idea or listing raw commit hashes.`,
+    `Keep wording varied across sections: don't reuse the same opener pattern (e.g. "Added...", "Improved...", "Fixed...") for every bullet.`,
+    `Do not repeat the same sentence structure or adjective phrasing between sections.`,
+    `Prefer concrete user impact language over generic phrases.`,
     `If something is unclear, be cautious and brief.`,
     '',
     `Commit summary since ${lastTag || 'project start'}:`,
@@ -143,7 +146,7 @@ const body = {
         {
             role: 'system',
             content: [
-                { type: 'input_text', text: 'You generate polished release notes for end users.' }
+                { type: 'input_text', text: 'You generate polished release notes for end users. Keep language concise and non-repetitive across sections.' }
             ]
         },
         {
