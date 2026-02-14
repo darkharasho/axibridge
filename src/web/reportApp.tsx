@@ -31,6 +31,7 @@ import {
     ArrowLeft,
     ArrowUp,
     ArrowBigUp,
+    FileText,
     ListTree,
     Keyboard,
     ChevronDown
@@ -222,6 +223,7 @@ export function ReportApp() {
     const [activeGroup, setActiveGroup] = useState('overview');
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
         overview: true,
+        roster: false,
         offense: false,
         defense: false,
         other: false
@@ -552,6 +554,16 @@ export function ReportApp() {
                 { id: 'squad-composition', label: 'Squad Composition', icon: Users },
                 { id: 'timeline', label: 'Squad vs Enemy Size', icon: Users },
                 { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon }
+            ]
+        },
+        {
+            id: 'roster',
+            label: 'Roster Intel',
+            icon: FileText,
+            sectionIds: ['attendance-ledger', 'squad-comp-fight'],
+            items: [
+                { id: 'attendance-ledger', label: 'Attendance', icon: FileText },
+                { id: 'squad-comp-fight', label: 'Squad Comp', icon: Users }
             ]
         },
         {

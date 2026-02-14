@@ -2562,6 +2562,128 @@ body.theme-matte .proof-of-work-content pre code {
     padding: 0 !important;
 }
 
+/* Squad Comp By Fight theme variants */
+.squad-comp-fight-nav-item {
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.theme-classic .stats-view .squad-comp-player-tile,
+body.web-report.theme-classic .stats-view .squad-comp-player-tile {
+    background-image: linear-gradient(180deg, rgba(16, 185, 129, 0.34), rgba(5, 150, 105, 0.24));
+    border-color: rgba(110, 231, 183, 0.34);
+}
+
+body.theme-modern .stats-view .squad-comp-board,
+body.web-report.theme-modern .stats-view .squad-comp-board {
+    background-image: none !important;
+    background-color: rgba(18, 25, 35, 0.92) !important;
+}
+
+body.theme-modern .stats-view .squad-comp-party-row,
+body.web-report.theme-modern .stats-view .squad-comp-party-row {
+    background-color: rgba(22, 30, 42, 0.86) !important;
+    border-color: rgba(143, 214, 234, 0.2) !important;
+}
+
+body.theme-modern .stats-view .squad-comp-party-badge,
+body.web-report.theme-modern .stats-view .squad-comp-party-badge {
+    background-color: rgba(10, 16, 25, 0.95) !important;
+    border-color: rgba(143, 214, 234, 0.2) !important;
+}
+
+body.theme-modern .stats-view .squad-comp-player-tile,
+body.web-report.theme-modern .stats-view .squad-comp-player-tile {
+    background-image: none !important;
+    background-color: rgba(23, 52, 50, 0.8) !important;
+    border-color: rgba(94, 234, 212, 0.28) !important;
+}
+
+body.theme-modern .stats-view .squad-comp-player-account,
+body.web-report.theme-modern .stats-view .squad-comp-player-account {
+    color: #d7f7ef !important;
+}
+
+body.theme-modern .stats-view .squad-comp-player-character,
+body.web-report.theme-modern .stats-view .squad-comp-player-character {
+    color: rgba(192, 248, 232, 0.78) !important;
+}
+
+body.theme-crt .stats-view .squad-comp-board,
+body.web-report.theme-crt .stats-view .squad-comp-board {
+    background-image: linear-gradient(180deg, rgba(8, 24, 14, 0.9), rgba(4, 12, 8, 0.95)) !important;
+    border-color: rgba(74, 222, 128, 0.25) !important;
+}
+
+body.theme-crt .stats-view .squad-comp-party-row,
+body.web-report.theme-crt .stats-view .squad-comp-party-row {
+    background-color: rgba(6, 20, 10, 0.85) !important;
+    border-color: rgba(74, 222, 128, 0.24) !important;
+}
+
+body.theme-crt .stats-view .squad-comp-party-badge,
+body.web-report.theme-crt .stats-view .squad-comp-party-badge {
+    background-color: rgba(3, 10, 6, 0.92) !important;
+    border-color: rgba(74, 222, 128, 0.24) !important;
+}
+
+body.theme-crt .stats-view .squad-comp-player-tile,
+body.web-report.theme-crt .stats-view .squad-comp-player-tile {
+    background-image: linear-gradient(180deg, rgba(22, 163, 74, 0.28), rgba(22, 101, 52, 0.22)) !important;
+    border-color: rgba(74, 222, 128, 0.3) !important;
+}
+
+body.theme-crt .stats-view .squad-comp-player-account,
+body.web-report.theme-crt .stats-view .squad-comp-player-account {
+    color: #9af9b8 !important;
+    text-shadow: 0 0 4px rgba(34, 197, 94, 0.35);
+}
+
+body.theme-crt .stats-view .squad-comp-player-character,
+body.web-report.theme-crt .stats-view .squad-comp-player-character {
+    color: rgba(161, 250, 195, 0.8) !important;
+}
+
+body.theme-matte .stats-view .squad-comp-board,
+body.web-report.theme-matte .stats-view .squad-comp-board {
+    background-image: none !important;
+    background-color: rgba(33, 37, 40, 0.88) !important;
+    box-shadow:
+        inset 3px 3px 7px rgba(0, 0, 0, 0.45),
+        inset -2px -2px 5px var(--matte-light) !important;
+}
+
+body.theme-matte .stats-view .squad-comp-party-row,
+body.web-report.theme-matte .stats-view .squad-comp-party-row {
+    background-color: rgba(36, 40, 43, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    box-shadow:
+        -3px -3px 6px var(--matte-light),
+        4px 4px 8px var(--matte-dark) !important;
+}
+
+body.theme-matte .stats-view .squad-comp-party-badge,
+body.web-report.theme-matte .stats-view .squad-comp-party-badge {
+    background-color: rgba(31, 35, 38, 0.92) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-matte .stats-view .squad-comp-player-tile,
+body.web-report.theme-matte .stats-view .squad-comp-player-tile {
+    background-image: none !important;
+    background-color: rgba(58, 80, 69, 0.44) !important;
+    border-color: rgba(158, 192, 171, 0.32) !important;
+}
+
+body.theme-matte .stats-view .squad-comp-player-account,
+body.web-report.theme-matte .stats-view .squad-comp-player-account {
+    color: #d9e4dc !important;
+}
+
+body.theme-matte .stats-view .squad-comp-player-character,
+body.web-report.theme-matte .stats-view .squad-comp-player-character {
+    color: rgba(196, 208, 199, 0.78) !important;
+}
+
 /* =========================================
    Theme: Matte Slate - Web Reports Modal
    ========================================= */

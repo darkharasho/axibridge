@@ -37,6 +37,8 @@ import { SquadCompositionSection } from './stats/sections/SquadCompositionSectio
 import { TimelineSection } from './stats/sections/TimelineSection';
 import { MapDistributionSection } from './stats/sections/MapDistributionSection';
 import { SpikeDamageSection } from './stats/sections/SpikeDamageSection';
+import { AttendanceSection } from './stats/sections/AttendanceSection';
+import { SquadCompByFightSection } from './stats/sections/SquadCompByFightSection';
 import { StatsHeader } from './stats/ui/StatsHeader';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
@@ -68,6 +70,8 @@ const ORDERED_SECTION_IDS = [
     'top-players',
     'top-skills-outgoing',
     'squad-composition',
+    'attendance-ledger',
+    'squad-comp-fight',
     'timeline',
     'map-distribution',
     'boon-output',
@@ -151,6 +155,8 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
             incomingConditionPlayers: asArray((source as any).incomingConditionPlayers),
             squadClassData: asArray((source as any).squadClassData),
             enemyClassData: asArray((source as any).enemyClassData),
+            attendanceData: asArray((source as any).attendanceData),
+            squadCompByFight: asArray((source as any).squadCompByFight),
             playerSkillBreakdowns: asArray((source as any).playerSkillBreakdowns)
         };
 
@@ -2009,6 +2015,8 @@ type SpikeFight = {
     };
     const squadClassData = Array.isArray(safeStats?.squadClassData) ? safeStats.squadClassData : [];
     const enemyClassData = Array.isArray(safeStats?.enemyClassData) ? safeStats.enemyClassData : [];
+    const attendanceData = Array.isArray(safeStats?.attendanceData) ? safeStats.attendanceData : [];
+    const squadCompByFight = Array.isArray(safeStats?.squadCompByFight) ? safeStats.squadCompByFight : [];
     const sortedSquadClassData = useMemo(() => [...squadClassData].sort(sortByCountDesc), [squadClassData]);
     const sortedEnemyClassData = useMemo(() => [...enemyClassData].sort(sortByCountDesc), [enemyClassData]);
 
@@ -2524,6 +2532,22 @@ type SpikeFight = {
                                 sectionClass={sectionClass}
                             />
 
+                            <AttendanceSection
+                                attendanceRows={attendanceData}
+                                getProfessionIconPath={getProfessionIconPath}
+                                isSectionVisible={isSectionVisible}
+                                isFirstVisibleSection={isFirstVisibleSection}
+                                sectionClass={sectionClass}
+                            />
+
+                            <SquadCompByFightSection
+                                fights={squadCompByFight}
+                                getProfessionIconPath={getProfessionIconPath}
+                                isSectionVisible={isSectionVisible}
+                                isFirstVisibleSection={isFirstVisibleSection}
+                                sectionClass={sectionClass}
+                            />
+
                             <MapDistributionSection
                                 mapData={safeStats.mapData}
                                 isSectionVisible={isSectionVisible}
@@ -2588,6 +2612,22 @@ type SpikeFight = {
                         <SquadCompositionSection
                             sortedSquadClassData={sortedSquadClassData}
                             sortedEnemyClassData={sortedEnemyClassData}
+                            getProfessionIconPath={getProfessionIconPath}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
+
+                        <AttendanceSection
+                            attendanceRows={attendanceData}
+                            getProfessionIconPath={getProfessionIconPath}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />
+
+                        <SquadCompByFightSection
+                            fights={squadCompByFight}
                             getProfessionIconPath={getProfessionIconPath}
                             isSectionVisible={isSectionVisible}
                             isFirstVisibleSection={isFirstVisibleSection}

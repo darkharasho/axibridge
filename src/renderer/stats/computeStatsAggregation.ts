@@ -171,6 +171,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         interface PlayerStats {
             name: string;
             account: string;
+            characterNames: Set<string>;
             downContrib: number;
             cleanses: number;
             strips: number;
@@ -197,6 +198,10 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             professions: Set<string>;
             professionList?: string[];
             professionTimeMs: Record<string, number>;
+            squadActiveMs: number;
+            firstSeenFightTs: number;
+            lastSeenFightTs: number;
+            lastSeenFightDurationMs: number;
             isCommander: boolean;
             damage: number;
             dps: number;
@@ -578,15 +583,16 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
                 if (!playerStats.has(key)) {
                     playerStats.set(key, {
-                        name, account: key, downContrib: 0, cleanses: 0, strips: 0, stab: 0, healing: 0, barrier: 0, cc: 0, logsJoined: 0,
+                        name, account: key, characterNames: new Set<string>(), downContrib: 0, cleanses: 0, strips: 0, stab: 0, healing: 0, barrier: 0, cc: 0, logsJoined: 0,
                         totalDist: 0, distCount: 0, dodges: 0, downs: 0, deaths: 0, totalFightMs: 0,
                         offenseTotals: {}, offenseRateWeights: {}, defenseActiveMs: 0, defenseTotals: {}, supportActiveMs: 0, supportTotals: {},
                         healingActiveMs: 0, healingTotals: {}, profession: p.profession || 'Unknown', professions: new Set(),
-                        professionTimeMs: {}, isCommander: false, damage: 0, dps: 0, revives: 0, outgoingConditions: {}, incomingConditions: {}
+                        professionTimeMs: {}, squadActiveMs: 0, firstSeenFightTs: 0, lastSeenFightTs: 0, lastSeenFightDurationMs: 0, isCommander: false, damage: 0, dps: 0, revives: 0, outgoingConditions: {}, incomingConditions: {}
                     });
                 }
                 const s = playerStats.get(key)!;
                 if (p.hasCommanderTag) s.isCommander = true;
+                if (name && name !== 'Unknown') s.characterNames.add(String(name));
                 if (p.profession && p.profession !== 'Unknown') {
                     s.profession = p.profession;
                     s.professions.add(p.profession);
@@ -614,6 +620,20 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 }
                 if (details.durationMS) s.totalFightMs += details.durationMS;
                 const activeMs = Array.isArray(p.activeTimes) && typeof p.activeTimes[0] === 'number' ? p.activeTimes[0] : details.durationMS || 0;
+                s.squadActiveMs += activeMs;
+                const fightTs = resolveFightTimestamp(details, log);
+                const fightDurationMs = Number(details?.durationMS || 0);
+                if (fightTs > 0) {
+                    if (s.firstSeenFightTs <= 0 || fightTs < s.firstSeenFightTs) {
+                        s.firstSeenFightTs = fightTs;
+                    }
+                    if (s.lastSeenFightTs <= 0 || fightTs > s.lastSeenFightTs) {
+                        s.lastSeenFightTs = fightTs;
+                        s.lastSeenFightDurationMs = fightDurationMs;
+                    } else if (fightTs === s.lastSeenFightTs && fightDurationMs > s.lastSeenFightDurationMs) {
+                        s.lastSeenFightDurationMs = fightDurationMs;
+                    }
+                }
                 s.defenseActiveMs += activeMs;
                 s.supportActiveMs += activeMs;
                 s.healingActiveMs += activeMs;
@@ -1915,6 +1935,90 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             })
             .filter(Boolean);
 
+        const attendanceData = Array.from(playerStats.values())
+            .map((entry) => {
+                const classTimes = Object.entries(entry.professionTimeMs || {})
+                    .map(([profession, timeMs]) => ({ profession, timeMs: Number(timeMs || 0) }))
+                    .filter((row) => row.profession && row.profession !== 'Unknown' && row.timeMs > 0)
+                    .sort((a, b) => {
+                        const delta = b.timeMs - a.timeMs;
+                        if (delta !== 0) return delta;
+                        return a.profession.localeCompare(b.profession);
+                    });
+                return {
+                    account: entry.account || 'Unknown',
+                    characterNames: Array.from(entry.characterNames || []).filter(Boolean).sort((a, b) => a.localeCompare(b)),
+                    classTimes,
+                    combatTimeMs: Number(entry.squadActiveMs || entry.totalFightMs || 0),
+                    squadTimeMs: (() => {
+                        const firstTs = Number(entry.firstSeenFightTs || 0);
+                        const lastTs = Number(entry.lastSeenFightTs || 0);
+                        const lastDurationMs = Math.max(0, Number(entry.lastSeenFightDurationMs || 0));
+                        if (firstTs > 0 && lastTs > 0) {
+                            return Math.max(0, (lastTs + lastDurationMs) - firstTs);
+                        }
+                        return Number(entry.squadActiveMs || entry.totalFightMs || 0);
+                    })()
+                };
+            })
+            .filter((row) => row.account && row.account !== 'Unknown')
+            .sort((a, b) => {
+                const delta = b.squadTimeMs - a.squadTimeMs;
+                if (delta !== 0) return delta;
+                return String(a.account).localeCompare(String(b.account));
+            });
+
+        const squadCompByFight = validLogs
+            .map((log) => log)
+            .sort((a, b) => resolveFightTimestamp(a.details, a) - resolveFightTimestamp(b.details, b))
+            .map((log, idx) => {
+                const details = log?.details;
+                const players = Array.isArray(details?.players) ? details.players.filter((player: any) => !player?.notInSquad) : [];
+                const parties = new Map<number, {
+                    party: number;
+                    players: Array<{ account: string; characterName: string; profession: string; isCommander?: boolean }>;
+                    classCounts: Record<string, number>;
+                }>();
+                players.forEach((player: any) => {
+                    const partyRaw = Number(player?.group);
+                    const party = Number.isFinite(partyRaw) && partyRaw > 0 ? partyRaw : 0;
+                    if (!parties.has(party)) {
+                        parties.set(party, { party, players: [], classCounts: {} });
+                    }
+                    const profession = resolveProfessionLabel(player?.profession || player?.name || 'Unknown');
+                    const account = String(player?.account || 'Unknown');
+                    const characterName = String(player?.name || player?.character_name || '');
+                    const isCommander = Boolean(player?.hasCommanderTag);
+                    const row = parties.get(party)!;
+                    row.players.push({ account, characterName, profession, isCommander });
+                    row.classCounts[profession] = (row.classCounts[profession] || 0) + 1;
+                });
+                const partyRows = Array.from(parties.values())
+                    .map((row) => ({
+                        ...row,
+                        players: row.players.sort((a, b) => {
+                            const commanderDelta = Number(Boolean(b.isCommander)) - Number(Boolean(a.isCommander));
+                            if (commanderDelta !== 0) return commanderDelta;
+                            const profDelta = String(a.profession).localeCompare(String(b.profession));
+                            if (profDelta !== 0) return profDelta;
+                            return String(a.account).localeCompare(String(b.account));
+                        })
+                    }))
+                    .sort((a, b) => {
+                        if (a.party === 0 && b.party !== 0) return 1;
+                        if (b.party === 0 && a.party !== 0) return -1;
+                        return a.party - b.party;
+                    });
+                return {
+                    id: String(log?.filePath || log?.id || `fight-${idx + 1}`),
+                    label: `F${idx + 1}`,
+                    timestamp: resolveFightTimestamp(details, log),
+                    mapName: resolveMapName(details, log),
+                    duration: formatDurationMs(Number(details?.durationMS || 0)),
+                    parties: partyRows
+                };
+            });
+
         const getHighestSingleHit = (player: any, details: any) => {
             const skillMap = details?.skillMap || {};
             const buffMap = details?.buffMap || {};
@@ -2917,6 +3021,8 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             squadClassData,
             enemyClassData,
             fightBreakdown,
+            attendanceData,
+            squadCompByFight,
             spikeDamage,
             incomingStrikeDamage,
             specialTables,

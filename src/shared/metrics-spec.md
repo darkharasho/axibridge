@@ -810,6 +810,118 @@ and aggregated across logs.
 
 Implementation: `src/renderer/stats/computeStatsAggregation.ts`.
 
+## Attendance Ledger
+
+Attendance is computed from squad-player participation across all valid logs.
+
+### Inputs Used
+
+- `details.players[*]` (squad membership, account/name/profession/group)
+- `players[*].activeTimes[0]`
+- `details.durationMS` (fallback when active time is missing)
+
+### Player Inclusion
+
+- Include only squad players: `!player.notInSquad`.
+- Player key for aggregation is:
+  - `player.account` when present and not `"Unknown"`
+  - otherwise `player.name`
+
+### Time Aggregation
+
+Per squad player entry:
+
+- `activeMs = players[*].activeTimes[0]` when numeric, else `details.durationMS || 0`
+- `combatTimeMs[player] += activeMs`
+- if profession is known:
+  - `professionTimeMs[player][profession] += activeMs`
+
+Also track appearance window per player:
+
+- `firstSeenFightTs`: earliest fight timestamp where player appears in squad
+- `lastSeenFightTs`: latest fight timestamp where player appears in squad
+- `lastSeenFightDurationMs`: duration of that latest fight
+
+Final elapsed squad time:
+
+- `squadTimeMs = max(0, (lastSeenFightTs + lastSeenFightDurationMs) - firstSeenFightTs)`
+- fallback to `combatTimeMs` when timestamps are unavailable
+
+Character names shown in attendance are the unique set of `player.name` values
+seen for that player key.
+
+### Row Shape / Sorting
+
+For each aggregated player:
+
+- `account`: aggregation key
+- `characterNames`: unique character names, sorted ascending
+- `classTimes`: entries from `professionTimeMs`, filtered to
+  - `profession !== "Unknown"`
+  - `timeMs > 0`
+- `combatTimeMs`: total active combat time
+- `squadTimeMs`: elapsed time between first seen fight start and last seen fight end
+
+Rows are sorted by:
+1. `squadTimeMs` descending
+2. `account` ascending
+
+Rows with `account` missing/`"Unknown"` are excluded from final output.
+
+Implementation: `src/renderer/stats/computeStatsAggregation.ts` (`attendanceData`).
+
+## Squad Comp By Fight
+
+This section provides per-fight party-line roster composition.
+
+### Inputs Used
+
+- `details.players[*]` (squad membership, group, account/name/profession)
+- `details.durationMS`
+- fight metadata/time fields used by `resolveFightTimestamp` and `resolveMapName`
+
+### Fight Ordering
+
+Fights are sorted by resolved fight timestamp ascending:
+
+- `uploadTime`
+- fallback: `timeStartStd`, `timeStart`, `timeEndStd`, `timeEnd`
+
+### Party Assignment
+
+For each squad player (`!player.notInSquad`) in a fight:
+
+- `party = Number(player.group)` when finite and `> 0`, else `0` (`Unassigned`)
+- profession label is normalized via `resolveProfessionLabel(...)`
+
+Per party:
+
+- append player row `{ account, characterName, profession }`
+- increment `classCounts[profession] += 1`
+
+### Party / Player Sorting
+
+Within each party:
+
+- players are sorted by `profession`, then `account` ascending
+
+Party rows are sorted by:
+1. party number ascending for `1..n`
+2. party `0` (`Unassigned`) last
+
+### Output Shape
+
+Per fight:
+
+- `id`: file/log id fallback chain
+- `label`: `F{index+1}` in timestamp-sorted order
+- `timestamp`: resolved fight timestamp
+- `mapName`: resolved map name
+- `duration`: `formatDurationMs(details.durationMS)`
+- `parties`: sorted party rows with class counts and account list
+
+Implementation: `src/renderer/stats/computeStatsAggregation.ts` (`squadCompByFight`).
+
 ## Top Stats / MVP
 
 Top stats are computed by ranking the leaderboards for key metrics (down
