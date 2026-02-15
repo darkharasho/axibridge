@@ -43,7 +43,6 @@ import { FightCompSection } from './stats/sections/FightCompSection';
 import { StatsHeader } from './stats/ui/StatsHeader';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
-import { StatsMobileNav } from './stats/ui/StatsMobileNav';
 import { prefetchIconUrls, renderProfessionIcon as renderProfessionIconShared } from './stats/ui/StatsViewShared';
 
 interface StatsViewProps {
@@ -255,14 +254,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     };
 
     const {
-        mobileNavOpen,
-        setMobileNavOpen,
-        activeNavId,
         scrollContainerRef,
-        tocGroups,
-        tocItems,
-        scrollToSection,
-        stepSection
     } = useStatsNavigation(embedded);
 
     const {
@@ -3081,18 +3073,6 @@ type SpikeFight = {
                 {!embedded && <div className="h-24" aria-hidden="true" />}
             </div>
             </div>
-
-            <StatsMobileNav
-                embedded={embedded}
-                uiTheme={uiTheme}
-                mobileNavOpen={mobileNavOpen}
-                setMobileNavOpen={setMobileNavOpen}
-                tocGroups={tocGroups}
-                tocItems={tocItems}
-                activeNavId={activeNavId}
-                scrollToSection={scrollToSection}
-                stepSection={stepSection}
-            />
         </div>
     );
 }

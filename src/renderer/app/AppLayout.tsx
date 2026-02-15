@@ -100,7 +100,20 @@ export function AppLayout({ ctx }: { ctx: any }) {
     const [statsOpenGroup, setStatsOpenGroup] = useState('overview');
     const [isStatsNavExpanded, setIsStatsNavExpanded] = useState(false);
     const [isStatsNavSubnavReady, setIsStatsNavSubnavReady] = useState(false);
+    const [isStatsNavClosing, setIsStatsNavClosing] = useState(false);
+    const [isStatsNavContentClosing, setIsStatsNavContentClosing] = useState(false);
+    const [statsClosingGroupId, setStatsClosingGroupId] = useState<string | null>(null);
+    const [statsClosingContentGroupId, setStatsClosingContentGroupId] = useState<string | null>(null);
     const statsNavExpandDelayRef = useRef<number | null>(null);
+    const statsNavCollapseDelayRef = useRef<number | null>(null);
+    const statsGroupCloseDelayRef = useRef<number | null>(null);
+    const statsNavContentCloseDelayRef = useRef<number | null>(null);
+    const statsGroupContentCloseDelayRef = useRef<number | null>(null);
+    const STATS_NAV_EXPAND_DELAY_MS = 180;
+    const STATS_NAV_CLOSE_HOLD_MS = 1250;
+    const STATS_NAV_CONTENT_HOLD_MS = 1450;
+    const STATS_GROUP_SWITCH_CLOSE_MS = 320;
+    const STATS_GROUP_SWITCH_CONTENT_HOLD_MS = 520;
 
     useEffect(() => {
         setActiveNavView(view);
@@ -116,10 +129,46 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 window.clearTimeout(statsNavExpandDelayRef.current);
                 statsNavExpandDelayRef.current = null;
             }
+            if (statsNavCollapseDelayRef.current !== null) {
+                window.clearTimeout(statsNavCollapseDelayRef.current);
+                statsNavCollapseDelayRef.current = null;
+            }
+            if (statsGroupCloseDelayRef.current !== null) {
+                window.clearTimeout(statsGroupCloseDelayRef.current);
+                statsGroupCloseDelayRef.current = null;
+            }
+            if (statsNavContentCloseDelayRef.current !== null) {
+                window.clearTimeout(statsNavContentCloseDelayRef.current);
+                statsNavContentCloseDelayRef.current = null;
+            }
+            if (statsGroupContentCloseDelayRef.current !== null) {
+                window.clearTimeout(statsGroupContentCloseDelayRef.current);
+                statsGroupContentCloseDelayRef.current = null;
+            }
         };
     }, []);
 
     const handleStatsNavMouseEnter = useCallback(() => {
+        if (statsNavCollapseDelayRef.current !== null) {
+            window.clearTimeout(statsNavCollapseDelayRef.current);
+            statsNavCollapseDelayRef.current = null;
+        }
+        if (statsGroupCloseDelayRef.current !== null) {
+            window.clearTimeout(statsGroupCloseDelayRef.current);
+            statsGroupCloseDelayRef.current = null;
+        }
+        if (statsNavContentCloseDelayRef.current !== null) {
+            window.clearTimeout(statsNavContentCloseDelayRef.current);
+            statsNavContentCloseDelayRef.current = null;
+        }
+        if (statsGroupContentCloseDelayRef.current !== null) {
+            window.clearTimeout(statsGroupContentCloseDelayRef.current);
+            statsGroupContentCloseDelayRef.current = null;
+        }
+        setStatsClosingGroupId(null);
+        setStatsClosingContentGroupId(null);
+        setIsStatsNavClosing(false);
+        setIsStatsNavContentClosing(false);
         setIsStatsNavExpanded(true);
         setIsStatsNavSubnavReady(false);
         if (statsNavExpandDelayRef.current !== null) {
@@ -129,7 +178,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         statsNavExpandDelayRef.current = window.setTimeout(() => {
             setIsStatsNavSubnavReady(true);
             statsNavExpandDelayRef.current = null;
-        }, 180);
+        }, STATS_NAV_EXPAND_DELAY_MS);
     }, []);
 
     const handleStatsNavMouseLeave = useCallback(() => {
@@ -137,9 +186,34 @@ export function AppLayout({ ctx }: { ctx: any }) {
             window.clearTimeout(statsNavExpandDelayRef.current);
             statsNavExpandDelayRef.current = null;
         }
+        if (!isStatsNavSubnavReady) {
+            setIsStatsNavClosing(false);
+            setIsStatsNavContentClosing(false);
+            setIsStatsNavExpanded(false);
+            setIsStatsNavSubnavReady(false);
+            return;
+        }
         setIsStatsNavSubnavReady(false);
-        setIsStatsNavExpanded(false);
-    }, []);
+        setIsStatsNavClosing(true);
+        setIsStatsNavContentClosing(true);
+        if (statsNavCollapseDelayRef.current !== null) {
+            window.clearTimeout(statsNavCollapseDelayRef.current);
+            statsNavCollapseDelayRef.current = null;
+        }
+        statsNavCollapseDelayRef.current = window.setTimeout(() => {
+            setIsStatsNavClosing(false);
+            setIsStatsNavExpanded(false);
+            statsNavCollapseDelayRef.current = null;
+        }, STATS_NAV_CLOSE_HOLD_MS);
+        if (statsNavContentCloseDelayRef.current !== null) {
+            window.clearTimeout(statsNavContentCloseDelayRef.current);
+            statsNavContentCloseDelayRef.current = null;
+        }
+        statsNavContentCloseDelayRef.current = window.setTimeout(() => {
+            setIsStatsNavContentClosing(false);
+            statsNavContentCloseDelayRef.current = null;
+        }, STATS_NAV_CONTENT_HOLD_MS);
+    }, [isStatsNavSubnavReady]);
 
     const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'settings') => {
         setActiveNavView(nextView);
@@ -199,11 +273,31 @@ export function AppLayout({ ctx }: { ctx: any }) {
         run();
     }, []);
     const handleStatsNavItemClick = useCallback((groupId: string, itemId: string) => {
+        if (groupId !== statsOpenGroup) {
+            if (statsGroupCloseDelayRef.current !== null) {
+                window.clearTimeout(statsGroupCloseDelayRef.current);
+                statsGroupCloseDelayRef.current = null;
+            }
+            if (statsGroupContentCloseDelayRef.current !== null) {
+                window.clearTimeout(statsGroupContentCloseDelayRef.current);
+                statsGroupContentCloseDelayRef.current = null;
+            }
+            setStatsClosingGroupId(statsOpenGroup);
+            setStatsClosingContentGroupId(statsOpenGroup);
+            statsGroupCloseDelayRef.current = window.setTimeout(() => {
+                setStatsClosingGroupId(null);
+                statsGroupCloseDelayRef.current = null;
+            }, STATS_GROUP_SWITCH_CLOSE_MS);
+            statsGroupContentCloseDelayRef.current = window.setTimeout(() => {
+                setStatsClosingContentGroupId(null);
+                statsGroupContentCloseDelayRef.current = null;
+            }, STATS_GROUP_SWITCH_CONTENT_HOLD_MS);
+        }
         setStatsOpenGroup(groupId);
         setStatsActiveGroup(groupId);
         setStatsActiveNavId(itemId);
         requestAnimationFrame(() => scrollToStatsSection(itemId));
-    }, [scrollToStatsSection]);
+    }, [scrollToStatsSection, statsOpenGroup]);
 
     return (
         <div className={shellClassName}>
@@ -402,43 +496,53 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                         {STATS_TOC_GROUPS.map((group) => {
                                             const GroupIcon = group.icon as any;
                                             const isActiveGroup = group.id === activeStatsGroupDef?.id;
-                                            const isExpanded = isStatsNavSubnavReady && statsOpenGroup === group.id;
+                                            const isCurrentGroup = statsOpenGroup === group.id;
+                                            const isOpenGroup = isStatsNavSubnavReady && isCurrentGroup;
+                                            const isNavClosingGroup = isStatsNavClosing && isCurrentGroup;
+                                            const isSwitchClosingGroup = statsClosingGroupId === group.id;
+                                            const isNavContentClosingGroup = isStatsNavContentClosing && isCurrentGroup;
+                                            const isSwitchContentClosingGroup = statsClosingContentGroupId === group.id;
+                                            const isClosingPhase = isNavClosingGroup && !isOpenGroup;
+                                            const showCompactChildren = isCurrentGroup && (!isStatsNavExpanded || !isStatsNavSubnavReady);
+                                            const isExpanded = isOpenGroup || isNavClosingGroup || isSwitchClosingGroup || showCompactChildren;
+                                            const showClosingContent = isOpenGroup || isNavContentClosingGroup || isSwitchContentClosingGroup || showCompactChildren;
+                                            const isSwitchClosingPhase = isSwitchClosingGroup && !isOpenGroup;
+                                            const disableChildFade = isClosingPhase || isSwitchClosingPhase;
                                             return (
                                                 <div key={group.id} className="rounded-lg border border-white/10 bg-white/[0.04]">
                                                     <button
                                                         type="button"
                                                         onClick={() => {
-                                                            if (isExpanded) return;
+                                                            if (isOpenGroup) return;
                                                             handleStatsNavItemClick(group.id, group.items[0]?.id || 'overview');
                                                         }}
                                                         className={`w-full h-9 flex items-center justify-start gap-0 pl-[21px] pr-[21px] text-left transition-[padding,gap,background-color,color] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/statsnavpanel:gap-2 group-hover/statsnavpanel:pl-3 group-hover/statsnavpanel:pr-3 ${isActiveGroup ? 'bg-white/10 text-white' : 'text-gray-200 hover:bg-white/[0.08]'}`}
                                                     >
                                                         <GroupIcon className={`w-3.5 h-3.5 text-[color:var(--accent)] shrink-0 transition-transform duration-[1050ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isStatsNavExpanded ? 'scale-110' : 'scale-100'}`} />
                                                         <span className={`text-[11px] leading-none font-semibold uppercase tracking-[0.18em] whitespace-nowrap overflow-hidden transition-[opacity,transform,max-width] duration-[1050ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isStatsNavExpanded ? 'opacity-100 translate-x-0 max-w-[160px]' : 'opacity-0 -translate-x-2 max-w-0'}`}>{group.label}</span>
-                                                        <span className={`inline-flex ml-auto overflow-hidden transition-[opacity,transform,max-width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${isStatsNavExpanded ? 'opacity-100 scale-100 max-w-[24px]' : 'opacity-0 scale-75 max-w-0'} ${isExpanded ? 'rotate-0' : '-rotate-90'}`}>
+                                                        <span className={`inline-flex ml-auto overflow-hidden transition-[opacity,transform,max-width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${isStatsNavExpanded ? 'opacity-100 scale-100 max-w-[24px]' : 'opacity-0 scale-75 max-w-0'} ${isOpenGroup || isNavClosingGroup || isSwitchClosingGroup ? 'rotate-0' : '-rotate-90'}`}>
                                                             <ChevronDown className="w-4 h-4 text-gray-300" />
                                                         </span>
                                                     </button>
-                                                    <div className={`${isExpanded ? 'max-h-[560px]' : 'max-h-0'} overflow-hidden transition-[max-height] duration-[1180ms] ease-[cubic-bezier(0.16,1,0.3,1)]`}>
-                                                        <div className={`origin-top pt-1.5 pb-1.5 px-2 space-y-0.5 will-change-[opacity,transform] transition-[opacity,transform] duration-[1020ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${statsSubnavItemsClass} ${isExpanded ? 'opacity-100 translate-y-0 scale-y-100' : 'opacity-0 -translate-y-2 scale-y-95'}`}>
+                                                    <div className={`${isExpanded ? 'max-h-[560px]' : 'max-h-0'} overflow-hidden transition-[max-height] ${isSwitchClosingPhase ? 'duration-[320ms]' : 'duration-[1180ms]'} ease-[cubic-bezier(0.16,1,0.3,1)]`}>
+                                                        <div className={`origin-top pt-1.5 pb-1.5 px-2 space-y-0.5 will-change-[opacity,transform] ${disableChildFade ? '' : (isSwitchClosingPhase ? 'transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]' : 'transition-[opacity,transform] duration-[1020ms] ease-[cubic-bezier(0.16,1,0.3,1)]')} ${statsSubnavItemsClass} ${showClosingContent ? 'opacity-100 translate-y-0 scale-y-100' : (isSwitchClosingPhase ? 'opacity-0 -translate-y-1 scale-y-95' : 'opacity-0 -translate-y-2 scale-y-95')}`}>
                                                             {group.items.map((item, index) => {
                                                                 const ItemIcon = item.icon;
                                                                 const isActiveItem = statsActiveNavId === item.id;
                                                                 const enterDelay = 420 + Math.min(index * 34, 204);
-                                                                const exitDelay = Math.min((group.items.length - index - 1) * 14, 84);
                                                                 return (
                                                                     <div
                                                                         key={item.id}
-                                                                        style={{ transitionDelay: isExpanded ? `${enterDelay}ms` : `${exitDelay}ms` }}
-                                                                        className={`transition-[opacity,transform] duration-[560ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}
+                                                                        style={{ transitionDelay: isOpenGroup ? `${enterDelay}ms` : '0ms' }}
+                                                                        className={`${disableChildFade ? '' : (isSwitchClosingPhase ? 'transition-[opacity,transform] duration-[240ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]' : 'transition-[opacity,transform] duration-[560ms] ease-[cubic-bezier(0.16,1,0.3,1)]')} ${showClosingContent ? 'opacity-100 translate-x-0' : (isSwitchClosingPhase ? 'opacity-0 -translate-x-1' : 'opacity-0 -translate-x-2')}`}
                                                                     >
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleStatsNavItemClick(group.id, item.id)}
-                                                                            className={`stats-nav-entry w-full h-[34px] flex items-center gap-2 text-left rounded-md px-2 transition-colors duration-150 ${isActiveItem ? 'bg-white/10 text-white' : 'text-gray-200 hover:bg-white/[0.08]'}`}
+                                                                            className={`stats-nav-entry w-full h-[34px] flex items-center text-left rounded-md transition-colors duration-150 ${isStatsNavExpanded ? 'justify-start gap-2 px-2' : 'justify-center gap-0 px-2'} ${isActiveItem ? 'bg-white/10 text-white' : 'text-gray-200 hover:bg-white/[0.08]'}`}
                                                                         >
                                                                             <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)] shrink-0" />
-                                                                            <span className="text-xs leading-tight truncate">{item.label}</span>
+                                                                            <span className={`text-xs leading-tight truncate overflow-hidden transition-[opacity,max-width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isStatsNavExpanded ? 'opacity-100 max-w-[140px] translate-x-0' : 'opacity-0 max-w-0 -translate-x-1'}`}>{item.label}</span>
                                                                         </button>
                                                                     </div>
                                                                 );

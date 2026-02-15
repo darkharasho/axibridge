@@ -1926,6 +1926,17 @@ button:focus-visible,
     padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
 }
 
+/* In desktop app mode, expanded stats panes should live below the custom title bar.
+   Keep pane chrome fixed while allowing inner table regions to handle scrolling. */
+body:not(.web-report) .modal-pane {
+    top: 2.5rem;
+    bottom: 0;
+    height: auto;
+    max-height: none;
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
 .modal-pane-enter {
     animation-name: modal-pane-grow;
 }
