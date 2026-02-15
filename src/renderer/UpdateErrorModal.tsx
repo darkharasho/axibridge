@@ -16,7 +16,7 @@ export function UpdateErrorModal({ isOpen, onClose, error }: UpdateErrorModalPro
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                className="app-modal-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
@@ -24,7 +24,7 @@ export function UpdateErrorModal({ isOpen, onClose, error }: UpdateErrorModalPro
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="bg-gradient-to-br from-red-950/90 to-black border border-red-500/20 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+                    className="app-modal-card bg-gradient-to-br from-red-950/90 to-black border border-red-500/20 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-4 border-b border-red-500/10 bg-red-900/10">

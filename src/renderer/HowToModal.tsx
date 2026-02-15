@@ -160,7 +160,7 @@ export function HowToModal({ isOpen, onClose }: HowToModalProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[74] flex items-center justify-center bg-black/70 backdrop-blur-md"
+                className="app-modal-overlay fixed inset-0 z-[74] flex items-center justify-center bg-black/70 backdrop-blur-md"
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
@@ -168,7 +168,7 @@ export function HowToModal({ isOpen, onClose }: HowToModalProps) {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.96, y: 18 }}
                     transition={{ duration: 0.2 }}
-                    className="w-full max-w-6xl mx-4 h-[min(82vh,860px)] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/95 to-blue-950/40 shadow-[0_20px_80px_rgba(0,0,0,0.6)] flex flex-col"
+                    className="app-modal-card w-full max-w-6xl mx-4 h-[min(82vh,860px)] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/95 to-blue-950/40 shadow-[0_20px_80px_rgba(0,0,0,0.6)] flex flex-col"
                 >
                     <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
                         <div className="flex items-center gap-3">

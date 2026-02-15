@@ -2409,14 +2409,14 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             </div>
             {settingsNavOpen && (
                 <div
-                    className={`fixed inset-0 z-50 flex items-center justify-center px-4 ${isModernLayout ? 'lg:hidden' : ''}`}
+                    className={`app-modal-overlay fixed inset-0 z-50 flex items-center justify-center px-4 ${isModernLayout ? 'lg:hidden' : ''}`}
                     onClick={(event) => {
                         if (event.target === event.currentTarget) {
                             setSettingsNavOpen(false);
                         }
                     }}
                 >
-                    <div className="w-full max-w-sm max-h-[85vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col">
+                    <div className="app-modal-card w-full max-w-sm max-h-[85vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col">
                         <div className="flex items-center justify-between mb-3">
                             <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
                             <button
@@ -2457,13 +2457,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             <AnimatePresence>
                 {importModalOpen && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="w-full max-w-3xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl"
+                            className="app-modal-card w-full max-w-3xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -2531,13 +2531,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             <AnimatePresence>
                 {devSettingsOpen && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="w-full max-w-xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl"
+                            className="app-modal-card w-full max-w-xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -2627,13 +2627,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             <AnimatePresence>
                 {githubManageOpen && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="web-reports-modal w-full max-w-3xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6"
+                            className="app-modal-card web-reports-modal w-full max-w-3xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}

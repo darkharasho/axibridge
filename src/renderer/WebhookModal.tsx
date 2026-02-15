@@ -81,7 +81,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
@@ -89,7 +89,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="bg-gradient-to-br from-gray-900 to-gray-950 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+                    className="app-modal-card bg-gradient-to-br from-gray-900 to-gray-950 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">

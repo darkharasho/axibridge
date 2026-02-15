@@ -419,7 +419,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="text-xs font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10 cursor-pointer hover:bg-white/10 transition-colors select-none"
+                            className="app-version-pill text-xs font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10 cursor-pointer hover:bg-white/10 transition-colors select-none"
                             onClick={() => {
                                 if (view === 'settings') {
                                     if (!settingsUpdateCheckRef.current) {

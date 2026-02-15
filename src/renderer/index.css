@@ -3168,6 +3168,10 @@ body.theme-kinetic {
     --text-primary: #24211d;
     --text-secondary: #3f3831;
     --text-muted: #5f554b;
+    --scrollbar-size: 11px;
+    --scrollbar-track: rgba(202, 192, 177, 0.9);
+    --scrollbar-thumb: rgba(120, 106, 89, 0.42);
+    --scrollbar-thumb-hover: rgba(98, 85, 70, 0.56);
     --accent-bg: rgba(96, 86, 74, 0.1);
     --accent-border: rgba(86, 75, 63, 0.2);
     background: var(--bg-base);
@@ -3224,6 +3228,17 @@ body.theme-kinetic .app-shell .text-gray-300 {
 body.theme-kinetic .app-shell .text-gray-400,
 body.theme-kinetic .app-shell .text-gray-500 {
     color: var(--text-muted) !important;
+}
+
+body.theme-kinetic .app-version-pill {
+    color: #2f2a24 !important;
+    border-color: rgba(62, 54, 43, 0.2) !important;
+    background-color: rgba(226, 218, 206, 0.88) !important;
+}
+
+body.theme-kinetic .app-version-pill:hover {
+    color: #24211d !important;
+    background-color: rgba(232, 225, 214, 0.98) !important;
 }
 
 body.theme-kinetic .app-shell .shadow-2xl {
@@ -3372,6 +3387,119 @@ body.web-report.theme-kinetic .text-gray-300 {
 body.web-report.theme-kinetic .text-gray-400,
 body.web-report.theme-kinetic .text-gray-500 {
     color: var(--text-muted) !important;
+}
+
+body.theme-kinetic .app-modal-overlay,
+body.theme-kinetic .modal-backdrop {
+    background-color: rgba(71, 62, 50, 0.34) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body.theme-kinetic .app-modal-card,
+body.theme-kinetic .modal-pane,
+body.theme-kinetic .file-picker-card,
+body.theme-kinetic .proof-of-work-modal,
+body.theme-kinetic .web-reports-modal,
+body.theme-kinetic .whats-new-modal {
+    background: var(--bg-elevated) !important;
+    background-image: none !important;
+    border-color: var(--border-default) !important;
+    box-shadow: 0 12px 30px rgba(49, 40, 30, 0.14) !important;
+}
+
+body.theme-kinetic .file-picker-panel,
+body.theme-kinetic .file-picker-popover,
+body.theme-kinetic .proof-of-work-sidebar,
+body.theme-kinetic .proof-of-work-content,
+body.theme-kinetic .proof-of-work-search-results,
+body.theme-kinetic .whats-new-modal__body {
+    background: var(--bg-card) !important;
+    background-image: none !important;
+    border-color: var(--border-default) !important;
+}
+
+body.theme-kinetic .app-modal-card .bg-black\/20,
+body.theme-kinetic .app-modal-card .bg-black\/30,
+body.theme-kinetic .app-modal-card .bg-black\/40,
+body.theme-kinetic .app-modal-card .bg-white\/5,
+body.theme-kinetic .app-modal-card .bg-white\/10 {
+    background-color: var(--bg-card) !important;
+    background-image: none !important;
+}
+
+body.theme-kinetic .app-modal-card .text-white {
+    color: var(--text-primary) !important;
+}
+
+body.theme-kinetic .app-modal-card .text-gray-200,
+body.theme-kinetic .app-modal-card .text-gray-300 {
+    color: var(--text-secondary) !important;
+}
+
+body.theme-kinetic .app-modal-card .text-gray-400,
+body.theme-kinetic .app-modal-card .text-gray-500 {
+    color: var(--text-muted) !important;
+}
+
+body.theme-kinetic .app-modal-card input,
+body.theme-kinetic .app-modal-card textarea,
+body.theme-kinetic .app-modal-card select {
+    background: var(--bg-input) !important;
+    border-color: var(--border-default) !important;
+    color: var(--text-primary) !important;
+}
+
+body.theme-kinetic .app-modal-card input::placeholder,
+body.theme-kinetic .app-modal-card textarea::placeholder {
+    color: var(--text-muted) !important;
+}
+
+body.theme-kinetic .proof-of-work-search {
+    background: var(--bg-input) !important;
+    border-color: var(--border-default) !important;
+    color: var(--text-primary) !important;
+}
+
+body.theme-kinetic .proof-of-work-search-results button:hover {
+    background: rgba(96, 86, 74, 0.08) !important;
+}
+
+body.theme-kinetic .stats-action-upload,
+body.web-report.theme-kinetic .stats-action-upload {
+    background-color: rgba(109, 130, 109, 0.24) !important;
+    border: 1px solid rgba(88, 112, 89, 0.42) !important;
+    color: #2f4331 !important;
+}
+
+body.theme-kinetic .stats-action-upload:hover:not(:disabled),
+body.web-report.theme-kinetic .stats-action-upload:hover:not(:disabled) {
+    background-color: rgba(109, 130, 109, 0.32) !important;
+    border-color: rgba(78, 102, 80, 0.5) !important;
+    color: #263629 !important;
+}
+
+body.theme-kinetic .stats-action-discord,
+body.web-report.theme-kinetic .stats-action-discord {
+    background-color: rgba(118, 116, 140, 0.24) !important;
+    border: 1px solid rgba(96, 95, 122, 0.42) !important;
+    color: #35324b !important;
+}
+
+body.theme-kinetic .stats-action-discord:hover:not(:disabled),
+body.web-report.theme-kinetic .stats-action-discord:hover:not(:disabled) {
+    background-color: rgba(118, 116, 140, 0.32) !important;
+    border-color: rgba(86, 84, 112, 0.5) !important;
+    color: #2d2a40 !important;
+}
+
+body.theme-kinetic .whats-new-modal__scroll table,
+body.theme-kinetic .whats-new-modal__scroll pre,
+body.theme-kinetic .whats-new-modal__scroll code,
+body.theme-kinetic .whats-new-modal__scroll blockquote {
+    background: rgba(214, 204, 191, 0.45) !important;
+    border-color: var(--border-default) !important;
+    color: var(--text-secondary) !important;
 }
 
 body.web-report.theme-kinetic .stats-view [data-section-visible="true"] {
