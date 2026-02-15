@@ -146,7 +146,7 @@ const MapDonut = ({ slices }: { slices: Array<{ value: number; color: string }> 
     let offset = 0;
 
     return (
-        <svg width="48" height="48" viewBox="0 0 48 48">
+        <svg className="report-mini-donut" width="48" height="48" viewBox="0 0 48 48">
             <circle cx="24" cy="24" r={radius} stroke="rgba(255,255,255,0.35)" strokeWidth="6" fill="none" />
             {slices.map((slice, index) => {
                 const value = slice.value || 0;
@@ -180,7 +180,7 @@ const BorderlandsPie = ({ value }: { value: number | null | undefined }) => {
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = pct === null ? circumference : circumference - pct * circumference;
     return (
-        <svg width="48" height="48" viewBox="0 0 48 48">
+        <svg className="report-mini-donut" width="48" height="48" viewBox="0 0 48 48">
             <circle cx="24" cy="24" r={radius} stroke="rgba(255,255,255,0.35)" strokeWidth="6" fill="none" />
             <circle
                 cx="24"
@@ -630,6 +630,9 @@ export function ReportApp() {
     const activeSectionIds = useMemo(() => {
         if (isKineticUi) {
             const sectionId = activeSectionId === 'kdr' ? 'overview' : activeSectionId;
+            if (sectionId === 'top-skills-outgoing' || sectionId === 'top-skills-incoming') {
+                return new Set(['top-skills-outgoing', 'top-skills-incoming']);
+            }
             return new Set([sectionId]);
         }
         const baseIds = (activeGroupDef as any)?.sectionIds || (activeGroupDef?.items || []).map((item) => item.id);

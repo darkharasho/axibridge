@@ -57,7 +57,7 @@ export const TopSkillsSection = ({
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                        <ArrowBigUp className="w-5 h-5 text-orange-400" />
+                        <ArrowBigUp className="top-skills-outgoing-icon w-5 h-5 text-orange-400" />
                         Top Outgoing Skills
                     </h3>
                     <div className="text-xs text-gray-500 mt-1">{metricLabel}</div>
@@ -74,7 +74,7 @@ export const TopSkillsSection = ({
                                     key={option.id}
                                     type="button"
                                     onClick={() => onTopSkillsMetricChange?.(option.id)}
-                                    className={`pill-toggle-option px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                            className={`pill-toggle-option px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
                                         isActive
                                             ? 'pill-toggle-option--active bg-orange-500/30 text-orange-200'
                                             : 'text-gray-400 hover:text-white'
@@ -87,29 +87,29 @@ export const TopSkillsSection = ({
                     </div>
                 )}
             </div>
-            <div className="max-h-80 overflow-y-auto space-y-4">
+            <div className="max-h-80 overflow-y-auto overflow-x-hidden space-y-4">
                 {sortedTopSkills.map((skill: { name: string; icon?: string; damage: number; hits: number }, i: number) => (
                     <div key={`outgoing-${skill.name || 'unknown'}-${i}`} className="flex items-center gap-4">
                         <div className="w-8 text-center text-xl font-bold text-gray-600">#{i + 1}</div>
                         <div className="flex-1">
-                            <div className="flex justify-between items-center text-sm mb-1 leading-tight h-8">
-                                <span className="text-white font-bold">
+                            <div className="flex items-center justify-between gap-3 text-sm mb-1 py-0.5 leading-normal">
+                                <span className="text-white font-bold flex-1 min-w-0 py-[1px]">
                                     <InlineIconLabel
                                         name={skill.name}
                                         iconUrl={skill.icon}
                                         iconClassName="h-6 w-6"
-                                        className="min-w-0 max-w-[180px] sm:max-w-[240px]"
-                                        textClassName="truncate leading-none"
+                                        className="min-w-0"
+                                        textClassName="truncate leading-[1.35] py-[1px]"
                                     />
                                 </span>
-                                <div className="text-right">
-                                    <span className="text-orange-400 font-mono font-bold">{Math.round((skill as any)[metricKey] || 0).toLocaleString()}</span>
+                                <div className="text-right shrink-0">
+                                    <span className="top-skills-outgoing-value text-orange-400 font-mono font-bold">{Math.round((skill as any)[metricKey] || 0).toLocaleString()}</span>
                                     <span className="text-gray-500 text-xs ml-2">({skill.hits.toLocaleString()} hits)</span>
                                 </div>
                             </div>
                             <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-orange-500 rounded-full"
+                                    className="top-skills-outgoing-bar h-full bg-orange-500 rounded-full"
                                     style={{ width: `${(Number((skill as any)[metricKey] || 0) / topSkillsPeak) * 100}%` }}
                                 />
                             </div>
@@ -136,22 +136,22 @@ export const TopSkillsSection = ({
                     <div className="text-xs text-gray-500 mt-1">Damage</div>
                 </div>
             </div>
-            <div className="max-h-80 overflow-y-auto space-y-4">
+            <div className="max-h-80 overflow-y-auto overflow-x-hidden space-y-4">
                 {(stats.topIncomingSkills || []).map((skill: { name: string; icon?: string; damage: number; hits: number }, i: number) => (
                     <div key={`incoming-${skill.name || 'unknown'}-${i}`} className="flex items-center gap-4">
                         <div className="w-8 text-center text-xl font-bold text-gray-600">#{i + 1}</div>
                         <div className="flex-1">
-                            <div className="flex justify-between items-center text-sm mb-1 leading-tight h-8">
-                                <span className="text-white font-bold">
+                            <div className="flex items-center justify-between gap-3 text-sm mb-1 py-0.5 leading-normal">
+                                <span className="text-white font-bold flex-1 min-w-0 py-[1px]">
                                     <InlineIconLabel
                                         name={skill.name}
                                         iconUrl={skill.icon}
                                         iconClassName="h-6 w-6"
-                                        className="min-w-0 max-w-[180px] sm:max-w-[240px]"
-                                        textClassName="truncate leading-none"
+                                        className="min-w-0"
+                                        textClassName="truncate leading-[1.35] py-[1px]"
                                     />
                                 </span>
-                                <div className="text-right">
+                                <div className="text-right shrink-0">
                                     <span className="text-red-400 font-mono font-bold">{Math.round(skill.damage).toLocaleString()}</span>
                                     <span className="text-gray-500 text-xs ml-2">({skill.hits.toLocaleString()} hits)</span>
                                 </div>

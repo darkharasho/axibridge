@@ -1255,7 +1255,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     }
                                 }}
                                 disabled={!log.permalink}
-                                className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg border active:scale-[0.98] ${!log.permalink
+                                className={`log-card-dps-link-btn w-full py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg border active:scale-[0.98] ${!log.permalink
                                     ? 'bg-blue-600/50 text-white/50 border-blue-400/10 cursor-not-allowed'
                                     : 'bg-blue-600/90 text-white hover:bg-blue-600 border-blue-400/20'
                                     }`}

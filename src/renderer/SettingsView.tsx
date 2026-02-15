@@ -1230,7 +1230,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onBack}
-                        className="p-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
+                        className="settings-back-button p-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
@@ -1450,7 +1450,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                         <div className="flex flex-wrap items-center gap-3 mb-4">
                             <button
                                 onClick={handleGithubConnect}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-colors"
+                                className="github-connect-btn flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-colors"
                             >
                                 <LinkIcon className="w-4 h-4" />
                                 {githubAuthStatus === 'connected' ? 'Re-connect GitHub' : 'Connect GitHub'}
