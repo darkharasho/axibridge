@@ -25,6 +25,8 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const [lastComputedToken, setLastComputedToken] = useState(0);
     const [lastComputedAt, setLastComputedAt] = useState(0);
     const [lastComputedFlushId, setLastComputedFlushId] = useState<number | null>(null);
+    const [isComputing, setIsComputing] = useState(false);
+    const [aggregationProgress, setAggregationProgress] = useState<{ processed: number; total: number }>({ processed: 0, total: 0 });
     const activeTokenRef = useRef(0);
     const [activeToken, setActiveToken] = useState(0);
     const pendingFlushIdRef = useRef<number | null>(null);
@@ -62,7 +64,22 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         if (!workerRef.current) {
             workerRef.current = new Worker(new URL('../../workers/statsWorker.ts', import.meta.url), { type: 'module' });
             workerRef.current.onmessage = (event) => {
+                if (event.data?.type === 'progress') {
+                    if (typeof event.data.token === 'number' && event.data.token < activeTokenRef.current) {
+                        return;
+                    }
+                    const processed = Number(event.data.progress?.processed || 0);
+                    const total = Number(event.data.progress?.total || 0);
+                    setAggregationProgress({
+                        processed: Number.isFinite(processed) ? processed : 0,
+                        total: Number.isFinite(total) ? total : 0
+                    });
+                    return;
+                }
                 if (event.data?.type === 'result') {
+                    if (typeof event.data.token === 'number' && event.data.token < activeTokenRef.current) {
+                        return;
+                    }
                     setResult(event.data.result);
                     if (typeof event.data.computeId === 'number') {
                         setComputeTick(event.data.computeId);
@@ -81,6 +98,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     if (typeof event.data.flushId === 'number') {
                         setLastComputedFlushId(event.data.flushId);
                     }
+                    setIsComputing(false);
                 }
             };
             workerRef.current.onerror = (event) => {
@@ -88,12 +106,14 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                 workerRef.current?.terminate();
                 workerRef.current = null;
                 setWorkerFailed(true);
+                setIsComputing(false);
             };
             workerRef.current.onmessageerror = (event) => {
                 console.warn('[StatsWorker] Worker message error. Falling back to main thread.', event);
                 workerRef.current?.terminate();
                 workerRef.current = null;
                 setWorkerFailed(true);
+                setIsComputing(false);
             };
             if (pendingFlushIdRef.current !== null) {
                 workerRef.current.postMessage({ type: 'flush', flushId: pendingFlushIdRef.current });
@@ -110,6 +130,8 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         try {
             activeTokenRef.current += 1;
             setActiveToken(activeTokenRef.current);
+            setIsComputing(true);
+            setAggregationProgress({ processed: 0, total: logs.length });
             workerRef.current.postMessage({ type: 'reset', token: activeTokenRef.current });
             workerRef.current.postMessage({
                 type: 'settings',
@@ -144,6 +166,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             workerRef.current?.terminate();
             workerRef.current = null;
             setWorkerFailed(true);
+            setIsComputing(false);
         }
     }, [payload, logs, precomputedStats, mvpWeights, aggregationStatsViewSettings, disruptionMethod, shouldUseWorker]);
 
@@ -158,6 +181,8 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         setLastComputedLogCount(logs.length);
         setLastComputedToken(activeTokenRef.current);
         setLastComputedAt(Date.now());
+        setIsComputing(false);
+        setAggregationProgress({ processed: logs.length, total: logs.length });
     }, [fallback, workerFailed, logs.length, shouldUseWorker]);
 
     const resolvedResult = (workerFailed || typeof Worker === 'undefined' || !shouldUseWorker)
@@ -172,6 +197,8 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         activeToken,
         lastComputedAt,
         lastComputedFlushId,
+        isComputing,
+        aggregationProgress,
         requestFlush: () => {
             const flushId = Date.now();
             pendingFlushIdRef.current = flushId;

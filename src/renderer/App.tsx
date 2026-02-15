@@ -97,6 +97,8 @@ function App() {
     const logsListRef = useRef<HTMLDivElement | null>(null);
     const bulkUploadExpectedRef = useRef<number | null>(null);
     const bulkUploadCompletedRef = useRef(0);
+    const [bulkSessionExpected, setBulkSessionExpected] = useState(0);
+    const [bulkSessionCompleted, setBulkSessionCompleted] = useState(0);
 
     const { webUploadState, setWebUploadState, handleWebUpload } = useWebUpload();
     const devDatasetsState = useDevDatasets({
@@ -155,7 +157,12 @@ function App() {
         setLogs,
         setBulkUploadMode,
         bulkUploadExpectedRef,
-        bulkUploadCompletedRef
+        bulkUploadCompletedRef,
+        onBulkUploadStart: (expected) => {
+            setBulkSessionExpected(expected);
+            setBulkSessionCompleted(0);
+            setBulkStatsOverlaySession(true);
+        }
     });
     const {
         filePickerOpen,
@@ -196,7 +203,7 @@ function App() {
 
     // Persistence removed
 
-    const { result: aggregationResult, computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, requestFlush } = useStatsAggregationWorker({
+    const { result: aggregationResult, computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, isComputing: statsAggregationInFlight, aggregationProgress, requestFlush } = useStatsAggregationWorker({
         logs: logsForStats,
         mvpWeights,
         statsViewSettings,
@@ -264,7 +271,10 @@ function App() {
 
     const lastUploadCompleteAtRef = useRef(0);
     const bulkStatsAwaitingRef = useRef(false);
+    const [bulkStatsAwaiting, setBulkStatsAwaiting] = useState(false);
     const bulkFlushIdRef = useRef<number | null>(null);
+    const [bulkStatsOverlaySession, setBulkStatsOverlaySession] = useState(false);
+    const [statsOverlayGraceUntil, setStatsOverlayGraceUntil] = useState(0);
 
     useEffect(() => {
         if (!bulkStatsAwaitingRef.current) {
@@ -284,21 +294,8 @@ function App() {
         if (lastComputedAt < lastUploadCompleteAtRef.current) {
             return;
         }
-        setLogs((currentLogs) => {
-            let changed = false;
-            const next = currentLogs.map<ILogData>((log) => {
-                if (log.status === 'calculating') {
-                    if (log.detailsAvailable && !log.details) {
-                        return log;
-                    }
-                    changed = true;
-                    return { ...log, status: 'success' as const };
-                }
-                return log;
-            });
-            return changed ? next : currentLogs;
-        });
         bulkStatsAwaitingRef.current = false;
+        setBulkStatsAwaiting(false);
         bulkFlushIdRef.current = null;
     }, [computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, logsForStats.length]);
 
@@ -361,6 +358,19 @@ function App() {
     }, [bulkUploadMode]);
 
     useEffect(() => {
+        if (bulkUploadMode) {
+            setBulkStatsOverlaySession(true);
+        }
+    }, [bulkUploadMode]);
+
+    useEffect(() => {
+        if (bulkUploadMode || isBulkUploadActive || bulkStatsAwaiting || statsAggregationInFlight) return;
+        setBulkStatsOverlaySession(false);
+        setBulkSessionExpected(0);
+        setBulkSessionCompleted(0);
+    }, [bulkUploadMode, isBulkUploadActive, bulkStatsAwaiting, statsAggregationInFlight]);
+
+    useEffect(() => {
         if (!bulkUploadMode) {
             scheduleDetailsHydration();
         }
@@ -381,7 +391,12 @@ function App() {
             updated[idx] = { ...updated[idx], detailsLoading: true };
             return updated;
         });
-        const result = await window.electronAPI.getLogDetails({ filePath: log.filePath });
+        const result = await Promise.race([
+            window.electronAPI.getLogDetails({ filePath: log.filePath }),
+            new Promise<{ success: false; timedOut: true }>((resolve) => {
+                window.setTimeout(() => resolve({ success: false, timedOut: true }), 20000);
+            })
+        ]);
         if (!result?.success || !result.details) {
             setLogs((currentLogs) => {
                 const idx = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
@@ -410,6 +425,7 @@ function App() {
     const pendingDetailsRef = useRef<Set<string>>(new Set());
     const hydrateDetailsQueueRef = useRef<number | null>(null);
     const incrementalStatsRefreshRef = useRef<number | null>(null);
+    const [detailsHydrationBusy, setDetailsHydrationBusy] = useState(false);
 
     const scheduleDetailsHydration = useCallback((force = false) => {
         if (hydrateDetailsQueueRef.current !== null && !force) return;
@@ -428,7 +444,8 @@ function App() {
                     return (a.filePath || '').localeCompare(b.filePath || '');
                 });
             if (candidates.length === 0) return;
-            const maxConcurrent = 1;
+            setDetailsHydrationBusy(true);
+            const maxConcurrent = 2;
             let nextIndex = 0;
             const runWorker = async () => {
                 while (nextIndex < candidates.length) {
@@ -439,7 +456,12 @@ function App() {
                     if (pendingDetailsRef.current.has(filePath)) continue;
                     pendingDetailsRef.current.add(filePath);
                     try {
-                        const result = await window.electronAPI.getLogDetails({ filePath });
+                        const result = await Promise.race([
+                            window.electronAPI.getLogDetails({ filePath }),
+                            new Promise<{ success: false; timedOut: true }>((resolve) => {
+                                window.setTimeout(() => resolve({ success: false, timedOut: true }), 20000);
+                            })
+                        ]);
                         if (result?.success && result.details) {
                             setLogs((currentLogs) => {
                                 const idx = currentLogs.findIndex((entry) => entry.filePath === filePath);
@@ -456,10 +478,19 @@ function App() {
                         }
                     } finally {
                         pendingDetailsRef.current.delete(filePath);
+                        if (pendingDetailsRef.current.size === 0) {
+                            setDetailsHydrationBusy(false);
+                        }
                     }
                 }
             };
-            await Promise.all(Array.from({ length: Math.min(maxConcurrent, candidates.length) }, () => runWorker()));
+            try {
+                await Promise.all(Array.from({ length: Math.min(maxConcurrent, candidates.length) }, () => runWorker()));
+            } finally {
+                if (pendingDetailsRef.current.size === 0) {
+                    setDetailsHydrationBusy(false);
+                }
+            }
         });
     }, []);
 
@@ -477,6 +508,7 @@ function App() {
         bulkUploadCompletedRef.current = 0;
         setBulkUploadMode(false);
         bulkStatsAwaitingRef.current = true;
+        setBulkStatsAwaiting(true);
         setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
         const flushId = requestFlush?.();
         if (flushId) {
@@ -485,6 +517,123 @@ function App() {
         window.setTimeout(() => scheduleDetailsHydration(true), 0);
         window.setTimeout(() => scheduleDetailsHydration(true), 500);
     }, [scheduleDetailsHydration, requestFlush]);
+
+    const statsBulkOverlay = useMemo(() => {
+        const counts = logs.reduce((acc, log) => {
+            const status = String(log.status || '');
+            if (status === 'queued') acc.queued += 1;
+            else if (status === 'pending') acc.pending += 1;
+            else if (status === 'uploading') acc.uploading += 1;
+            else if (status === 'retrying') acc.retrying += 1;
+            else if (status === 'calculating') acc.calculating += 1;
+            else if (status === 'success' || log.details) acc.success += 1;
+            else if (status === 'error' || log.error) acc.error += 1;
+            return acc;
+        }, { queued: 0, pending: 0, uploading: 0, retrying: 0, calculating: 0, success: 0, error: 0 });
+        const uploadInFlight = counts.queued + counts.pending + counts.uploading + counts.retrying;
+        const uploadExpected = bulkSessionExpected > 0 ? bulkSessionExpected : (bulkUploadExpectedRef.current || 0);
+        const uploadCompleted = Math.min(
+            bulkSessionCompleted > 0 ? bulkSessionCompleted : bulkUploadCompletedRef.current,
+            uploadExpected > 0 ? uploadExpected : Number.MAX_SAFE_INTEGER
+        );
+        const uploadPercent = uploadExpected > 0 ? Math.min(100, Math.round((uploadCompleted / uploadExpected) * 100)) : 0;
+        const detailsPending = logs.filter((log) => log.detailsAvailable && !log.details).length;
+        const detailsReady = logs.filter((log) => !!log.details).length;
+        const detailsTotal = logs.filter((log) => log.detailsAvailable || log.details).length;
+        const detailsOverallTotal = uploadExpected > 0 ? uploadExpected : detailsTotal;
+        const detailsOverallReady = Math.min(detailsReady, detailsOverallTotal || detailsReady);
+        const detailsOverallPending = Math.max(0, detailsOverallTotal - detailsOverallReady);
+        const computedValidFights = Math.max(0, Number(computedStats?.total || 0));
+        const aggregationTarget = Math.max(detailsTotal, logsForStats.length);
+        const aggregationDoneRaw = detailsPending > 0
+            ? detailsReady
+            : computedValidFights;
+        const aggregationDone = Math.min(aggregationDoneRaw, aggregationTarget);
+        const aggregationPercent = aggregationTarget > 0
+            ? Math.min(100, Math.round((aggregationDone / aggregationTarget) * 100))
+            : 0;
+        let stage = 'Preparing stats view';
+        if (uploadInFlight > 0) stage = 'Uploading log files';
+        else if (detailsPending > 0) stage = 'Reading log details';
+        else if (bulkStatsAwaiting) stage = 'Aggregating squad statistics';
+        else if (aggregationTarget > 0 && aggregationDone < aggregationTarget) stage = 'Finalizing calculations';
+        const shouldBlockForWork = uploadInFlight > 0
+            || detailsHydrationBusy
+            || bulkStatsAwaiting
+            || statsAggregationInFlight
+            || (aggregationTarget > 0 && aggregationDone < aggregationTarget);
+        const uploadDisplayTotal = uploadExpected > 0 ? uploadExpected : Math.max(1, uploadCompleted);
+        const detailsDisplayTotal = detailsOverallTotal > 0 ? detailsOverallTotal : Math.max(1, detailsOverallReady);
+        const aggregationDisplayTotal = aggregationTarget > 0 ? aggregationTarget : Math.max(1, aggregationDone);
+        const uploadStepPercent = uploadDisplayTotal > 0 ? Math.min(100, Math.round((uploadCompleted / uploadDisplayTotal) * 100)) : 0;
+        const detailsStepPercent = detailsDisplayTotal > 0 ? Math.min(100, Math.round((detailsOverallReady / detailsDisplayTotal) * 100)) : 0;
+        const aggregationLiveDone = statsAggregationInFlight && aggregationProgress.total > 0
+            ? Math.min(aggregationProgress.processed, aggregationProgress.total)
+            : aggregationDone;
+        const aggregationLiveTotal = statsAggregationInFlight && aggregationProgress.total > 0
+            ? aggregationProgress.total
+            : aggregationDisplayTotal;
+        const aggregationStepPercent = aggregationLiveTotal > 0
+            ? Math.min(100, Math.round((aggregationLiveDone / Math.max(1, aggregationLiveTotal)) * 100))
+            : 0;
+        const uploadStepState = uploadInFlight > 0 ? 'active' : (uploadExpected > 0 && uploadCompleted >= uploadExpected ? 'done' : 'pending');
+        const detailsStepState = (detailsHydrationBusy || detailsOverallPending > 0 || uploadInFlight > 0)
+            ? 'active'
+            : (detailsOverallTotal > 0 && detailsOverallPending === 0 ? 'done' : 'pending');
+        const aggregationStepState = statsAggregationInFlight
+            ? 'active'
+            : (!shouldBlockForWork && aggregationStepPercent >= 100 ? 'done' : 'pending');
+        const progressCurrent = uploadStepPercent + detailsStepPercent + aggregationStepPercent;
+        const progressTotal = 300;
+        const blendedPercent = Math.round(progressCurrent / 3);
+        const progressPercent = shouldBlockForWork ? Math.min(99, blendedPercent) : blendedPercent;
+        const visible = view === 'stats'
+            && bulkStatsOverlaySession
+            && (shouldBlockForWork || statsOverlayGraceUntil > Date.now());
+        return {
+            visible,
+            stage,
+            shouldBlockForWork,
+            progressPercent,
+            progressCurrent,
+            progressTotal,
+            counts,
+            uploadExpected,
+            uploadCompleted,
+            uploadPercent,
+            uploadStepPercent,
+            uploadStepState,
+            detailsPending,
+            detailsReady: detailsOverallReady,
+            detailsTotal: detailsOverallTotal,
+            detailsStepPercent,
+            detailsStepState,
+            aggregationDone,
+            aggregationTarget,
+            aggregationPercent,
+            aggregationStepPercent,
+            aggregationStepState
+        };
+    }, [logs, logsForStats.length, computedStats, bulkStatsAwaiting, bulkStatsOverlaySession, view, statsAggregationInFlight, statsOverlayGraceUntil, detailsHydrationBusy, bulkSessionExpected, bulkSessionCompleted, aggregationProgress]);
+
+    useEffect(() => {
+        if (!bulkStatsOverlaySession) {
+            setStatsOverlayGraceUntil(0);
+            return;
+        }
+        if (statsBulkOverlay.shouldBlockForWork) {
+            setStatsOverlayGraceUntil(0);
+            return;
+        }
+        const releaseAt = Date.now() + 900;
+        setStatsOverlayGraceUntil(releaseAt);
+        const timeout = window.setTimeout(() => {
+            setStatsOverlayGraceUntil(0);
+        }, 920);
+        return () => {
+            window.clearTimeout(timeout);
+        };
+    }, [bulkStatsOverlaySession, statsBulkOverlay.shouldBlockForWork]);
 
     useEffect(() => {
         return () => {
@@ -552,9 +701,9 @@ function App() {
             if (log.status === 'queued' || log.status === 'pending' || log.status === 'uploading' || log.status === 'retrying' || log.status === 'discord') {
                 return log.status;
             }
+            if (log.status === 'calculating') return 'calculating';
             if (log.detailsAvailable && !log.details) return 'calculating';
             if (log.status === 'success' || log.details) return 'success';
-            if (log.status === 'calculating') return 'calculating';
             return log.status || 'queued';
         };
         const statusCounts = logs.reduce<Record<string, number>>((acc, log) => {
@@ -733,6 +882,9 @@ function App() {
             if (!identity) return currentLogs;
             const existingIndex = currentLogs.findIndex((log) => (log.filePath || log.id) === identity);
             const normalizeStatus = (candidate: ILogData): ILogData => {
+                if ((candidate.status === 'calculating' || candidate.status === 'success') && candidate.details) {
+                    return { ...candidate, status: 'success' as const, detailsAvailable: true };
+                }
                 if (candidate.status === 'success' && candidate.detailsAvailable && !candidate.details) {
                     return { ...candidate, status: 'calculating' as const };
                 }
@@ -779,6 +931,7 @@ function App() {
                     scheduleIncrementalStatsRefresh();
                 }
                 bulkUploadCompletedRef.current += 1;
+                setBulkSessionCompleted(bulkUploadCompletedRef.current);
                 if (bulkUploadExpectedRef.current !== null && bulkUploadCompletedRef.current >= bulkUploadExpectedRef.current) {
                     endBulkUpload();
                 }
@@ -1594,6 +1747,9 @@ function App() {
                         setBulkUploadMode(true);
                         bulkUploadExpectedRef.current = validFiles.length;
                         bulkUploadCompletedRef.current = 0;
+                        setBulkSessionExpected(validFiles.length);
+                        setBulkSessionCompleted(0);
+                        setBulkStatsOverlaySession(true);
                     }
                     window.electronAPI.manualUploadBatch(validFiles);
                 }
@@ -1747,7 +1903,7 @@ function App() {
         filePickerOpen, setFilePickerOpen, setFilePickerError, setFilePickerSelected, filePickerError, filePickerSelected, loadLogFiles, logDirectory, selectSinceOpen, setSelectSinceOpen, setSelectSinceView, setSelectSinceDate, setSelectSinceHour, setSelectSinceMinute, setSelectSinceMeridiem, setSelectSinceMonthOpen, selectSinceDate, selectSinceHour, selectSinceMinute, selectSinceMeridiem, selectSinceView, selectSinceMonthOpen, filePickerFilter, setFilePickerFilter, filePickerLoading, filePickerAvailable, filePickerAll, filePickerListRef, setFilePickerAtBottom, lastPickedIndexRef, filePickerHasMore, filePickerAtBottom, setFilePickerMonthWindow, ensureMonthWindowForSince, handleAddSelectedFiles, uiTheme
     };
     const appLayoutCtx = {
-        shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, setStatsViewSettings, uiTheme, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
+        shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, setStatsViewSettings, uiTheme, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, statsBulkOverlay, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
     };
 
     return <AppLayout ctx={appLayoutCtx} />;

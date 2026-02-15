@@ -68,6 +68,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         embedStatSettings,
         showClassIcons,
         enabledTopListCount,
+        statsBulkOverlay,
         devDatasetsCtx,
         filePickerCtx,
         webhookDropdownOpen,
@@ -107,6 +108,18 @@ export function AppLayout({ ctx }: { ctx: any }) {
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (!statsBulkOverlay?.visible) return;
+        const prevBodyOverflow = document.body.style.overflow;
+        const prevHtmlOverflow = document.documentElement.style.overflow;
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = prevBodyOverflow;
+            document.documentElement.style.overflow = prevHtmlOverflow;
+        };
+    }, [statsBulkOverlay?.visible]);
 
     const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'settings') => {
         setActiveNavView(nextView);
@@ -301,7 +314,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 />
 
                 {statsViewMounted && (
-                    <div className="flex-1 min-h-0" style={{ display: view === 'stats' ? 'flex' : 'none' }}>
+                    <div className="relative flex-1 min-h-0" style={{ display: view === 'stats' ? 'flex' : 'none' }}>
                         <StatsView
                             logs={logsForStats}
                             onBack={() => setView('dashboard')}
@@ -319,6 +332,74 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             onWebUpload={handleWebUpload}
                             canShareDiscord={!!selectedWebhookId}
                         />
+                        {statsBulkOverlay?.visible && (
+                            <div
+                                className="fixed inset-0 z-[90] flex items-center justify-center p-6 bg-[radial-gradient(circle_at_center,rgba(2,6,23,0.18)_0%,rgba(2,6,23,0.52)_55%,rgba(2,6,23,0.72)_100%)] backdrop-blur-[8px]"
+                                onWheelCapture={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                }}
+                                onTouchMoveCapture={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                }}
+                            >
+                                <div className="w-full max-w-xl rounded-2xl border border-white/15 bg-black/72 p-6 shadow-[0_20px_60px_rgba(2,6,23,0.6)]">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-9 w-9 shrink-0 rounded-xl border border-cyan-400/40 bg-cyan-500/10 flex items-center justify-center">
+                                            <RefreshCw className="h-4 w-4 text-cyan-300 animate-spin" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-semibold tracking-wide text-cyan-100">Computing Bulk Upload Stats</h3>
+                                            <p className="text-xs text-cyan-200/80 mt-0.5">{statsBulkOverlay.stage}</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4">
+                                        <div className="flex items-center justify-between text-[11px] text-gray-300 mb-1">
+                                            <span>Overall Progress</span>
+                                            <span>{statsBulkOverlay.progressCurrent}/{statsBulkOverlay.progressTotal}</span>
+                                        </div>
+                                        <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-300"
+                                                style={{ width: `${statsBulkOverlay.progressPercent}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 space-y-2">
+                                        {[
+                                            { label: 'Upload Logs', percent: statsBulkOverlay.uploadStepPercent, state: statsBulkOverlay.uploadStepState },
+                                            { label: 'Parse Details', percent: statsBulkOverlay.detailsStepPercent, state: statsBulkOverlay.detailsStepState },
+                                            { label: 'Aggregate Stats', percent: statsBulkOverlay.aggregationStepPercent, state: statsBulkOverlay.aggregationStepState }
+                                        ].map((step) => (
+                                            <div key={step.label} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                                                <div className="flex items-center justify-between text-[11px] text-gray-200 mb-1">
+                                                    <span>{step.label}</span>
+                                                    <span className={`${step.state === 'done' ? 'text-emerald-300' : step.state === 'active' ? 'text-cyan-300' : 'text-gray-400'}`}>
+                                                        {step.state === 'done' ? 'Done' : step.state === 'active' ? 'In Progress' : 'Pending'}
+                                                    </span>
+                                                </div>
+                                                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                                    <div
+                                                        className={`h-full transition-all duration-300 ${step.state === 'done' ? 'bg-emerald-400' : step.state === 'active' ? 'bg-cyan-400' : 'bg-gray-600'}`}
+                                                        style={{ width: `${Math.max(0, Math.min(100, step.percent))}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-4 flex justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleNavViewChange('dashboard')}
+                                            className="px-3 py-1.5 rounded-lg border border-white/15 bg-white/8 text-xs font-semibold text-gray-100 hover:bg-white/15 transition-colors"
+                                        >
+                                            Back to Upload View
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
                 {view === 'settings' ? (

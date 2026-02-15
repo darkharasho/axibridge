@@ -15,6 +15,7 @@ interface UseStatsAggregationProps {
     mvpWeights?: IMvpWeights;
     statsViewSettings?: IStatsViewSettings;
     disruptionMethod?: DisruptionMethod;
+    onProgress?: (payload: { phase: 'aggregate'; processed: number; total: number }) => void;
 }
 
 const parseTimestamp = (value: any): number => {
@@ -54,7 +55,7 @@ const resolveFightTimestamp = (details: any, log: any): number => {
     );
 };
 
-export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod }: UseStatsAggregationProps) => {
+export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod, onProgress }: UseStatsAggregationProps) => {
 
     const validLogs = (() => {
         const filtered = logs.filter(l => l.details && l.details.players && l.details.players.length > 0);
@@ -111,6 +112,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         const skillDamageSource = activeStatsViewSettings.topSkillDamageSource || 'target';
         const topSkillsMetric = activeStatsViewSettings.topSkillsMetric || 'damage';
         const total = validLogs.length;
+        onProgress?.({ phase: 'aggregate', processed: 0, total });
 
         let wins = 0;
         let losses = 0;
@@ -429,6 +431,9 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         });
 
         validLogs.forEach((log, logIndex) => {
+            if (logIndex % 2 === 0 || logIndex === total - 1) {
+                onProgress?.({ phase: 'aggregate', processed: logIndex + 1, total });
+            }
             const details = log.details;
             if (!details) return;
             const players = details.players as unknown as Player[];
@@ -1359,6 +1364,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             }
 
         }); // End Logs Loop
+        onProgress?.({ phase: 'aggregate', processed: total, total });
 
         if (debugMitigationRows.length > 0) {
             console.groupCollapsed('[Mitigation Debug] Ashtonlightstone.9145 / Illusionary Warden');

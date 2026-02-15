@@ -14,6 +14,7 @@ let timer: number | null = null;
 let computeId = 0;
 let currentToken = 0;
 let pendingFlushId: number | null = null;
+let lastProgressSentAt = 0;
 
 const pruneDetailsForStats = (details: any) => {
     if (!details || typeof details !== 'object') return details;
@@ -144,7 +145,20 @@ const computeAndPost = () => {
     computeId += 1;
     const flushId = pendingFlushId;
     pendingFlushId = null;
-    const result = computeStatsAggregation(latestPayload);
+    lastProgressSentAt = 0;
+    const result = computeStatsAggregation({
+        ...latestPayload,
+        onProgress: (progress) => {
+            const now = Date.now();
+            if (now - lastProgressSentAt < 120 && progress.processed < progress.total) return;
+            lastProgressSentAt = now;
+            (self as any).postMessage({
+                type: 'progress',
+                token: currentToken,
+                progress
+            });
+        }
+    });
     (self as any).postMessage({
         type: 'result',
         result,

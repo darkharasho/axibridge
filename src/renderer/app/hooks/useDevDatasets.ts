@@ -65,7 +65,6 @@ export function useDevDatasets({
     const statsBatchTimerRef = useRef<number | null>(null);
     const logsRef = useRef<ILogData[]>(logs);
     const [statsViewMounted, setStatsViewMounted] = useState(false);
-    const hasPendingStatsDetails = logs.some((log) => log.detailsAvailable && !log.details);
 
     const applyDevDatasetSnapshot = useCallback((snapshot: IDevDatasetSnapshot | null | undefined) => {
         const state = snapshot?.state;
@@ -151,19 +150,12 @@ export function useDevDatasets({
             }
             return;
         }
-        if (view === 'stats' && hasPendingStatsDetails) {
-            if (statsBatchTimerRef.current) {
-                window.clearTimeout(statsBatchTimerRef.current);
-                statsBatchTimerRef.current = null;
-            }
-            return;
-        }
         if (statsBatchTimerRef.current) return;
         statsBatchTimerRef.current = window.setTimeout(() => {
             statsBatchTimerRef.current = null;
             setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
         }, 5000);
-    }, [logs, view, hasPendingStatsDetails, bulkUploadMode]);
+    }, [logs, view, bulkUploadMode]);
 
     useEffect(() => {
         logsRef.current = logs;
@@ -181,19 +173,9 @@ export function useDevDatasets({
     useEffect(() => {
         if (view === 'stats') {
             setStatsViewMounted(true);
-            // During initial hydration, defer refreshes to avoid visibly jumping totals.
-            if (!hasPendingStatsDetails) {
-                setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
-            }
+            setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
         }
-    }, [view, hasPendingStatsDetails]);
-
-    useEffect(() => {
-        if (view !== 'stats') return;
-        if (hasPendingStatsDetails) return;
-        // Publish a single full snapshot when pending detail hydration settles.
-        setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
-    }, [view, hasPendingStatsDetails]);
+    }, [view]);
 
     useEffect(() => {
         if (!devDatasetsEnabled || !window.electronAPI?.onDevDatasetLogsChunk) return;

@@ -13,6 +13,7 @@ interface UseFilePickerOptions {
     setBulkUploadMode: Dispatch<SetStateAction<boolean>>;
     bulkUploadExpectedRef: MutableRefObject<number | null>;
     bulkUploadCompletedRef: MutableRefObject<number>;
+    onBulkUploadStart?: (expected: number) => void;
 }
 
 export function useFilePicker({
@@ -20,7 +21,8 @@ export function useFilePicker({
     setLogs,
     setBulkUploadMode,
     bulkUploadExpectedRef,
-    bulkUploadCompletedRef
+    bulkUploadCompletedRef,
+    onBulkUploadStart
 }: UseFilePickerOptions) {
     const [filePickerOpen, setFilePickerOpen] = useState(false);
     const [filePickerAvailable, setFilePickerAvailable] = useState<IFilePickerEntry[]>([]);
@@ -153,6 +155,7 @@ export function useFilePicker({
             setBulkUploadMode(true);
             bulkUploadExpectedRef.current = files.length;
             bulkUploadCompletedRef.current = 0;
+            onBulkUploadStart?.(files.length);
         }
         window.electronAPI.manualUploadBatch(files);
         setFilePickerOpen(false);

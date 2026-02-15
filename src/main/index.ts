@@ -985,6 +985,22 @@ const DISCORD_DEDUPE_TTL_MS = 2 * 60 * 1000;
 let bulkUploadMode = false;
 const BULK_PROCESS_CONCURRENCY = 3;
 const bulkLogDetailsCache = new Map<string, any>();
+const BULK_LOG_DETAILS_CACHE_MAX = 80;
+const normalizeDetailsCacheKey = (filePath: string) => path.normalize(String(filePath || ''));
+const getBulkLogDetails = (filePath: string) => bulkLogDetailsCache.get(normalizeDetailsCacheKey(filePath));
+const setBulkLogDetails = (filePath: string, details: any) => {
+    const key = normalizeDetailsCacheKey(filePath);
+    if (!key) return;
+    if (bulkLogDetailsCache.has(key)) {
+        bulkLogDetailsCache.delete(key);
+    }
+    bulkLogDetailsCache.set(key, details);
+    while (bulkLogDetailsCache.size > BULK_LOG_DETAILS_CACHE_MAX) {
+        const oldestKey = bulkLogDetailsCache.keys().next().value;
+        if (!oldestKey) break;
+        bulkLogDetailsCache.delete(oldestKey);
+    }
+};
 const globalManifest: Array<any> = [];
 const globalManifestPath = () => path.join(process.cwd(), 'dev', 'manifest.json');
 
@@ -1246,7 +1262,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 success: prunedDetails?.success
             };
             if (prunedDetails) {
-                bulkLogDetailsCache.set(filePath, prunedDetails);
+                setBulkLogDetails(filePath, prunedDetails);
                 void updateGlobalManifest(prunedDetails, filePath);
             }
             if (bulkUploadMode) {
@@ -3373,7 +3389,7 @@ if (!gotTheLock) {
                 console.warn('[Main] get-log-details missing filePath');
                 return { success: false, error: 'Missing filePath.' };
             }
-            const details = bulkLogDetailsCache.get(filePath);
+            const details = getBulkLogDetails(filePath);
             if (details) {
                 console.log(`[Main] get-log-details hit: ${filePath}`);
                 return { success: true, details };
