@@ -1,78 +1,112 @@
+import type { ComponentType } from 'react';
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { Trophy, Shield, ShieldAlert, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, ArrowBigUp, FileText, Swords } from 'lucide-react';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
-import { OffenseSwordIcon } from '../../ui/OffenseSwordIcon';
 import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { Gw2DamMitIcon } from '../../ui/Gw2DamMitIcon';
 import { Gw2SigilIcon } from '../../ui/Gw2SigilIcon';
 
-export const useStatsNavigation = (embedded: boolean) => {
+export type StatsTocIcon = ComponentType<{ className?: string }>;
+
+export interface StatsTocItem {
+    id: string;
+    label: string;
+    icon: StatsTocIcon;
+}
+
+export interface StatsTocGroup {
+    id: string;
+    label: string;
+    icon: StatsTocIcon;
+    sectionIds: readonly string[];
+    items: readonly StatsTocItem[];
+}
+
+export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
+    {
+        id: 'overview',
+        label: 'Overview',
+        icon: Trophy,
+        sectionIds: [
+            'overview',
+            'fight-breakdown',
+            'top-players',
+            'top-skills-outgoing',
+            'top-skills-incoming',
+            'squad-composition',
+            'timeline',
+            'map-distribution'
+        ],
+        items: [
+            { id: 'overview', label: 'Overview', icon: Trophy },
+            { id: 'fight-breakdown', label: 'Fight Breakdown', icon: Swords },
+            { id: 'top-players', label: 'Top Players', icon: Trophy },
+            { id: 'top-skills-outgoing', label: 'Top Skills', icon: ArrowBigUp },
+            { id: 'squad-composition', label: 'Classes', icon: Users },
+            { id: 'timeline', label: 'Squad vs Enemy', icon: Users },
+            { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon }
+        ]
+    },
+    {
+        id: 'roster',
+        label: 'Roster Intel',
+        icon: FileText,
+        sectionIds: ['attendance-ledger', 'squad-comp-fight', 'fight-comp'],
+        items: [
+            { id: 'attendance-ledger', label: 'Attendance Ledger', icon: FileText },
+            { id: 'squad-comp-fight', label: 'Squad Comp by Fight', icon: Users },
+            { id: 'fight-comp', label: 'Fight Comp', icon: Swords }
+        ]
+    },
+    {
+        id: 'offense',
+        label: 'Offensive Stats',
+        icon: Swords,
+        sectionIds: ['offense-detailed', 'player-breakdown', 'spike-damage', 'conditions-outgoing'],
+        items: [
+            { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords },
+            { id: 'player-breakdown', label: 'Player Breakdown', icon: ListTree },
+            { id: 'spike-damage', label: 'Spike Damage', icon: Zap },
+            { id: 'conditions-outgoing', label: 'Conditions', icon: Skull }
+        ]
+    },
+    {
+        id: 'defense',
+        label: 'Defensive Stats',
+        icon: Shield,
+        sectionIds: ['defense-detailed', 'incoming-strike-damage', 'defense-mitigation', 'support-detailed', 'healing-stats', 'boon-output'],
+        items: [
+            { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert },
+            { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
+            { id: 'defense-mitigation', label: 'Damage Mitigation', icon: Gw2DamMitIcon },
+            { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
+            { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
+            { id: 'boon-output', label: 'Boon Output', icon: Gw2BoonIcon }
+        ]
+    },
+    {
+        id: 'other',
+        label: 'Other Metrics',
+        icon: Star,
+        sectionIds: ['special-buffs', 'sigil-relic-uptime', 'skill-usage', 'apm-stats'],
+        items: [
+            { id: 'special-buffs', label: 'Special Buffs', icon: Star },
+            { id: 'sigil-relic-uptime', label: 'Sigil/Relic Uptime', icon: Gw2SigilIcon },
+            { id: 'skill-usage', label: 'Skill Usage', icon: Keyboard },
+            { id: 'apm-stats', label: 'APM Breakdown', icon: Gw2ApmIcon }
+        ]
+    }
+];
+
+export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true) => {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [activeNavId, setActiveNavId] = useState('overview');
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
     const scrollRafRef = useRef<number | null>(null);
     const scrollDeltaRef = useRef(0);
 
-    const tocGroups = useMemo(() => ([
-        {
-            id: 'overview',
-            label: 'Overview',
-            icon: Trophy,
-            items: [
-                { id: 'overview', label: 'Overview', icon: Trophy },
-                { id: 'top-players', label: 'Top Players', icon: Trophy },
-                { id: 'top-skills-outgoing', label: 'Top Skills', icon: ArrowBigUp },
-                { id: 'timeline', label: 'Squad vs Enemy', icon: Users },
-                { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon }
-            ]
-        },
-        {
-            id: 'roster',
-            label: 'Roster Intel',
-            icon: FileText,
-            items: [
-                { id: 'attendance-ledger', label: 'Attendance Ledger', icon: FileText },
-                { id: 'squad-comp-fight', label: 'Squad Comp by Fight', icon: Users },
-                { id: 'fight-comp', label: 'Fight Comp', icon: Swords }
-            ]
-        },
-        {
-            id: 'offense',
-            label: 'Offensive Stats',
-            icon: OffenseSwordIcon,
-            items: [
-                { id: 'offense-detailed', label: 'Offense Detailed', icon: OffenseSwordIcon },
-                { id: 'player-breakdown', label: 'Player Breakdown', icon: ListTree },
-                { id: 'spike-damage', label: 'Spike Damage', icon: Zap },
-                { id: 'conditions-outgoing', label: 'Conditions', icon: Skull }
-            ]
-        },
-        {
-            id: 'defense',
-            label: 'Defensive Stats',
-            icon: Shield,
-            items: [
-                { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert },
-                { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
-                { id: 'defense-mitigation', label: 'Damage Mitigation', icon: Gw2DamMitIcon },
-                { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
-                { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
-                { id: 'boon-output', label: 'Boon Output', icon: Gw2BoonIcon }
-            ]
-        },
-        {
-            id: 'other',
-            label: 'Other Metrics',
-            icon: Star,
-            items: [
-                { id: 'special-buffs', label: 'Special Buffs', icon: Star },
-                { id: 'sigil-relic-uptime', label: 'Sigil/Relic Uptime', icon: Gw2SigilIcon },
-                { id: 'skill-usage', label: 'Skill Usage', icon: Keyboard },
-                { id: 'apm-stats', label: 'APM Breakdown', icon: Gw2ApmIcon }
-            ]
-        }
-    ]), []);
+    const tocGroups = useMemo(() => STATS_TOC_GROUPS, []);
     const tocItems = useMemo(
         () => tocGroups.flatMap((group) => group.items),
         [tocGroups]
@@ -145,6 +179,7 @@ export const useStatsNavigation = (embedded: boolean) => {
     };
 
     useEffect(() => {
+        if (!trackActiveOnScroll) return;
         const container = scrollContainerRef.current;
         if (!container) return;
         let raf = 0;
@@ -173,7 +208,7 @@ export const useStatsNavigation = (embedded: boolean) => {
             container.removeEventListener('scroll', onScroll);
             window.removeEventListener('resize', onScroll);
         };
-    }, [tocItems]);
+    }, [tocItems, trackActiveOnScroll]);
 
     return {
         mobileNavOpen,

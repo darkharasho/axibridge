@@ -208,8 +208,8 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
                                                         </button>
                                                     </div>
                                                     <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-2">
-                                                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
-                                                            <div key={day} className="text-center">{day}</div>
+                                                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
+                                                            <div key={`weekday-${idx}-${day}`} className="text-center">{day}</div>
                                                         ))}
                                                     </div>
                                                     {(() => {

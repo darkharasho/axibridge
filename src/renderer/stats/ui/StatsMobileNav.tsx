@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, X } from 'lucide-react';
 
 type TocItem = { id: string; label: string; icon: React.ComponentType<any> };
-type TocGroup = { id: string; label: string; icon: React.ComponentType<any>; items: TocItem[] };
+type TocGroup = { id: string; label: string; icon: React.ComponentType<any>; items: readonly TocItem[] };
 
 type StatsMobileNavProps = {
     embedded: boolean;
     uiTheme?: 'classic' | 'modern' | 'crt' | 'matte';
     mobileNavOpen: boolean;
     setMobileNavOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
-    tocGroups: TocGroup[];
-    tocItems: TocItem[];
+    tocGroups: readonly TocGroup[];
+    tocItems: readonly TocItem[];
     activeNavId: string;
     scrollToSection: (id: string) => void;
     stepSection: (direction: -1 | 1) => void;
@@ -72,7 +72,10 @@ export const StatsMobileNav = ({
     useEffect(() => {
         const group = tocGroups.find((entry) => entry.items.some((item) => item.id === activeNavId));
         if (!group) return;
-        setExpandedGroups((prev) => ({ ...prev, [group.id]: true }));
+        setExpandedGroups((prev) => {
+            if (prev[group.id]) return prev;
+            return { ...prev, [group.id]: true };
+        });
     }, [activeNavId, tocGroups]);
 
     if (embedded) return null;

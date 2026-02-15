@@ -33,6 +33,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const streamTimerRef = useRef<number | null>(null);
     const aggregationSettingsKeyRef = useRef<string>('');
     const aggregationSettingsRef = useRef<IStatsViewSettings | undefined>(undefined);
+    const lastFallbackComputeKeyRef = useRef('');
 
     const aggregationStatsViewSettings = useMemo(() => {
         if (!statsViewSettings) {
@@ -151,14 +152,30 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         if (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker) return null;
         return computeStatsAggregation({ logs, precomputedStats, mvpWeights, statsViewSettings: aggregationStatsViewSettings, disruptionMethod });
     }, [workerFailed, logs, precomputedStats, mvpWeights, aggregationStatsViewSettings, disruptionMethod, shouldUseWorker]);
+    const fallbackComputeKey = useMemo(() => {
+        if (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker) return 'worker';
+        const firstLog = logs[0];
+        const lastLog = logs[logs.length - 1];
+        return JSON.stringify({
+            logCount: logs.length,
+            firstLogPath: firstLog?.filePath || firstLog?.name || '',
+            lastLogPath: lastLog?.filePath || lastLog?.name || '',
+            precomputedTotal: Number(precomputedStats?.total || 0),
+            precomputedUpdatedAt: String(precomputedStats?.updatedAt || ''),
+            disruptionMethod: disruptionMethod || null,
+            settingsKey: aggregationSettingsKeyRef.current
+        });
+    }, [workerFailed, shouldUseWorker, logs, precomputedStats, disruptionMethod]);
 
     useEffect(() => {
         if (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker) return;
+        if (lastFallbackComputeKeyRef.current === fallbackComputeKey) return;
+        lastFallbackComputeKeyRef.current = fallbackComputeKey;
         setComputeTick((prev) => prev + 1);
         setLastComputedLogCount(logs.length);
         setLastComputedToken(activeTokenRef.current);
         setLastComputedAt(Date.now());
-    }, [fallback, workerFailed, logs.length, shouldUseWorker]);
+    }, [fallbackComputeKey, workerFailed, logs.length, shouldUseWorker]);
 
     const resolvedResult = (workerFailed || typeof Worker === 'undefined' || !shouldUseWorker)
         ? (fallback ?? computeStatsAggregation({ logs, precomputedStats, mvpWeights, statsViewSettings: aggregationStatsViewSettings, disruptionMethod }))

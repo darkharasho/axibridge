@@ -17,13 +17,15 @@ export const SquadCompositionSection = ({
     isSectionVisible,
     isFirstVisibleSection,
     sectionClass
-}: SquadCompositionSectionProps) => (
-    <div
-        id="squad-composition"
-        data-section-visible={isSectionVisible('squad-composition')}
-        data-section-first={isFirstVisibleSection('squad-composition')}
-        className={sectionClass('squad-composition', 'grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 page-break-avoid')}
-    >
+}: SquadCompositionSectionProps) => {
+    const sectionVisible = isSectionVisible('squad-composition');
+    return (
+        <div
+            id="squad-composition"
+            data-section-visible={sectionVisible}
+            data-section-first={isFirstVisibleSection('squad-composition')}
+            className={sectionClass('squad-composition', 'grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 page-break-avoid')}
+        >
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
             <h3 className="text-lg font-bold text-gray-200 mb-6 flex items-center gap-2">
                 <Users className="w-5 h-5 text-green-400" />
@@ -31,7 +33,7 @@ export const SquadCompositionSection = ({
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_150px] sm:h-[300px] gap-4">
                 <div className="h-[240px] sm:h-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer key={`squad-comp-squad-pie-${sectionVisible ? 'visible' : 'hidden'}`} width="100%" height="100%">
                         <PieChart>
                             <Pie
                                 data={sortedSquadClassData}
@@ -83,7 +85,7 @@ export const SquadCompositionSection = ({
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_150px] sm:h-[300px] gap-4">
                 <div className="h-[240px] sm:h-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer key={`squad-comp-enemy-pie-${sectionVisible ? 'visible' : 'hidden'}`} width="100%" height="100%">
                         <PieChart>
                             <Pie
                                 data={sortedEnemyClassData}
@@ -128,4 +130,5 @@ export const SquadCompositionSection = ({
             </div>
         </div>
     </div>
-);
+    );
+};

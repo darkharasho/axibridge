@@ -985,16 +985,38 @@ const DISCORD_DEDUPE_TTL_MS = 2 * 60 * 1000;
 let bulkUploadMode = false;
 const BULK_PROCESS_CONCURRENCY = 3;
 const bulkLogDetailsCache = new Map<string, any>();
+const BULK_LOG_DETAILS_CACHE_MAX = 600;
 const normalizeDetailsCacheKey = (filePath: string) => path.resolve(path.normalize(String(filePath || '')));
 const setBulkLogDetails = (filePath: string, details: any) => {
-    const key = normalizeDetailsCacheKey(filePath);
-    if (!key) return;
-    bulkLogDetailsCache.set(key, details);
+    const rawKey = String(filePath || '');
+    const normalizedKey = normalizeDetailsCacheKey(filePath);
+    const keys = [rawKey, normalizedKey].filter(Boolean);
+    keys.forEach((key) => {
+        if (bulkLogDetailsCache.has(key)) {
+            bulkLogDetailsCache.delete(key);
+        }
+        bulkLogDetailsCache.set(key, details);
+    });
+    while (bulkLogDetailsCache.size > BULK_LOG_DETAILS_CACHE_MAX) {
+        const oldest = bulkLogDetailsCache.keys().next().value;
+        if (!oldest) break;
+        bulkLogDetailsCache.delete(oldest);
+    }
 };
 const getBulkLogDetails = (filePath: string) => {
-    const key = normalizeDetailsCacheKey(filePath);
-    if (!key) return null;
-    return bulkLogDetailsCache.get(key) || null;
+    const rawKey = String(filePath || '');
+    const normalizedKey = normalizeDetailsCacheKey(filePath);
+    const direct = (rawKey && bulkLogDetailsCache.get(rawKey))
+        || (normalizedKey && bulkLogDetailsCache.get(normalizedKey));
+    if (direct) return direct;
+    const baseName = path.basename(rawKey || normalizedKey || '');
+    if (!baseName) return null;
+    for (const [key, value] of bulkLogDetailsCache.entries()) {
+        if (path.basename(key) === baseName) {
+            return value;
+        }
+    }
+    return null;
 };
 const globalManifest: Array<any> = [];
 const globalManifestPath = () => path.join(process.cwd(), 'dev', 'manifest.json');
