@@ -566,7 +566,7 @@ body.theme-classic .stats-view .mvp-card--bronze {
     background-image: linear-gradient(90deg, rgba(234, 88, 12, 0.25), rgba(120, 53, 15, 0.15));
 }
 
-/* Fight Diff Mode selectors by theme */
+/* Fight Comparison selectors by theme */
 .stats-view .fight-diff-select {
     appearance: none;
     -webkit-appearance: none;
