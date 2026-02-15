@@ -236,13 +236,19 @@ export function AppLayout({ ctx }: { ctx: any }) {
         ? 'border border-[color:var(--border-default)] bg-[color:var(--bg-card)]'
         : uiTheme === 'crt'
             ? 'border border-[#3a6b52]/60 bg-[#09140e]/90'
-            : 'border border-white/10 bg-slate-950/85';
+            : uiTheme === 'modern'
+                ? 'border border-cyan-300/20 bg-[linear-gradient(180deg,rgba(16,24,34,0.96),rgba(12,18,28,0.94))]'
+                : 'border border-white/10 bg-slate-950/85';
     const statsSidebarShadowClass = uiTheme === 'matte'
         ? 'shadow-[-6px_-6px_12px_rgba(255,255,255,0.04),6px_6px_14px_rgba(0,0,0,0.45)]'
-        : 'shadow-[0_20px_60px_rgba(0,0,0,0.45)]';
-    const statsSidebarBlurClass = uiTheme === 'matte' ? '' : 'backdrop-blur-md';
+        : uiTheme === 'modern'
+            ? 'shadow-[0_16px_46px_rgba(0,0,0,0.5),0_0_0_1px_rgba(122,215,240,0.08)]'
+            : 'shadow-[0_20px_60px_rgba(0,0,0,0.45)]';
+    const statsSidebarBlurClass = uiTheme === 'matte' ? '' : uiTheme === 'modern' ? 'backdrop-blur-lg' : 'backdrop-blur-md';
     const statsSubnavItemsClass = uiTheme === 'matte'
         ? 'rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-input)] shadow-[inset_-4px_-4px_10px_rgba(255,255,255,0.03),inset_5px_5px_12px_rgba(0,0,0,0.4)]'
+        : uiTheme === 'modern'
+            ? 'rounded-lg border border-cyan-300/15 bg-slate-900/65 backdrop-blur-sm'
         : '';
     const statsSectionVisibility = useCallback((id: string) => {
         const sectionIds = Array.isArray((activeStatsGroupDef as any)?.sectionIds)

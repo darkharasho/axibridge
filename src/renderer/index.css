@@ -1929,12 +1929,34 @@ button:focus-visible,
 /* In desktop app mode, expanded stats panes should live below the custom title bar.
    Keep pane chrome fixed while allowing inner table regions to handle scrolling. */
 body:not(.web-report) .modal-pane {
-    top: 2.5rem;
+    top: var(--app-titlebar-height, 2.5rem);
     bottom: 0;
-    height: auto;
-    max-height: none;
-    overflow: hidden;
+    height: calc(100dvh - var(--app-titlebar-height, 2.5rem));
+    max-height: calc(100dvh - var(--app-titlebar-height, 2.5rem));
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    padding-top: 0;
     padding-bottom: env(safe-area-inset-bottom);
+    margin-top: 0 !important;
+}
+
+/* Expanded section JSX still carries `pb-10`; normalize it in app fullscreen mode. */
+body:not(.web-report) .modal-pane.pb-10 {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+}
+
+/* Expanded section body should own the available height; no outer modal scrolling. */
+body:not(.web-report) .modal-pane > :not(:first-child) {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Dense expanded layouts use a `flex-col gap-4` wrapper; make the table panel fill remainder. */
+body:not(.web-report) .modal-pane > .flex.flex-col.gap-4 > :last-child {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .modal-pane-enter {
@@ -1945,6 +1967,11 @@ body:not(.web-report) .modal-pane {
     animation-name: modal-pane-shrink;
     animation-duration: 150ms;
     animation-timing-function: ease-in;
+}
+
+/* Keep expanded close buttons slightly off the top edge in desktop app mode. */
+body:not(.web-report) .modal-pane button[aria-label^="Close "] {
+    margin-top: 0.25rem;
 }
 
 .modal-backdrop {
@@ -2056,9 +2083,27 @@ body:not(.web-report) .modal-pane {
     max-height: 70vh;
 }
 
+/* In app fullscreen panes, dense tables should consume remaining height
+   instead of using a fixed viewport cap that can clip the bottom controls. */
+body:not(.web-report) .modal-pane .dense-table {
+    min-height: 0;
+    height: 100%;
+}
+
+body:not(.web-report) .modal-pane .dense-table__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+}
+
 /* Web report fullscreen dense tables: hide native horizontal scrollbar
    and rely on the custom horizontal scrubber control. */
 body.web-report .modal-pane .dense-table__scroll {
+    overflow-x: hidden;
+}
+
+/* App fullscreen dense tables: match web report behavior and use the scrubber. */
+body:not(.web-report) .modal-pane .dense-table__scroll {
     overflow-x: hidden;
 }
 
@@ -2066,8 +2111,18 @@ body.web-report .modal-pane .dense-table__scroll::-webkit-scrollbar:horizontal {
     height: 0 !important;
 }
 
+body:not(.web-report) .modal-pane .dense-table__scroll::-webkit-scrollbar:horizontal {
+    height: 0 !important;
+}
+
 body.web-report .modal-pane .dense-table__scroll::-webkit-scrollbar-thumb:horizontal,
 body.web-report .modal-pane .dense-table__scroll::-webkit-scrollbar-track:horizontal {
+    background: transparent;
+    border: 0;
+}
+
+body:not(.web-report) .modal-pane .dense-table__scroll::-webkit-scrollbar-thumb:horizontal,
+body:not(.web-report) .modal-pane .dense-table__scroll::-webkit-scrollbar-track:horizontal {
     background: transparent;
     border: 0;
 }
