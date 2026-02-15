@@ -321,6 +321,17 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         />
                     </div>
                 )}
+                {view === 'stats' && !statsViewMounted && (
+                    <div className="flex-1 min-h-0 flex items-center justify-center">
+                        <div className="w-full max-w-md rounded-2xl border border-white/15 bg-black/35 backdrop-blur-md px-6 py-8 text-center shadow-2xl">
+                            <div className="mx-auto mb-3 h-12 w-12 rounded-full border border-cyan-400/35 bg-cyan-500/10 flex items-center justify-center">
+                                <RefreshCw className="h-5 w-5 text-cyan-300 animate-spin" />
+                            </div>
+                            <div className="text-sm font-semibold tracking-wide text-cyan-100">Loading Stats Dashboard</div>
+                            <div className="mt-1 text-xs text-cyan-200/75">Preparing sections and rendering data...</div>
+                        </div>
+                    </div>
+                )}
                 {view === 'settings' ? (
                     <SettingsView
                         onBack={() => setView('dashboard')}
