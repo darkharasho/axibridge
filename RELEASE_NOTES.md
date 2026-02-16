@@ -1,19 +1,22 @@
 # Release Notes
 
-Version v1.32.0 — February 15, 2026
+Version v1.33.0 — February 15, 2026
 
 ## 🌟 Highlights
-- Fight Diff is now named Fight Comparison across the UI, reflecting the new terminology.
-- The Fight Comparison table and its controls have been refined for a more cohesive look with the app’s theme.
-- Docs now include a UI theme design specification to guide consistent visuals.
+- Attendance ledger CSV export now available across the app and web
+- Kinetic Paper theme gets a fresh polish across the UI
+- First version of kinetic passthrough introduced (v1)
 
 ## 🛠️ Improvements
-- Theme-aware styling for the Fight Comparison view to align with the selected theme.
-- UI elements for Fight Comparison updated to match the broader design language.
-- Subtle visual refinements to keep the Fight Comparison interface polished and cohesive.
+- Final polish on the Kinetic Paper theme and corrected styling in the details pane
+- Refactor TopSkillsSection and StatsViewShared tooltips for improved styling and functionality
+- Init kinetic theme to ensure consistent visuals across the app
+- Code structure refactor for readability and maintainability
 
 ## 🧯 Fixes
-None.
+- Fixed CSS classes in the details pane to ensure correct layout
+- Resolved styling inconsistencies in the Kinetic Paper theme across screens
+- Minor stability improvements to theme-related visuals
 
 ## ⚠️ Breaking Changes
-- The Fight Diff label has been renamed to Fight Comparison in the UI. References, bookmarks, or guidance that mention Fight Diff may need updating.
+None.
