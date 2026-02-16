@@ -5225,6 +5225,15 @@ body.theme-kinetic.theme-kinetic-dark .settings-view .kinetic-font-option.kineti
     border-color: rgba(236, 197, 132, 0.62) !important;
 }
 
+body.theme-kinetic.theme-kinetic-dark .settings-view .dashboard-layout-option {
+    color: #efdcb8 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .settings-view .dashboard-layout-option.dashboard-layout-option--active {
+    color: #f8e8cb !important;
+    border-color: rgba(236, 197, 132, 0.62) !important;
+}
+
 body.theme-kinetic.theme-kinetic-dark .app-version-pill {
     color: #f2e2c2 !important;
     border-color: rgba(236, 197, 132, 0.42) !important;
@@ -6342,4 +6351,15 @@ body.web-report.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime > div:first
 body.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime .text-fuchsia-300,
 body.web-report.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime .text-fuchsia-300 {
     color: #f0debe !important;
+}
+
+/* Dashboard side layout: modern/kinetic stats tiles need a compact grid in the side rail. */
+.dashboard-stats-side-rail .matte-tiles-shell > .grid.grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 639px) {
+    .dashboard-stats-side-rail .matte-tiles-shell > .grid.grid-cols-4 {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
 }

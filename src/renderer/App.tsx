@@ -5,7 +5,7 @@ import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { Webhook } from './WebhookModal';
-import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_KINETIC_FONT_STYLE, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IUploadRetryQueueState, KineticFontStyle } from './global.d';
+import { DashboardLayout, DEFAULT_DASHBOARD_LAYOUT, DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_KINETIC_FONT_STYLE, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IUploadRetryQueueState, KineticFontStyle } from './global.d';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { AppLayout } from './app/AppLayout';
 import { useDevDatasets } from './app/hooks/useDevDatasets';
@@ -52,6 +52,7 @@ function App() {
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte' | 'kinetic'>('classic');
     const [kineticFontStyle, setKineticFontStyle] = useState<KineticFontStyle>(DEFAULT_KINETIC_FONT_STYLE);
+    const [dashboardLayout, setDashboardLayout] = useState<DashboardLayout>(DEFAULT_DASHBOARD_LAYOUT);
     const [githubWebTheme, setGithubWebTheme] = useState<string>(DEFAULT_WEB_THEME_ID);
     const [bulkUploadMode, setBulkUploadMode] = useState(false);
 
@@ -87,6 +88,7 @@ function App() {
     const [walkthroughOpen, setWalkthroughOpen] = useState(false);
     const [helpUpdatesFocusTrigger, setHelpUpdatesFocusTrigger] = useState(0);
     const walkthroughSeenMarkedRef = useRef(false);
+    const [settingsLoaded, setSettingsLoaded] = useState(false);
 
     // Webhook Management
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
@@ -700,6 +702,11 @@ function App() {
                 setUiTheme(settings.uiTheme);
             }
             setKineticFontStyle((settings.kineticFontStyle as KineticFontStyle) || DEFAULT_KINETIC_FONT_STYLE);
+            if (settings.dashboardLayout === 'top' || settings.dashboardLayout === 'side') {
+                setDashboardLayout(settings.dashboardLayout);
+            } else {
+                setDashboardLayout(DEFAULT_DASHBOARD_LAYOUT);
+            }
             if (typeof settings.githubWebTheme === 'string' && settings.githubWebTheme) {
                 setGithubWebTheme(settings.githubWebTheme);
             } else {
@@ -727,6 +734,7 @@ function App() {
             } else if (whatsNew.version && whatsNew.version !== whatsNew.lastSeenVersion) {
                 setWhatsNewOpen(true);
             }
+            setSettingsLoaded(true);
         };
         loadSettings();
 
@@ -1024,6 +1032,11 @@ function App() {
     }, []);
 
     useEffect(() => {
+        if (!settingsLoaded) return;
+        window.electronAPI?.saveSettings?.({ dashboardLayout });
+    }, [dashboardLayout, settingsLoaded]);
+
+    useEffect(() => {
         if (updateStatus) console.log('[Updater]', updateStatus);
     }, [updateStatus]);
 
@@ -1128,6 +1141,7 @@ function App() {
     }, []);
 
     const isModernTheme = uiTheme === 'modern' || uiTheme === 'kinetic';
+    const isTopDashboardLayout = dashboardLayout === 'top';
     const isCrtTheme = uiTheme === 'crt';
     const appIconPath = `${import.meta.env.BASE_URL || './'}svg/ArcBridge.svg`;
     const arcbridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;
@@ -1138,7 +1152,7 @@ function App() {
             ? 'app-shell h-screen w-screen text-white overflow-hidden flex flex-col'
             : 'app-shell h-screen w-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black text-white font-sans overflow-hidden flex flex-col';
 
-    const notificationTypeButtons = isModernTheme ? (
+    const notificationTypeButtons = isTopDashboardLayout ? (
         <div className="grid grid-cols-3 gap-1.5">
             <button
                 onClick={() => {
@@ -1209,8 +1223,8 @@ function App() {
     );
 
     const notificationTypePanel = (
-        <div className={isModernTheme ? 'space-y-1 min-w-0' : ''}>
-            <label className={`text-xs uppercase tracking-wider text-gray-500 font-semibold ${isModernTheme ? 'mb-1 block' : 'mb-2 block'}`}>Notification Type</label>
+        <div className={isTopDashboardLayout ? 'space-y-1 min-w-0' : ''}>
+            <label className={`text-xs uppercase tracking-wider text-gray-500 font-semibold ${isTopDashboardLayout ? 'mb-1 block' : 'mb-2 block'}`}>Notification Type</label>
             {notificationTypeButtons}
         </div>
     );
@@ -1222,7 +1236,7 @@ function App() {
             transition={{ delay: 0.1 }}
             className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl hover:border-white/20 transition-colors matte-config-panel"
         >
-            {isModernTheme ? (
+            {isTopDashboardLayout ? (
                 <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,360px)] gap-3 items-start p-2">
                     <div className="space-y-1 min-w-0">
                         <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Log Directory</label>
@@ -1380,7 +1394,7 @@ function App() {
         + (statusCounts.calculating || 0);
     const winRate = totalUploads > 0 ? Math.round((winLoss.wins / totalUploads) * 100) : 0;
 
-    const statsTilesPanel = isModernTheme ? (
+    const statsTilesPanel = isTopDashboardLayout ? (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1763,7 +1777,7 @@ function App() {
         filePickerOpen, setFilePickerOpen, setFilePickerError, setFilePickerSelected, filePickerError, filePickerSelected, loadLogFiles, logDirectory, selectSinceOpen, setSelectSinceOpen, setSelectSinceView, setSelectSinceDate, setSelectSinceHour, setSelectSinceMinute, setSelectSinceMeridiem, setSelectSinceMonthOpen, selectSinceDate, selectSinceHour, selectSinceMinute, selectSinceMeridiem, selectSinceView, selectSinceMonthOpen, filePickerFilter, setFilePickerFilter, filePickerLoading, filePickerAvailable, filePickerAll, filePickerListRef, setFilePickerAtBottom, lastPickedIndexRef, filePickerHasMore, filePickerAtBottom, setFilePickerMonthWindow, ensureMonthWindowForSince, handleAddSelectedFiles, uiTheme
     };
     const appLayoutCtx = {
-        shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, setStatsViewSettings, uiTheme, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, setKineticFontStyle, setGithubWebTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
+        shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, setStatsViewSettings, uiTheme, dashboardLayout, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, setKineticFontStyle, setDashboardLayout, setGithubWebTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
     };
 
     return <AppLayout ctx={appLayoutCtx} />;

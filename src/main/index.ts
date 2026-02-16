@@ -2588,6 +2588,7 @@ if (!gotTheLock) {
                 disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
                 uiTheme: store.get('uiTheme', 'classic'),
                 kineticFontStyle: store.get('kineticFontStyle', 'default'),
+                dashboardLayout: store.get('dashboardLayout', 'side'),
                 autoUpdateSupported: updateSupported,
                 autoUpdateDisabledReason: updateDisabledReason,
                 githubRepoOwner: store.get('githubRepoOwner', null),
@@ -2616,7 +2617,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', dashboardLayout?: 'top' | 'side', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -2689,6 +2690,9 @@ if (!gotTheLock) {
             if (settings.kineticFontStyle !== undefined) {
                 store.set('kineticFontStyle', settings.kineticFontStyle);
             }
+            if (settings.dashboardLayout !== undefined) {
+                store.set('dashboardLayout', settings.dashboardLayout);
+            }
             if (settings.githubRepoOwner !== undefined) {
                 store.set('githubRepoOwner', settings.githubRepoOwner);
             }
@@ -2718,7 +2722,7 @@ if (!gotTheLock) {
             }
         };
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', dashboardLayout?: 'top' | 'side', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             applySettings(settings);
         });
 
@@ -2766,6 +2770,7 @@ if (!gotTheLock) {
                 disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
                 uiTheme: store.get('uiTheme', 'classic'),
                 kineticFontStyle: store.get('kineticFontStyle', 'default'),
+                dashboardLayout: store.get('dashboardLayout', 'side'),
                 githubRepoOwner: store.get('githubRepoOwner', null),
                 githubRepoName: store.get('githubRepoName', null),
                 githubBranch: store.get('githubBranch', 'main'),

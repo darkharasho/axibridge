@@ -51,6 +51,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         computedSkillUsageData,
         setStatsViewSettings,
         uiTheme,
+        dashboardLayout,
         handleWebUpload,
         selectedWebhookId,
         setEmbedStatSettings,
@@ -58,6 +59,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setDisruptionMethod,
         setUiTheme,
         setKineticFontStyle,
+        setDashboardLayout,
         setGithubWebTheme,
         developerSettingsTrigger,
         helpUpdatesFocusTrigger,
@@ -251,6 +253,9 @@ export function AppLayout({ ctx }: { ctx: any }) {
             ? 'shadow-[0_16px_46px_rgba(0,0,0,0.5),0_0_0_1px_rgba(122,215,240,0.08)]'
             : 'shadow-[0_20px_60px_rgba(0,0,0,0.45)]';
     const statsSidebarBlurClass = uiTheme === 'matte' || uiTheme === 'kinetic' ? '' : uiTheme === 'modern' ? 'backdrop-blur-lg' : 'backdrop-blur-md';
+    const dashboardLayoutMode = dashboardLayout === 'top' || dashboardLayout === 'side'
+        ? dashboardLayout
+        : (isModernTheme ? 'top' : 'side');
     const statsSubnavItemsClass = uiTheme === 'matte'
         ? 'rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-input)] shadow-[inset_-4px_-4px_10px_rgba(255,255,255,0.03),inset_5px_5px_12px_rgba(0,0,0,0.4)]'
         : uiTheme === 'kinetic'
@@ -611,6 +616,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         onDisruptionMethodSaved={setDisruptionMethod}
                         onUiThemeSaved={setUiTheme}
                         onKineticFontStyleSaved={setKineticFontStyle}
+                        onDashboardLayoutSaved={setDashboardLayout}
+                        dashboardLayout={dashboardLayout}
                         onGithubWebThemeSaved={setGithubWebTheme}
                         developerSettingsTrigger={developerSettingsTrigger}
                         helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}
@@ -619,7 +626,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         onOpenWhatsNew={() => setWhatsNewOpen(true)}
                     />
                 ) : view === 'stats' ? null : (
-                    isModernTheme ? (
+                    dashboardLayoutMode === 'top' ? (
                         <div className="dashboard-view dashboard-modern flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 matte-dashboard-shell">
                             <div className="matte-panel-shell">
                                 {statsTilesPanel}

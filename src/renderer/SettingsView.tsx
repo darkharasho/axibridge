@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown } from 'lucide-react';
-import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME, KineticFontStyle, DEFAULT_KINETIC_FONT_STYLE } from './global.d';
+import { DashboardLayout, IEmbedStatSettings, DEFAULT_DASHBOARD_LAYOUT, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME, KineticFontStyle, DEFAULT_KINETIC_FONT_STYLE } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
@@ -22,6 +22,8 @@ interface SettingsViewProps {
     onDisruptionMethodSaved?: (method: DisruptionMethod) => void;
     onUiThemeSaved?: (theme: UiTheme) => void;
     onKineticFontStyleSaved?: (style: KineticFontStyle) => void;
+    onDashboardLayoutSaved?: (layout: DashboardLayout) => void;
+    dashboardLayout?: DashboardLayout;
     onGithubWebThemeSaved?: (themeId: string) => void;
     developerSettingsTrigger?: number;
 }
@@ -92,7 +94,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, onKineticFontStyleSaved, onGithubWebThemeSaved, developerSettingsTrigger }: SettingsViewProps) {
+export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, onKineticFontStyleSaved, onDashboardLayoutSaved, dashboardLayout: dashboardLayoutProp, onGithubWebThemeSaved, developerSettingsTrigger }: SettingsViewProps) {
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
     const [embedStats, setEmbedStats] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
@@ -102,6 +104,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [uiTheme, setUiTheme] = useState<UiTheme>(DEFAULT_UI_THEME);
     const [kineticFontStyle, setKineticFontStyle] = useState<KineticFontStyle>(DEFAULT_KINETIC_FONT_STYLE);
+    const [dashboardLayout, setDashboardLayout] = useState<DashboardLayout>(dashboardLayoutProp || DEFAULT_DASHBOARD_LAYOUT);
     const [githubRepoName, setGithubRepoName] = useState('');
     const [githubRepoOwner, setGithubRepoOwner] = useState('');
     const [githubToken, setGithubToken] = useState('');
@@ -438,8 +441,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         setSplitEnemiesByTeam(Boolean(settings.discordSplitEnemiesByTeam) || Boolean(discordEnemySplitSettings.image || discordEnemySplitSettings.embed || discordEnemySplitSettings.tiled));
         setMvpWeights({ ...DEFAULT_MVP_WEIGHTS, ...(settings.mvpWeights || {}) });
         setStatsViewSettings({ ...DEFAULT_STATS_VIEW_SETTINGS, ...(settings.statsViewSettings || {}) });
-        setUiTheme((settings.uiTheme as UiTheme) || DEFAULT_UI_THEME);
+        const resolvedTheme = (settings.uiTheme as UiTheme) || DEFAULT_UI_THEME;
+        setUiTheme(resolvedTheme);
         setKineticFontStyle((settings.kineticFontStyle as KineticFontStyle) || DEFAULT_KINETIC_FONT_STYLE);
+        const resolvedLayout = settings.dashboardLayout === 'top' || settings.dashboardLayout === 'side'
+            ? settings.dashboardLayout
+            : (dashboardLayoutProp || DEFAULT_DASHBOARD_LAYOUT);
+        setDashboardLayout(resolvedLayout);
         if (settings.disruptionMethod) {
             setDisruptionMethod(settings.disruptionMethod);
         }
@@ -466,7 +474,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             setHasLoaded(true);
         };
         loadSettings();
-    }, []);
+    }, [dashboardLayoutProp]);
+
+    useEffect(() => {
+        if (dashboardLayoutProp === 'top' || dashboardLayoutProp === 'side') {
+            setDashboardLayout(dashboardLayoutProp);
+        }
+    }, [dashboardLayoutProp]);
 
     useEffect(() => {
         if (!window.electronAPI?.onClearDpsReportCacheProgress) return;
@@ -596,6 +610,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         disruptionMethod,
         uiTheme,
         kineticFontStyle,
+        dashboardLayout,
         githubRepoOwner,
         githubRepoName,
         githubToken,
@@ -715,6 +730,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
         { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
         { key: 'uiTheme', label: 'UI Theme', description: 'Classic, Modern Slate, Matte Slate, Kinetic Paper, or CRT Hacker theme.', section: 'App' },
+        { key: 'dashboardLayout', label: 'Dashboard Layout', description: 'Place upload stats at the top or in the side rail.', section: 'App' },
         { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
         { key: 'mvpWeights', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
         { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
@@ -748,6 +764,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             disruptionMethod: disruptionMethod,
             uiTheme,
             kineticFontStyle,
+            dashboardLayout,
             githubRepoName: githubRepoName || null,
             githubRepoOwner: githubRepoOwner || null,
             githubToken: githubToken || null,
@@ -770,6 +787,12 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         }, 500);
     };
 
+    const updateDashboardLayout = (layout: DashboardLayout) => {
+        setDashboardLayout(layout);
+        window.electronAPI?.saveSettings?.({ dashboardLayout: layout });
+        onDashboardLayoutSaved?.(layout);
+    };
+
     useEffect(() => {
         if (!hasLoaded) return;
         const timeout = setTimeout(() => {
@@ -786,6 +809,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         disruptionMethod,
         uiTheme,
         kineticFontStyle,
+        dashboardLayout,
         githubRepoName,
         githubRepoOwner,
         githubToken,
@@ -1452,6 +1476,39 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                 </motion.div>
                             )}
                         </AnimatePresence>
+                        <div className="mt-4 rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+                            <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
+                                Dashboard Layout
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => updateDashboardLayout('top')}
+                                    className={`dashboard-layout-option px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${dashboardLayout === 'top'
+                                        ? 'dashboard-layout-option--active'
+                                        : ''
+                                        } ${dashboardLayout === 'top'
+                                        ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
+                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                        }`}
+                                >
+                                    Upload Stats: Top
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => updateDashboardLayout('side')}
+                                    className={`dashboard-layout-option px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${dashboardLayout === 'side'
+                                        ? 'dashboard-layout-option--active'
+                                        : ''
+                                        } ${dashboardLayout === 'side'
+                                        ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/50'
+                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                        }`}
+                                >
+                                    Upload Stats: Side
+                                </button>
+                            </div>
+                        </div>
                     </SettingsSection>
                     {/* DPS Report Token Section */}
                     <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token">
