@@ -5,7 +5,7 @@ import https from 'node:https'
 import { createHash } from 'node:crypto'
 import util from 'node:util'
 import { spawn } from 'node:child_process'
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
+import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import { computeOutgoingConditions } from '../shared/conditionsMetrics';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'
@@ -1810,6 +1810,7 @@ const normalizeUiThemeChoice = (value: unknown): 'classic' | 'modern' | 'crt' | 
 
 const resolveWebUiThemeChoice = (appUiTheme: unknown, selectedThemeId: unknown): 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' => {
     if (selectedThemeId === MATTE_WEB_THEME_ID) return 'matte';
+    if (selectedThemeId === KINETIC_WEB_THEME_ID || selectedThemeId === KINETIC_DARK_WEB_THEME_ID) return 'kinetic';
     if (selectedThemeId === CRT_WEB_THEME_ID) return 'crt';
     return normalizeUiThemeChoice(appUiTheme);
 };
@@ -2586,6 +2587,7 @@ if (!gotTheLock) {
                 statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, ...(store.get('statsViewSettings') as any || {}) },
                 disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
                 uiTheme: store.get('uiTheme', 'classic'),
+                kineticFontStyle: store.get('kineticFontStyle', 'default'),
                 autoUpdateSupported: updateSupported,
                 autoUpdateDisabledReason: updateDisabledReason,
                 githubRepoOwner: store.get('githubRepoOwner', null),
@@ -2614,7 +2616,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -2684,6 +2686,9 @@ if (!gotTheLock) {
             if (settings.uiTheme !== undefined) {
                 store.set('uiTheme', settings.uiTheme);
             }
+            if (settings.kineticFontStyle !== undefined) {
+                store.set('kineticFontStyle', settings.kineticFontStyle);
+            }
             if (settings.githubRepoOwner !== undefined) {
                 store.set('githubRepoOwner', settings.githubRepoOwner);
             }
@@ -2713,7 +2718,7 @@ if (!gotTheLock) {
             }
         };
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             applySettings(settings);
         });
 
@@ -2760,6 +2765,7 @@ if (!gotTheLock) {
                 statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, ...(store.get('statsViewSettings') as any || {}) },
                 disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
                 uiTheme: store.get('uiTheme', 'classic'),
+                kineticFontStyle: store.get('kineticFontStyle', 'default'),
                 githubRepoOwner: store.get('githubRepoOwner', null),
                 githubRepoName: store.get('githubRepoName', null),
                 githubBranch: store.get('githubBranch', 'main'),
@@ -3893,11 +3899,19 @@ if (!gotTheLock) {
                 }
 
                 const uiTheme = store.get('uiTheme', 'classic') as string;
-                const availableThemes = uiTheme === 'crt' ? [CRT_WEB_THEME] : [...BASE_WEB_THEMES, MATTE_WEB_THEME];
+                const availableThemes = uiTheme === 'crt'
+                    ? [CRT_WEB_THEME]
+                    : (uiTheme === 'kinetic' ? [KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME] : [...BASE_WEB_THEMES, MATTE_WEB_THEME]);
                 const requestedThemeId = payload?.themeId
                     || (store.get('githubWebTheme', DEFAULT_WEB_THEME_ID) as string)
                     || DEFAULT_WEB_THEME_ID;
-                const themeId = uiTheme === 'crt' ? CRT_WEB_THEME_ID : (uiTheme === 'matte' ? MATTE_WEB_THEME_ID : requestedThemeId);
+                const themeId = uiTheme === 'crt'
+                    ? CRT_WEB_THEME_ID
+                    : (uiTheme === 'matte'
+                        ? MATTE_WEB_THEME_ID
+                        : (uiTheme === 'kinetic' && requestedThemeId !== KINETIC_WEB_THEME_ID && requestedThemeId !== KINETIC_DARK_WEB_THEME_ID
+                            ? KINETIC_WEB_THEME_ID
+                            : requestedThemeId));
                 const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
 
                 sendGithubThemeStatus('Preparing', 'Loading report index...', 15);
@@ -4053,9 +4067,17 @@ if (!gotTheLock) {
                     appVersion: app.getVersion()
                 };
                 const uiTheme = store.get('uiTheme', 'classic') as string;
-                const availableThemes = uiTheme === 'crt' ? [CRT_WEB_THEME] : [...BASE_WEB_THEMES, MATTE_WEB_THEME];
+                const availableThemes = uiTheme === 'crt'
+                    ? [CRT_WEB_THEME]
+                    : (uiTheme === 'kinetic' ? [KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME] : [...BASE_WEB_THEMES, MATTE_WEB_THEME]);
                 const requestedThemeId = (store.get('githubWebTheme', DEFAULT_WEB_THEME_ID) as string) || DEFAULT_WEB_THEME_ID;
-                const themeId = uiTheme === 'crt' ? CRT_WEB_THEME_ID : (uiTheme === 'matte' ? MATTE_WEB_THEME_ID : requestedThemeId);
+                const themeId = uiTheme === 'crt'
+                    ? CRT_WEB_THEME_ID
+                    : (uiTheme === 'matte'
+                        ? MATTE_WEB_THEME_ID
+                        : (uiTheme === 'kinetic' && requestedThemeId !== KINETIC_WEB_THEME_ID && requestedThemeId !== KINETIC_DARK_WEB_THEME_ID
+                            ? KINETIC_WEB_THEME_ID
+                            : requestedThemeId));
                 const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
                 const uiThemeValue = resolveWebUiThemeChoice(uiTheme, selectedTheme?.id);
                 const reportPayload = {
@@ -4294,9 +4316,17 @@ if (!gotTheLock) {
                     appVersion: app.getVersion()
                 };
                 const uiTheme = store.get('uiTheme', 'classic') as string;
-                const availableThemes = uiTheme === 'crt' ? [CRT_WEB_THEME] : [...BASE_WEB_THEMES, MATTE_WEB_THEME];
+                const availableThemes = uiTheme === 'crt'
+                    ? [CRT_WEB_THEME]
+                    : (uiTheme === 'kinetic' ? [KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME] : [...BASE_WEB_THEMES, MATTE_WEB_THEME]);
                 const requestedThemeId = (store.get('githubWebTheme', DEFAULT_WEB_THEME_ID) as string) || DEFAULT_WEB_THEME_ID;
-                const themeId = uiTheme === 'crt' ? CRT_WEB_THEME_ID : (uiTheme === 'matte' ? MATTE_WEB_THEME_ID : requestedThemeId);
+                const themeId = uiTheme === 'crt'
+                    ? CRT_WEB_THEME_ID
+                    : (uiTheme === 'matte'
+                        ? MATTE_WEB_THEME_ID
+                        : (uiTheme === 'kinetic' && requestedThemeId !== KINETIC_WEB_THEME_ID && requestedThemeId !== KINETIC_DARK_WEB_THEME_ID
+                            ? KINETIC_WEB_THEME_ID
+                            : requestedThemeId));
                 const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
                 const uiThemeValue = resolveWebUiThemeChoice(uiTheme, selectedTheme?.id);
                 const reportPayload = {

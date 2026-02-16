@@ -9,6 +9,7 @@ export const DEFAULT_WEB_THEME_ID = 'Arcane';
 export const CRT_WEB_THEME_ID = 'CRT';
 export const MATTE_WEB_THEME_ID = 'MatteSlate';
 export const KINETIC_WEB_THEME_ID = 'KineticPaper';
+export const KINETIC_DARK_WEB_THEME_ID = 'KineticPaperDark';
 export const DEFAULT_WEB_THEME: WebTheme = {
     id: DEFAULT_WEB_THEME_ID,
     label: 'Arcane',
@@ -28,6 +29,13 @@ export const KINETIC_WEB_THEME: WebTheme = {
     label: 'Kinetic Paper',
     rgb: '154, 133, 99',
     pattern: 'linear-gradient(to bottom, #e9e3d8, #e9e3d8)'
+};
+
+export const KINETIC_DARK_WEB_THEME: WebTheme = {
+    id: KINETIC_DARK_WEB_THEME_ID,
+    label: 'Kinetic Paper (Dark)',
+    rgb: '142, 155, 214',
+    pattern: 'linear-gradient(to bottom, #2b3048, #2b3048)'
 };
 
 export const BASE_WEB_THEMES: WebTheme[] = [
@@ -269,4 +277,4 @@ export const CRT_WEB_THEME: WebTheme = {
     pattern: 'radial-gradient(circle at 12% 10%, rgba(44, 120, 78, 0.42), transparent 60%), radial-gradient(circle at 88% 22%, rgba(22, 86, 52, 0.38), transparent 62%), linear-gradient(180deg, rgba(5, 12, 8, 0.92), rgba(3, 7, 6, 0.98))'
 };
 
-export const WEB_THEMES: WebTheme[] = [...BASE_WEB_THEMES, CRT_WEB_THEME, MATTE_WEB_THEME, KINETIC_WEB_THEME];
+export const WEB_THEMES: WebTheme[] = [...BASE_WEB_THEMES, CRT_WEB_THEME, MATTE_WEB_THEME, KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME];

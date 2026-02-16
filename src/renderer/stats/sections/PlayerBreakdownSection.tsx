@@ -569,12 +569,18 @@ export const PlayerBreakdownSection = ({
                                                 <div className="stats-table-shell__head-stack">
                                                     <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
                                                         <div className="flex flex-col gap-2 min-w-0">
-                                                            <div className="flex items-center gap-2 min-w-0">
+                                                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
                                                                 {renderProfessionIcon(activePlayerBreakdown.profession, activePlayerBreakdown.professionList, 'w-4 h-4')}
                                                                 <div className="text-sm font-semibold text-gray-200">{activePlayerBreakdown.displayName}</div>
                                                                 <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
-                                                                <div className="text-sm font-semibold text-gray-200 truncate">
-                                                                    <InlineIconLabel name={activePlayerSkill?.name || ''} iconUrl={activePlayerSkill?.icon} iconClassName="h-6 w-6" />
+                                                                <div className="text-sm font-semibold text-gray-200 min-w-0">
+                                                                    <InlineIconLabel
+                                                                        name={activePlayerSkill?.name || ''}
+                                                                        iconUrl={activePlayerSkill?.icon}
+                                                                        iconClassName="h-6 w-6"
+                                                                        truncateText={false}
+                                                                        textClassName="whitespace-normal break-words"
+                                                                    />
                                                                 </div>
                                                             </div>
                                                             <div className="text-[11px] text-gray-500">
@@ -803,12 +809,18 @@ export const PlayerBreakdownSection = ({
                                                 <div className="stats-table-shell__head-stack">
                                                     <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
                                                         <div className="flex flex-col gap-2 min-w-0">
-                                                            <div className="flex items-center gap-2 min-w-0">
+                                                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
                                                                 {renderProfessionIcon(activeClassBreakdown.profession, undefined, 'w-4 h-4')}
                                                                 <div className="text-sm font-semibold text-gray-200">{activeClassBreakdown.profession}</div>
                                                                 <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
-                                                                <div className="text-sm font-semibold text-gray-200 truncate">
-                                                                    <InlineIconLabel name={activeClassSkill?.name || ''} iconUrl={activeClassSkill?.icon} iconClassName="h-6 w-6" />
+                                                                <div className="text-sm font-semibold text-gray-200 min-w-0">
+                                                                    <InlineIconLabel
+                                                                        name={activeClassSkill?.name || ''}
+                                                                        iconUrl={activeClassSkill?.icon}
+                                                                        iconClassName="h-6 w-6"
+                                                                        truncateText={false}
+                                                                        textClassName="whitespace-normal break-words"
+                                                                    />
                                                                 </div>
                                                             </div>
                                                             <div className="text-[11px] text-gray-500">

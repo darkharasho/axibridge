@@ -99,7 +99,7 @@ export const TopSkillsSection = ({
                                         iconUrl={skill.icon}
                                         iconClassName="h-6 w-6"
                                         className="min-w-0"
-                                        textClassName="truncate leading-[1.35] py-[1px]"
+                                        textClassName="truncate leading-[1.5] pt-[1px] pb-[2px]"
                                     />
                                 </span>
                                 <div className="text-right shrink-0">
@@ -148,7 +148,7 @@ export const TopSkillsSection = ({
                                         iconUrl={skill.icon}
                                         iconClassName="h-6 w-6"
                                         className="min-w-0"
-                                        textClassName="truncate leading-[1.35] py-[1px]"
+                                        textClassName="truncate leading-[1.5] pt-[1px] pb-[2px]"
                                     />
                                 </span>
                                 <div className="text-right shrink-0">

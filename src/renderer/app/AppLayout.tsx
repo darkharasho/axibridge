@@ -57,6 +57,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setMvpWeights,
         setDisruptionMethod,
         setUiTheme,
+        setKineticFontStyle,
+        setGithubWebTheme,
         developerSettingsTrigger,
         helpUpdatesFocusTrigger,
         handleHelpUpdatesFocusConsumed,
@@ -607,6 +609,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         onStatsViewSettingsSaved={setStatsViewSettings}
                         onDisruptionMethodSaved={setDisruptionMethod}
                         onUiThemeSaved={setUiTheme}
+                        onKineticFontStyleSaved={setKineticFontStyle}
+                        onGithubWebThemeSaved={setGithubWebTheme}
                         developerSettingsTrigger={developerSettingsTrigger}
                         helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}
                         onHelpUpdatesFocusConsumed={handleHelpUpdatesFocusConsumed}

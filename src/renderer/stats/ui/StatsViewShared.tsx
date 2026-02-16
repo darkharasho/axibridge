@@ -356,13 +356,15 @@ export const InlineIconLabel = ({
     iconUrl,
     className = '',
     iconClassName = 'h-4 w-4',
-    textClassName = ''
+    textClassName = '',
+    truncateText = true
 }: {
     name: string;
     iconUrl?: string | null;
     className?: string;
     iconClassName?: string;
     textClassName?: string;
+    truncateText?: boolean;
 }) => {
     const resolvedIconUrl = useCachedIconUrl(iconUrl);
     return (
@@ -370,7 +372,7 @@ export const InlineIconLabel = ({
             {resolvedIconUrl ? (
                 <img src={resolvedIconUrl} alt={name} className={`${iconClassName} shrink-0`} />
             ) : null}
-            <span className={`truncate ${textClassName}`}>{name}</span>
+            <span className={`${truncateText ? 'truncate' : ''} ${textClassName}`}>{name}</span>
         </span>
     );
 };

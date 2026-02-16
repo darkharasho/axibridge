@@ -5,12 +5,13 @@ import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { Webhook } from './WebhookModal';
-import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IUploadRetryQueueState } from './global.d';
+import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_KINETIC_FONT_STYLE, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IUploadRetryQueueState, KineticFontStyle } from './global.d';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { AppLayout } from './app/AppLayout';
 import { useDevDatasets } from './app/hooks/useDevDatasets';
 import { useFilePicker } from './app/hooks/useFilePicker';
 import { useWebUpload } from './app/hooks/useWebUpload';
+import { DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME_ID } from '../shared/webThemes';
 
 const dataUrlToUint8Array = (dataUrl: string): Uint8Array => {
     const commaIndex = dataUrl.indexOf(',');
@@ -50,6 +51,8 @@ function App() {
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte' | 'kinetic'>('classic');
+    const [kineticFontStyle, setKineticFontStyle] = useState<KineticFontStyle>(DEFAULT_KINETIC_FONT_STYLE);
+    const [githubWebTheme, setGithubWebTheme] = useState<string>(DEFAULT_WEB_THEME_ID);
     const [bulkUploadMode, setBulkUploadMode] = useState(false);
 
     const [screenshotData, setScreenshotData] = useState<ILogData | null>(null);
@@ -536,13 +539,17 @@ function App() {
 
     useEffect(() => {
         const body = document.body;
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic', 'theme-kinetic-dark', 'theme-kinetic-font-original');
         if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
         else if (uiTheme === 'matte') body.classList.add('theme-matte');
-        else if (uiTheme === 'kinetic') body.classList.add('theme-kinetic');
+        else if (uiTheme === 'kinetic') {
+            body.classList.add('theme-kinetic');
+            if (kineticFontStyle === 'original') body.classList.add('theme-kinetic-font-original');
+            if (githubWebTheme === KINETIC_DARK_WEB_THEME_ID) body.classList.add('theme-kinetic-dark');
+        }
         else body.classList.add('theme-classic');
-    }, [uiTheme]);
+    }, [uiTheme, githubWebTheme, kineticFontStyle]);
 
 
     // Stats calculation
@@ -691,6 +698,12 @@ function App() {
             }
             if (settings.uiTheme) {
                 setUiTheme(settings.uiTheme);
+            }
+            setKineticFontStyle((settings.kineticFontStyle as KineticFontStyle) || DEFAULT_KINETIC_FONT_STYLE);
+            if (typeof settings.githubWebTheme === 'string' && settings.githubWebTheme) {
+                setGithubWebTheme(settings.githubWebTheme);
+            } else {
+                setGithubWebTheme(DEFAULT_WEB_THEME_ID);
             }
             if (settings.disruptionMethod) {
                 setDisruptionMethod(settings.disruptionMethod);
@@ -1418,7 +1431,7 @@ function App() {
                         </div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
+                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card">
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">W / L</div>
                         <div className="text-2xl font-bold text-white leading-none">
@@ -1434,7 +1447,7 @@ function App() {
                         <div className="text-[11px] text-gray-500">{totalUploads} logs</div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
+                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card">
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Avg Players</div>
                         <div className="text-2xl font-bold text-white leading-none">
@@ -1450,7 +1463,7 @@ function App() {
                         <div className="text-[11px] text-gray-500">Ratio {(avgEnemies ? (avgSquadSize / avgEnemies) : 0).toFixed(2)}</div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
+                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card">
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Squad KDR</div>
                         <div className="text-2xl font-bold text-emerald-300 leading-none">{squadKdr}</div>
@@ -1517,7 +1530,7 @@ function App() {
                     </div>
                 </div>
             </div>
-            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card">
+            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card uploader-kpi-card">
                 <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">W / L</div>
                 <div className="flex-1 flex items-center">
                     <div className="text-2xl font-bold text-white leading-none">
@@ -1527,7 +1540,7 @@ function App() {
                     </div>
                 </div>
             </div>
-            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card">
+            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card uploader-kpi-card">
                 <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Avg Players</div>
                 <div className="flex-1 flex items-center">
                     <div className="text-2xl font-bold text-white leading-none">
@@ -1537,7 +1550,7 @@ function App() {
                     </div>
                 </div>
             </div>
-            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card">
+            <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex flex-col matte-stat-card uploader-kpi-card">
                 <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Squad KDR</div>
                 <div className="flex-1 flex items-center">
                     <div className="text-2xl font-bold text-emerald-300 leading-none">{squadKdr}</div>
@@ -1750,7 +1763,7 @@ function App() {
         filePickerOpen, setFilePickerOpen, setFilePickerError, setFilePickerSelected, filePickerError, filePickerSelected, loadLogFiles, logDirectory, selectSinceOpen, setSelectSinceOpen, setSelectSinceView, setSelectSinceDate, setSelectSinceHour, setSelectSinceMinute, setSelectSinceMeridiem, setSelectSinceMonthOpen, selectSinceDate, selectSinceHour, selectSinceMinute, selectSinceMeridiem, selectSinceView, selectSinceMonthOpen, filePickerFilter, setFilePickerFilter, filePickerLoading, filePickerAvailable, filePickerAll, filePickerListRef, setFilePickerAtBottom, lastPickedIndexRef, filePickerHasMore, filePickerAtBottom, setFilePickerMonthWindow, ensureMonthWindowForSince, handleAddSelectedFiles, uiTheme
     };
     const appLayoutCtx = {
-        shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, setStatsViewSettings, uiTheme, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
+        shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, setStatsViewSettings, uiTheme, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, setKineticFontStyle, setGithubWebTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
     };
 
     return <AppLayout ctx={appLayoutCtx} />;

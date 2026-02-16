@@ -461,6 +461,23 @@ type SpikeFight = {
     max5s: number;
     max30s: number;
 };
+
+    const resolveFightBySelectedPoint = (
+        fights: SpikeFight[],
+        selectedPoint: { index: number; fightId: string } | null
+    ): SpikeFight | null => {
+        if (!selectedPoint) return null;
+        const selectedIndex = Number(selectedPoint.index);
+        if (Number.isInteger(selectedIndex) && selectedIndex >= 0 && selectedIndex < fights.length) {
+            return fights[selectedIndex] || null;
+        }
+        const selectedFightId = String(selectedPoint.fightId || '').trim();
+        if (selectedFightId) {
+            return fights.find((fight) => String(fight?.id || '').trim() === selectedFightId) || null;
+        }
+        return null;
+    };
+
     type SpikePlayer = {
         key: string;
         account: string;
@@ -1021,10 +1038,7 @@ type SpikeFight = {
                 deathIndices: [] as number[]
             };
         }
-        const selectedFight = spikeDamageData.fights.find((fight, index) => (
-            String(fight.id || '') === String(selectedPoint.fightId || '')
-            || index === selectedPoint.index
-        )) || null;
+        const selectedFight = resolveFightBySelectedPoint(spikeDamageData.fights, selectedPoint);
         const [account, profession] = selectedSpikePlayerKey.split('|');
         const selectedLog = logs.find((log) => {
             const id = String(log?.filePath || log?.id || '');
@@ -1389,10 +1403,8 @@ type SpikeFight = {
                 deathIndices: [] as number[]
             };
         }
-        const selectedFight = incomingStrikeDamageData.fights.find((fight, index) => (
-            String(fight.id || '') === String(selectedPoint.fightId || '')
-            || index === selectedPoint.index
-        )) || null;
+        const selectedFight = resolveFightBySelectedPoint(incomingStrikeDamageData.fights, selectedPoint);
+        const selectedFightEntry = selectedFight?.values?.[selectedIncomingStrikePlayerKey];
         const precomputedBuckets = Array.isArray(selectedFight?.values?.[selectedIncomingStrikePlayerKey]?.buckets5s)
             ? selectedFight?.values?.[selectedIncomingStrikePlayerKey]?.buckets5s || []
             : [];
@@ -1420,6 +1432,23 @@ type SpikeFight = {
                 deathIndices: precomputedDeathIndices.filter((idx) => idx < data.length)
             };
         }
+        const fallbackMetricValue = (() => {
+            if (!selectedFightEntry) return 0;
+            if (incomingStrikeMode === 'hit') return Number(selectedFightEntry.hit || 0);
+            if (incomingStrikeMode === '1s') return Number(selectedFightEntry.burst1s || 0);
+            if (incomingStrikeMode === '5s') return Number(selectedFightEntry.burst5s || 0);
+            return Number(selectedFightEntry.burst30s || 0);
+        })();
+        if (fallbackMetricValue > 0) {
+            return {
+                title: `Fight Breakdown - ${selectedPoint.shortLabel || 'Fight'} (Estimated)`,
+                data: [{ label: '0s-5s', value: fallbackMetricValue }],
+                downLabels: [] as string[],
+                deathLabels: [] as string[],
+                downIndices: [] as number[],
+                deathIndices: [] as number[]
+            };
+        }
         return {
             title: `Fight Breakdown - ${selectedPoint.shortLabel || 'Fight'}`,
             data: [] as Array<{ label: string; value: number }>,
@@ -1428,30 +1457,34 @@ type SpikeFight = {
             downIndices: [] as number[],
             deathIndices: [] as number[]
         };
-    }, [selectedIncomingStrikeFightIndex, incomingStrikeChartData, selectedIncomingStrikePlayerKey, incomingStrikeDamageData.fights]);
+    }, [selectedIncomingStrikeFightIndex, incomingStrikeChartData, selectedIncomingStrikePlayerKey, incomingStrikeDamageData.fights, incomingStrikeMode]);
 
     const incomingStrikeFightSkillRows = useMemo(() => {
         if (selectedIncomingStrikeFightIndex === null || !selectedIncomingStrikePlayerKey) return [];
         const selectedPoint = incomingStrikeChartData.find((point) => point.index === selectedIncomingStrikeFightIndex);
         if (!selectedPoint) return [];
-        const selectedFight = incomingStrikeDamageData.fights.find((fight, index) => (
-            String(fight.id || '') === String(selectedPoint.fightId || '')
-            || index === selectedPoint.index
-        ));
-        const rows = selectedFight?.values?.[selectedIncomingStrikePlayerKey]?.skillRows || [];
-        return [...rows]
+        const selectedFight = resolveFightBySelectedPoint(incomingStrikeDamageData.fights, selectedPoint);
+        const selectedFightEntry = selectedFight?.values?.[selectedIncomingStrikePlayerKey];
+        const rows = selectedFightEntry?.skillRows || [];
+        const normalizedRows = [...rows]
             .filter((row) => Number(row?.damage || 0) > 0)
             .sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))
             .slice(0, 30);
+        if (normalizedRows.length > 0) return normalizedRows;
+        const fallbackDamage = Number(selectedFightEntry?.hit || 0);
+        if (fallbackDamage <= 0) return normalizedRows;
+        return [{
+            skillName: String(selectedFightEntry?.skillName || 'Unknown Skill'),
+            damage: fallbackDamage,
+            hits: 1,
+            icon: undefined
+        }];
     }, [selectedIncomingStrikeFightIndex, selectedIncomingStrikePlayerKey, incomingStrikeChartData, incomingStrikeDamageData.fights]);
     const spikeFightSkillRows = useMemo(() => {
         if (selectedSpikeFightIndex === null || !selectedSpikePlayerKey) return [];
         const selectedPoint = spikeChartData.find((point) => point.index === selectedSpikeFightIndex);
         if (!selectedPoint) return [];
-        const selectedFight = spikeDamageData.fights.find((fight, index) => (
-            String(fight.id || '') === String(selectedPoint.fightId || '')
-            || index === selectedPoint.index
-        ));
+        const selectedFight = resolveFightBySelectedPoint(spikeDamageData.fights, selectedPoint);
         const rows = selectedFight?.values?.[selectedSpikePlayerKey]?.skillRows || [];
         return [...rows]
             .filter((row) => Number(row?.damage || 0) > 0)

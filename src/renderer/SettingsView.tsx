@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown } from 'lucide-react';
-import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME } from './global.d';
+import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME, KineticFontStyle, DEFAULT_KINETIC_FONT_STYLE } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
+import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -21,6 +21,8 @@ interface SettingsViewProps {
     onStatsViewSettingsSaved?: (settings: IStatsViewSettings) => void;
     onDisruptionMethodSaved?: (method: DisruptionMethod) => void;
     onUiThemeSaved?: (theme: UiTheme) => void;
+    onKineticFontStyleSaved?: (style: KineticFontStyle) => void;
+    onGithubWebThemeSaved?: (themeId: string) => void;
     developerSettingsTrigger?: number;
 }
 
@@ -90,7 +92,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, developerSettingsTrigger }: SettingsViewProps) {
+export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, onKineticFontStyleSaved, onGithubWebThemeSaved, developerSettingsTrigger }: SettingsViewProps) {
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
     const [embedStats, setEmbedStats] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
@@ -99,6 +101,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [uiTheme, setUiTheme] = useState<UiTheme>(DEFAULT_UI_THEME);
+    const [kineticFontStyle, setKineticFontStyle] = useState<KineticFontStyle>(DEFAULT_KINETIC_FONT_STYLE);
     const [githubRepoName, setGithubRepoName] = useState('');
     const [githubRepoOwner, setGithubRepoOwner] = useState('');
     const [githubToken, setGithubToken] = useState('');
@@ -177,7 +180,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const availableWebThemes = useMemo(() => {
         if (uiTheme === 'crt') return [CRT_WEB_THEME];
         if (uiTheme === 'matte') return [MATTE_WEB_THEME];
-        if (uiTheme === 'kinetic') return [KINETIC_WEB_THEME];
+        if (uiTheme === 'kinetic') return [KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME];
         return BASE_WEB_THEMES;
     }, [uiTheme]);
     const orderedThemes = useMemo(() => {
@@ -417,12 +420,12 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             return;
         }
         if (uiTheme === 'kinetic') {
-            if (githubWebTheme !== KINETIC_WEB_THEME_ID) {
+            if (githubWebTheme !== KINETIC_WEB_THEME_ID && githubWebTheme !== KINETIC_DARK_WEB_THEME_ID) {
                 setGithubWebTheme(KINETIC_WEB_THEME_ID);
             }
             return;
         }
-        if (githubWebTheme === CRT_WEB_THEME_ID || githubWebTheme === MATTE_WEB_THEME_ID || githubWebTheme === KINETIC_WEB_THEME_ID) {
+        if (githubWebTheme === CRT_WEB_THEME_ID || githubWebTheme === MATTE_WEB_THEME_ID || githubWebTheme === KINETIC_WEB_THEME_ID || githubWebTheme === KINETIC_DARK_WEB_THEME_ID) {
             setGithubWebTheme(DEFAULT_WEB_THEME_ID);
         }
     }, [uiTheme, githubWebTheme]);
@@ -436,6 +439,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         setMvpWeights({ ...DEFAULT_MVP_WEIGHTS, ...(settings.mvpWeights || {}) });
         setStatsViewSettings({ ...DEFAULT_STATS_VIEW_SETTINGS, ...(settings.statsViewSettings || {}) });
         setUiTheme((settings.uiTheme as UiTheme) || DEFAULT_UI_THEME);
+        setKineticFontStyle((settings.kineticFontStyle as KineticFontStyle) || DEFAULT_KINETIC_FONT_STYLE);
         if (settings.disruptionMethod) {
             setDisruptionMethod(settings.disruptionMethod);
         }
@@ -591,6 +595,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         statsViewSettings,
         disruptionMethod,
         uiTheme,
+        kineticFontStyle,
         githubRepoOwner,
         githubRepoName,
         githubToken,
@@ -714,6 +719,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         { key: 'mvpWeights', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
         { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
         { key: 'disruptionMethod', label: 'CC/Strip Method', description: 'Count, duration, or tiered.', section: 'Stats' },
+        { key: 'kineticFontStyle', label: 'Kinetic Font Style', description: 'Use kinetic default font or original app font.', section: 'App' },
         { key: 'githubRepoOwner', label: 'GitHub Owner', description: 'GitHub Pages owner/org.', section: 'GitHub' },
         { key: 'githubRepoName', label: 'GitHub Repo', description: 'GitHub Pages repository.', section: 'GitHub' },
         { key: 'githubBranch', label: 'GitHub Branch', description: 'Branch for web uploads.', section: 'GitHub' },
@@ -741,6 +747,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             statsViewSettings: statsViewSettings,
             disruptionMethod: disruptionMethod,
             uiTheme,
+            kineticFontStyle,
             githubRepoName: githubRepoName || null,
             githubRepoOwner: githubRepoOwner || null,
             githubToken: githubToken || null,
@@ -753,6 +760,8 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         onStatsViewSettingsSaved?.(statsViewSettings);
         onDisruptionMethodSaved?.(disruptionMethod);
         onUiThemeSaved?.(uiTheme);
+        onKineticFontStyleSaved?.(kineticFontStyle);
+        onGithubWebThemeSaved?.(githubWebTheme || DEFAULT_WEB_THEME_ID);
 
         setTimeout(() => {
             setIsSaving(false);
@@ -776,6 +785,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         statsViewSettings,
         disruptionMethod,
         uiTheme,
+        kineticFontStyle,
         githubRepoName,
         githubRepoOwner,
         githubToken,
@@ -1361,13 +1371,29 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setUiTheme('kinetic')}
-                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'kinetic'
+                                onClick={() => {
+                                    setUiTheme('kinetic');
+                                    setGithubWebTheme(KINETIC_WEB_THEME_ID);
+                                }}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'kinetic' && githubWebTheme !== KINETIC_DARK_WEB_THEME_ID
                                     ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
                                     : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
                                     }`}
                             >
                                 Kinetic Paper
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setUiTheme('kinetic');
+                                    setGithubWebTheme(KINETIC_DARK_WEB_THEME_ID);
+                                }}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'kinetic' && githubWebTheme === KINETIC_DARK_WEB_THEME_ID
+                                    ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/50'
+                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                    }`}
+                            >
+                                Kinetic Paper (Dark)
                             </button>
                             <button
                                 type="button"
@@ -1380,6 +1406,52 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                 CRT Hacker
                             </button>
                         </div>
+                        <AnimatePresence initial={false}>
+                            {uiTheme === 'kinetic' && (
+                                <motion.div
+                                    key="kinetic-font-options"
+                                    initial={{ opacity: 0, y: -8, height: 0 }}
+                                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                    exit={{ opacity: 0, y: -8, height: 0 }}
+                                    transition={{ duration: 0.24, ease: 'easeOut' }}
+                                    className="mt-4 overflow-hidden"
+                                >
+                                    <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+                                        <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
+                                            Kinetic Font
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setKineticFontStyle('default')}
+                                                className={`kinetic-font-option px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${kineticFontStyle === 'default'
+                                                    ? 'kinetic-font-option--active'
+                                                    : ''
+                                                    } ${kineticFontStyle === 'default'
+                                                    ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
+                                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                                    }`}
+                                            >
+                                                Default Kinetic Font
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setKineticFontStyle('original')}
+                                                className={`kinetic-font-option px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${kineticFontStyle === 'original'
+                                                    ? 'kinetic-font-option--active'
+                                                    : ''
+                                                    } ${kineticFontStyle === 'original'
+                                                    ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/50'
+                                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                                    }`}
+                                            >
+                                                Original App Font
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </SettingsSection>
                     {/* DPS Report Token Section */}
                     <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token">

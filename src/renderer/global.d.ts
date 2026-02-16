@@ -131,6 +131,7 @@ export interface IUploadRetryQueueState {
 }
 
 export type UiTheme = 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic';
+export type KineticFontStyle = 'default' | 'original';
 
 export type DisruptionMethod = 'count' | 'duration' | 'tiered';
 
@@ -204,6 +205,7 @@ export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS: IDiscordEnemySplitSettings = 
 };
 
 export const DEFAULT_UI_THEME: UiTheme = 'classic';
+export const DEFAULT_KINETIC_FONT_STYLE: KineticFontStyle = 'default';
 
 export interface IElectronAPI {
     selectDirectory: () => Promise<string | null>;
@@ -228,6 +230,7 @@ export interface IElectronAPI {
         statsViewSettings: IStatsViewSettings;
         disruptionMethod: DisruptionMethod;
         uiTheme?: UiTheme;
+        kineticFontStyle?: KineticFontStyle;
         autoUpdateSupported?: boolean;
         autoUpdateDisabledReason?: string | null;
         githubRepoOwner?: string | null;
@@ -263,6 +266,7 @@ export interface IElectronAPI {
         statsViewSettings?: IStatsViewSettings;
         disruptionMethod?: DisruptionMethod;
         uiTheme?: UiTheme;
+        kineticFontStyle?: KineticFontStyle;
         githubRepoOwner?: string | null;
         githubRepoName?: string | null;
         githubBranch?: string | null;

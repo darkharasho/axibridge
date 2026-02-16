@@ -692,6 +692,27 @@ body.web-report.theme-kinetic .stats-view .fight-diff-select option {
     color: #433b32 !important;
 }
 
+body.theme-kinetic.theme-kinetic-dark .stats-view .fight-diff-select,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .fight-diff-select {
+    background-color: rgba(54, 62, 91, 0.96) !important;
+    border-color: rgba(226, 191, 136, 0.34) !important;
+    color: #f3e1c2 !important;
+    box-shadow: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23e4cda1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E") !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .fight-diff-select:focus,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .fight-diff-select:focus {
+    border-color: rgba(236, 197, 132, 0.58) !important;
+    box-shadow: 0 0 0 1px rgba(236, 197, 132, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .fight-diff-select option,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .fight-diff-select option {
+    background-color: #3b4363 !important;
+    color: #f3e1c2 !important;
+}
+
 body.web-report .stats-sections>[data-section-visible="true"]+[data-section-visible="true"] {
     margin-top: 1.5rem;
 }
@@ -3352,6 +3373,10 @@ body.theme-kinetic {
     -moz-osx-font-smoothing: grayscale;
 }
 
+body.theme-kinetic.theme-kinetic-font-original {
+    font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif !important;
+}
+
 body.theme-kinetic .app-shell .bg-white\/5,
 body.theme-kinetic .app-shell .bg-white\/10,
 body.theme-kinetic .app-shell .bg-black\/20,
@@ -3446,6 +3471,48 @@ body.theme-kinetic .settings-back-button svg {
     color: #3a332b !important;
 }
 
+body.theme-kinetic.theme-kinetic-dark .settings-title,
+body.web-report.theme-kinetic.theme-kinetic-dark .settings-title {
+    color: #f4e2c3 !important;
+    -webkit-text-fill-color: #f4e2c3 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .settings-back-button,
+body.web-report.theme-kinetic.theme-kinetic-dark .settings-back-button {
+    color: #f1dfbf !important;
+    background-color: rgba(59, 67, 99, 0.96) !important;
+    border-color: rgba(236, 197, 132, 0.42) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .settings-back-button:hover,
+body.web-report.theme-kinetic.theme-kinetic-dark .settings-back-button:hover {
+    color: #fff1d8 !important;
+    background-color: rgba(70, 79, 116, 0.98) !important;
+    border-color: rgba(246, 208, 146, 0.54) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .settings-back-button svg,
+body.web-report.theme-kinetic.theme-kinetic-dark .settings-back-button svg {
+    color: #f1dfbf !important;
+}
+
+/* Give Settings controls a color accent so actions are easier to scan. */
+body.theme-kinetic .settings-view button.bg-white\/5:not(.settings-back-button),
+body.theme-kinetic .settings-view button.bg-white\/10:not(.settings-back-button) {
+    background-image: none !important;
+    background-color: rgba(220, 211, 198, 0.86) !important;
+    border-color: rgba(104, 94, 82, 0.34) !important;
+    color: #3a332b !important;
+}
+
+body.theme-kinetic .settings-view button.bg-white\/5:not(.settings-back-button):hover,
+body.theme-kinetic .settings-view button.bg-white\/10:not(.settings-back-button):hover {
+    background-image: none !important;
+    background-color: rgba(226, 218, 205, 0.94) !important;
+    border-color: rgba(104, 94, 82, 0.46) !important;
+    color: #2f2a24 !important;
+}
+
 body.theme-kinetic .app-shell .rounded-2xl,
 body.theme-kinetic .app-shell .rounded-xl {
     border-radius: 12px !important;
@@ -3511,6 +3578,11 @@ body.theme-kinetic .dense-table__cell--right,
 body.web-report.theme-kinetic .font-mono,
 body.web-report.theme-kinetic .dense-table__cell--right {
     font-family: "Edu SA Hand", "IBM Plex Serif", "Iowan Old Style", "Georgia", "Times New Roman", serif !important;
+}
+
+body.theme-kinetic.theme-kinetic-font-original .app-shell .font-mono,
+body.theme-kinetic.theme-kinetic-font-original .dense-table__cell--right {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
 }
 
 body.theme-kinetic .stats-view [data-section-visible="true"] {
@@ -4699,4 +4771,1281 @@ body.web-report.theme-kinetic .text-\[12px\] {
 body.web-report.theme-kinetic .report-nav-group-label {
     font-size: 10px !important;
     letter-spacing: 0.18em !important;
+}
+
+/* Kinetic Dark variant for web reports. */
+body.web-report.theme-kinetic.theme-kinetic-dark {
+    --bg-base: #2b3048;
+    --bg-elevated: #323954;
+    --bg-card: rgba(57, 64, 93, 0.9);
+    --bg-hover: rgba(66, 74, 108, 0.95);
+    --bg-input: rgba(49, 56, 83, 0.92);
+    --border-subtle: rgba(157, 171, 222, 0.16);
+    --border-default: rgba(157, 171, 222, 0.26);
+    --border-hover: rgba(175, 188, 238, 0.4);
+    --text-primary: #eef3ff;
+    --text-secondary: #d2dcf8;
+    --text-muted: #a8b6dd;
+    --scrollbar-track: rgba(73, 81, 114, 0.9);
+    --scrollbar-thumb: rgba(145, 158, 214, 0.5);
+    --scrollbar-thumb-hover: rgba(171, 183, 236, 0.68);
+    --accent-bg: rgba(142, 155, 214, 0.14);
+    --accent-border: rgba(142, 155, 214, 0.32);
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view th,
+body.web-report.theme-kinetic.theme-kinetic-dark #attendance-ledger thead th,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__header,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__head,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__head--pinned,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__cell--pinned {
+    background: var(--bg-input) !important;
+    color: var(--text-secondary) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view td,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__title,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__cell,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-share-tooltip,
+body.web-report.theme-kinetic.theme-kinetic-dark .profession-multi-tooltip,
+body.web-report.theme-kinetic.theme-kinetic-dark .count-class-tooltip,
+body.web-report.theme-kinetic.theme-kinetic-dark .skill-breakdown-tooltip {
+    color: var(--text-secondary) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__subtitle {
+    color: var(--text-muted) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__cell {
+    background: rgba(59, 67, 97, 0.84) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__row:nth-of-type(odd) > .dense-table__cell {
+    background: rgba(54, 62, 90, 0.86) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__row:hover > .dense-table__cell {
+    background: rgba(66, 74, 108, 0.9) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-share-table,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-share-table.bg-black\/30,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-share-table .bg-black\/20,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-share-table .bg-black\/30,
+body.web-report.theme-kinetic.theme-kinetic-dark .incoming-skill-table-container,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-share-tooltip,
+body.web-report.theme-kinetic.theme-kinetic-dark .profession-multi-tooltip,
+body.web-report.theme-kinetic.theme-kinetic-dark .count-class-tooltip,
+body.web-report.theme-kinetic.theme-kinetic-dark .skill-breakdown-tooltip,
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+    background: var(--bg-card) !important;
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-default) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-text,
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-cartesian-axis-tick-value,
+body.web-report.theme-kinetic.theme-kinetic-dark .report-mini-donut text {
+    fill: var(--text-muted) !important;
+}
+
+/* Web report header + navbar must use dark kinetic surfaces, not light kinetic defaults. */
+body.web-report.theme-kinetic.theme-kinetic-dark .glass-card {
+    background-color: rgba(57, 64, 93, 0.9) !important;
+    border-color: rgba(230, 198, 143, 0.3) !important;
+    box-shadow: 0 10px 24px rgba(16, 20, 34, 0.36) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-brand-label {
+    color: #e4cfab !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-sidebar {
+    background: rgba(43, 49, 72, 0.98) !important;
+    border-color: rgba(230, 198, 143, 0.28) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-sidebar .report-nav-group-btn {
+    background: rgba(56, 63, 92, 0.9) !important;
+    border-color: rgba(226, 191, 136, 0.3) !important;
+    color: #ead7b3 !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-sidebar .report-nav-group-btn:hover {
+    background: rgba(63, 72, 105, 0.94) !important;
+    border-color: rgba(236, 197, 132, 0.44) !important;
+    color: #f4e3c4 !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-sidebar .report-nav-group-btn.text-white {
+    background: rgba(68, 76, 110, 0.96) !important;
+    border-color: rgba(236, 197, 132, 0.58) !important;
+    color: #f4e3c4 !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-group-icon,
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-sidebar .report-nav-chevron,
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-sidebar .report-nav-chevron .text-gray-300 {
+    color: #d9c49f !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-sidebar .report-nav-submenu {
+    background: rgba(49, 56, 83, 0.96) !important;
+    border-color: rgba(226, 191, 136, 0.24) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-sidebar .report-nav-item-btn {
+    color: #e3d0ad !important;
+    border-color: transparent !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-sidebar .report-nav-item-btn:hover {
+    background: rgba(70, 79, 116, 0.92) !important;
+    border-color: rgba(236, 197, 132, 0.36) !important;
+    color: #f4e3c4 !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-nav-sidebar .report-nav-item-btn.text-white {
+    background: rgba(68, 76, 110, 0.94) !important;
+    border-color: rgba(236, 197, 132, 0.5) !important;
+    color: #f5e4c6 !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-back-link {
+    color: #f3e1c1 !important;
+    background-color: rgba(58, 66, 98, 0.96) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-back-link:hover {
+    background-color: rgba(69, 79, 117, 0.98) !important;
+    color: #fff2db !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark .report-back-link span {
+    color: #e4cfaa !important;
+}
+
+/* Dark kinetic: keep original action color families (muted) for app buttons. */
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-blue-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-cyan-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-sky-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-blue-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-cyan-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-sky-"] {
+    background-color: rgba(96, 130, 178, 0.34) !important;
+    border-color: rgba(139, 175, 225, 0.44) !important;
+    color: #e4efff !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-emerald-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-green-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-lime-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-emerald-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-green-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-lime-"] {
+    background-color: rgba(96, 150, 112, 0.34) !important;
+    border-color: rgba(139, 201, 156, 0.44) !important;
+    color: #e4f7e8 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-indigo-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-violet-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-purple-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-indigo-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-violet-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-purple-"] {
+    background-color: rgba(115, 110, 172, 0.34) !important;
+    border-color: rgba(164, 157, 227, 0.44) !important;
+    color: #ece9ff !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-red-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-rose-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-red-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-rose-"] {
+    background-color: rgba(166, 108, 108, 0.34) !important;
+    border-color: rgba(224, 154, 154, 0.44) !important;
+    color: #fde7e4 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-amber-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-yellow-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-orange-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-amber-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-yellow-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-orange-"] {
+    background-color: rgba(168, 132, 90, 0.34) !important;
+    border-color: rgba(225, 186, 132, 0.44) !important;
+    color: #fff0d9 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-slate-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-gray-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-slate-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-gray-"] {
+    background-color: rgba(94, 104, 128, 0.34) !important;
+    border-color: rgba(146, 159, 188, 0.42) !important;
+    color: #e6ebf8 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-blue-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-cyan-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-sky-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-blue-"]:hover,
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-cyan-"]:hover,
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-sky-"]:hover {
+    background-color: rgba(109, 146, 197, 0.44) !important;
+    border-color: rgba(170, 202, 243, 0.54) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-emerald-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-green-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-lime-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-emerald-"]:hover,
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-green-"]:hover,
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-lime-"]:hover {
+    background-color: rgba(110, 170, 128, 0.44) !important;
+    border-color: rgba(163, 224, 181, 0.54) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-indigo-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-violet-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-purple-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-indigo-"]:hover,
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-violet-"]:hover,
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-purple-"]:hover {
+    background-color: rgba(129, 123, 191, 0.44) !important;
+    border-color: rgba(182, 175, 241, 0.54) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-red-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-rose-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-red-"]:hover,
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-rose-"]:hover {
+    background-color: rgba(182, 120, 120, 0.44) !important;
+    border-color: rgba(234, 172, 172, 0.54) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-amber-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-yellow-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell button[class*="bg-orange-"]:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-amber-"]:hover,
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-yellow-"]:hover,
+body.theme-kinetic.theme-kinetic-dark .app-shell [role="button"][class*="bg-orange-"]:hover {
+    background-color: rgba(185, 146, 100, 0.44) !important;
+    border-color: rgba(239, 198, 144, 0.54) !important;
+}
+
+/* Kinetic Dark variant for desktop app shell. */
+body.theme-kinetic.theme-kinetic-dark {
+    --bg-base: #2b3048;
+    --bg-elevated: #323954;
+    --bg-card: rgba(57, 64, 93, 0.9);
+    --bg-hover: rgba(66, 74, 108, 0.95);
+    --bg-input: rgba(49, 56, 83, 0.92);
+    --border-subtle: rgba(157, 171, 222, 0.16);
+    --border-default: rgba(157, 171, 222, 0.26);
+    --border-hover: rgba(175, 188, 238, 0.4);
+    --text-primary: #eef3ff;
+    --text-secondary: #d2dcf8;
+    --text-muted: #a8b6dd;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell .bg-white\/5,
+body.theme-kinetic.theme-kinetic-dark .app-shell .bg-black\/30 {
+    background-color: var(--bg-card) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell .bg-white\/10,
+body.theme-kinetic.theme-kinetic-dark .app-shell .bg-black\/20,
+body.theme-kinetic.theme-kinetic-dark .app-shell .bg-black\/35,
+body.theme-kinetic.theme-kinetic-dark .app-shell .bg-black\/40 {
+    background-color: var(--bg-input) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell .border-white\/5,
+body.theme-kinetic.theme-kinetic-dark .app-shell .border-white\/10 {
+    border-color: var(--border-default) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell .border-white\/20 {
+    border-color: var(--border-hover) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell .text-white {
+    color: var(--text-primary) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell .text-gray-200,
+body.theme-kinetic.theme-kinetic-dark .app-shell .text-gray-300 {
+    color: var(--text-secondary) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell .text-gray-400,
+body.theme-kinetic.theme-kinetic-dark .app-shell .text-gray-500 {
+    color: var(--text-muted) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .settings-view button.bg-white\/5:not(.settings-back-button),
+body.theme-kinetic.theme-kinetic-dark .settings-view button.bg-white\/10:not(.settings-back-button) {
+    background-image: none !important;
+    background-color: rgba(59, 67, 99, 0.96) !important;
+    border-color: rgba(230, 198, 143, 0.38) !important;
+    color: #f3e1c1 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .settings-view button.bg-white\/5:not(.settings-back-button):hover,
+body.theme-kinetic.theme-kinetic-dark .settings-view button.bg-white\/10:not(.settings-back-button):hover {
+    background-image: none !important;
+    background-color: rgba(70, 79, 116, 0.98) !important;
+    border-color: rgba(246, 208, 146, 0.5) !important;
+    color: #fff2db !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .settings-view .kinetic-font-option {
+    color: #efdcb8 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .settings-view .kinetic-font-option.kinetic-font-option--active {
+    color: #f8e8cb !important;
+    border-color: rgba(236, 197, 132, 0.62) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-version-pill {
+    color: #f2e2c2 !important;
+    border-color: rgba(236, 197, 132, 0.42) !important;
+    background-color: rgba(58, 66, 98, 0.94) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-version-pill:hover {
+    color: #fff0d6 !important;
+    background-color: rgba(70, 79, 116, 0.98) !important;
+}
+
+/* Warm/tan color lift for Kinetic Dark (app + web report). */
+body.theme-kinetic.theme-kinetic-dark,
+body.web-report.theme-kinetic.theme-kinetic-dark {
+    --arcbridge-gradient: linear-gradient(90deg, #f0d8a9, #f0d8a9);
+    --text-primary: #f7e6c3;
+    --text-secondary: #ead8b4;
+    --text-muted: #d5c29a;
+    --scrollbar-size: 11px;
+    --scrollbar-track: rgba(40, 45, 66, 0.92);
+    --scrollbar-thumb: rgba(205, 171, 120, 0.44);
+    --scrollbar-thumb-hover: rgba(228, 194, 141, 0.62);
+    --border-subtle: rgba(223, 192, 139, 0.18);
+    --border-default: rgba(230, 198, 143, 0.3);
+    --border-hover: rgba(242, 210, 156, 0.46);
+    --accent-bg: rgba(224, 184, 120, 0.2);
+    --accent-border: rgba(236, 197, 132, 0.4);
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-window ::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-window ::-webkit-scrollbar-track {
+    background-color: rgba(46, 51, 74, 0.7) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-window {
+    background-color: rgba(45, 52, 78, 0.98) !important;
+    border-top: 1px solid rgba(230, 198, 143, 0.3) !important;
+    box-shadow: 0 -10px 34px rgba(14, 18, 31, 0.45) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-header {
+    background-color: rgba(40, 47, 71, 0.98) !important;
+    border-bottom: 1px solid rgba(230, 198, 143, 0.24) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-window .text-gray-300 {
+    color: #f1dfbf !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-window .text-gray-400 {
+    color: #e2ceaa !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-window .text-gray-500,
+body.theme-kinetic.theme-kinetic-dark .terminal-window .text-gray-600 {
+    color: #c8b28c !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-window .text-red-400 {
+    color: #f0b0a7 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-window .text-red-500 {
+    color: #e79f95 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-window .hover\:bg-white\/10:hover,
+body.theme-kinetic.theme-kinetic-dark .terminal-window .hover\:bg-white\/5:hover {
+    background-color: rgba(78, 89, 128, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .terminal-window .bg-white\/10 {
+    background-color: rgba(230, 198, 143, 0.2) !important;
+}
+
+/* Preserve semantic KPI colors in uploader stats cards for kinetic themes. */
+body.theme-kinetic .uploader-kpi-card .text-emerald-300,
+body.theme-kinetic .uploader-kpi-card .text-emerald-200 {
+    color: #9fd9a4 !important;
+}
+
+body.theme-kinetic .uploader-kpi-card .text-red-400 {
+    color: #e3a49b !important;
+}
+
+body.theme-kinetic .uploader-kpi-card .text-sky-200 {
+    color: #9fc6e5 !important;
+}
+
+/* Preserve semantic build-status pill colors in upload banner. */
+body.theme-kinetic.theme-kinetic-dark .stats-view .bg-emerald-500\/20.text-emerald-300.border-emerald-500\/40,
+body.web-report.theme-kinetic.theme-kinetic-dark .bg-emerald-500\/20.text-emerald-300.border-emerald-500\/40 {
+    background-color: rgba(95, 157, 127, 0.3) !important;
+    border-color: rgba(157, 220, 187, 0.58) !important;
+    color: #cdf2db !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-emerald-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-green-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-cyan-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-blue-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-indigo-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-violet-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-purple-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-rose-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-red-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-yellow-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-amber-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-orange-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-emerald-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-green-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-cyan-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-blue-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-indigo-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-violet-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-purple-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-rose-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-red-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-yellow-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-amber-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-orange-"] {
+    color: #f3dfbc !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-emerald-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-green-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-cyan-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-blue-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-indigo-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-violet-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-purple-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-rose-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-red-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-yellow-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-amber-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-orange-400"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-emerald-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-green-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-cyan-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-blue-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-indigo-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-violet-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-purple-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-rose-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-red-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-yellow-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-amber-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-orange-500"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-emerald-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-green-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-cyan-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-blue-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-indigo-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-violet-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-purple-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-rose-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-red-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-yellow-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-amber-600"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="text-orange-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-emerald-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-green-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-cyan-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-blue-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-indigo-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-violet-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-purple-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-rose-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-red-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-yellow-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-amber-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-orange-400"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-emerald-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-green-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-cyan-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-blue-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-indigo-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-violet-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-purple-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-rose-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-red-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-yellow-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-amber-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-orange-500"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-emerald-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-green-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-cyan-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-blue-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-indigo-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-violet-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-purple-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-rose-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-red-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-yellow-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-amber-600"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="text-orange-600"] {
+    color: #e7d7be !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-emerald-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-green-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-cyan-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-blue-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-indigo-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-violet-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-purple-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-rose-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-red-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-yellow-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-amber-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="bg-orange-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-emerald-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-green-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-cyan-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-blue-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-indigo-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-violet-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-purple-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-rose-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-red-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-yellow-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-amber-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="bg-orange-"] {
+    background-color: rgba(214, 170, 104, 0.24) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-emerald-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-green-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-cyan-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-blue-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-indigo-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-violet-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-purple-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-rose-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-red-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-yellow-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-amber-"],
+body.theme-kinetic.theme-kinetic-dark .app-shell [class*="border-orange-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-emerald-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-green-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-cyan-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-blue-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-indigo-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-violet-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-purple-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-rose-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-red-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-yellow-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-amber-"],
+body.web-report.theme-kinetic.theme-kinetic-dark [class*="border-orange-"] {
+    border-color: rgba(236, 197, 132, 0.44) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-action-upload,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-action-upload,
+body.theme-kinetic.theme-kinetic-dark .stats-action-discord,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-action-discord,
+body.theme-kinetic.theme-kinetic-dark .github-connect-btn,
+body.web-report.theme-kinetic.theme-kinetic-dark .github-connect-btn {
+    background-color: rgba(58, 66, 98, 0.96) !important;
+    border-color: rgba(236, 197, 132, 0.42) !important;
+    color: #f5e4c5 !important;
+    box-shadow: none !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-action-upload:hover:not(:disabled),
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-action-upload:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .stats-action-discord:hover:not(:disabled),
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-action-discord:hover:not(:disabled),
+body.theme-kinetic.theme-kinetic-dark .github-connect-btn:hover,
+body.web-report.theme-kinetic.theme-kinetic-dark .github-connect-btn:hover {
+    background-color: rgba(69, 79, 117, 0.98) !important;
+    border-color: rgba(246, 208, 146, 0.56) !important;
+    color: #fff3dc !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-action-upload:disabled,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-action-upload:disabled,
+body.theme-kinetic.theme-kinetic-dark .stats-action-discord:disabled,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-action-discord:disabled,
+body.theme-kinetic.theme-kinetic-dark .github-connect-btn:disabled,
+body.web-report.theme-kinetic.theme-kinetic-dark .github-connect-btn:disabled {
+    background-color: rgba(51, 58, 85, 0.78) !important;
+    border-color: rgba(180, 152, 109, 0.28) !important;
+    color: #c7b38e !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .recharts-cartesian-grid line,
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-cartesian-grid line {
+    stroke: rgba(216, 186, 137, 0.28) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .recharts-cartesian-axis-line,
+body.theme-kinetic.theme-kinetic-dark .recharts-cartesian-axis-tick-line,
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-cartesian-axis-line,
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-cartesian-axis-tick-line {
+    stroke: rgba(236, 201, 145, 0.4) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .recharts-text,
+body.theme-kinetic.theme-kinetic-dark .recharts-cartesian-axis-tick-value,
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-text,
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-cartesian-axis-tick-value,
+body.web-report.theme-kinetic.theme-kinetic-dark .report-mini-donut text {
+    fill: #e6cfab !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .recharts-tooltip-wrapper .recharts-default-tooltip,
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+    background: rgba(63, 70, 102, 0.96) !important;
+    border-color: rgba(236, 197, 132, 0.44) !important;
+    color: #f3dfbd !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .recharts-tooltip-wrapper .recharts-tooltip-item,
+body.theme-kinetic.theme-kinetic-dark .recharts-tooltip-wrapper .recharts-tooltip-label,
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-tooltip-wrapper .recharts-tooltip-item,
+body.web-report.theme-kinetic.theme-kinetic-dark .recharts-tooltip-wrapper .recharts-tooltip-label {
+    color: #f6e7cb !important;
+}
+
+/* Keep uploader KPI rows horizontally aligned in both kinetic variants. */
+body.theme-kinetic .uploader-kpi-card {
+    align-items: stretch !important;
+}
+
+body.theme-kinetic .uploader-kpi-card > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+body.theme-kinetic .uploader-kpi-card > div.text-right {
+    align-items: flex-end;
+}
+
+body.theme-kinetic .uploader-kpi-card > div > div:first-child {
+    min-height: 14px;
+    line-height: 1.1;
+    display: flex;
+    align-items: center;
+}
+
+body.theme-kinetic .uploader-kpi-card > div > div:nth-child(2) {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+}
+
+body.theme-kinetic .uploader-kpi-card > div > div:last-child {
+    min-height: 14px;
+    line-height: 1.1;
+    display: flex;
+    align-items: center;
+}
+
+/* Force all table header surfaces into dark kinetic palette (app + web report). */
+body.theme-kinetic.theme-kinetic-dark .app-shell .stats-table-shell__head-stack,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-table-shell__head-stack,
+body.theme-kinetic.theme-kinetic-dark .stats-table-column-header,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-table-column-header,
+body.theme-kinetic.theme-kinetic-dark .stats-view th,
+body.theme-kinetic.theme-kinetic-dark #attendance-ledger thead th,
+body.theme-kinetic.theme-kinetic-dark .dense-table__header,
+body.theme-kinetic.theme-kinetic-dark .dense-table__head,
+body.theme-kinetic.theme-kinetic-dark .dense-table__head--pinned,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view th,
+body.web-report.theme-kinetic.theme-kinetic-dark #attendance-ledger thead th,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__header,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__head,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__head--pinned {
+    background: var(--bg-input) !important;
+    background-color: var(--bg-input) !important;
+    color: var(--text-secondary) !important;
+    border-bottom-color: var(--border-default) !important;
+    box-shadow: none !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__head:not(:last-child)::after,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__head:not(:last-child)::after {
+    background: rgba(236, 197, 132, 0.24) !important;
+}
+
+/* Reuse player-breakdown style table outline across all stats table shells. */
+body.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-layout__content,
+body.theme-kinetic.theme-kinetic-dark .stats-view .stats-share-table,
+body.theme-kinetic.theme-kinetic-dark #attendance-ledger .bg-black\/30.border.border-white\/5.rounded-xl.overflow-hidden,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-layout__content,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-share-table,
+body.web-report.theme-kinetic.theme-kinetic-dark #attendance-ledger .bg-black\/30.border.border-white\/5.rounded-xl.overflow-hidden {
+    background-color: rgba(47, 54, 81, 0.92) !important;
+    border: 1px solid rgba(236, 197, 132, 0.34) !important;
+    box-shadow: inset 0 0 0 1px rgba(236, 197, 132, 0.12), 0 0 0 1px rgba(22, 26, 41, 0.45) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-layout__content > .stats-table-shell__rows,
+body.theme-kinetic.theme-kinetic-dark .stats-view .stats-share-table > .stats-table-shell__rows,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-layout__content > .stats-table-shell__rows,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-share-table > .stats-table-shell__rows {
+    border-top: 1px solid rgba(236, 197, 132, 0.16) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .dense-table,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .dense-table {
+    border: 1px solid rgba(236, 197, 132, 0.34) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: inset 0 0 0 1px rgba(236, 197, 132, 0.1), 0 0 0 1px rgba(22, 26, 41, 0.45) !important;
+}
+
+/* Dense table surfaces (rows/body/pinned/active) must not inherit light kinetic styling. */
+body.theme-kinetic.theme-kinetic-dark .dense-table__title,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__title {
+    color: #f2e1c1 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__subtitle,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__subtitle {
+    color: #cdbb98 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__scroll,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__scroll {
+    background: rgba(46, 53, 79, 0.92) !important;
+    border: 1px solid rgba(226, 191, 136, 0.2) !important;
+    border-radius: 10px !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__cell,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__cell {
+    color: #efdfc1 !important;
+    background: rgba(60, 68, 100, 0.88) !important;
+    border-bottom-color: rgba(226, 191, 136, 0.2) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__row:nth-of-type(odd) > .dense-table__cell,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__row:nth-of-type(odd) > .dense-table__cell {
+    background: rgba(53, 61, 91, 0.9) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__row:hover > .dense-table__cell,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__row:hover > .dense-table__cell {
+    background: rgba(70, 79, 116, 0.94) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__cell--label,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__cell--label {
+    color: #f4e5c8 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__head--pinned,
+body.theme-kinetic.theme-kinetic-dark .dense-table__cell--pinned,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__head--pinned,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__cell--pinned {
+    background: rgba(49, 56, 83, 0.96) !important;
+    box-shadow: 4px 0 10px rgba(18, 22, 38, 0.45) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__row:nth-of-type(odd) > .dense-table__cell--pinned,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__row:nth-of-type(odd) > .dense-table__cell--pinned {
+    background: rgba(46, 53, 79, 0.96) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__row:hover > .dense-table__cell--pinned,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__row:hover > .dense-table__cell--pinned {
+    background: rgba(58, 66, 97, 0.98) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__cell--active,
+body.theme-kinetic.theme-kinetic-dark .dense-table__head--active,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__cell--active,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__head--active {
+    background: rgba(76, 86, 126, 0.94) !important;
+    color: #f7e8cc !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .dense-table__cell--right,
+body.web-report.theme-kinetic.theme-kinetic-dark .dense-table__cell--right {
+    color: #ead7b3 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .scroll-scrubber__track,
+body.web-report.theme-kinetic.theme-kinetic-dark .scroll-scrubber__track {
+    background: rgba(73, 81, 114, 0.92) !important;
+    border: 1px solid rgba(226, 191, 136, 0.3) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .scroll-scrubber__thumb,
+body.web-report.theme-kinetic.theme-kinetic-dark .scroll-scrubber__thumb {
+    background: rgba(210, 180, 130, 0.62) !important;
+    border: 1px solid rgba(244, 214, 164, 0.44) !important;
+    box-shadow: none !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .scroll-scrubber__thumb:hover,
+body.web-report.theme-kinetic.theme-kinetic-dark .scroll-scrubber__thumb:hover {
+    background: rgba(224, 193, 142, 0.76) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #attendance-ledger tbody td:first-child,
+body.web-report.theme-kinetic.theme-kinetic-dark #attendance-ledger tbody td:first-child {
+    color: #f4e4c5 !important;
+}
+
+/* Healing sidebar selected tab: keep active text readable in kinetic dark. */
+body.theme-kinetic.theme-kinetic-dark #healing-stats .stats-table-layout__sidebar button.bg-lime-500\/20.text-lime-200,
+body.web-report.theme-kinetic.theme-kinetic-dark #healing-stats .stats-table-layout__sidebar button.bg-lime-500\/20.text-lime-200 {
+    color: #f3e0bf !important;
+    background: rgba(68, 76, 110, 0.96) !important;
+    border-color: rgba(236, 197, 132, 0.58) !important;
+}
+
+/* Squad composition: full dark treatment for kinetic dark variant. */
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-shell,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-shell {
+    background: rgba(52, 59, 87, 0.94) !important;
+    border-color: var(--border-default) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-shell h3,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-shell h3 {
+    color: #f3dfbc !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-shell h3 svg,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-shell h3 svg {
+    color: #e7cfa0 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-shell input,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-shell input {
+    background: rgba(44, 50, 74, 0.94) !important;
+    border-color: var(--border-default) !important;
+    color: #f0debe !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-shell input::placeholder,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-shell input::placeholder {
+    color: #baa883 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-fight-nav,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-fight-nav {
+    background: rgba(45, 51, 75, 0.96) !important;
+    border-color: var(--border-default) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-fight-nav-item,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-fight-nav-item {
+    background-image: none !important;
+    background-color: rgba(56, 63, 92, 0.9) !important;
+    border-color: rgba(226, 191, 136, 0.3) !important;
+    color: #ead7b3 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-fight-nav-item .text-gray-400,
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-fight-nav-item .text-gray-500,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-fight-nav-item .text-gray-400,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-fight-nav-item .text-gray-500 {
+    color: #c9b58f !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-fight-nav-item--active,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-fight-nav-item--active {
+    background: rgba(68, 76, 110, 0.96) !important;
+    border-color: rgba(236, 197, 132, 0.58) !important;
+    color: #f4e3c4 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-board,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-board {
+    background-image: none !important;
+    background-color: rgba(43, 49, 72, 0.98) !important;
+    border-color: var(--border-default) !important;
+    box-shadow: none !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-party-row,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-party-row {
+    background: rgba(58, 65, 95, 0.92) !important;
+    border-color: rgba(226, 191, 136, 0.26) !important;
+    box-shadow: none !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-party-badge,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-party-badge {
+    background: rgba(48, 54, 80, 0.96) !important;
+    border-color: rgba(226, 191, 136, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-party-badge .text-gray-500,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-party-badge .text-gray-500 {
+    color: #c4b08a !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-party-badge .text-gray-100,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-party-badge .text-gray-100 {
+    color: #f1dfbf !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-player-tile,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-player-tile {
+    background-image: none !important;
+    background-color: rgba(92, 104, 74, 0.24) !important;
+    border-color: rgba(160, 176, 128, 0.5) !important;
+    box-shadow: none !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-player-tile.ring-2,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-player-tile.ring-2 {
+    box-shadow: 0 0 0 1px rgba(236, 197, 132, 0.52) !important;
+    border-color: rgba(236, 197, 132, 0.68) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-player-account,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-player-account {
+    color: #f4e2c2 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-player-character,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .squad-comp-player-character {
+    color: #cfbc97 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #squad-composition .recharts-pie-sector,
+body.web-report.theme-kinetic.theme-kinetic-dark #squad-composition .recharts-pie-sector {
+    filter: saturate(0.72) brightness(0.98) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #squad-composition .squad-comp-legend-swatch,
+body.web-report.theme-kinetic.theme-kinetic-dark #squad-composition .squad-comp-legend-swatch {
+    filter: saturate(0.74) brightness(0.96) !important;
+    border: 1px solid rgba(236, 197, 132, 0.28) !important;
+}
+
+/* Top skills rank/value numbers should stay readable in kinetic dark. */
+body.theme-kinetic.theme-kinetic-dark #top-skills-outgoing .text-gray-600,
+body.theme-kinetic.theme-kinetic-dark #top-skills-incoming .text-gray-600,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-skills-outgoing .text-gray-600,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-skills-incoming .text-gray-600 {
+    color: #dccbad !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-skills-outgoing .top-skills-outgoing-value,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-skills-outgoing .top-skills-outgoing-value {
+    color: #f2ddba !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-skills-outgoing .text-gray-500,
+body.theme-kinetic.theme-kinetic-dark #top-skills-incoming .text-gray-500,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-skills-outgoing .text-gray-500,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-skills-incoming .text-gray-500 {
+    color: #ccb993 !important;
+}
+
+/* MVP cards: explicit dark kinetic palette with strong text contrast. */
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold {
+    background-color: rgba(100, 85, 58, 0.44) !important;
+    border-color: rgba(223, 185, 126, 0.56) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .bg-yellow-500\/20,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .bg-yellow-500\/20 {
+    background-color: rgba(191, 154, 93, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-white,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-white {
+    color: #fff4e1 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-400,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-500,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-500\/80,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-400,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-500,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-500\/80 {
+    color: #f2d6a2 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-200\/80,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-200\/70,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-500\/40,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-500\/30,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-200\/80,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-200\/70,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-500\/40,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .text-yellow-500\/30 {
+    color: #e8cc99 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .bg-yellow-500\/10,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .bg-white\/5,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .bg-yellow-500\/10,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .bg-white\/5 {
+    background-color: rgba(147, 120, 79, 0.36) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .border-yellow-500\/20,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .border-yellow-500\/30,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .border-yellow-500\/20,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold .border-yellow-500\/30 {
+    border-color: rgba(223, 185, 126, 0.56) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver {
+    background-color: rgba(86, 98, 126, 0.44) !important;
+    border-color: rgba(167, 185, 222, 0.5) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .text-slate-100,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .text-slate-200,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .text-slate-100,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .text-slate-200 {
+    color: #e6eefc !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .text-slate-300\/70,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .text-slate-300\/70 {
+    color: #c7d4ee !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .bg-slate-300\/15,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .bg-slate-400\/10,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .bg-slate-300\/15,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .bg-slate-400\/10 {
+    background-color: rgba(115, 130, 164, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .border-slate-300\/30,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver .border-slate-300\/30 {
+    border-color: rgba(167, 185, 222, 0.48) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze {
+    background-color: rgba(128, 94, 76, 0.42) !important;
+    border-color: rgba(214, 166, 129, 0.5) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .text-orange-100,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .text-orange-200,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .text-orange-100,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .text-orange-200 {
+    color: #f6dfca !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .text-orange-200\/70,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .text-orange-200\/70 {
+    color: #e7c3a4 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .bg-orange-400\/15,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .bg-orange-500\/10,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .bg-orange-400\/15,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .bg-orange-500\/10 {
+    background-color: rgba(154, 114, 88, 0.36) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .border-orange-400\/30,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze .border-orange-400\/30 {
+    border-color: rgba(214, 166, 129, 0.5) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card {
+    color: #f0dfc0 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card .text-gray-500,
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card .text-gray-400,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card .text-gray-500,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card .text-gray-400 {
+    color: #d8c49f !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--gold {
+    background-color: rgba(92, 77, 52, 0.58) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--silver {
+    background-color: rgba(75, 83, 110, 0.58) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card--bronze {
+    background-color: rgba(114, 82, 65, 0.56) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card .absolute.blur-\[80px\],
+body.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card .absolute.blur-\[70px\],
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card .absolute.blur-\[80px\],
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .mvp-card .absolute.blur-\[70px\] {
+    opacity: 0.42 !important;
+}
+
+/* Dark kinetic: restore muted semantic color accents for overview and non-MVP top players. */
+body.theme-kinetic.theme-kinetic-dark #overview .overview-card--green,
+body.web-report.theme-kinetic.theme-kinetic-dark #overview .overview-card--green {
+    background-image: linear-gradient(140deg, rgba(64, 116, 100, 0.5), rgba(44, 78, 74, 0.56)) !important;
+    border-color: rgba(131, 188, 167, 0.52) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #overview .overview-card--red,
+body.web-report.theme-kinetic.theme-kinetic-dark #overview .overview-card--red {
+    background-image: linear-gradient(140deg, rgba(133, 88, 85, 0.52), rgba(90, 58, 61, 0.58)) !important;
+    border-color: rgba(216, 154, 145, 0.48) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #overview .overview-card--green :is(.text-green-100, .text-green-200\/60, .text-green-200\/50, .text-green-300),
+body.web-report.theme-kinetic.theme-kinetic-dark #overview .overview-card--green :is(.text-green-100, .text-green-200\/60, .text-green-200\/50, .text-green-300) {
+    color: #d6efe2 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #overview .overview-card--red :is(.text-red-100, .text-red-200\/60, .text-red-200\/50, .text-red-300),
+body.web-report.theme-kinetic.theme-kinetic-dark #overview .overview-card--red :is(.text-red-100, .text-red-200\/60, .text-red-200\/50, .text-red-300) {
+    color: #f0d9d3 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > h3 svg,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > h3 svg {
+    color: #f2cd8a !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child > [role="button"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child > [role="button"] {
+    background-color: rgba(58, 66, 98, 0.54) !important;
+    border-color: rgba(235, 198, 133, 0.28) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child > [role="button"]:hover,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child > [role="button"]:hover {
+    background-color: rgba(66, 75, 111, 0.68) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-red-500\/20"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-red-500\/20"] {
+    background-color: rgba(163, 88, 87, 0.36) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-yellow-500\/20"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-yellow-500\/20"] {
+    background-color: rgba(178, 142, 86, 0.36) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-green-500\/20"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-green-500\/20"] {
+    background-color: rgba(92, 150, 121, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-cyan-500\/20"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-cyan-500\/20"] {
+    background-color: rgba(93, 146, 162, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-blue-500\/20"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-blue-500\/20"] {
+    background-color: rgba(91, 121, 170, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-purple-500\/20"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-purple-500\/20"] {
+    background-color: rgba(124, 103, 171, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-pink-500\/20"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-pink-500\/20"] {
+    background-color: rgba(164, 106, 145, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-indigo-500\/20"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-indigo-500\/20"] {
+    background-color: rgba(108, 116, 176, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-red-400,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-red-400 {
+    color: #f3b8ae !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-yellow-400,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-yellow-400 {
+    color: #f0d597 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-green-400,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-green-400 {
+    color: #b9e5c9 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-cyan-400,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-cyan-400 {
+    color: #b9deeb !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-blue-400,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-blue-400 {
+    color: #b7caec !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-purple-400,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-purple-400 {
+    color: #cabce8 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-pink-400,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-pink-400 {
+    color: #e4bfd6 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-indigo-400,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-indigo-400 {
+    color: #bec6ee !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-blue-300,
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-blue-300 {
+    color: #d5e4ff !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark #top-players img[src*="/svg/class-icons/"],
+body.theme-kinetic.theme-kinetic-dark #top-players img[src*="./svg/class-icons/"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players img[src*="/svg/class-icons/"],
+body.web-report.theme-kinetic.theme-kinetic-dark #top-players img[src*="./svg/class-icons/"] {
+    filter: saturate(0.9) brightness(1.02) contrast(0.96) !important;
 }
