@@ -52,8 +52,8 @@ export function DevDatasetsModal({ ctx }: { ctx: any }) {
     return (
         <AnimatePresence>
             {devDatasetsEnabled && devDatasetsOpen && (
-                <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    <motion.div className="w-full max-w-2xl bg-[#161c24]/95 border border-amber-500/30 rounded-2xl shadow-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
+                <motion.div className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <motion.div className="app-modal-card w-full max-w-2xl bg-[#161c24]/95 border border-amber-500/30 rounded-2xl shadow-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
                         <div className="px-6 pt-6 pb-4 border-b border-amber-500/20 flex items-center justify-between">
                             <div>
                                 <div className="text-xs uppercase tracking-widest text-amber-200/70">Dev Mode</div>

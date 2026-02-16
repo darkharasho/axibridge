@@ -45,13 +45,13 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
         <AnimatePresence>
             {filePickerOpen && (
                 <motion.div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg file-picker-modal"
+                    className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg file-picker-modal"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                 >
                     <motion.div
-                        className="w-full max-w-2xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6 file-picker-card"
+                        className="app-modal-card w-full max-w-2xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6 file-picker-card"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}

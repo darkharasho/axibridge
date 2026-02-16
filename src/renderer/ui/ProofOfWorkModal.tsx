@@ -56,10 +56,10 @@ export function ProofOfWorkModal<TToc extends ProofOfWorkTocItem, TResult extend
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+            className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
             onClick={(event) => event.target === event.currentTarget && onClose()}
         >
-            <div className="proof-of-work-modal relative w-full max-w-4xl bg-[#10151b]/95 border border-white/10 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.55)] p-6 overflow-hidden">
+            <div className="app-modal-card proof-of-work-modal relative w-full max-w-4xl bg-[#10151b]/95 border border-white/10 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.55)] p-6 overflow-hidden">
                 <div className="pointer-events-none absolute inset-0 opacity-60">
                     <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-cyan-500/8 blur-3xl" />
                     <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-slate-500/10 blur-3xl" />

@@ -59,7 +59,7 @@ interface StatsViewProps {
     embedded?: boolean;
     sectionVisibility?: (id: string) => boolean;
     dashboardTitle?: string;
-    uiTheme?: 'classic' | 'modern' | 'crt' | 'matte';
+    uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic';
     canShareDiscord?: boolean;
     aggregationResult?: {
         stats: any;
@@ -2057,12 +2057,17 @@ type SpikeFight = {
         }`
         : `flex-1 overflow-y-auto pr-2 space-y-6 min-h-0 border border-white/5 p-4 rounded-xl ${expandedSection ? '' : 'backdrop-blur-2xl'
         }`;
-    const scrollContainerStyle: CSSProperties | undefined = (embedded && uiTheme !== 'matte')
+    const scrollContainerStyle: CSSProperties | undefined = (embedded && uiTheme !== 'matte' && uiTheme !== 'kinetic')
         ? {
             backgroundColor: 'rgba(3, 7, 18, 0.75)',
             backgroundImage: 'linear-gradient(160deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.04) 70%)'
         }
-        : undefined;
+        : (embedded && uiTheme === 'kinetic')
+            ? {
+                backgroundColor: 'var(--bg-elevated)',
+                backgroundImage: 'none'
+            }
+            : undefined;
 
 
     const formatSkillUsageValue = (val: number) => {

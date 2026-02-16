@@ -1803,12 +1803,12 @@ const computeGitBlobSha = (content: Buffer) => {
     return createHash('sha1').update(`blob ${content.length}\0`).update(content).digest('hex');
 };
 
-const normalizeUiThemeChoice = (value: unknown): 'classic' | 'modern' | 'crt' | 'matte' => {
-    if (value === 'modern' || value === 'crt' || value === 'matte') return value;
+const normalizeUiThemeChoice = (value: unknown): 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' => {
+    if (value === 'modern' || value === 'crt' || value === 'matte' || value === 'kinetic') return value;
     return 'classic';
 };
 
-const resolveWebUiThemeChoice = (appUiTheme: unknown, selectedThemeId: unknown): 'classic' | 'modern' | 'crt' | 'matte' => {
+const resolveWebUiThemeChoice = (appUiTheme: unknown, selectedThemeId: unknown): 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' => {
     if (selectedThemeId === MATTE_WEB_THEME_ID) return 'matte';
     if (selectedThemeId === CRT_WEB_THEME_ID) return 'crt';
     return normalizeUiThemeChoice(appUiTheme);
@@ -2614,7 +2614,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -2713,7 +2713,7 @@ if (!gotTheLock) {
             }
         };
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             applySettings(settings);
         });
 

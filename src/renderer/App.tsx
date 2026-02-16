@@ -49,7 +49,7 @@ function App() {
     const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
-    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte'>('classic');
+    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte' | 'kinetic'>('classic');
     const [bulkUploadMode, setBulkUploadMode] = useState(false);
 
     const [screenshotData, setScreenshotData] = useState<ILogData | null>(null);
@@ -536,10 +536,11 @@ function App() {
 
     useEffect(() => {
         const body = document.body;
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic');
         if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
         else if (uiTheme === 'matte') body.classList.add('theme-matte');
+        else if (uiTheme === 'kinetic') body.classList.add('theme-kinetic');
         else body.classList.add('theme-classic');
     }, [uiTheme]);
 
@@ -1113,7 +1114,7 @@ function App() {
         setHelpUpdatesFocusTrigger((current) => (current === trigger ? 0 : current));
     }, []);
 
-    const isModernTheme = uiTheme === 'modern';
+    const isModernTheme = uiTheme === 'modern' || uiTheme === 'kinetic';
     const isCrtTheme = uiTheme === 'crt';
     const appIconPath = `${import.meta.env.BASE_URL || './'}svg/ArcBridge.svg`;
     const arcbridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;

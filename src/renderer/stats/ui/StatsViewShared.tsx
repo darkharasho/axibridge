@@ -250,7 +250,7 @@ const ProfessionIcon = ({
                     <div
                         ref={tooltipRef}
                         style={tooltipStyle}
-                        className={`absolute left-1/2 z-50 w-max rounded-md border border-white/10 bg-black/70 backdrop-blur-md px-2 py-1 text-[10px] text-gray-200 shadow-lg opacity-0 pointer-events-none transition-opacity ${placementClass} ${open ? 'opacity-100' : ''}`}
+                        className={`profession-multi-tooltip absolute left-1/2 z-50 w-max rounded-md border border-white/10 bg-black/70 px-2 py-1 text-[10px] text-gray-200 shadow-lg pointer-events-none ${placementClass} ${open ? 'block' : 'hidden'}`}
                     >
                         <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">Multi</div>
                         <div className="space-y-1">
@@ -316,7 +316,7 @@ export const CountClassTooltip = ({
                 <div
                     ref={tooltipRef}
                     style={tooltipStyle}
-                    className={`z-[9999] w-max rounded-md border border-white/10 bg-black/70 backdrop-blur-md px-2 py-1 text-[10px] text-gray-200 shadow-lg opacity-0 pointer-events-none transition-opacity ${open ? 'opacity-100' : ''}`}
+                    className={`count-class-tooltip z-[9999] w-max rounded-md border border-white/10 bg-black/70 px-2 py-1 text-[10px] text-gray-200 shadow-lg pointer-events-none ${open ? 'block' : 'hidden'}`}
                 >
                     <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">
                         {label}
@@ -409,7 +409,7 @@ export const SkillBreakdownTooltip = ({
                 <div
                     ref={tooltipRef}
                     style={tooltipStyle}
-                    className={`z-[9999] w-64 rounded-md border border-white/10 bg-black/70 px-3 py-2 text-[10px] text-gray-200 shadow-lg backdrop-blur-md opacity-0 pointer-events-none transition-opacity ${open ? 'opacity-100' : ''}`}
+                    className={`skill-breakdown-tooltip z-[9999] w-64 rounded-md border border-white/10 bg-black/70 px-3 py-2 text-[10px] text-gray-200 shadow-lg pointer-events-none ${open ? 'block' : 'hidden'}`}
                 >
                     <div className="text-[9px] uppercase tracking-wider text-amber-200 mb-1">{label}</div>
                     <div className="max-h-40 overflow-y-auto space-y-1">

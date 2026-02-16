@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
+import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -177,6 +177,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
     const availableWebThemes = useMemo(() => {
         if (uiTheme === 'crt') return [CRT_WEB_THEME];
         if (uiTheme === 'matte') return [MATTE_WEB_THEME];
+        if (uiTheme === 'kinetic') return [KINETIC_WEB_THEME];
         return BASE_WEB_THEMES;
     }, [uiTheme]);
     const orderedThemes = useMemo(() => {
@@ -184,7 +185,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         if (!active) return availableWebThemes;
         return [active, ...availableWebThemes.filter((theme) => theme.id !== githubWebTheme)];
     }, [availableWebThemes, githubWebTheme]);
-    const isModernLayout = uiTheme === 'modern' || uiTheme === 'matte';
+    const isModernLayout = uiTheme === 'modern' || uiTheme === 'matte' || uiTheme === 'kinetic';
     const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
 
     const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
@@ -415,7 +416,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             }
             return;
         }
-        if (githubWebTheme === CRT_WEB_THEME_ID || githubWebTheme === MATTE_WEB_THEME_ID) {
+        if (uiTheme === 'kinetic') {
+            if (githubWebTheme !== KINETIC_WEB_THEME_ID) {
+                setGithubWebTheme(KINETIC_WEB_THEME_ID);
+            }
+            return;
+        }
+        if (githubWebTheme === CRT_WEB_THEME_ID || githubWebTheme === MATTE_WEB_THEME_ID || githubWebTheme === KINETIC_WEB_THEME_ID) {
             setGithubWebTheme(DEFAULT_WEB_THEME_ID);
         }
     }, [uiTheme, githubWebTheme]);
@@ -702,7 +709,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         { key: 'webhooks', label: 'Webhook List', description: 'Saved webhook entries.', section: 'Discord' },
         { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
         { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
-        { key: 'uiTheme', label: 'UI Theme', description: 'Classic, Modern Slate, Matte Slate, or CRT Hacker theme.', section: 'App' },
+        { key: 'uiTheme', label: 'UI Theme', description: 'Classic, Modern Slate, Matte Slate, Kinetic Paper, or CRT Hacker theme.', section: 'App' },
         { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
         { key: 'mvpWeights', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
         { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
@@ -1230,7 +1237,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onBack}
-                        className="p-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
+                        className="settings-back-button p-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
@@ -1319,7 +1326,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                 <div ref={settingsScrollRef} className={`${isModernLayout ? 'min-h-0 overflow-y-auto pr-2 space-y-4' : 'flex-1 min-h-0 overflow-y-auto pr-2 space-y-4'}`}>
                     <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance">
                         <p className="text-sm text-gray-400 mb-4">
-                            Switch between Classic, Modern Slate, Matte Slate, or CRT Hacker.
+                            Switch between Classic, Modern Slate, Matte Slate, Kinetic Paper, or CRT Hacker.
                         </p>
                         <div className="flex flex-wrap gap-3">
                             <button
@@ -1351,6 +1358,16 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                                     }`}
                             >
                                 Matte Slate
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setUiTheme('kinetic')}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'kinetic'
+                                    ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
+                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                    }`}
+                            >
+                                Kinetic Paper
                             </button>
                             <button
                                 type="button"
@@ -1440,7 +1457,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
                         <div className="flex flex-wrap items-center gap-3 mb-4">
                             <button
                                 onClick={handleGithubConnect}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-colors"
+                                className="github-connect-btn flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-colors"
                             >
                                 <LinkIcon className="w-4 h-4" />
                                 {githubAuthStatus === 'connected' ? 'Re-connect GitHub' : 'Connect GitHub'}
@@ -2399,14 +2416,14 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             </div>
             {settingsNavOpen && (
                 <div
-                    className={`fixed inset-0 z-50 flex items-center justify-center px-4 ${isModernLayout ? 'lg:hidden' : ''}`}
+                    className={`app-modal-overlay fixed inset-0 z-50 flex items-center justify-center px-4 ${isModernLayout ? 'lg:hidden' : ''}`}
                     onClick={(event) => {
                         if (event.target === event.currentTarget) {
                             setSettingsNavOpen(false);
                         }
                     }}
                 >
-                    <div className="w-full max-w-sm max-h-[85vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col">
+                    <div className="app-modal-card w-full max-w-sm max-h-[85vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col">
                         <div className="flex items-center justify-between mb-3">
                             <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
                             <button
@@ -2447,13 +2464,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             <AnimatePresence>
                 {importModalOpen && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="w-full max-w-3xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl"
+                            className="app-modal-card w-full max-w-3xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -2521,13 +2538,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             <AnimatePresence>
                 {devSettingsOpen && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="w-full max-w-xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl"
+                            className="app-modal-card w-full max-w-xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -2617,13 +2634,13 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
             <AnimatePresence>
                 {githubManageOpen && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                        className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="web-reports-modal w-full max-w-3xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6"
+                            className="app-modal-card web-reports-modal w-full max-w-3xl bg-[#161c24]/95 border border-white/10 rounded-2xl shadow-2xl p-6"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}

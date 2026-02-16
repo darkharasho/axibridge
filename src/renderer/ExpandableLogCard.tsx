@@ -516,6 +516,12 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const classDisplay = settings.classDisplay ?? 'off';
     const showClassIcons = classDisplay === 'emoji' && useClassIcons;
     const alwaysShowDetailedClassInfo = !screenshotMode;
+    const useCompactClassNamesInDetails = typeof document !== 'undefined'
+        && (
+            document.body.classList.contains('theme-classic')
+            || document.body.classList.contains('theme-matte')
+            || document.body.classList.contains('theme-crt')
+        );
     const getClassToken = (p: any) => {
         if (classDisplay === 'short') {
             return getProfessionAbbrev(p.profession || 'Unknown');
@@ -557,6 +563,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         for (let i = 0; i < limitedCounts.length; i += maxRows) {
             columns.push(limitedCounts.slice(i, i + maxRows));
         }
+        const forceShortLabels = compact && useCompactClassNamesInDetails && columns.length >= 3;
         const headerClass = compact
             ? `font-semibold ${colorClass} mb-2 uppercase tracking-wider text-[10px]`
             : `font-black ${colorClass} mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'}`;
@@ -579,10 +586,13 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     const iconPath = getProfessionIconPath(profession);
                                     const label = getProfessionAbbrev(profession).toUpperCase();
                                     const displayName = profession || 'Unknown';
+                                    const displayLabel = forceShortLabels
+                                        ? label
+                                        : (alwaysShowDetailedClassInfo ? displayName : label);
                                     const shouldShowIcon = (alwaysShowDetailedClassInfo || useClassIcons) && Boolean(iconPath);
                                     return (
                                         <div key={profession} className="flex items-center justify-between gap-2 bg-white/5 rounded-md px-2 py-1 border border-white/10">
-                                            <span className="flex items-center gap-1 text-gray-100">
+                                            <span className="flex items-center gap-1 text-gray-100" title={displayName}>
                                                 {shouldShowIcon ? (
                                                     <img
                                                         src={iconPath ?? undefined}
@@ -590,10 +600,10 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                                         className={fullHeight ? 'w-5 h-5 object-contain' : 'w-4 h-4 object-contain'}
                                                     />
                                                 ) : (
-                                                    <span className="uppercase text-gray-400">{alwaysShowDetailedClassInfo ? displayName : label}</span>
+                                                    <span className="uppercase text-gray-400">{displayLabel}</span>
                                                 )}
                                                 {shouldShowIcon ? (
-                                                    <span className={`${alwaysShowDetailedClassInfo ? '' : 'uppercase '}text-gray-400`}>{alwaysShowDetailedClassInfo ? displayName : label}</span>
+                                                    <span className={`${forceShortLabels || !alwaysShowDetailedClassInfo ? 'uppercase ' : ''}text-gray-400`}>{displayLabel}</span>
                                                 ) : null}
                                             </span>
                                             <span className="font-bold text-white">{count}</span>
@@ -1255,7 +1265,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     }
                                 }}
                                 disabled={!log.permalink}
-                                className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg border active:scale-[0.98] ${!log.permalink
+                                className={`log-card-dps-link-btn w-full py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg border active:scale-[0.98] ${!log.permalink
                                     ? 'bg-blue-600/50 text-white/50 border-blue-400/10 cursor-not-allowed'
                                     : 'bg-blue-600/90 text-white hover:bg-blue-600 border-blue-400/20'
                                     }`}

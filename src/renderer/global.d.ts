@@ -130,7 +130,7 @@ export interface IUploadRetryQueueState {
     entries: IUploadRetryQueueEntry[];
 }
 
-export type UiTheme = 'classic' | 'modern' | 'crt' | 'matte';
+export type UiTheme = 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic';
 
 export type DisruptionMethod = 'count' | 'duration' | 'tiered';
 

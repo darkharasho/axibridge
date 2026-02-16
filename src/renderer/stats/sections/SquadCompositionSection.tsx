@@ -59,7 +59,7 @@ export const SquadCompositionSection = ({
                     <div className="w-full min-w-0 space-y-1.5 text-[11px] pb-2">
                         {sortedSquadClassData.map((entry: any) => (
                             <div key={entry.name} className="grid grid-cols-[12px_16px_minmax(0,1fr)_auto] items-center gap-2 text-gray-300">
-                                <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: entry.color }} />
+                                <span className="squad-comp-legend-swatch inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: entry.color }} />
                                 {getProfessionIconPath(entry.name) ? (
                                     <img
                                         src={getProfessionIconPath(entry.name) as string}
@@ -111,7 +111,7 @@ export const SquadCompositionSection = ({
                     <div className="w-full min-w-0 space-y-1.5 text-[11px] pb-2">
                         {sortedEnemyClassData.map((entry: any) => (
                             <div key={entry.name} className="grid grid-cols-[12px_16px_minmax(0,1fr)_auto] items-center gap-2 text-gray-300">
-                                <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: entry.color }} />
+                                <span className="squad-comp-legend-swatch inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: entry.color }} />
                                 {getProfessionIconPath(entry.name) ? (
                                     <img
                                         src={getProfessionIconPath(entry.name) as string}

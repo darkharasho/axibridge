@@ -68,7 +68,7 @@ export const StatsHeader = ({
                 <button
                     onClick={onWebUpload}
                     disabled={uploadingWeb}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                    className="stats-action-upload flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
                     <UploadCloud className="w-4 h-4" />
                     {uploadingWeb ? 'Uploading...' : 'Upload to Web'}
@@ -78,13 +78,13 @@ export const StatsHeader = ({
                         onClick={onShare}
                         disabled={shareDisabled}
                         aria-disabled={shareDisabled}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="stats-action-discord flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Share2 className="w-4 h-4" />
                         {sharing ? 'Sharing...' : 'Share to Discord'}
                     </button>
                     {!canShareDiscord && (
-                        <div className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md border border-white/10 bg-black/90 px-2 py-1 text-[11px] text-gray-200 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">
+                        <div className="stats-share-tooltip pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md border border-white/10 bg-black/90 px-2 py-1 text-[11px] text-gray-200 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">
                             Select a Discord webhook to enable sharing.
                         </div>
                     )}

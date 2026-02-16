@@ -1,6 +1,6 @@
 import { CSSProperties, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
-import { DEFAULT_WEB_THEME, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
+import { DEFAULT_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -70,7 +70,7 @@ interface ReportIndexEntry {
     };
 }
 
-type UiThemeChoice = 'classic' | 'modern' | 'crt' | 'matte';
+type UiThemeChoice = 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic';
 
 const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md glass-card';
 const WEB_THEME_OVERRIDE_COOKIE = 'arcbridge_web_theme_override';
@@ -146,7 +146,7 @@ const MapDonut = ({ slices }: { slices: Array<{ value: number; color: string }> 
     let offset = 0;
 
     return (
-        <svg width="48" height="48" viewBox="0 0 48 48">
+        <svg className="report-mini-donut" width="48" height="48" viewBox="0 0 48 48">
             <circle cx="24" cy="24" r={radius} stroke="rgba(255,255,255,0.35)" strokeWidth="6" fill="none" />
             {slices.map((slice, index) => {
                 const value = slice.value || 0;
@@ -180,7 +180,7 @@ const BorderlandsPie = ({ value }: { value: number | null | undefined }) => {
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = pct === null ? circumference : circumference - pct * circumference;
     return (
-        <svg width="48" height="48" viewBox="0 0 48 48">
+        <svg className="report-mini-donut" width="48" height="48" viewBox="0 0 48 48">
             <circle cx="24" cy="24" r={radius} stroke="rgba(255,255,255,0.35)" strokeWidth="6" fill="none" />
             <circle
                 cx="24"
@@ -222,6 +222,7 @@ export function ReportApp() {
     const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; section: string; hitId: number }>>([]);
     const [metricsSpecSearchFocused, setMetricsSpecSearchFocused] = useState(false);
     const [activeGroup, setActiveGroup] = useState('overview');
+    const [activeSectionId, setActiveSectionId] = useState<string>('kdr');
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
         overview: true,
         roster: false,
@@ -351,11 +352,15 @@ export function ReportApp() {
             setUiTheme('matte');
             return;
         }
+        if (themeIdOverride === KINETIC_WEB_THEME_ID) {
+            setUiTheme('kinetic');
+            return;
+        }
         if (themeIdOverride === 'CRT') {
             setUiTheme('crt');
             return;
         }
-        setUiTheme('classic');
+        setUiTheme(defaultUiTheme);
     }, [themeIdOverride, defaultUiTheme]);
 
     useEffect(() => {
@@ -625,6 +630,7 @@ export function ReportApp() {
         () => navGroups.find((group) => group.id === activeGroup) || navGroups[0],
         [navGroups, activeGroup]
     );
+    const isKineticUi = uiTheme === 'kinetic';
     const activeSectionIds = useMemo(() => {
         const baseIds = (activeGroupDef as any)?.sectionIds || (activeGroupDef?.items || []).map((item) => item.id);
         const ids = baseIds.map((id: string) => (id === 'kdr' ? 'overview' : id));
@@ -721,6 +727,12 @@ export function ReportApp() {
                 });
                 return next;
             });
+            if (normalizedAnchor === 'report-top') {
+                setActiveSectionId('kdr');
+            } else {
+                const matchedGroup = navGroups.find((group) => group.id.toLowerCase() === normalizedAnchor);
+                setActiveSectionId(matchedGroup?.items?.[0]?.id || normalizedAnchor);
+            }
             pendingScrollIdRef.current = normalizedAnchor === 'report-top'
                 ? 'kdr'
                 : normalizedAnchor;
@@ -733,26 +745,34 @@ export function ReportApp() {
     }, [navGroupByAnchor, navGroups]);
     const isMatteUi = uiTheme === 'matte';
     const resolvedTheme = theme ?? DEFAULT_WEB_THEME;
-    const accentRgb = resolvedTheme.rgb;
-    const defaultLogoColor = isMatteUi ? '#d8e1eb' : 'var(--accent)';
+    const accentRgb = isKineticUi ? '90, 80, 68' : resolvedTheme.rgb;
+    const defaultLogoColor = isMatteUi ? '#d8e1eb' : (isKineticUi ? '#24211d' : 'var(--accent)');
     const accentVars = {
         '--accent': `rgb(${accentRgb})`,
         '--accent-rgb': accentRgb,
-        '--accent-soft': `rgba(${accentRgb}, 0.32)`,
-        '--accent-strong': `rgba(${accentRgb}, 0.95)`,
-        '--accent-border': `rgba(${accentRgb}, 0.4)`,
-        '--accent-glow': `rgba(${accentRgb}, 0.18)`,
-        '--accent-glow-soft': `rgba(${accentRgb}, 0.08)`
+        '--accent-soft': `rgba(${accentRgb}, ${isKineticUi ? '0.18' : '0.32'})`,
+        '--accent-strong': `rgba(${accentRgb}, ${isKineticUi ? '0.78' : '0.95'})`,
+        '--accent-border': `rgba(${accentRgb}, ${isKineticUi ? '0.22' : '0.4'})`,
+        '--accent-glow': `rgba(${accentRgb}, ${isKineticUi ? '0.08' : '0.18'})`,
+        '--accent-glow-soft': `rgba(${accentRgb}, ${isKineticUi ? '0.04' : '0.08'})`
     } as CSSProperties;
-    const isModernUi = uiTheme === 'modern' || uiTheme === 'matte';
+    const isModernUi = uiTheme === 'modern' || uiTheme === 'matte' || uiTheme === 'kinetic';
     const reportBackgroundImage = resolvedTheme.pattern
         ? (isMatteUi
             ? undefined
+            : isKineticUi
+                ? undefined
             : isModernUi
                 ? `linear-gradient(180deg, rgba(14, 18, 26, 0.72), rgba(18, 24, 34, 0.78)), ${resolvedTheme.pattern}`
                 : resolvedTheme.pattern)
         : undefined;
-    const glassCardStyle: CSSProperties = isMatteUi
+    const glassCardStyle: CSSProperties = isKineticUi
+        ? {
+            backgroundImage: 'none',
+            backgroundColor: 'rgba(220, 210, 196, 0.95)',
+            borderColor: 'rgba(78, 67, 56, 0.18)'
+        }
+        : isMatteUi
         ? { backgroundImage: 'none', backgroundColor: 'var(--bg-card)' }
         : {
             backgroundImage: isModernUi
@@ -816,10 +836,12 @@ export function ReportApp() {
                 const normalized = normalizeTopDownContribution(normalizeCommanderDistance(data));
                 setReport(normalized);
                 const themeChoice = normalized?.stats?.uiTheme;
-                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte') {
+                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte' || themeChoice === 'kinetic') {
                     setDefaultUiTheme(themeChoice);
                 } else if (normalized?.stats?.webThemeId === MATTE_WEB_THEME_ID) {
                     setDefaultUiTheme('matte');
+                } else if (normalized?.stats?.webThemeId === KINETIC_WEB_THEME_ID) {
+                    setDefaultUiTheme('kinetic');
                 }
                 if (typeof normalized?.stats?.webThemeId === 'string' && normalized.stats.webThemeId) {
                     setDefaultThemeId(normalized.stats.webThemeId);
@@ -867,10 +889,11 @@ export function ReportApp() {
     useEffect(() => {
         const body = document.body;
         body.classList.add('web-report');
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic');
         if (isMatteUi) body.classList.add('theme-matte');
         else if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
+        else if (uiTheme === 'kinetic') body.classList.add('theme-kinetic');
         else body.classList.add('theme-classic');
     }, [uiTheme, isMatteUi]);
 
@@ -896,9 +919,10 @@ export function ReportApp() {
     useEffect(() => {
         const reportThemeId = report?.stats?.webThemeId;
         const reportUiTheme = report?.stats?.uiTheme;
-        const hasReportUiTheme = reportUiTheme === 'modern' || reportUiTheme === 'classic' || reportUiTheme === 'crt' || reportUiTheme === 'matte';
+        const hasReportUiTheme = reportUiTheme === 'modern' || reportUiTheme === 'classic' || reportUiTheme === 'crt' || reportUiTheme === 'matte' || reportUiTheme === 'kinetic';
         const reportUiThemeLooksStale = (
             (reportThemeId === MATTE_WEB_THEME_ID && reportUiTheme !== 'matte')
+            || (reportThemeId === KINETIC_WEB_THEME_ID && reportUiTheme !== 'kinetic')
             || (reportThemeId === 'CRT' && reportUiTheme !== 'crt')
         );
         if (hasReportUiTheme && !reportUiThemeLooksStale) {
@@ -910,7 +934,7 @@ export function ReportApp() {
             .then((data) => {
                 if (!isMounted) return;
                 const themeChoice = data?.theme;
-                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte') {
+                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte' || themeChoice === 'kinetic') {
                     setDefaultUiTheme(themeChoice);
                 }
             })
@@ -1317,6 +1341,8 @@ export function ReportApp() {
         const handleGroupSelect = (groupId: string) => {
             pendingScrollIdRef.current = null;
             setActiveGroup(groupId);
+            const group = navGroups.find((entry) => entry.id === groupId);
+            setActiveSectionId(group?.items?.[0]?.id || 'kdr');
             animateGroupScrollToTop();
         };
         const handleGroupHeaderClick = (groupId: string) => {
@@ -1336,6 +1362,7 @@ export function ReportApp() {
             if (!expandedGroups[groupId]) {
                 expandOnlyGroup(groupId);
             }
+            setActiveSectionId(id);
             const isSameGroup = groupId === activeGroup;
             if (!isSameGroup) {
                 pendingScrollIdRef.current = id;
@@ -1411,12 +1438,12 @@ export function ReportApp() {
             <div
                 className="min-h-screen text-white relative overflow-x-hidden"
                 style={{
-                    backgroundColor: isMatteUi ? 'var(--bg-base)' : (isModernUi ? '#0f141c' : '#0f172a'),
+                    backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? '#d8d1c5' : (isModernUi ? '#0f141c' : '#0f172a')),
                     backgroundImage: isMatteUi ? 'none' : reportBackgroundImage,
                     ...accentVars
                 }}
             >
-                {!isMatteUi && (
+                {!isMatteUi && !isKineticUi && (
                     <div className="absolute inset-0 pointer-events-none">
                         <div
                             className="absolute -top-32 -right-24 h-80 w-80 rounded-full blur-[140px]"
@@ -1436,7 +1463,7 @@ export function ReportApp() {
                 <aside
                     className={`fixed z-30 top-0 bottom-0 w-64 max-w-[80vw] transition-transform duration-300 lg:hidden ${tocOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 >
-                    <div className="h-full bg-white/5 border-r border-white/10 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] flex flex-col">
+                    <div className="report-nav-sidebar h-full bg-white/5 border-r border-white/10 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] flex flex-col">
                         <div className="px-5 pt-6 pb-4 flex items-center justify-between">
                             <div className="text-[11px] uppercase tracking-[0.4em] text-gray-400">Contents</div>
                             <button
@@ -1450,7 +1477,7 @@ export function ReportApp() {
                         <div className="px-5 pb-4">
                             <a
                                 href="./"
-                                className="w-full inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[color:var(--accent-glow)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
+                                className="report-back-link w-full inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[color:var(--accent-glow)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
                             >
                                 <span className="h-8 w-8 rounded-full border border-[color:var(--accent-border)] inline-flex items-center justify-center text-[color:var(--accent-strong)]">
                                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -1477,15 +1504,15 @@ export function ReportApp() {
                                     >
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
-                                            className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${isActive
+                                            className={`report-nav-group-btn w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${isActive
                                                 ? 'bg-white/10 text-white border-white/20'
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
                                                 }`}
                                         >
-                                            <GroupIcon className="w-4 h-4 text-[color:var(--accent)]" />
-                                            <span className="text-[11px] uppercase tracking-[0.22em] whitespace-nowrap">{group.label}</span>
+                                            <GroupIcon className="report-nav-group-icon w-4 h-4 text-[color:var(--accent)]" />
+                                            <span className="report-nav-group-label text-[11px] uppercase tracking-[0.22em] whitespace-nowrap min-w-0 truncate">{group.label}</span>
                                             <motion.span
-                                                className="ml-auto inline-flex"
+                                                className="report-nav-chevron ml-auto inline-flex shrink-0"
                                                 animate={{ rotate: isExpanded ? 0 : -90 }}
                                                 transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.86 }}
                                             >
@@ -1507,7 +1534,7 @@ export function ReportApp() {
                                                 variants={navItemsMotion}
                                                 initial={false}
                                                 animate={isExpanded ? 'open' : 'closed'}
-                                                className="space-y-1 pl-2 pt-1"
+                                                className="report-nav-submenu space-y-1 pl-2 pt-1"
                                                 data-nav-submenu-content
                                             >
                                                 {group.items.map((item) => {
@@ -1521,7 +1548,7 @@ export function ReportApp() {
                                                                 handleSubNavClick(group.id, item.id);
                                                                 setTocOpen(false);
                                                             }}
-                                                            className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-gray-200 border border-transparent hover:border-white/10 hover:bg-white/10 transition-colors transform-gpu"
+                                                            className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] border transition-colors transform-gpu ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
                                                         >
                                                             <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
                                                             {item.label}
@@ -1536,7 +1563,7 @@ export function ReportApp() {
                         </nav>
                     </div>
                 </aside>
-                <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 border-r border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-20">
+                <aside className="report-nav-sidebar hidden lg:flex fixed inset-y-0 left-0 w-64 border-r border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-20">
                     <div className="flex flex-col w-full">
                         <div className="px-6 pt-6 pb-5">
                             <div className="flex items-center gap-3">
@@ -1577,15 +1604,15 @@ export function ReportApp() {
                                     >
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
-                                            className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${isActive
+                                            className={`report-nav-group-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${isActive
                                                 ? 'bg-white/10 text-white border-white/20'
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
                                                 }`}
                                         >
-                                            <GroupIcon className="w-4 h-4 text-[color:var(--accent)]" />
-                                            <span className="text-[11px] uppercase tracking-[0.22em] whitespace-nowrap">{group.label}</span>
+                                            <GroupIcon className="report-nav-group-icon w-4 h-4 text-[color:var(--accent)]" />
+                                            <span className="report-nav-group-label text-[11px] uppercase tracking-[0.22em] whitespace-nowrap min-w-0 truncate">{group.label}</span>
                                             <motion.span
-                                                className="ml-auto inline-flex"
+                                                className="report-nav-chevron ml-auto inline-flex shrink-0"
                                                 animate={{ rotate: isExpanded ? 0 : -90 }}
                                                 transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.86 }}
                                             >
@@ -1607,7 +1634,7 @@ export function ReportApp() {
                                                 variants={navItemsMotion}
                                                 initial={false}
                                                 animate={isExpanded ? 'open' : 'closed'}
-                                                className="space-y-1 pl-2 pt-1"
+                                                className="report-nav-submenu space-y-1 pl-2 pt-1"
                                                 data-nav-submenu-content
                                             >
                                                 {group.items.map((item) => {
@@ -1618,7 +1645,7 @@ export function ReportApp() {
                                                             variants={navItemMotion}
                                                             transition={{ duration: navTiming.itemDuration, ease: [0.2, 0.9, 0.25, 1] }}
                                                             onClick={() => handleSubNavClick(group.id, item.id)}
-                                                            className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-gray-200 border border-transparent hover:border-white/10 hover:bg-white/10 transition-colors transform-gpu"
+                                                            className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] border transition-colors transform-gpu ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
                                                         >
                                                             <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
                                                             {item.label}
@@ -1634,7 +1661,7 @@ export function ReportApp() {
                         <div className="border-t border-white/10">
                             <a
                                 href="./"
-                                className="w-full inline-flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-glow)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
+                                className="report-back-link w-full inline-flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-glow)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
                             >
                                 <span className="h-9 w-9 rounded-full border border-[color:var(--accent-border)] inline-flex items-center justify-center text-[color:var(--accent-strong)]">
                                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -1677,7 +1704,7 @@ export function ReportApp() {
                                     )
                                 )}
                                 <div className="min-w-0">
-                                    <div className="text-xs uppercase tracking-[0.3em] text-[color:var(--accent-soft)]">ArcBridge Log Report</div>
+                                    <div className="report-brand-label text-xs uppercase tracking-[0.3em] text-[color:var(--accent-soft)]">ArcBridge Log Report</div>
                                     <h1 className="text-2xl sm:text-3xl font-bold mt-1">{report.meta.title}</h1>
                                     <div className="text-xs sm:text-sm text-gray-400 mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
                                 </div>
@@ -1716,7 +1743,7 @@ export function ReportApp() {
                                     <button
                                         key={`chip-${item.id}`}
                                         onClick={() => handleSubNavClick(activeGroupDef?.id || 'overview', item.id)}
-                                        className="group flex items-center gap-2 px-3 py-2 rounded-full text-[10px] uppercase tracking-widest text-gray-200 whitespace-nowrap border border-white/15 bg-gradient-to-br from-white/10 via-white/5 to-transparent shadow-[0_10px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--accent-border)] hover:shadow-[0_18px_35px_rgba(0,0,0,0.45)] active:translate-y-0 active:scale-[0.98] snap-start"
+                                        className={`group flex items-center gap-2 px-3 py-2 rounded-full text-[10px] uppercase tracking-widest whitespace-nowrap border bg-gradient-to-br shadow-[0_10px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-200 active:translate-y-0 active:scale-[0.98] snap-start ${activeSectionId === item.id ? 'text-white border-[color:var(--accent-border)] from-[color:var(--accent-glow)] via-white/10 to-transparent' : 'text-gray-200 border-white/15 from-white/10 via-white/5 to-transparent hover:-translate-y-0.5 hover:border-[color:var(--accent-border)] hover:shadow-[0_18px_35px_rgba(0,0,0,0.45)]'}`}
                                     >
                                         <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border border-white/10 group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-glow)] transition-colors">
                                             <Icon className="w-3 h-3 text-[color:var(--accent)]" />
@@ -1780,12 +1807,12 @@ export function ReportApp() {
         <div
             className="min-h-screen text-white relative overflow-x-hidden"
             style={{
-                backgroundColor: isMatteUi ? 'var(--bg-base)' : (isModernUi ? '#0f141c' : '#0f172a'),
+                backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? '#d8d1c5' : (isModernUi ? '#0f141c' : '#0f172a')),
                 backgroundImage: isMatteUi ? 'none' : reportBackgroundImage,
                 ...accentVars
             }}
         >
-            {!isMatteUi && (
+            {!isMatteUi && !isKineticUi && (
                 <div className="absolute inset-0 pointer-events-none">
                     <div
                         className="absolute -top-32 -right-24 h-80 w-80 rounded-full blur-[140px]"

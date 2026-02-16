@@ -234,6 +234,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
     );
     const statsSidebarSurfaceClass = uiTheme === 'matte'
         ? 'border border-[color:var(--border-default)] bg-[color:var(--bg-card)]'
+        : uiTheme === 'kinetic'
+            ? 'border border-stone-500/20 bg-[color:var(--bg-card)]'
         : uiTheme === 'crt'
             ? 'border border-[#3a6b52]/60 bg-[#09140e]/90'
             : uiTheme === 'modern'
@@ -241,12 +243,16 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 : 'border border-white/10 bg-slate-950/85';
     const statsSidebarShadowClass = uiTheme === 'matte'
         ? 'shadow-[-6px_-6px_12px_rgba(255,255,255,0.04),6px_6px_14px_rgba(0,0,0,0.45)]'
+        : uiTheme === 'kinetic'
+            ? 'shadow-[0_10px_24px_rgba(62,52,39,0.08)]'
         : uiTheme === 'modern'
             ? 'shadow-[0_16px_46px_rgba(0,0,0,0.5),0_0_0_1px_rgba(122,215,240,0.08)]'
             : 'shadow-[0_20px_60px_rgba(0,0,0,0.45)]';
-    const statsSidebarBlurClass = uiTheme === 'matte' ? '' : uiTheme === 'modern' ? 'backdrop-blur-lg' : 'backdrop-blur-md';
+    const statsSidebarBlurClass = uiTheme === 'matte' || uiTheme === 'kinetic' ? '' : uiTheme === 'modern' ? 'backdrop-blur-lg' : 'backdrop-blur-md';
     const statsSubnavItemsClass = uiTheme === 'matte'
         ? 'rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-input)] shadow-[inset_-4px_-4px_10px_rgba(255,255,255,0.03),inset_5px_5px_12px_rgba(0,0,0,0.4)]'
+        : uiTheme === 'kinetic'
+            ? 'rounded-lg border border-stone-500/20 bg-[color:var(--bg-input)]'
         : uiTheme === 'modern'
             ? 'rounded-lg border border-cyan-300/15 bg-slate-900/65 backdrop-blur-sm'
         : '';
@@ -313,7 +319,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     <span className="arcbridge-logo h-4 w-4" style={arcbridgeLogoStyle} aria-label="ArcBridge logo" />
                     <span className="text-xs font-medium text-gray-400">ArcBridge</span>
                     {isDev ? (
-                        <span className="ml-1 rounded-full border border-amber-500/50 bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-amber-300">
+                        <span className="dev-build-badge ml-1 rounded-full border border-amber-500/50 bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-amber-300">
                             Dev Build
                         </span>
                     ) : null}
@@ -407,7 +413,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="text-xs font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10 cursor-pointer hover:bg-white/10 transition-colors select-none"
+                            className="app-version-pill text-xs font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10 cursor-pointer hover:bg-white/10 transition-colors select-none"
                             onClick={() => {
                                 if (view === 'settings') {
                                     if (!settingsUpdateCheckRef.current) {
@@ -525,7 +531,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                                         className={`w-full h-9 flex items-center justify-start gap-0 pl-[21px] pr-[21px] text-left transition-[padding,gap,background-color,color] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/statsnavpanel:gap-2 group-hover/statsnavpanel:pl-3 group-hover/statsnavpanel:pr-3 ${isActiveGroup ? 'bg-white/10 text-white' : 'text-gray-200 hover:bg-white/[0.08]'}`}
                                                     >
                                                         <GroupIcon className={`w-3.5 h-3.5 text-[color:var(--accent)] shrink-0 transition-transform duration-[1050ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isStatsNavExpanded ? 'scale-110' : 'scale-100'}`} />
-                                                        <span className={`text-[11px] leading-none font-semibold uppercase tracking-[0.18em] whitespace-nowrap overflow-hidden transition-[opacity,transform,max-width] duration-[1050ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isStatsNavExpanded ? 'opacity-100 translate-x-0 max-w-[160px]' : 'opacity-0 -translate-x-2 max-w-0'}`}>{group.label}</span>
+                                                        <span className={`stats-nav-group-label text-[11px] leading-none font-semibold uppercase tracking-[0.18em] whitespace-nowrap overflow-hidden transition-[opacity,transform,max-width] duration-[1050ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isStatsNavExpanded ? 'opacity-100 translate-x-0 max-w-[160px]' : 'opacity-0 -translate-x-2 max-w-0'}`}>{group.label}</span>
                                                         <span className={`inline-flex ml-auto overflow-hidden transition-[opacity,transform,max-width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${isStatsNavExpanded ? 'opacity-100 scale-100 max-w-[24px]' : 'opacity-0 scale-75 max-w-0'} ${isOpenGroup || isNavClosingGroup || isSwitchClosingGroup ? 'rotate-0' : '-rotate-90'}`}>
                                                             <ChevronDown className="w-4 h-4 text-gray-300" />
                                                         </span>
@@ -548,7 +554,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                                                             className={`stats-nav-entry w-full h-[34px] flex items-center text-left rounded-md transition-colors duration-150 ${isStatsNavExpanded ? 'justify-start gap-2 px-2' : 'justify-center gap-0 px-2'} ${isActiveItem ? 'bg-white/10 text-white' : 'text-gray-200 hover:bg-white/[0.08]'}`}
                                                                         >
                                                                             <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)] shrink-0" />
-                                                                            <span className={`text-xs leading-tight truncate overflow-hidden transition-[opacity,max-width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isStatsNavExpanded ? 'opacity-100 max-w-[140px] translate-x-0' : 'opacity-0 max-w-0 -translate-x-1'}`}>{item.label}</span>
+                                                                            <span className={`stats-nav-item-label text-xs leading-tight truncate overflow-hidden transition-[opacity,max-width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isStatsNavExpanded ? 'opacity-100 max-w-[140px] translate-x-0' : 'opacity-0 max-w-0 -translate-x-1'}`}>{item.label}</span>
                                                                         </button>
                                                                     </div>
                                                                 );
