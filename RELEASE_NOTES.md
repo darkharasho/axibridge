@@ -1,16 +1,20 @@
 # Release Notes
 
-Version v1.34.2 — February 15, 2026
+Version v1.35.0 — February 15, 2026
 
 ## 🌟 Highlights
-- You can switch web reports from the kinetic theme to non-kinetic themes again.
-- For kinetic web reports, you can set fonts per person for better readability.
+- New in-app GitHub report viewer lets you review GitHub reports without leaving ArcBridge.
+- Web reports loaded in the app iframe now consistently enforce the same theme for a cohesive look.
+- History navigation has been stabilized for more reliable access to past reports.
 
 ## 🛠️ Improvements
-- Added per-person font customization for kinetic web reports.
+- The in-app GitHub report viewer is integrated for easier review inside ArcBridge.
+- Iframe-based web reports now force the selected theme for a uniform appearance.
+- History view navigation refinements help you browse past reports more smoothly.
 
 ## 🧯 Fixes
-- Fixed a bug that prevented switching from the kinetic theme to non-kinetic themes in web reports.
+- Stabilized in-app report navigation URLs to prevent broken links.
+- Removed the cookie override that could affect how reports load.
 
 ## ⚠️ Breaking Changes
-- None.
+None.
