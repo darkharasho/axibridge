@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, FilePlus2, LayoutGrid, Minus, RefreshCw, Settings, Square, Trophy, X } from 'lucide-react';
+import { BookOpen, ChevronDown, FilePlus2, LayoutGrid, Minus, RefreshCw, Settings, Square, Trophy, X } from 'lucide-react';
 import { Terminal as TerminalIcon } from 'lucide-react';
 import { SettingsView } from '../SettingsView';
 import { StatsView } from '../StatsView';
@@ -15,6 +15,7 @@ import { FilePickerModal } from './FilePickerModal';
 import { ScreenshotContainer } from './ScreenshotContainer';
 import { WebUploadOverlay } from './WebUploadOverlay';
 import { STATS_TOC_GROUPS } from '../stats/hooks/useStatsNavigation';
+import { FightReportHistoryView } from '../FightReportHistoryView';
 
 export function AppLayout({ ctx }: { ctx: any }) {
     const {
@@ -219,7 +220,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         }, STATS_NAV_CONTENT_HOLD_MS);
     }, [isStatsNavSubnavReady]);
 
-    const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'settings') => {
+    const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'history' | 'settings') => {
         setActiveNavView(nextView);
         if (navSwitchRafRef.current !== null) {
             window.cancelAnimationFrame(navSwitchRafRef.current);
@@ -348,7 +349,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
             <div className="legacy-orb absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
             <div className="legacy-orb absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/20 blur-[100px] pointer-events-none" />
 
-            <div className={`app-content relative z-10 ${(isModernTheme || view === 'stats') ? 'max-w-none' : 'max-w-5xl mx-auto'} flex-1 w-full min-w-0 flex flex-col min-h-0 ${view === 'stats' ? 'pt-8 px-8 pb-2 overflow-hidden' : (isModernTheme ? 'p-8 overflow-visible' : 'p-8 overflow-hidden')}`}>
+            <div className={`app-content relative z-10 ${(isModernTheme || view === 'stats' || view === 'history') ? 'max-w-none' : 'max-w-5xl mx-auto'} flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history') ? 'pt-8 px-8 pb-2 overflow-hidden' : (isModernTheme ? 'p-8 overflow-visible' : 'p-8 overflow-hidden')}`}>
                 <header className="app-header flex flex-wrap justify-between items-center gap-3 mb-10 shrink-0">
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
@@ -462,6 +463,13 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             title="View Stats"
                         >
                             <Trophy className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => handleNavViewChange('history')}
+                            className={`p-2 rounded-xl transition-all ${activeNavView === 'history' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/35' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
+                            title="Fight Report History"
+                        >
+                            <BookOpen className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => handleNavViewChange('settings')}
@@ -625,6 +633,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         onOpenWalkthrough={() => setWalkthroughOpen(true)}
                         onOpenWhatsNew={() => setWhatsNewOpen(true)}
                     />
+                ) : view === 'history' ? (
+                    <FightReportHistoryView />
                 ) : view === 'stats' ? null : (
                     dashboardLayoutMode === 'top' ? (
                         <div className="dashboard-view dashboard-modern flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 matte-dashboard-shell">

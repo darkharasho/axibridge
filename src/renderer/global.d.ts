@@ -88,7 +88,7 @@ export interface IDevDatasetSnapshot {
     capturedAt: string;
     appVersion: string;
     state: {
-        view?: 'dashboard' | 'stats' | 'settings';
+        view?: 'dashboard' | 'stats' | 'history' | 'settings';
         expandedLogId?: string | null;
         notificationType?: 'image' | 'image-beta' | 'embed';
         embedStatSettings?: Partial<IEmbedStatSettings>;
@@ -314,6 +314,7 @@ export interface IElectronAPI {
     getGithubRepos: () => Promise<{ success: boolean; repos?: Array<{ full_name: string; name: string; owner: string }>; error?: string }>;
     getGithubOrgs: () => Promise<{ success: boolean; orgs?: Array<{ login: string }>; error?: string }>;
     getGithubReports: () => Promise<{ success: boolean; reports?: any[]; error?: string }>;
+    setWebReportThemeCookie: (payload: { baseUrl: string; themeId?: string | null }) => Promise<{ success: boolean; error?: string }>;
     deleteGithubReports: (payload: { ids: string[] }) => Promise<{ success: boolean; removed?: string[]; error?: string }>;
     listLogFiles: (payload: { dir: string }) => Promise<{ success: boolean; files?: Array<{ path: string; name: string; mtimeMs: number; size: number }>; error?: string }>;
     createGithubRepo: (params: { name: string; branch?: string; owner?: string }) => Promise<{ success: boolean; repo?: { full_name: string; owner: string; name: string; pagesUrl?: string }; error?: string }>;

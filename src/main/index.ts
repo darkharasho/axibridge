@@ -3471,6 +3471,46 @@ if (!gotTheLock) {
             }
         });
 
+        ipcMain.handle('set-web-report-theme-cookie', async (_event, payload?: { baseUrl?: string; themeId?: string | null }) => {
+            try {
+                const baseUrl = String(payload?.baseUrl || '').trim();
+                const themeId = typeof payload?.themeId === 'string' ? payload.themeId.trim() : '';
+                if (!baseUrl) {
+                    return { success: false, error: 'Missing base URL.' };
+                }
+                const parsed = new URL(baseUrl);
+                const cookieUrl = `${parsed.protocol}//${parsed.host}/`;
+                const cookieName = 'arcbridge_web_theme_override';
+                const partitionSession = win?.webContents?.session;
+                if (!partitionSession) {
+                    return { success: false, error: 'Web session is unavailable.' };
+                }
+                if (!themeId) {
+                    try {
+                        await partitionSession.cookies.remove(cookieUrl, cookieName);
+                    } catch {
+                        // Ignore missing cookie.
+                    }
+                    return { success: true };
+                }
+                const cookieValue = encodeURIComponent(JSON.stringify({ themeId }));
+                await partitionSession.cookies.set({
+                    url: cookieUrl,
+                    name: cookieName,
+                    value: cookieValue,
+                    path: '/',
+                    domain: parsed.hostname,
+                    secure: parsed.protocol === 'https:',
+                    sameSite: 'no_restriction',
+                    httpOnly: false,
+                    expirationDate: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 365)
+                });
+                return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to set web report theme cookie.' };
+            }
+        });
+
         ipcMain.handle('fetch-image-data-url', async (_event, url: string) => {
             try {
                 if (!url || typeof url !== 'string') return { success: false, error: 'Invalid URL.' };

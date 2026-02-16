@@ -78,7 +78,7 @@ function App() {
     const versionClickTimesRef = useRef<number[]>([]);
 
     // View State
-    const [view, setView] = useState<'dashboard' | 'stats' | 'settings'>('dashboard');
+    const [view, setView] = useState<'dashboard' | 'stats' | 'history' | 'settings'>('dashboard');
 
     // App Version
     const [appVersion, setAppVersion] = useState<string>('...');

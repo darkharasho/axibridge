@@ -1,6 +1,6 @@
 import { CSSProperties, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
-import { DEFAULT_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
+import { CRT_WEB_THEME_ID, DEFAULT_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -99,6 +99,52 @@ const writeCookieValue = (name: string, value: string, days = 365) => {
 const clearCookieValue = (name: string) => {
     if (typeof document === 'undefined') return;
     document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+};
+
+const withThemeIdParam = (url: string, themeId: string): string => {
+    if (!url || !themeId) return url;
+    try {
+        const parsed = new URL(url, window.location.origin);
+        parsed.searchParams.set('themeId', themeId);
+        if (/^https?:\/\//i.test(url)) {
+            return parsed.toString();
+        }
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}themeId=${encodeURIComponent(themeId)}`;
+    }
+};
+
+const isValidThemeOverrideId = (themeId: string): boolean => {
+    if (!themeId) return false;
+    if (themeId === CRT_WEB_THEME_ID) return true;
+    return WEB_THEMES.some((entry) => entry.id === themeId);
+};
+
+const readThemeOverrideFromRuntime = (): string | null => {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get('themeId') || params.get('theme');
+    if (fromQuery && isValidThemeOverrideId(fromQuery)) {
+        return fromQuery;
+    }
+    const persisted = readCookieValue(WEB_THEME_OVERRIDE_COOKIE);
+    if (!persisted) return null;
+    try {
+        const parsed = JSON.parse(persisted);
+        const fromCookie = typeof parsed?.themeId === 'string' ? parsed.themeId : null;
+        return fromCookie && isValidThemeOverrideId(fromCookie) ? fromCookie : null;
+    } catch {
+        return null;
+    }
+};
+
+const resolveUiThemeFromOverride = (themeIdOverride: string | null, fallback: UiThemeChoice): UiThemeChoice => {
+    if (!themeIdOverride) return fallback;
+    if (themeIdOverride === MATTE_WEB_THEME_ID) return 'matte';
+    if (themeIdOverride === KINETIC_WEB_THEME_ID || themeIdOverride === KINETIC_DARK_WEB_THEME_ID) return 'kinetic';
+    if (themeIdOverride === CRT_WEB_THEME_ID) return 'crt';
+    return fallback === 'modern' || fallback === 'classic' ? fallback : 'classic';
 };
 
 const formatLocalRange = (start: string, end: string) => {
@@ -204,6 +250,7 @@ const BorderlandsPie = ({ value }: { value: number | null | undefined }) => {
 };
 
 export function ReportApp() {
+    const initialThemeOverride = readThemeOverrideFromRuntime();
     const [report, setReport] = useState<ReportPayload | null>(null);
     const [index, setIndex] = useState<ReportIndexEntry[] | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -213,10 +260,20 @@ export function ReportApp() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
-    const [uiTheme, setUiTheme] = useState<UiThemeChoice>('classic');
+    const [uiTheme, setUiTheme] = useState<UiThemeChoice>(() => resolveUiThemeFromOverride(initialThemeOverride, 'classic'));
     const [defaultUiTheme, setDefaultUiTheme] = useState<UiThemeChoice>('classic');
     const [defaultThemeId, setDefaultThemeId] = useState<string>(DEFAULT_WEB_THEME.id);
-    const [themeIdOverride, setThemeIdOverride] = useState<string | null>(null);
+    const [themeIdOverride, setThemeIdOverride] = useState<string | null>(initialThemeOverride);
+    const queryThemeId = useMemo(() => {
+        const params = new URLSearchParams(window.location.search);
+        const requested = params.get('themeId') || params.get('theme');
+        if (!requested) return null;
+        return isValidThemeOverrideId(requested) ? requested : null;
+    }, []);
+    const themedIndexHref = useMemo(
+        () => (queryThemeId ? withThemeIdParam('./', queryThemeId) : './'),
+        [queryThemeId]
+    );
     const [kineticFontChoice, setKineticFontChoice] = useState<KineticWebFontChoice>('default');
     const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
     const [kineticFontDropdownOpen, setKineticFontDropdownOpen] = useState(false);
@@ -329,20 +386,6 @@ export function ReportApp() {
     };
 
     useEffect(() => {
-        const persisted = readCookieValue(WEB_THEME_OVERRIDE_COOKIE);
-        if (!persisted) return;
-        try {
-            const parsed = JSON.parse(persisted);
-            const themeId = typeof parsed?.themeId === 'string' ? parsed.themeId : null;
-            if (themeId && WEB_THEMES.some((entry) => entry.id === themeId)) {
-                setThemeIdOverride(themeId);
-            }
-        } catch {
-            // Ignore invalid cookie payload.
-        }
-    }, []);
-
-    useEffect(() => {
         const persisted = readCookieValue(KINETIC_WEB_FONT_OVERRIDE_COOKIE);
         if (persisted === 'original' || persisted === 'default') {
             setKineticFontChoice(persisted);
@@ -360,22 +403,7 @@ export function ReportApp() {
             setUiTheme(defaultUiTheme);
             return;
         }
-        if (themeIdOverride === MATTE_WEB_THEME_ID) {
-            setUiTheme('matte');
-            return;
-        }
-        if (themeIdOverride === KINETIC_WEB_THEME_ID || themeIdOverride === KINETIC_DARK_WEB_THEME_ID) {
-            setUiTheme('kinetic');
-            return;
-        }
-        if (themeIdOverride === 'CRT') {
-            setUiTheme('crt');
-            return;
-        }
-        const fallbackUiTheme = defaultUiTheme === 'modern' || defaultUiTheme === 'classic'
-            ? defaultUiTheme
-            : 'classic';
-        setUiTheme(fallbackUiTheme);
+        setUiTheme(resolveUiThemeFromOverride(themeIdOverride, defaultUiTheme));
     }, [themeIdOverride, defaultUiTheme]);
 
     useEffect(() => {
@@ -851,16 +879,18 @@ export function ReportApp() {
                 if (!isMounted) return;
                 const normalized = normalizeTopDownContribution(normalizeCommanderDistance(data));
                 setReport(normalized);
-                const themeChoice = normalized?.stats?.uiTheme;
-                if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte' || themeChoice === 'kinetic') {
-                    setDefaultUiTheme(themeChoice);
-                } else if (normalized?.stats?.webThemeId === MATTE_WEB_THEME_ID) {
-                    setDefaultUiTheme('matte');
-                } else if (normalized?.stats?.webThemeId === KINETIC_WEB_THEME_ID || normalized?.stats?.webThemeId === KINETIC_DARK_WEB_THEME_ID) {
-                    setDefaultUiTheme('kinetic');
-                }
-                if (typeof normalized?.stats?.webThemeId === 'string' && normalized.stats.webThemeId) {
-                    setDefaultThemeId(normalized.stats.webThemeId);
+                if (!themeIdOverride) {
+                    const themeChoice = normalized?.stats?.uiTheme;
+                    if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte' || themeChoice === 'kinetic') {
+                        setDefaultUiTheme(themeChoice);
+                    } else if (normalized?.stats?.webThemeId === MATTE_WEB_THEME_ID) {
+                        setDefaultUiTheme('matte');
+                    } else if (normalized?.stats?.webThemeId === KINETIC_WEB_THEME_ID || normalized?.stats?.webThemeId === KINETIC_DARK_WEB_THEME_ID) {
+                        setDefaultUiTheme('kinetic');
+                    }
+                    if (typeof normalized?.stats?.webThemeId === 'string' && normalized.stats.webThemeId) {
+                        setDefaultThemeId(normalized.stats.webThemeId);
+                    }
                 }
             })
             .catch(() => {
@@ -882,7 +912,7 @@ export function ReportApp() {
         return () => {
             isMounted = false;
         };
-    }, [basePath]);
+    }, [basePath, themeIdOverride]);
 
     useEffect(() => {
         if (report) {
@@ -896,11 +926,12 @@ export function ReportApp() {
     }, [report]);
 
     useEffect(() => {
+        if (themeIdOverride) return;
         const requestedThemeId = report?.stats?.webThemeId;
         if (typeof requestedThemeId === 'string' && requestedThemeId) {
             setDefaultThemeId(requestedThemeId);
         }
-    }, [report]);
+    }, [report, themeIdOverride]);
 
     useEffect(() => {
         const body = document.body;
@@ -918,6 +949,7 @@ export function ReportApp() {
     }, [uiTheme, isMatteUi, isKineticDarkTheme, kineticFontChoice]);
 
     useEffect(() => {
+        if (themeIdOverride) return;
         if (isDevLocalWeb && report?.stats?.webThemeId) return;
         let isMounted = true;
         fetch(joinAssetPath(assetBasePath, 'theme.json'), { cache: 'no-store' })
@@ -934,9 +966,10 @@ export function ReportApp() {
         return () => {
             isMounted = false;
         };
-    }, [assetBasePath, isDevLocalWeb, report]);
+    }, [assetBasePath, isDevLocalWeb, report, themeIdOverride]);
 
     useEffect(() => {
+        if (themeIdOverride) return;
         const reportThemeId = report?.stats?.webThemeId;
         const reportUiTheme = report?.stats?.uiTheme;
         const hasReportUiTheme = reportUiTheme === 'modern' || reportUiTheme === 'classic' || reportUiTheme === 'crt' || reportUiTheme === 'matte' || reportUiTheme === 'kinetic';
@@ -965,7 +998,7 @@ export function ReportApp() {
         return () => {
             isMounted = false;
         };
-    }, [assetBasePath, report]);
+    }, [assetBasePath, report, themeIdOverride]);
 
     useEffect(() => {
         let isMounted = true;
@@ -1556,7 +1589,7 @@ export function ReportApp() {
                         </div>
                         <div className="px-5 pb-4">
                             <a
-                                href="./"
+                                href={themedIndexHref}
                                 className="report-back-link w-full inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[color:var(--accent-glow)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
                             >
                                 <span className="h-8 w-8 rounded-full border border-[color:var(--accent-border)] inline-flex items-center justify-center text-[color:var(--accent-strong)]">
@@ -1740,7 +1773,7 @@ export function ReportApp() {
                         </nav>
                         <div className="border-t border-white/10">
                             <a
-                                href="./"
+                                href={themedIndexHref}
                                 className="report-back-link w-full inline-flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-glow)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
                             >
                                 <span className="h-9 w-9 rounded-full border border-[color:var(--accent-border)] inline-flex items-center justify-center text-[color:var(--accent-strong)]">
@@ -1856,7 +1889,7 @@ export function ReportApp() {
                 <div className="fixed bottom-4 left-4 right-4 z-30 sm:hidden mobile-action-bar">
                     <div className="flex items-center justify-between gap-2 rounded-2xl bg-slate-950/70 border border-white/15 backdrop-blur-xl px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
                         <a
-                            href="./"
+                            href={themedIndexHref}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
                         >
                             <ArrowLeft className="w-4 h-4 text-[color:var(--accent)]" />
@@ -1985,7 +2018,7 @@ export function ReportApp() {
                             {filteredIndex.map((entry) => (
                                 <a
                                     key={entry.id}
-                                    href={entry.url}
+                                    href={queryThemeId ? withThemeIdParam(entry.url, queryThemeId) : entry.url}
                                     className={`${glassCard} px-5 py-4 hover:border-[color:var(--accent-border)] transition-colors group`}
                                     style={glassCardStyle}
                                 >

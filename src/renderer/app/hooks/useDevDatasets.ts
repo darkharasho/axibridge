@@ -12,9 +12,9 @@ import {
 } from '../../global.d';
 
 interface UseDevDatasetsOptions {
-    view: 'dashboard' | 'stats' | 'settings';
+    view: 'dashboard' | 'stats' | 'history' | 'settings';
     bulkUploadMode: boolean;
-    setView: Dispatch<SetStateAction<'dashboard' | 'stats' | 'settings'>>;
+    setView: Dispatch<SetStateAction<'dashboard' | 'stats' | 'history' | 'settings'>>;
     logs: ILogData[];
     setLogs: Dispatch<SetStateAction<ILogData[]>>;
     setExpandedLogId: Dispatch<SetStateAction<string | null>>;
@@ -71,7 +71,7 @@ export function useDevDatasets({
         const state = snapshot?.state;
         if (!state || typeof state !== 'object') return;
 
-        if (state.view === 'dashboard' || state.view === 'stats' || state.view === 'settings') {
+        if (state.view === 'dashboard' || state.view === 'stats' || state.view === 'history' || state.view === 'settings') {
             setView(state.view);
         }
         if (state.expandedLogId === null || typeof state.expandedLogId === 'string') {
