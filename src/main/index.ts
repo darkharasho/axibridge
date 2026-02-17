@@ -177,11 +177,11 @@ type DpsReportCacheEntry = {
     createdAt: number;
     result: UploadResult;
     detailsPath?: string | null;
+    detailsCachedAt?: number | null;
 };
 
 const DPS_REPORT_CACHE_KEY = 'dpsReportCacheIndex';
-const DPS_REPORT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const DPS_REPORT_CACHE_MAX_ENTRIES = 100;
+const DPS_REPORT_DETAILS_TTL_MS = 24 * 60 * 60 * 1000;
 const UPLOAD_RETRY_QUEUE_KEY = 'uploadRetryQueue';
 const UPLOAD_RETRY_STATE_KEY = 'uploadRetryQueueState';
 const MAX_UPLOAD_RETRY_QUEUE_ENTRIES = 200;
@@ -215,7 +215,8 @@ type UploadRetryQueuePayload = {
     entries: UploadRetryQueueEntry[];
 };
 
-const getDpsReportCacheDir = () => path.join(app.getPath('userData'), 'dps-report-cache');
+const getLegacyDpsReportCacheDir = () => path.join(app.getPath('userData'), 'dps-report-cache');
+const getDpsReportCacheDir = () => path.join(app.getPath('temp'), 'arcbridge-dps-report-cache');
 
 const loadDpsReportCacheIndex = (): Record<string, DpsReportCacheEntry> => {
     const raw = store.get(DPS_REPORT_CACHE_KEY, {});
@@ -276,24 +277,27 @@ const clearDpsReportCache = (
     store.delete(DPS_REPORT_CACHE_KEY);
     onProgress?.({ stage: 'index', message: 'Cache index cleared.', progress: 20, current: 0, total: 0 });
 
-    const cacheDir = getDpsReportCacheDir();
+    const cacheDirs = [getDpsReportCacheDir(), getLegacyDpsReportCacheDir()];
     try {
-        if (fs.existsSync(cacheDir)) {
-            const entries = fs.readdirSync(cacheDir);
-            const total = entries.length;
-            entries.forEach((entry, index) => {
-                fs.rmSync(path.join(cacheDir, entry), { recursive: true, force: true });
-                const progress = total > 0 ? 20 + Math.round(((index + 1) / total) * 75) : 95;
+        const existingDirs = cacheDirs.filter((dir) => fs.existsSync(dir));
+        const entriesByDir = existingDirs.map((dir) => ({ dir, entries: fs.readdirSync(dir) }));
+        const total = entriesByDir.reduce((sum, item) => sum + item.entries.length, 0);
+        let current = 0;
+        entriesByDir.forEach(({ dir, entries }) => {
+            entries.forEach((entry) => {
+                fs.rmSync(path.join(dir, entry), { recursive: true, force: true });
+                current += 1;
+                const progress = total > 0 ? 20 + Math.round((current / total) * 75) : 95;
                 onProgress?.({
                     stage: 'files',
-                    message: `Removing cached files (${index + 1}/${total})…`,
+                    message: `Removing cached files (${current}/${total})…`,
                     progress,
-                    current: index + 1,
+                    current,
                     total
                 });
             });
-            fs.rmSync(cacheDir, { recursive: true, force: true });
-        }
+            fs.rmSync(dir, { recursive: true, force: true });
+        });
     } catch (err: any) {
         console.warn('[Main] Failed to remove dps.report cache directory:', err?.message || err);
         return { success: false, clearedEntries, error: 'Failed to remove cache directory.' };
@@ -313,6 +317,15 @@ const removeDpsReportCacheEntry = (index: Record<string, DpsReportCacheEntry>, k
         }
     }
     delete index[key];
+};
+
+const invalidateDpsReportCacheEntry = (hash: string, reason: string) => {
+    if (!hash) return;
+    const index = loadDpsReportCacheIndex();
+    if (!index[hash]) return;
+    console.log(`[Cache] Invalidating ${hash} (${reason}).`);
+    removeDpsReportCacheEntry(index, hash);
+    saveDpsReportCacheIndex(index);
 };
 
 const getDevDatasetsDir = () => path.join(process.cwd(), 'dev', 'datasets');
@@ -803,7 +816,6 @@ const writeJsonFilesWithLimit = async (
 };
 
 const pruneDpsReportCacheIndex = (index: Record<string, DpsReportCacheEntry>) => {
-    const now = Date.now();
     let changed = false;
 
     Object.keys(index).forEach((key) => {
@@ -814,28 +826,13 @@ const pruneDpsReportCacheIndex = (index: Record<string, DpsReportCacheEntry>) =>
             changed = true;
             return;
         }
-        if (now - entry.createdAt > DPS_REPORT_CACHE_TTL_MS) {
-            console.log(`[Cache] Busting cache for ${key} (expired).`);
-            removeDpsReportCacheEntry(index, key);
-            changed = true;
-            return;
-        }
         if (entry.detailsPath && !fs.existsSync(entry.detailsPath)) {
             console.log(`[Cache] Cache details missing for ${key}; will refetch JSON.`);
             entry.detailsPath = null;
+            entry.detailsCachedAt = null;
             changed = true;
         }
     });
-
-    const keys = Object.keys(index);
-    if (keys.length > DPS_REPORT_CACHE_MAX_ENTRIES) {
-        const sorted = keys.sort((a, b) => (index[b]?.createdAt || 0) - (index[a]?.createdAt || 0));
-        sorted.slice(DPS_REPORT_CACHE_MAX_ENTRIES).forEach((key) => {
-            console.log(`[Cache] Evicting cache entry for ${key} (limit ${DPS_REPORT_CACHE_MAX_ENTRIES}).`);
-            removeDpsReportCacheEntry(index, key);
-            changed = true;
-        });
-    }
 
     return changed;
 };
@@ -870,21 +867,40 @@ const attachConditionMetrics = (details: any) => {
 
 const loadDpsReportCacheEntry = async (hash: string) => {
     const index = loadDpsReportCacheIndex();
-    const changed = pruneDpsReportCacheIndex(index);
+    let changed = pruneDpsReportCacheIndex(index);
     if (changed) saveDpsReportCacheIndex(index);
 
     const entry = index[hash];
     if (!entry) return null;
 
     let jsonDetails: any | null = null;
+    const detailsCachedAt = Number(entry.detailsCachedAt || entry.createdAt || 0);
+    const detailsExpired = detailsCachedAt > 0 && Date.now() - detailsCachedAt > DPS_REPORT_DETAILS_TTL_MS;
     if (entry.detailsPath) {
-        try {
-            const raw = await fs.promises.readFile(entry.detailsPath, 'utf8');
-            jsonDetails = JSON.parse(raw);
-        } catch {
-            jsonDetails = null;
+        if (detailsExpired) {
+            try {
+                fs.unlinkSync(entry.detailsPath);
+            } catch {
+                // Ignore file cleanup errors.
+            }
+            entry.detailsPath = null;
+            entry.detailsCachedAt = null;
+            index[hash] = entry;
+            changed = true;
+        } else {
+            try {
+                const raw = await fs.promises.readFile(entry.detailsPath, 'utf8');
+                jsonDetails = JSON.parse(raw);
+            } catch {
+                jsonDetails = null;
+                entry.detailsPath = null;
+                entry.detailsCachedAt = null;
+                index[hash] = entry;
+                changed = true;
+            }
         }
     }
+    if (changed) saveDpsReportCacheIndex(index);
 
     return { entry, jsonDetails };
 };
@@ -902,7 +918,8 @@ const saveDpsReportCacheEntry = async (hash: string, result: UploadResult, jsonD
         hash,
         createdAt: Date.now(),
         result,
-        detailsPath: null
+        detailsPath: null,
+        detailsCachedAt: null
     };
 
     if (jsonDetails) {
@@ -910,8 +927,10 @@ const saveDpsReportCacheEntry = async (hash: string, result: UploadResult, jsonD
         try {
             await fs.promises.writeFile(detailsPath, JSON.stringify(jsonDetails));
             entry.detailsPath = detailsPath;
+            entry.detailsCachedAt = Date.now();
         } catch {
             entry.detailsPath = null;
+            entry.detailsCachedAt = null;
         }
     }
 
@@ -936,6 +955,7 @@ const updateDpsReportCacheDetails = async (hash: string, jsonDetails: any) => {
     try {
         await fs.promises.writeFile(detailsPath, JSON.stringify(jsonDetails));
         entry.detailsPath = detailsPath;
+        entry.detailsCachedAt = Date.now();
         index[hash] = entry;
         saveDpsReportCacheIndex(index);
     } catch {
@@ -1026,6 +1046,11 @@ const hasUsableFightDetails = (details: any) => {
     const players = Array.isArray(details?.players) ? details.players : [];
     return players.length > 0;
 };
+const isDetailsPermalinkNotFound = (payload: any) => {
+    const code = String(payload?.error || '').toLowerCase();
+    const statusCode = Number(payload?.statusCode || 0);
+    return code === 'details-http-error' && statusCode === 404;
+};
 const pendingDetailsRefreshByPermalink = new Map<string, Promise<{ details: any | null; terminal: boolean; errorCode?: string }>>();
 const missingDetailsLogByPath = new Map<string, number>();
 const fetchDetailsFromPermalinkWithRetry = async (permalink: string) => {
@@ -1034,7 +1059,10 @@ const fetchDetailsFromPermalinkWithRetry = async (permalink: string) => {
         const fetched = await uploader.fetchDetailedJson(permalink);
         if (fetched?.error) {
             const code = String(fetched.error || '').toLowerCase();
-            const terminal = code === 'incomplete-json' || code === 'invalid-json' || code === 'empty-json-payload';
+            const terminal = code === 'incomplete-json'
+                || code === 'invalid-json'
+                || code === 'empty-json-payload'
+                || isDetailsPermalinkNotFound(fetched);
             return {
                 details: null as any | null,
                 terminal,
@@ -1203,7 +1231,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             }
         }
 
-        const result = cached?.entry?.result || await uploader.upload(filePath);
+        let result = cached?.entry?.result || await uploader.upload(filePath);
+        let cacheRecomputedFrom404 = false;
 
         if (result && !result.error) {
             if (cached?.entry?.result) {
@@ -1213,6 +1242,27 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             }
 
             let jsonDetails = cached?.jsonDetails || await uploader.fetchDetailedJson(result.permalink);
+            if (cached?.entry?.result && isDetailsPermalinkNotFound(jsonDetails)) {
+                console.warn(`[Cache] Cached permalink returned 404 for ${filePath}. Re-uploading to refresh permalink.`);
+                if (cacheKey) {
+                    invalidateDpsReportCacheEntry(cacheKey, 'permalink-404');
+                }
+                const refreshedResult = await uploader.upload(filePath);
+                if (refreshedResult && !refreshedResult.error) {
+                    result = refreshedResult;
+                    cacheRecomputedFrom404 = true;
+                    jsonDetails = await uploader.fetchDetailedJson(result.permalink);
+                } else {
+                    result = refreshedResult;
+                    jsonDetails = null;
+                }
+            }
+            if (!result || result.error) {
+                markUploadRetryFailure(filePath, result?.error || 'Unknown upload error', result?.statusCode);
+                win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
+                console.log(`[Main] upload-complete error: ${filePath} msg=${result?.error || 'unknown'}`);
+                return;
+            }
             if (!jsonDetails || jsonDetails.error) {
                 const reason = jsonDetails?.error || 'null-response';
                 console.warn(`[Main] JSON details missing or error for ${filePath} (${result.permalink}): ${reason}`);
@@ -1234,7 +1284,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             const hasJsonPayload = Boolean(jsonDetails && !jsonDetails.error);
             const hasUsableDetails = Boolean(hasJsonPayload && hasUsableFightDetails(jsonDetails));
             const cacheableDetails = hasUsableDetails ? jsonDetails : null;
-            if (cacheKey && !cached?.entry?.result) {
+            if (cacheKey && (!cached?.entry?.result || cacheRecomputedFrom404)) {
                 await saveDpsReportCacheEntry(cacheKey, result, cacheableDetails);
             } else if (cacheKey && cached?.entry?.result && cacheableDetails) {
                 await updateDpsReportCacheDetails(cacheKey, cacheableDetails);
