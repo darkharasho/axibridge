@@ -773,8 +773,8 @@ function App() {
             const flushHydratedBatch = () => {
                 if (hydratedBatch.length === 0) return;
                 const batch = hydratedBatch.splice(0, hydratedBatch.length);
+                applyHydratedStatsBatch(batch);
                 if (statsViewActive) {
-                    applyHydratedStatsBatch(batch);
                     setLogsDeferred((currentLogs) => {
                         if (batch.length === 0) return currentLogs;
                         const updatedPaths = new Set(batch.map((entry) => entry.filePath));
@@ -923,19 +923,25 @@ function App() {
         bulkUploadExpectedRef.current = null;
         bulkUploadCompletedRef.current = 0;
         setBulkUploadMode(false);
+        const kickOffStatsCompute = (delayMs = 0) => {
+            window.setTimeout(() => {
+                bulkStatsAwaitingRef.current = true;
+                setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
+                const flushId = requestFlush?.();
+                if (flushId) {
+                    bulkFlushIdRef.current = flushId;
+                }
+            }, delayMs);
+        };
+        kickOffStatsCompute(0);
+        // Run a second kickoff after queued state flushes so late upload updates are included.
+        kickOffStatsCompute(420);
         if (viewRef.current === 'stats') {
-            bulkStatsAwaitingRef.current = true;
-            setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
-            const flushId = requestFlush?.();
-            if (flushId) {
-                bulkFlushIdRef.current = flushId;
-            }
             window.setTimeout(() => scheduleDetailsHydration(true), 0);
             window.setTimeout(() => scheduleDetailsHydration(true), 500);
         } else {
-            bulkStatsAwaitingRef.current = false;
-            bulkFlushIdRef.current = null;
-            window.setTimeout(() => scheduleDetailsHydration(), 180);
+            window.setTimeout(() => scheduleDetailsHydration(true), 180);
+            window.setTimeout(() => scheduleDetailsHydration(true), 620);
         }
     }, [scheduleDetailsHydration, requestFlush, setLogsForStats]);
 
