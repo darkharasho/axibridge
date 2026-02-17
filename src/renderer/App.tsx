@@ -205,7 +205,17 @@ function App() {
 
     // Persistence removed
 
-    const { result: aggregationResult, computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, requestFlush } = useStatsAggregationWorker({
+    const {
+        result: aggregationResult,
+        computeTick,
+        lastComputedLogCount,
+        lastComputedToken,
+        activeToken,
+        lastComputedAt,
+        lastComputedFlushId,
+        aggregationProgress,
+        requestFlush
+    } = useStatsAggregationWorker({
         logs: logsForStats,
         mvpWeights,
         statsViewSettings,
@@ -1781,7 +1791,7 @@ function App() {
         filePickerOpen, setFilePickerOpen, setFilePickerError, setFilePickerSelected, filePickerError, filePickerSelected, loadLogFiles, logDirectory, selectSinceOpen, setSelectSinceOpen, selectDayOpen, setSelectDayOpen, selectDayDate, setSelectDayDate, setSelectSinceView, setSelectSinceDate, setSelectSinceHour, setSelectSinceMinute, setSelectSinceMeridiem, setSelectSinceMonthOpen, selectSinceDate, selectSinceHour, selectSinceMinute, selectSinceMeridiem, selectSinceView, selectSinceMonthOpen, filePickerFilter, setFilePickerFilter, filePickerLoading, filePickerAvailable, filePickerAll, filePickerListRef, setFilePickerAtBottom, lastPickedIndexRef, filePickerHasMore, filePickerAtBottom, setFilePickerMonthWindow, ensureMonthWindowForSince, handleAddSelectedFiles, uiTheme
     };
     const appLayoutCtx = {
-        shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, setStatsViewSettings, uiTheme, dashboardLayout, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, setKineticFontStyle, setDashboardLayout, setGithubWebTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
+        shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, aggregationProgress, setStatsViewSettings, uiTheme, dashboardLayout, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, setKineticFontStyle, setDashboardLayout, setGithubWebTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
     };
 
     return <AppLayout ctx={appLayoutCtx} />;

@@ -6290,6 +6290,50 @@ body.theme-kinetic .app-shell .recent-activity-status-badge[data-status="success
     color: #d2f2dc !important;
 }
 
+.stats-settling-banner {
+    border-color: rgba(14, 165, 233, 0.35);
+    background-color: rgba(14, 165, 233, 0.12);
+    color: #e0f2fe;
+}
+
+.stats-settling-banner__title {
+    color: #e0f2fe;
+}
+
+.stats-settling-banner__meta {
+    color: rgba(224, 242, 254, 0.88);
+}
+
+.stats-settling-banner__track {
+    background-color: rgba(12, 74, 110, 0.75);
+}
+
+.stats-settling-banner__bar {
+    background-color: #7dd3fc;
+}
+
+body.theme-kinetic .app-shell .stats-settling-banner {
+    border-color: var(--accent-border) !important;
+    background-color: color-mix(in srgb, var(--accent-bg-strong) 75%, var(--bg-card)) !important;
+    color: var(--text-primary) !important;
+}
+
+body.theme-kinetic .app-shell .stats-settling-banner__title {
+    color: var(--text-primary) !important;
+}
+
+body.theme-kinetic .app-shell .stats-settling-banner__meta {
+    color: var(--text-secondary) !important;
+}
+
+body.theme-kinetic .app-shell .stats-settling-banner__track {
+    background-color: color-mix(in srgb, var(--bg-input) 82%, #000) !important;
+}
+
+body.theme-kinetic .app-shell .stats-settling-banner__bar {
+    background-color: color-mix(in srgb, var(--accent-border) 75%, #d6aa68) !important;
+}
+
 /* Keep sortable table headers readable in Kinetic Dark (app + web). */
 body.theme-kinetic.theme-kinetic-dark .stats-view .dense-table__head,
 body.theme-kinetic.theme-kinetic-dark .stats-view .dense-table__head--pinned,

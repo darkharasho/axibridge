@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DisruptionMethod, IMvpWeights, IStatsViewSettings } from '../../global.d';
 import { computeStatsAggregation } from '../computeStatsAggregation';
+import { pruneLogForStats } from '../utils/pruneStatsLog';
 
 interface UseStatsAggregationProps {
     logs: any[];
@@ -34,6 +35,22 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const aggregationSettingsKeyRef = useRef<string>('');
     const aggregationSettingsRef = useRef<IStatsViewSettings | undefined>(undefined);
     const lastFallbackComputeKeyRef = useRef('');
+    const expectedLogCountRef = useRef(0);
+    const [aggregationProgress, setAggregationProgress] = useState<{
+        active: boolean;
+        phase: 'idle' | 'streaming' | 'computing' | 'settled';
+        streamed: number;
+        total: number;
+        startedAt: number;
+        completedAt: number;
+    }>({
+        active: false,
+        phase: 'idle',
+        streamed: 0,
+        total: 0,
+        startedAt: 0,
+        completedAt: 0
+    });
 
     const aggregationStatsViewSettings = useMemo(() => {
         if (!statsViewSettings) {
@@ -82,6 +99,19 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     if (typeof event.data.flushId === 'number') {
                         setLastComputedFlushId(event.data.flushId);
                     }
+                    const tokenMatches = typeof event.data.token === 'number' && event.data.token === activeTokenRef.current;
+                    const expectedCount = expectedLogCountRef.current;
+                    const logCount = typeof event.data.logCount === 'number' ? event.data.logCount : 0;
+                    if (tokenMatches && logCount >= expectedCount) {
+                        setAggregationProgress((prev) => ({
+                            ...prev,
+                            active: expectedCount > 0,
+                            phase: expectedCount > 0 ? 'settled' : 'idle',
+                            streamed: expectedCount,
+                            total: expectedCount,
+                            completedAt: typeof event.data.completedAt === 'number' ? event.data.completedAt : Date.now()
+                        }));
+                    }
                 }
             };
             workerRef.current.onerror = (event) => {
@@ -109,6 +139,15 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     useEffect(() => {
         if (!workerRef.current || workerFailed || !shouldUseWorker) return;
         try {
+            expectedLogCountRef.current = logs.length;
+            setAggregationProgress({
+                active: logs.length > 0,
+                phase: logs.length > 0 ? 'streaming' : 'idle',
+                streamed: 0,
+                total: logs.length,
+                startedAt: Date.now(),
+                completedAt: 0
+            });
             activeTokenRef.current += 1;
             setActiveToken(activeTokenRef.current);
             workerRef.current.postMessage({ type: 'reset', token: activeTokenRef.current });
@@ -128,10 +167,17 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             let index = 0;
             const step = () => {
                 if (!workerRef.current) return;
-                const chunkSize = 5;
+                const chunkSize = 8;
                 for (let i = 0; i < chunkSize && index < logs.length; i += 1, index += 1) {
-                    workerRef.current.postMessage({ type: 'log', payload: logs[index] });
+                    workerRef.current.postMessage({ type: 'log', payload: pruneLogForStats(logs[index]) });
                 }
+                setAggregationProgress((prev) => ({
+                    ...prev,
+                    active: logs.length > 0,
+                    phase: index < logs.length ? 'streaming' : 'computing',
+                    streamed: Math.min(index, logs.length),
+                    total: logs.length
+                }));
                 if (index < logs.length) {
                     streamTimerRef.current = window.setTimeout(step, 0);
                 } else {
@@ -145,6 +191,14 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             workerRef.current?.terminate();
             workerRef.current = null;
             setWorkerFailed(true);
+            setAggregationProgress({
+                active: false,
+                phase: 'idle',
+                streamed: 0,
+                total: 0,
+                startedAt: 0,
+                completedAt: 0
+            });
         }
     }, [payload, logs, precomputedStats, mvpWeights, aggregationStatsViewSettings, disruptionMethod, shouldUseWorker]);
 
@@ -180,6 +234,16 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const resolvedResult = (workerFailed || typeof Worker === 'undefined' || !shouldUseWorker)
         ? (fallback ?? computeStatsAggregation({ logs, precomputedStats, mvpWeights, statsViewSettings: aggregationStatsViewSettings, disruptionMethod }))
         : result;
+    const resolvedAggregationProgress = (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker)
+        ? aggregationProgress
+        : {
+            active: false,
+            phase: 'idle' as const,
+            streamed: logs.length,
+            total: logs.length,
+            startedAt: 0,
+            completedAt: Date.now()
+        };
 
     return {
         result: resolvedResult,
@@ -189,6 +253,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         activeToken,
         lastComputedAt,
         lastComputedFlushId,
+        aggregationProgress: resolvedAggregationProgress,
         requestFlush: () => {
             const flushId = Date.now();
             pendingFlushIdRef.current = flushId;

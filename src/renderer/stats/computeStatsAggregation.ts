@@ -1862,17 +1862,23 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
         const { boonTables } = buildBoonTables(validLogs);
 
-        const timelineData = validLogs.map((log, i) => {
-            const players = (log.details?.players as any[]) || [];
-            return {
-            index: i + 1,
-            label: `Log ${i + 1}`,
-            timestamp: resolveFightTimestamp(log.details, log),
-            squadCount: players.filter(p => !p.notInSquad).length,
-            friendlyCount: players.length,
-            enemies: (log.details?.targets as any[]).filter(t => !t.isFake).length
-            };
-        }).sort((a, b) => a.timestamp - b.timestamp);
+        const timelineData = validLogs
+            .map((log) => {
+                const players = (log.details?.players as any[]) || [];
+                return {
+                    timestamp: resolveFightTimestamp(log.details, log),
+                    squadCount: players.filter(p => !p.notInSquad).length,
+                    friendlyCount: players.length,
+                    enemies: (log.details?.targets as any[]).filter(t => !t.isFake).length,
+                    isWin: getFightOutcome(log.details)
+                };
+            })
+            .sort((a, b) => a.timestamp - b.timestamp)
+            .map((entry, index) => ({
+                ...entry,
+                index: index + 1,
+                label: `Log ${index + 1}`
+            }));
 
         // 1. Squad Class Data
         const squadClassCounts: Record<string, number> = {};

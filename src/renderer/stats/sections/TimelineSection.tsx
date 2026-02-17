@@ -75,7 +75,15 @@ export const TimelineSection = ({
                             contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
                             labelFormatter={(_value, payload) => {
                                 const point = payload?.[0]?.payload;
-                                return point?.label ? `Log ${point.index} • ${point.label}` : `Log ${_value}`;
+                                const predicted = point?.isWin === true
+                                    ? 'Win'
+                                    : point?.isWin === false
+                                        ? 'Loss'
+                                        : 'Unknown';
+                                const logLabel = typeof point?.label === 'string' && point.label.trim().length > 0
+                                    ? point.label
+                                    : `Log ${_value}`;
+                                return `${logLabel} • ${predicted}`;
                             }}
                             formatter={(value: any, name?: string) => [
                                 value,

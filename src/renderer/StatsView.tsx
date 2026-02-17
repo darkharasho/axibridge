@@ -64,6 +64,14 @@ interface StatsViewProps {
     aggregationResult?: {
         stats: any;
         skillUsageData: SkillUsageSummary;
+        aggregationProgress?: {
+            active: boolean;
+            phase: 'idle' | 'streaming' | 'computing' | 'settled';
+            streamed: number;
+            total: number;
+            startedAt: number;
+            completedAt: number;
+        };
     };
 }
 
@@ -115,7 +123,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
 
     // --- Hook Integration ---
     const useExternalAggregation = !!externalAggregationResult;
-    const { result: internalAggregationResult } = useStatsAggregationWorker({
+    const { result: internalAggregationResult, aggregationProgress: internalAggregationProgress } = useStatsAggregationWorker({
         logs: useExternalAggregation ? [] : logs,
         precomputedStats: useExternalAggregation ? undefined : precomputedStats,
         mvpWeights,
@@ -123,7 +131,36 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
         disruptionMethod
     });
     const aggregationResult = externalAggregationResult || internalAggregationResult;
+    const aggregationProgress = externalAggregationResult?.aggregationProgress || internalAggregationProgress;
     const { stats, skillUsageData: computedSkillUsageData } = aggregationResult;
+    const statsSettling = useMemo(() => {
+        const total = Math.max(0, Number(aggregationProgress?.total || logs.length || 0));
+        const active = Boolean(aggregationProgress?.active) && aggregationProgress?.phase !== 'idle' && aggregationProgress?.phase !== 'settled' && total > 0;
+        if (!active) {
+            return {
+                active: false,
+                phaseLabel: '',
+                progressText: '',
+                progressPercent: 0
+            };
+        }
+        const streamed = Math.min(Math.max(Number(aggregationProgress?.streamed || 0), 0), total);
+        const phaseLabel = aggregationProgress?.phase === 'streaming'
+            ? 'Preparing stats payload'
+            : 'Computing final stats snapshot';
+        const progressText = aggregationProgress?.phase === 'streaming'
+            ? `${streamed}/${total} logs prepared`
+            : `${total}/${total} logs prepared • finalizing`;
+        const progressPercent = aggregationProgress?.phase === 'streaming'
+            ? Math.max(1, Math.min(99, Math.round((streamed / total) * 100)))
+            : 99;
+        return {
+            active: true,
+            phaseLabel,
+            progressText,
+            progressPercent
+        };
+    }, [aggregationProgress, logs.length]);
 
     const safeStats = useMemo(() => {
         const source = stats && typeof stats === 'object' ? stats : {};
@@ -2156,6 +2193,20 @@ type SpikeFight = {
                 devMockAvailable={devMockAvailable}
                 devMockUploadState={devMockUploadState}
             />
+            {statsSettling.active && (
+                <div className="stats-settling-banner mb-3 rounded-xl border px-4 py-3 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="stats-settling-banner__title font-semibold">{statsSettling.phaseLabel}</div>
+                        <div className="stats-settling-banner__meta text-[11px]">{statsSettling.progressText}</div>
+                    </div>
+                    <div className="stats-settling-banner__track mt-2 h-1.5 overflow-hidden rounded-full">
+                        <div
+                            className="stats-settling-banner__bar h-full rounded-full transition-all duration-300"
+                            style={{ width: `${statsSettling.progressPercent}%` }}
+                        />
+                    </div>
+                </div>
+            )}
 
             <div className={embedded ? '' : 'flex-1 min-h-0 flex'}>
                 <div
