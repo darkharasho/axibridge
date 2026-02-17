@@ -57,10 +57,11 @@ const resolveFightTimestamp = (details: any, log: any): number => {
 
 export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod, includePlayerSkillMap }: UseStatsAggregationProps) => {
 
-    const validLogs = (() => {
-        const filtered = logs.filter(l => l.details && l.details.players && l.details.players.length > 0);
-        return filtered;
-    })();
+    const hasDetailedRoster = (log: any) => {
+        const players = Array.isArray(log?.details?.players) ? log.details.players : [];
+        return players.length > 0;
+    };
+    const validLogs = logs.filter((log) => hasDetailedRoster(log));
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
     const activeMvpWeights = mvpWeights || DEFAULT_MVP_WEIGHTS;
     const enrichPrecomputedStats = (input: any) => {
@@ -1591,6 +1592,40 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             }
             return '';
         };
+        const resolveFightDurationLabel = (details: any, log: any) => {
+            const durationMs = Number(details?.durationMS || 0);
+            if (durationMs > 0) return formatDurationMs(durationMs);
+            const fallback = typeof log?.encounterDuration === 'string' ? log.encounterDuration.trim() : '';
+            return fallback || '--:--';
+        };
+        const resolveFightOutcomeForDisplay = (details: any, log: any): boolean | null => {
+            const players = Array.isArray(details?.players) ? details.players : [];
+            if (players.length > 0) return getFightOutcome(details);
+            if (typeof details?.success === 'boolean') return details.success;
+            const summary = log?.dashboardSummary;
+            if (summary && typeof summary === 'object') {
+                if (summary.isWin === true) return true;
+                if (summary.isWin === false) return false;
+            }
+            return null;
+        };
+        const sortLogsByFightOrder = (a: { log: any; originalIndex: number }, b: { log: any; originalIndex: number }) => {
+            const aTimestamp = resolveFightTimestamp(a.log?.details, a.log);
+            const bTimestamp = resolveFightTimestamp(b.log?.details, b.log);
+            const aHasTimestamp = aTimestamp > 0;
+            const bHasTimestamp = bTimestamp > 0;
+            if (aHasTimestamp && bHasTimestamp && aTimestamp !== bTimestamp) {
+                return aTimestamp - bTimestamp;
+            }
+            if (aHasTimestamp !== bHasTimestamp) {
+                return aHasTimestamp ? -1 : 1;
+            }
+            return a.originalIndex - b.originalIndex;
+        };
+        const sortedFightLogs = logs
+            .map((log, originalIndex) => ({ log, originalIndex }))
+            .sort(sortLogsByFightOrder);
+        const sortedFightLogsWithDetails = sortedFightLogs.filter(({ log }) => hasDetailedRoster(log));
         const mapCounts: Record<string, number> = {};
         validLogs.forEach((log) => {
             const name = resolveMapName(log?.details, log);
@@ -1616,18 +1651,29 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
         const { boonTables } = buildBoonTables(validLogs);
 
-        const timelineData = validLogs
-            .map((log) => {
-                const players = (log.details?.players as any[]) || [];
+        const timelineData = sortedFightLogs
+            .map(({ log }) => {
+                const details = log?.details;
+                const players = Array.isArray(details?.players) ? details.players : [];
+                const targets = Array.isArray(details?.targets) ? details.targets : [];
+                const summary = log?.dashboardSummary && typeof log.dashboardSummary === 'object'
+                    ? log.dashboardSummary
+                    : null;
+                const squadPlayers = players.filter((p: any) => !p.notInSquad);
+                const enemyTargets = targets.filter((t: any) => !t.isFake);
+                const summarySquadCount = Math.max(0, Number(summary?.squadCount || 0));
+                const summaryEnemyCount = Math.max(0, Number(summary?.enemyCount || 0));
+                const squadCount = squadPlayers.length > 0 ? squadPlayers.length : summarySquadCount;
+                const enemies = enemyTargets.length > 0 ? enemyTargets.length : summaryEnemyCount;
+                const friendlyCount = players.length > 0 ? players.length : squadCount;
                 return {
-                    timestamp: resolveFightTimestamp(log.details, log),
-                    squadCount: players.filter(p => !p.notInSquad).length,
-                    friendlyCount: players.length,
-                    enemies: (log.details?.targets as any[]).filter(t => !t.isFake).length,
-                    isWin: getFightOutcome(log.details)
+                    timestamp: resolveFightTimestamp(details, log),
+                    squadCount,
+                    friendlyCount,
+                    enemies,
+                    isWin: resolveFightOutcomeForDisplay(details, log)
                 };
             })
-            .sort((a, b) => a.timestamp - b.timestamp)
             .map((entry, index) => ({
                 ...entry,
                 index: index + 1,
@@ -1662,24 +1708,22 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             name, value, color: getProfessionColor(name) || '#f87171'
         })).sort((a, b) => b.value - a.value);
 
-        const sortedFightLogs = validLogs
-            .map((log, originalIndex) => ({ log, originalIndex }))
-            .sort((a, b) => resolveFightTimestamp(a.log.details, a.log) - resolveFightTimestamp(b.log.details, b.log));
-
         // 3. Fight Breakdown
         const fightBreakdown = sortedFightLogs
             .map(({ log }, idx) => {
-                const details = log.details;
-                if (!details) return null;
-                const players = details.players || [];
+                const details = log?.details;
+                const players = Array.isArray(details?.players) ? details.players : [];
                 const squadPlayers = players.filter((p: any) => !p.notInSquad);
                 const allies = players.filter((p: any) => p.notInSquad);
-                const targets = details.targets || [];
+                const targets = Array.isArray(details?.targets) ? details.targets : [];
                 const enemyTargets = targets.filter((t: any) => !t.isFake);
+                const summary = log?.dashboardSummary && typeof log.dashboardSummary === 'object'
+                    ? log.dashboardSummary
+                    : null;
                 const totalOutgoing = squadPlayers.reduce((sum: number, p: any) => sum + (p.dpsAll?.[0]?.damage || 0), 0);
                 const totalIncoming = squadPlayers.reduce((sum: number, p: any) => sum + (p.defenses?.[0]?.damageTaken || 0), 0);
                 const { enemyDeaths, enemyDownsDeaths } = getFightDownsDeaths(details);
-                const isWin = getFightOutcome(details);
+                const isWin = resolveFightOutcomeForDisplay(details, log);
                 const timestamp = resolveFightTimestamp(details, log);
                 const mapName = resolveMapName(details, log);
                 const getTeamValue = (entity: any) => {
@@ -1733,20 +1777,24 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     permalink: resolvePermalink(details, log),
                     timestamp,
                     mapName,
-                    duration: formatDurationMs(details.durationMS),
+                    duration: resolveFightDurationLabel(details, log),
                     isWin,
-                    squadCount: squadPlayers.length,
+                    squadCount: squadPlayers.length > 0 ? squadPlayers.length : Math.max(0, Number(summary?.squadCount || 0)),
                     allyCount: allies.length,
-                    enemyCount: enemyTargets.length,
+                    enemyCount: enemyTargets.length > 0 ? enemyTargets.length : Math.max(0, Number(summary?.enemyCount || 0)),
                     teamBreakdown,
                     alliesDown: squadPlayers.reduce((sum: number, p: any) => sum + (p.defenses?.[0]?.downCount || 0), 0),
-                    alliesDead: squadPlayers.reduce((sum: number, p: any) => sum + (p.defenses?.[0]?.deadCount || 0), 0),
+                    alliesDead: squadPlayers.length > 0
+                        ? squadPlayers.reduce((sum: number, p: any) => sum + (p.defenses?.[0]?.deadCount || 0), 0)
+                        : Math.max(0, Number(summary?.squadDeaths || 0)),
                     // Number of distinct allied players who were revived at least once (not total revive events).
                     alliesRevived: squadPlayers.reduce((sum: number, p: any) => (
                         Number(p.statsAll?.[0]?.saved || 0) > 0 ? sum + 1 : sum
                     ), 0),
                     rallies: 0,
-                    enemyDeaths,
+                    enemyDeaths: enemyTargets.length > 0 || squadPlayers.length > 0
+                        ? enemyDeaths
+                        : Math.max(0, Number(summary?.enemyDeaths || 0)),
                     enemyDowns: Math.max(0, enemyDownsDeaths - enemyDeaths),
                     totalOutgoingDamage: totalOutgoing,
                     totalIncomingDamage: totalIncoming,
@@ -1770,10 +1818,9 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     allyClassCountsFight,
                     enemyClassCounts
                 };
-            })
-            .filter(Boolean);
+            });
 
-        const fightDiffMode = sortedFightLogs
+        const fightDiffMode = sortedFightLogsWithDetails
             .map(({ log }, idx) => {
                 const details = log.details;
                 if (!details) return null;

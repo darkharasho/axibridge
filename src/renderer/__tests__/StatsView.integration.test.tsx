@@ -185,4 +185,25 @@ describe('StatsView (integration)', () => {
         expect(screen.getByText(/Fight details unavailable/i)).toBeInTheDocument();
         expect(screen.getByText(/12 of 12 fights could not be loaded from dps\.report/i)).toBeInTheDocument();
     });
+
+    it('prefers uploaded-log count in the header when computed stats only include detailed fights', () => {
+        const logs = [
+            { id: '1', filePath: 'one.zevtc', permalink: '', status: 'success' },
+            { id: '2', filePath: 'two.zevtc', permalink: '', status: 'success' },
+            { id: '3', filePath: 'three.zevtc', permalink: '', status: 'success' }
+        ];
+
+        render(
+            <StatsView
+                logs={logs as any}
+                onBack={() => {}}
+                precomputedStats={{ total: 1 }}
+                statsViewSettings={DEFAULT_STATS_VIEW_SETTINGS}
+                embedded
+                dashboardTitle="Header Count"
+            />
+        );
+
+        expect(screen.getByText(/Performance across 3 uploaded logs/i)).toBeInTheDocument();
+    });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import type { DisruptionMethod, IMvpWeights, IStatsViewSettings } from '../../global.d';
 import { computeStatsAggregation } from '../computeStatsAggregation';
 import { pruneLogForStats } from '../utils/pruneStatsLog';
@@ -146,63 +146,65 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     if (incomingToken !== null && incomingToken !== activeTokenRef.current) {
                         return;
                     }
-                    setResult(event.data.result);
-                    if (typeof event.data.computeId === 'number') {
-                        setComputeTick(event.data.computeId);
-                    } else {
-                        setComputeTick((prev) => prev + 1);
-                    }
-                    if (typeof event.data.logCount === 'number') {
-                        setLastComputedLogCount(event.data.logCount);
-                    }
-                    if (typeof event.data.token === 'number') {
-                        setLastComputedToken(event.data.token);
-                    }
-                    if (typeof event.data.completedAt === 'number') {
-                        setLastComputedAt(event.data.completedAt);
-                    }
-                    if (typeof event.data.flushId === 'number') {
-                        setLastComputedFlushId(event.data.flushId);
-                    }
-                    const tokenMatches = incomingToken === null || incomingToken === activeTokenRef.current;
-                    const expectedCount = expectedLogCountRef.current;
-                    const logCount = typeof event.data.logCount === 'number' ? event.data.logCount : 0;
-                    if (tokenMatches) {
-                        const completedAt = typeof event.data.completedAt === 'number' ? event.data.completedAt : Date.now();
-                        const diagnostics = event.data?.diagnostics || {};
-                        const computeMs = Math.max(0, Number(diagnostics.computeMs || 0));
-                        const startedAt = workerAggregationStartedAtRef.current > 0
-                            ? workerAggregationStartedAtRef.current
-                            : completedAt;
-                        const totalMs = Math.max(0, completedAt - startedAt);
-                        const streamMs = Math.max(0, totalMs - computeMs);
-                        setAggregationDiagnostics({
-                            mode: 'worker',
-                            logsInPayload: Number(diagnostics.logsInPayload || event.data.logCount || 0),
-                            streamedLogs: Number(event.data.logCount || 0),
-                            totalLogs: expectedCount,
-                            startedAt,
-                            completedAt,
-                            streamMs,
-                            computeMs,
-                            totalMs,
-                            flushId: typeof event.data.flushId === 'number' ? event.data.flushId : null,
-                            transferStripStats: diagnostics.transferStripStats,
-                            counts: diagnostics.counts,
-                            expectedLogCount: Number(diagnostics.expectedLogCount || 0),
-                            droppedLogMessages: Number(diagnostics.droppedLogMessages || 0)
-                        });
-                    }
-                    if (tokenMatches && logCount >= expectedCount) {
-                        setAggregationProgress((prev) => ({
-                            ...prev,
-                            active: expectedCount > 0,
-                            phase: expectedCount > 0 ? 'settled' : 'idle',
-                            streamed: expectedCount,
-                            total: expectedCount,
-                            completedAt: typeof event.data.completedAt === 'number' ? event.data.completedAt : Date.now()
-                        }));
-                    }
+                    startTransition(() => {
+                        setResult(event.data.result);
+                        if (typeof event.data.computeId === 'number') {
+                            setComputeTick(event.data.computeId);
+                        } else {
+                            setComputeTick((prev) => prev + 1);
+                        }
+                        if (typeof event.data.logCount === 'number') {
+                            setLastComputedLogCount(event.data.logCount);
+                        }
+                        if (typeof event.data.token === 'number') {
+                            setLastComputedToken(event.data.token);
+                        }
+                        if (typeof event.data.completedAt === 'number') {
+                            setLastComputedAt(event.data.completedAt);
+                        }
+                        if (typeof event.data.flushId === 'number') {
+                            setLastComputedFlushId(event.data.flushId);
+                        }
+                        const tokenMatches = incomingToken === null || incomingToken === activeTokenRef.current;
+                        const expectedCount = expectedLogCountRef.current;
+                        const logCount = typeof event.data.logCount === 'number' ? event.data.logCount : 0;
+                        if (tokenMatches) {
+                            const completedAt = typeof event.data.completedAt === 'number' ? event.data.completedAt : Date.now();
+                            const diagnostics = event.data?.diagnostics || {};
+                            const computeMs = Math.max(0, Number(diagnostics.computeMs || 0));
+                            const startedAt = workerAggregationStartedAtRef.current > 0
+                                ? workerAggregationStartedAtRef.current
+                                : completedAt;
+                            const totalMs = Math.max(0, completedAt - startedAt);
+                            const streamMs = Math.max(0, totalMs - computeMs);
+                            setAggregationDiagnostics({
+                                mode: 'worker',
+                                logsInPayload: Number(diagnostics.logsInPayload || event.data.logCount || 0),
+                                streamedLogs: Number(event.data.logCount || 0),
+                                totalLogs: expectedCount,
+                                startedAt,
+                                completedAt,
+                                streamMs,
+                                computeMs,
+                                totalMs,
+                                flushId: typeof event.data.flushId === 'number' ? event.data.flushId : null,
+                                transferStripStats: diagnostics.transferStripStats,
+                                counts: diagnostics.counts,
+                                expectedLogCount: Number(diagnostics.expectedLogCount || 0),
+                                droppedLogMessages: Number(diagnostics.droppedLogMessages || 0)
+                            });
+                        }
+                        if (tokenMatches && logCount >= expectedCount) {
+                            setAggregationProgress((prev) => ({
+                                ...prev,
+                                active: expectedCount > 0,
+                                phase: expectedCount > 0 ? 'settled' : 'idle',
+                                streamed: expectedCount,
+                                total: expectedCount,
+                                completedAt: typeof event.data.completedAt === 'number' ? event.data.completedAt : Date.now()
+                            }));
+                        }
+                    });
                 }
             };
             workerRef.current.onerror = (event) => {

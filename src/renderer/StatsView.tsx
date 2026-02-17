@@ -104,6 +104,15 @@ const ORDERED_SECTION_IDS = [
     'apm-stats'
 ] as const;
 
+const EMPTY_SKILL_USAGE_SUMMARY: SkillUsageSummary = {
+    logRecords: [],
+    players: [],
+    skillOptions: [],
+    resUtilitySkills: []
+};
+
+const EMPTY_ANY_ARRAY: any[] = [];
+
 export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, uiTheme, canShareDiscord = true, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
     const activeMvpWeights = mvpWeights || DEFAULT_MVP_WEIGHTS;
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
@@ -121,6 +130,11 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const webUploadUrl = activeWebUploadState.url;
     const webUploadBuildStatus = activeWebUploadState.buildStatus;
     const devMockAvailable = !embedded && import.meta.env.DEV && !!window.electronAPI?.mockWebReport;
+    const [sectionContentReady, setSectionContentReady] = useState(true);
+    const isSectionVisibleFast = useCallback(
+        (id: string) => (sectionVisibility ? sectionVisibility(id) : true),
+        [sectionVisibility]
+    );
 
     // --- Hook Integration ---
     const useExternalAggregation = !!externalAggregationResult;
@@ -231,6 +245,45 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const showStatsSettlingBanner = statsSettling.active;
     const statsSettlingBannerTitle = statsSettling.phaseLabel;
     const statsSettlingBannerMeta = statsSettling.progressText;
+    const blurStatsDashboard = showStatsSettlingBanner && statsSettling.progressPercent < 100;
+    useEffect(() => {
+        if (showStatsSettlingBanner) {
+            setSectionContentReady(false);
+            return;
+        }
+        let cancelled = false;
+        const enableSections = () => {
+            if (!cancelled) {
+                setSectionContentReady(true);
+            }
+        };
+        const requestIdle = (window as any).requestIdleCallback;
+        let handle: number | null = null;
+        if (typeof requestIdle === 'function') {
+            handle = requestIdle(() => enableSections(), { timeout: 220 });
+        } else {
+            handle = window.setTimeout(enableSections, 60);
+        }
+        return () => {
+            cancelled = true;
+            if (handle === null) return;
+            if (typeof requestIdle === 'function') {
+                const cancelIdle = (window as any).cancelIdleCallback;
+                if (typeof cancelIdle === 'function') {
+                    cancelIdle(handle);
+                }
+            } else {
+                window.clearTimeout(handle);
+            }
+        };
+    }, [showStatsSettlingBanner]);
+    const sectionsReady = sectionContentReady && !showStatsSettlingBanner;
+    const needsTopSkillsData = sectionsReady && isSectionVisibleFast('top-skills-outgoing');
+    const needsSkillUsageData = sectionsReady && isSectionVisibleFast('skill-usage');
+    const needsApmData = sectionsReady && isSectionVisibleFast('apm-stats');
+    const needsSpikeData = sectionsReady && isSectionVisibleFast('spike-damage');
+    const needsIncomingStrikeData = sectionsReady && isSectionVisibleFast('incoming-strike-damage');
+    const needsConditionData = sectionsReady && isSectionVisibleFast('conditions-outgoing');
 
     const safeStats = useMemo(() => {
         const source = stats && typeof stats === 'object' ? stats : {};
@@ -309,41 +362,67 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
 
     useEffect(() => {
         if (!window?.electronAPI?.fetchImageAsDataUrl) return;
-        const urls = new Set<string>();
-        const addUrl = (value: any) => {
-            if (typeof value !== 'string') return;
-            if (!/^https?:\/\//i.test(value)) return;
-            urls.add(value);
-        };
-        const collectIconRows = (rows: any[]) => {
-            rows.forEach((row: any) => {
-                addUrl(row?.icon);
-                addUrl(row?.iconUrl);
+        if (showStatsSettlingBanner) return;
+        let cancelled = false;
+        const run = () => {
+            if (cancelled) return;
+            const urls = new Set<string>();
+            const addUrl = (value: any) => {
+                if (typeof value !== 'string') return;
+                if (!/^https?:\/\//i.test(value)) return;
+                urls.add(value);
+            };
+            const collectIconRows = (rows: any[]) => {
+                rows.forEach((row: any) => {
+                    addUrl(row?.icon);
+                    addUrl(row?.iconUrl);
+                });
+            };
+            collectIconRows(Array.isArray((safeStats as any)?.topSkills) ? (safeStats as any).topSkills : []);
+            collectIconRows(Array.isArray((safeStats as any)?.topIncomingSkills) ? (safeStats as any).topIncomingSkills : []);
+            collectIconRows(Array.isArray((safeStats as any)?.topSkillsByDamage) ? (safeStats as any).topSkillsByDamage : []);
+            collectIconRows(Array.isArray((safeStats as any)?.topSkillsByDownContribution) ? (safeStats as any).topSkillsByDownContribution : []);
+            collectIconRows(Array.isArray((safeStats as any)?.outgoingConditionSummary) ? (safeStats as any).outgoingConditionSummary : []);
+            collectIconRows(Array.isArray((safeStats as any)?.incomingConditionSummary) ? (safeStats as any).incomingConditionSummary : []);
+            const boonTables = Array.isArray((safeStats as any)?.boonTables) ? (safeStats as any).boonTables : [];
+            boonTables.forEach((table: any) => {
+                addUrl(table?.icon);
             });
+            const specialTables = Array.isArray((safeStats as any)?.specialTables) ? (safeStats as any).specialTables : [];
+            specialTables.forEach((table: any) => {
+                addUrl(table?.icon);
+            });
+            if (needsTopSkillsData) {
+                const playerBreakdowns = Array.isArray((safeStats as any)?.playerSkillBreakdowns) ? (safeStats as any).playerSkillBreakdowns : [];
+                playerBreakdowns.forEach((player: any) => {
+                    const skills = Array.isArray(player?.skills) ? player.skills : [];
+                    collectIconRows(skills);
+                });
+            }
+            if (urls.size > 0) {
+                prefetchIconUrls(Array.from(urls));
+            }
         };
-        collectIconRows(Array.isArray((safeStats as any)?.topSkills) ? (safeStats as any).topSkills : []);
-        collectIconRows(Array.isArray((safeStats as any)?.topIncomingSkills) ? (safeStats as any).topIncomingSkills : []);
-        collectIconRows(Array.isArray((safeStats as any)?.topSkillsByDamage) ? (safeStats as any).topSkillsByDamage : []);
-        collectIconRows(Array.isArray((safeStats as any)?.topSkillsByDownContribution) ? (safeStats as any).topSkillsByDownContribution : []);
-        collectIconRows(Array.isArray((safeStats as any)?.outgoingConditionSummary) ? (safeStats as any).outgoingConditionSummary : []);
-        collectIconRows(Array.isArray((safeStats as any)?.incomingConditionSummary) ? (safeStats as any).incomingConditionSummary : []);
-        const boonTables = Array.isArray((safeStats as any)?.boonTables) ? (safeStats as any).boonTables : [];
-        boonTables.forEach((table: any) => {
-            addUrl(table?.icon);
-        });
-        const specialTables = Array.isArray((safeStats as any)?.specialTables) ? (safeStats as any).specialTables : [];
-        specialTables.forEach((table: any) => {
-            addUrl(table?.icon);
-        });
-        const playerBreakdowns = Array.isArray((safeStats as any)?.playerSkillBreakdowns) ? (safeStats as any).playerSkillBreakdowns : [];
-        playerBreakdowns.forEach((player: any) => {
-            const skills = Array.isArray(player?.skills) ? player.skills : [];
-            collectIconRows(skills);
-        });
-        if (urls.size > 0) {
-            prefetchIconUrls(Array.from(urls));
+        const requestIdle = (window as any).requestIdleCallback;
+        let handle: number | null = null;
+        if (typeof requestIdle === 'function') {
+            handle = requestIdle(() => run(), { timeout: 500 });
+        } else {
+            handle = window.setTimeout(run, 120);
         }
-    }, [safeStats]);
+        return () => {
+            cancelled = true;
+            if (handle === null) return;
+            if (typeof requestIdle === 'function') {
+                const cancelIdle = (window as any).cancelIdleCallback;
+                if (typeof cancelIdle === 'function') {
+                    cancelIdle(handle);
+                }
+            } else {
+                window.clearTimeout(handle);
+            }
+        };
+    }, [safeStats, showStatsSettlingBanner, needsTopSkillsData]);
 
     const skillUsageData = useMemo(() => {
         const source = (precomputedStats?.skillUsageData ?? computedSkillUsageData) as Partial<SkillUsageSummary> | undefined;
@@ -374,7 +453,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
 
     const {
         scrollContainerRef,
-    } = useStatsNavigation(embedded);
+    } = useStatsNavigation(embedded, true, blurStatsDashboard);
 
     const {
         devMockUploadState,
@@ -495,8 +574,12 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const [expandedClassBreakdownKey, setExpandedClassBreakdownKey] = useState<string | null>(null);
     const [activeClassBreakdownSkillId, setActiveClassBreakdownSkillId] = useState<string | null>(null);
 
-    const { apmSpecBuckets: apmSpecTables } = useApmStats(skillUsageData);
-    const playerSkillBreakdowns = (safeStats.playerSkillBreakdowns || []) as PlayerSkillBreakdown[];
+    const apmSkillUsageData = needsApmData ? skillUsageData : EMPTY_SKILL_USAGE_SUMMARY;
+    const { apmSpecBuckets: apmSpecTables } = useApmStats(apmSkillUsageData);
+    const playerSkillBreakdowns = useMemo(
+        () => (needsTopSkillsData ? ((safeStats.playerSkillBreakdowns || []) as PlayerSkillBreakdown[]) : EMPTY_ANY_ARRAY as PlayerSkillBreakdown[]),
+        [needsTopSkillsData, safeStats.playerSkillBreakdowns]
+    );
     const playerSkillBreakdownMap = useMemo(() => {
         const map = new Map<string, PlayerSkillBreakdown>();
         playerSkillBreakdowns.forEach((entry) => map.set(entry.key, entry));
@@ -641,6 +724,9 @@ type SpikeFight = {
     };
 
     const spikeDamageData = useMemo<{ fights: SpikeFight[]; players: SpikePlayer[] }>(() => {
+        if (!needsSpikeData) {
+            return { fights: [], players: [] };
+        }
         const sanitizeWvwLabel = (value: any) => String(value || '')
             .replace(/^Detailed\s*WvW\s*-\s*/i, '')
             .replace(/^World\s*vs\s*World\s*-\s*/i, '')
@@ -951,9 +1037,12 @@ type SpikeFight = {
         });
 
         return { fights, players };
-    }, [logs, safeStats]);
+    }, [logs, safeStats, needsSpikeData]);
 
     const incomingStrikeDamageData = useMemo<{ fights: SpikeFight[]; players: SpikePlayer[] }>(() => {
+        if (!needsIncomingStrikeData) {
+            return { fights: [], players: [] };
+        }
         const sanitizeWvwLabel = (value: any) => String(value || '')
             .replace(/^Detailed\s*WvW\s*-\s*/i, '')
             .replace(/^World\s*vs\s*World\s*-\s*/i, '')
@@ -998,7 +1087,7 @@ type SpikeFight = {
         }));
 
         return { fights, players };
-    }, [safeStats]);
+    }, [safeStats, needsIncomingStrikeData]);
 
     const spikePlayerMap = useMemo(() => {
         const map = new Map<string, (typeof spikeDamageData.players)[number]>();
@@ -1801,6 +1890,7 @@ type SpikeFight = {
     }, [incomingStrikeChartData, selectedIncomingStrikeFightIndex]);
 
     const selectedPlayersSet = useMemo(() => new Set(selectedPlayers), [selectedPlayers]);
+    const skillChartSkillUsageData = needsSkillUsageData ? skillUsageData : EMPTY_SKILL_USAGE_SUMMARY;
 
     const {
         playerMapByKey,
@@ -1809,7 +1899,7 @@ type SpikeFight = {
         skillChartMaxY,
         groupedSkillUsagePlayers
     } = useSkillCharts({
-        skillUsageData,
+        skillUsageData: skillChartSkillUsageData,
         selectedSkillId,
         selectedPlayers: selectedPlayersSet,
         skillUsageView: skillUsageView === 'perSecond' ? 'perSecond' : 'total'
@@ -1915,13 +2005,18 @@ type SpikeFight = {
         };
     }, []);
 
-    const conditionRawSummary = conditionDirection === 'outgoing' ? safeStats.outgoingConditionSummary : safeStats.incomingConditionSummary;
-    const conditionRawPlayers = conditionDirection === 'outgoing' ? safeStats.outgoingConditionPlayers : safeStats.incomingConditionPlayers;
+    const conditionRawSummary = needsConditionData
+        ? (conditionDirection === 'outgoing' ? safeStats.outgoingConditionSummary : safeStats.incomingConditionSummary)
+        : EMPTY_ANY_ARRAY;
+    const conditionRawPlayers = needsConditionData
+        ? (conditionDirection === 'outgoing' ? safeStats.outgoingConditionPlayers : safeStats.incomingConditionPlayers)
+        : EMPTY_ANY_ARRAY;
     const { summary: conditionSummary, players: conditionPlayers } = useMemo(
         () => normalizeConditionData(conditionRawSummary || [], conditionRawPlayers || []),
         [normalizeConditionData, conditionRawSummary, conditionRawPlayers]
     );
     useEffect(() => {
+        if (!needsConditionData) return;
         if (activeConditionName === 'all') return;
         if (conditionSummary.some((entry: any) => entry.name === activeConditionName)) return;
         const normalized = normalizeConditionLabel(activeConditionName);
@@ -1930,7 +2025,7 @@ type SpikeFight = {
         } else {
             setActiveConditionName('all');
         }
-    }, [activeConditionName, conditionSummary, setActiveConditionName]);
+    }, [activeConditionName, conditionSummary, setActiveConditionName, needsConditionData]);
 
     // Define classMaxTotals to fix undefined variable error
     const classMaxTotals = useMemo(() => {
@@ -1946,10 +2041,7 @@ type SpikeFight = {
         return totals;
     }, [playerTotalsForSkill, playerMapByKey]);
 
-    const isSectionVisible = useCallback(
-        (id: string) => (sectionVisibility ? sectionVisibility(id) : true),
-        [sectionVisibility]
-    );
+    const isSectionVisible = isSectionVisibleFast;
     const sectionClass = useCallback((id: string, base: string) => {
         const visible = isSectionVisible(id);
         if (sectionVisibility) {
@@ -2024,11 +2116,11 @@ type SpikeFight = {
 
     const skillMetaById = useMemo(() => {
         const map = new Map<string, { name: string; icon?: string }>();
-        skillUsageData.skillOptions.forEach((option) => {
+        skillChartSkillUsageData.skillOptions.forEach((option) => {
             map.set(option.id, { name: option.name, icon: option.icon });
         });
         return map;
-    }, [skillUsageData.skillOptions]);
+    }, [skillChartSkillUsageData.skillOptions]);
 
     const skillBarData = useMemo(() => {
         if (selectedPlayers.length === 0) return [];
@@ -2067,6 +2159,7 @@ type SpikeFight = {
     }, [selectedPlayers, playerMapByKey, skillUsageSkillFilter, skillUsageView, skillMetaById]);
 
     useEffect(() => {
+        if (!needsSkillUsageData) return;
         if (skillBarData.length === 0) {
             if (selectedSkillId !== null) setSelectedSkillId(null);
             return;
@@ -2074,9 +2167,9 @@ type SpikeFight = {
         if (!selectedSkillId || !skillBarData.some((entry) => entry.skillId === selectedSkillId)) {
             setSelectedSkillId(skillBarData[0].skillId);
         }
-    }, [skillBarData, selectedSkillId, setSelectedSkillId]);
+    }, [skillBarData, selectedSkillId, setSelectedSkillId, needsSkillUsageData]);
 
-    const selectedSkillMeta = skillUsageData.skillOptions.find((option) => option.id === selectedSkillId);
+    const selectedSkillMeta = skillChartSkillUsageData.skillOptions.find((option) => option.id === selectedSkillId);
     const selectedSkillName = selectedSkillMeta?.name || '';
     const selectedSkillIcon = selectedSkillMeta?.icon || null;
     const skillUsageReady = skillUsageAvailable && Boolean(selectedSkillId) && selectedPlayers.length > 0;
@@ -2311,6 +2404,12 @@ type SpikeFight = {
                 backgroundImage: 'none'
             }
             : undefined;
+    const resolvedScrollContainerStyle: CSSProperties | undefined = blurStatsDashboard
+        ? {
+            ...(scrollContainerStyle || {}),
+            overflowY: 'hidden'
+        }
+        : scrollContainerStyle;
 
 
     const formatSkillUsageValue = (val: number) => {
@@ -2325,6 +2424,11 @@ type SpikeFight = {
         if (typeof val === 'number' && Number.isFinite(val)) return val.toFixed(1);
         return '0.0';
     };
+    const headerTotalLogs = Math.max(
+        Math.max(0, Number(safeStats.total || 0)),
+        Math.max(0, Number(logs.length || 0)),
+        Math.max(0, Number(statsDataProgress?.total || 0))
+    );
 
     const renderProfessionIcon = renderProfessionIconShared;
 
@@ -2340,7 +2444,7 @@ type SpikeFight = {
             <StatsHeader
                 embedded={embedded}
                 dashboardTitle={dashboardTitle}
-                totalLogs={safeStats.total}
+                totalLogs={headerTotalLogs}
                 onBack={onBack}
                 devMockAvailable={devMockAvailable}
                 devMockUploadState={devMockUploadState}
@@ -2386,12 +2490,12 @@ type SpikeFight = {
                 </div>
             )}
 
-            <div className={embedded ? '' : 'flex-1 min-h-0 flex'}>
+            <div className={`${embedded ? '' : 'flex-1 min-h-0 flex'} relative ${blurStatsDashboard ? 'stats-dashboard-loading-shell' : ''}`}>
                 <div
                     id="stats-dashboard-container"
                     ref={scrollContainerRef}
-                    className={`${scrollContainerClass} ${embedded ? '' : 'flex-1'}`}
-                    style={scrollContainerStyle}
+                    className={`${scrollContainerClass} ${embedded ? '' : 'flex-1'} ${blurStatsDashboard ? 'stats-dashboard-scroll-lock' : ''}`}
+                    style={resolvedScrollContainerStyle}
                 >
                 {useModernLayout ? (
                     <div className="stats-layout stats-layout-modern grid gap-4 grid-cols-1">
@@ -3366,6 +3470,9 @@ type SpikeFight = {
                 )}
                 {!embedded && <div className="h-24" aria-hidden="true" />}
             </div>
+                {blurStatsDashboard && (
+                    <div className="stats-dashboard-loading-overlay" aria-hidden="true" />
+                )}
             </div>
         </div>
     );

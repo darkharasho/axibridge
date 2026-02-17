@@ -100,7 +100,7 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
     }
 ];
 
-export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true) => {
+export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true, scrollLocked = false) => {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [activeNavId, setActiveNavId] = useState('overview');
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -133,8 +133,9 @@ export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true
     };
 
     useEffect(() => {
-        if (embedded) return;
+        if (embedded || scrollLocked) return;
         const onWheel = (event: WheelEvent) => {
+            if (scrollLocked) return;
             const container = scrollContainerRef.current;
             if (!container) return;
             const target = event.target;
@@ -170,7 +171,7 @@ export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true
             }
             scrollDeltaRef.current = 0;
         };
-    }, [embedded]);
+    }, [embedded, scrollLocked]);
 
     const stepSection = (direction: -1 | 1) => {
         const currentIndex = Math.max(0, tocItems.findIndex((item) => item.id === activeNavId));
@@ -180,7 +181,7 @@ export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true
     };
 
     useEffect(() => {
-        if (!trackActiveOnScroll) return;
+        if (!trackActiveOnScroll || scrollLocked) return;
         const container = scrollContainerRef.current;
         if (!container) return;
         let raf = 0;
@@ -209,7 +210,7 @@ export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true
             container.removeEventListener('scroll', onScroll);
             window.removeEventListener('resize', onScroll);
         };
-    }, [tocItems, trackActiveOnScroll]);
+    }, [tocItems, trackActiveOnScroll, scrollLocked]);
 
     return {
         mobileNavOpen,

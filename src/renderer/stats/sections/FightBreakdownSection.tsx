@@ -184,8 +184,16 @@ export const FightBreakdownSection = ({
                                             )}
                                         </td>
                                         <td className="py-2 px-3 text-gray-200 w-20">{fight.duration || '--:--'}</td>
-                                        <td className={`py-2 px-3 font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-red-300'}`}>
-                                            {fight.isWin ? 'Win' : 'Loss'}
+                                        <td
+                                            className={`py-2 px-3 font-semibold ${
+                                                fight.isWin === true
+                                                    ? 'text-emerald-300'
+                                                    : fight.isWin === false
+                                                        ? 'text-red-300'
+                                                        : 'text-amber-200'
+                                            }`}
+                                        >
+                                            {fight.isWin === true ? 'Win' : fight.isWin === false ? 'Loss' : 'Unknown'}
                                         </td>
                                         {fightBreakdownTab === 'sizes' && (
                                             <>

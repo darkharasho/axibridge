@@ -6312,6 +6312,45 @@ body.theme-kinetic .app-shell .recent-activity-status-badge[data-status="success
     background-color: #7dd3fc;
 }
 
+.stats-dashboard-loading-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 0.82rem;
+    pointer-events: auto;
+    z-index: 24;
+    background:
+        radial-gradient(125% 105% at 50% 50%, rgba(8, 26, 47, 0.30) 0%, rgba(8, 26, 47, 0.18) 58%, rgba(8, 26, 47, 0.06) 78%, rgba(8, 26, 47, 0) 100%);
+    backdrop-filter: blur(9px) saturate(0.9);
+    -webkit-backdrop-filter: blur(9px) saturate(0.9);
+    -webkit-mask-image: radial-gradient(130% 112% at 50% 50%, rgba(0, 0, 0, 1) 57%, rgba(0, 0, 0, 0.88) 68%, rgba(0, 0, 0, 0.34) 84%, rgba(0, 0, 0, 0) 100%);
+    mask-image: radial-gradient(130% 112% at 50% 50%, rgba(0, 0, 0, 1) 57%, rgba(0, 0, 0, 0.88) 68%, rgba(0, 0, 0, 0.34) 84%, rgba(0, 0, 0, 0) 100%);
+}
+
+.stats-dashboard-scroll-lock {
+    overflow-y: hidden !important;
+    overscroll-behavior: contain;
+    touch-action: none;
+}
+
+.stats-dashboard-loading-shell {
+    overflow: hidden !important;
+}
+
+.stats-dashboard-loading-shell #stats-dashboard-container {
+    overflow: hidden !important;
+}
+
+.stats-dashboard-loading-shell,
+.stats-dashboard-loading-shell * {
+    scrollbar-color: transparent transparent !important;
+}
+
+.stats-dashboard-loading-shell::-webkit-scrollbar,
+.stats-dashboard-loading-shell *::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+}
+
 body.theme-kinetic .app-shell .stats-settling-banner {
     border-color: var(--accent-border) !important;
     background-color: color-mix(in srgb, var(--accent-bg-strong) 75%, var(--bg-card)) !important;
@@ -6332,6 +6371,11 @@ body.theme-kinetic .app-shell .stats-settling-banner__track {
 
 body.theme-kinetic .app-shell .stats-settling-banner__bar {
     background-color: color-mix(in srgb, var(--accent-border) 75%, #d6aa68) !important;
+}
+
+body.theme-kinetic .app-shell .stats-dashboard-loading-overlay {
+    background:
+        radial-gradient(126% 108% at 50% 50%, rgba(99, 78, 44, 0.18) 0%, rgba(99, 78, 44, 0.12) 58%, rgba(99, 78, 44, 0.04) 80%, rgba(99, 78, 44, 0) 100%);
 }
 
 /* Keep sortable table headers readable in Kinetic Dark (app + web). */
