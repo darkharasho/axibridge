@@ -993,6 +993,35 @@ const getBulkLogDetails = (filePath: string) => {
     }
     return null;
 };
+const hasUsableFightDetails = (details: any) => {
+    const players = Array.isArray(details?.players) ? details.players : [];
+    return players.length > 0;
+};
+const pendingDetailsRefreshByPermalink = new Map<string, Promise<{ details: any | null; terminal: boolean }>>();
+const fetchDetailsFromPermalinkWithRetry = async (permalink: string) => {
+    if (!uploader || !permalink) return { details: null as any | null, terminal: false };
+    const maxAttempts = 3;
+    let sawUnusablePayload = false;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+            const fetched = await uploader.fetchDetailedJson(permalink);
+            if (fetched && !fetched.error) {
+                const enriched = attachConditionMetrics(fetched);
+                if (hasUsableFightDetails(enriched)) {
+                    return { details: enriched, terminal: false };
+                }
+                sawUnusablePayload = true;
+                break;
+            }
+        } catch (err: any) {
+            console.warn('[Main] get-log-details permalink refresh failed:', err?.message || err);
+        }
+        if (attempt < maxAttempts - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+        }
+    }
+    return { details: null as any | null, terminal: sawUnusablePayload };
+};
 const globalManifest: Array<any> = [];
 const globalManifestPath = () => path.join(process.cwd(), 'dev', 'manifest.json');
 
@@ -1171,7 +1200,9 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 jsonDetails = attachConditionMetrics(jsonDetails);
             }
 
-            const cacheableDetails = jsonDetails && !jsonDetails.error ? jsonDetails : null;
+            const hasJsonPayload = Boolean(jsonDetails && !jsonDetails.error);
+            const hasUsableDetails = Boolean(hasJsonPayload && hasUsableFightDetails(jsonDetails));
+            const cacheableDetails = hasUsableDetails ? jsonDetails : null;
             if (cacheKey && !cached?.entry?.result) {
                 await saveDpsReportCacheEntry(cacheKey, result, cacheableDetails);
             } else if (cacheKey && cached?.entry?.result && cacheableDetails) {
@@ -1244,7 +1275,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 console.log('[Main] Discord notification skipped: no webhook selected.');
             }
 
-            const hasDetails = Boolean(jsonDetails && !jsonDetails.error);
+            const hasDetails = hasUsableDetails;
+            const detailsKnownUnavailable = hasJsonPayload && !hasUsableDetails;
             const prunedDetails = hasDetails ? pruneDetailsForStats(jsonDetails) : null;
             const playerCount = Array.isArray(prunedDetails?.players) ? prunedDetails.players.length : undefined;
             const dashboardSummary = prunedDetails ? buildDashboardSummaryFromDetails(prunedDetails) : undefined;
@@ -1265,6 +1297,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                     filePath,
                     status: hasDetails ? 'calculating' : 'success',
                     detailsAvailable: hasDetails,
+                    detailsFetchExhausted: detailsKnownUnavailable,
+                    detailsKnownUnavailable,
                     playerCount,
                     dashboardSummary
                 });
@@ -1276,6 +1310,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                     filePath,
                     status: hasDetails ? 'calculating' : 'success',
                     detailsAvailable: hasDetails,
+                    detailsFetchExhausted: detailsKnownUnavailable,
+                    detailsKnownUnavailable,
                     playerCount,
                     dashboardSummary
                 });
@@ -3393,16 +3429,54 @@ if (!gotTheLock) {
             return { success: true, queue: getUploadRetryQueuePayload() };
         });
 
-        ipcMain.handle('get-log-details', async (_event, payload: { filePath: string }) => {
+        ipcMain.handle('get-log-details', async (_event, payload: { filePath: string; permalink?: string }) => {
             const filePath = payload?.filePath;
+            const permalink = typeof payload?.permalink === 'string' ? payload.permalink.trim() : '';
             if (!filePath) {
                 console.warn('[Main] get-log-details missing filePath');
                 return { success: false, error: 'Missing filePath.' };
             }
             const details = getBulkLogDetails(filePath);
-            if (details) {
+            if (details && hasUsableFightDetails(details)) {
                 console.log(`[Main] get-log-details hit: ${filePath}`);
                 return { success: true, details };
+            }
+            if (permalink) {
+                let refreshPromise = pendingDetailsRefreshByPermalink.get(permalink);
+                if (!refreshPromise) {
+                    const activePromise = (async () => {
+                        const refreshed = await fetchDetailsFromPermalinkWithRetry(permalink);
+                        if (!refreshed.details) return refreshed;
+                        const resolved = pruneDetailsForStats(refreshed.details);
+                        setBulkLogDetails(filePath, resolved);
+                        try {
+                            const hash = await computeFileHash(filePath);
+                            await updateDpsReportCacheDetails(hash, refreshed.details);
+                        } catch {
+                            // Cache refresh failures should not block stats hydration.
+                        }
+                        return { details: resolved, terminal: false };
+                    })();
+                    pendingDetailsRefreshByPermalink.set(permalink, activePromise);
+                    activePromise
+                        .finally(() => {
+                            if (pendingDetailsRefreshByPermalink.get(permalink) === activePromise) {
+                                pendingDetailsRefreshByPermalink.delete(permalink);
+                            }
+                        })
+                        .catch(() => {
+                            // No-op: handled by caller.
+                        });
+                    refreshPromise = activePromise;
+                }
+                const refreshed = await refreshPromise;
+                if (refreshed?.details) {
+                    console.log(`[Main] get-log-details refreshed from permalink: ${filePath}`);
+                    return { success: true, details: refreshed.details };
+                }
+                if (refreshed?.terminal) {
+                    return { success: false, terminal: true, error: 'Fight has no usable details.' };
+                }
             }
             try {
                 const devDir = getDevDatasetsDir();

@@ -68,7 +68,12 @@ export function useDevDatasets({
     const nextStatsObjectIdRef = useRef(1);
     const lastPublishedStatsKeyRef = useRef('');
     const [statsViewMounted, setStatsViewMounted] = useState(false);
-    const hasPendingStatsDetails = logs.some((log) => log.detailsAvailable && !log.details && !log.statsDetailsLoaded);
+    const hasPendingStatsDetails = logs.some((log) => {
+        if (log.details || log.statsDetailsLoaded) return false;
+        if (log.detailsKnownUnavailable) return false;
+        if (log.detailsAvailable) return true;
+        return (log.status === 'success' || log.status === 'calculating' || log.status === 'discord') && Boolean(log.permalink) && !log.detailsFetchExhausted;
+    });
     const getStatsObjectId = useCallback((value: unknown): number => {
         if (!value || typeof value !== 'object') return 0;
         const objectValue = value as object;

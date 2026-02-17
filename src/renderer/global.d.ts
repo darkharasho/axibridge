@@ -289,7 +289,7 @@ export interface IElectronAPI {
     sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => void;
     onConsoleLog: (callback: (log: { type: 'info' | 'error', message: string, timestamp: string }) => void) => () => void;
     setConsoleLogForwarding: (enabled: boolean) => void;
-    getLogDetails: (payload: { filePath: string }) => Promise<{ success: boolean; details?: any; error?: string }>;
+    getLogDetails: (payload: { filePath: string; permalink?: string }) => Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>;
     getLogs: () => Promise<ILogData[]>;
     saveLogs: (logs: ILogData[]) => void;
     // Auto Updater
@@ -358,6 +358,8 @@ declare global {
         detailsLoading?: boolean;
         detailsAvailable?: boolean;
         statsDetailsLoaded?: boolean;
+        detailsFetchExhausted?: boolean;
+        detailsKnownUnavailable?: boolean;
         splitEnemiesByTeam?: boolean;
         dashboardSummary?: {
             hasPlayers: boolean;

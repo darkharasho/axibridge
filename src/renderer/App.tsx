@@ -229,6 +229,12 @@ function App() {
         });
     }, []);
     const normalizeIncomingStatus = useCallback((candidate: ILogData): ILogData => {
+        if ((candidate.details || candidate.detailsAvailable) && candidate.detailsFetchExhausted) {
+            candidate = { ...candidate, detailsFetchExhausted: false };
+        }
+        if ((candidate.details || candidate.detailsAvailable) && candidate.detailsKnownUnavailable) {
+            candidate = { ...candidate, detailsKnownUnavailable: false };
+        }
         if (candidate.status === 'success' && candidate.detailsAvailable && !candidate.details) {
             return { ...candidate, status: 'calculating' as const };
         }
@@ -470,6 +476,7 @@ function App() {
                     ...entry,
                     details,
                     statsDetailsLoaded: true,
+                    detailsFetchExhausted: false,
                     status: 'success' as const
                 };
             });
@@ -483,6 +490,7 @@ function App() {
                     ...(base || { id: filePath, filePath, permalink: '' }),
                     details,
                     statsDetailsLoaded: true,
+                    detailsFetchExhausted: false,
                     status: 'success'
                 } as ILogData);
                 changed = true;
@@ -656,13 +664,37 @@ function App() {
             updated[idx] = { ...updated[idx], detailsLoading: true };
             return updated;
         });
-        const result = await window.electronAPI.getLogDetails({ filePath: log.filePath });
+        let timeoutId: number | null = null;
+        const result = await Promise.race([
+            window.electronAPI.getLogDetails({
+                filePath: log.filePath,
+                permalink: log.permalink
+            }),
+            new Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>((resolve) => {
+                timeoutId = window.setTimeout(() => resolve({ success: false, error: 'Details request timed out.' }), 12000);
+            })
+        ]).finally(() => {
+            if (timeoutId !== null) {
+                window.clearTimeout(timeoutId);
+            }
+        });
         if (!result?.success || !result.details) {
             setLogs((currentLogs) => {
                 const idx = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
                 if (idx < 0) return currentLogs;
                 const updated = [...currentLogs];
-                updated[idx] = { ...updated[idx], detailsLoading: false };
+                const existing = updated[idx];
+                const terminal = Boolean((result as any)?.terminal);
+                updated[idx] = terminal
+                    ? {
+                        ...existing,
+                        detailsLoading: false,
+                        detailsAvailable: false,
+                        detailsFetchExhausted: true,
+                        detailsKnownUnavailable: true,
+                        status: existing.status === 'error' ? 'error' : 'success'
+                    }
+                    : { ...existing, detailsLoading: false };
                 return updated;
             });
             return;
@@ -676,6 +708,7 @@ function App() {
                 ...existing,
                 details: result.details,
                 detailsLoading: false,
+                detailsFetchExhausted: false,
                 status: 'success'
             };
             return updated;
@@ -698,7 +731,13 @@ function App() {
             if (!window.electronAPI?.getLogDetails) return;
             const statsViewActive = viewRef.current === 'stats';
             const rawCandidates = logsRef.current
-                .filter((log) => log.detailsAvailable && !log.details && !log.statsDetailsLoaded && log.filePath)
+                .filter((log) => {
+                    if (!log.filePath || log.details || log.statsDetailsLoaded) return false;
+                    if (log.detailsFetchExhausted) return false;
+                    if (log.detailsKnownUnavailable) return false;
+                    if (log.detailsAvailable) return true;
+                    return (log.status === 'success' || log.status === 'calculating' || log.status === 'discord') && Boolean(log.permalink);
+                })
                 .sort((a, b) => {
                     const aTime = a.uploadTime || 0;
                     const bTime = b.uploadTime || 0;
@@ -721,6 +760,7 @@ function App() {
             const hasMore = allCandidates.length > candidates.length;
             const hydratedBatch: Array<{ filePath: string; details: any }> = [];
             const failedPaths = new Set<string>();
+            const terminalFailures = new Set<string>();
             const flushHydratedBatch = () => {
                 if (hydratedBatch.length === 0) return;
                 const batch = hydratedBatch.splice(0, hydratedBatch.length);
@@ -738,6 +778,7 @@ function App() {
                             return {
                                 ...entry,
                                 statsDetailsLoaded: true,
+                                detailsFetchExhausted: false,
                                 status: 'success' as const
                             };
                         });
@@ -757,6 +798,7 @@ function App() {
                             ...entry,
                             details,
                             statsDetailsLoaded: true,
+                            detailsFetchExhausted: false,
                             status: 'success' as const
                         };
                     });
@@ -775,7 +817,20 @@ function App() {
                     if (pendingDetailsRef.current.has(filePath)) continue;
                     pendingDetailsRef.current.add(filePath);
                     try {
-                        const result = await window.electronAPI.getLogDetails({ filePath });
+                        let timeoutId: number | null = null;
+                        const result = await Promise.race([
+                            window.electronAPI.getLogDetails({
+                                filePath,
+                                permalink: log.permalink
+                            }),
+                            new Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>((resolve) => {
+                                timeoutId = window.setTimeout(() => resolve({ success: false, error: 'Details request timed out.' }), 12000);
+                            })
+                        ]).finally(() => {
+                            if (timeoutId !== null) {
+                                window.clearTimeout(timeoutId);
+                            }
+                        });
                         if (result?.success && result.details) {
                             detailsHydrationAttemptsRef.current.delete(filePath);
                             hydratedBatch.push({ filePath, details: result.details });
@@ -783,11 +838,16 @@ function App() {
                                 flushHydratedBatch();
                             }
                         } else {
+                            if ((result as any)?.terminal) {
+                                terminalFailures.add(filePath);
+                            }
                             failedPaths.add(filePath);
                         }
                         if (!statsViewActive) {
                             await new Promise((resolve) => window.setTimeout(resolve, 40));
                         }
+                    } catch {
+                        failedPaths.add(filePath);
                     } finally {
                         pendingDetailsRef.current.delete(filePath);
                     }
@@ -798,6 +858,11 @@ function App() {
             const retryableFailures: string[] = [];
             const exhaustedFailures: string[] = [];
             failedPaths.forEach((filePath) => {
+                if (terminalFailures.has(filePath)) {
+                    detailsHydrationAttemptsRef.current.set(filePath, MAX_DETAILS_HYDRATION_ATTEMPTS);
+                    exhaustedFailures.push(filePath);
+                    return;
+                }
                 const previousAttempts = detailsHydrationAttemptsRef.current.get(filePath) || 0;
                 const nextAttempts = previousAttempts + 1;
                 detailsHydrationAttemptsRef.current.set(filePath, nextAttempts);
@@ -814,12 +879,16 @@ function App() {
                     const next = currentLogs.map((entry) => {
                         const filePath = entry.filePath || '';
                         if (!exhaustedSet.has(filePath)) return entry;
-                        if (!entry.detailsAvailable && entry.status !== 'calculating') return entry;
+                        if (entry.detailsFetchExhausted && !entry.detailsAvailable && entry.status !== 'calculating') {
+                            return entry;
+                        }
                         changed = true;
                         const nextStatus: ILogData['status'] = entry.status === 'error' ? 'error' : 'success';
                         return {
                             ...entry,
                             detailsAvailable: false,
+                            detailsFetchExhausted: true,
+                            detailsKnownUnavailable: terminalFailures.has(filePath) || entry.detailsKnownUnavailable,
                             status: nextStatus
                         };
                     });
@@ -1021,13 +1090,32 @@ function App() {
             if (log.details || log.statsDetailsLoaded) {
                 return;
             }
+            if (log.detailsKnownUnavailable) {
+                unavailable += 1;
+                return;
+            }
             if (log.detailsAvailable) {
                 pending += 1;
                 return;
             }
             const status = log.status || 'queued';
-            if (status === 'queued' || status === 'pending' || status === 'uploading' || status === 'retrying' || status === 'discord' || status === 'calculating') {
+            const canHydrateFromPermalink = (status === 'success' || status === 'calculating' || status === 'discord') && Boolean(log.permalink) && !log.detailsFetchExhausted;
+            if (canHydrateFromPermalink) {
                 pending += 1;
+                return;
+            }
+            const inFlightStatus = status === 'queued'
+                || status === 'pending'
+                || status === 'uploading'
+                || status === 'retrying'
+                || status === 'discord'
+                || status === 'calculating';
+            if (inFlightStatus) {
+                if (isBulkUploadActive) {
+                    pending += 1;
+                } else {
+                    unavailable += 1;
+                }
                 return;
             }
             unavailable += 1;
@@ -1040,7 +1128,7 @@ function App() {
             pending,
             unavailable
         };
-    }, [logs, view]);
+    }, [logs, view, isBulkUploadActive]);
 
     useEffect(() => {
         // Load saved settings
