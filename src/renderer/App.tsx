@@ -572,11 +572,17 @@ function App() {
     }, [view]);
 
     useEffect(() => {
-        if (view !== 'stats') return;
-        if (!bulkUploadMode) {
-            scheduleDetailsHydration();
-        }
-    }, [bulkUploadMode, logs, view]);
+        if (bulkUploadMode) return;
+        const hasPendingDetailsHydration = logs.some((log) => {
+            if (log.details || log.statsDetailsLoaded) return false;
+            if (log.detailsFetchExhausted || log.detailsKnownUnavailable) return false;
+            if (log.detailsAvailable) return true;
+            const status = log.status || 'queued';
+            return (status === 'success' || status === 'calculating' || status === 'discord') && Boolean(log.permalink);
+        });
+        if (!hasPendingDetailsHydration) return;
+        scheduleDetailsHydration();
+    }, [bulkUploadMode, logs]);
 
     useEffect(() => {
         if (view === 'stats') {
