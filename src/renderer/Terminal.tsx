@@ -36,7 +36,10 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
             window.electronAPI.setConsoleLogForwarding?.(false);
             return;
         }
-        window.electronAPI.setConsoleLogForwarding?.(true);
+        const cleanupHistory = window.electronAPI.onConsoleLogHistory?.((history: LogEntry[]) => {
+            if (!Array.isArray(history)) return;
+            setLogs(history.slice(-500));
+        });
         const cleanup = window.electronAPI.onConsoleLog((log: LogEntry) => {
             setLogs(prev => {
                 const next = [...prev, log];
@@ -46,9 +49,11 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                 return next;
             });
         });
+        window.electronAPI.setConsoleLogForwarding?.(true);
 
         return () => {
             cleanup();
+            cleanupHistory?.();
             window.electronAPI.setConsoleLogForwarding?.(false);
         };
     }, [isOpen]);

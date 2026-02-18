@@ -57,6 +57,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('console-log', (_event, value) => callback(value))
         return () => ipcRenderer.removeAllListeners('console-log')
     },
+    onConsoleLogHistory: (callback: (logs: any[]) => void) => {
+        ipcRenderer.on('console-log-history', (_event, value) => callback(value))
+        return () => ipcRenderer.removeAllListeners('console-log-history')
+    },
     setConsoleLogForwarding: (enabled: boolean) => ipcRenderer.send('set-console-log-forwarding', enabled),
     getLogDetails: (payload: { filePath: string }) => ipcRenderer.invoke('get-log-details', payload),
 

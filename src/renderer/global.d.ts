@@ -288,6 +288,7 @@ export interface IElectronAPI {
     sendScreenshots: (id: string, buffers: Uint8Array[]) => void;
     sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => void;
     onConsoleLog: (callback: (log: { type: 'info' | 'error', message: string, timestamp: string }) => void) => () => void;
+    onConsoleLogHistory: (callback: (logs: Array<{ type: 'info' | 'error', message: string, timestamp: string }>) => void) => () => void;
     setConsoleLogForwarding: (enabled: boolean) => void;
     getLogDetails: (payload: { filePath: string; permalink?: string }) => Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>;
     getLogs: () => Promise<ILogData[]>;

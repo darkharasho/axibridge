@@ -90,6 +90,15 @@ function formatLogArgs(args: any[]) {
 }
 
 let forwardConsoleLogsToRenderer = false;
+const CONSOLE_LOG_HISTORY_MAX = 500;
+let consoleLogHistory: Array<{ type: 'info' | 'error'; message: string; timestamp: string }> = [];
+
+const recordConsoleLog = (payload: { type: 'info' | 'error'; message: string; timestamp: string }) => {
+    consoleLogHistory.push(payload);
+    if (consoleLogHistory.length > CONSOLE_LOG_HISTORY_MAX) {
+        consoleLogHistory = consoleLogHistory.slice(consoleLogHistory.length - CONSOLE_LOG_HISTORY_MAX);
+    }
+};
 
 const safeSendToRenderer = (payload: { type: 'info' | 'error'; message: string; timestamp: string }) => {
     try {
@@ -105,19 +114,25 @@ const safeSendToRenderer = (payload: { type: 'info' | 'error'; message: string; 
 console.log = (...args) => {
     const message = formatLogArgs(args);
     originalConsoleLog(message);
-    safeSendToRenderer({ type: 'info', message, timestamp: new Date().toISOString() });
+    const payload = { type: 'info' as const, message, timestamp: new Date().toISOString() };
+    recordConsoleLog(payload);
+    safeSendToRenderer(payload);
 };
 
 console.warn = (...args) => {
     const message = formatLogArgs(args);
     originalConsoleWarn(message);
-    safeSendToRenderer({ type: 'info', message, timestamp: new Date().toISOString() });
+    const payload = { type: 'info' as const, message, timestamp: new Date().toISOString() };
+    recordConsoleLog(payload);
+    safeSendToRenderer(payload);
 };
 
 console.error = (...args) => {
     const message = formatLogArgs(args);
     originalConsoleError(message);
-    safeSendToRenderer({ type: 'error', message, timestamp: new Date().toISOString() });
+    const payload = { type: 'error' as const, message, timestamp: new Date().toISOString() };
+    recordConsoleLog(payload);
+    safeSendToRenderer(payload);
 };
 
 const Store = require('electron-store');
@@ -3438,6 +3453,10 @@ if (!gotTheLock) {
 
         ipcMain.on('set-console-log-forwarding', (_event, enabled: boolean) => {
             forwardConsoleLogsToRenderer = Boolean(enabled);
+            if (forwardConsoleLogsToRenderer) {
+                const snapshot = consoleLogHistory.slice(-CONSOLE_LOG_HISTORY_MAX);
+                _event.sender.send('console-log-history', snapshot);
+            }
         });
 
         ipcMain.on('manual-upload', (_event, filePath: string) => {
