@@ -1,17 +1,18 @@
 # Release Notes
 
-Version v1.35.2 — February 17, 2026
+Version v1.36.0 — February 18, 2026
 
 ## 🌟 Highlights
-- When you open the System Terminal, recent logs replay so you can catch up right away.
-- Activity details load more reliably, helping avoid a lingering loading state.
+- Boon timeline scope toggle added; timeline calculations now align with boon output for more accurate visuals.
+- New Damage Breakdown section for a clearer view of damage sources.
+- Spike Damage section is enhanced for easier interpretation of spikes in damage.
 
 ## 🛠️ Improvements
 None.
 
 ## 🧯 Fixes
-- Terminal: Buffered main-process logs replay on opening the System Terminal, so you don’t miss recent messages.
-- Activity: Pending log details load outside the stats view, clearing the stuck calculating state.
+- Fixed spike-down contributions not displaying correctly in web reports.
+- Discord: emoji handling improved with a base profession check to show the right icons.
 
 ## ⚠️ Breaking Changes
 None.
