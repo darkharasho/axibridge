@@ -24,7 +24,7 @@ import {
     getTargetStatTotal,
 } from '../shared/dashboardMetrics';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
-import { getProfessionAbbrev, getProfessionEmoji } from '../shared/professionUtils';
+import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../shared/professionUtils';
 import { Player } from '../shared/dpsReportTypes';
 
 const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/ArcBridge/main/public/img/ArcBridgeDiscord.png';
@@ -669,7 +669,11 @@ export class DiscordNotifier {
                                 return getProfessionAbbrev(p.profession || 'Unknown');
                             }
                             if (classDisplay === 'emoji') {
-                                return getProfessionEmoji(p.profession || 'Unknown');
+                                const profession = p.profession || 'Unknown';
+                                const professionBase = getProfessionBase(profession);
+                                if (professionBase === 'Ranger') return '🟩';
+                                if (professionBase === 'Revenant') return '🟥';
+                                return getProfessionEmoji(profession);
                             }
                             return '';
                         };
