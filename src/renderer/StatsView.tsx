@@ -2786,14 +2786,52 @@ type SpikeFight = {
         if (!activeBoonUptimeId) return null;
         return boonUptimeBoons.find((boon: any) => boon.id === activeBoonUptimeId) || null;
     }, [boonUptimeBoons, activeBoonUptimeId]);
-    const boonUptimePlayers = useMemo(() => {
+    const boonUptimePercentByPlayer = useMemo(() => {
+        const map = new Map<string, number>();
         const players = Array.isArray(activeBoonUptime?.players) ? activeBoonUptime.players : [];
+        const fights = Array.isArray(activeBoonUptime?.fights) ? activeBoonUptime.fights : [];
+        if (!players.length || !fights.length) return map;
+        const totalSamplesAllFights = fights.reduce((sum: number, fight: any) => {
+            const bucketCount = Math.max(
+                Math.ceil(Math.max(0, Number(fight?.durationMs || 0)) / 5000),
+                1
+            );
+            return sum + bucketCount;
+        }, 0);
+        if (totalSamplesAllFights <= 0) return map;
+        players.forEach((player: any) => {
+            const key = String(player?.key || '');
+            if (!key || key === '__all__') return;
+            let activeSamples = 0;
+            fights.forEach((fight: any) => {
+                const playerValue = fight?.values?.[key];
+                const buckets = Array.isArray(playerValue?.buckets5s) ? playerValue.buckets5s : [];
+                const bucketCount = Math.max(
+                    buckets.length,
+                    Math.ceil(Math.max(0, Number(fight?.durationMs || 0)) / 5000),
+                    1
+                );
+                for (let index = 0; index < bucketCount; index += 1) {
+                    if (Math.max(0, Number(buckets[index] || 0)) > 0) activeSamples += 1;
+                }
+            });
+            map.set(key, (activeSamples / totalSamplesAllFights) * 100);
+        });
+        return map;
+    }, [activeBoonUptime]);
+    const boonUptimePlayers = useMemo(() => {
+        const sourcePlayers = Array.isArray(activeBoonUptime?.players) ? activeBoonUptime.players : [];
+        const players = sourcePlayers.map((player: any) => ({
+            ...player,
+            uptimePercent: Number(boonUptimePercentByPlayer.get(String(player?.key || '')) || 0)
+        }));
         return [...players].sort((a, b) =>
-            Number(b.peak || 0) - Number(a.peak || 0)
+            Number(boonUptimePercentByPlayer.get(String(b?.key || '')) || 0) - Number(boonUptimePercentByPlayer.get(String(a?.key || '')) || 0)
+            || Number(b.peak || 0) - Number(a.peak || 0)
             || Number(b.total || 0) - Number(a.total || 0)
             || String(a.displayName || '').localeCompare(String(b.displayName || ''))
         );
-    }, [activeBoonUptime]);
+    }, [activeBoonUptime, boonUptimePercentByPlayer]);
     const filteredBoonUptimePlayers = useMemo(() => {
         const term = boonUptimePlayerFilter.trim().toLowerCase();
         if (!term) return boonUptimePlayers;
@@ -2821,15 +2859,55 @@ type SpikeFight = {
         timestamp: number;
         durationMs: number;
         total: number;
+        average: number;
+        uptimePercent: number;
         peak: number;
         maxTotal: number;
+        maxAverage: number;
+        maxUptimePercent: number;
     }>>(() => {
         if (!activeBoonUptime || !selectedBoonUptimePlayerKey) return [];
         return (activeBoonUptime.fights || []).map((fight: any, index: number) => {
             const playerValue = fight?.values?.[selectedBoonUptimePlayerKey] || { total: 0, peak: 0 };
+            const playerBuckets = Array.isArray(playerValue?.buckets5s) ? playerValue.buckets5s : [];
+            const playerBucketCount = Math.max(
+                playerBuckets.length,
+                Math.ceil(Math.max(0, Number(fight?.durationMs || 0)) / 5000),
+                1
+            );
+            const playerAverage = Math.max(0, Number(playerValue?.total || 0)) / playerBucketCount;
+            const playerActiveBuckets = Array.from({ length: playerBucketCount }, (_, i) => Math.max(0, Number(playerBuckets[i] || 0)))
+                .reduce((sum: number, value: number) => sum + (value > 0 ? 1 : 0), 0);
+            const playerUptimePercent = (playerActiveBuckets / playerBucketCount) * 100;
             const computedFightMax = Object.entries((fight?.values && typeof fight.values === 'object') ? fight.values : {})
                 .filter(([key]) => String(key || '') !== '__all__')
                 .reduce((best: number, [, value]: [string, any]) => Math.max(best, Math.max(0, Number(value?.peak || 0))), 0);
+            const computedFightAverageMax = Object.entries((fight?.values && typeof fight.values === 'object') ? fight.values : {})
+                .filter(([key]) => String(key || '') !== '__all__')
+                .reduce((best: number, [, value]: [string, any]) => {
+                    const buckets = Array.isArray(value?.buckets5s) ? value.buckets5s : [];
+                    const bucketCount = Math.max(
+                        buckets.length,
+                        Math.ceil(Math.max(0, Number(fight?.durationMs || 0)) / 5000),
+                        1
+                    );
+                    const avg = Math.max(0, Number(value?.total || 0)) / bucketCount;
+                    return Math.max(best, avg);
+                }, 0);
+            const computedFightUptimePercentMax = Object.entries((fight?.values && typeof fight.values === 'object') ? fight.values : {})
+                .filter(([key]) => String(key || '') !== '__all__')
+                .reduce((best: number, [, value]: [string, any]) => {
+                    const buckets = Array.isArray(value?.buckets5s) ? value.buckets5s : [];
+                    const bucketCount = Math.max(
+                        buckets.length,
+                        Math.ceil(Math.max(0, Number(fight?.durationMs || 0)) / 5000),
+                        1
+                    );
+                    const activeBuckets = Array.from({ length: bucketCount }, (_, i) => Math.max(0, Number(buckets[i] || 0)))
+                        .reduce((sum: number, bucketValue: number) => sum + (bucketValue > 0 ? 1 : 0), 0);
+                    const percent = (activeBuckets / bucketCount) * 100;
+                    return Math.max(best, percent);
+                }, 0);
             return {
                 index,
                 fightId: String(fight?.id || ''),
@@ -2838,15 +2916,26 @@ type SpikeFight = {
                 timestamp: Number(fight?.timestamp || 0),
                 durationMs: Number(fight?.durationMs || 0),
                 total: Math.max(0, Number(playerValue?.total || 0)),
+                average: playerAverage,
+                uptimePercent: playerUptimePercent,
                 peak: Math.max(0, Number(playerValue?.peak || 0)),
-                maxTotal: computedFightMax > 0 ? computedFightMax : Math.max(0, Number(fight?.maxTotal || 0))
+                maxTotal: computedFightMax > 0 ? computedFightMax : Math.max(0, Number(fight?.maxTotal || 0)),
+                maxAverage: computedFightAverageMax,
+                maxUptimePercent: computedFightUptimePercentMax
             };
         });
     }, [activeBoonUptime, selectedBoonUptimePlayerKey]);
     const boonUptimeChartMaxY = useMemo(() => {
-        const selectedPeak = boonUptimeChartData.reduce((best: number, entry) => Math.max(best, Number(entry?.peak || 0)), 0);
-        const fightPeak = boonUptimeChartData.reduce((best: number, entry) => Math.max(best, Number(entry?.maxTotal || 0)), 0);
-        const stackCap = activeBoonUptime?.stacking ? 25 : 0;
+        const useAverage = Boolean(activeBoonUptime?.stacking);
+        const selectedPeak = boonUptimeChartData.reduce((best: number, entry) => Math.max(
+            best,
+            Number(useAverage ? entry?.average : entry?.uptimePercent || 0)
+        ), 0);
+        const fightPeak = boonUptimeChartData.reduce((best: number, entry) => Math.max(
+            best,
+            Number(useAverage ? entry?.maxAverage : entry?.maxUptimePercent || 0)
+        ), 0);
+        const stackCap = activeBoonUptime?.stacking ? 25 : 100;
         return Math.max(1, selectedPeak, fightPeak, stackCap);
     }, [boonUptimeChartData, activeBoonUptime?.stacking]);
     const boonUptimeDrilldown = useMemo(() => {
@@ -2888,6 +2977,11 @@ type SpikeFight = {
             data
         };
     }, [selectedBoonUptimeFightIndex, boonUptimeChartData, activeBoonUptime, selectedBoonUptimePlayerKey]);
+    const boonUptimeOverallPercent = useMemo(() => {
+        if (!selectedBoonUptimePlayerKey) return null;
+        const value = boonUptimePercentByPlayer.get(selectedBoonUptimePlayerKey);
+        return Number.isFinite(Number(value)) ? Number(value) : null;
+    }, [boonUptimePercentByPlayer, selectedBoonUptimePlayerKey]);
     const filteredSpecialTables = useMemo(() => {
         const term = specialSearch.trim().toLowerCase();
         const sorted = [...(safeStats.specialTables || [])].sort((a: any, b: any) => a.name.localeCompare(b.name));
@@ -3325,6 +3419,7 @@ type SpikeFight = {
                                 setSelectedFightIndex={setSelectedBoonUptimeFightIndex}
                                 drilldownTitle={boonUptimeDrilldown.title}
                                 drilldownData={boonUptimeDrilldown.data}
+                                overallUptimePercent={boonUptimeOverallPercent}
                                 showStackCapLine={Boolean(activeBoonUptime?.stacking)}
                                 formatWithCommas={formatWithCommas}
                                 renderProfessionIcon={renderProfessionIcon}
@@ -4139,6 +4234,7 @@ type SpikeFight = {
                             setSelectedFightIndex={setSelectedBoonUptimeFightIndex}
                             drilldownTitle={boonUptimeDrilldown.title}
                             drilldownData={boonUptimeDrilldown.data}
+                            overallUptimePercent={boonUptimeOverallPercent}
                             showStackCapLine={Boolean(activeBoonUptime?.stacking)}
                             formatWithCommas={formatWithCommas}
                             renderProfessionIcon={renderProfessionIcon}

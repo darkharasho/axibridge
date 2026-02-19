@@ -533,15 +533,28 @@ Stack semantics (enforced):
   - sampled values are rounded to whole stacks
   - stacks are clamped to a max cap
 
+Uptime percentage semantics:
+- uptime% is **presence-based** for all boons:
+  - a 5s bucket counts as uptime when sampled bucket value is `> 0`
+  - otherwise that bucket counts as no uptime
+- this rule applies to both non-stacking and stacking boons (stack amount does
+  not scale uptime%)
+- denominator includes all 5s buckets across all fights for that player/boon
+  (including fights where that player has no states for the boon)
+
 Stack caps:
 - `Might`: `25`
 - `Stability`: `25`
 - current implementation applies cap `25` for stacking boons
 
 UI behavior:
-- main chart: per-fight **peak stack** value for selected boon/player
+- main chart:
+  - stacking boons: per-fight **average stacks**
+  - non-stacking boons: per-fight **uptime percentage** (active 5s buckets / total 5s buckets)
 - drilldown chart: selected fight 5-second stack buckets
 - for stacking boons, UI may render a reference line at stack cap (`25`)
+- player list and summary card use the same shared uptime% source, so selected
+  player row uptime% equals displayed overall uptime%
 
 Aggregation notes:
 - uptime view is account-keyed per player and does not use an aggregated `__all__`

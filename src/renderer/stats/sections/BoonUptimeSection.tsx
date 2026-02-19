@@ -19,6 +19,7 @@ type BoonUptimePlayer = {
     logs: number;
     total: number;
     peak: number;
+    uptimePercent?: number;
 };
 
 type BoonUptimeFightPoint = {
@@ -30,6 +31,8 @@ type BoonUptimeFightPoint = {
     durationMs: number;
     total: number;
     peak: number;
+    uptimePercent: number;
+    maxUptimePercent: number;
     maxTotal: number;
 };
 
@@ -58,6 +61,7 @@ type BoonUptimeSectionProps = {
     setSelectedFightIndex: (value: number | null) => void;
     drilldownTitle: string;
     drilldownData: Array<{ label: string; value: number; maxValue?: number }>;
+    overallUptimePercent: number | null;
     showStackCapLine?: boolean;
     formatWithCommas: (value: number, decimals: number) => string;
     renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => JSX.Element | null;
@@ -88,6 +92,7 @@ export const BoonUptimeSection = ({
     setSelectedFightIndex,
     drilldownTitle,
     drilldownData,
+    overallUptimePercent,
     showStackCapLine = false,
     formatWithCommas,
     renderProfessionIcon
@@ -117,6 +122,8 @@ export const BoonUptimeSection = ({
     const drilldownChartMaxY = showStackCapLine
         ? Math.ceil(Math.max(1, drilldownMaxY) + 3)
         : Math.max(1, drilldownMaxY);
+    const mainSeriesKey = showStackCapLine ? 'average' : 'uptimePercent';
+    const mainSeriesLabel = showStackCapLine ? 'Per Fight Average Stacks' : 'Per Fight Uptime %';
     const formatFightTimestamp = (timestampMs: number) => {
         if (!Number.isFinite(timestampMs) || timestampMs <= 0) return '';
         try {
@@ -255,7 +262,7 @@ export const BoonUptimeSection = ({
                                                     </div>
                                                 </div>
                                                 <div className="text-xs font-mono text-amber-200 shrink-0">
-                                                    {formatWithCommas(player.peak || 0, 0)}
+                                                    {formatWithCommas(Number(player.uptimePercent || 0), 1)}%
                                                 </div>
                                             </div>
                                         </button>
@@ -269,7 +276,7 @@ export const BoonUptimeSection = ({
                 <div className="space-y-2 flex flex-col h-[320px]">
                     <div className="flex items-center justify-between gap-3">
                         <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">
-                            Per Fight Peak Stacks
+                            {mainSeriesLabel}
                         </div>
                         <div className="text-[11px] text-gray-500">
                             {chartData.length} {chartData.length === 1 ? 'fight' : 'fights'}
@@ -292,10 +299,19 @@ export const BoonUptimeSection = ({
                                 >
                                     <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                     <XAxis dataKey="shortLabel" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
-                                    <YAxis tick={{ fill: '#e2e8f0', fontSize: 10 }} domain={[0, mainChartMaxY]} />
+                                    <YAxis
+                                        tick={{ fill: '#e2e8f0', fontSize: 10 }}
+                                        domain={[0, mainChartMaxY]}
+                                        tickFormatter={(value: number) => showStackCapLine ? formatWithCommas(value, 0) : `${formatWithCommas(value, 0)}%`}
+                                    />
                                     <Tooltip
                                         contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
-                                        formatter={(value: any, name: any) => [formatWithCommas(Number(value || 0), 0), String(name || '')]}
+                                        formatter={(value: any, name: any) => [
+                                            showStackCapLine
+                                                ? formatWithCommas(Number(value || 0), 1)
+                                                : `${formatWithCommas(Number(value || 0), 1)}%`,
+                                            String(name || '')
+                                        ]}
                                         labelFormatter={(_, payload?: readonly any[]) => {
                                             const point = payload?.[0]?.payload;
                                             return sanitizeWvwLabel(String(point?.fullLabel || ''));
@@ -303,7 +319,7 @@ export const BoonUptimeSection = ({
                                     />
                                     <Line
                                         type="monotone"
-                                        dataKey="peak"
+                                        dataKey={mainSeriesKey}
                                         name={selectedPlayer.displayName}
                                         stroke={selectedLineColor}
                                         strokeWidth={3}
@@ -362,9 +378,11 @@ export const BoonUptimeSection = ({
                         </div>
                     </div>
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">Peak Fight Stacks</div>
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">Overall Uptime</div>
                         <div className="mt-1 text-lg font-black text-amber-200 font-mono">
-                            {formatWithCommas(Number(topFight?.peak || 0), 0)}
+                            {overallUptimePercent === null
+                                ? '--'
+                                : `${formatWithCommas(Number(overallUptimePercent || 0), 1)}%`}
                         </div>
                     </div>
                     <div>
