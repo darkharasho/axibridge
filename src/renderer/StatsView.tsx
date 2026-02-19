@@ -21,6 +21,7 @@ import { SkillUsageSection } from './stats/sections/SkillUsageSection';
 import { ApmSection } from './stats/sections/ApmSection';
 import { PlayerBreakdownSection } from './stats/sections/PlayerBreakdownSection';
 import { DamageBreakdownSection } from './stats/sections/DamageBreakdownSection';
+import { BoonTimelineSection } from './stats/sections/BoonTimelineSection';
 import { OffenseSection } from './stats/sections/OffenseSection';
 import { ConditionsSection } from './stats/sections/ConditionsSection';
 import { BoonOutputSection } from './stats/sections/BoonOutputSection';
@@ -91,6 +92,7 @@ const ORDERED_SECTION_IDS = [
     'timeline',
     'map-distribution',
     'boon-output',
+    'boon-timeline',
     'offense-detailed',
     'player-breakdown',
     'damage-breakdown',
@@ -330,6 +332,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
             supportPlayers: asArray((source as any).supportPlayers),
             healingPlayers: asArray((source as any).healingPlayers),
             boonTables: asArray((source as any).boonTables),
+            boonTimeline: asArray((source as any).boonTimeline),
             specialTables: asArray((source as any).specialTables),
             outgoingConditionSummary: asArray((source as any).outgoingConditionSummary),
             outgoingConditionPlayers: asArray((source as any).outgoingConditionPlayers),
@@ -507,6 +510,12 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
     const [activeBoonCategory, setActiveBoonCategory] = useState<BoonCategory>('totalBuffs');
     const [activeBoonMetric, setActiveBoonMetric] = useState<BoonMetric>('total');
     const [boonSearch, setBoonSearch] = useState('');
+    const [boonTimelineSearch, setBoonTimelineSearch] = useState('');
+    const [activeBoonTimelineId, setActiveBoonTimelineId] = useState<string | null>(null);
+    const [boonTimelineScope, setBoonTimelineScope] = useState<'selfBuffs' | 'groupBuffs' | 'squadBuffs' | 'totalBuffs'>('squadBuffs');
+    const [boonTimelinePlayerFilter, setBoonTimelinePlayerFilter] = useState('');
+    const [selectedBoonTimelinePlayerKey, setSelectedBoonTimelinePlayerKey] = useState<string | null>(null);
+    const [selectedBoonTimelineFightIndex, setSelectedBoonTimelineFightIndex] = useState<number | null>(null);
     const [activeSpecialTab, setActiveSpecialTab] = useState<string | null>(null);
     const [specialSearch, setSpecialSearch] = useState('');
     const [activeSigilRelicTab, setActiveSigilRelicTab] = useState<string | null>(null);
@@ -2529,6 +2538,198 @@ type SpikeFight = {
         if (!activeBoonTab) return null;
         return (safeStats.boonTables || []).find((boon: any) => boon.id === activeBoonTab) ?? null;
     }, [safeStats.boonTables, activeBoonTab]);
+    const getBoonTimelineTotals = (value: any) => ({
+        selfBuffs: (value?.totals && typeof value.totals === 'object')
+            ? Number(value?.totals?.selfBuffs || 0)
+            : 0,
+        groupBuffs: (value?.totals && typeof value.totals === 'object')
+            ? Number(value?.totals?.groupBuffs || 0)
+            : 0,
+        squadBuffs: (value?.totals && typeof value.totals === 'object')
+            ? Number(value?.totals?.squadBuffs || 0)
+            : Number(value?.total || 0),
+        totalBuffs: (value?.totals && typeof value.totals === 'object')
+            ? Number((value?.totals?.totalBuffs ?? value?.total) || 0)
+            : Number(value?.total || 0)
+    });
+    const getBoonTimelineScopeTotal = (
+        value: any,
+        scope: 'selfBuffs' | 'groupBuffs' | 'squadBuffs' | 'totalBuffs'
+    ) => {
+        const totals = getBoonTimelineTotals(value);
+        const resolved = Number(totals?.[scope] || 0);
+        return Number.isFinite(resolved) ? Math.max(0, resolved) : 0;
+    };
+    const boonTimelineScopeLabel = boonTimelineScope === 'selfBuffs'
+        ? 'Self'
+        : boonTimelineScope === 'groupBuffs'
+            ? 'Group'
+            : boonTimelineScope === 'squadBuffs'
+                ? 'Squad'
+                : 'All';
+    const boonTimelineBoons = useMemo(() => {
+        const source = Array.isArray((safeStats as any)?.boonTimeline) ? (safeStats as any).boonTimeline : [];
+        return source.map((boon: any) => ({
+            id: String(boon?.id || ''),
+            name: String(boon?.name || boon?.id || 'Unknown Boon'),
+            icon: typeof boon?.icon === 'string' ? boon.icon : undefined,
+            stacking: Boolean(boon?.stacking),
+            players: (Array.isArray(boon?.players) ? boon.players : []).map((player: any) => ({
+                key: String(player?.key || ''),
+                account: String(player?.account || player?.displayName || 'Unknown'),
+                displayName: String(player?.displayName || player?.account || 'Unknown'),
+                profession: String(player?.profession || 'Unknown'),
+                professionList: Array.isArray(player?.professionList) ? player.professionList.map((entry: any) => String(entry || '')) : [],
+                logs: Number(player?.logs || 0),
+                totals: getBoonTimelineTotals(player)
+            })),
+            fights: (Array.isArray(boon?.fights) ? boon.fights : []).map((fight: any, index: number) => ({
+                id: String(fight?.id || `fight-${index + 1}`),
+                shortLabel: String(fight?.shortLabel || `F${index + 1}`),
+                fullLabel: String(fight?.fullLabel || `Fight ${index + 1}`),
+                timestamp: Number(fight?.timestamp || 0),
+                durationMs: Number(fight?.durationMs || 0),
+                maxTotal: Number(fight?.maxTotal || 0),
+                values: (fight?.values && typeof fight.values === 'object')
+                    ? Object.fromEntries(Object.entries(fight.values).map(([key, value]: [string, any]) => [
+                        String(key || ''),
+                        {
+                            total: Number(value?.total || 0),
+                            totals: getBoonTimelineTotals(value),
+                            bucketWeights5s: Array.isArray(value?.bucketWeights5s)
+                                ? value.bucketWeights5s.map((entry: any) => Number(entry || 0))
+                                : [],
+                            buckets5s: Array.isArray(value?.buckets5s) ? value.buckets5s.map((entry: any) => Number(entry || 0)) : []
+                        }
+                    ]))
+                    : {}
+            }))
+        })).filter((boon: any) => boon.id && boon.players.length > 0 && boon.fights.length > 0);
+    }, [safeStats.boonTimeline]);
+    const filteredBoonTimelineBoons = useMemo(() => {
+        const term = boonTimelineSearch.trim().toLowerCase();
+        if (!term) return boonTimelineBoons;
+        return boonTimelineBoons.filter((boon: any) => String(boon?.name || '').toLowerCase().includes(term));
+    }, [boonTimelineBoons, boonTimelineSearch]);
+    const activeBoonTimeline = useMemo(() => {
+        if (!activeBoonTimelineId) return null;
+        return boonTimelineBoons.find((boon: any) => boon.id === activeBoonTimelineId) || null;
+    }, [boonTimelineBoons, activeBoonTimelineId]);
+    const boonTimelinePlayersWithScope = useMemo(() => {
+        const players = Array.isArray(activeBoonTimeline?.players) ? activeBoonTimeline.players : [];
+        return [...players]
+            .map((player: any) => ({
+                ...player,
+                total: getBoonTimelineScopeTotal(player, boonTimelineScope)
+            }))
+            .sort((a, b) => Number(b.total || 0) - Number(a.total || 0)
+                || String(a.displayName || '').localeCompare(String(b.displayName || '')));
+    }, [activeBoonTimeline, boonTimelineScope]);
+    const filteredBoonTimelinePlayers = useMemo(() => {
+        const players = boonTimelinePlayersWithScope;
+        const term = boonTimelinePlayerFilter.trim().toLowerCase();
+        if (!term) return players;
+        return players.filter((player: any) => (
+            String(player?.displayName || '').toLowerCase().includes(term)
+            || String(player?.account || '').toLowerCase().includes(term)
+            || String(player?.profession || '').toLowerCase().includes(term)
+        ));
+    }, [boonTimelinePlayersWithScope, boonTimelinePlayerFilter]);
+    const boonTimelinePlayerMap = useMemo(() => {
+        const map = new Map<string, any>();
+        boonTimelinePlayersWithScope.forEach((player: any) => {
+            map.set(String(player?.key || ''), player);
+        });
+        return map;
+    }, [boonTimelinePlayersWithScope]);
+    const selectedBoonTimelinePlayer = selectedBoonTimelinePlayerKey
+        ? boonTimelinePlayerMap.get(selectedBoonTimelinePlayerKey) || null
+        : null;
+    const boonTimelineChartData = useMemo<Array<{
+        index: number;
+        fightId: string;
+        shortLabel: string;
+        fullLabel: string;
+        timestamp: number;
+        total: number;
+        maxTotal: number;
+    }>>(() => {
+        if (!activeBoonTimeline || !selectedBoonTimelinePlayerKey) return [];
+        return (activeBoonTimeline.fights || []).map((fight: any, index: number) => {
+            const playerValue = fight?.values?.[selectedBoonTimelinePlayerKey];
+            const computedFightMax = Object.entries((fight?.values && typeof fight.values === 'object') ? fight.values : {})
+                .filter(([key]) => String(key || '') !== '__all__')
+                .reduce((best: number, [, value]: [string, any]) => Math.max(best, getBoonTimelineScopeTotal(value, boonTimelineScope)), 0);
+            return {
+                index,
+                fightId: String(fight?.id || ''),
+                shortLabel: String(fight?.shortLabel || `F${index + 1}`),
+                fullLabel: String(fight?.fullLabel || `Fight ${index + 1}`),
+                timestamp: Number(fight?.timestamp || 0),
+                total: getBoonTimelineScopeTotal(playerValue, boonTimelineScope),
+                maxTotal: computedFightMax > 0 ? computedFightMax : Number(fight?.maxTotal || 0)
+            };
+        });
+    }, [activeBoonTimeline, selectedBoonTimelinePlayerKey, boonTimelineScope]);
+    const boonTimelineChartMaxY = useMemo(() => {
+        const selectedPeak = boonTimelineChartData.reduce((best: number, entry) => Math.max(best, Number(entry?.total || 0)), 0);
+        const fightPeak = boonTimelineChartData.reduce((best: number, entry) => Math.max(best, Number(entry?.maxTotal || 0)), 0);
+        return Math.max(1, selectedPeak, fightPeak);
+    }, [boonTimelineChartData]);
+    const boonTimelineDrilldown = useMemo(() => {
+        const selectedPoint = selectedBoonTimelineFightIndex === null
+            ? null
+            : boonTimelineChartData.find((entry) => entry.index === selectedBoonTimelineFightIndex) || null;
+        if (!selectedPoint || !activeBoonTimeline || !selectedBoonTimelinePlayerKey) {
+            return {
+                title: 'Fight Breakdown',
+                data: [] as Array<{ label: string; value: number }>
+            };
+        }
+        const selectedFight = activeBoonTimeline.fights[selectedPoint.index];
+        const playerValue = selectedFight?.values?.[selectedBoonTimelinePlayerKey] || {
+            total: 0,
+            totals: { selfBuffs: 0, groupBuffs: 0, squadBuffs: 0, totalBuffs: 0 },
+            bucketWeights5s: [],
+            buckets5s: []
+        };
+        const selectedTotal = getBoonTimelineScopeTotal(playerValue, boonTimelineScope);
+        const rawWeights = Array.isArray(playerValue?.bucketWeights5s) ? playerValue.bucketWeights5s : [];
+        const legacyBuckets = Array.isArray(playerValue?.buckets5s) ? playerValue.buckets5s : [];
+        const bucketCount = Math.max(
+            rawWeights.length,
+            legacyBuckets.length,
+            Math.ceil(Math.max(0, Number(selectedFight?.durationMs || 0)) / 5000),
+            1
+        );
+        const normalizedWeights = Array.from({ length: bucketCount }, (_, index) => Number(rawWeights[index] || 0));
+        const weightsSum = normalizedWeights.reduce((sum, value) => sum + Number(value || 0), 0);
+        let scaledBuckets: number[] = [];
+        if (weightsSum > 0) {
+            const factor = selectedTotal > 0 ? selectedTotal / weightsSum : 0;
+            scaledBuckets = normalizedWeights.map((value) => Number(value || 0) * factor);
+        } else if (legacyBuckets.length > 0) {
+            const normalizedLegacy = Array.from({ length: bucketCount }, (_, index) => Number(legacyBuckets[index] || 0));
+            if (boonTimelineScope === 'totalBuffs' || !playerValue?.totals) {
+                scaledBuckets = normalizedLegacy;
+            } else {
+                const baseTotal = getBoonTimelineScopeTotal({ totals: getBoonTimelineTotals(playerValue) }, 'totalBuffs');
+                const factor = baseTotal > 0 ? selectedTotal / baseTotal : 0;
+                scaledBuckets = normalizedLegacy.map((value) => Number(value || 0) * factor);
+            }
+        } else {
+            const uniform = selectedTotal > 0 ? selectedTotal / Math.max(1, bucketCount) : 0;
+            scaledBuckets = Array.from({ length: bucketCount }, () => uniform);
+        }
+        const data = Array.from({ length: bucketCount }, (_, index) => ({
+            label: `${index * 5}s-${(index + 1) * 5}s`,
+            value: Number(scaledBuckets[index] || 0)
+        }));
+        return {
+            title: `Fight Breakdown - ${selectedPoint.shortLabel || 'Fight'} (5s ${boonTimelineScopeLabel} Generation Buckets)`,
+            data
+        };
+    }, [selectedBoonTimelineFightIndex, boonTimelineChartData, activeBoonTimeline, selectedBoonTimelinePlayerKey, boonTimelineScope, boonTimelineScopeLabel]);
     const filteredSpecialTables = useMemo(() => {
         const term = specialSearch.trim().toLowerCase();
         const sorted = [...(safeStats.specialTables || [])].sort((a: any, b: any) => a.name.localeCompare(b.name));
@@ -2561,6 +2762,29 @@ type SpikeFight = {
             setActiveBoonTab(safeStats.boonTables[0].id);
         }
     }, [safeStats.boonTables, activeBoonTab]);
+    useEffect(() => {
+        if (boonTimelineBoons.length === 0) {
+            if (activeBoonTimelineId !== null) setActiveBoonTimelineId(null);
+            return;
+        }
+        if (!activeBoonTimelineId || !boonTimelineBoons.some((boon: any) => boon.id === activeBoonTimelineId)) {
+            setActiveBoonTimelineId(boonTimelineBoons[0].id);
+        }
+    }, [boonTimelineBoons, activeBoonTimelineId]);
+    useEffect(() => {
+        const players = activeBoonTimeline?.players || [];
+        if (players.length === 0) {
+            if (selectedBoonTimelinePlayerKey !== null) setSelectedBoonTimelinePlayerKey(null);
+            return;
+        }
+        const preferred = players.find((player: any) => player.key === '__all__')?.key || players[0].key;
+        if (!selectedBoonTimelinePlayerKey || !players.some((player: any) => player.key === selectedBoonTimelinePlayerKey)) {
+            setSelectedBoonTimelinePlayerKey(preferred);
+        }
+    }, [activeBoonTimeline, selectedBoonTimelinePlayerKey]);
+    useEffect(() => {
+        setSelectedBoonTimelineFightIndex(null);
+    }, [activeBoonTimelineId, selectedBoonTimelinePlayerKey]);
 
     useEffect(() => {
         if (!safeStats.specialTables || safeStats.specialTables.length === 0) return;
@@ -2856,6 +3080,36 @@ type SpikeFight = {
                                 isFirstVisibleSection={isFirstVisibleSection}
                                 sectionClass={sectionClass}
                                 sidebarListClass={sidebarListClass}
+                            />
+                            <BoonTimelineSection
+                                expandedSection={expandedSection}
+                                expandedSectionClosing={expandedSectionClosing}
+                                openExpandedSection={openExpandedSection}
+                                closeExpandedSection={closeExpandedSection}
+                                isSectionVisible={isSectionVisible}
+                                isFirstVisibleSection={isFirstVisibleSection}
+                                sectionClass={sectionClass}
+                                boonSearch={boonTimelineSearch}
+                                setBoonSearch={setBoonTimelineSearch}
+                                boons={filteredBoonTimelineBoons}
+                                activeBoonId={activeBoonTimelineId}
+                                setActiveBoonId={setActiveBoonTimelineId}
+                                timelineScope={boonTimelineScope}
+                                setTimelineScope={setBoonTimelineScope}
+                                playerFilter={boonTimelinePlayerFilter}
+                                setPlayerFilter={setBoonTimelinePlayerFilter}
+                                players={filteredBoonTimelinePlayers}
+                                selectedPlayerKey={selectedBoonTimelinePlayerKey}
+                                setSelectedPlayerKey={setSelectedBoonTimelinePlayerKey}
+                                selectedPlayer={selectedBoonTimelinePlayer}
+                                chartData={boonTimelineChartData}
+                                chartMaxY={boonTimelineChartMaxY}
+                                selectedFightIndex={selectedBoonTimelineFightIndex}
+                                setSelectedFightIndex={setSelectedBoonTimelineFightIndex}
+                                drilldownTitle={boonTimelineDrilldown.title}
+                                drilldownData={boonTimelineDrilldown.data}
+                                formatWithCommas={formatWithCommas}
+                                renderProfessionIcon={renderProfessionIcon}
                             />
 
                             <OffenseSection
@@ -3611,6 +3865,36 @@ type SpikeFight = {
                             isFirstVisibleSection={isFirstVisibleSection}
                             sectionClass={sectionClass}
                             sidebarListClass={sidebarListClass}
+                        />}
+                        {isSectionVisible('boon-timeline') && <BoonTimelineSection
+                            expandedSection={expandedSection}
+                            expandedSectionClosing={expandedSectionClosing}
+                            openExpandedSection={openExpandedSection}
+                            closeExpandedSection={closeExpandedSection}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                            boonSearch={boonTimelineSearch}
+                            setBoonSearch={setBoonTimelineSearch}
+                            boons={filteredBoonTimelineBoons}
+                            activeBoonId={activeBoonTimelineId}
+                            setActiveBoonId={setActiveBoonTimelineId}
+                            timelineScope={boonTimelineScope}
+                            setTimelineScope={setBoonTimelineScope}
+                            playerFilter={boonTimelinePlayerFilter}
+                            setPlayerFilter={setBoonTimelinePlayerFilter}
+                            players={filteredBoonTimelinePlayers}
+                            selectedPlayerKey={selectedBoonTimelinePlayerKey}
+                            setSelectedPlayerKey={setSelectedBoonTimelinePlayerKey}
+                            selectedPlayer={selectedBoonTimelinePlayer}
+                            chartData={boonTimelineChartData}
+                            chartMaxY={boonTimelineChartMaxY}
+                            selectedFightIndex={selectedBoonTimelineFightIndex}
+                            setSelectedFightIndex={setSelectedBoonTimelineFightIndex}
+                            drilldownTitle={boonTimelineDrilldown.title}
+                            drilldownData={boonTimelineDrilldown.data}
+                            formatWithCommas={formatWithCommas}
+                            renderProfessionIcon={renderProfessionIcon}
                         />}
 
                         {isSectionVisible('support-detailed') && <SupportSection

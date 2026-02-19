@@ -1,7 +1,7 @@
 
 import { applyStabilityGeneration, getPlayerCleanses, getPlayerStrips, getPlayerDownContribution, getPlayerSquadHealing, getPlayerSquadBarrier, getPlayerOutgoingCrowdControl } from "../../shared/dashboardMetrics";
 import { Player } from '../../shared/dpsReportTypes';
-import { buildBoonTables } from "../../shared/boonGeneration";
+import { buildBoonTables, getPlayerBoonGenerationMs } from "../../shared/boonGeneration";
 import { DisruptionMethod, IMvpWeights, IStatsViewSettings, DEFAULT_DISRUPTION_METHOD, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS } from '../global.d';
 import { buildConditionIconMap, computeOutgoingConditions, normalizeConditionLabel, resolveConditionNameFromEntry } from '../../shared/conditionsMetrics';
 import { OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS, NON_DAMAGING_CONDITIONS } from './statsMetrics';
@@ -1650,6 +1650,394 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             .sort((a, b) => b.value - a.value);
 
         const { boonTables } = buildBoonTables(validLogs);
+        const boonTimeline = (() => {
+            const sanitizeWvwLabel = (value: any) => String(value || '')
+                .replace(/^Detailed\s*WvW\s*-\s*/i, '')
+                .replace(/^World\s*vs\s*World\s*-\s*/i, '')
+                .replace(/^WvW\s*-\s*/i, '')
+                .trim();
+            const tokenizeLabel = (value: string) => sanitizeWvwLabel(value)
+                .toLowerCase()
+                .split(/[^a-z0-9]+/i)
+                .map((token) => token.trim())
+                .filter(Boolean)
+                .map((token) => (token.length > 3 && token.endsWith('s') ? token.slice(0, -1) : token));
+            const buildFightLabel = (fightNameRaw: string, mapNameRaw: string) => {
+                const fightName = sanitizeWvwLabel(fightNameRaw);
+                const mapName = sanitizeWvwLabel(mapNameRaw);
+                if (!mapName) return fightName;
+                if (!fightName) return mapName;
+                const fightTokens = tokenizeLabel(fightName);
+                const mapTokens = tokenizeLabel(mapName);
+                const fightSet = new Set(fightTokens);
+                const mapSet = new Set(mapTokens);
+                const mapCovered = mapTokens.length > 0 && mapTokens.every((token) => fightSet.has(token));
+                const fightCovered = fightTokens.length > 0 && fightTokens.every((token) => mapSet.has(token));
+                if (mapCovered || fightCovered) return fightName;
+                return `${fightName} - ${mapName}`;
+            };
+            type BoonPlayer = {
+                key: string;
+                account: string;
+                displayName: string;
+                profession: string;
+                professionList: string[];
+                logs: number;
+                totals: {
+                    selfBuffs: number;
+                    groupBuffs: number;
+                    squadBuffs: number;
+                    totalBuffs: number;
+                };
+            };
+            type BoonFightValue = {
+                total: number;
+                totals: {
+                    selfBuffs: number;
+                    groupBuffs: number;
+                    squadBuffs: number;
+                    totalBuffs: number;
+                };
+                bucketWeights5s: number[];
+                buckets5s: number[];
+            };
+            type BoonFight = {
+                id: string;
+                shortLabel: string;
+                fullLabel: string;
+                timestamp: number;
+                durationMs: number;
+                values: Record<string, BoonFightValue>;
+                maxTotal: number;
+            };
+            type BoonBucket = {
+                id: string;
+                name: string;
+                icon?: string;
+                stacking: boolean;
+                players: Map<string, BoonPlayer>;
+                fights: BoonFight[];
+            };
+            const boonBuckets = new Map<string, BoonBucket>();
+            const ensureBoonBucket = (boonId: string, meta?: any) => {
+                if (!boonBuckets.has(boonId)) {
+                    boonBuckets.set(boonId, {
+                        id: boonId,
+                        name: String(meta?.name || boonId),
+                        icon: meta?.icon,
+                        stacking: Boolean(meta?.stacking),
+                        players: new Map<string, BoonPlayer>(),
+                        fights: []
+                    });
+                } else if (meta) {
+                    const existing = boonBuckets.get(boonId)!;
+                    if ((!existing.name || existing.name === boonId) && meta?.name) existing.name = String(meta.name);
+                    if (!existing.icon && meta?.icon) existing.icon = String(meta.icon);
+                    if (!existing.stacking && Boolean(meta?.stacking)) existing.stacking = true;
+                }
+                return boonBuckets.get(boonId)!;
+            };
+            const normalizeStatePairs = (states: any): Array<[number, number]> => {
+                if (!Array.isArray(states)) return [];
+                return states
+                    .map((entry: any) => {
+                        if (Array.isArray(entry)) return [Number(entry[0]), Number(entry[1])] as [number, number];
+                        if (entry && typeof entry === 'object') return [Number(entry.time), Number(entry.value)] as [number, number];
+                        return null;
+                    })
+                    .filter((entry: any): entry is [number, number] =>
+                        !!entry
+                        && Number.isFinite(entry[0])
+                        && Number.isFinite(entry[1])
+                        && entry[0] >= 0
+                    )
+                    .sort((a, b) => a[0] - b[0]);
+            };
+            const ensureBucketArray = (map: Map<string, number[]>, key: string, bucketCount: number) => {
+                const current = map.get(key) || [];
+                if (current.length < bucketCount) current.length = bucketCount;
+                for (let i = 0; i < bucketCount; i += 1) {
+                    if (!Number.isFinite(current[i])) current[i] = 0;
+                }
+                map.set(key, current);
+                return current;
+            };
+            const addBucketWeightsFromStates = (
+                bucketMap: Map<string, number[]>,
+                sourceKey: string,
+                states: any,
+                bucketCount: number,
+                durationMs: number
+            ) => {
+                if (!sourceKey || sourceKey === '__all__' || bucketCount <= 0) return;
+                const normalized = normalizeStatePairs(states);
+                if (normalized.length === 0) return;
+                const buckets = ensureBucketArray(bucketMap, sourceKey, bucketCount);
+                const resolvedDurationMs = Math.max(1, Number(durationMs || 0), bucketCount * 5000);
+                const clampTime = (value: number) => Math.max(0, Math.min(resolvedDurationMs, Number(value || 0)));
+                const addSegment = (startMs: number, endMs: number, value: number) => {
+                    if (!Number.isFinite(value) || value <= 0) return;
+                    let start = clampTime(startMs);
+                    const end = clampTime(endMs);
+                    if (end <= start) return;
+                    while (start < end) {
+                        const bucketIndex = Math.max(0, Math.min(bucketCount - 1, Math.floor(start / 5000)));
+                        const bucketEnd = Math.min(end, (bucketIndex + 1) * 5000);
+                        const segmentMs = Math.max(0, bucketEnd - start);
+                        if (segmentMs > 0) {
+                            buckets[bucketIndex] = Number(buckets[bucketIndex] || 0) + (segmentMs * value);
+                        }
+                        start = bucketEnd;
+                    }
+                };
+                let prevTime = clampTime(normalized[0][0]);
+                let prevValue = Math.max(0, Number(normalized[0][1] || 0));
+                for (let idx = 1; idx < normalized.length; idx += 1) {
+                    const [timeMs, rawValue] = normalized[idx];
+                    const currentTime = clampTime(timeMs);
+                    addSegment(prevTime, currentTime, prevValue);
+                    prevTime = currentTime;
+                    prevValue = Math.max(0, Number(rawValue || 0));
+                }
+                addSegment(prevTime, resolvedDurationMs, prevValue);
+            };
+            const scaleBucketsToTotal = (rawBuckets: number[], total: number, bucketCount: number) => {
+                const normalized = Array.from({ length: bucketCount }, (_, idx) => Number(rawBuckets?.[idx] || 0));
+                const rawSum = normalized.reduce((sum, value) => sum + Number(value || 0), 0);
+                if (!Number.isFinite(total) || total <= 0) return normalized.map(() => 0);
+                if (!Number.isFinite(rawSum) || rawSum <= 0) {
+                    const uniform = total / Math.max(1, bucketCount);
+                    return normalized.map(() => uniform);
+                }
+                const factor = total / rawSum;
+                return normalized.map((value) => Number(value || 0) * factor);
+            };
+            const createBoonCategoryTotals = () => ({
+                selfBuffs: 0,
+                groupBuffs: 0,
+                squadBuffs: 0,
+                totalBuffs: 0
+            });
+            const addBoonCategoryGeneration = (
+                target: { selfBuffs: number; groupBuffs: number; squadBuffs: number; totalBuffs: number },
+                category: 'selfBuffs' | 'groupBuffs' | 'squadBuffs',
+                valueMs: number
+            ) => {
+                const amount = Math.max(0, Number(valueMs || 0));
+                if (!amount) return;
+                target[category] = Number(target[category] || 0) + amount;
+                if (category === 'selfBuffs' || category === 'squadBuffs') {
+                    target.totalBuffs = Number(target.totalBuffs || 0) + amount;
+                }
+            };
+
+            validLogs
+                .map((log) => ({ log, ts: resolveFightTimestamp(log?.details, log) }))
+                .sort((a, b) => a.ts - b.ts)
+                .forEach(({ log }, index) => {
+                    const details = log?.details;
+                    if (!details) return;
+                    const players = Array.isArray(details.players) ? details.players : [];
+                    const squadPlayers = players.filter((p: any) => !p?.notInSquad);
+                    const squadCount = squadPlayers.length;
+                    if (squadCount <= 0) return;
+                    const durationMs = Math.max(0, Number(details?.durationMS || 0));
+                    const bucketCount = Math.max(1, Math.ceil(Math.max(1, durationMs) / 5000));
+                    const buffMap = (details?.buffMap && typeof details.buffMap === 'object')
+                        ? details.buffMap
+                        : {};
+                    const nameToKey = new Map<string, string>();
+                    const groupCounts = new Map<number, number>();
+                    squadPlayers.forEach((player: any) => {
+                        const group = Number(player?.group ?? 0);
+                        groupCounts.set(group, (groupCounts.get(group) || 0) + 1);
+                        const account = String(player?.account || player?.name || 'Unknown');
+                        const key = account;
+                        [player?.name, player?.display_name, player?.character_name, player?.account]
+                            .map((value) => String(value || '').trim())
+                            .filter(Boolean)
+                            .forEach((value) => nameToKey.set(value, key));
+                    });
+                    const fightName = sanitizeWvwLabel(details.fightName || log.fightName || `Fight ${index + 1}`);
+                    const mapName = resolveMapName(details, log);
+                    const fullLabel = buildFightLabel(fightName, String(mapName || ''));
+                    const fightValuesByBoon = new Map<string, Map<string, { selfBuffs: number; groupBuffs: number; squadBuffs: number; totalBuffs: number }>>();
+                    const fightBucketTimelineByBoon = new Map<string, Map<string, number[]>>();
+                    const fightPlayerSeenByBoon = new Map<string, Set<string>>();
+
+                    squadPlayers.forEach((player: any) => {
+                        const account = String(player?.account || player?.name || 'Unknown');
+                        const profession = String(player?.profession || 'Unknown');
+                        const key = account;
+                        const group = Number(player?.group ?? 0);
+                        const groupCount = Math.max(1, Number(groupCounts.get(group) || 1));
+                        const categories: Array<'selfBuffs' | 'groupBuffs' | 'squadBuffs'> = ['selfBuffs', 'groupBuffs', 'squadBuffs'];
+                        categories.forEach((category) => {
+                            const buffs = Array.isArray(player?.[category]) ? player[category] : [];
+                            buffs.forEach((buff: any) => {
+                                const boonIdNum = Number(buff?.id);
+                                if (!Number.isFinite(boonIdNum)) return;
+                                const boonId = `b${boonIdNum}`;
+                                const meta = buffMap[boonId] || {};
+                                const classification = String(meta?.classification || '');
+                                if (classification && classification !== 'Boon') return;
+                                const generationMs = Number(
+                                    getPlayerBoonGenerationMs(player, category, boonIdNum, durationMs, groupCount, squadCount, buffMap)?.generationMs || 0
+                                );
+                                if (!Number.isFinite(generationMs) || generationMs <= 0) return;
+                                const boonBucket = ensureBoonBucket(boonId, meta);
+                                const playerEntry = boonBucket.players.get(key) || {
+                                    key,
+                                    account,
+                                    displayName: account,
+                                    profession,
+                                    professionList: profession && profession !== 'Unknown' ? [profession] : [],
+                                    logs: 0,
+                                    totals: createBoonCategoryTotals()
+                                };
+                                if (profession && profession !== 'Unknown' && !playerEntry.professionList.includes(profession)) {
+                                    playerEntry.professionList.push(profession);
+                                }
+                                if ((!playerEntry.profession || playerEntry.profession === 'Unknown') && profession && profession !== 'Unknown') {
+                                    playerEntry.profession = profession;
+                                }
+                                const seen = fightPlayerSeenByBoon.get(boonId) || new Set<string>();
+                                if (!seen.has(key)) {
+                                    seen.add(key);
+                                    playerEntry.logs += 1;
+                                    fightPlayerSeenByBoon.set(boonId, seen);
+                                }
+                                addBoonCategoryGeneration(playerEntry.totals, category, generationMs);
+                                boonBucket.players.set(key, playerEntry);
+                                const allEntry = boonBucket.players.get('__all__') || {
+                                    key: '__all__',
+                                    account: 'All',
+                                    displayName: 'All',
+                                    profession: 'All',
+                                    professionList: [],
+                                    logs: 0,
+                                    totals: createBoonCategoryTotals()
+                                };
+                                addBoonCategoryGeneration(allEntry.totals, category, generationMs);
+                                boonBucket.players.set('__all__', allEntry);
+                                const fightValues = fightValuesByBoon.get(boonId) || new Map<string, { selfBuffs: number; groupBuffs: number; squadBuffs: number; totalBuffs: number }>();
+                                const playerFightTotals = fightValues.get(key) || createBoonCategoryTotals();
+                                addBoonCategoryGeneration(playerFightTotals, category, generationMs);
+                                fightValues.set(key, playerFightTotals);
+                                const allFightTotals = fightValues.get('__all__') || createBoonCategoryTotals();
+                                addBoonCategoryGeneration(allFightTotals, category, generationMs);
+                                fightValues.set('__all__', allFightTotals);
+                                fightValuesByBoon.set(boonId, fightValues);
+                                const buffUptime = Array.isArray(player?.buffUptimes)
+                                    ? player.buffUptimes.find((entry: any) => Number(entry?.id) === boonIdNum)
+                                    : null;
+                                const statesPerSource = (buffUptime?.statesPerSource && typeof buffUptime.statesPerSource === 'object')
+                                    ? buffUptime.statesPerSource
+                                    : null;
+                                if (statesPerSource) {
+                                    const timelineByPlayer = fightBucketTimelineByBoon.get(boonId) || new Map<string, number[]>();
+                                    Object.entries(statesPerSource).forEach(([sourceName, states]) => {
+                                        const sourceKey = nameToKey.get(String(sourceName || '').trim());
+                                        if (!sourceKey) return;
+                                        addBucketWeightsFromStates(
+                                            timelineByPlayer,
+                                            sourceKey,
+                                            states,
+                                            bucketCount,
+                                            durationMs
+                                        );
+                                    });
+                                    fightBucketTimelineByBoon.set(boonId, timelineByPlayer);
+                                }
+                            });
+                        });
+                    });
+
+                    fightValuesByBoon.forEach((playerValues, boonId) => {
+                        const boonBucket = boonBuckets.get(boonId);
+                        if (!boonBucket) return;
+                        const timelineByPlayer = fightBucketTimelineByBoon.get(boonId) || new Map<string, number[]>();
+                        const values: Record<string, BoonFightValue> = {};
+                        let allBuckets = Array.from({ length: bucketCount }, () => 0);
+                        let maxTotal = 0;
+                        playerValues.forEach((rawTotals, playerKey) => {
+                            const totals = {
+                                selfBuffs: Number(rawTotals?.selfBuffs || 0),
+                                groupBuffs: Number(rawTotals?.groupBuffs || 0),
+                                squadBuffs: Number(rawTotals?.squadBuffs || 0),
+                                totalBuffs: Number(rawTotals?.totalBuffs || 0)
+                            };
+                            const total = Math.max(0, Number(totals.totalBuffs || 0));
+                            if (!Number.isFinite(total) || total <= 0) return;
+                            const rawBuckets = timelineByPlayer.get(playerKey) || [];
+                            const buckets5s = scaleBucketsToTotal(rawBuckets, total, bucketCount);
+                            values[playerKey] = {
+                                total,
+                                totals,
+                                bucketWeights5s: Array.from({ length: bucketCount }, (_, idx) => Number(rawBuckets[idx] || 0)),
+                                buckets5s
+                            };
+                            if (playerKey !== '__all__') {
+                                if (total > maxTotal) maxTotal = total;
+                                allBuckets = allBuckets.map((value, index) => Number(value || 0) + Number(buckets5s[index] || 0));
+                            }
+                        });
+                        const allTotals = playerValues.get('__all__');
+                        const allTotal = Number(allTotals?.totalBuffs || 0);
+                        if (allTotal > 0) {
+                            values.__all__ = {
+                                total: allTotal,
+                                totals: {
+                                    selfBuffs: Number(allTotals?.selfBuffs || 0),
+                                    groupBuffs: Number(allTotals?.groupBuffs || 0),
+                                    squadBuffs: Number(allTotals?.squadBuffs || 0),
+                                    totalBuffs: Number(allTotals?.totalBuffs || 0)
+                                },
+                                bucketWeights5s: Array.from({ length: bucketCount }, (_, idx) => Number((timelineByPlayer.get('__all__') || [])[idx] || 0)),
+                                buckets5s: allBuckets.some((value) => Number(value || 0) > 0)
+                                    ? allBuckets
+                                    : scaleBucketsToTotal(timelineByPlayer.get('__all__') || [], allTotal, bucketCount)
+                            };
+                        }
+                        if (Object.keys(values).length === 0) return;
+                        const allEntry = boonBucket.players.get('__all__');
+                        if (allEntry) {
+                            allEntry.logs += 1;
+                            boonBucket.players.set('__all__', allEntry);
+                        }
+                        boonBucket.fights.push({
+                            id: log.filePath || log.id || `fight-${index + 1}`,
+                            shortLabel: `F${index + 1}`,
+                            fullLabel,
+                            timestamp: resolveFightTimestamp(details, log),
+                            durationMs,
+                            values,
+                            maxTotal
+                        });
+                    });
+                });
+
+            return Array.from(boonBuckets.values())
+                .map((bucket) => ({
+                    id: bucket.id,
+                    name: bucket.name || bucket.id,
+                    icon: bucket.icon,
+                    stacking: bucket.stacking,
+                    players: Array.from(bucket.players.values()).sort((a, b) => {
+                        if (a.key === '__all__') return -1;
+                        if (b.key === '__all__') return 1;
+                        const totalDiff = Number(b.totals?.totalBuffs || 0) - Number(a.totals?.totalBuffs || 0);
+                        if (totalDiff !== 0) return totalDiff;
+                        return String(a.displayName || '').localeCompare(String(b.displayName || ''));
+                    }),
+                    fights: [...bucket.fights].sort((a, b) => {
+                        if (a.timestamp > 0 && b.timestamp > 0 && a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+                        return a.shortLabel.localeCompare(b.shortLabel, undefined, { numeric: true });
+                    })
+                }))
+                .filter((boon) => boon.players.length > 0 && boon.fights.length > 0)
+                .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+        })();
 
         const timelineData = sortedFightLogs
             .map(({ log }) => {
@@ -3214,7 +3602,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             topSkillsByDownContribution,
             playerSkillBreakdowns,
             topSkillsMetric,
-            mapData, timelineData, boonTables,
+            mapData, timelineData, boonTables, boonTimeline,
             offensePlayers: Array.from(playerStats.values()).map(s => ({
                 account: s.account, profession: s.profession, professionList: s.professionList,
                 offenseTotals: s.offenseTotals, offenseRateWeights: s.offenseRateWeights, totalFightMs: s.totalFightMs

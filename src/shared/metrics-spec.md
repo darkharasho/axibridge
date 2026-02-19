@@ -464,6 +464,50 @@ Boon output tables are computed from player boon generation data:
 
 Implementation: `src/shared/boonGeneration.ts`.
 
+### Boon Timeline (Defense)
+
+The Boon Timeline section uses the same generation foundation as Boon Output
+with **Total** semantics:
+
+- Per-player per-boon totals use:
+  - `selfBuffs + squadBuffs`
+  - `groupBuffs` is intentionally excluded to avoid double counting
+    (group is a subset of squad in this model)
+- Scope toggle:
+  - `Self` = `selfBuffs`
+  - `Squad` = `squadBuffs` (default)
+  - `Group` = `groupBuffs`
+  - `All` = `selfBuffs + squadBuffs` (`totalBuffs`)
+
+For each fight and boon:
+
+1. Compute player total generation milliseconds:
+   - stacking boons:
+     - `generationMs = generation * durationMs * recipientCount`
+   - non-stacking boons:
+     - `generationMs = (generation / 100) * durationMs * recipientCount`
+   - where:
+     - `recipientCount = 1` for self
+     - `recipientCount = squadCount - 1` for squad
+
+2. Build 5-second bucket shape from `buffUptimes[*].statesPerSource`:
+   - integrate source state value over time (time-weighted area) into each 5s bucket
+   - this yields relative bucket weights (not final totals)
+
+3. Scale bucket weights to the player fight total from step 1:
+   - `bucketValue = bucketWeight * (fightTotal / sum(bucketWeights))`
+   - fallback when timeline weights are unavailable: uniform distribution across buckets
+
+Units shown in the UI are **boon-seconds** (`generationMs / 1000`), aggregated
+across recipients. Because this is recipient-aggregated generation, 5s bucket
+values can exceed `5` and may be large for stacking boons or `All`-player view.
+
+Timeline player identity is account-level (`account`) to match Boon Output row
+grouping across profession swaps.
+
+Implementation: `src/renderer/stats/computeStatsAggregation.ts`,
+`src/renderer/StatsView.tsx`.
+
 ## Special Buffs
 
 Special (non-boon) buff tables are computed from `buffUptimes` using
