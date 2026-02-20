@@ -5612,6 +5612,15 @@ body.web-report.theme-kinetic.theme-kinetic-dark .github-connect-btn:disabled {
     color: #c7b38e !important;
 }
 
+body.theme-kinetic.theme-kinetic-dark .stats-share-tooltip,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-share-tooltip {
+    background: #39405d !important;
+    background-color: #39405d !important;
+    border-color: rgba(236, 201, 145, 0.46) !important;
+    color: #f2e6cf !important;
+    box-shadow: none !important;
+}
+
 body.theme-kinetic.theme-kinetic-dark .recharts-cartesian-grid line,
 body.web-report.theme-kinetic.theme-kinetic-dark .recharts-cartesian-grid line {
     stroke: rgba(216, 186, 137, 0.28) !important;
