@@ -1,7 +1,7 @@
 {
     "name": "arcbridge",
     "private": true,
-    "version": "1.37.2",
+    "version": "1.37.3",
     "description": "ArcBridge - Guild Wars 2 arcDPS Log Uploader",
     "author": {
         "name": "darkharasho",
