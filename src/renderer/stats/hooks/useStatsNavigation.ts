@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { Trophy, Shield, ShieldAlert, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows } from 'lucide-react';
+import { Trophy, Shield, ShieldAlert, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Flag } from 'lucide-react';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
 import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
 import { Gw2AegisIcon } from '../../ui/Gw2AegisIcon';
@@ -48,6 +48,15 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
             { id: 'squad-composition', label: 'Classes', icon: Users },
             { id: 'timeline', label: 'Squad vs Enemy', icon: Users },
             { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon }
+        ]
+    },
+    {
+        id: 'commanders',
+        label: 'Commander Stats',
+        icon: Flag,
+        sectionIds: ['commander-stats'],
+        items: [
+            { id: 'commander-stats', label: 'Commander Stats', icon: Flag }
         ]
     },
     {
