@@ -3173,7 +3173,8 @@ type SpikeFight = {
             const match = breakdownById.get(String(fight?.id || '')) || null;
             return {
                 ...fight,
-                enemyClassCounts: match?.enemyClassCounts || {}
+                enemyClassCounts: match?.enemyClassCounts || {},
+                isWin: typeof match?.isWin === 'boolean' ? match.isWin : undefined
             };
         });
     }, [squadCompByFight, fightBreakdownRows]);
