@@ -13,6 +13,7 @@ type FightCompFight = {
     timestamp: number;
     mapName: string;
     duration: string;
+    isWin?: boolean;
     parties: FightCompPartyRow[];
     enemyClassCounts?: Record<string, number>;
 };
@@ -91,11 +92,21 @@ export const FightCompSection = ({
                                         <button
                                             key={fight.id}
                                             onClick={() => setActiveFightId(fight.id)}
-                                            className={`fight-comp-fight-nav-item w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${isActive
+                                            className={`fight-comp-fight-nav-item relative w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${isActive
                                                 ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100'
                                                 : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
                                             }`}
                                         >
+                                            <span
+                                                className={`fight-comp-result-badge absolute right-2 top-2 inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] uppercase tracking-widest ${fight.isWin === true
+                                                    ? 'fight-comp-result-badge--win'
+                                                    : fight.isWin === false
+                                                        ? 'fight-comp-result-badge--loss'
+                                                        : 'fight-comp-result-badge--unknown'
+                                                    }`}
+                                            >
+                                                {fight.isWin === true ? 'Win' : fight.isWin === false ? 'Loss' : 'Unknown'}
+                                            </span>
                                             <div className="text-[10px] uppercase tracking-widest text-gray-400">{fight.label}</div>
                                             <div className="text-xs font-semibold truncate">{fight.mapName || 'Unknown Map'}</div>
                                             <div className="text-[10px] text-gray-500 truncate">{fight.duration || '--:--'} · {formatTimestamp(fight.timestamp)}</div>

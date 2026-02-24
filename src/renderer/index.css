@@ -3233,6 +3233,56 @@ body.web-report.theme-matte .stats-view .fight-comp-class-icon--squad {
     border-color: transparent !important;
 }
 
+.stats-view .fight-comp-result-badge {
+    font-weight: 700;
+}
+
+.stats-view .fight-comp-result-badge--win {
+    border-color: rgba(74, 222, 128, 0.6);
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #bbf7d0;
+}
+
+.stats-view .fight-comp-result-badge--loss {
+    border-color: rgba(248, 113, 113, 0.6);
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #fecaca;
+}
+
+.stats-view .fight-comp-result-badge--unknown {
+    border-color: rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #9ca3af;
+}
+
+body.theme-kinetic .stats-view .fight-comp-result-badge--win,
+body.web-report.theme-kinetic .stats-view .fight-comp-result-badge--win {
+    border-color: rgba(92, 126, 101, 0.44) !important;
+    background-color: rgba(109, 130, 109, 0.2) !important;
+    color: #4a614d !important;
+}
+
+body.theme-kinetic .stats-view .fight-comp-result-badge--loss,
+body.web-report.theme-kinetic .stats-view .fight-comp-result-badge--loss {
+    border-color: rgba(138, 102, 96, 0.44) !important;
+    background-color: rgba(145, 109, 102, 0.2) !important;
+    color: #6d4f4a !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .fight-comp-result-badge--win,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .fight-comp-result-badge--win {
+    border-color: rgba(120, 150, 126, 0.42) !important;
+    background-color: rgba(84, 109, 88, 0.22) !important;
+    color: #d7e6d9 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .fight-comp-result-badge--loss,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .fight-comp-result-badge--loss {
+    border-color: rgba(156, 120, 114, 0.42) !important;
+    background-color: rgba(118, 90, 86, 0.22) !important;
+    color: #ecd8d5 !important;
+}
+
 /* =========================================
    Theme: Matte Slate - Web Reports Modal
    ========================================= */
