@@ -1,14 +1,14 @@
 # Release Notes
 
-Version v1.37.6 — February 25, 2026
+Version v1.37.7 — February 25, 2026
 
 ## 🌟 Highlights
-- Between mode added to the file picker for precise date-range filtering.
-- Web build assets refreshed to support the update and improve visuals.
+- A denser, easier-to-scan table view for the fight breakdown.
+- Timeline sections now display fights more clearly with improved calculations.
 
 ## 🛠️ Improvements
-- File picker dialog now includes Between date-range filtering, making it easier to narrow results.
-- Web assets updated to reflect the new mode and provide a smoother experience.
+- On startup, the upload retry queue is cleared to avoid leftovers from previous sessions.
+- Asset path resolution is improved for more reliable and faster loading.
 
 ## 🧯 Fixes
 - None.
