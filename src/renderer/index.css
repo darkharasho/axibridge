@@ -2286,6 +2286,25 @@ body:not(.web-report) .modal-pane .dense-table__scroll::-webkit-scrollbar-track:
     border: 0;
 }
 
+/* Fight Breakdown fullscreen uses a very wide table; keep native horizontal
+   scrollbar visible in addition to the scrubber for discoverability. */
+body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-table__scroll {
+    overflow-x: auto;
+}
+
+body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-table__scroll::-webkit-scrollbar:horizontal {
+    height: 10px !important;
+}
+
+body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-table__scroll::-webkit-scrollbar-track:horizontal {
+    background: rgba(15, 23, 42, 0.45);
+}
+
+body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-table__scroll::-webkit-scrollbar-thumb:horizontal {
+    background: rgba(148, 163, 184, 0.55);
+    border-radius: 9999px;
+}
+
 .dense-table__grid {
     display: grid;
     align-items: stretch;

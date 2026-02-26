@@ -1,11 +1,17 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import { Maximize2, X } from 'lucide-react';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { CountClassTooltip } from '../ui/StatsViewShared';
+import { DenseStatsTable } from '../ui/DenseStatsTable';
 
 type FightBreakdownSectionProps = {
     stats: any;
     fightBreakdownTab: 'sizes' | 'outcomes' | 'damage' | 'barrier';
     setFightBreakdownTab: (value: 'sizes' | 'outcomes' | 'damage' | 'barrier') => void;
+    expandedSection: string | null;
+    expandedSectionClosing: boolean;
+    openExpandedSection: (id: string) => void;
+    closeExpandedSection: () => void;
     isSectionVisible: (id: string) => boolean;
     isFirstVisibleSection: (id: string) => boolean;
     sectionClass: (id: string, base: string) => string;
@@ -15,13 +21,20 @@ export const FightBreakdownSection = ({
     stats,
     fightBreakdownTab,
     setFightBreakdownTab,
+    expandedSection,
+    expandedSectionClosing,
+    openExpandedSection,
+    closeExpandedSection,
     isSectionVisible,
     isFirstVisibleSection,
     sectionClass
 }: FightBreakdownSectionProps) => {
+    const sectionId = 'fight-breakdown';
+    const isExpanded = expandedSection === sectionId;
+    const fights = Array.isArray(stats?.fightBreakdown) ? stats.fightBreakdown : [];
+
     const teamColumnIds = useMemo(() => {
         const totals = new Map<string, number>();
-        const fights = Array.isArray(stats?.fightBreakdown) ? stats.fightBreakdown : [];
         fights.forEach((fight: any) => {
             const rows = Array.isArray(fight?.teamBreakdown) ? fight.teamBreakdown : [];
             rows.forEach((entry: any) => {
@@ -38,7 +51,7 @@ export const FightBreakdownSection = ({
                 return a[0].localeCompare(b[0], undefined, { numeric: true });
             })
             .map(([id]) => id);
-    }, [stats?.fightBreakdown]);
+    }, [fights]);
 
     const formatReportLabel = (fight: any) => {
         const rawTs = fight?.timestamp;
@@ -72,215 +85,350 @@ export const FightBreakdownSection = ({
         return `${dateLabel} • ${mapLabel}`;
     };
 
-    return <div
-        id="fight-breakdown"
-        data-section-visible={isSectionVisible('fight-breakdown')}
-        data-section-first={isFirstVisibleSection('fight-breakdown')}
-        className={sectionClass('fight-breakdown', 'mt-6 stats-share-exclude')}
-    >
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-200">Fight Breakdown</h3>
-                <div className="flex flex-wrap items-center gap-2">
-                    <PillToggleGroup
-                        value={fightBreakdownTab}
-                        onChange={setFightBreakdownTab}
-                        options={[
-                            { value: 'sizes', label: 'Sizes' },
-                            { value: 'outcomes', label: 'Outcome' },
-                            { value: 'damage', label: 'Damage' },
-                            { value: 'barrier', label: 'Barrier' }
-                        ]}
-                        activeClassName="bg-cyan-500/20 text-cyan-200 border border-cyan-500/40"
-                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                    />
-                    <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:ml-1 w-full sm:w-auto">
-                        {stats.fightBreakdown?.length || 0} Fights
+    const renderReportCell = (fight: any): ReactNode => {
+        const label = formatReportLabel(fight);
+        if (!fight?.permalink) return <span className="text-gray-500">Pending</span>;
+        return (
+            <button
+                onClick={() => {
+                    if (fight.permalink && window.electronAPI?.openExternal) {
+                        window.electronAPI.openExternal(fight.permalink);
+                    } else if (fight.permalink) {
+                        window.open(fight.permalink, '_blank');
+                    }
+                }}
+                className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2 block truncate"
+            >
+                {label}
+            </button>
+        );
+    };
+
+    const denseColumns = useMemo(() => {
+        const base = [
+            { id: 'duration', label: 'Duration', align: 'left' as const, minWidth: 72 },
+            { id: 'outcome', label: 'Outcome', align: 'left' as const, minWidth: 72 },
+            { id: 'squad', label: 'Squad', align: 'right' as const, minWidth: 72 },
+            { id: 'allies', label: 'Allies', align: 'right' as const, minWidth: 72 },
+            { id: 'enemies', label: 'Enemies', align: 'right' as const, minWidth: 72 },
+            ...teamColumnIds.map((teamId) => ({
+                id: `team-${teamId}`,
+                label: `Team ${teamId}`,
+                align: 'right' as const,
+                minWidth: 72
+            })),
+            { id: 'alliesDown', label: 'Allies Down', align: 'right' as const, minWidth: 88 },
+            { id: 'alliesDead', label: 'Allies Dead', align: 'right' as const, minWidth: 88 },
+            { id: 'alliesRevived', label: 'Allies Revived', align: 'right' as const, minWidth: 102 },
+            { id: 'rallies', label: 'Rallies', align: 'right' as const, minWidth: 72 },
+            { id: 'enemyDowns', label: 'Enemy Downs', align: 'right' as const, minWidth: 88 },
+            { id: 'enemyDeaths', label: 'Enemy Deaths', align: 'right' as const, minWidth: 88 },
+            { id: 'outgoingDmg', label: 'Outgoing Dmg', align: 'right' as const, minWidth: 110 },
+            { id: 'incomingDmg', label: 'Incoming Dmg', align: 'right' as const, minWidth: 110 },
+            { id: 'damageDelta', label: 'Damage Delta', align: 'right' as const, minWidth: 98 },
+            { id: 'barrierIn', label: 'Barrier Absorb', align: 'right' as const, minWidth: 110 },
+            { id: 'barrierOut', label: 'Enemy Barrier Absorb', align: 'right' as const, minWidth: 146 },
+            { id: 'barrierDelta', label: 'Barrier Delta', align: 'right' as const, minWidth: 98 }
+        ];
+        return base;
+    }, [teamColumnIds]);
+
+    const denseRows = useMemo(() => {
+        return fights.map((fight: any, idx: number) => {
+            const damageDelta = Number((fight.totalOutgoingDamage || 0) - (fight.totalIncomingDamage || 0));
+            const barrierDelta = Number((fight.outgoingBarrierAbsorbed || 0) - (fight.incomingBarrierAbsorbed || 0));
+            const values: Record<string, ReactNode> = {
+                duration: fight.duration || '--:--',
+                outcome: (
+                    <span className={`font-semibold ${
+                        fight.isWin === true ? 'text-emerald-300' : fight.isWin === false ? 'text-red-300' : 'text-amber-200'
+                    }`}
+                    >
+                        {fight.isWin === true ? 'Win' : fight.isWin === false ? 'Loss' : 'Unknown'}
                     </span>
+                ),
+                squad: (
+                    <CountClassTooltip
+                        count={fight.squadCount ?? 0}
+                        classCounts={fight.squadClassCountsFight}
+                        label="Squad Classes"
+                        className="text-gray-200"
+                    />
+                ),
+                allies: (
+                    <CountClassTooltip
+                        count={fight.allyCount ?? 0}
+                        classCounts={fight.allyClassCountsFight}
+                        label="Ally Classes"
+                        className="text-gray-200"
+                    />
+                ),
+                enemies: (
+                    <CountClassTooltip
+                        count={fight.enemyCount ?? 0}
+                        classCounts={fight.enemyClassCounts}
+                        label="Enemy Classes"
+                        className="text-gray-200"
+                    />
+                ),
+                alliesDown: Number(fight.alliesDown ?? 0),
+                alliesDead: Number(fight.alliesDead ?? 0),
+                alliesRevived: Number(fight.alliesRevived ?? 0),
+                rallies: Number(fight.rallies ?? 0),
+                enemyDowns: Number(fight.enemyDowns ?? 0),
+                enemyDeaths: Number(fight.enemyDeaths ?? 0),
+                outgoingDmg: Number(fight.totalOutgoingDamage || 0).toLocaleString(),
+                incomingDmg: Number(fight.totalIncomingDamage || 0).toLocaleString(),
+                damageDelta: (
+                    <span className={damageDelta < 0 ? 'text-red-300' : 'text-emerald-300'}>
+                        {damageDelta.toLocaleString()}
+                    </span>
+                ),
+                barrierIn: Number(fight.incomingBarrierAbsorbed || 0).toLocaleString(),
+                barrierOut: Number(fight.outgoingBarrierAbsorbed || 0).toLocaleString(),
+                barrierDelta: (
+                    <span className={barrierDelta < 0 ? 'text-emerald-300' : 'text-red-300'}>
+                        {barrierDelta.toLocaleString()}
+                    </span>
+                )
+            };
+
+            teamColumnIds.forEach((teamId) => {
+                const rows = Array.isArray(fight.teamBreakdown) ? fight.teamBreakdown : [];
+                const entry = rows.find((row: any) => String(row?.teamId ?? '') === teamId);
+                values[`team-${teamId}`] = Number(entry?.count || 0);
+            });
+
+            return {
+                id: String(fight.id || `${fight.label}-${idx}`),
+                label: (
+                    <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-widest text-gray-500">{idx + 1}</div>
+                        {renderReportCell(fight)}
+                    </div>
+                ),
+                values
+            };
+        });
+    }, [fights, teamColumnIds]);
+
+    return (
+        <div
+            id={sectionId}
+            data-section-visible={isSectionVisible(sectionId)}
+            data-section-first={isFirstVisibleSection(sectionId)}
+            className={sectionClass(sectionId, `mt-6 stats-share-exclude ${
+                isExpanded
+                    ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}`
+                    : ''
+            }`)}
+        >
+            <div className={`bg-white/5 border border-white/10 rounded-2xl p-6 ${isExpanded ? 'rounded-none border-0 min-h-full' : ''}`}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between mb-4 relative">
+                    <h3 className={`text-lg font-bold text-gray-200 ${isExpanded ? 'pr-10 sm:pr-0' : ''}`}>Fight Breakdown</h3>
+                    <div className={`flex flex-wrap items-center gap-2 ${isExpanded ? 'pr-10 sm:pr-0' : ''}`}>
+                        {!isExpanded && (
+                            <PillToggleGroup
+                                value={fightBreakdownTab}
+                                onChange={setFightBreakdownTab}
+                                options={[
+                                    { value: 'sizes', label: 'Sizes' },
+                                    { value: 'outcomes', label: 'Outcome' },
+                                    { value: 'damage', label: 'Damage' },
+                                    { value: 'barrier', label: 'Barrier' }
+                                ]}
+                                activeClassName="bg-cyan-500/20 text-cyan-200 border border-cyan-500/40"
+                                inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                            />
+                        )}
+                        <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:ml-1 w-full sm:w-auto">
+                            {fights.length} Fights
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
+                            className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${isExpanded ? 'absolute top-0 right-0 sm:static' : ''}`}
+                            aria-label={isExpanded ? 'Close Fight Breakdown' : 'Expand Fight Breakdown'}
+                            title={isExpanded ? 'Close' : 'Expand'}
+                        >
+                            {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                        </button>
+                    </div>
                 </div>
-            </div>
-            {(stats.fightBreakdown || []).length === 0 ? (
-                <div className="text-center text-gray-500 italic py-6">No fight data available</div>
-            ) : (
-                <div className="overflow-x-auto">
-                    <div className="max-h-[360px] overflow-y-auto">
-                        <table className="w-full text-xs table-auto min-w-[720px]">
-                            <thead>
-                                <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                    <th className="text-right py-2 px-2 w-8">#</th>
-                                    <th className="text-left py-2 px-3 w-[240px]">Report</th>
-                                    <th className="text-left py-2 px-3 w-20">Duration</th>
-                                    <th className="text-left py-2 px-3 w-20">Outcome</th>
-                                    {fightBreakdownTab === 'sizes' && (
-                                        <>
-                                            <th className="text-right py-2 px-3">Squad</th>
-                                            <th className="text-right py-2 px-3">Allies</th>
-                                            <th className="text-right py-2 px-3">Enemies</th>
-                                            {teamColumnIds.length === 0 ? (
-                                                <th className="text-right py-2 px-3">Teams</th>
-                                            ) : (
-                                                teamColumnIds.map((teamId) => (
-                                                    <th key={teamId} className="text-right py-2 px-3">{`Team ${teamId}`}</th>
-                                                ))
-                                            )}
-                                        </>
-                                    )}
-                                    {fightBreakdownTab === 'outcomes' && (
-                                        <>
-                                            <th className="text-right py-2 px-3">Allies Down</th>
-                                            <th className="text-right py-2 px-3">Allies Dead</th>
-                                            <th className="text-right py-2 px-3">Allies Revived</th>
-                                            <th className="text-right py-2 px-3">Rallies</th>
-                                            <th className="text-right py-2 px-3">Enemy Downs</th>
-                                            <th className="text-right py-2 px-3">Enemy Deaths</th>
-                                        </>
-                                    )}
-                                    {fightBreakdownTab === 'damage' && (
-                                        <>
-                                            <th className="text-right py-2 px-3">Outgoing Dmg</th>
-                                            <th className="text-right py-2 px-3">Incoming Dmg</th>
-                                            <th className="text-right py-2 px-3">Delta</th>
-                                        </>
-                                    )}
-                                    {fightBreakdownTab === 'barrier' && (
-                                        <>
-                                            <th
-                                                className="text-right py-2 px-3"
-                                                title="Incoming damage mitigated by your squad's barrier"
-                                            >
-                                                Barrier Absorption
-                                            </th>
-                                            <th
-                                                className="text-right py-2 px-3"
-                                                title="Outgoing damage mitigated by enemy barrier"
-                                            >
-                                                Enemy Barrier Absorption
-                                            </th>
-                                            <th className="text-right py-2 px-3">Delta</th>
-                                        </>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(stats.fightBreakdown || []).map((fight: any, idx: number) => (
-                                    <tr key={fight.id || `${fight.label}-${idx}`} className="border-b border-white/5 hover:bg-white/5">
-                                        <td className="py-2 px-2 text-right font-mono text-gray-500 w-8">{idx + 1}</td>
-                                        <td className="py-2 px-3 w-[240px]">
-                                            {fight.permalink ? (
-                                                <button
-                                                    onClick={() => {
-                                                        if (fight.permalink && window.electronAPI?.openExternal) {
-                                                            window.electronAPI.openExternal(fight.permalink);
-                                                        } else if (fight.permalink) {
-                                                            window.open(fight.permalink, '_blank');
-                                                        }
-                                                    }}
-                                                    className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2 block truncate"
-                                                >
-                                                    {formatReportLabel(fight)}
-                                                </button>
-                                            ) : (
-                                                <span className="text-gray-500">Pending</span>
-                                            )}
-                                        </td>
-                                        <td className="py-2 px-3 text-gray-200 w-20">{fight.duration || '--:--'}</td>
-                                        <td
-                                            className={`py-2 px-3 font-semibold ${
-                                                fight.isWin === true
-                                                    ? 'text-emerald-300'
-                                                    : fight.isWin === false
-                                                        ? 'text-red-300'
-                                                        : 'text-amber-200'
-                                            }`}
-                                        >
-                                            {fight.isWin === true ? 'Win' : fight.isWin === false ? 'Loss' : 'Unknown'}
-                                        </td>
+                {fights.length === 0 ? (
+                    <div className="text-center text-gray-500 italic py-6">No fight data available</div>
+                ) : isExpanded ? (
+                    <DenseStatsTable
+                        title="Fight Breakdown (All Columns)"
+                        subtitle="Fullscreen dense view combining Sizes, Outcome, Damage, and Barrier metrics."
+                        className="fight-breakdown-dense"
+                        columns={denseColumns}
+                        rows={denseRows}
+                    />
+                ) : (
+                    <div className="overflow-x-auto">
+                        <div className="max-h-[360px] overflow-y-auto">
+                            <table className="w-full text-xs table-auto min-w-[720px]">
+                                <thead>
+                                    <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
+                                        <th className="text-right py-2 px-2 w-8">#</th>
+                                        <th className="text-left py-2 px-3 w-[240px]">Report</th>
+                                        <th className="text-left py-2 px-3 w-20">Duration</th>
+                                        <th className="text-left py-2 px-3 w-20">Outcome</th>
                                         {fightBreakdownTab === 'sizes' && (
                                             <>
-                                                <td className="py-2 px-3 text-right font-mono">
-                                                    <CountClassTooltip
-                                                        count={fight.squadCount ?? 0}
-                                                        classCounts={fight.squadClassCountsFight}
-                                                        label="Squad Classes"
-                                                        className="text-gray-200"
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-3 text-right font-mono">
-                                                    <CountClassTooltip
-                                                        count={fight.allyCount ?? 0}
-                                                        classCounts={fight.allyClassCountsFight}
-                                                        label="Ally Classes"
-                                                        className="text-gray-200"
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-3 text-right font-mono">
-                                                    <CountClassTooltip
-                                                        count={fight.enemyCount ?? 0}
-                                                        classCounts={fight.enemyClassCounts}
-                                                        label="Enemy Classes"
-                                                        className="text-gray-200"
-                                                    />
-                                                </td>
+                                                <th className="text-right py-2 px-3">Squad</th>
+                                                <th className="text-right py-2 px-3">Allies</th>
+                                                <th className="text-right py-2 px-3">Enemies</th>
                                                 {teamColumnIds.length === 0 ? (
-                                                    <td className="py-2 px-3 text-right font-mono text-gray-200">0</td>
+                                                    <th className="text-right py-2 px-3">Teams</th>
                                                 ) : (
-                                                    teamColumnIds.map((teamId) => {
-                                                        const rows = Array.isArray(fight.teamBreakdown) ? fight.teamBreakdown : [];
-                                                        const entry = rows.find((row: any) => String(row?.teamId ?? '') === teamId);
-                                                        return (
-                                                            <td key={teamId} className="py-2 px-3 text-right font-mono text-gray-200">
-                                                                {Number(entry?.count || 0)}
-                                                            </td>
-                                                        );
-                                                    })
+                                                    teamColumnIds.map((teamId) => (
+                                                        <th key={teamId} className="text-right py-2 px-3">{`Team ${teamId}`}</th>
+                                                    ))
                                                 )}
                                             </>
                                         )}
                                         {fightBreakdownTab === 'outcomes' && (
                                             <>
-                                                <td className="py-2 px-3 text-right font-mono">{fight.alliesDown ?? 0}</td>
-                                                <td className="py-2 px-3 text-right font-mono">{fight.alliesDead ?? 0}</td>
-                                                <td className="py-2 px-3 text-right font-mono">{fight.alliesRevived ?? 0}</td>
-                                                <td className="py-2 px-3 text-right font-mono">{fight.rallies ?? 0}</td>
-                                                <td className="py-2 px-3 text-right font-mono">{fight.enemyDowns ?? 0}</td>
-                                                <td className="py-2 px-3 text-right font-mono">{fight.enemyDeaths ?? 0}</td>
+                                                <th className="text-right py-2 px-3">Allies Down</th>
+                                                <th className="text-right py-2 px-3">Allies Dead</th>
+                                                <th className="text-right py-2 px-3">Allies Revived</th>
+                                                <th className="text-right py-2 px-3">Rallies</th>
+                                                <th className="text-right py-2 px-3">Enemy Downs</th>
+                                                <th className="text-right py-2 px-3">Enemy Deaths</th>
                                             </>
                                         )}
                                         {fightBreakdownTab === 'damage' && (
                                             <>
-                                                <td className="py-2 px-3 text-right font-mono">{Number(fight.totalOutgoingDamage || 0).toLocaleString()}</td>
-                                                <td className="py-2 px-3 text-right font-mono">{Number(fight.totalIncomingDamage || 0).toLocaleString()}</td>
-                                                {(() => {
-                                                    const delta = Number((fight.totalOutgoingDamage || 0) - (fight.totalIncomingDamage || 0));
-                                                    return (
-                                                        <td className={`py-2 px-3 text-right font-mono ${delta < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
-                                                            {delta.toLocaleString()}
-                                                        </td>
-                                                    );
-                                                })()}
+                                                <th className="text-right py-2 px-3">Outgoing Dmg</th>
+                                                <th className="text-right py-2 px-3">Incoming Dmg</th>
+                                                <th className="text-right py-2 px-3">Delta</th>
                                             </>
                                         )}
                                         {fightBreakdownTab === 'barrier' && (
                                             <>
-                                                <td className="py-2 px-3 text-right font-mono">{Number(fight.incomingBarrierAbsorbed || 0).toLocaleString()}</td>
-                                                <td className="py-2 px-3 text-right font-mono">{Number(fight.outgoingBarrierAbsorbed || 0).toLocaleString()}</td>
-                                                {(() => {
-                                                    const delta = Number((fight.outgoingBarrierAbsorbed || 0) - (fight.incomingBarrierAbsorbed || 0));
-                                                    return (
-                                                        <td className={`py-2 px-3 text-right font-mono ${delta < 0 ? 'text-emerald-300' : 'text-red-300'}`}>
-                                                            {delta.toLocaleString()}
-                                                        </td>
-                                                    );
-                                                })()}
+                                                <th
+                                                    className="text-right py-2 px-3"
+                                                    title="Incoming damage mitigated by your squad's barrier"
+                                                >
+                                                    Barrier Absorption
+                                                </th>
+                                                <th
+                                                    className="text-right py-2 px-3"
+                                                    title="Outgoing damage mitigated by enemy barrier"
+                                                >
+                                                    Enemy Barrier Absorption
+                                                </th>
+                                                <th className="text-right py-2 px-3">Delta</th>
                                             </>
                                         )}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {fights.map((fight: any, idx: number) => (
+                                        <tr key={fight.id || `${fight.label}-${idx}`} className="border-b border-white/5 hover:bg-white/5">
+                                            <td className="py-2 px-2 text-right font-mono text-gray-500 w-8">{idx + 1}</td>
+                                            <td className="py-2 px-3 w-[240px]">{renderReportCell(fight)}</td>
+                                            <td className="py-2 px-3 text-gray-200 w-20">{fight.duration || '--:--'}</td>
+                                            <td
+                                                className={`py-2 px-3 font-semibold ${
+                                                    fight.isWin === true
+                                                        ? 'text-emerald-300'
+                                                        : fight.isWin === false
+                                                            ? 'text-red-300'
+                                                            : 'text-amber-200'
+                                                }`}
+                                            >
+                                                {fight.isWin === true ? 'Win' : fight.isWin === false ? 'Loss' : 'Unknown'}
+                                            </td>
+                                            {fightBreakdownTab === 'sizes' && (
+                                                <>
+                                                    <td className="py-2 px-3 text-right font-mono">
+                                                        <CountClassTooltip
+                                                            count={fight.squadCount ?? 0}
+                                                            classCounts={fight.squadClassCountsFight}
+                                                            label="Squad Classes"
+                                                            className="text-gray-200"
+                                                        />
+                                                    </td>
+                                                    <td className="py-2 px-3 text-right font-mono">
+                                                        <CountClassTooltip
+                                                            count={fight.allyCount ?? 0}
+                                                            classCounts={fight.allyClassCountsFight}
+                                                            label="Ally Classes"
+                                                            className="text-gray-200"
+                                                        />
+                                                    </td>
+                                                    <td className="py-2 px-3 text-right font-mono">
+                                                        <CountClassTooltip
+                                                            count={fight.enemyCount ?? 0}
+                                                            classCounts={fight.enemyClassCounts}
+                                                            label="Enemy Classes"
+                                                            className="text-gray-200"
+                                                        />
+                                                    </td>
+                                                    {teamColumnIds.length === 0 ? (
+                                                        <td className="py-2 px-3 text-right font-mono text-gray-200">0</td>
+                                                    ) : (
+                                                        teamColumnIds.map((teamId) => {
+                                                            const rows = Array.isArray(fight.teamBreakdown) ? fight.teamBreakdown : [];
+                                                            const entry = rows.find((row: any) => String(row?.teamId ?? '') === teamId);
+                                                            return (
+                                                                <td key={teamId} className="py-2 px-3 text-right font-mono text-gray-200">
+                                                                    {Number(entry?.count || 0)}
+                                                                </td>
+                                                            );
+                                                        })
+                                                    )}
+                                                </>
+                                            )}
+                                            {fightBreakdownTab === 'outcomes' && (
+                                                <>
+                                                    <td className="py-2 px-3 text-right font-mono">{fight.alliesDown ?? 0}</td>
+                                                    <td className="py-2 px-3 text-right font-mono">{fight.alliesDead ?? 0}</td>
+                                                    <td className="py-2 px-3 text-right font-mono">{fight.alliesRevived ?? 0}</td>
+                                                    <td className="py-2 px-3 text-right font-mono">{fight.rallies ?? 0}</td>
+                                                    <td className="py-2 px-3 text-right font-mono">{fight.enemyDowns ?? 0}</td>
+                                                    <td className="py-2 px-3 text-right font-mono">{fight.enemyDeaths ?? 0}</td>
+                                                </>
+                                            )}
+                                            {fightBreakdownTab === 'damage' && (
+                                                <>
+                                                    <td className="py-2 px-3 text-right font-mono">{Number(fight.totalOutgoingDamage || 0).toLocaleString()}</td>
+                                                    <td className="py-2 px-3 text-right font-mono">{Number(fight.totalIncomingDamage || 0).toLocaleString()}</td>
+                                                    {(() => {
+                                                        const delta = Number((fight.totalOutgoingDamage || 0) - (fight.totalIncomingDamage || 0));
+                                                        return (
+                                                            <td className={`py-2 px-3 text-right font-mono ${delta < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
+                                                                {delta.toLocaleString()}
+                                                            </td>
+                                                        );
+                                                    })()}
+                                                </>
+                                            )}
+                                            {fightBreakdownTab === 'barrier' && (
+                                                <>
+                                                    <td className="py-2 px-3 text-right font-mono">{Number(fight.incomingBarrierAbsorbed || 0).toLocaleString()}</td>
+                                                    <td className="py-2 px-3 text-right font-mono">{Number(fight.outgoingBarrierAbsorbed || 0).toLocaleString()}</td>
+                                                    {(() => {
+                                                        const delta = Number((fight.outgoingBarrierAbsorbed || 0) - (fight.incomingBarrierAbsorbed || 0));
+                                                        return (
+                                                            <td className={`py-2 px-3 text-right font-mono ${delta < 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                                                                {delta.toLocaleString()}
+                                                            </td>
+                                                        );
+                                                    })()}
+                                                </>
+                                            )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
-    </div>;
+    );
 };

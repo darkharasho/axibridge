@@ -27,6 +27,10 @@ describe('FightBreakdownSection', () => {
                 stats={stats}
                 fightBreakdownTab="sizes"
                 setFightBreakdownTab={() => {}}
+                expandedSection={null}
+                expandedSectionClosing={false}
+                openExpandedSection={() => {}}
+                closeExpandedSection={() => {}}
                 isSectionVisible={() => true}
                 isFirstVisibleSection={() => false}
                 sectionClass={(_id, base) => base}
@@ -59,6 +63,10 @@ describe('FightBreakdownSection', () => {
                 stats={stats}
                 fightBreakdownTab="sizes"
                 setFightBreakdownTab={() => {}}
+                expandedSection={null}
+                expandedSectionClosing={false}
+                openExpandedSection={() => {}}
+                closeExpandedSection={() => {}}
                 isSectionVisible={() => true}
                 isFirstVisibleSection={() => false}
                 sectionClass={(_id, base) => base}
