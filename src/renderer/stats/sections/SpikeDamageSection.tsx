@@ -167,6 +167,10 @@ export const SpikeDamageSection = ({
         if (!best || entry.damage > best.damage) return entry;
         return best;
     }, null as SpikeDamageFightPoint | null);
+    const selectedFight = selectedSpikeFightIndex === null
+        ? null
+        : spikeChartData.find((entry) => entry.index === selectedSpikeFightIndex) || null;
+    const infoFight = selectedFight || topFight;
     const formatFightTimestamp = (timestampMs: number) => {
         if (!Number.isFinite(timestampMs) || timestampMs <= 0) return '';
         try {
@@ -448,26 +452,33 @@ export const SpikeDamageSection = ({
                     </div>
                     <div>
                         <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
-                            {spikeMode === 'hit'
-                                ? (isDownContributionMode ? 'Peak Highest Skill Down Contribution' : 'Peak Highest Skill Damage')
-                                : `Peak ${modeLabel}`}
+                            {selectedFight
+                                ? (spikeMode === 'hit'
+                                    ? (isDownContributionMode ? 'Selected Skill Down Contribution' : 'Selected Skill Damage')
+                                    : `Selected ${modeLabel}`)
+                                : (spikeMode === 'hit'
+                                    ? (isDownContributionMode ? 'Peak Highest Skill Down Contribution' : 'Peak Highest Skill Damage')
+                                    : `Peak ${modeLabel}`)}
                         </div>
                         <div className="mt-1 text-lg font-black text-rose-200 font-mono">
-                            {formatWithCommas(peakValueForPlayer(selectedSpikePlayer) || 0, 0)}
+                            {formatWithCommas(selectedFight?.damage ?? (peakValueForPlayer(selectedSpikePlayer) || 0), 0)}
                         </div>
                     </div>
                     <div>
                         <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
-                            {spikeMode === 'hit' ? 'Peak Skill / Fight' : 'Peak Fight'}
+                            {selectedFight
+                                ? (spikeMode === 'hit' ? 'Selected Skill / Fight' : 'Selected Fight')
+                                : (spikeMode === 'hit' ? 'Peak Skill / Fight' : 'Peak Fight')}
                         </div>
                         <div className="mt-1 text-sm text-gray-200 truncate">
                             {(() => {
-                                const bestLabel = sanitizeWvwLabel(topFight?.fullLabel || selectedSpikePlayer.peakFightLabel || 'N/A');
-                                const timeLabel = formatFightTimestamp(Number(topFight?.timestamp || 0));
+                                const bestLabel = sanitizeWvwLabel(infoFight?.fullLabel || selectedSpikePlayer.peakFightLabel || 'N/A');
+                                const timeLabel = formatFightTimestamp(Number(infoFight?.timestamp || 0));
                                 const fightWithTime = timeLabel ? `${timeLabel} - ${bestLabel}` : bestLabel;
                                 if (spikeMode !== 'hit') return fightWithTime;
-                                return selectedSpikePlayer.peakSkillName
-                                    ? `${selectedSpikePlayer.peakSkillName} · ${fightWithTime}`
+                                const skillName = selectedFight?.skillName || selectedSpikePlayer.peakSkillName;
+                                return skillName
+                                    ? `${skillName} · ${fightWithTime}`
                                     : fightWithTime;
                             })()}
                         </div>

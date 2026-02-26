@@ -32,6 +32,7 @@ type BoonUptimeFightPoint = {
     total: number;
     peak: number;
     uptimePercent: number;
+    average?: number;
     maxUptimePercent: number;
     maxTotal: number;
 };
@@ -111,6 +112,10 @@ export const BoonUptimeSection = ({
         if (!best || entry.peak > best.peak) return entry;
         return best;
     }, null as BoonUptimeFightPoint | null);
+    const selectedFight = selectedFightIndex === null
+        ? null
+        : chartData.find((entry) => entry.index === selectedFightIndex) || null;
+    const infoFight = selectedFight || topFight;
     const mainChartMaxY = showStackCapLine
         ? Math.ceil(Math.max(1, chartMaxY) + 3)
         : Math.max(1, chartMaxY);
@@ -378,19 +383,29 @@ export const BoonUptimeSection = ({
                         </div>
                     </div>
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">Overall Uptime</div>
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
+                            {selectedFight
+                                ? (showStackCapLine ? 'Selected Fight Avg Stacks' : 'Selected Fight Uptime')
+                                : 'Overall Uptime'}
+                        </div>
                         <div className="mt-1 text-lg font-black text-amber-200 font-mono">
-                            {overallUptimePercent === null
-                                ? '--'
-                                : `${formatWithCommas(Number(overallUptimePercent || 0), 1)}%`}
+                            {selectedFight
+                                ? (showStackCapLine
+                                    ? formatWithCommas(Number(selectedFight.average ?? 0), 1)
+                                    : `${formatWithCommas(Number(selectedFight.uptimePercent || 0), 1)}%`)
+                                : (overallUptimePercent === null
+                                    ? '--'
+                                    : `${formatWithCommas(Number(overallUptimePercent || 0), 1)}%`)}
                         </div>
                     </div>
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">Peak Fight</div>
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
+                            {selectedFight ? 'Selected Fight' : 'Peak Fight'}
+                        </div>
                         <div className="mt-1 text-sm text-gray-200 truncate">
                             {(() => {
-                                const bestLabel = sanitizeWvwLabel(topFight?.fullLabel || 'N/A');
-                                const timeLabel = formatFightTimestamp(Number(topFight?.timestamp || 0));
+                                const bestLabel = sanitizeWvwLabel(infoFight?.fullLabel || 'N/A');
+                                const timeLabel = formatFightTimestamp(Number(infoFight?.timestamp || 0));
                                 return timeLabel ? `${timeLabel} - ${bestLabel}` : bestLabel;
                             })()}
                         </div>
