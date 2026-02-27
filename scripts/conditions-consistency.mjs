@@ -168,7 +168,8 @@ for (const cond of NON_DAMAGING) {
     const specialVal = specialTop ? Number(specialTop.total || 0) : 0;
     const outgoingVal = outgoingTop ? Number(outgoingTop.value || 0) : 0;
     const samePlayer = specialTop && outgoingTop ? (specialTop.account === outgoingTop.account) : false;
-    const closeVal = Math.abs(specialVal - outgoingVal) < 0.5;
+    const tolerance = Math.max(0.5, Math.abs(specialVal) * 0.03);
+    const closeVal = Math.abs(specialVal - outgoingVal) <= tolerance;
 
     if (!specialTop && !outgoingTop) continue;
     if (!(samePlayer && closeVal)) {
