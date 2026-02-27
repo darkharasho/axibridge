@@ -79,6 +79,6 @@ for (const fileArg of args) {
         continue;
     }
     const transformed = transform(parsed);
-    fs.writeFileSync(filePath, `${JSON.stringify(transformed, null, 2)}\n`, 'utf8');
+    fs.writeFileSync(filePath, JSON.stringify(transformed), 'utf8');
     console.log(`Obfuscated account names in ${fileArg}`);
 }
