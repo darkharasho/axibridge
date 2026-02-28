@@ -363,6 +363,7 @@ const DEV_DATASET_STATUS_FILE = 'status.json';
 const DEV_DATASET_INTEGRITY_FILE = 'integrity.json';
 const DEV_DATASET_INTEGRITY_SCHEMA_VERSION = 1;
 const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
+const MAX_GITHUB_REPORT_JSON_BYTES = 32 * 1024 * 1024;
 
 const getDevDatasetFolderName = (id: string, name: string) => `${id}-${sanitizeDevDatasetName(name).replace(/\s+/g, '-').toLowerCase()}`;
 const getDevDatasetTempFolderName = (folderName: string) => `${DEV_DATASET_TEMP_PREFIX}${folderName}`;
@@ -2097,6 +2098,82 @@ const formatBytes = (value: number) => {
         unitIndex += 1;
     }
     return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
+
+const buildWebReportPayload = (
+    reportMeta: any,
+    sourceStats: any,
+    uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic',
+    webThemeId: string
+) => {
+    const payload = {
+        meta: { ...(reportMeta || {}) },
+        stats: {
+            ...(sourceStats || {}),
+            uiTheme: uiThemeValue,
+            webThemeId
+        } as Record<string, any>
+    };
+
+    const serialize = () => Buffer.from(JSON.stringify(payload), 'utf8');
+    let jsonBuffer = serialize();
+    if (jsonBuffer.length <= MAX_GITHUB_REPORT_JSON_BYTES) {
+        return { payload, jsonBuffer, trimmedSections: [] as string[] };
+    }
+
+    const stats = payload.stats as Record<string, any>;
+    const trimmedSections: string[] = [];
+    const clearArray = (target: any, key: string) => {
+        if (!target || typeof target !== 'object' || !Array.isArray(target[key]) || target[key].length === 0) {
+            return false;
+        }
+        target[key] = [];
+        return true;
+    };
+
+    const trimSteps: Array<{ label: string; apply: () => boolean }> = [
+        { label: 'skillUsageData.logRecords', apply: () => clearArray(stats.skillUsageData, 'logRecords') },
+        { label: 'playerSkillBreakdowns', apply: () => clearArray(stats, 'playerSkillBreakdowns') },
+        { label: 'boonTimeline', apply: () => clearArray(stats, 'boonTimeline') },
+        { label: 'boonUptimeTimeline', apply: () => clearArray(stats, 'boonUptimeTimeline') },
+        { label: 'specialTables', apply: () => clearArray(stats, 'specialTables') },
+        { label: 'fightDiffMode', apply: () => clearArray(stats, 'fightDiffMode') },
+        { label: 'outgoingConditionPlayers', apply: () => clearArray(stats, 'outgoingConditionPlayers') },
+        { label: 'incomingConditionPlayers', apply: () => clearArray(stats, 'incomingConditionPlayers') },
+        { label: 'skillUsageData.players', apply: () => clearArray(stats.skillUsageData, 'players') },
+        { label: 'skillUsageData.skillOptions', apply: () => clearArray(stats.skillUsageData, 'skillOptions') },
+        { label: 'topSkills', apply: () => clearArray(stats, 'topSkills') },
+        { label: 'topIncomingSkills', apply: () => clearArray(stats, 'topIncomingSkills') },
+        { label: 'topSkillsByDamage', apply: () => clearArray(stats, 'topSkillsByDamage') },
+        { label: 'topSkillsByDownContribution', apply: () => clearArray(stats, 'topSkillsByDownContribution') },
+        { label: 'fightBreakdown', apply: () => clearArray(stats, 'fightBreakdown') },
+        { label: 'timelineData', apply: () => clearArray(stats, 'timelineData') },
+        { label: 'squadCompByFight', apply: () => clearArray(stats, 'squadCompByFight') }
+    ];
+
+    for (const step of trimSteps) {
+        if (!step.apply()) continue;
+        trimmedSections.push(step.label);
+        jsonBuffer = serialize();
+        if (jsonBuffer.length <= MAX_GITHUB_REPORT_JSON_BYTES) break;
+    }
+
+    if (trimmedSections.length > 0) {
+        payload.meta = {
+            ...payload.meta,
+            trimmedSections
+        };
+        jsonBuffer = serialize();
+    }
+
+    if (jsonBuffer.length > MAX_GITHUB_REPORT_JSON_BYTES) {
+        throw new Error(
+            `Report payload too large for GitHub upload after trimming (${formatBytes(jsonBuffer.length)}). ` +
+            `Limit is ${formatBytes(MAX_GITHUB_REPORT_JSON_BYTES)}.`
+        );
+    }
+
+    return { payload, jsonBuffer, trimmedSections };
 };
 
 const getStoredPagesPath = () => normalizePagesPath(store.get('githubPagesSourcePath', '') as string);
@@ -4295,20 +4372,25 @@ if (!gotTheLock) {
                             : requestedThemeId));
                 const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
                 const uiThemeValue = resolveWebUiThemeChoice(uiTheme, selectedTheme?.id);
-                const reportPayload = {
-                    meta: reportMeta,
-                    stats: {
-                        ...(payload.stats || {}),
-                        uiTheme: uiThemeValue,
-                        webThemeId: selectedTheme?.id || DEFAULT_WEB_THEME_ID
-                    }
-                };
+                const builtReport = buildWebReportPayload(
+                    reportMeta,
+                    payload.stats || {},
+                    uiThemeValue,
+                    selectedTheme?.id || DEFAULT_WEB_THEME_ID
+                );
+                const reportPayload = builtReport.payload;
 
                 sendWebUploadStatus('Packaging', 'Preparing report bundle...', 40);
                 const stagingRoot = path.join(app.getPath('userData'), 'web-report-staging', reportMeta.id);
                 fs.rmSync(stagingRoot, { recursive: true, force: true });
                 fs.mkdirSync(stagingRoot, { recursive: true });
-                fs.writeFileSync(path.join(stagingRoot, 'report.json'), JSON.stringify(reportPayload, null, 2));
+                if (builtReport.trimmedSections.length > 0) {
+                    console.warn(
+                        `[Main] Web report ${reportMeta.id} trimmed for GitHub upload: ${builtReport.trimmedSections.join(', ')} ` +
+                        `(${formatBytes(builtReport.jsonBuffer.length)})`
+                    );
+                }
+                fs.writeFileSync(path.join(stagingRoot, 'report.json'), builtReport.jsonBuffer);
                 const redirectHtml = `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -4544,20 +4626,19 @@ if (!gotTheLock) {
                             : requestedThemeId));
                 const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
                 const uiThemeValue = resolveWebUiThemeChoice(uiTheme, selectedTheme?.id);
-                const reportPayload = {
-                    meta: reportMeta,
-                    stats: {
-                        ...(payload.stats || {}),
-                        uiTheme: uiThemeValue,
-                        webThemeId: selectedTheme?.id || DEFAULT_WEB_THEME_ID
-                    }
-                };
+                const builtReport = buildWebReportPayload(
+                    reportMeta,
+                    payload.stats || {},
+                    uiThemeValue,
+                    selectedTheme?.id || DEFAULT_WEB_THEME_ID
+                );
+                const reportPayload = builtReport.payload;
                 const reportsRoot = path.join(webRoot, 'reports');
                 const reportDir = path.join(reportsRoot, reportMeta.id);
                 fs.mkdirSync(reportDir, { recursive: true });
                 fs.mkdirSync(devRoot, { recursive: true });
-                fs.writeFileSync(path.join(devRoot, 'report.json'), JSON.stringify(reportPayload, null, 2));
-                fs.writeFileSync(path.join(reportDir, 'report.json'), JSON.stringify(reportPayload, null, 2));
+                fs.writeFileSync(path.join(devRoot, 'report.json'), builtReport.jsonBuffer);
+                fs.writeFileSync(path.join(reportDir, 'report.json'), builtReport.jsonBuffer);
                 if (selectedTheme) {
                     const themePayload = JSON.stringify(selectedTheme, null, 2);
                     fs.writeFileSync(path.join(webRoot, 'theme.json'), themePayload);
