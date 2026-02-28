@@ -362,6 +362,7 @@ const DEV_DATASET_TEMP_PREFIX = '.tmp-';
 const DEV_DATASET_STATUS_FILE = 'status.json';
 const DEV_DATASET_INTEGRITY_FILE = 'integrity.json';
 const DEV_DATASET_INTEGRITY_SCHEMA_VERSION = 1;
+const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
 
 const getDevDatasetFolderName = (id: string, name: string) => `${id}-${sanitizeDevDatasetName(name).replace(/\s+/g, '-').toLowerCase()}`;
 const getDevDatasetTempFolderName = (folderName: string) => `${DEV_DATASET_TEMP_PREFIX}${folderName}`;
@@ -1863,13 +1864,18 @@ const getGithubPagesLatestBuild = async (owner: string, repo: string, token: str
     return resp.data;
 };
 
-const createGithubBlob = async (owner: string, repo: string, token: string, contentBase64: string) => {
+const createGithubBlob = async (owner: string, repo: string, token: string, contentBase64: string, blobPath?: string) => {
     const resp = await githubApiRequest('POST', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/git/blobs`, token, {
         content: contentBase64,
         encoding: 'base64'
     });
     if (resp.status >= 300) {
-        throw new Error(`GitHub API error (${resp.status}) creating blob`);
+        const detail = typeof resp.data?.message === 'string' ? resp.data.message : 'Unknown error';
+        const target = blobPath ? ` for ${blobPath}` : '';
+        const err = new Error(`GitHub API error (${resp.status}) creating blob${target}: ${detail}`);
+        (err as any).status = resp.status;
+        (err as any).data = resp.data;
+        throw err;
     }
     return resp.data;
 };
@@ -2079,6 +2085,20 @@ const withPagesPath = (pagesPath: string, repoPath: string) => {
     return `${pagesPath}/${repoPath}`.replace(/\/{2,}/g, '/');
 };
 
+const formatBytes = (value: number) => {
+    if (!Number.isFinite(value) || value < 1024) {
+        return `${Math.max(0, Math.round(value || 0))} B`;
+    }
+    const units = ['KB', 'MB', 'GB'];
+    let size = value;
+    let unitIndex = -1;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex += 1;
+    }
+    return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
+
 const getStoredPagesPath = () => normalizePagesPath(store.get('githubPagesSourcePath', '') as string);
 
 const resolvePagesSource = async (owner: string, repo: string, branch: string, token: string) => {
@@ -2098,6 +2118,9 @@ const collectFiles = (dir: string) => {
             if (entry.isDirectory()) {
                 walk(absPath);
             } else {
+                if (entry.name.startsWith('.')) return;
+                if (entry.name.endsWith('~')) return;
+                if (/\.(kra|psd|xcf)$/i.test(entry.name)) return;
                 result.push({ absPath, relPath });
             }
         });
@@ -3780,7 +3803,7 @@ if (!gotTheLock) {
                     ? existingIndex.filter((entry: any) => !ids.includes(entry?.id))
                     : [];
                 const indexContent = Buffer.from(JSON.stringify(filteredIndex, null, 2)).toString('base64');
-                const indexBlob = await createGithubBlob(owner, repo, token, indexContent);
+                const indexBlob = await createGithubBlob(owner, repo, token, indexContent, withPagesPath(pagesPath, 'reports/index.json'));
 
                 const commitEntries = [
                     ...deleteEntries,
@@ -3927,6 +3950,12 @@ if (!gotTheLock) {
 
                 const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
                 const queueFile = (repoPath: string, content: Buffer) => {
+                    if (content.length > MAX_GITHUB_BLOB_BYTES) {
+                        throw new Error(
+                            `File too large for GitHub upload: ${repoPath} (${formatBytes(content.length)}). ` +
+                            `Limit is ${formatBytes(MAX_GITHUB_BLOB_BYTES)} per file.`
+                        );
+                    }
                     const blobSha = computeGitBlobSha(content);
                     const existingSha = treeMap.get(repoPath);
                     if (existingSha && existingSha === blobSha) return;
@@ -3955,7 +3984,7 @@ if (!gotTheLock) {
 
                 const blobEntries: Array<{ path: string; sha: string }> = [];
                 for (const entry of pendingEntries) {
-                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64);
+                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64, entry.path);
                     blobEntries.push({ path: entry.path, sha: blob.sha });
                 }
 
@@ -4015,6 +4044,12 @@ if (!gotTheLock) {
 
                 const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
                 const queueFile = (repoPath: string, content: Buffer) => {
+                    if (content.length > MAX_GITHUB_BLOB_BYTES) {
+                        throw new Error(
+                            `File too large for GitHub upload: ${repoPath} (${formatBytes(content.length)}). ` +
+                            `Limit is ${formatBytes(MAX_GITHUB_BLOB_BYTES)} per file.`
+                        );
+                    }
                     const blobSha = computeGitBlobSha(content);
                     const existingSha = treeMap.get(repoPath);
                     if (existingSha && existingSha === blobSha) return;
@@ -4036,7 +4071,7 @@ if (!gotTheLock) {
 
                 const blobEntries: Array<{ path: string; sha: string }> = [];
                 for (const entry of pendingEntries) {
-                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64);
+                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64, entry.path);
                     blobEntries.push({ path: entry.path, sha: blob.sha });
                 }
 
@@ -4125,6 +4160,12 @@ if (!gotTheLock) {
 
                 const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
                 const queueFile = (repoPath: string, content: Buffer) => {
+                    if (content.length > MAX_GITHUB_BLOB_BYTES) {
+                        throw new Error(
+                            `File too large for GitHub upload: ${repoPath} (${formatBytes(content.length)}). ` +
+                            `Limit is ${formatBytes(MAX_GITHUB_BLOB_BYTES)} per file.`
+                        );
+                    }
                     const blobSha = computeGitBlobSha(content);
                     const existingSha = treeMap.get(repoPath);
                     if (existingSha && existingSha === blobSha) return;
@@ -4152,7 +4193,7 @@ if (!gotTheLock) {
                 sendGithubThemeStatus('Uploading', 'Uploading theme updates...', 70);
                 const blobEntries: Array<{ path: string; sha: string }> = [];
                 for (const entry of pendingEntries) {
-                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64);
+                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64, entry.path);
                     blobEntries.push({ path: entry.path, sha: blob.sha });
                 }
 
@@ -4420,7 +4461,7 @@ if (!gotTheLock) {
                 sendWebUploadStatus('Uploading', 'Uploading changes...', 75);
                 const blobEntries: Array<{ path: string; sha: string }> = [];
                 for (const entry of pendingEntries) {
-                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64);
+                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64, entry.path);
                     blobEntries.push({ path: entry.path, sha: blob.sha });
                 }
 
