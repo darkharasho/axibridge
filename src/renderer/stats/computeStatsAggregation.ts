@@ -2745,6 +2745,8 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     downToKillConversionMs: number | null;
                     hadEarlyDown: boolean | null;
                     wasStalledPush: boolean | null;
+                    downToKillConversionPct: number | null;
+                    failedDownEstimate: number;
                     boonUptimePct: number;
                     boonEntries: number;
                     incomingDamageBySkill: Array<{ id: string; name: string; icon?: string; damage: number; hits: number }>;
@@ -2845,6 +2847,10 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     && timeToFirstEnemyDeathMs >= timeToFirstEnemyDownMs
                     ? timeToFirstEnemyDeathMs - timeToFirstEnemyDownMs
                     : null;
+                const downToKillConversionPct = downs > 0
+                    ? (kills / downs) * 100
+                    : null;
+                const failedDownEstimate = Math.max(0, downs - kills);
                 const hadEarlyDown = timeToFirstEnemyDownMs !== null
                     ? timeToFirstEnemyDownMs <= EARLY_PUSH_WINDOW_MS
                     : null;
@@ -2987,6 +2993,8 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     downToKillConversionMs,
                     hadEarlyDown,
                     wasStalledPush,
+                    downToKillConversionPct,
+                    failedDownEstimate,
                     boonUptimePct,
                     boonEntries: boonCount,
                     incomingDamageBySkill,
@@ -3018,6 +3026,12 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     const avgDownToKillConversionMs = averageDefined(fights.map((fight) => fight.downToKillConversionMs));
                     const pushesWithEarlyDownPct = percentFromFlags(fights.map((fight) => fight.hadEarlyDown));
                     const stalledPushPct = percentFromFlags(fights.map((fight) => fight.wasStalledPush));
+                    const downToKillConversionPct = entry.totalDowns > 0
+                        ? (entry.totalKills / entry.totalDowns) * 100
+                        : null;
+                    const avgKillsPerFight = entry.fights > 0 ? entry.totalKills / entry.fights : null;
+                    const avgDownsPerFight = entry.fights > 0 ? entry.totalDowns / entry.fights : null;
+                    const failedDownEstimate = Math.max(0, entry.totalDowns - entry.totalKills);
                     return {
                         key: entry.key,
                         account: entry.account,
@@ -3051,6 +3065,10 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                         avgDownToKillConversionMs,
                         pushesWithEarlyDownPct,
                         stalledPushPct,
+                        downToKillConversionPct,
+                        avgKillsPerFight,
+                        avgDownsPerFight,
+                        failedDownEstimate,
                         boonUptimePct: weightedBoonUptimePct,
                         boonEntries: entry.boonEntriesSeen,
                         incomingSkillBreakdown: Array.from(entry.incomingSkillMap.values())

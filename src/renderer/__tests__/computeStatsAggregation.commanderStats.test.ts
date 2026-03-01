@@ -113,6 +113,10 @@ describe('computeStatsAggregation (commander stats)', () => {
         expect(row.avgDownToKillConversionMs).toBe(10_500);
         expect(Number(row.pushesWithEarlyDownPct || 0)).toBe(100);
         expect(Number(row.stalledPushPct || 0)).toBe(0);
+        expect(Number(row.downToKillConversionPct || 0)).toBeCloseTo(72.727, 2);
+        expect(Number(row.avgKillsPerFight || 0)).toBeCloseTo(4, 5);
+        expect(Number(row.avgDownsPerFight || 0)).toBeCloseTo(5.5, 5);
+        expect(row.failedDownEstimate).toBe(3);
         expect(row.alliesDown).toBe(4);
         expect(row.alliesDead).toBe(4);
         expect(Number(row.boonUptimePct || 0)).toBeCloseTo(83.333, 2);
@@ -123,5 +127,7 @@ describe('computeStatsAggregation (commander stats)', () => {
         expect(Number(row.fightsData[1]?.boonUptimePct || 0)).toBe(100);
         expect(row.fightsData[0]?.timeToFirstEnemyDownMs).toBe(10_000);
         expect(row.fightsData[1]?.timeToFirstEnemyDeathMs).toBe(21_000);
+        expect(Number(row.fightsData[0]?.downToKillConversionPct || 0)).toBeCloseTo(50, 5);
+        expect(row.fightsData[1]?.failedDownEstimate).toBe(0);
     });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Clock3 } from 'lucide-react';
+import { Clock3, Target } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 
@@ -33,6 +33,8 @@ type CommanderFightRow = {
     downToKillConversionMs: number | null;
     hadEarlyDown: boolean | null;
     wasStalledPush: boolean | null;
+    downToKillConversionPct: number | null;
+    failedDownEstimate: number;
     boonUptimePct: number;
     boonEntries: number;
     incomingDamageBySkill: Array<{ id: string; name: string; icon?: string; damage: number; hits: number }>;
@@ -74,6 +76,10 @@ type CommanderSummaryRow = {
     avgDownToKillConversionMs: number | null;
     pushesWithEarlyDownPct: number | null;
     stalledPushPct: number | null;
+    downToKillConversionPct: number | null;
+    avgKillsPerFight: number | null;
+    avgDownsPerFight: number | null;
+    failedDownEstimate: number;
     boonUptimePct: number;
     boonEntries: number;
     incomingSkillBreakdown: Array<{ id: string; name: string; icon?: string; damage: number; hits: number }>;
@@ -111,11 +117,133 @@ const formatNullableDuration = (value: number | null | undefined) => (
 const formatNullablePct = (value: number | null | undefined, digits = 1) => (
     typeof value === 'number' && Number.isFinite(value) ? `${formatRate(value, digits)}%` : 'N/A'
 );
+const formatNullableNumber = (value: number | null | undefined, digits = 1) => (
+    typeof value === 'number' && Number.isFinite(value) ? formatRate(value, digits) : 'N/A'
+);
 const pushTimingStatus = (fight: CommanderFightRow) => {
     if (fight.hadEarlyDown === null) return 'N/A';
     if (fight.wasStalledPush === true) return 'Stalled';
     if (fight.hadEarlyDown === true) return 'Early Down';
     return 'Slow Start';
+};
+
+export const CommanderTargetConversionSection = ({
+    commanderStats,
+    isSectionVisible,
+    isFirstVisibleSection,
+    sectionClass
+}: Omit<CommanderStatsSectionProps, 'getProfessionIconPath'>) => {
+    const rows = useMemo(
+        () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
+        [commanderStats]
+    );
+    const [selectedCommanderKey, setSelectedCommanderKey] = useState<string>('');
+
+    useEffect(() => {
+        if (rows.length === 0) {
+            setSelectedCommanderKey('');
+            return;
+        }
+        if (!selectedCommanderKey || !rows.some((row) => row.key === selectedCommanderKey)) {
+            setSelectedCommanderKey(rows[0].key);
+        }
+    }, [rows, selectedCommanderKey]);
+
+    const selectedCommander = useMemo(
+        () => rows.find((row) => row.key === selectedCommanderKey) || rows[0] || null,
+        [rows, selectedCommanderKey]
+    );
+
+    return (
+        <section
+            id="commander-target-conversion"
+            data-section-visible={isSectionVisible('commander-target-conversion')}
+            data-section-first={isFirstVisibleSection('commander-target-conversion')}
+            className={sectionClass('commander-target-conversion', 'bg-white/5 border border-cyan-300/20 rounded-2xl p-6 page-break-avoid scroll-mt-24')}
+        >
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                <h3 className="text-lg font-bold text-cyan-100 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-cyan-300" />
+                    Target Conversion
+                </h3>
+                <span className="text-[10px] uppercase tracking-widest text-cyan-200/70">
+                    {rows.length} Commanders
+                </span>
+            </div>
+
+            {rows.length === 0 ? (
+                <div className="text-center text-gray-500 italic py-8">No target conversion data available.</div>
+            ) : (
+                <div className="space-y-4 min-w-0">
+                    <div className="w-full max-w-full overflow-x-auto pb-1">
+                        <table className="w-full min-w-[700px] text-xs table-auto">
+                            <thead>
+                                <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
+                                    <th className="text-left py-2 px-2">Commander</th>
+                                    <th className="text-right py-2 px-2">Down To Kill %</th>
+                                    <th className="text-right py-2 px-2">Avg Downs / Fight</th>
+                                    <th className="text-right py-2 px-2">Avg Kills / Fight</th>
+                                    <th className="text-right py-2 px-2">Failed Downs</th>
+                                    <th className="text-right py-2 px-2">Enemy Downs</th>
+                                    <th className="text-right py-2 px-2">Enemy Kills</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows.map((row) => (
+                                    <tr
+                                        key={`${row.key}-target-conversion`}
+                                        onClick={() => setSelectedCommanderKey(row.key)}
+                                        className={`border-b border-white/5 cursor-pointer transition-colors ${
+                                            selectedCommander?.key === row.key ? 'bg-cyan-500/10' : 'hover:bg-white/5'
+                                        }`}
+                                    >
+                                        <td className="py-2 px-2 text-gray-100 font-semibold truncate">{row.account}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullablePct(row.downToKillConversionPct)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgDownsPerFight, 1)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgKillsPerFight, 1)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.failedDownEstimate)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.downs)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.kills)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {selectedCommander && (
+                        <div className="overflow-x-auto min-w-0">
+                            <table className="w-full min-w-[620px] text-xs table-auto">
+                                <thead>
+                                    <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
+                                        <th className="text-left py-2 px-2">Fight</th>
+                                        <th className="text-right py-2 px-2">Enemy Downs</th>
+                                        <th className="text-right py-2 px-2">Enemy Kills</th>
+                                        <th className="text-right py-2 px-2">Conversion %</th>
+                                        <th className="text-right py-2 px-2">Failed Downs</th>
+                                        <th className="text-right py-2 px-2">Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(selectedCommander.fightsData || []).map((fight) => (
+                                        <tr key={`${fight.id}-target-conversion`} className="border-b border-white/5">
+                                            <td className="py-1.5 px-2 text-gray-200">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
+                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(fight.downs)}</td>
+                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(fight.kills)}</td>
+                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullablePct(fight.downToKillConversionPct)}</td>
+                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(fight.failedDownEstimate)}</td>
+                                            <td className={`py-1.5 px-2 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                                {fight.isWin ? 'Win' : 'Loss'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
+        </section>
+    );
 };
 
 export const CommanderPushTimingSection = ({
