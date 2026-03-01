@@ -314,20 +314,6 @@ export const computeOutgoingConditions = (payload: {
         });
     });
 
-    Object.values(playerConditions).forEach((conditionTotals) => {
-        Object.values(conditionTotals).forEach((entry) => {
-            if (typeof entry.applicationsFromBuffs === 'number') {
-                entry.applications = entry.applicationsFromBuffs;
-            }
-        });
-    });
-
-    Object.values(summary).forEach((entry) => {
-        if (typeof entry.applicationsFromBuffs === 'number') {
-            entry.applications = entry.applicationsFromBuffs;
-        }
-    });
-
     return {
         playerConditions,
         summary,
