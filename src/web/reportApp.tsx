@@ -15,6 +15,7 @@ import { Gw2BoonIcon } from '../renderer/ui/Gw2BoonIcon';
 import { Gw2DamMitIcon } from '../renderer/ui/Gw2DamMitIcon';
 import { Gw2FuryIcon } from '../renderer/ui/Gw2FuryIcon';
 import { Gw2SigilIcon } from '../renderer/ui/Gw2SigilIcon';
+import { buildRollupData, RollupData } from './rollup';
 import {
     ShieldCheck,
     Shield,
@@ -132,6 +133,16 @@ const buildReportHref = (baseHref: string, reportId: string, themeId: string | n
     return next.toString();
 };
 
+const buildRollupHref = (baseHref: string, themeId: string | null): string => {
+    const next = new URL(baseHref);
+    next.searchParams.delete('report');
+    next.searchParams.set('view', 'rollup');
+    if (themeId) {
+        next.searchParams.set('themeId', themeId);
+    }
+    return next.toString();
+};
+
 const isValidThemeOverrideId = (themeId: string): boolean => {
     if (!themeId) return false;
     if (themeId === CRT_WEB_THEME_ID) return true;
@@ -196,6 +207,41 @@ const formatReportTitle = (start: string) => {
     else if (hour >= 12 && hour < 17) period = 'Afternoon';
     else if (hour >= 17 && hour < 21) period = 'Evening';
     return `${dateLabel} - ${dayName} ${period} Raid`;
+};
+
+const formatRollupDate = (timestamp: number) => {
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return '--';
+    try {
+        return new Date(timestamp).toLocaleString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    } catch {
+        return '--';
+    }
+};
+
+const formatHoursLabel = (durationMs: number) => {
+    const hours = Math.max(0, Number(durationMs || 0)) / (60 * 60 * 1000);
+    if (!Number.isFinite(hours) || hours <= 0) return '--';
+    if (hours >= 100) return `${Math.round(hours)}h`;
+    return `${hours.toFixed(1)}h`;
+};
+
+const formatRatio = (value: number) => {
+    if (!Number.isFinite(value)) return '--';
+    return value.toFixed(value >= 10 ? 1 : 2);
+};
+
+const scaleRgb = (rgb: string, factor: number) => {
+    const parts = String(rgb || '')
+        .split(',')
+        .map((value) => Math.max(0, Math.min(255, Math.round(Number(value.trim()) * factor))));
+    if (parts.length !== 3 || parts.some((value) => !Number.isFinite(value))) {
+        return 'rgb(24, 32, 48)';
+    }
+    return `rgb(${parts[0]}, ${parts[1]}, ${parts[2]})`;
 };
 
 type TocHeading = {
@@ -278,8 +324,19 @@ const BorderlandsPie = ({ value }: { value: number | null | undefined }) => {
 
 export function ReportApp() {
     const initialThemeOverride = readThemeOverrideFromRuntime();
+    const initialSearchParams = useMemo(() => new URLSearchParams(window.location.search), []);
     const [report, setReport] = useState<ReportPayload | null>(null);
     const [index, setIndex] = useState<ReportIndexEntry[] | null>(null);
+    const [rollupData, setRollupData] = useState<RollupData | null>(null);
+    const [rollupLoading, setRollupLoading] = useState(false);
+    const [rollupError, setRollupError] = useState<string | null>(null);
+    const [rollupRequestedCount, setRollupRequestedCount] = useState(0);
+    const [commanderSearchTerm, setCommanderSearchTerm] = useState('');
+    const [playerSearchTerm, setPlayerSearchTerm] = useState('');
+    const [commanderProfessionFilter, setCommanderProfessionFilter] = useState('all');
+    const [playerProfessionFilter, setPlayerProfessionFilter] = useState('all');
+    const [commanderMinRunsFilter, setCommanderMinRunsFilter] = useState('1');
+    const [playerMinRunsFilter, setPlayerMinRunsFilter] = useState('1');
     const [error, setError] = useState<string | null>(null);
     const [reportPathHint, setReportPathHint] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -291,12 +348,17 @@ export function ReportApp() {
     const [defaultUiTheme, setDefaultUiTheme] = useState<UiThemeChoice>('classic');
     const [defaultThemeId, setDefaultThemeId] = useState<string>(DEFAULT_WEB_THEME.id);
     const [themeIdOverride, setThemeIdOverride] = useState<string | null>(initialThemeOverride);
+    const requestedView = useMemo(() => (initialSearchParams.get('view') || '').trim().toLowerCase(), [initialSearchParams]);
+    const reportId = useMemo(
+        () => initialSearchParams.get('report') || window.location.pathname.match(/\/reports\/([^/]+)\/?$/)?.[1] || null,
+        [initialSearchParams]
+    );
+    const isRollupView = useMemo(() => !reportId && requestedView === 'rollup', [reportId, requestedView]);
     const queryThemeId = useMemo(() => {
-        const params = new URLSearchParams(window.location.search);
-        const requested = params.get('themeId') || params.get('theme');
+        const requested = initialSearchParams.get('themeId') || initialSearchParams.get('theme');
         if (!requested) return null;
         return isValidThemeOverrideId(requested) ? requested : null;
-    }, []);
+    }, [initialSearchParams]);
     const [kineticFontChoice, setKineticFontChoice] = useState<KineticWebFontChoice>('default');
     const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
     const [kineticFontDropdownOpen, setKineticFontDropdownOpen] = useState(false);
@@ -346,6 +408,10 @@ export function ReportApp() {
     const themedIndexHref = useMemo(
         () => (queryThemeId ? withThemeIdParam(baseHref, queryThemeId) : baseHref),
         [queryThemeId, baseHref]
+    );
+    const rollupHref = useMemo(
+        () => buildRollupHref(baseHref, queryThemeId),
+        [baseHref, queryThemeId]
     );
     const isDevLocalWeb = useMemo(() => {
         const isLocalhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(window.location.host);
@@ -867,15 +933,23 @@ export function ReportApp() {
                 ? 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.06) 70%)'
                 : 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.26), rgba(var(--accent-rgb), 0.08) 70%)'
         };
+    const rollupTableHeaderStyle: CSSProperties = isKineticUi
+        ? { backgroundColor: isKineticDarkTheme ? '#39405d' : '#c9bead' }
+        : isMatteUi
+        ? { backgroundColor: 'var(--bg-card)' }
+        : { backgroundColor: scaleRgb(accentRgb, isModernUi ? 0.42 : 0.34) };
 
     useEffect(() => {
         let isMounted = true;
-        const params = new URLSearchParams(window.location.search);
-        const reportId = params.get('report') || window.location.pathname.match(/\/reports\/([^/]+)\/?$/)?.[1] || null;
         const reportPath = reportId ? `${basePath}reports/${reportId}/report.json` : `${basePath}report.json`;
-        if (reportId) {
-            setReportPathHint(reportPath);
-        }
+        setError(null);
+        setReport(null);
+        setIndex(null);
+        setRollupData(null);
+        setRollupError(null);
+        setRollupLoading(false);
+        setRollupRequestedCount(0);
+        setReportPathHint(reportId ? reportPath : null);
 
         const normalizeCommanderDistance = (payload: ReportPayload) => {
             const commanders = new Set((payload?.meta?.commanders || []).map((name) => String(name)));
@@ -917,49 +991,130 @@ export function ReportApp() {
             return payload;
         };
 
-        fetch(reportPath, { cache: 'no-store' })
+        const applyThemeDefaults = (normalized: ReportPayload) => {
+            if (themeIdOverride) return;
+            const themeChoice = normalized?.stats?.uiTheme;
+            if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte' || themeChoice === 'kinetic') {
+                setDefaultUiTheme(themeChoice);
+            } else if (normalized?.stats?.webThemeId === MATTE_WEB_THEME_ID) {
+                setDefaultUiTheme('matte');
+            } else if (normalized?.stats?.webThemeId === KINETIC_WEB_THEME_ID || normalized?.stats?.webThemeId === KINETIC_DARK_WEB_THEME_ID) {
+                setDefaultUiTheme('kinetic');
+            }
+            const storedThemeId = readStoredThemeId(normalized?.stats?.webThemeId);
+            if (storedThemeId) {
+                setDefaultThemeId(storedThemeId);
+            } else if (isLegacyKineticReport(normalized?.stats)) {
+                setDefaultThemeId(KINETIC_DARK_WEB_THEME_ID);
+            }
+        };
+
+        const loadIndex = (suppressError = false) => {
+            return fetch(`${basePath}reports/index.json`, { cache: 'no-store' })
+                .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
+                .then((data) => {
+                    if (!isMounted) return;
+                    setIndex(Array.isArray(data) ? data : []);
+                })
+                .catch(() => {
+                    if (!isMounted) return;
+                    if (!suppressError) {
+                        setError('No report data found.');
+                    }
+                    throw new Error('index-missing');
+                });
+        };
+
+        const loadReport = () => fetch(reportPath, { cache: 'no-store' })
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
             .then((data) => {
                 if (!isMounted) return;
                 const normalized = normalizeTopDownContribution(normalizeCommanderDistance(data));
                 setReport(normalized);
-                if (!themeIdOverride) {
-                    const themeChoice = normalized?.stats?.uiTheme;
-                    if (themeChoice === 'modern' || themeChoice === 'classic' || themeChoice === 'crt' || themeChoice === 'matte' || themeChoice === 'kinetic') {
-                        setDefaultUiTheme(themeChoice);
-                    } else if (normalized?.stats?.webThemeId === MATTE_WEB_THEME_ID) {
-                        setDefaultUiTheme('matte');
-                    } else if (normalized?.stats?.webThemeId === KINETIC_WEB_THEME_ID || normalized?.stats?.webThemeId === KINETIC_DARK_WEB_THEME_ID) {
-                        setDefaultUiTheme('kinetic');
-                    }
-                    const storedThemeId = readStoredThemeId(normalized?.stats?.webThemeId);
-                    if (storedThemeId) {
-                        setDefaultThemeId(storedThemeId);
-                    } else if (isLegacyKineticReport(normalized?.stats)) {
-                        setDefaultThemeId(KINETIC_DARK_WEB_THEME_ID);
-                    }
-                }
-            })
-            .catch(() => {
+                applyThemeDefaults(normalized);
+            });
+
+        if (isRollupView) {
+            loadIndex();
+            return () => {
+                isMounted = false;
+            };
+        }
+
+        if (reportId) {
+            loadReport().catch(() => {
                 if (reportId) {
                     if (!isMounted) return;
                     setError('Report not found yet. It may still be deploying.');
                 }
-                fetch(`${basePath}reports/index.json`, { cache: 'no-store' })
-                    .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
-                    .then((data) => {
-                        if (!isMounted) return;
-                        setIndex(Array.isArray(data) ? data : []);
-                    })
-                    .catch(() => {
-                        if (!isMounted) return;
-                        setError('No report data found.');
-                    });
+                loadIndex();
             });
+            return () => {
+                isMounted = false;
+            };
+        }
+
+        // For the hosted root page, prefer the report index first. This prevents any
+        // legacy root-level report.json file from hijacking the site and hiding newer uploads.
+        loadIndex(true).catch(() => {
+            loadReport().catch(() => {
+                if (!isMounted) return;
+                setError('No report data found.');
+            });
+        });
         return () => {
             isMounted = false;
         };
-    }, [basePath, themeIdOverride]);
+    }, [basePath, isRollupView, reportId, themeIdOverride]);
+
+    useEffect(() => {
+        if (!isRollupView || !index) {
+            setRollupLoading(false);
+            setRollupError(null);
+            setRollupData(null);
+            setRollupRequestedCount(0);
+            return;
+        }
+        if (index.length === 0) {
+            setRollupLoading(false);
+            setRollupError(null);
+            setRollupData(buildRollupData([]));
+            setRollupRequestedCount(0);
+            return;
+        }
+
+        let isMounted = true;
+        setRollupLoading(true);
+        setRollupError(null);
+        setRollupRequestedCount(index.length);
+
+        const loadRollup = async () => {
+            const loadedReports: ReportPayload[] = [];
+            await Promise.all(index.map(async (entry) => {
+                try {
+                    const response = await fetch(`${basePath}reports/${entry.id}/report.json`, { cache: 'no-store' });
+                    if (!response.ok) return;
+                    const payload = await response.json();
+                    if (!isMounted) return;
+                    loadedReports.push(payload);
+                } catch {
+                    // Skip individual reports so one broken payload does not kill the rollup.
+                }
+            }));
+            if (!isMounted) return;
+            const nextRollup = buildRollupData(loadedReports);
+            setRollupData(nextRollup);
+            setRollupLoading(false);
+            if (loadedReports.length === 0) {
+                setRollupError('Unable to load any report payloads for All Reports.');
+            }
+        };
+
+        void loadRollup();
+        return () => {
+            isMounted = false;
+        };
+    }, [basePath, index, isRollupView]);
 
     useEffect(() => {
         if (report) {
@@ -969,8 +1124,12 @@ export function ReportApp() {
                 : `ArcBridge — ${report.meta.title}`;
             return;
         }
+        if (isRollupView) {
+            document.title = 'ArcBridge — All Reports';
+            return;
+        }
         document.title = 'ArcBridge Reports';
-    }, [report]);
+    }, [isRollupView, report]);
 
     useEffect(() => {
         if (themeIdOverride) return;
@@ -1095,6 +1254,60 @@ export function ReportApp() {
             return haystack.includes(term);
         });
     }, [sortedIndex, searchTerm]);
+    const failedRollupReports = useMemo(() => {
+        const loaded = rollupData?.sourceReports || 0;
+        return Math.max(0, rollupRequestedCount - loaded);
+    }, [rollupData, rollupRequestedCount]);
+    const commanderProfessionOptions = useMemo(() => {
+        const values = new Set<string>();
+        (rollupData?.commanderRows || []).forEach((row) => {
+            const profession = String(row.profession || '').trim();
+            if (profession) values.add(profession);
+        });
+        return ['all', ...Array.from(values).sort((a, b) => a.localeCompare(b))];
+    }, [rollupData]);
+    const playerProfessionOptions = useMemo(() => {
+        const values = new Set<string>();
+        (rollupData?.playerRows || []).forEach((row) => {
+            const profession = String(row.profession || '').trim();
+            if (profession) values.add(profession);
+        });
+        return ['all', ...Array.from(values).sort((a, b) => a.localeCompare(b))];
+    }, [rollupData]);
+    const filteredCommanderRows = useMemo(() => {
+        const minRuns = Math.max(1, Number(commanderMinRunsFilter || 1));
+        const needle = commanderSearchTerm.trim().toLowerCase();
+        return (rollupData?.commanderRows || []).filter((row) => {
+            if (row.runs < minRuns) return false;
+            if (commanderProfessionFilter !== 'all' && row.profession !== commanderProfessionFilter) return false;
+            if (!needle) return true;
+            const haystack = `${row.account} ${row.profession} ${row.characterNames.join(' ')}`.toLowerCase();
+            return haystack.includes(needle);
+        });
+    }, [commanderMinRunsFilter, commanderProfessionFilter, commanderSearchTerm, rollupData]);
+    const filteredPlayerRows = useMemo(() => {
+        const minRuns = Math.max(1, Number(playerMinRunsFilter || 1));
+        const needle = playerSearchTerm.trim().toLowerCase();
+        return (rollupData?.playerRows || []).filter((row) => {
+            if (row.runs < minRuns) return false;
+            if (playerProfessionFilter !== 'all' && row.profession !== playerProfessionFilter) return false;
+            if (!needle) return true;
+            const haystack = `${row.account} ${row.profession} ${row.characterNames.join(' ')}`.toLowerCase();
+            return haystack.includes(needle);
+        });
+    }, [playerMinRunsFilter, playerProfessionFilter, playerSearchTerm, rollupData]);
+
+    useEffect(() => {
+        if (commanderProfessionFilter === 'all') return;
+        if (commanderProfessionOptions.includes(commanderProfessionFilter)) return;
+        setCommanderProfessionFilter('all');
+    }, [commanderProfessionFilter, commanderProfessionOptions]);
+
+    useEffect(() => {
+        if (playerProfessionFilter === 'all') return;
+        if (playerProfessionOptions.includes(playerProfessionFilter)) return;
+        setPlayerProfessionFilter('all');
+    }, [playerProfessionFilter, playerProfessionOptions]);
 
     const persistOverridesCookie = (nextThemeIdOverride: string | null) => {
         if (!nextThemeIdOverride) {
@@ -1968,6 +2181,352 @@ export function ReportApp() {
         );
     }
 
+    if (isRollupView) {
+        return (
+            <div
+                className="min-h-screen text-white relative overflow-x-hidden"
+                style={{
+                    backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? (isKineticDarkTheme ? '#2b3048' : '#d8d1c5') : (isModernUi ? '#0f141c' : '#0f172a')),
+                    backgroundImage: isMatteUi ? 'none' : reportBackgroundImage,
+                    ...accentVars
+                }}
+            >
+                {!isMatteUi && !isKineticUi && (
+                    <div className="absolute inset-0 pointer-events-none">
+                        <div
+                            className="absolute -top-32 -right-24 h-80 w-80 rounded-full blur-[140px]"
+                            style={{ backgroundColor: 'var(--accent-glow)' }}
+                        />
+                        <div
+                            className="absolute top-40 -left-20 h-72 w-72 rounded-full blur-[120px]"
+                            style={{ backgroundColor: 'var(--accent-glow-soft)' }}
+                        />
+                        <div
+                            className="absolute bottom-10 right-10 h-64 w-64 rounded-full blur-[120px]"
+                            style={{ backgroundColor: 'var(--accent-glow-soft)' }}
+                        />
+                    </div>
+                )}
+                <div className="max-w-[1600px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10">
+                    <div className="rounded-2xl border border-white/5 bg-black/20 p-4 sm:p-6">
+                        <div className={`${glassCard} p-5 sm:p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`} style={glassCardStyle}>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-h-[56px] text-center sm:text-left">
+                                {logoUrl && (
+                                    logoIsDefault ? (
+                                        <div
+                                            className="w-16 h-16 sm:w-24 sm:h-24 mx-auto sm:mx-0"
+                                            style={{
+                                                backgroundColor: defaultLogoColor,
+                                                maskImage: `url(${logoUrl})`,
+                                                WebkitMaskImage: `url(${logoUrl})`,
+                                                maskRepeat: 'no-repeat',
+                                                WebkitMaskRepeat: 'no-repeat',
+                                                maskPosition: 'center',
+                                                WebkitMaskPosition: 'center',
+                                                maskSize: 'contain',
+                                                WebkitMaskSize: 'contain'
+                                            }}
+                                            aria-label="ArcBridge logo"
+                                        />
+                                    ) : (
+                                        <img
+                                            src={logoUrl}
+                                            alt="Squad logo"
+                                            className="w-16 h-16 sm:w-24 sm:h-24 rounded-lg object-cover mx-auto sm:mx-0"
+                                        />
+                                    )
+                                )}
+                                <div>
+                                    <div className="text-xs uppercase tracking-[0.3em] text-[color:var(--accent-soft)]">ArcBridge</div>
+                                    <h1 className="text-2xl sm:text-3xl font-bold mt-2">All Reports</h1>
+                                    <p className="text-xs sm:text-sm text-gray-400 mt-1">Combined commander and player stats across every hosted report.</p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                                <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center gap-2">
+                                    <BarChart3 className="w-4 h-4 text-[color:var(--accent)]" />
+                                    {rollupData?.uniqueRaids || 0} Raids
+                                </div>
+                                <a
+                                    href={themedIndexHref}
+                                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center justify-center gap-2 hover:border-[color:var(--accent-border)] transition-colors"
+                                >
+                                    <ArrowLeft className="w-4 h-4 text-[color:var(--accent)]" />
+                                    Back To Reports
+                                </a>
+                            </div>
+                        </div>
+
+                        {error && (
+                            <div className="mb-6 rounded-2xl border border-amber-400/40 bg-amber-500/10 px-6 py-5 text-amber-100 shadow-xl backdrop-blur-md" style={glassCardStyle}>
+                                <div className="text-sm uppercase tracking-widest text-amber-200/70">Warning</div>
+                                <div className="mt-2 text-base font-semibold text-white">{error}</div>
+                            </div>
+                        )}
+
+                        {!error && !index && (
+                            <div className={`${glassCard} p-6 text-gray-300`} style={glassCardStyle}>Loading reports...</div>
+                        )}
+
+                        {!error && index && (
+                            <>
+                                <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+                                    <div className={`${glassCard} p-4`} style={glassCardStyle}>
+                                        <div className="text-[11px] uppercase tracking-widest text-gray-400">Duplicate Uploads</div>
+                                        <div className="mt-2 text-2xl font-semibold text-white">{rollupData?.duplicateReportsCollapsed || 0}</div>
+                                    </div>
+                                    <div className={`${glassCard} p-4`} style={glassCardStyle}>
+                                        <div className="text-[11px] uppercase tracking-widest text-gray-400">Included Raids</div>
+                                        <div className="mt-2 text-2xl font-semibold text-white">{rollupData?.uniqueRaids || 0}</div>
+                                    </div>
+                                    <div className={`${glassCard} p-4`} style={glassCardStyle}>
+                                        <div className="text-[11px] uppercase tracking-widest text-gray-400">Commanders</div>
+                                        <div className="mt-2 text-2xl font-semibold text-white">{rollupData?.commanderRows.length || 0}</div>
+                                    </div>
+                                    <div className={`${glassCard} p-4`} style={glassCardStyle}>
+                                        <div className="text-[11px] uppercase tracking-widest text-gray-400">Players</div>
+                                        <div className="mt-2 text-2xl font-semibold text-white">{rollupData?.playerRows.length || 0}</div>
+                                    </div>
+                                </div>
+
+                                {(rollupLoading || rollupError || rollupData) && (
+                                    <div className={`${glassCard} px-4 py-3 mb-6 text-xs sm:text-sm text-gray-300`} style={glassCardStyle}>
+                                        {rollupLoading && (
+                                            <div>Loading All Reports from {rollupRequestedCount} reports...</div>
+                                        )}
+                                        {!rollupLoading && rollupError && (
+                                            <div className="text-amber-200">{rollupError}</div>
+                                        )}
+                                        {!rollupLoading && rollupData && (
+                                            <div className="flex flex-col gap-1">
+                                                <div>
+                                                    Loaded {rollupData.sourceReports} of {rollupRequestedCount} hosted reports and aggregated {rollupData.uniqueRaids} unique raids.
+                                                </div>
+                                                {(failedRollupReports > 0
+                                                    || rollupData.duplicateReportsCollapsed > 0
+                                                    || rollupData.raidsSkippedMissingRequiredData > 0
+                                                    || rollupData.reportsMissingCommanderDetails > 0
+                                                    || rollupData.reportsMissingAttendanceDetails > 0) && (
+                                                    <div className="text-gray-400">
+                                                        {failedRollupReports > 0 ? `${failedRollupReports} failed to load. ` : ''}
+                                                        {rollupData.duplicateReportsCollapsed > 0 ? `${rollupData.duplicateReportsCollapsed} duplicate uploads were collapsed. ` : ''}
+                                                        {rollupData.raidsSkippedMissingRequiredData > 0 ? `${rollupData.raidsSkippedMissingRequiredData} raid windows were skipped because they did not have both commander and attendance data. ` : ''}
+                                                        {rollupData.reportsMissingCommanderDetails > 0 ? `${rollupData.reportsMissingCommanderDetails} lacked detailed commander stats. ` : ''}
+                                                        {rollupData.reportsMissingAttendanceDetails > 0 ? `${rollupData.reportsMissingAttendanceDetails} lacked attendance data.` : ''}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {!rollupLoading && rollupData && (
+                                    <div className="flex flex-col gap-6">
+                                        <div className={`${glassCard} p-4 sm:p-5`} style={glassCardStyle}>
+                                            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-widest text-[color:var(--accent-soft)]">Commanders</div>
+                                                    <h2 className="text-lg sm:text-xl font-semibold mt-1">All Commander Runs</h2>
+                                                </div>
+                                                <div className="text-[11px] uppercase tracking-widest text-gray-400">Runs are counted per unique raid</div>
+                                            </div>
+                                            {rollupData.commanderRows.length === 0 ? (
+                                                <div className="text-sm text-gray-400">No commander data found yet.</div>
+                                            ) : (
+                                                <div className="rounded-2xl border border-white/5 bg-black/25 overflow-hidden">
+                                                    <div className="border-b border-white/5 px-3 py-3 sm:px-4">
+                                                        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_180px_140px_140px] gap-3">
+                                                            <input
+                                                                type="search"
+                                                                value={commanderSearchTerm}
+                                                                onChange={(event) => setCommanderSearchTerm(event.target.value)}
+                                                                placeholder="Search commanders, character names, or class..."
+                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                                                            />
+                                                            <select
+                                                                value={commanderProfessionFilter}
+                                                                onChange={(event) => setCommanderProfessionFilter(event.target.value)}
+                                                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                                                            >
+                                                                {commanderProfessionOptions.map((option) => (
+                                                                    <option key={option} value={option} className="bg-slate-900 text-white">
+                                                                        {option === 'all' ? 'All Classes' : option}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <select
+                                                                value={commanderMinRunsFilter}
+                                                                onChange={(event) => setCommanderMinRunsFilter(event.target.value)}
+                                                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                                                            >
+                                                                <option value="1" className="bg-slate-900 text-white">Any Raids</option>
+                                                                <option value="2" className="bg-slate-900 text-white">2+ Raids</option>
+                                                                <option value="5" className="bg-slate-900 text-white">5+ Raids</option>
+                                                                <option value="10" className="bg-slate-900 text-white">10+ Raids</option>
+                                                            </select>
+                                                            <div className="flex items-center justify-start lg:justify-end px-1 text-[11px] uppercase tracking-widest text-gray-400">
+                                                                Showing {filteredCommanderRows.length} of {rollupData.commanderRows.length}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+                                                    <div className="max-h-[32rem] overflow-auto rounded-xl border border-white/5">
+                                                        <table className="w-full min-w-[860px] text-sm">
+                                                            <thead className="sticky top-0 text-[11px] uppercase tracking-widest text-white/85 z-10" style={rollupTableHeaderStyle}>
+                                                                <tr className="border-b border-white/10">
+                                                                <th className="text-left py-3 pr-4 pl-4 sm:pl-5 font-medium">Commander</th>
+                                                                <th className="text-left py-3 pr-4 font-medium">Class</th>
+                                                                <th className="text-right py-3 pr-4 font-medium">Runs</th>
+                                                                <th className="text-right py-3 pr-4 font-medium">Fights</th>
+                                                                <th className="text-right py-3 pr-4 font-medium">KDR</th>
+                                                                <th className="text-right py-3 pr-4 font-medium">Kills</th>
+                                                                <th className="text-right py-3 pr-4 font-medium">Deaths</th>
+                                                                <th className="text-right py-3 pr-4 font-medium">Win %</th>
+                                                                <th className="text-right py-3 pr-4 sm:pr-5 font-medium">Last Run</th>
+                                                            </tr>
+                                                        </thead>
+                                                            <tbody>
+                                                            {filteredCommanderRows.map((row) => {
+                                                                const totalFights = row.wins + row.losses;
+                                                                const winRate = totalFights > 0 ? (row.wins / totalFights) * 100 : 0;
+                                                                return (
+                                                                    <tr key={row.account} className="border-b border-white/5 align-top hover:bg-white/[0.03]">
+                                                                        <td className="py-3 pr-4 pl-4 sm:pl-5">
+                                                                            <div className="font-medium text-white">{row.account}</div>
+                                                                            <div className="text-xs text-gray-400 mt-1">
+                                                                                {row.characterNames.length > 0 ? row.characterNames.join(', ') : 'No character names recorded'}
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="py-3 pr-4 text-gray-300">{row.profession || '--'}</td>
+                                                                        <td className="py-3 pr-4 text-right text-white">{row.runs}</td>
+                                                                        <td className="py-3 pr-4 text-right text-white">{row.fightsLed}</td>
+                                                                        <td className="py-3 pr-4 text-right text-white">{formatRatio(row.kdr)}</td>
+                                                                        <td className="py-3 pr-4 text-right text-white">{row.kills}</td>
+                                                                        <td className="py-3 pr-4 text-right text-white">{row.commanderDeaths}</td>
+                                                                        <td className="py-3 pr-4 text-right text-white">{formatRatio(winRate)}%</td>
+                                                                        <td className="py-3 pr-4 sm:pr-5 text-right text-gray-300">{formatRollupDate(row.lastSeenTs)}</td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                            {filteredCommanderRows.length === 0 && (
+                                                                <tr>
+                                                                    <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-400">
+                                                                        No commanders match the current filters.
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className={`${glassCard} p-4 sm:p-5`} style={glassCardStyle}>
+                                            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-widest text-[color:var(--accent-soft)]">Players</div>
+                                                    <h2 className="text-lg sm:text-xl font-semibold mt-1">Everyone Who Joined</h2>
+                                                </div>
+                                                <div className="text-[11px] uppercase tracking-widest text-gray-400">Last seen is based on the report end time</div>
+                                            </div>
+                                            {rollupData.playerRows.length === 0 ? (
+                                                <div className="text-sm text-gray-400">No attendance data found yet.</div>
+                                            ) : (
+                                                <div className="rounded-2xl border border-white/5 bg-black/25 overflow-hidden">
+                                                    <div className="border-b border-white/5 px-3 py-3 sm:px-4">
+                                                        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_180px_140px_140px] gap-3">
+                                                            <input
+                                                                type="search"
+                                                                value={playerSearchTerm}
+                                                                onChange={(event) => setPlayerSearchTerm(event.target.value)}
+                                                                placeholder="Search players, character names, or class..."
+                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                                                            />
+                                                            <select
+                                                                value={playerProfessionFilter}
+                                                                onChange={(event) => setPlayerProfessionFilter(event.target.value)}
+                                                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                                                            >
+                                                                {playerProfessionOptions.map((option) => (
+                                                                    <option key={option} value={option} className="bg-slate-900 text-white">
+                                                                        {option === 'all' ? 'All Classes' : option}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <select
+                                                                value={playerMinRunsFilter}
+                                                                onChange={(event) => setPlayerMinRunsFilter(event.target.value)}
+                                                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                                                            >
+                                                                <option value="1" className="bg-slate-900 text-white">Any Raids</option>
+                                                                <option value="2" className="bg-slate-900 text-white">2+ Raids</option>
+                                                                <option value="5" className="bg-slate-900 text-white">5+ Raids</option>
+                                                                <option value="10" className="bg-slate-900 text-white">10+ Raids</option>
+                                                            </select>
+                                                            <div className="flex items-center justify-start lg:justify-end px-1 text-[11px] uppercase tracking-widest text-gray-400">
+                                                                Showing {filteredPlayerRows.length} of {rollupData.playerRows.length}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+                                                    <div className="max-h-[32rem] overflow-auto rounded-xl border border-white/5">
+                                                        <table className="w-full min-w-[900px] text-sm">
+                                                            <thead className="sticky top-0 text-[11px] uppercase tracking-widest text-white/85 z-10" style={rollupTableHeaderStyle}>
+                                                                <tr className="border-b border-white/10">
+                                                                <th className="text-left py-3 pr-4 pl-4 sm:pl-5 font-medium">Player</th>
+                                                                <th className="text-left py-3 pr-4 font-medium">Main Class</th>
+                                                                <th className="text-right py-3 pr-4 font-medium">Runs</th>
+                                                                <th className="text-right py-3 pr-4 font-medium">Combat Time</th>
+                                                                <th className="text-right py-3 pr-4 font-medium">Squad Span</th>
+                                                                <th className="text-right py-3 pr-4 sm:pr-5 font-medium">Last Raid</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {filteredPlayerRows.map((row) => (
+                                                                <tr key={row.account} className="border-b border-white/5 align-top hover:bg-white/[0.03]">
+                                                                    <td className="py-3 pr-4 pl-4 sm:pl-5">
+                                                                        <div className="font-medium text-white">{row.account}</div>
+                                                                        {row.characterNames.length > 0 && (
+                                                                            <div className="text-xs text-gray-400 mt-1">{row.characterNames.join(', ')}</div>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="py-3 pr-4 text-gray-300">{row.profession || '--'}</td>
+                                                                    <td className="py-3 pr-4 text-right text-white">{row.runs}</td>
+                                                                    <td className="py-3 pr-4 text-right text-white">{formatHoursLabel(row.combatTimeMs)}</td>
+                                                                    <td className="py-3 pr-4 text-right text-white">{formatHoursLabel(row.squadTimeMs)}</td>
+                                                                    <td className="py-3 pr-4 sm:pr-5 text-right text-gray-300">{formatRollupDate(row.lastSeenTs)}</td>
+                                                                </tr>
+                                                            ))}
+                                                            {filteredPlayerRows.length === 0 && (
+                                                                <tr>
+                                                                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
+                                                                        No players match the current filters.
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                    <div className="mt-8">
+                        {legalNoticePane}
+                    </div>
+                </div>
+                {proofOfWorkModal}
+            </div>
+        );
+    }
+
     return (
         <div
             className="min-h-screen text-white relative overflow-x-hidden"
@@ -2063,6 +2622,51 @@ export function ReportApp() {
 
                     {!error && !index && (
                         <div className={`${glassCard} p-6 text-gray-300`} style={glassCardStyle}>Loading reports...</div>
+                    )}
+
+                    {!error && index && sortedIndex.length > 0 && (
+                        <a
+                            href={rollupHref}
+                            className={`${glassCard} mb-4 px-5 py-4 transition-all duration-200 group block overflow-hidden relative hover:-translate-y-0.5`}
+                            style={{
+                                ...glassCardStyle,
+                                borderColor: 'rgba(var(--accent-rgb), 0.55)',
+                                backgroundImage: `linear-gradient(135deg, rgba(var(--accent-rgb), 0.28), rgba(var(--accent-rgb), 0.1) 52%, rgba(255,255,255,0.02) 100%)`,
+                                boxShadow: '0 22px 50px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.05)'
+                            }}
+                        >
+                            <div
+                                className="absolute inset-y-0 left-0 w-1.5"
+                                style={{ background: 'linear-gradient(180deg, rgba(var(--accent-rgb), 0.95), rgba(var(--accent-rgb), 0.35))' }}
+                                aria-hidden="true"
+                            />
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                                <div className="min-w-0 block text-left pl-1 sm:pl-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-glow)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white">
+                                            <BarChart3 className="w-3.5 h-3.5" />
+                                            All Reports
+                                        </span>
+                                        <span className="text-[11px] uppercase tracking-widest text-white/60">Overview</span>
+                                    </div>
+                                    <div className="text-base sm:text-lg font-semibold mt-2 text-white">Combined Stats Across Every Included Report</div>
+                                    <div className="text-xs text-gray-300 mt-1 flex items-center gap-2">
+                                        <Users className="w-4 h-4 text-[color:var(--accent)]" />
+                                        <span>Cross-report commander totals, roster attendance, and recent participation in one place.</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 sm:mt-0 mt-2 w-full sm:w-auto">
+                                    <div className="flex flex-col items-end gap-1">
+                                        <div className="text-[10px] uppercase tracking-widest text-white/60">Source Reports</div>
+                                        <div className="text-lg text-white font-semibold">{sortedIndex.length}</div>
+                                        <div className="text-[10px] uppercase tracking-widest text-[color:var(--accent-soft)]">Open Summary</div>
+                                    </div>
+                                    <div className="h-10 w-10 rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-glow)] inline-flex items-center justify-center">
+                                        <ExternalLink className="w-5 h-5 text-[color:var(--accent)] opacity-90" />
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
                     )}
 
                     {filteredIndex.length > 0 && (
