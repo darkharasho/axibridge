@@ -10,13 +10,13 @@ These sections are intended to add new commander-specific analysis, not just reo
 
 Target UI:
 
-- [src/renderer/stats/sections/CommanderStatsSection.tsx](/home/mstephens/Documents/GitHub/ArcBridge/src/renderer/stats/sections/CommanderStatsSection.tsx)
-- [src/renderer/StatsView.tsx](/home/mstephens/Documents/GitHub/ArcBridge/src/renderer/StatsView.tsx)
-- [src/renderer/stats/hooks/useStatsNavigation.ts](/home/mstephens/Documents/GitHub/ArcBridge/src/renderer/stats/hooks/useStatsNavigation.ts)
+- [src/renderer/stats/sections/CommanderStatsSection.tsx](~/Documents/GitHub/ArcBridge/src/renderer/stats/sections/CommanderStatsSection.tsx)
+- [src/renderer/StatsView.tsx](~/Documents/GitHub/ArcBridge/src/renderer/StatsView.tsx)
+- [src/renderer/stats/hooks/useStatsNavigation.ts](~/Documents/GitHub/ArcBridge/src/renderer/stats/hooks/useStatsNavigation.ts)
 
 Target aggregation:
 
-- [src/renderer/stats/computeStatsAggregation.ts](/home/mstephens/Documents/GitHub/ArcBridge/src/renderer/stats/computeStatsAggregation.ts)
+- [src/renderer/stats/computeStatsAggregation.ts](~/Documents/GitHub/ArcBridge/src/renderer/stats/computeStatsAggregation.ts)
 
 The implementation should preserve the current commander summary table and detailed lower panels unless a section explicitly replaces them.
 
@@ -358,7 +358,7 @@ This keeps strategic summary content above low-level diagnostic detail.
 If these sections should be independently navigable:
 
 1. Add stable IDs for each new subsection.
-2. Update [useStatsNavigation.ts](/home/mstephens/Documents/GitHub/ArcBridge/src/renderer/stats/hooks/useStatsNavigation.ts) to include child items under the commander group.
+2. Update [useStatsNavigation.ts](~/Documents/GitHub/ArcBridge/src/renderer/stats/hooks/useStatsNavigation.ts) to include child items under the commander group.
 3. Keep the group label as `Commander Stats`.
 4. Use the existing `CommanderTagIcon` for the group and child entries unless design explicitly changes.
 
@@ -426,4 +426,3 @@ A section is considered complete only if:
 3. unknown values render as `N/A`, not fake zeroes
 4. the focused commander stats test passes
 5. `npm run typecheck` passes
-

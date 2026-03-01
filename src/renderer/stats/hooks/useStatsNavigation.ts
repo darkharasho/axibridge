@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { Trophy, Shield, ShieldAlert, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target } from 'lucide-react';
+import { Trophy, Shield, ShieldAlert, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route } from 'lucide-react';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
 import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
@@ -55,11 +55,12 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
         id: 'commanders',
         label: 'Commander Stats',
         icon: CommanderTagIcon,
-        sectionIds: ['commander-stats', 'commander-push-timing', 'commander-target-conversion'],
+        sectionIds: ['commander-stats', 'commander-push-timing', 'commander-target-conversion', 'commander-tag-movement'],
         items: [
             { id: 'commander-stats', label: 'Commander Stats', icon: CommanderTagIcon },
             { id: 'commander-push-timing', label: 'Push Timing', icon: Clock3 },
-            { id: 'commander-target-conversion', label: 'Target Conversion', icon: Target }
+            { id: 'commander-target-conversion', label: 'Target Conversion', icon: Target },
+            { id: 'commander-tag-movement', label: 'Tag Movement', icon: Route }
         ]
     },
     {

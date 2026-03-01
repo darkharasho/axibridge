@@ -42,7 +42,7 @@ import { TimelineSection } from './stats/sections/TimelineSection';
 import { MapDistributionSection } from './stats/sections/MapDistributionSection';
 import { SpikeDamageSection } from './stats/sections/SpikeDamageSection';
 import { AttendanceSection } from './stats/sections/AttendanceSection';
-import { CommanderPushTimingSection, CommanderStatsSection, CommanderTargetConversionSection } from './stats/sections/CommanderStatsSection';
+import { CommanderPushTimingSection, CommanderStatsSection, CommanderTagMovementSection, CommanderTargetConversionSection } from './stats/sections/CommanderStatsSection';
 import { SquadCompByFightSection } from './stats/sections/SquadCompByFightSection';
 import { FightCompSection } from './stats/sections/FightCompSection';
 import { StatsHeader } from './stats/ui/StatsHeader';
@@ -92,6 +92,7 @@ const ORDERED_SECTION_IDS = [
     'commander-stats',
     'commander-push-timing',
     'commander-target-conversion',
+    'commander-tag-movement',
     'attendance-ledger',
     'squad-comp-fight',
     'fight-comp',
@@ -3976,6 +3977,13 @@ type SpikeFight = {
                         />}
 
                         {isSectionVisible('commander-target-conversion') && <CommanderTargetConversionSection
+                            commanderStats={commanderStats}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />}
+
+                        {isSectionVisible('commander-tag-movement') && <CommanderTagMovementSection
                             commanderStats={commanderStats}
                             isSectionVisible={isSectionVisible}
                             isFirstVisibleSection={isFirstVisibleSection}

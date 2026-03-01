@@ -2747,6 +2747,10 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     wasStalledPush: boolean | null;
                     downToKillConversionPct: number | null;
                     failedDownEstimate: number;
+                    distanceTraveled: number | null;
+                    movementPerMinute: number | null;
+                    stationaryPct: number | null;
+                    movementBurstCount: number | null;
                     boonUptimePct: number;
                     boonEntries: number;
                     incomingDamageBySkill: Array<{ id: string; name: string; icon?: string; damage: number; hits: number }>;
@@ -2789,6 +2793,63 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 const positive = filtered.reduce((sum, value) => sum + (value ? 1 : 0), 0);
                 return (positive / filtered.length) * 100;
             };
+            const extractReplayPositionPairs = (value: any): Array<[number, number]> => {
+                if (!Array.isArray(value)) return [];
+                return value
+                    .map((entry: any) => (Array.isArray(entry) ? [Number(entry[0]), Number(entry[1])] as [number, number] : null))
+                    .filter((entry: [number, number] | null): entry is [number, number] => (
+                        !!entry && Number.isFinite(entry[0]) && Number.isFinite(entry[1])
+                    ));
+            };
+            const computeMovementMetrics = (combatReplayData: any, durationMs: number, inchToPixel: number) => {
+                const segments = Array.isArray(combatReplayData) ? combatReplayData : (combatReplayData ? [combatReplayData] : []);
+                const positions = segments.flatMap((segment: any) => extractReplayPositionPairs(segment?.positions));
+                if (positions.length < 2) {
+                    return {
+                        distanceTraveled: null,
+                        movementPerMinute: null,
+                        stationaryPct: null,
+                        movementBurstCount: null
+                    };
+                }
+                const scale = Number.isFinite(inchToPixel) && inchToPixel > 0 ? inchToPixel : 1;
+                const stationaryThreshold = 1;
+                const burstThreshold = 25;
+                let totalDistance = 0;
+                let stationarySegments = 0;
+                let movementBurstCount = 0;
+                let inBurst = false;
+                let segmentCount = 0;
+                for (let i = 1; i < positions.length; i += 1) {
+                    const [prevX, prevY] = positions[i - 1];
+                    const [nextX, nextY] = positions[i];
+                    const distance = Math.hypot(nextX - prevX, nextY - prevY) / scale;
+                    if (!Number.isFinite(distance)) continue;
+                    segmentCount += 1;
+                    totalDistance += Math.max(0, distance);
+                    if (distance <= stationaryThreshold) {
+                        stationarySegments += 1;
+                        inBurst = false;
+                    } else if (distance > burstThreshold) {
+                        if (!inBurst) movementBurstCount += 1;
+                        inBurst = true;
+                    }
+                }
+                if (segmentCount === 0) {
+                    return {
+                        distanceTraveled: null,
+                        movementPerMinute: null,
+                        stationaryPct: null,
+                        movementBurstCount: null
+                    };
+                }
+                return {
+                    distanceTraveled: totalDistance,
+                    movementPerMinute: asRatePerMinute(totalDistance, durationMs),
+                    stationaryPct: (stationarySegments / segmentCount) * 100,
+                    movementBurstCount
+                };
+            };
 
             sortedFightLogsWithDetails.forEach(({ log }, idx) => {
                 const details = log?.details;
@@ -2811,6 +2872,12 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 const characterName = String(commander?.name || '');
                 const profession = resolveProfessionLabel(commander?.profession || commander?.name || 'Unknown');
                 const durationMs = Math.max(0, Number(details?.durationMS || 0));
+                const replayMeta = (details?.combatReplayMetaData && typeof details.combatReplayMetaData === 'object')
+                    ? details.combatReplayMetaData
+                    : {};
+                const inchToPixel = Number(replayMeta?.inchToPixel || 0) > 0
+                    ? Number(replayMeta.inchToPixel)
+                    : 1;
                 const timestamp = resolveFightTimestamp(details, log);
                 const mapName = resolveMapName(details, log);
                 const squadCount = squadPlayers.length;
@@ -2865,6 +2932,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 const { boonCount, boonUptimePct } = parseCommanderBoonUptime(commander, buffMap);
                 const incomingDamageBySkill = collectIncomingSkillRows(commander?.totalDamageTaken, skillMap, buffMap);
                 const incomingBoonUptimes = collectIncomingBoonRows(commander, buffMap, durationMs);
+                const movementMetrics = computeMovementMetrics(commander?.combatReplayData, durationMs, inchToPixel);
                 const bucketCount = Math.max(1, Math.ceil(Math.max(1, durationMs) / 5000));
                 const incomingDamageCumulative = extractCumulativeSeries(commander?.powerDamageTaken1S);
                 const incomingDamagePerSecond = toPerSecond(incomingDamageCumulative);
@@ -2995,6 +3063,10 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     wasStalledPush,
                     downToKillConversionPct,
                     failedDownEstimate,
+                    distanceTraveled: movementMetrics.distanceTraveled,
+                    movementPerMinute: movementMetrics.movementPerMinute,
+                    stationaryPct: movementMetrics.stationaryPct,
+                    movementBurstCount: movementMetrics.movementBurstCount,
                     boonUptimePct,
                     boonEntries: boonCount,
                     incomingDamageBySkill,
@@ -3032,6 +3104,10 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     const avgKillsPerFight = entry.fights > 0 ? entry.totalKills / entry.fights : null;
                     const avgDownsPerFight = entry.fights > 0 ? entry.totalDowns / entry.fights : null;
                     const failedDownEstimate = Math.max(0, entry.totalDowns - entry.totalKills);
+                    const avgCommanderDistanceTraveled = averageDefined(fights.map((fight) => fight.distanceTraveled));
+                    const avgCommanderMovementPerMinute = averageDefined(fights.map((fight) => fight.movementPerMinute));
+                    const avgTagStationaryPct = averageDefined(fights.map((fight) => fight.stationaryPct));
+                    const avgTagMovementBurstCount = averageDefined(fights.map((fight) => fight.movementBurstCount));
                     return {
                         key: entry.key,
                         account: entry.account,
@@ -3069,6 +3145,10 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                         avgKillsPerFight,
                         avgDownsPerFight,
                         failedDownEstimate,
+                        avgCommanderDistanceTraveled,
+                        avgCommanderMovementPerMinute,
+                        avgTagStationaryPct,
+                        avgTagMovementBurstCount,
                         boonUptimePct: weightedBoonUptimePct,
                         boonEntries: entry.boonEntriesSeen,
                         incomingSkillBreakdown: Array.from(entry.incomingSkillMap.values())

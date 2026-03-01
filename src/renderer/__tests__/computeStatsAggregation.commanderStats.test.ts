@@ -23,6 +23,9 @@ describe('computeStatsAggregation (commander stats)', () => {
                             hasCommanderTag: true,
                             notInSquad: false,
                             activeTimes: [60_000],
+                            combatReplayData: {
+                                positions: [[0, 0], [100, 0], [100, 0], [200, 0], [200, 0]]
+                            },
                             defenses: [{ downCount: 1, deadCount: 1, damageTaken: 12_000 }],
                             dpsAll: [{ damage: 40_000 }],
                             statsTargets: [[{ downed: 3, killed: 2 }, { downed: 2, killed: 1 }]],
@@ -68,6 +71,9 @@ describe('computeStatsAggregation (commander stats)', () => {
                             hasCommanderTag: true,
                             notInSquad: false,
                             activeTimes: [120_000],
+                            combatReplayData: {
+                                positions: [[0, 0], [0, 0], [50, 0], [100, 0], [100, 0]]
+                            },
                             defenses: [{ downCount: 0, deadCount: 0, damageTaken: 6_000 }],
                             dpsAll: [{ damage: 30_000 }],
                             statsTargets: [[{ downed: 1, killed: 1 }, { downed: 1, killed: 0 }]],
@@ -117,6 +123,10 @@ describe('computeStatsAggregation (commander stats)', () => {
         expect(Number(row.avgKillsPerFight || 0)).toBeCloseTo(4, 5);
         expect(Number(row.avgDownsPerFight || 0)).toBeCloseTo(5.5, 5);
         expect(row.failedDownEstimate).toBe(3);
+        expect(Number(row.avgCommanderDistanceTraveled || 0)).toBeCloseTo(150, 5);
+        expect(Number(row.avgCommanderMovementPerMinute || 0)).toBeCloseTo(125, 5);
+        expect(Number(row.avgTagStationaryPct || 0)).toBeCloseTo(50, 5);
+        expect(Number(row.avgTagMovementBurstCount || 0)).toBeCloseTo(1.5, 5);
         expect(row.alliesDown).toBe(4);
         expect(row.alliesDead).toBe(4);
         expect(Number(row.boonUptimePct || 0)).toBeCloseTo(83.333, 2);
@@ -129,5 +139,9 @@ describe('computeStatsAggregation (commander stats)', () => {
         expect(row.fightsData[1]?.timeToFirstEnemyDeathMs).toBe(21_000);
         expect(Number(row.fightsData[0]?.downToKillConversionPct || 0)).toBeCloseTo(50, 5);
         expect(row.fightsData[1]?.failedDownEstimate).toBe(0);
+        expect(Number(row.fightsData[0]?.distanceTraveled || 0)).toBeCloseTo(200, 5);
+        expect(Number(row.fightsData[1]?.movementPerMinute || 0)).toBeCloseTo(50, 5);
+        expect(Number(row.fightsData[0]?.stationaryPct || 0)).toBeCloseTo(50, 5);
+        expect(Number(row.fightsData[1]?.movementBurstCount || 0)).toBeCloseTo(1, 5);
     });
 });

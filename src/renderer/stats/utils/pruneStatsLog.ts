@@ -146,10 +146,11 @@ export const pruneDetailsForStats = (details: any) => {
             ]);
             const minions = Array.isArray(player?.minions) ? player.minions : [];
             out.minions = minions.map((minion: any) => pick(minion, ['name', 'totalDamageTakenDist']));
-            const keepReplayPositions = needsReplayDistanceFallback
-                && (
-                    (player?.hasCommanderTag && !player?.notInSquad)
-                    || (!player?.notInSquad && !playerHasDirectTagDistance(player))
+            const keepReplayPositions = (player?.hasCommanderTag && !player?.notInSquad)
+                || (
+                    needsReplayDistanceFallback
+                    && !player?.notInSquad
+                    && !playerHasDirectTagDistance(player)
                 );
             out.combatReplayData = pruneCombatReplayData(player?.combatReplayData, keepReplayPositions);
             return out;

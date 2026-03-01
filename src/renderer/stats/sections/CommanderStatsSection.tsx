@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Clock3, Target } from 'lucide-react';
+import { Clock3, Route, Target } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 
@@ -35,6 +35,10 @@ type CommanderFightRow = {
     wasStalledPush: boolean | null;
     downToKillConversionPct: number | null;
     failedDownEstimate: number;
+    distanceTraveled: number | null;
+    movementPerMinute: number | null;
+    stationaryPct: number | null;
+    movementBurstCount: number | null;
     boonUptimePct: number;
     boonEntries: number;
     incomingDamageBySkill: Array<{ id: string; name: string; icon?: string; damage: number; hits: number }>;
@@ -80,6 +84,10 @@ type CommanderSummaryRow = {
     avgKillsPerFight: number | null;
     avgDownsPerFight: number | null;
     failedDownEstimate: number;
+    avgCommanderDistanceTraveled: number | null;
+    avgCommanderMovementPerMinute: number | null;
+    avgTagStationaryPct: number | null;
+    avgTagMovementBurstCount: number | null;
     boonUptimePct: number;
     boonEntries: number;
     incomingSkillBreakdown: Array<{ id: string; name: string; icon?: string; damage: number; hits: number }>;
@@ -231,6 +239,134 @@ export const CommanderTargetConversionSection = ({
                                             <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(fight.kills)}</td>
                                             <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullablePct(fight.downToKillConversionPct)}</td>
                                             <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(fight.failedDownEstimate)}</td>
+                                            <td className={`py-1.5 px-2 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                                {fight.isWin ? 'Win' : 'Loss'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
+        </section>
+    );
+};
+
+export const CommanderTagMovementSection = ({
+    commanderStats,
+    isSectionVisible,
+    isFirstVisibleSection,
+    sectionClass
+}: Omit<CommanderStatsSectionProps, 'getProfessionIconPath'>) => {
+    const rows = useMemo(
+        () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
+        [commanderStats]
+    );
+    const [selectedCommanderKey, setSelectedCommanderKey] = useState<string>('');
+
+    useEffect(() => {
+        if (rows.length === 0) {
+            setSelectedCommanderKey('');
+            return;
+        }
+        if (!selectedCommanderKey || !rows.some((row) => row.key === selectedCommanderKey)) {
+            setSelectedCommanderKey(rows[0].key);
+        }
+    }, [rows, selectedCommanderKey]);
+
+    const selectedCommander = useMemo(
+        () => rows.find((row) => row.key === selectedCommanderKey) || rows[0] || null,
+        [rows, selectedCommanderKey]
+    );
+    const hasAnyMovementData = useMemo(
+        () => rows.some((row) => (
+            row.avgCommanderDistanceTraveled !== null
+            || row.avgCommanderMovementPerMinute !== null
+            || row.avgTagStationaryPct !== null
+        )),
+        [rows]
+    );
+
+    return (
+        <section
+            id="commander-tag-movement"
+            data-section-visible={isSectionVisible('commander-tag-movement')}
+            data-section-first={isFirstVisibleSection('commander-tag-movement')}
+            className={sectionClass('commander-tag-movement', 'bg-white/5 border border-emerald-300/20 rounded-2xl p-6 page-break-avoid scroll-mt-24')}
+        >
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                <h3 className="text-lg font-bold text-emerald-100 flex items-center gap-2">
+                    <Route className="w-5 h-5 text-emerald-300" />
+                    Tag Movement
+                </h3>
+                <span className="text-[10px] uppercase tracking-widest text-emerald-200/70">
+                    {rows.length} Commanders
+                </span>
+            </div>
+
+            {rows.length === 0 ? (
+                <div className="text-center text-gray-500 italic py-8">No tag movement data available.</div>
+            ) : (
+                <div className="space-y-4 min-w-0">
+                    {!hasAnyMovementData ? (
+                        <div className="rounded-lg border border-emerald-200/10 bg-black/25 px-3 py-2 text-xs text-emerald-100/80">
+                            Tag movement is unavailable for these logs because commander replay positions were not present.
+                        </div>
+                    ) : null}
+                    <div className="w-full max-w-full overflow-x-auto pb-1">
+                        <table className="w-full min-w-[700px] text-xs table-auto">
+                            <thead>
+                                <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
+                                    <th className="text-left py-2 px-2">Commander</th>
+                                    <th className="text-right py-2 px-2">Avg Distance</th>
+                                    <th className="text-right py-2 px-2">Move / Min</th>
+                                    <th className="text-right py-2 px-2">Stationary %</th>
+                                    <th className="text-right py-2 px-2">Move Bursts</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows.map((row) => (
+                                    <tr
+                                        key={`${row.key}-tag-movement`}
+                                        onClick={() => setSelectedCommanderKey(row.key)}
+                                        className={`border-b border-white/5 cursor-pointer transition-colors ${
+                                            selectedCommander?.key === row.key ? 'bg-emerald-500/10' : 'hover:bg-white/5'
+                                        }`}
+                                    >
+                                        <td className="py-2 px-2 text-gray-100 font-semibold truncate">{row.account}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgCommanderDistanceTraveled, 0)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgCommanderMovementPerMinute, 1)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullablePct(row.avgTagStationaryPct)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgTagMovementBurstCount, 1)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {selectedCommander && (
+                        <div className="overflow-x-auto min-w-0">
+                            <table className="w-full min-w-[620px] text-xs table-auto">
+                                <thead>
+                                    <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
+                                        <th className="text-left py-2 px-2">Fight</th>
+                                        <th className="text-right py-2 px-2">Distance</th>
+                                        <th className="text-right py-2 px-2">Move / Min</th>
+                                        <th className="text-right py-2 px-2">Stationary %</th>
+                                        <th className="text-right py-2 px-2">Bursts</th>
+                                        <th className="text-right py-2 px-2">Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(selectedCommander.fightsData || []).map((fight) => (
+                                        <tr key={`${fight.id}-tag-movement`} className="border-b border-white/5">
+                                            <td className="py-1.5 px-2 text-gray-200">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
+                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableNumber(fight.distanceTraveled, 0)}</td>
+                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableNumber(fight.movementPerMinute, 1)}</td>
+                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullablePct(fight.stationaryPct)}</td>
+                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableNumber(fight.movementBurstCount, 0)}</td>
                                             <td className={`py-1.5 px-2 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
