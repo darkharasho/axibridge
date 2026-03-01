@@ -146,18 +146,19 @@ export const pruneDetailsForStats = (details: any) => {
             ]);
             const minions = Array.isArray(player?.minions) ? player.minions : [];
             out.minions = minions.map((minion: any) => pick(minion, ['name', 'totalDamageTakenDist']));
-            const keepReplayPositions = needsReplayDistanceFallback
-                && (
-                    (player?.hasCommanderTag && !player?.notInSquad)
-                    || (!player?.notInSquad && !playerHasDirectTagDistance(player))
+            const keepReplayPositions = (player?.hasCommanderTag && !player?.notInSquad)
+                || (
+                    needsReplayDistanceFallback
+                    && !player?.notInSquad
+                    && !playerHasDirectTagDistance(player)
                 );
             out.combatReplayData = pruneCombatReplayData(player?.combatReplayData, keepReplayPositions);
             return out;
         });
     }
     if (Array.isArray(pruned.targets)) {
-        pruned.targets = pruned.targets.map((target: any) =>
-            pick(target, [
+        pruned.targets = pruned.targets.map((target: any) => {
+            const out = pick(target, [
                 'id',
                 'name',
                 'isFake',
@@ -179,8 +180,10 @@ export const pruneDetailsForStats = (details: any) => {
                 'team',
                 'teamColor',
                 'team_color'
-            ])
-        );
+            ]);
+            out.combatReplayData = pruneCombatReplayData(target?.combatReplayData, false);
+            return out;
+        });
     }
     return pruned;
 };

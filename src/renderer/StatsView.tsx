@@ -42,6 +42,7 @@ import { TimelineSection } from './stats/sections/TimelineSection';
 import { MapDistributionSection } from './stats/sections/MapDistributionSection';
 import { SpikeDamageSection } from './stats/sections/SpikeDamageSection';
 import { AttendanceSection } from './stats/sections/AttendanceSection';
+import { CommanderPushTimingSection, CommanderStatsSection, CommanderTagDeathResponseSection, CommanderTagMovementSection, CommanderTargetConversionSection } from './stats/sections/CommanderStatsSection';
 import { SquadCompByFightSection } from './stats/sections/SquadCompByFightSection';
 import { FightCompSection } from './stats/sections/FightCompSection';
 import { StatsHeader } from './stats/ui/StatsHeader';
@@ -88,6 +89,11 @@ const ORDERED_SECTION_IDS = [
     'top-players',
     'top-skills-outgoing',
     'squad-composition',
+    'commander-stats',
+    'commander-push-timing',
+    'commander-target-conversion',
+    'commander-tag-movement',
+    'commander-tag-death-response',
     'attendance-ledger',
     'squad-comp-fight',
     'fight-comp',
@@ -373,6 +379,7 @@ export function StatsView({ logs, onBack, mvpWeights, statsViewSettings, onStats
             squadClassData: asArray((source as any).squadClassData),
             enemyClassData: asArray((source as any).enemyClassData),
             attendanceData: asArray((source as any).attendanceData),
+            commanderStats: withFallbackObject((source as any).commanderStats, { rows: [] }),
             squadCompByFight: asArray((source as any).squadCompByFight),
             fightDiffMode: asArray((source as any).fightDiffMode),
             playerSkillBreakdowns: asArray((source as any).playerSkillBreakdowns)
@@ -3190,6 +3197,9 @@ type SpikeFight = {
     const squadClassData = Array.isArray(safeStats?.squadClassData) ? safeStats.squadClassData : [];
     const enemyClassData = Array.isArray(safeStats?.enemyClassData) ? safeStats.enemyClassData : [];
     const attendanceData = Array.isArray(safeStats?.attendanceData) ? safeStats.attendanceData : [];
+    const commanderStats = safeStats?.commanderStats && typeof safeStats.commanderStats === 'object'
+        ? safeStats.commanderStats
+        : { rows: [] };
     const squadCompByFight = Array.isArray(safeStats?.squadCompByFight) ? safeStats.squadCompByFight : [];
     const fightBreakdownRows = Array.isArray(safeStats?.fightBreakdown) ? safeStats.fightBreakdown : [];
     const fightCompByFight = useMemo(() => {
@@ -3847,6 +3857,14 @@ type SpikeFight = {
                                 sectionClass={sectionClass}
                             />
 
+                            <CommanderStatsSection
+                                commanderStats={commanderStats}
+                                getProfessionIconPath={getProfessionIconPath}
+                                isSectionVisible={isSectionVisible}
+                                isFirstVisibleSection={isFirstVisibleSection}
+                                sectionClass={sectionClass}
+                            />
+
                             <AttendanceSection
                                 attendanceRows={attendanceData}
                                 getProfessionIconPath={getProfessionIconPath}
@@ -3939,6 +3957,42 @@ type SpikeFight = {
                             sortedSquadClassData={sortedSquadClassData}
                             sortedEnemyClassData={sortedEnemyClassData}
                             getProfessionIconPath={getProfessionIconPath}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />}
+
+                        {isSectionVisible('commander-stats') && <CommanderStatsSection
+                            commanderStats={commanderStats}
+                            getProfessionIconPath={getProfessionIconPath}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />}
+
+                        {isSectionVisible('commander-push-timing') && <CommanderPushTimingSection
+                            commanderStats={commanderStats}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />}
+
+                        {isSectionVisible('commander-target-conversion') && <CommanderTargetConversionSection
+                            commanderStats={commanderStats}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />}
+
+                        {isSectionVisible('commander-tag-movement') && <CommanderTagMovementSection
+                            commanderStats={commanderStats}
+                            isSectionVisible={isSectionVisible}
+                            isFirstVisibleSection={isFirstVisibleSection}
+                            sectionClass={sectionClass}
+                        />}
+
+                        {isSectionVisible('commander-tag-death-response') && <CommanderTagDeathResponseSection
+                            commanderStats={commanderStats}
                             isSectionVisible={isSectionVisible}
                             isFirstVisibleSection={isFirstVisibleSection}
                             sectionClass={sectionClass}

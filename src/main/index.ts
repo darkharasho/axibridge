@@ -624,6 +624,21 @@ const pruneDetailsForStats = (details: any) => {
         });
         return out;
     };
+    const pruneCombatReplayData = (value: any) => {
+        const pruneEntry = (entry: any) => {
+            if (!entry || typeof entry !== 'object') return null;
+            return pick(entry, ['start', 'down', 'dead']);
+        };
+        if (Array.isArray(value)) {
+            return value
+                .map((entry) => pruneEntry(entry))
+                .filter((entry): entry is Record<string, any> => Boolean(entry));
+        }
+        if (value && typeof value === 'object') {
+            return pruneEntry(value);
+        }
+        return value;
+    };
     const pruned: any = pick(details, [
         'players',
         'targets',
@@ -702,8 +717,8 @@ const pruneDetailsForStats = (details: any) => {
         });
     }
     if (Array.isArray(pruned.targets)) {
-        pruned.targets = pruned.targets.map((target: any) =>
-            pick(target, [
+        pruned.targets = pruned.targets.map((target: any) => {
+            const base = pick(target, [
                 'id',
                 'name',
                 'isFake',
@@ -725,8 +740,10 @@ const pruneDetailsForStats = (details: any) => {
                 'team',
                 'teamColor',
                 'team_color'
-            ])
-        );
+            ]);
+            base.combatReplayData = pruneCombatReplayData(target?.combatReplayData);
+            return base;
+        });
     }
     return pruned;
 };

@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { ProofOfWorkModal } from '../renderer/ui/ProofOfWorkModal';
 import { SupportPlusIcon } from '../renderer/ui/SupportPlusIcon';
 import { OffenseSwordIcon } from '../renderer/ui/OffenseSwordIcon';
+import { CommanderTagIcon } from '../renderer/ui/CommanderTagIcon';
 import { Gw2ApmIcon } from '../renderer/ui/Gw2ApmIcon';
 import { Gw2AegisIcon } from '../renderer/ui/Gw2AegisIcon';
 import { Gw2BoonIcon } from '../renderer/ui/Gw2BoonIcon';
@@ -33,10 +34,13 @@ import {
     ArrowLeft,
     ArrowUp,
     ArrowBigUp,
+    Clock3,
     FileText,
     ListTree,
     BarChart3,
     Keyboard,
+    Route,
+    Target,
     ChevronDown,
     GitCompareArrows
 } from 'lucide-react';
@@ -628,6 +632,19 @@ export function ReportApp() {
                 { id: 'squad-composition', label: 'Classes', icon: Users },
                 { id: 'timeline', label: 'Squad vs Enemy Size', icon: Users },
                 { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon }
+            ]
+        },
+        {
+            id: 'commanders',
+            label: 'Commander Stats',
+            icon: CommanderTagIcon,
+            sectionIds: ['commander-stats', 'commander-push-timing', 'commander-target-conversion', 'commander-tag-movement', 'commander-tag-death-response'],
+            items: [
+                { id: 'commander-stats', label: 'Commander Stats', icon: CommanderTagIcon },
+                { id: 'commander-push-timing', label: 'Push Timing', icon: Clock3 },
+                { id: 'commander-target-conversion', label: 'Target Conversion', icon: Target },
+                { id: 'commander-tag-movement', label: 'Tag Movement', icon: Route },
+                { id: 'commander-tag-death-response', label: 'Tag Death Response', icon: Skull }
             ]
         },
         {
@@ -1870,7 +1887,7 @@ export function ReportApp() {
                                     {report.meta.dateLabel || 'Log Range'}
                                 </div>
                                 <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
-                                    <Users className="w-4 h-4 text-[color:var(--accent)]" />
+                                    <CommanderTagIcon className="w-4 h-4 text-[color:var(--accent)]" />
                                     <span className="truncate">
                                         {report.meta.commanders.length ? report.meta.commanders.join(', ') : 'No Commanders'}
                                     </span>
