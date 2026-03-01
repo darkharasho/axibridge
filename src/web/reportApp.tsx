@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { ProofOfWorkModal } from '../renderer/ui/ProofOfWorkModal';
 import { SupportPlusIcon } from '../renderer/ui/SupportPlusIcon';
 import { OffenseSwordIcon } from '../renderer/ui/OffenseSwordIcon';
+import { CommanderTagIcon } from '../renderer/ui/CommanderTagIcon';
 import { Gw2ApmIcon } from '../renderer/ui/Gw2ApmIcon';
 import { Gw2AegisIcon } from '../renderer/ui/Gw2AegisIcon';
 import { Gw2BoonIcon } from '../renderer/ui/Gw2BoonIcon';
@@ -1870,7 +1871,7 @@ export function ReportApp() {
                                     {report.meta.dateLabel || 'Log Range'}
                                 </div>
                                 <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
-                                    <Users className="w-4 h-4 text-[color:var(--accent)]" />
+                                    <CommanderTagIcon className="w-4 h-4 text-[color:var(--accent)]" />
                                     <span className="truncate">
                                         {report.meta.commanders.length ? report.meta.commanders.join(', ') : 'No Commanders'}
                                     </span>

@@ -198,12 +198,14 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             squadPlayers.forEach((p: any) => {
                 if (!p.statsTargets || p.statsTargets.length === 0) return;
                 p.statsTargets.forEach((targetStats: any) => {
-                    const st = targetStats?.[0];
-                    if (!st) return;
-                    const downed = Number(st.downed || 0);
-                    const killed = Number(st.killed || 0);
-                    enemyDownsDeaths += downed + killed;
-                    enemyDeaths += killed;
+                    if (!Array.isArray(targetStats)) return;
+                    targetStats.forEach((phaseStats: any) => {
+                        if (!phaseStats) return;
+                        const downed = Number(phaseStats.downed || 0);
+                        const killed = Number(phaseStats.killed || 0);
+                        enemyDownsDeaths += downed + killed;
+                        enemyDeaths += killed;
+                    });
                 });
             });
 
@@ -2503,18 +2505,6 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     boonUptimePct: boonCount > 0 ? weightedPercent / boonCount : 0
                 };
             };
-            const getCommanderDownsDeaths = (player: any) => {
-                let downs = 0;
-                let kills = 0;
-                if (!Array.isArray(player?.statsTargets)) return { downs, kills };
-                player.statsTargets.forEach((targetStats: any) => {
-                    const st = targetStats?.[0];
-                    if (!st) return;
-                    downs += Number(st.downed || 0);
-                    kills += Number(st.killed || 0);
-                });
-                return { downs, kills };
-            };
             const asRatePerMinute = (value: number, durationMs: number) => {
                 if (!Number.isFinite(value)) return 0;
                 const minutes = Math.max(1 / 60, Number(durationMs || 0) / 60000);
@@ -2793,7 +2783,19 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 const incomingBarrierAbsorbed = Math.max(0, Number(commanderDef?.damageBarrier || 0));
                 const incomingStrips = Math.max(0, Number(commanderDef?.boonStrips || 0));
                 const incomingCC = Math.max(0, Number(commanderDef?.receivedCrowdControl || 0));
-                const { downs, kills } = getCommanderDownsDeaths(commander);
+                const summary = log?.dashboardSummary && typeof log.dashboardSummary === 'object'
+                    ? log.dashboardSummary
+                    : null;
+                const enemyTargetsPresent = Array.isArray(details?.targets)
+                    ? details.targets.some((target: any) => !target?.isFake)
+                    : false;
+                const { enemyDeaths, enemyDownsDeaths } = getFightDownsDeaths(details);
+                const kills = enemyTargetsPresent || squadPlayers.length > 0
+                    ? enemyDeaths
+                    : Math.max(0, Number(summary?.enemyDeaths || 0));
+                const downs = enemyTargetsPresent || squadPlayers.length > 0
+                    ? Math.max(0, enemyDownsDeaths - enemyDeaths)
+                    : Math.max(0, Number(summary?.enemyDowns || 0));
                 const alliesDown = squadPlayers.reduce((sum: number, p: any) => sum + Math.max(0, Number(p?.defenses?.[0]?.downCount || 0)), 0);
                 const alliesDead = squadPlayers.reduce((sum: number, p: any) => sum + Math.max(0, Number(p?.defenses?.[0]?.deadCount || 0)), 0);
                 const buffMap = details?.buffMap && typeof details?.buffMap === 'object' ? details.buffMap : {};

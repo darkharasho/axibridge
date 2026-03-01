@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Flag } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 
 type CommanderFightRow = {
     id: string;
@@ -211,7 +211,7 @@ export const CommanderStatsSection = ({
         >
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                 <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                    <Flag className="w-5 h-5 text-amber-300" />
+                    <CommanderTagIcon className="w-5 h-5 text-amber-300" />
                     Commander Stats
                 </h3>
                 <span className="text-[10px] uppercase tracking-widest text-gray-500">{rows.length} Commanders</span>
@@ -222,19 +222,19 @@ export const CommanderStatsSection = ({
             ) : (
                 <div className="space-y-5 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="w-full min-w-[860px] text-xs table-auto">
+                        <table className="w-full min-w-[900px] text-xs table-auto">
                             <thead>
                                 <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
                                     <th className="text-left py-2 px-2">Commander</th>
                                     <th className="text-right py-2 px-2">Fights</th>
-                                    <th className="text-right py-2 px-2">KDR</th>
+                                    <th className="text-right py-2 px-2">W/L</th>
+                                    <th className="text-right py-2 px-2">Win %</th>
+                                    <th className="text-right py-2 px-2">Squad KDR</th>
+                                    <th className="text-right py-2 px-2">Avg Squad</th>
+                                    <th className="text-right py-2 px-2">Avg Enemy</th>
                                     <th className="text-right py-2 px-2">Kills</th>
-                                    <th className="text-right py-2 px-2">Deaths</th>
-                                    <th className="text-right py-2 px-2">Inc. Strips / min</th>
-                                    <th className="text-right py-2 px-2">Inc. CC / min</th>
-                                    <th className="text-right py-2 px-2">DMG Taken / min</th>
-                                    <th className="text-right py-2 px-2">Barrier Absorb / min</th>
-                                    <th className="text-right py-2 px-2">Boon Uptime %</th>
+                                    <th className="text-right py-2 px-2">Downs</th>
+                                    <th className="text-right py-2 px-2">Time Tagged</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -264,14 +264,14 @@ export const CommanderStatsSection = ({
                                             </div>
                                         </td>
                                         <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.fights)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.wins)}-{formatInt(row.losses)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.winRatePct, 1)}%</td>
                                         <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.kdr, 2)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.avgSquadSize, 1)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.avgEnemySize, 1)}</td>
                                         <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.kills)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.commanderDeaths)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.incomingStripsPerMinute, 2)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.incomingCCPerMinute, 2)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.damageTakenPerMinute, 0)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.incomingBarrierAbsorbedPerMinute, 0)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.boonUptimePct, 1)}%</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.downs)}</td>
+                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatDuration(row.totalDurationMs)}</td>
                                     </tr>
                                 ))}
                             </tbody>

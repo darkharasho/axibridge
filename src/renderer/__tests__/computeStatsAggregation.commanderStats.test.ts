@@ -25,7 +25,7 @@ describe('computeStatsAggregation (commander stats)', () => {
                             activeTimes: [60_000],
                             defenses: [{ downCount: 1, deadCount: 1, damageTaken: 12_000 }],
                             dpsAll: [{ damage: 40_000 }],
-                            statsTargets: [[{ downed: 3, killed: 2 }]],
+                            statsTargets: [[{ downed: 3, killed: 2 }, { downed: 2, killed: 1 }]],
                             buffUptimes: [{ id: 1, buffData: [{ uptime: 50, presence: 50 }] }],
                             support: [{ boonStrips: 12, condiCleanse: 6 }]
                         },
@@ -36,7 +36,7 @@ describe('computeStatsAggregation (commander stats)', () => {
                             notInSquad: false,
                             defenses: [{ downCount: 2, deadCount: 2, damageTaken: 8_000 }],
                             dpsAll: [{ damage: 15_000 }],
-                            statsTargets: [[{ downed: 0, killed: 0 }]],
+                            statsTargets: [[{ downed: 2, killed: 1 }, { downed: 1, killed: 0 }]],
                             support: [{}]
                         }
                     ],
@@ -63,7 +63,7 @@ describe('computeStatsAggregation (commander stats)', () => {
                             activeTimes: [120_000],
                             defenses: [{ downCount: 0, deadCount: 0, damageTaken: 6_000 }],
                             dpsAll: [{ damage: 30_000 }],
-                            statsTargets: [[{ downed: 1, killed: 1 }]],
+                            statsTargets: [[{ downed: 1, killed: 1 }, { downed: 1, killed: 0 }]],
                             buffUptimes: [{ id: 1, buffData: [{ uptime: 100, presence: 100 }] }],
                             support: [{ boonStrips: 3, condiCleanse: 4 }]
                         },
@@ -74,7 +74,7 @@ describe('computeStatsAggregation (commander stats)', () => {
                             notInSquad: false,
                             defenses: [{ downCount: 1, deadCount: 1, damageTaken: 7_000 }],
                             dpsAll: [{ damage: 12_000 }],
-                            statsTargets: [[{ downed: 0, killed: 0 }]],
+                            statsTargets: [[{ downed: 1, killed: 2 }, { downed: 0, killed: 1 }]],
                             support: [{}]
                         }
                     ],
@@ -90,9 +90,10 @@ describe('computeStatsAggregation (commander stats)', () => {
         const row = rows[0];
         expect(row.account).toBe(commanderAccount);
         expect(row.fights).toBe(2);
-        expect(row.kills).toBe(3);
+        expect(row.kills).toBe(8);
+        expect(row.downs).toBe(11);
         expect(row.commanderDeaths).toBe(1);
-        expect(Number(row.kdr || 0)).toBeCloseTo(3, 5);
+        expect(Number(row.kdr || 0)).toBeCloseTo(8, 5);
         expect(row.alliesDown).toBe(4);
         expect(row.alliesDead).toBe(4);
         expect(Number(row.boonUptimePct || 0)).toBeCloseTo(83.333, 2);
