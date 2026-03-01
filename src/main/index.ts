@@ -2193,6 +2193,33 @@ const buildWebReportPayload = (
     return { payload, jsonBuffer, trimmedSections };
 };
 
+const hasWebReportContent = (payload: { meta?: any; stats?: any } | null | undefined) => {
+    const stats = payload?.stats;
+    if (!stats || typeof stats !== 'object') return false;
+
+    const total = Number((stats as any).total || 0);
+    if (Number.isFinite(total) && total > 0) return true;
+
+    const nonEmptyArrayKeys = [
+        'fightBreakdown',
+        'timelineData',
+        'mapData',
+        'attendanceData',
+        'offensePlayers',
+        'defensePlayers',
+        'supportPlayers',
+        'healingPlayers',
+        'boonTables',
+        'squadClassData',
+        'enemyClassData',
+        'playerSkillBreakdowns',
+        'topSkills',
+        'topIncomingSkills'
+    ];
+
+    return nonEmptyArrayKeys.some((key) => Array.isArray((stats as any)[key]) && (stats as any)[key].length > 0);
+};
+
 const getStoredPagesPath = () => normalizePagesPath(store.get('githubPagesSourcePath', '') as string);
 
 const resolvePagesSource = async (owner: string, repo: string, branch: string, token: string) => {
@@ -4331,6 +4358,9 @@ if (!gotTheLock) {
 
         ipcMain.handle('upload-web-report', async (_event, payload: { meta: any; stats: any }) => {
             try {
+                if (!hasWebReportContent(payload)) {
+                    return { success: false, error: 'Cannot upload an empty web report. Add at least one fight before publishing.' };
+                }
                 sendWebUploadStatus('Preparing', 'Validating settings...', 5);
                 const token = store.get('githubToken') as string | undefined;
                 const owner = store.get('githubRepoOwner') as string | undefined;

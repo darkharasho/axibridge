@@ -3267,6 +3267,29 @@ type SpikeFight = {
     );
 
     const renderProfessionIcon = renderProfessionIconShared;
+    const canUploadWeb = useMemo(() => {
+        const total = Number((safeStats as any).total || 0);
+        if (Number.isFinite(total) && total > 0) return true;
+
+        const nonEmptyArrayKeys = [
+            'fightBreakdown',
+            'timelineData',
+            'mapData',
+            'attendanceData',
+            'offensePlayers',
+            'defensePlayers',
+            'supportPlayers',
+            'healingPlayers',
+            'boonTables',
+            'squadClassData',
+            'enemyClassData',
+            'playerSkillBreakdowns',
+            'topSkills',
+            'topIncomingSkills'
+        ];
+
+        return nonEmptyArrayKeys.some((key) => Array.isArray((safeStats as any)[key]) && (safeStats as any)[key].length > 0);
+    }, [safeStats]);
 
     return (
         <div className={containerClass}>
@@ -3287,6 +3310,7 @@ type SpikeFight = {
                 onDevMockUpload={handleDevMockUpload}
                 uploadingWeb={uploadingWeb}
                 onWebUpload={handleWebUpload}
+                canUploadWeb={canUploadWeb}
                 sharing={sharing}
                 canShareDiscord={canShareDiscord}
                 onShare={handleShare}

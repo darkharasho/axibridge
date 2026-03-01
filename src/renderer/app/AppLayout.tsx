@@ -267,6 +267,21 @@ export function AppLayout({ ctx }: { ctx: any }) {
         : uiTheme === 'modern'
             ? 'rounded-lg border border-cyan-300/15 bg-slate-900/65 backdrop-blur-sm'
         : '';
+    const statsNavGroupShellClass = uiTheme === 'kinetic'
+        ? 'rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-input)]'
+        : 'rounded-lg border border-white/10 bg-white/[0.04]';
+    const statsNavGroupButtonStateClass = uiTheme === 'kinetic'
+        ? 'text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-hover)]'
+        : 'text-gray-200 hover:bg-white/[0.08]';
+    const statsNavGroupButtonActiveClass = uiTheme === 'kinetic'
+        ? 'bg-[color:var(--bg-hover)] text-[color:var(--text-primary)]'
+        : 'bg-white/10 text-white';
+    const statsNavEntryStateClass = uiTheme === 'kinetic'
+        ? 'text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-hover)]'
+        : 'text-gray-200 hover:bg-white/[0.08]';
+    const statsNavEntryActiveClass = uiTheme === 'kinetic'
+        ? 'bg-[color:var(--bg-hover)] text-[color:var(--text-primary)]'
+        : 'bg-white/10 text-white';
     const statsSectionVisibility = useCallback((id: string) => {
         const sectionIds = Array.isArray((activeStatsGroupDef as any)?.sectionIds)
             ? (activeStatsGroupDef as any).sectionIds
@@ -540,14 +555,14 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                             const isSwitchClosingPhase = isSwitchClosingGroup && !isOpenGroup;
                                             const disableChildFade = isClosingPhase || isSwitchClosingPhase;
                                             return (
-                                                <div key={group.id} className="rounded-lg border border-white/10 bg-white/[0.04]">
+                                                <div key={group.id} className={`stats-nav-group-shell ${statsNavGroupShellClass}`}>
                                                     <button
                                                         type="button"
                                                         onClick={() => {
                                                             if (isOpenGroup) return;
                                                             handleStatsNavItemClick(group.id, defaultGroupTarget);
                                                         }}
-                                                        className={`w-full h-9 flex items-center justify-start gap-0 pl-[21px] pr-[21px] text-left transition-[padding,gap,background-color,color] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/statsnavpanel:gap-2 group-hover/statsnavpanel:pl-3 group-hover/statsnavpanel:pr-3 ${isActiveGroup ? 'bg-white/10 text-white' : 'text-gray-200 hover:bg-white/[0.08]'}`}
+                                                        className={`stats-nav-group-button ${isActiveGroup ? 'stats-nav-group-button--active' : ''} w-full h-9 flex items-center justify-start gap-0 pl-[21px] pr-[21px] text-left transition-[padding,gap,background-color,color] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/statsnavpanel:gap-2 group-hover/statsnavpanel:pl-3 group-hover/statsnavpanel:pr-3 ${isActiveGroup ? statsNavGroupButtonActiveClass : statsNavGroupButtonStateClass}`}
                                                     >
                                                         <GroupIcon className={`w-3.5 h-3.5 text-[color:var(--accent)] shrink-0 transition-transform duration-[1050ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isStatsNavExpanded ? 'scale-110' : 'scale-100'}`} />
                                                         <span className={`stats-nav-group-label text-[11px] leading-none font-semibold uppercase tracking-[0.18em] whitespace-nowrap overflow-hidden transition-[opacity,transform,max-width] duration-[1050ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isStatsNavExpanded ? 'opacity-100 translate-x-0 max-w-[160px]' : 'opacity-0 -translate-x-2 max-w-0'}`}>{group.label}</span>
@@ -555,8 +570,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                                             <ChevronDown className="w-4 h-4 text-gray-300" />
                                                         </span>
                                                     </button>
-                                                    <div className={`${isExpanded ? 'max-h-[560px]' : 'max-h-0'} overflow-hidden transition-[max-height] ${isSwitchClosingPhase ? 'duration-[320ms]' : 'duration-[1180ms]'} ease-[cubic-bezier(0.16,1,0.3,1)]`}>
-                                                        <div className={`origin-top pt-1.5 pb-1.5 px-2 space-y-0.5 will-change-[opacity,transform] ${disableChildFade ? '' : (isSwitchClosingPhase ? 'transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]' : 'transition-[opacity,transform] duration-[1020ms] ease-[cubic-bezier(0.16,1,0.3,1)]')} ${statsSubnavItemsClass} ${showClosingContent ? 'opacity-100 translate-y-0 scale-y-100' : (isSwitchClosingPhase ? 'opacity-0 -translate-y-1 scale-y-95' : 'opacity-0 -translate-y-2 scale-y-95')}`}>
+                                                        <div className={`${isExpanded ? 'max-h-[560px]' : 'max-h-0'} overflow-hidden transition-[max-height] ${isSwitchClosingPhase ? 'duration-[320ms]' : 'duration-[1180ms]'} ease-[cubic-bezier(0.16,1,0.3,1)]`}>
+                                                        <div className={`stats-nav-subnav-shell origin-top pt-1.5 pb-1.5 px-2 space-y-0.5 will-change-[opacity,transform] ${disableChildFade ? '' : (isSwitchClosingPhase ? 'transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]' : 'transition-[opacity,transform] duration-[1020ms] ease-[cubic-bezier(0.16,1,0.3,1)]')} ${statsSubnavItemsClass} ${showClosingContent ? 'opacity-100 translate-y-0 scale-y-100' : (isSwitchClosingPhase ? 'opacity-0 -translate-y-1 scale-y-95' : 'opacity-0 -translate-y-2 scale-y-95')}`}>
                                                             {group.items.map((item, index) => {
                                                                 const ItemIcon = item.icon;
                                                                 const isActiveItem = statsActiveNavId === item.id;
@@ -570,7 +585,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleStatsNavItemClick(group.id, item.id)}
-                                                                            className={`stats-nav-entry w-full h-[34px] flex items-center text-left rounded-md transition-colors duration-150 ${isStatsNavExpanded ? 'justify-start gap-2 px-2' : 'justify-center gap-0 px-2'} ${isActiveItem ? 'bg-white/10 text-white' : 'text-gray-200 hover:bg-white/[0.08]'}`}
+                                                                            className={`stats-nav-entry ${isActiveItem ? 'stats-nav-entry--active' : ''} w-full h-[34px] flex items-center text-left rounded-md transition-colors duration-150 ${isStatsNavExpanded ? 'justify-start gap-2 px-2' : 'justify-center gap-0 px-2'} ${isActiveItem ? statsNavEntryActiveClass : statsNavEntryStateClass}`}
                                                                         >
                                                                             <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)] shrink-0" />
                                                                             <span className={`stats-nav-item-label text-xs leading-tight truncate overflow-hidden transition-[opacity,max-width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isStatsNavExpanded ? 'opacity-100 max-w-[140px] translate-x-0' : 'opacity-0 max-w-0 -translate-x-1'}`}>{item.label}</span>

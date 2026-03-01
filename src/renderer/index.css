@@ -3663,6 +3663,39 @@ body.theme-kinetic .stats-view [data-section-visible="true"] {
     animation: kinetic-section-reveal 260ms ease-out;
 }
 
+body.theme-kinetic .stats-dashboard-nav-panel {
+    background-color: var(--bg-card) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-dashboard-nav-panel {
+    background-color: #2b3148 !important;
+    border-color: rgba(230, 198, 143, 0.28) !important;
+    box-shadow: 0 10px 24px rgba(16, 20, 34, 0.36) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-nav-group-shell,
+body.theme-kinetic.theme-kinetic-dark .stats-nav-subnav-shell {
+    background-color: #343b56 !important;
+    background-image: none !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-nav-group-button {
+    background-color: transparent !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-nav-group-button:hover,
+body.theme-kinetic.theme-kinetic-dark .stats-nav-entry:hover {
+    background-color: #3c4461 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-nav-group-button--active,
+body.theme-kinetic.theme-kinetic-dark .stats-nav-entry--active {
+    background-color: #464e70 !important;
+}
+
 body.theme-kinetic .stats-nav-entry {
     border-color: var(--border-default) !important;
     min-height: 36px !important;

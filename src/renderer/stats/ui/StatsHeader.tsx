@@ -10,6 +10,7 @@ type StatsHeaderProps = {
     onDevMockUpload: () => void;
     uploadingWeb: boolean;
     onWebUpload: () => void;
+    canUploadWeb?: boolean;
     sharing: boolean;
     canShareDiscord: boolean;
     onShare: () => void;
@@ -26,11 +27,16 @@ export const StatsHeader = ({
     onDevMockUpload,
     uploadingWeb,
     onWebUpload,
+    canUploadWeb = true,
     sharing,
     canShareDiscord,
     onShare,
     actionsDisabled = false
 }: StatsHeaderProps) => {
+    const uploadDisabled = uploadingWeb || actionsDisabled || !canUploadWeb;
+    const uploadDisabledReason = actionsDisabled
+        ? 'Stats are still loading. Actions will enable when the dashboard is ready.'
+        : (!canUploadWeb ? 'Add at least one fight before uploading a web report.' : '');
     const shareDisabled = sharing || actionsDisabled || !canShareDiscord;
     const shareDisabledReason = actionsDisabled
         ? 'Stats are still loading. Actions will enable when the dashboard is ready.'
@@ -69,14 +75,22 @@ export const StatsHeader = ({
                         {devMockUploadState.uploading ? 'Building...' : 'Dev Mock Upload'}
                     </button>
                 )}
-                <button
-                    onClick={onWebUpload}
-                    disabled={uploadingWeb || actionsDisabled}
-                    className="stats-action-upload flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                >
-                    <UploadCloud className="w-4 h-4" />
-                    {uploadingWeb ? 'Uploading...' : 'Upload to Web'}
-                </button>
+                <div className="relative group" title={uploadDisabledReason}>
+                    <button
+                        onClick={onWebUpload}
+                        disabled={uploadDisabled}
+                        aria-disabled={uploadDisabled}
+                        className="stats-action-upload flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <UploadCloud className="w-4 h-4" />
+                        {uploadingWeb ? 'Uploading...' : 'Upload to Web'}
+                    </button>
+                    {!canUploadWeb && !actionsDisabled && (
+                        <div className="stats-share-tooltip pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md border border-white/10 bg-black/90 px-2 py-1 text-[11px] text-gray-200 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">
+                            Add at least one fight before uploading a web report.
+                        </div>
+                    )}
+                </div>
                 <div className="relative group" title={shareDisabledReason}>
                     <button
                         onClick={onShare}
