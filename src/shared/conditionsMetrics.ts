@@ -41,6 +41,20 @@ export const getDefaultConditionIcon = (name?: string | null) => {
     return DEFAULT_CONDITION_ICONS[name];
 };
 
+type BuffMeta = { name?: string; icon?: string; classification?: string };
+
+export const resolveBuffMetaById = (
+    buffMap: Record<string, BuffMeta> | undefined,
+    id: number | string | undefined
+): BuffMeta | undefined => {
+    if (!buffMap || id === undefined || id === null) return undefined;
+    const numericId = Number(id);
+    if (Number.isFinite(numericId)) {
+        return buffMap[`b${numericId}`] || buffMap[String(numericId)];
+    }
+    return buffMap[String(id)];
+};
+
 const getConditionName = (name?: string | null) => {
     if (!name) return null;
     const cleaned = name.trim().toLowerCase();
@@ -79,7 +93,7 @@ export const resolveConditionNameFromEntry = (
     buffMap?: Record<string, { name?: string }>
 ) => {
     if (id && buffMap) {
-        const buffName = buffMap[`b${id}`]?.name;
+        const buffName = resolveBuffMetaById(buffMap, id)?.name;
         const resolved = getConditionName(buffName);
         if (resolved) return resolved;
     }
@@ -195,9 +209,13 @@ export const computeOutgoingConditions = (payload: {
                         skillIcon = skillMap[`${entry.id}`].icon || skillIcon;
                     }
                 }
+                const buffMeta = resolveBuffMetaById(buffMap, entry.id);
+                if (skillName.startsWith('Skill ') && buffMeta?.name) {
+                    skillName = buffMeta.name;
+                    skillIcon = buffMeta.icon || skillIcon;
+                }
                 const conditionName = resolveConditionNameFromEntry(skillName, entry.id, buffMap);
                 if (!conditionName) return;
-                const buffMeta = buffMap?.[`b${entry.id}`];
                 const buffName = buffMeta?.name;
                 const conditionIcon = conditionIconMap.get(conditionName) || buffMeta?.icon;
                 const skillLabel = skillName.startsWith('Skill ')
@@ -258,7 +276,7 @@ export const computeOutgoingConditions = (payload: {
         target.buffs.forEach((buff: any) => {
             const buffId = Number(buff?.id);
             if (!Number.isFinite(buffId)) return;
-            const buffMeta = buffMap?.[`b${buffId}`];
+            const buffMeta = resolveBuffMetaById(buffMap, buffId);
             const normalizedName = getConditionName(buffMeta?.name);
             if (!normalizedName) return;
             if (buffMeta?.classification && buffMeta.classification !== 'Condition') return;

@@ -114,6 +114,10 @@ export const BoonTimelineSection = ({
         if (!best || entry.total > best.total) return entry;
         return best;
     }, null as BoonTimelineFightPoint | null);
+    const selectedFight = selectedFightIndex === null
+        ? null
+        : chartData.find((entry) => entry.index === selectedFightIndex) || null;
+    const infoFight = selectedFight || topFight;
     const formatFightTimestamp = (timestampMs: number) => {
         if (!Number.isFinite(timestampMs) || timestampMs <= 0) return '';
         try {
@@ -378,17 +382,21 @@ export const BoonTimelineSection = ({
                         </div>
                     </div>
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">Peak Fight Generation</div>
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
+                            {selectedFight ? 'Selected Fight Generation' : 'Peak Fight Generation'}
+                        </div>
                         <div className="mt-1 text-lg font-black text-cyan-200 font-mono">
-                            {formatWithCommas(Number(topFight?.total || 0) / 1000, 0)}
+                            {formatWithCommas(Number(infoFight?.total || 0) / 1000, 0)}
                         </div>
                     </div>
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">Peak Fight</div>
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
+                            {selectedFight ? 'Selected Fight' : 'Peak Fight'}
+                        </div>
                         <div className="mt-1 text-sm text-gray-200 truncate">
                             {(() => {
-                                const bestLabel = sanitizeWvwLabel(topFight?.fullLabel || 'N/A');
-                                const timeLabel = formatFightTimestamp(Number(topFight?.timestamp || 0));
+                                const bestLabel = sanitizeWvwLabel(infoFight?.fullLabel || 'N/A');
+                                const timeLabel = formatFightTimestamp(Number(infoFight?.timestamp || 0));
                                 return timeLabel ? `${timeLabel} - ${bestLabel}` : bestLabel;
                             })()}
                         </div>

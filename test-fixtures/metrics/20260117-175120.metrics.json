@@ -2,11 +2,11 @@
   "specVersion": "unknown",
   "method": "count",
   "source": "test-fixtures/boon/20260117-175120.json",
-  "generatedAt": "2026-02-04T04:40:52.221Z",
+  "generatedAt": "2026-02-27T01:45:06.444Z",
   "metrics": [
     {
       "name": "Haro Forge",
-      "account": "harasho.4281",
+      "account": "PrimeMeadow.3275",
       "profession": "Amalgam",
       "group": 5,
       "notInSquad": false,
@@ -28,7 +28,7 @@
     },
     {
       "name": "Eve Clearwater",
-      "account": "Krushito.5943",
+      "account": "ScarletSong.8904",
       "profession": "Evoker",
       "group": 7,
       "notInSquad": false,
@@ -50,7 +50,7 @@
     },
     {
       "name": "Mesmer Hatt",
-      "account": "hotep.8715",
+      "account": "NimbleHarbor.9206",
       "profession": "Troubadour",
       "group": 8,
       "notInSquad": false,

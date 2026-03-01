@@ -191,7 +191,7 @@ export function SettingsView({ onBack, onEmbedStatSettingsSaved, onOpenWhatsNew,
         if (!active) return availableWebThemes;
         return [active, ...availableWebThemes.filter((theme) => theme.id !== githubWebTheme)];
     }, [availableWebThemes, githubWebTheme]);
-    const isModernLayout = uiTheme === 'modern' || uiTheme === 'matte' || uiTheme === 'kinetic';
+    const isModernLayout = uiTheme === 'classic' || uiTheme === 'modern' || uiTheme === 'crt' || uiTheme === 'matte' || uiTheme === 'kinetic';
     const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
 
     const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());

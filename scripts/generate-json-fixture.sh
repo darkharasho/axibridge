@@ -30,5 +30,6 @@ if [[ -z "$permalink_id" ]]; then
 fi
 
 curl -sS "https://dps.report/getJson?permalink=${permalink_id}" > "$out"
+node scripts/obfuscate-accounts.mjs "$out" >/dev/null
 echo "Wrote ${out}"
 echo "Permalink id: ${permalink_id}"

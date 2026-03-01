@@ -30,8 +30,11 @@ export function useFilePicker({
     const [filePickerFilter, setFilePickerFilter] = useState('');
     const [selectSinceOpen, setSelectSinceOpen] = useState(false);
     const [selectDayOpen, setSelectDayOpen] = useState(false);
+    const [selectBetweenOpen, setSelectBetweenOpen] = useState(false);
     const [selectDayDate, setSelectDayDate] = useState<Date | null>(null);
     const [selectSinceDate, setSelectSinceDate] = useState<Date | null>(null);
+    const [selectBetweenStart, setSelectBetweenStart] = useState<string>('');
+    const [selectBetweenEnd, setSelectBetweenEnd] = useState<string>('');
     const [selectSinceView, setSelectSinceView] = useState<Date>(() => new Date());
     const [selectSinceHour, setSelectSinceHour] = useState<number>(12);
     const [selectSinceMinute, setSelectSinceMinute] = useState<number>(0);
@@ -174,6 +177,8 @@ export function useFilePicker({
         setSelectSinceOpen,
         selectDayOpen,
         setSelectDayOpen,
+        selectBetweenOpen,
+        setSelectBetweenOpen,
         selectDayDate,
         setSelectDayDate,
         setSelectSinceView,
@@ -182,6 +187,10 @@ export function useFilePicker({
         setSelectSinceMinute,
         setSelectSinceMeridiem,
         setSelectSinceMonthOpen,
+        selectBetweenStart,
+        setSelectBetweenStart,
+        selectBetweenEnd,
+        setSelectBetweenEnd,
         selectSinceDate,
         selectSinceHour,
         selectSinceMinute,

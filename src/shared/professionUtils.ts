@@ -189,10 +189,19 @@ export function getProfessionEmoji(profession: string): string {
 
 export function getProfessionIconPath(profession: string): string | null {
     if (!profession) return null;
-    const useDevRoot = typeof window !== 'undefined'
-        && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(window.location.host)
-        && window.location.pathname.startsWith('/web/');
-    const basePath = useDevRoot ? '/svg/class-icons' : './svg/class-icons';
+    let basePath = './svg/class-icons';
+    if (typeof window !== 'undefined') {
+        const host = window.location.host || '';
+        const pathName = window.location.pathname || '';
+        const useDevRoot = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host) && pathName.startsWith('/web/');
+        if (pathName.includes('/reports/')) {
+            basePath = '../../svg/class-icons';
+        } else if (pathName.includes('/web/web/')) {
+            basePath = '../svg/class-icons';
+        } else if (useDevRoot) {
+            basePath = '/svg/class-icons';
+        }
+    }
     const direct = PROFESSION_COLORS[profession] ? profession : null;
     if (direct && direct !== 'Unknown') {
         return `${basePath}/${direct}.svg`;

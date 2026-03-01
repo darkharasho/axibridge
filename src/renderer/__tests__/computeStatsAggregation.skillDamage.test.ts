@@ -2,6 +2,52 @@ import { describe, expect, it } from 'vitest';
 import { computeStatsAggregation } from '../stats/computeStatsAggregation';
 
 describe('computeStatsAggregation (skill damage source reconciliation)', () => {
+    it('uses buffMap skill names when skillMap entry is missing', () => {
+        const vampAuraId = 30285;
+        const playerKey = 'BreakN.5496|Berserker';
+        const log = {
+            status: 'success',
+            filePath: 'skill-damage-buff-fallback-test',
+            details: {
+                durationMS: 5000,
+                skillMap: {},
+                buffMap: {
+                    [`b${vampAuraId}`]: { name: 'Vampiric Aura', icon: 'https://example.invalid/vamp.png' }
+                },
+                players: [
+                    {
+                        account: 'BreakN.5496',
+                        profession: 'Berserker',
+                        notInSquad: false,
+                        dpsAll: [{ damage: 10757, dps: 2151 }],
+                        statsAll: [{ connectedDamageCount: 1 }],
+                        support: [{ resurrects: 0 }],
+                        damage1S: [[0, 100, 200, 300, 400, 500]],
+                        targetDamage1S: [[[0, 100, 200, 300, 400, 500]]],
+                        targetDamageDist: [[[
+                            { id: vampAuraId, totalDamage: 10757, connectedHits: 5, max: 3200 }
+                        ]]],
+                        totalDamageDist: [[
+                            { id: vampAuraId, totalDamage: 10757, connectedHits: 5, max: 3200 }
+                        ]]
+                    }
+                ],
+                targets: []
+            }
+        };
+
+        const { stats } = computeStatsAggregation({ logs: [log as any] });
+        const topSkill = (stats.topSkills || []).find((skill: any) => Number(skill?.damage || 0) === 10757);
+        expect(topSkill).toBeTruthy();
+        expect(String(topSkill?.name || '')).toBe('Vampiric Aura');
+
+        const playerBreakdown = (stats.playerSkillBreakdowns || []).find((entry: any) => entry.key === playerKey);
+        expect(playerBreakdown).toBeTruthy();
+        const playerSkill = (playerBreakdown.skills || []).find((skill: any) => Number(skill?.damage || 0) === 10757);
+        expect(playerSkill).toBeTruthy();
+        expect(String(playerSkill?.name || '')).toBe('Vampiric Aura');
+    });
+
     it('keeps skills that exist only in totalDamageDist when top skill source is target', () => {
         const battleMaulId = 31710;
         const arcingSliceId = 123;

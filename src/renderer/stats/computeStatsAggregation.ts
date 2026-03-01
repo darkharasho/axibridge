@@ -3,7 +3,7 @@ import { applyStabilityGeneration, getPlayerCleanses, getPlayerStrips, getPlayer
 import { Player } from '../../shared/dpsReportTypes';
 import { buildBoonTables, getPlayerBoonGenerationMs } from "../../shared/boonGeneration";
 import { DisruptionMethod, IMvpWeights, IStatsViewSettings, DEFAULT_DISRUPTION_METHOD, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS } from '../global.d';
-import { buildConditionIconMap, computeOutgoingConditions, normalizeConditionLabel, resolveConditionNameFromEntry } from '../../shared/conditionsMetrics';
+import { buildConditionIconMap, computeOutgoingConditions, normalizeConditionLabel, resolveBuffMetaById, resolveConditionNameFromEntry } from '../../shared/conditionsMetrics';
 import { OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS, NON_DAMAGING_CONDITIONS } from './statsMetrics';
 import { isResUtilitySkill, formatDurationMs } from './utils/dashboardUtils';
 import { SkillUsageLogRecord, SkillUsagePlayer, PlayerSkillDamageEntry } from './statsTypes';
@@ -872,11 +872,16 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     const mapped = details.skillMap?.[`s${entry.id}`] || details.skillMap?.[`${entry.id}`];
                     let icon = mapped?.icon;
                     if (mapped?.name) name = mapped.name;
+                    const buffMeta = resolveBuffMetaById(details.buffMap, entry.id);
+                    if (name.startsWith('Skill ') && buffMeta?.name) {
+                        name = buffMeta.name;
+                        icon = buffMeta.icon || icon;
+                    }
                     if (name.startsWith('Skill ')) {
                         const conditionName = resolveConditionNameFromEntry(name, entry.id, details.buffMap);
                         if (conditionName) {
                             name = conditionName;
-                            icon = details.buffMap?.[`b${entry.id}`]?.icon || icon;
+                            icon = buffMeta?.icon || icon;
                         }
                     }
                     return { name, icon };
@@ -990,11 +995,16 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                             const mapped = details.skillMap?.[`s${entry.id}`] || details.skillMap?.[`${entry.id}`];
                             let icon = mapped?.icon;
                             if (mapped?.name) name = mapped.name;
+                            const buffMeta = resolveBuffMetaById(details.buffMap, entry.id);
+                            if (name.startsWith('Skill ') && buffMeta?.name) {
+                                name = buffMeta.name;
+                                icon = buffMeta.icon || icon;
+                            }
                             if (name.startsWith('Skill ')) {
                                 const conditionName = resolveConditionNameFromEntry(name, entry.id, details.buffMap);
                                 if (conditionName) {
                                     name = conditionName;
-                                    icon = details.buffMap?.[`b${entry.id}`]?.icon || icon;
+                                    icon = buffMeta?.icon || icon;
                                 }
                             }
                             if (!incomingSkillDamageMap[entry.id]) incomingSkillDamageMap[entry.id] = { name, icon, damage: 0, hits: 0 };
@@ -1063,11 +1073,13 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                     let sName = `Skill ${entry.id}`;
                     const sm = details.skillMap?.[`s${entry.id}`] || details.skillMap?.[`${entry.id}`];
                     if (sm?.name) sName = sm.name;
+                    const buffMeta = resolveBuffMetaById(details.buffMap, entry.id);
+                    if (sName.startsWith('Skill ') && buffMeta?.name) sName = buffMeta.name;
                     const finalName = resolveConditionNameFromEntry(sName, entry.id, details.buffMap);
                     if (!finalName) return;
-                    const buffName = details.buffMap?.[`b${entry.id}`]?.name;
-                    const conditionIcon = conditionIconMap.get(finalName) || details.buffMap?.[`b${entry.id}`]?.icon;
-                    const skillIcon = sm?.icon || conditionIcon;
+                    const buffName = buffMeta?.name;
+                    const conditionIcon = conditionIconMap.get(finalName) || buffMeta?.icon;
+                    const skillIcon = sm?.icon || buffMeta?.icon || conditionIcon;
                     if (sName.startsWith('Skill ') && (buffName || finalName)) {
                         sName = buffName || finalName;
                     }

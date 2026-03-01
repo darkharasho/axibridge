@@ -2,11 +2,11 @@
   "specVersion": "unknown",
   "method": "count",
   "source": "test-fixtures/boon/20260125-202439.json",
-  "generatedAt": "2026-02-04T04:40:52.702Z",
+  "generatedAt": "2026-02-27T01:45:06.873Z",
   "metrics": [
     {
       "name": "El Stan",
-      "account": "Stan.9684",
+      "account": "CrimsonWisp.1941",
       "profession": "Tempest",
       "group": 1,
       "notInSquad": false,
@@ -28,7 +28,7 @@
     },
     {
       "name": "Grimm O Tree",
-      "account": "Grimmster.6924",
+      "account": "SwiftEmber.8460",
       "profession": "Reaper",
       "group": 1,
       "notInSquad": false,
@@ -50,7 +50,7 @@
     },
     {
       "name": "Möxî",
-      "account": "moxic.6038",
+      "account": "EmberFalcon.8270",
       "profession": "Scourge",
       "group": 1,
       "notInSquad": false,
@@ -72,7 +72,7 @@
     },
     {
       "name": "Revan Malice",
-      "account": "Revan Malise.5107",
+      "account": "VelvetDrift.5549",
       "profession": "Luminary",
       "group": 1,
       "notInSquad": false,
@@ -94,7 +94,7 @@
     },
     {
       "name": "Valentino Graves",
-      "account": "VincentCross.1469",
+      "account": "RoyalFalcon.5152",
       "profession": "Firebrand",
       "group": 1,
       "notInSquad": false,
@@ -116,7 +116,7 @@
     },
     {
       "name": "Airtight Undies",
-      "account": "undiee.3146",
+      "account": "VerdantRune.4339",
       "profession": "Catalyst",
       "group": 2,
       "notInSquad": false,
@@ -138,7 +138,7 @@
     },
     {
       "name": "Haro Forge",
-      "account": "harasho.4281",
+      "account": "GildedBloom.1887",
       "profession": "Amalgam",
       "group": 2,
       "notInSquad": false,
@@ -160,7 +160,7 @@
     },
     {
       "name": "Momma Miko",
-      "account": "Shanhana Miko.8702",
+      "account": "SwiftShore.8351",
       "profession": "Luminary",
       "group": 2,
       "notInSquad": false,
@@ -182,7 +182,7 @@
     },
     {
       "name": "Momma Miko",
-      "account": "Shanhana Miko.8702",
+      "account": "SwiftShore.8351",
       "profession": "Luminary",
       "group": 2,
       "notInSquad": false,
@@ -204,7 +204,7 @@
     },
     {
       "name": "Mr Pinguino V",
-      "account": "pinguinox.9528",
+      "account": "ShadedArrow.4139",
       "profession": "Scrapper",
       "group": 2,
       "notInSquad": false,
@@ -226,7 +226,7 @@
     },
     {
       "name": "Mr Pinguino V",
-      "account": "pinguinox.9528",
+      "account": "ShadedArrow.4139",
       "profession": "Scrapper",
       "group": 2,
       "notInSquad": false,
@@ -248,7 +248,7 @@
     },
     {
       "name": "Primordial Deity",
-      "account": "Vettexl.9726",
+      "account": "LivelySpark.8205",
       "profession": "Luminary",
       "group": 2,
       "notInSquad": false,
@@ -270,7 +270,7 @@
     },
     {
       "name": "Ziet The Dreaded",
-      "account": "Zietlogik.6208",
+      "account": "IronComet.1257",
       "profession": "Reaper",
       "group": 2,
       "notInSquad": false,
@@ -292,7 +292,7 @@
     },
     {
       "name": "Momma Miko",
-      "account": "Shanhana Miko.8702",
+      "account": "SwiftShore.8351",
       "profession": "Luminary",
       "group": 3,
       "notInSquad": false,
@@ -314,7 +314,7 @@
     },
     {
       "name": "Mr Pinguino V",
-      "account": "pinguinox.9528",
+      "account": "ShadedArrow.4139",
       "profession": "Scrapper",
       "group": 3,
       "notInSquad": false,
@@ -336,7 +336,7 @@
     },
     {
       "name": "Wag Toof",
-      "account": "Wag Z.8294",
+      "account": "SolarSong.3201",
       "profession": "Catalyst",
       "group": 3,
       "notInSquad": false,

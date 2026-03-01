@@ -117,7 +117,7 @@ describe('App first-time walkthrough', () => {
         await waitFor(() => {
             expect(screen.queryByText('Welcome to ArcBridge')).not.toBeInTheDocument();
         });
-        expect(await screen.findByText('Help & Updates')).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: 'Help & Updates' })).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: 'How To' }));
         expect(await screen.findByText('Feature and workflow reference')).toBeInTheDocument();
@@ -142,12 +142,12 @@ describe('App first-time walkthrough', () => {
 
         expect(await screen.findByText('Welcome to ArcBridge')).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: 'Learn More' }));
-        expect(await screen.findByText('Help & Updates')).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: 'Help & Updates' })).toBeInTheDocument();
         expect(scrollToSpy).toHaveBeenCalledTimes(1);
 
         await user.click(screen.getByTitle('Dashboard'));
         await user.click(screen.getByTitle('Settings'));
-        expect(await screen.findByText('Help & Updates')).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: 'Help & Updates' })).toBeInTheDocument();
         expect(scrollToSpy).toHaveBeenCalledTimes(1);
     });
 });

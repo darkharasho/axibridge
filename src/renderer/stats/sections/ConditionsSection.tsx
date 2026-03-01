@@ -61,17 +61,6 @@ export const ConditionsSection = ({
     const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: 'all', dir: 'desc' });
     const resolveApplications = (condition: any) => {
         if (!condition) return 0;
-        if (conditionDirection !== 'outgoing') {
-            const fromUptime = Number(condition.applicationsFromUptime);
-            if (Number.isFinite(fromUptime) && fromUptime > 0) {
-                return fromUptime;
-            }
-            return Number(condition.applications || 0);
-        }
-        const fromUptime = Number(condition.applicationsFromUptime);
-        if (Number.isFinite(fromUptime) && fromUptime > 0) {
-            return fromUptime;
-        }
         const fromBuffsActive = Number(condition.applicationsFromBuffsActive);
         if (Number.isFinite(fromBuffsActive) && fromBuffsActive > 0) {
             return fromBuffsActive;

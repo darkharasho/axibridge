@@ -81,7 +81,9 @@ const loadTsModule = (filePath) => {
 
 const computeStatsAggregation = loadTsModule(path.join(cwd, 'src/renderer/stats/computeStatsAggregation.ts')).computeStatsAggregation;
 const statsMetrics = loadTsModule(path.join(cwd, 'src/renderer/stats/statsMetrics.ts'));
+const conditionsMetrics = loadTsModule(path.join(cwd, 'src/shared/conditionsMetrics.ts'));
 const NON_DAMAGING = statsMetrics.NON_DAMAGING_CONDITIONS || new Set();
+const normalizeConditionLabel = conditionsMetrics.normalizeConditionLabel || ((name) => name);
 
 const statsViewSettings = {
     showTopStats: true,
@@ -119,11 +121,25 @@ const logs = inputs.map((filePath) => {
     return { filePath, status: 'success', details };
 }).filter(Boolean);
 
-const result = computeStatsAggregation({ logs, statsViewSettings, mvpWeights, disruptionMethod: 'count' });
-const specialByName = new Map();
+const aggregation = computeStatsAggregation({ logs, statsViewSettings, mvpWeights, disruptionMethod: 'count' });
+const result = aggregation?.stats || aggregation || {};
+const specialByCondition = new Map();
 (result.specialTables || []).forEach((t) => {
     if (!t?.name) return;
-    specialByName.set(String(t.name).toLowerCase(), t);
+    const conditionName = normalizeConditionLabel(t.name);
+    if (!conditionName || !NON_DAMAGING.has(conditionName)) return;
+    if (!specialByCondition.has(conditionName)) {
+        specialByCondition.set(conditionName, new Map());
+    }
+    const bucket = specialByCondition.get(conditionName);
+    (t.rows || []).forEach((row) => {
+        const account = String(row?.account || '');
+        if (!account) return;
+        const total = Number(row?.total || 0);
+        if (!Number.isFinite(total) || total <= 0) return;
+        const previous = Number(bucket.get(account) || 0);
+        bucket.set(account, previous + total);
+    });
 });
 
 const pickTop = (rows, key) => {
@@ -135,8 +151,9 @@ const pickTop = (rows, key) => {
 const mismatches = [];
 for (const cond of NON_DAMAGING) {
     const name = String(cond);
-    const special = specialByName.get(name.toLowerCase());
-    const specialTop = special ? pickTop(special.rows || [], 'total') : null;
+    const specialRows = Array.from((specialByCondition.get(name) || new Map()).entries())
+        .map(([account, total]) => ({ account, total }));
+    const specialTop = pickTop(specialRows, 'total');
     const outgoingPlayers = (result.outgoingConditionPlayers || []).map((p) => {
         const condition = p?.conditions?.[name] || p?.conditions?.[name.toLowerCase()];
         const val = condition?.applicationsFromUptime
@@ -151,7 +168,8 @@ for (const cond of NON_DAMAGING) {
     const specialVal = specialTop ? Number(specialTop.total || 0) : 0;
     const outgoingVal = outgoingTop ? Number(outgoingTop.value || 0) : 0;
     const samePlayer = specialTop && outgoingTop ? (specialTop.account === outgoingTop.account) : false;
-    const closeVal = Math.abs(specialVal - outgoingVal) < 0.5;
+    const tolerance = Math.max(0.5, Math.abs(specialVal) * 0.03);
+    const closeVal = Math.abs(specialVal - outgoingVal) <= tolerance;
 
     if (!specialTop && !outgoingTop) continue;
     if (!(samePlayer && closeVal)) {

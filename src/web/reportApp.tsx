@@ -159,6 +159,17 @@ const resolveUiThemeFromOverride = (themeIdOverride: string | null, fallback: Ui
     return fallback === 'modern' || fallback === 'classic' ? fallback : 'classic';
 };
 
+const readStoredThemeId = (value: unknown): string | null => {
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim();
+    return normalized ? normalized : null;
+};
+
+const isLegacyKineticReport = (stats: any): boolean => (
+    stats?.uiTheme === 'kinetic'
+    && !readStoredThemeId(stats?.webThemeId)
+);
+
 const formatLocalRange = (start: string, end: string) => {
     try {
         const startDate = new Date(start);
@@ -904,8 +915,11 @@ export function ReportApp() {
                     } else if (normalized?.stats?.webThemeId === KINETIC_WEB_THEME_ID || normalized?.stats?.webThemeId === KINETIC_DARK_WEB_THEME_ID) {
                         setDefaultUiTheme('kinetic');
                     }
-                    if (typeof normalized?.stats?.webThemeId === 'string' && normalized.stats.webThemeId) {
-                        setDefaultThemeId(normalized.stats.webThemeId);
+                    const storedThemeId = readStoredThemeId(normalized?.stats?.webThemeId);
+                    if (storedThemeId) {
+                        setDefaultThemeId(storedThemeId);
+                    } else if (isLegacyKineticReport(normalized?.stats)) {
+                        setDefaultThemeId(KINETIC_DARK_WEB_THEME_ID);
                     }
                 }
             })
@@ -943,9 +957,13 @@ export function ReportApp() {
 
     useEffect(() => {
         if (themeIdOverride) return;
-        const requestedThemeId = report?.stats?.webThemeId;
-        if (typeof requestedThemeId === 'string' && requestedThemeId) {
+        const requestedThemeId = readStoredThemeId(report?.stats?.webThemeId);
+        if (requestedThemeId) {
             setDefaultThemeId(requestedThemeId);
+            return;
+        }
+        if (isLegacyKineticReport(report?.stats)) {
+            setDefaultThemeId(KINETIC_DARK_WEB_THEME_ID);
         }
     }, [report, themeIdOverride]);
 
@@ -967,6 +985,7 @@ export function ReportApp() {
     useEffect(() => {
         if (themeIdOverride) return;
         if (isDevLocalWeb && report?.stats?.webThemeId) return;
+        if (isLegacyKineticReport(report?.stats)) return;
         let isMounted = true;
         fetch(joinAssetPath(assetBasePath, 'theme.json'), { cache: 'no-store' })
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
@@ -1617,7 +1636,7 @@ export function ReportApp() {
                                 Back to Reports
                             </a>
                         </div>
-                        <nav className="px-3 pb-6 space-y-3 text-sm overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
+                        <nav className="px-3 pb-6 space-y-2 text-sm overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
                                 const isActive = group.id === activeGroup;
@@ -1629,7 +1648,7 @@ export function ReportApp() {
                                         key={group.id}
                                         layout="position"
                                         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                                        className="space-y-2"
+                                        className="space-y-1"
                                     >
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
@@ -1717,7 +1736,7 @@ export function ReportApp() {
                                 </div>
                             </div>
                         </div>
-                        <nav className="px-4 space-y-4 text-sm flex-1 overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
+                        <nav className="px-4 space-y-2 text-sm flex-1 overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
                                 const isActive = group.id === activeGroup;
@@ -1729,7 +1748,7 @@ export function ReportApp() {
                                         key={group.id}
                                         layout="position"
                                         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                                        className="space-y-2"
+                                        className="space-y-1"
                                     >
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}

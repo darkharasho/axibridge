@@ -2286,6 +2286,25 @@ body:not(.web-report) .modal-pane .dense-table__scroll::-webkit-scrollbar-track:
     border: 0;
 }
 
+/* Fight Breakdown fullscreen uses a very wide table; keep native horizontal
+   scrollbar visible in addition to the scrubber for discoverability. */
+body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-table__scroll {
+    overflow-x: auto;
+}
+
+body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-table__scroll::-webkit-scrollbar:horizontal {
+    height: 10px !important;
+}
+
+body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-table__scroll::-webkit-scrollbar-track:horizontal {
+    background: rgba(15, 23, 42, 0.45);
+}
+
+body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-table__scroll::-webkit-scrollbar-thumb:horizontal {
+    background: rgba(148, 163, 184, 0.55);
+    border-radius: 9999px;
+}
+
 .dense-table__grid {
     display: grid;
     align-items: stretch;
@@ -3231,6 +3250,56 @@ body.web-report.theme-matte .stats-view .fight-comp-class-icon--squad {
     box-shadow: none !important;
     background: transparent !important;
     border-color: transparent !important;
+}
+
+.stats-view .fight-comp-result-badge {
+    font-weight: 700;
+}
+
+.stats-view .fight-comp-result-badge--win {
+    border-color: rgba(74, 222, 128, 0.6);
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #bbf7d0;
+}
+
+.stats-view .fight-comp-result-badge--loss {
+    border-color: rgba(248, 113, 113, 0.6);
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #fecaca;
+}
+
+.stats-view .fight-comp-result-badge--unknown {
+    border-color: rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #9ca3af;
+}
+
+body.theme-kinetic .stats-view .fight-comp-result-badge--win,
+body.web-report.theme-kinetic .stats-view .fight-comp-result-badge--win {
+    border-color: rgba(92, 126, 101, 0.44) !important;
+    background-color: rgba(109, 130, 109, 0.2) !important;
+    color: #4a614d !important;
+}
+
+body.theme-kinetic .stats-view .fight-comp-result-badge--loss,
+body.web-report.theme-kinetic .stats-view .fight-comp-result-badge--loss {
+    border-color: rgba(138, 102, 96, 0.44) !important;
+    background-color: rgba(145, 109, 102, 0.2) !important;
+    color: #6d4f4a !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .fight-comp-result-badge--win,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .fight-comp-result-badge--win {
+    border-color: rgba(120, 150, 126, 0.42) !important;
+    background-color: rgba(84, 109, 88, 0.22) !important;
+    color: #d7e6d9 !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark .stats-view .fight-comp-result-badge--loss,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .fight-comp-result-badge--loss {
+    border-color: rgba(156, 120, 114, 0.42) !important;
+    background-color: rgba(118, 90, 86, 0.22) !important;
+    color: #ecd8d5 !important;
 }
 
 /* =========================================
@@ -6410,12 +6479,7 @@ body.theme-kinetic .app-shell .recent-activity-status-badge[data-status="success
     border-radius: 0.82rem;
     pointer-events: auto;
     z-index: 24;
-    background:
-        radial-gradient(125% 105% at 50% 50%, rgba(8, 26, 47, 0.30) 0%, rgba(8, 26, 47, 0.18) 58%, rgba(8, 26, 47, 0.06) 78%, rgba(8, 26, 47, 0) 100%);
-    backdrop-filter: blur(9px) saturate(0.9);
-    -webkit-backdrop-filter: blur(9px) saturate(0.9);
-    -webkit-mask-image: radial-gradient(130% 112% at 50% 50%, rgba(0, 0, 0, 1) 57%, rgba(0, 0, 0, 0.88) 68%, rgba(0, 0, 0, 0.34) 84%, rgba(0, 0, 0, 0) 100%);
-    mask-image: radial-gradient(130% 112% at 50% 50%, rgba(0, 0, 0, 1) 57%, rgba(0, 0, 0, 0.88) 68%, rgba(0, 0, 0, 0.34) 84%, rgba(0, 0, 0, 0) 100%);
+    background: transparent;
 }
 
 .stats-dashboard-scroll-lock {
@@ -6443,6 +6507,18 @@ body.theme-kinetic .app-shell .recent-activity-status-badge[data-status="success
     height: 0 !important;
 }
 
+body.stats-dashboard-loading .stats-dashboard-nav-panel {
+    filter: blur(3px) saturate(0.9);
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+body.stats-dashboard-loading #stats-dashboard-container {
+    filter: blur(3px) saturate(0.9);
+    opacity: 0.7;
+    pointer-events: none;
+}
+
 body.theme-kinetic .app-shell .stats-settling-banner {
     border-color: var(--accent-border) !important;
     background-color: color-mix(in srgb, var(--accent-bg-strong) 75%, var(--bg-card)) !important;
@@ -6463,6 +6539,12 @@ body.theme-kinetic .app-shell .stats-settling-banner__track {
 
 body.theme-kinetic .app-shell .stats-settling-banner__bar {
     background-color: color-mix(in srgb, var(--accent-border) 75%, #d6aa68) !important;
+}
+
+body.theme-kinetic .app-shell .stats-settling-banner__joke,
+body.web-report.theme-kinetic .stats-settling-banner__joke {
+    font-size: 0.84rem !important;
+    line-height: 1.35 !important;
 }
 
 body.theme-kinetic .app-shell .stats-dashboard-loading-overlay {

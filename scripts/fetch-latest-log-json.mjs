@@ -4,6 +4,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import axios from 'axios';
 import FormData from 'form-data';
 
@@ -217,6 +218,15 @@ if (typeof jsonBody !== 'string') {
 }
 
 await fsp.writeFile(finalOutPath, jsonBody);
+
+const obfuscateScript = path.join(path.dirname(fileURLToPath(import.meta.url)), 'obfuscate-accounts.mjs');
+const obfuscateResult = spawnSync(process.execPath, [obfuscateScript, finalOutPath], { stdio: 'pipe' });
+if (obfuscateResult.status !== 0) {
+    const stderr = (obfuscateResult.stderr || '').toString().trim();
+    console.error('Failed to obfuscate account names in generated fixture JSON.');
+    if (stderr) console.error(stderr);
+    process.exit(1);
+}
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptPath);

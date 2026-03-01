@@ -362,6 +362,8 @@ const DEV_DATASET_TEMP_PREFIX = '.tmp-';
 const DEV_DATASET_STATUS_FILE = 'status.json';
 const DEV_DATASET_INTEGRITY_FILE = 'integrity.json';
 const DEV_DATASET_INTEGRITY_SCHEMA_VERSION = 1;
+const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
+const MAX_GITHUB_REPORT_JSON_BYTES = 32 * 1024 * 1024;
 
 const getDevDatasetFolderName = (id: string, name: string) => `${id}-${sanitizeDevDatasetName(name).replace(/\s+/g, '-').toLowerCase()}`;
 const getDevDatasetTempFolderName = (folderName: string) => `${DEV_DATASET_TEMP_PREFIX}${folderName}`;
@@ -1863,13 +1865,18 @@ const getGithubPagesLatestBuild = async (owner: string, repo: string, token: str
     return resp.data;
 };
 
-const createGithubBlob = async (owner: string, repo: string, token: string, contentBase64: string) => {
+const createGithubBlob = async (owner: string, repo: string, token: string, contentBase64: string, blobPath?: string) => {
     const resp = await githubApiRequest('POST', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/git/blobs`, token, {
         content: contentBase64,
         encoding: 'base64'
     });
     if (resp.status >= 300) {
-        throw new Error(`GitHub API error (${resp.status}) creating blob`);
+        const detail = typeof resp.data?.message === 'string' ? resp.data.message : 'Unknown error';
+        const target = blobPath ? ` for ${blobPath}` : '';
+        const err = new Error(`GitHub API error (${resp.status}) creating blob${target}: ${detail}`);
+        (err as any).status = resp.status;
+        (err as any).data = resp.data;
+        throw err;
     }
     return resp.data;
 };
@@ -2079,6 +2086,96 @@ const withPagesPath = (pagesPath: string, repoPath: string) => {
     return `${pagesPath}/${repoPath}`.replace(/\/{2,}/g, '/');
 };
 
+const formatBytes = (value: number) => {
+    if (!Number.isFinite(value) || value < 1024) {
+        return `${Math.max(0, Math.round(value || 0))} B`;
+    }
+    const units = ['KB', 'MB', 'GB'];
+    let size = value;
+    let unitIndex = -1;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex += 1;
+    }
+    return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
+
+const buildWebReportPayload = (
+    reportMeta: any,
+    sourceStats: any,
+    uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic',
+    webThemeId: string
+) => {
+    const payload = {
+        meta: { ...(reportMeta || {}) },
+        stats: {
+            ...(sourceStats || {}),
+            uiTheme: uiThemeValue,
+            webThemeId
+        } as Record<string, any>
+    };
+
+    const serialize = () => Buffer.from(JSON.stringify(payload), 'utf8');
+    let jsonBuffer = serialize();
+    if (jsonBuffer.length <= MAX_GITHUB_REPORT_JSON_BYTES) {
+        return { payload, jsonBuffer, trimmedSections: [] as string[] };
+    }
+
+    const stats = payload.stats as Record<string, any>;
+    const trimmedSections: string[] = [];
+    const clearArray = (target: any, key: string) => {
+        if (!target || typeof target !== 'object' || !Array.isArray(target[key]) || target[key].length === 0) {
+            return false;
+        }
+        target[key] = [];
+        return true;
+    };
+
+    const trimSteps: Array<{ label: string; apply: () => boolean }> = [
+        { label: 'skillUsageData.logRecords', apply: () => clearArray(stats.skillUsageData, 'logRecords') },
+        { label: 'playerSkillBreakdowns', apply: () => clearArray(stats, 'playerSkillBreakdowns') },
+        { label: 'boonTimeline', apply: () => clearArray(stats, 'boonTimeline') },
+        { label: 'boonUptimeTimeline', apply: () => clearArray(stats, 'boonUptimeTimeline') },
+        { label: 'specialTables', apply: () => clearArray(stats, 'specialTables') },
+        { label: 'fightDiffMode', apply: () => clearArray(stats, 'fightDiffMode') },
+        { label: 'outgoingConditionPlayers', apply: () => clearArray(stats, 'outgoingConditionPlayers') },
+        { label: 'incomingConditionPlayers', apply: () => clearArray(stats, 'incomingConditionPlayers') },
+        { label: 'skillUsageData.players', apply: () => clearArray(stats.skillUsageData, 'players') },
+        { label: 'skillUsageData.skillOptions', apply: () => clearArray(stats.skillUsageData, 'skillOptions') },
+        { label: 'topSkills', apply: () => clearArray(stats, 'topSkills') },
+        { label: 'topIncomingSkills', apply: () => clearArray(stats, 'topIncomingSkills') },
+        { label: 'topSkillsByDamage', apply: () => clearArray(stats, 'topSkillsByDamage') },
+        { label: 'topSkillsByDownContribution', apply: () => clearArray(stats, 'topSkillsByDownContribution') },
+        { label: 'fightBreakdown', apply: () => clearArray(stats, 'fightBreakdown') },
+        { label: 'timelineData', apply: () => clearArray(stats, 'timelineData') },
+        { label: 'squadCompByFight', apply: () => clearArray(stats, 'squadCompByFight') }
+    ];
+
+    for (const step of trimSteps) {
+        if (!step.apply()) continue;
+        trimmedSections.push(step.label);
+        jsonBuffer = serialize();
+        if (jsonBuffer.length <= MAX_GITHUB_REPORT_JSON_BYTES) break;
+    }
+
+    if (trimmedSections.length > 0) {
+        payload.meta = {
+            ...payload.meta,
+            trimmedSections
+        };
+        jsonBuffer = serialize();
+    }
+
+    if (jsonBuffer.length > MAX_GITHUB_REPORT_JSON_BYTES) {
+        throw new Error(
+            `Report payload too large for GitHub upload after trimming (${formatBytes(jsonBuffer.length)}). ` +
+            `Limit is ${formatBytes(MAX_GITHUB_REPORT_JSON_BYTES)}.`
+        );
+    }
+
+    return { payload, jsonBuffer, trimmedSections };
+};
+
 const getStoredPagesPath = () => normalizePagesPath(store.get('githubPagesSourcePath', '') as string);
 
 const resolvePagesSource = async (owner: string, repo: string, branch: string, token: string) => {
@@ -2098,6 +2195,9 @@ const collectFiles = (dir: string) => {
             if (entry.isDirectory()) {
                 walk(absPath);
             } else {
+                if (entry.name.startsWith('.')) return;
+                if (entry.name.endsWith('~')) return;
+                if (/\.(kra|psd|xcf)$/i.test(entry.name)) return;
                 result.push({ absPath, relPath });
             }
         });
@@ -2730,6 +2830,14 @@ if (!gotTheLock) {
         if (store.has('logs')) {
             console.log('[Main] Clearing persistent logs to improve startup time.');
             store.delete('logs');
+        }
+        // Retry queue references specific log files from prior sessions. Since logs are
+        // intentionally non-persistent, clear retry queue state on boot as well.
+        if (store.has(UPLOAD_RETRY_QUEUE_KEY) || store.has(UPLOAD_RETRY_STATE_KEY)) {
+            console.log('[Main] Clearing persistent upload retry queue state.');
+            store.delete(UPLOAD_RETRY_QUEUE_KEY);
+            store.delete(UPLOAD_RETRY_STATE_KEY);
+            resolvedRetryCount = 0;
         }
 
         // Removed get-logs and save-logs handlers
@@ -3772,7 +3880,7 @@ if (!gotTheLock) {
                     ? existingIndex.filter((entry: any) => !ids.includes(entry?.id))
                     : [];
                 const indexContent = Buffer.from(JSON.stringify(filteredIndex, null, 2)).toString('base64');
-                const indexBlob = await createGithubBlob(owner, repo, token, indexContent);
+                const indexBlob = await createGithubBlob(owner, repo, token, indexContent, withPagesPath(pagesPath, 'reports/index.json'));
 
                 const commitEntries = [
                     ...deleteEntries,
@@ -3919,6 +4027,12 @@ if (!gotTheLock) {
 
                 const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
                 const queueFile = (repoPath: string, content: Buffer) => {
+                    if (content.length > MAX_GITHUB_BLOB_BYTES) {
+                        throw new Error(
+                            `File too large for GitHub upload: ${repoPath} (${formatBytes(content.length)}). ` +
+                            `Limit is ${formatBytes(MAX_GITHUB_BLOB_BYTES)} per file.`
+                        );
+                    }
                     const blobSha = computeGitBlobSha(content);
                     const existingSha = treeMap.get(repoPath);
                     if (existingSha && existingSha === blobSha) return;
@@ -3947,7 +4061,7 @@ if (!gotTheLock) {
 
                 const blobEntries: Array<{ path: string; sha: string }> = [];
                 for (const entry of pendingEntries) {
-                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64);
+                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64, entry.path);
                     blobEntries.push({ path: entry.path, sha: blob.sha });
                 }
 
@@ -4007,6 +4121,12 @@ if (!gotTheLock) {
 
                 const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
                 const queueFile = (repoPath: string, content: Buffer) => {
+                    if (content.length > MAX_GITHUB_BLOB_BYTES) {
+                        throw new Error(
+                            `File too large for GitHub upload: ${repoPath} (${formatBytes(content.length)}). ` +
+                            `Limit is ${formatBytes(MAX_GITHUB_BLOB_BYTES)} per file.`
+                        );
+                    }
                     const blobSha = computeGitBlobSha(content);
                     const existingSha = treeMap.get(repoPath);
                     if (existingSha && existingSha === blobSha) return;
@@ -4028,7 +4148,7 @@ if (!gotTheLock) {
 
                 const blobEntries: Array<{ path: string; sha: string }> = [];
                 for (const entry of pendingEntries) {
-                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64);
+                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64, entry.path);
                     blobEntries.push({ path: entry.path, sha: blob.sha });
                 }
 
@@ -4117,6 +4237,12 @@ if (!gotTheLock) {
 
                 const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
                 const queueFile = (repoPath: string, content: Buffer) => {
+                    if (content.length > MAX_GITHUB_BLOB_BYTES) {
+                        throw new Error(
+                            `File too large for GitHub upload: ${repoPath} (${formatBytes(content.length)}). ` +
+                            `Limit is ${formatBytes(MAX_GITHUB_BLOB_BYTES)} per file.`
+                        );
+                    }
                     const blobSha = computeGitBlobSha(content);
                     const existingSha = treeMap.get(repoPath);
                     if (existingSha && existingSha === blobSha) return;
@@ -4144,7 +4270,7 @@ if (!gotTheLock) {
                 sendGithubThemeStatus('Uploading', 'Uploading theme updates...', 70);
                 const blobEntries: Array<{ path: string; sha: string }> = [];
                 for (const entry of pendingEntries) {
-                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64);
+                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64, entry.path);
                     blobEntries.push({ path: entry.path, sha: blob.sha });
                 }
 
@@ -4246,20 +4372,25 @@ if (!gotTheLock) {
                             : requestedThemeId));
                 const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
                 const uiThemeValue = resolveWebUiThemeChoice(uiTheme, selectedTheme?.id);
-                const reportPayload = {
-                    meta: reportMeta,
-                    stats: {
-                        ...(payload.stats || {}),
-                        uiTheme: uiThemeValue,
-                        webThemeId: selectedTheme?.id || DEFAULT_WEB_THEME_ID
-                    }
-                };
+                const builtReport = buildWebReportPayload(
+                    reportMeta,
+                    payload.stats || {},
+                    uiThemeValue,
+                    selectedTheme?.id || DEFAULT_WEB_THEME_ID
+                );
+                const reportPayload = builtReport.payload;
 
                 sendWebUploadStatus('Packaging', 'Preparing report bundle...', 40);
                 const stagingRoot = path.join(app.getPath('userData'), 'web-report-staging', reportMeta.id);
                 fs.rmSync(stagingRoot, { recursive: true, force: true });
                 fs.mkdirSync(stagingRoot, { recursive: true });
-                fs.writeFileSync(path.join(stagingRoot, 'report.json'), JSON.stringify(reportPayload, null, 2));
+                if (builtReport.trimmedSections.length > 0) {
+                    console.warn(
+                        `[Main] Web report ${reportMeta.id} trimmed for GitHub upload: ${builtReport.trimmedSections.join(', ')} ` +
+                        `(${formatBytes(builtReport.jsonBuffer.length)})`
+                    );
+                }
+                fs.writeFileSync(path.join(stagingRoot, 'report.json'), builtReport.jsonBuffer);
                 const redirectHtml = `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -4412,7 +4543,7 @@ if (!gotTheLock) {
                 sendWebUploadStatus('Uploading', 'Uploading changes...', 75);
                 const blobEntries: Array<{ path: string; sha: string }> = [];
                 for (const entry of pendingEntries) {
-                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64);
+                    const blob = await createGithubBlob(owner, repo, token, entry.contentBase64, entry.path);
                     blobEntries.push({ path: entry.path, sha: blob.sha });
                 }
 
@@ -4495,20 +4626,19 @@ if (!gotTheLock) {
                             : requestedThemeId));
                 const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
                 const uiThemeValue = resolveWebUiThemeChoice(uiTheme, selectedTheme?.id);
-                const reportPayload = {
-                    meta: reportMeta,
-                    stats: {
-                        ...(payload.stats || {}),
-                        uiTheme: uiThemeValue,
-                        webThemeId: selectedTheme?.id || DEFAULT_WEB_THEME_ID
-                    }
-                };
+                const builtReport = buildWebReportPayload(
+                    reportMeta,
+                    payload.stats || {},
+                    uiThemeValue,
+                    selectedTheme?.id || DEFAULT_WEB_THEME_ID
+                );
+                const reportPayload = builtReport.payload;
                 const reportsRoot = path.join(webRoot, 'reports');
                 const reportDir = path.join(reportsRoot, reportMeta.id);
                 fs.mkdirSync(reportDir, { recursive: true });
                 fs.mkdirSync(devRoot, { recursive: true });
-                fs.writeFileSync(path.join(devRoot, 'report.json'), JSON.stringify(reportPayload, null, 2));
-                fs.writeFileSync(path.join(reportDir, 'report.json'), JSON.stringify(reportPayload, null, 2));
+                fs.writeFileSync(path.join(devRoot, 'report.json'), builtReport.jsonBuffer);
+                fs.writeFileSync(path.join(reportDir, 'report.json'), builtReport.jsonBuffer);
                 if (selectedTheme) {
                     const themePayload = JSON.stringify(selectedTheme, null, 2);
                     fs.writeFileSync(path.join(webRoot, 'theme.json'), themePayload);

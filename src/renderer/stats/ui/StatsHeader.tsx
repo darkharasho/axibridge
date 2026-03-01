@@ -13,6 +13,7 @@ type StatsHeaderProps = {
     sharing: boolean;
     canShareDiscord: boolean;
     onShare: () => void;
+    actionsDisabled?: boolean;
 };
 
 export const StatsHeader = ({
@@ -27,10 +28,13 @@ export const StatsHeader = ({
     onWebUpload,
     sharing,
     canShareDiscord,
-    onShare
+    onShare,
+    actionsDisabled = false
 }: StatsHeaderProps) => {
-    const shareDisabled = sharing || !canShareDiscord;
-    const shareDisabledReason = !canShareDiscord ? 'Select a Discord webhook to enable sharing.' : '';
+    const shareDisabled = sharing || actionsDisabled || !canShareDiscord;
+    const shareDisabledReason = actionsDisabled
+        ? 'Stats are still loading. Actions will enable when the dashboard is ready.'
+        : (!canShareDiscord ? 'Select a Discord webhook to enable sharing.' : '');
 
     return (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 shrink-0 px-2">
@@ -58,7 +62,7 @@ export const StatsHeader = ({
                 {devMockAvailable && (
                     <button
                         onClick={onDevMockUpload}
-                        disabled={devMockUploadState.uploading}
+                        disabled={devMockUploadState.uploading || actionsDisabled}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 bg-amber-500/15 text-amber-200 border border-amber-500/30 hover:bg-amber-500/25"
                     >
                         <Sparkles className="w-4 h-4" />
@@ -67,7 +71,7 @@ export const StatsHeader = ({
                 )}
                 <button
                     onClick={onWebUpload}
-                    disabled={uploadingWeb}
+                    disabled={uploadingWeb || actionsDisabled}
                     className="stats-action-upload flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
                     <UploadCloud className="w-4 h-4" />

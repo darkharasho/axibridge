@@ -13,6 +13,7 @@ type FightCompFight = {
     timestamp: number;
     mapName: string;
     duration: string;
+    isWin?: boolean;
     parties: FightCompPartyRow[];
     enemyClassCounts?: Record<string, number>;
 };
@@ -66,6 +67,21 @@ export const FightCompSection = ({
             .sort((a, b) => (b.count - a.count) || a.profession.localeCompare(b.profession));
     }, [activeFight]);
 
+    const squadPlayerCount = useMemo(() => {
+        if (!activeFight) return 0;
+        return activeFight.parties.reduce((sum, party) => {
+            if (Array.isArray(party.players) && party.players.length > 0) {
+                return sum + party.players.length;
+            }
+            return sum + Object.values(party.classCounts || {}).reduce((acc, value) => acc + Number(value || 0), 0);
+        }, 0);
+    }, [activeFight]);
+
+    const enemyPlayerCount = useMemo(
+        () => enemyRows.reduce((sum, row) => sum + Number(row.count || 0), 0),
+        [enemyRows]
+    );
+
     return (
         <section
             id="fight-comp"
@@ -91,11 +107,21 @@ export const FightCompSection = ({
                                         <button
                                             key={fight.id}
                                             onClick={() => setActiveFightId(fight.id)}
-                                            className={`fight-comp-fight-nav-item w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${isActive
+                                            className={`fight-comp-fight-nav-item relative w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${isActive
                                                 ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100'
                                                 : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
                                             }`}
                                         >
+                                            <span
+                                                className={`fight-comp-result-badge absolute right-2 top-2 inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] uppercase tracking-widest ${fight.isWin === true
+                                                    ? 'fight-comp-result-badge--win'
+                                                    : fight.isWin === false
+                                                        ? 'fight-comp-result-badge--loss'
+                                                        : 'fight-comp-result-badge--unknown'
+                                                    }`}
+                                            >
+                                                {fight.isWin === true ? 'Win' : fight.isWin === false ? 'Loss' : 'Unknown'}
+                                            </span>
                                             <div className="text-[10px] uppercase tracking-widest text-gray-400">{fight.label}</div>
                                             <div className="text-xs font-semibold truncate">{fight.mapName || 'Unknown Map'}</div>
                                             <div className="text-[10px] text-gray-500 truncate">{fight.duration || '--:--'} · {formatTimestamp(fight.timestamp)}</div>
@@ -111,7 +137,12 @@ export const FightCompSection = ({
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.78fr)] gap-2.5 min-w-0">
                                     <div className="fight-comp-card rounded-xl border border-white/10 bg-black/20 overflow-hidden">
-                                        <div className="px-2.5 py-1.5 bg-white/5 text-[10px] uppercase tracking-widest text-gray-400">Squad Parties</div>
+                                        <div className="px-2.5 py-1.5 bg-white/5 text-[10px] uppercase tracking-widest text-gray-400 flex items-center justify-between gap-2">
+                                            <span>Squad Parties</span>
+                                            <span className="inline-flex items-center rounded-md border border-white/15 bg-white/5 px-1.5 py-0.5 text-[9px] font-semibold tracking-normal text-gray-300">
+                                                {squadPlayerCount}
+                                            </span>
+                                        </div>
                                         <div className="p-2 rounded-lg border border-white/10 bg-white/[0.03] divide-y divide-white/10">
                                             {activeFight.parties.map((party) => {
                                                 const classIcons = Array.isArray(party.players) && party.players.length > 0
@@ -170,7 +201,12 @@ export const FightCompSection = ({
                                     </div>
 
                                     <div className="fight-comp-card rounded-xl border border-white/10 bg-black/20 overflow-hidden">
-                                        <div className="px-2.5 py-1.5 bg-white/5 text-[10px] uppercase tracking-widest text-gray-400">Enemy Classes</div>
+                                        <div className="px-2.5 py-1.5 bg-white/5 text-[10px] uppercase tracking-widest text-gray-400 flex items-center justify-between gap-2">
+                                            <span>Enemy Classes</span>
+                                            <span className="inline-flex items-center rounded-md border border-white/15 bg-white/5 px-1.5 py-0.5 text-[9px] font-semibold tracking-normal text-gray-300">
+                                                {enemyPlayerCount}
+                                            </span>
+                                        </div>
                                         <div className="p-2">
                                             {enemyRows.length > 0 ? (
                                                 <div className="flex flex-wrap gap-1">

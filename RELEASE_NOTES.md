@@ -1,16 +1,15 @@
 # Release Notes
 
-Version v1.37.2 — February 20, 2026
+Version v1.37.11 — February 27, 2026
 
 ## 🌟 Highlights
-- Tooltip readability and scrolling improvements for condition sources in kinetic themes.
+- Long logs are pruned to fit GitHub upload limits, keeping exports concise.
 
 ## 🛠️ Improvements
-- CSS and UI tweaks in the stats panel to support clearer tooltip display.
-- Dist-web/web assets refreshed to stay in sync with the latest UI fixes.
+- None.
 
 ## 🧯 Fixes
-- Condition source tooltips in kinetic themes are easier to read and can be scrolled smoothly.
+- Removed unnecessary checks for detailsFetchExhausted and detailsKnownUnavailable in log filtering, making filtering simpler and more reliable.
 
 ## ⚠️ Breaking Changes
 - None.

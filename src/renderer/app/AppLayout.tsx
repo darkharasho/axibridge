@@ -515,7 +515,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 className="relative w-[248px] -mr-[176px] shrink-0 self-stretch min-h-0 overflow-visible"
                             >
                                 <div
-                                    className={`group/statsnavpanel absolute inset-y-0 left-0 z-40 min-h-0 w-[72px] hover:w-[248px] rounded-xl ${statsSidebarSurfaceClass} ${statsSidebarBlurClass} ${statsSidebarShadowClass} overflow-hidden will-change-[width] transition-[width] duration-[1250ms] ease-[cubic-bezier(0.16,1,0.3,1)]`}
+                                    className={`stats-dashboard-nav-panel group/statsnavpanel absolute inset-y-0 left-0 z-40 min-h-0 w-[72px] hover:w-[248px] rounded-xl ${statsSidebarSurfaceClass} ${statsSidebarBlurClass} ${statsSidebarShadowClass} overflow-hidden will-change-[width] transition-[width] duration-[1250ms] ease-[cubic-bezier(0.16,1,0.3,1)]`}
                                     onMouseEnter={handleStatsNavMouseEnter}
                                     onMouseLeave={handleStatsNavMouseLeave}
                                 >
