@@ -61,13 +61,16 @@ A `useMetricSectionState.ts` hook eliminates ~2000 lines of duplication.
 
 ---
 
-### 4. Split `src/renderer/App.tsx` (~2313 lines)
+### 4. Split `src/renderer/App.tsx` (~2015 lines → ~1771 lines)
 
-Root component manages all log state, settings, upload state, navigation, dashboard summary caching, and all render logic. Suggested extractions:
-- `useAppState.ts`
-- `useSettings.ts`
-- `useDashboardSummaryCache.ts`
-- `useAppNavigation.ts`
+Root component manages all log state, settings, upload state, navigation, dashboard summary caching, and all render logic.
+
+**Status:** Three hooks extracted to `src/renderer/app/hooks/`:
+- `useSettings.ts` — settings load, persistence, theme body-class effect, all setting state/handlers
+- `useUploadRetryQueue.ts` — retry queue state, IPC listener, retry/resume handlers
+- `useAppNavigation.ts` — view state, modal open/close, webhook dropdown, scroll/resize tracking, navigation handlers
+
+App.tsx reduced from ~2015 → ~1771 lines (−244 lines). Remaining inline: log state, screenshot capture chain, IPC listeners for upload status/complete, bulk upload mode management.
 
 ---
 

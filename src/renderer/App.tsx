@@ -1,11 +1,9 @@
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type UIEvent } from 'react';
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FolderOpen, UploadCloud, FileText, Settings, Image as ImageIcon, Layout, ChevronDown, Grid3X3, Trash2, FilePlus2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
-import { Webhook } from './WebhookModal';
-import { DashboardLayout, DEFAULT_DASHBOARD_LAYOUT, DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_KINETIC_FONT_STYLE, DEFAULT_KINETIC_THEME_VARIANT, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IUploadRetryQueueState, KineticFontStyle, KineticThemeVariant } from './global.d';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { AppLayout } from './app/AppLayout';
 import { useDevDatasets } from './app/hooks/useDevDatasets';
@@ -14,8 +12,10 @@ import { useWebUpload } from './app/hooks/useWebUpload';
 import { useAppUpdater } from './app/hooks/useAppUpdater';
 import { useDashboardStats } from './app/hooks/useDashboardStats';
 import { useStatsDataProgress } from './app/hooks/useStatsDataProgress';
+import { useSettings } from './app/hooks/useSettings';
+import { useUploadRetryQueue } from './app/hooks/useUploadRetryQueue';
+import { useAppNavigation } from './app/hooks/useAppNavigation';
 import { shouldAttemptStatsSyncRecovery } from './stats/utils/statsSyncRecovery';
-import { DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME_ID } from '../shared/webThemes';
 
 const dataUrlToUint8Array = (dataUrl: string): Uint8Array => {
     const commaIndex = dataUrl.indexOf(',');
@@ -35,46 +35,12 @@ const dataUrlToUint8Array = (dataUrl: string): Uint8Array => {
 };
 
 function App() {
-    const normalizeKineticThemeVariant = (value: unknown): KineticThemeVariant => {
-        if (value === 'midnight' || value === 'slate') return value;
-        return DEFAULT_KINETIC_THEME_VARIANT;
-    };
-
-    const inferKineticThemeVariantFromThemeId = (themeId: unknown): KineticThemeVariant => {
-        if (themeId === KINETIC_DARK_WEB_THEME_ID) return 'midnight';
-        if (themeId === KINETIC_SLATE_WEB_THEME_ID) return 'slate';
-        return 'light';
-    };
-
-    const EMPTY_RETRY_QUEUE: IUploadRetryQueueState = {
-        failed: 0,
-        retrying: 0,
-        resolved: 0,
-        paused: false,
-        pauseReason: null,
-        pausedAt: null,
-        entries: []
-    };
-    const [logDirectory, setLogDirectory] = useState<string | null>(null);
-    const [notificationType, setNotificationType] = useState<'image' | 'image-beta' | 'embed'>('image');
     const [logs, setLogs] = useState<ILogData[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
     const canceledLogsRef = useRef<Set<string>>(new Set());
-    const [embedStatSettings, setEmbedStatSettings] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
-    const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
-    const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
-    const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
-    const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte' | 'kinetic'>('classic');
-    const [kineticFontStyle, setKineticFontStyle] = useState<KineticFontStyle>(DEFAULT_KINETIC_FONT_STYLE);
-    const [kineticThemeVariant, setKineticThemeVariant] = useState<KineticThemeVariant>(DEFAULT_KINETIC_THEME_VARIANT);
-    const [dashboardLayout, setDashboardLayout] = useState<DashboardLayout>(DEFAULT_DASHBOARD_LAYOUT);
-    const [, setGithubWebTheme] = useState<string>(DEFAULT_WEB_THEME_ID);
     const [bulkUploadMode, setBulkUploadMode] = useState(false);
-
     const [screenshotData, setScreenshotData] = useState<ILogData | null>(null);
-    const [uploadRetryQueue, setUploadRetryQueue] = useState<IUploadRetryQueueState>(EMPTY_RETRY_QUEUE);
-    const [retryQueueBusy, setRetryQueueBusy] = useState(false);
 
     // Updater State
     const {
@@ -88,48 +54,85 @@ function App() {
         autoUpdateDisabledReason, setAutoUpdateDisabledReason,
     } = useAppUpdater();
 
+    // Settings
+    const {
+        logDirectory, setLogDirectory,
+        notificationType, setNotificationType,
+        embedStatSettings, setEmbedStatSettings,
+        mvpWeights, setMvpWeights,
+        statsViewSettings, setStatsViewSettings,
+        disruptionMethod, setDisruptionMethod,
+        uiTheme, setUiTheme,
+        setKineticFontStyle,
+        setKineticThemeVariant,
+        dashboardLayout, setDashboardLayout,
+        setGithubWebTheme,
+        webhooks, setWebhooks,
+        selectedWebhookId, setSelectedWebhookId,
+        handleUpdateSettings,
+        handleSelectDirectory,
+        whatsNewVersion,
+        whatsNewNotes,
+        walkthroughSeen,
+        shouldOpenWhatsNew,
+        embedStatSettingsRef,
+        enabledTopListCountRef,
+    } = useSettings({
+        onAutoUpdateSettings: (supported, reason) => {
+            setAutoUpdateSupported(supported);
+            setAutoUpdateDisabledReason(reason);
+        }
+    });
+
+    const appVersion = whatsNewVersion;
+
+    // Upload Retry Queue
+    const {
+        uploadRetryQueue,
+        retryQueueBusy,
+        handleRetryFailedUploads,
+        handleResumeUploadRetries,
+    } = useUploadRetryQueue();
+
     // Terminal State
     const [showTerminal, setShowTerminal] = useState(false);
     const [developerSettingsTrigger, setDeveloperSettingsTrigger] = useState(0);
     const settingsUpdateCheckRef = useRef(false);
     const versionClickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const versionClickTimesRef = useRef<number[]>([]);
-
-    // View State
-    const [view, setView] = useState<'dashboard' | 'stats' | 'history' | 'settings'>('dashboard');
-    const viewRef = useRef(view);
-
-    // App Version
-    const [appVersion, setAppVersion] = useState<string>('...');
-    const [whatsNewOpen, setWhatsNewOpen] = useState(false);
-    const [whatsNewVersion, setWhatsNewVersion] = useState<string>('');
-    const [whatsNewNotes, setWhatsNewNotes] = useState<string | null>(null);
-    const [walkthroughOpen, setWalkthroughOpen] = useState(false);
-    const [helpUpdatesFocusTrigger, setHelpUpdatesFocusTrigger] = useState(0);
-    const walkthroughSeenMarkedRef = useRef(false);
-    const [settingsLoaded, setSettingsLoaded] = useState(false);
-
-    // Webhook Management
-    const [webhooks, setWebhooks] = useState<Webhook[]>([]);
-    const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
-    const [webhookModalOpen, setWebhookModalOpen] = useState(false);
-    const [webhookDropdownOpen, setWebhookDropdownOpen] = useState(false);
-    const webhookDropdownRef = useRef<HTMLDivElement | null>(null);
-    const webhookDropdownButtonRef = useRef<HTMLButtonElement | null>(null);
-    const webhookDropdownPortalRef = useRef<HTMLDivElement | null>(null);
-    const [webhookDropdownStyle, setWebhookDropdownStyle] = useState<CSSProperties | null>(null);
-    const logsListRef = useRef<HTMLDivElement | null>(null);
     const bulkUploadExpectedRef = useRef<number | null>(null);
     const bulkUploadCompletedRef = useRef(0);
-    const [logsViewportHeight, setLogsViewportHeight] = useState(0);
-    const [logsScrollTop, setLogsScrollTop] = useState(0);
-    const logsScrollRafRef = useRef<number | null>(null);
-    const logsScrollTopRef = useRef(0);
     const pendingLogUpdatesRef = useRef<Map<string, ILogData>>(new Map());
     const pendingLogFlushTimerRef = useRef<number | null>(null);
     const screenshotCaptureChainRef = useRef<Promise<void>>(Promise.resolve());
-    const embedStatSettingsRef = useRef(embedStatSettings);
-    const enabledTopListCountRef = useRef(0);
+
+    // Navigation
+    const {
+        view, setView,
+        viewRef,
+        whatsNewOpen, setWhatsNewOpen,
+        walkthroughOpen, setWalkthroughOpen,
+        helpUpdatesFocusTrigger,
+        webhookModalOpen, setWebhookModalOpen,
+        webhookDropdownOpen, setWebhookDropdownOpen,
+        webhookDropdownStyle,
+        webhookDropdownRef,
+        webhookDropdownButtonRef,
+        webhookDropdownPortalRef,
+        logsListRef,
+        logsViewportHeight,
+        logsScrollTop,
+        handleLogsListScroll,
+        handleWhatsNewClose,
+        handleWalkthroughClose,
+        handleWalkthroughLearnMore,
+        handleHelpUpdatesFocusConsumed,
+    } = useAppNavigation({
+        walkthroughSeen,
+        shouldOpenWhatsNew,
+        whatsNewVersion,
+        logsCount: logs.length,
+    });
     const setLogsDeferred = useCallback((updater: (currentLogs: ILogData[]) => ILogData[]) => {
         startTransition(() => {
             setLogs(updater);
@@ -477,10 +480,6 @@ function App() {
     }, [bulkUploadMode]);
 
     useEffect(() => {
-        viewRef.current = view;
-    }, [view]);
-
-    useEffect(() => {
         if (bulkUploadMode) return;
         const hasPendingDetailsHydration = logs.some((log) => {
             if (log.details || log.statsDetailsLoaded) return false;
@@ -499,21 +498,8 @@ function App() {
         }
     }, [view]);
 
-    const handleLogsListScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
-        logsScrollTopRef.current = event.currentTarget.scrollTop;
-        if (logsScrollRafRef.current !== null) return;
-        logsScrollRafRef.current = window.requestAnimationFrame(() => {
-            logsScrollRafRef.current = null;
-            setLogsScrollTop(logsScrollTopRef.current);
-        });
-    }, []);
-
     useEffect(() => {
         return () => {
-            if (logsScrollRafRef.current !== null) {
-                window.cancelAnimationFrame(logsScrollRafRef.current);
-                logsScrollRafRef.current = null;
-            }
             if (pendingLogFlushTimerRef.current !== null) {
                 window.clearTimeout(pendingLogFlushTimerRef.current);
                 pendingLogFlushTimerRef.current = null;
@@ -533,26 +519,6 @@ function App() {
             }
         };
     }, []);
-
-    useEffect(() => {
-        const node = logsListRef.current;
-        if (!node) return;
-        const updateViewport = () => {
-            setLogsViewportHeight(node.clientHeight);
-            setLogsScrollTop(node.scrollTop);
-            logsScrollTopRef.current = node.scrollTop;
-        };
-        updateViewport();
-        if (typeof ResizeObserver === 'undefined') {
-            window.addEventListener('resize', updateViewport);
-            return () => {
-                window.removeEventListener('resize', updateViewport);
-            };
-        }
-        const observer = new ResizeObserver(() => updateViewport());
-        observer.observe(node);
-        return () => observer.disconnect();
-    }, [view, logs.length]);
 
     const logListVirtualization = useMemo(() => {
         const rowHeight = 132;
@@ -858,61 +824,6 @@ function App() {
         }
     }, [scheduleDetailsHydration, requestFlush, setLogsForStats]);
 
-    useEffect(() => {
-        if (!webhookDropdownOpen) return;
-        const updatePosition = () => {
-            if (!webhookDropdownButtonRef.current) return;
-            const rect = webhookDropdownButtonRef.current.getBoundingClientRect();
-            setWebhookDropdownStyle({
-                position: 'fixed',
-                top: Math.round(rect.bottom + 8),
-                left: Math.round(rect.left),
-                width: Math.round(rect.width),
-                zIndex: 9999
-            });
-        };
-        updatePosition();
-        const handleMouseDown = (event: MouseEvent) => {
-            const target = event.target as Node;
-            const inAnchor = webhookDropdownRef.current?.contains(target);
-            const inPortal = webhookDropdownPortalRef.current?.contains(target);
-            if (!inAnchor && !inPortal) {
-                setWebhookDropdownOpen(false);
-            }
-        };
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                setWebhookDropdownOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleMouseDown);
-        document.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('resize', updatePosition);
-        window.addEventListener('scroll', updatePosition, true);
-        return () => {
-            document.removeEventListener('mousedown', handleMouseDown);
-            document.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('resize', updatePosition);
-            window.removeEventListener('scroll', updatePosition, true);
-        };
-    }, [webhookDropdownOpen]);
-
-    useEffect(() => {
-        const body = document.body;
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic', 'theme-kinetic-dark', 'theme-kinetic-slate', 'theme-kinetic-font-original');
-        if (uiTheme === 'modern') body.classList.add('theme-modern');
-        else if (uiTheme === 'crt') body.classList.add('theme-crt');
-        else if (uiTheme === 'matte') body.classList.add('theme-matte');
-        else if (uiTheme === 'kinetic') {
-            body.classList.add('theme-kinetic');
-            if (kineticFontStyle === 'original') body.classList.add('theme-kinetic-font-original');
-            if (kineticThemeVariant === 'midnight' || kineticThemeVariant === 'slate') body.classList.add('theme-kinetic-dark');
-            if (kineticThemeVariant === 'slate') body.classList.add('theme-kinetic-slate');
-        }
-        else body.classList.add('theme-classic');
-    }, [uiTheme, kineticThemeVariant, kineticFontStyle]);
-
-
     // Dashboard stats (upload counts, pie chart, squad/enemy averages, win/loss)
     const { totalUploads, statusCounts, uploadPieData, avgSquadSize, avgEnemies, winLoss, squadKdr } = useDashboardStats(logs);
 
@@ -956,92 +867,6 @@ function App() {
     ]);
 
     useEffect(() => {
-        // Load saved settings
-        const loadSettings = async () => {
-            const settings = await window.electronAPI.getSettings();
-            if (settings.logDirectory) {
-                setLogDirectory(settings.logDirectory);
-                window.electronAPI.startWatching(settings.logDirectory);
-            }
-            if (settings.discordNotificationType) {
-                setNotificationType(settings.discordNotificationType);
-            }
-            if (settings.webhooks) {
-                setWebhooks(settings.webhooks);
-            }
-            if (settings.selectedWebhookId) {
-                setSelectedWebhookId(settings.selectedWebhookId);
-            }
-            if (settings.embedStatSettings) {
-                setEmbedStatSettings({ ...DEFAULT_EMBED_STATS, ...settings.embedStatSettings });
-            }
-            if (settings.mvpWeights) {
-                setMvpWeights({ ...DEFAULT_MVP_WEIGHTS, ...settings.mvpWeights });
-            }
-            if (settings.statsViewSettings) {
-                setStatsViewSettings({ ...DEFAULT_STATS_VIEW_SETTINGS, ...settings.statsViewSettings });
-            }
-            if (settings.uiTheme) {
-                setUiTheme(settings.uiTheme);
-            }
-            setKineticFontStyle((settings.kineticFontStyle as KineticFontStyle) || DEFAULT_KINETIC_FONT_STYLE);
-            setKineticThemeVariant(
-                normalizeKineticThemeVariant(
-                    settings.kineticThemeVariant
-                    ?? inferKineticThemeVariantFromThemeId(settings.githubWebTheme)
-                )
-            );
-            if (settings.dashboardLayout === 'top' || settings.dashboardLayout === 'side') {
-                setDashboardLayout(settings.dashboardLayout);
-            } else {
-                setDashboardLayout(DEFAULT_DASHBOARD_LAYOUT);
-            }
-            if (typeof settings.githubWebTheme === 'string' && settings.githubWebTheme) {
-                setGithubWebTheme(settings.githubWebTheme);
-            } else {
-                setGithubWebTheme(DEFAULT_WEB_THEME_ID);
-            }
-            if (settings.disruptionMethod) {
-                setDisruptionMethod(settings.disruptionMethod);
-            }
-            if (typeof settings.autoUpdateSupported === 'boolean') {
-                setAutoUpdateSupported(settings.autoUpdateSupported);
-                setAutoUpdateDisabledReason(settings.autoUpdateDisabledReason || null);
-            }
-
-            const whatsNew = await window.electronAPI.getWhatsNew();
-            setAppVersion(whatsNew.version);
-            setWhatsNewVersion(whatsNew.version);
-            setWhatsNewNotes(whatsNew.releaseNotes);
-            const shouldShowWalkthrough = settings.walkthroughSeen !== true;
-            if (shouldShowWalkthrough) {
-                setWalkthroughOpen(true);
-                if (!walkthroughSeenMarkedRef.current) {
-                    walkthroughSeenMarkedRef.current = true;
-                    window.electronAPI?.saveSettings?.({ walkthroughSeen: true });
-                }
-            } else if (whatsNew.version && whatsNew.version !== whatsNew.lastSeenVersion) {
-                setWhatsNewOpen(true);
-            }
-            setSettingsLoaded(true);
-        };
-        loadSettings();
-
-        const loadUploadRetryQueue = async () => {
-            if (!window.electronAPI?.getUploadRetryQueue) return;
-            const result = await window.electronAPI.getUploadRetryQueue();
-            if (result?.success && result.queue) {
-                setUploadRetryQueue(result.queue);
-            }
-        };
-        loadUploadRetryQueue();
-        const cleanupRetryQueue = window.electronAPI?.onUploadRetryQueueUpdated
-            ? window.electronAPI.onUploadRetryQueueUpdated((queue) => {
-                if (!queue) return;
-                setUploadRetryQueue(queue);
-            })
-            : null;
-
         // Listen for status updates during upload process
         const cleanupStatus = window.electronAPI.onUploadStatus((data: ILogData) => {
             if (data.filePath && canceledLogsRef.current.has(data.filePath)) {
@@ -1288,76 +1113,7 @@ function App() {
             cleanupStatus();
             cleanupUpload();
             cleanupScreenshot();
-            cleanupRetryQueue?.();
         };
-    }, []);
-
-    useEffect(() => {
-        if (!settingsLoaded) return;
-        window.electronAPI?.saveSettings?.({ dashboardLayout });
-    }, [dashboardLayout, settingsLoaded]);
-
-    const handleSelectDirectory = async () => {
-        const path = await window.electronAPI.selectDirectory();
-        if (path) {
-            setLogDirectory(path);
-            window.electronAPI.startWatching(path);
-        }
-    };
-
-
-    const handleUpdateSettings = (updates: any) => {
-        window.electronAPI.saveSettings(updates);
-    };
-
-
-    const handleRetryFailedUploads = async () => {
-        if (!window.electronAPI?.retryFailedUploads) return;
-        if (retryQueueBusy) return;
-        setRetryQueueBusy(true);
-        try {
-            const result = await window.electronAPI.retryFailedUploads();
-            if (result?.success && result.queue) {
-                setUploadRetryQueue(result.queue);
-            }
-        } finally {
-            setRetryQueueBusy(false);
-        }
-    };
-
-    const handleResumeUploadRetries = async () => {
-        if (!window.electronAPI?.resumeUploadRetries) return;
-        if (retryQueueBusy) return;
-        setRetryQueueBusy(true);
-        try {
-            const result = await window.electronAPI.resumeUploadRetries();
-            if (result?.success && result.queue) {
-                setUploadRetryQueue(result.queue);
-            }
-        } finally {
-            setRetryQueueBusy(false);
-        }
-    };
-
-    const handleWhatsNewClose = async () => {
-        setWhatsNewOpen(false);
-        if (whatsNewVersion) {
-            await window.electronAPI.setLastSeenVersion(whatsNewVersion);
-        }
-    };
-
-    const handleWalkthroughClose = () => {
-        setWalkthroughOpen(false);
-        window.electronAPI?.saveSettings?.({ walkthroughSeen: true });
-    };
-
-    const handleWalkthroughLearnMore = () => {
-        handleWalkthroughClose();
-        setView('settings');
-        setHelpUpdatesFocusTrigger((current) => current + 1);
-    };
-    const handleHelpUpdatesFocusConsumed = useCallback((trigger: number) => {
-        setHelpUpdatesFocusTrigger((current) => (current === trigger ? 0 : current));
     }, []);
 
     const isModernTheme = uiTheme === 'modern' || uiTheme === 'kinetic';
