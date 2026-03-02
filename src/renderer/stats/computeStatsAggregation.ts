@@ -177,6 +177,8 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         let totalSquadKills = 0;
         let totalEnemyDeaths = 0;
         let totalEnemyKills = 0;
+        let totalSquadDowns = 0;
+        let totalEnemyDowns = 0;
 
         const getFightDownsDeaths = (details: any) => {
             const players = details?.players || [];
@@ -552,11 +554,13 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
             applyStabilityGeneration(players, { durationMS: details.durationMS, buffMap: details.buffMap });
 
-            const { squadDeaths, enemyDeaths } = getFightDownsDeaths(details);
+            const { squadDownsDeaths, enemyDownsDeaths, squadDeaths, enemyDeaths } = getFightDownsDeaths(details);
             totalSquadDeaths += squadDeaths;
             totalSquadKills += enemyDeaths;
             totalEnemyKills += squadDeaths;
             totalEnemyDeaths += enemyDeaths;
+            totalSquadDowns += Math.max(0, squadDownsDeaths - squadDeaths);
+            totalEnemyDowns += Math.max(0, enemyDownsDeaths - enemyDeaths);
 
             const isWin = getFightOutcome(details);
             if (isWin) wins++; else losses++;
@@ -4600,7 +4604,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
         return {
             total, wins, losses, avgSquadSize, avgEnemies, squadKDR, enemyKDR,
-            totalSquadKills, totalSquadDeaths, totalEnemyKills, totalEnemyDeaths,
+            totalSquadKills, totalSquadDeaths, totalEnemyKills, totalEnemyDeaths, totalSquadDowns, totalEnemyDowns,
             leaderboards,
             ...topStats,
             outgoingConditionSummary: Object.values(outgoingCondiTotals).sort((a, b) => b.damage - a.damage),
