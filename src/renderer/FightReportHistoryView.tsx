@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME_ID, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME_ID } from '../shared/webThemes';
+import { DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME_ID, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 
 const resolveReportsIndexUrl = (settings: any): string | null => {
     const explicitBase = typeof settings?.githubPagesBaseUrl === 'string'
@@ -27,6 +27,7 @@ const resolveForcedThemeId = (settings: any): string => {
     if (uiTheme === 'matte') return MATTE_WEB_THEME_ID;
     if (uiTheme === 'kinetic') {
         if (requestedThemeId === KINETIC_DARK_WEB_THEME_ID) return KINETIC_DARK_WEB_THEME_ID;
+        if (requestedThemeId === KINETIC_SLATE_WEB_THEME_ID) return KINETIC_SLATE_WEB_THEME_ID;
         return KINETIC_WEB_THEME_ID;
     }
     return requestedThemeId;
