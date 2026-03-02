@@ -112,7 +112,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     applyGithubTheme: (payload?: { themeId?: string }) => ipcRenderer.invoke('apply-github-theme', payload),
     uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string }) => ipcRenderer.invoke('upload-web-report', payload),
     mockWebReport: (payload: { meta: any; stats: any }) => ipcRenderer.invoke('mock-web-report', payload),
-    getGithubPagesBuildStatus: () => ipcRenderer.invoke('get-github-pages-build-status'),
+    getGithubPagesBuildStatus: (payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => ipcRenderer.invoke('get-github-pages-build-status', payload),
     onWebUploadStatus: (callback: (data: any) => void) => {
         ipcRenderer.on('web-upload-status', (_event, value) => callback(value));
         return () => ipcRenderer.removeAllListeners('web-upload-status');

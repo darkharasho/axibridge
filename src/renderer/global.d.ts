@@ -75,6 +75,7 @@ export interface IWebUploadState {
     detail: string | null;
     url: string | null;
     buildStatus: WebUploadBuildStatus;
+    buildStatusRepo: string | null;
 }
 
 export interface IDevDatasetMeta {
@@ -197,7 +198,8 @@ export const DEFAULT_WEB_UPLOAD_STATE: IWebUploadState = {
     progress: null,
     detail: null,
     url: null,
-    buildStatus: 'idle'
+    buildStatus: 'idle',
+    buildStatusRepo: null
 };
 
 export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS: IDiscordEnemySplitSettings = {
@@ -328,7 +330,7 @@ export interface IElectronAPI {
     applyGithubTheme: (payload?: { themeId?: string }) => Promise<{ success: boolean; error?: string }>;
     uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; url?: string; error?: string; errorDetail?: string }>;
     mockWebReport: (payload: { meta: any; stats: any }) => Promise<{ success: boolean; url?: string; error?: string }>;
-    getGithubPagesBuildStatus: () => Promise<{ success: boolean; status?: string; updatedAt?: string; errorMessage?: string; error?: string }>;
+    getGithubPagesBuildStatus: (payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; status?: string; updatedAt?: string; errorMessage?: string; error?: string }>;
     onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number }) => void) => () => void;
     onGithubThemeStatus: (callback: (data: { stage?: string; message?: string; progress?: number }) => void) => () => void;
     exportSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;

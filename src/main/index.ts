@@ -4026,11 +4026,21 @@ if (!gotTheLock) {
             }
         });
 
-        ipcMain.handle('get-github-pages-build-status', async () => {
+        ipcMain.handle('get-github-pages-build-status', async (_event, payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => {
             try {
                 const token = store.get('githubToken') as string | undefined;
-                const owner = store.get('githubRepoOwner') as string | undefined;
-                const repo = store.get('githubRepoName') as string | undefined;
+                const explicitOwner = typeof payload?.repoOwner === 'string' ? payload.repoOwner.trim() : '';
+                const explicitRepo = typeof payload?.repoName === 'string' ? payload.repoName.trim() : '';
+                const requestedRepoFullName = typeof payload?.repoFullName === 'string' ? payload.repoFullName.trim() : '';
+                const requestedRepoParts = requestedRepoFullName.split('/').map((part) => part.trim()).filter(Boolean);
+                const hasExplicitOverride = !!explicitOwner && !!explicitRepo;
+                const hasRepoOverride = hasExplicitOverride || requestedRepoParts.length === 2;
+                const owner = hasRepoOverride
+                    ? (hasExplicitOverride ? explicitOwner : requestedRepoParts[0])
+                    : (store.get('githubRepoOwner') as string | undefined);
+                const repo = hasRepoOverride
+                    ? (hasExplicitOverride ? explicitRepo : requestedRepoParts[1])
+                    : (store.get('githubRepoName') as string | undefined);
                 if (!owner || !repo) {
                     return { success: false, error: 'Repository not configured.' };
                 }

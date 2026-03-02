@@ -31,7 +31,13 @@ export function useWebUpload() {
         const interval = setInterval(async () => {
             attempts += 1;
             try {
-                const resp = await window.electronAPI.getGithubPagesBuildStatus();
+                const repoLabel = webUploadState.buildStatusRepo || '';
+                const repoParts = repoLabel.split('/').map((part) => part.trim()).filter(Boolean);
+                const resp = await window.electronAPI.getGithubPagesBuildStatus(
+                    repoParts.length === 2
+                        ? { repoFullName: repoLabel, repoOwner: repoParts[0], repoName: repoParts[1] }
+                        : undefined
+                );
                 if (resp?.success) {
                     const status = String(resp.status || '').toLowerCase();
                     if (status === 'built' || status === 'success') {
@@ -61,7 +67,7 @@ export function useWebUpload() {
             }
         }, 10000);
         return () => clearInterval(interval);
-    }, [webUploadState.buildStatus]);
+    }, [webUploadState.buildStatus, webUploadState.buildStatusRepo]);
 
     const scheduleWebUploadClear = useCallback(() => {
         if (webUploadClearTimerRef.current) {
@@ -102,15 +108,16 @@ export function useWebUpload() {
             return owner && repo ? `${owner}/${repo}` : '';
         })();
         setWebUploadState((prev) => ({
-            ...prev,
-            uploading: true,
-            message: repoLabel ? `Preparing report for ${repoLabel}...` : 'Preparing report...',
-            stage: 'Preparing report',
-            progress: 0,
-            detail: null,
-            url: null,
-            buildStatus: 'idle'
-        }));
+                ...prev,
+                uploading: true,
+                message: repoLabel ? `Preparing report for ${repoLabel}...` : 'Preparing report...',
+                stage: 'Preparing report',
+                progress: 0,
+                detail: null,
+                url: null,
+                buildStatus: 'idle',
+                buildStatusRepo: repoLabel || null
+            }));
         let uploadSucceeded = false;
         try {
             const result = await window.electronAPI.uploadWebReport(payload);
@@ -125,7 +132,8 @@ export function useWebUpload() {
                         : `Uploaded: ${url || 'GitHub Pages'}`,
                     stage: 'Upload complete',
                     progress: 100,
-                    buildStatus: 'checking'
+                    buildStatus: 'checking',
+                    buildStatusRepo: repoLabel || prev.buildStatusRepo
                 }));
             } else {
                 if (result?.errorDetail) {
@@ -138,7 +146,8 @@ export function useWebUpload() {
                     message: result?.error || 'Upload failed.',
                     detail: result?.errorDetail || null,
                     stage: 'Upload failed',
-                    buildStatus: 'idle'
+                    buildStatus: 'idle',
+                    buildStatusRepo: null
                 }));
             }
         } catch (err: any) {
@@ -149,7 +158,8 @@ export function useWebUpload() {
                 message: err?.message || 'Upload failed.',
                 detail: errorDetail,
                 stage: 'Upload failed',
-                buildStatus: 'idle'
+                buildStatus: 'idle',
+                buildStatusRepo: null
             }));
         } finally {
             setWebUploadState((prev) => ({ ...prev, uploading: false }));
