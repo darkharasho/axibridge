@@ -662,11 +662,11 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             <div className="matte-panel-shell">
                                 {statsTilesPanel}
                             </div>
-                            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4 flex-1 min-h-0 content-start">
-                                <div className="order-2 xl:order-1 min-h-0 matte-activity-shell">
+                            <div className="grid grid-cols-1 gap-4 flex-1 min-h-0 content-start">
+                                <div className="order-2 min-h-0 matte-activity-shell">
                                     {activityPanel}
                                 </div>
-                                <div className="dashboard-rail order-1 xl:order-2 flex flex-col gap-4 overflow-y-auto pr-0 matte-panel-shell matte-rail-shell">
+                                <div className="dashboard-rail order-1 flex flex-col gap-4 overflow-y-auto pr-0 matte-panel-shell matte-rail-shell">
                                     {configurationPanel}
                                 </div>
                             </div>

@@ -1757,67 +1757,69 @@ function App() {
             className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl hover:border-white/20 transition-colors matte-config-panel"
         >
             {isTopDashboardLayout ? (
-                <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,360px)] gap-3 items-start p-2">
-                    <div className="space-y-1 min-w-0">
-                        <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Log Directory</label>
-                        <div className="flex gap-1 w-full max-w-full">
-                            <div className="flex-1 min-w-0 bg-black/40 border border-white/5 rounded-xl px-1.5 h-8 flex items-center gap-2 hover:border-blue-500/50 transition-colors">
-                                <div className="pl-1 shrink-0">
-                                    <FolderOpen className="w-4 h-4 text-blue-400" />
+                <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.95fr)] gap-4 items-start p-2">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-1 gap-3 min-w-0">
+                        <div className="space-y-1 min-w-0">
+                            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Log Directory</label>
+                            <div className="flex gap-1 w-full max-w-full">
+                                <div className="flex-1 min-w-0 bg-black/40 border border-white/5 rounded-xl px-1.5 h-8 flex items-center gap-2 hover:border-blue-500/50 transition-colors">
+                                    <div className="pl-1 shrink-0">
+                                        <FolderOpen className="w-4 h-4 text-blue-400" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={logDirectory || ''}
+                                        placeholder="C:\...\arcdps.cbtlogs"
+                                        className="flex-1 bg-transparent border-none text-[11px] text-gray-300 placeholder-gray-600 focus:ring-0 px-2 min-w-0 w-full h-full"
+                                        onChange={(e) => setLogDirectory(e.target.value)}
+                                        onBlur={(e) => {
+                                            if (e.target.value) {
+                                                window.electronAPI.startWatching(e.target.value);
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && logDirectory) {
+                                                window.electronAPI.startWatching(logDirectory);
+                                            }
+                                        }}
+                                    />
                                 </div>
-                                <input
-                                    type="text"
-                                    value={logDirectory || ''}
-                                    placeholder="C:\...\arcdps.cbtlogs"
-                                    className="flex-1 bg-transparent border-none text-[11px] text-gray-300 placeholder-gray-600 focus:ring-0 px-2 min-w-0 w-full h-full"
-                                    onChange={(e) => setLogDirectory(e.target.value)}
-                                    onBlur={(e) => {
-                                        if (e.target.value) {
-                                            window.electronAPI.startWatching(e.target.value);
-                                        }
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && logDirectory) {
-                                            window.electronAPI.startWatching(logDirectory);
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <button
-                                onClick={handleSelectDirectory}
-                                className="shrink-0 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl w-8 h-8 flex items-center justify-center transition-colors"
-                                title="Browse..."
-                            >
-                                <FolderOpen className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="space-y-1 min-w-0">
-                        <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Discord Webhook</label>
-                        <div className="flex gap-1 w-full">
-                            <div ref={webhookDropdownRef} className="relative flex-1 min-w-0">
                                 <button
-                                    type="button"
-                                    onClick={() => setWebhookDropdownOpen((prev) => !prev)}
-                                    ref={webhookDropdownButtonRef}
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-2.5 h-8 flex items-center justify-between gap-2 text-[11px] text-gray-300 hover:border-purple-500/50 hover:bg-black/50 transition-colors"
-                                    aria-haspopup="listbox"
-                                    aria-expanded={webhookDropdownOpen}
+                                    onClick={handleSelectDirectory}
+                                    className="shrink-0 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl w-8 h-8 flex items-center justify-center transition-colors"
+                                    title="Browse..."
                                 >
-                                    <span className="truncate">
-                                        {selectedWebhook?.name || 'Disabled'}
-                                    </span>
-                                    <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
+                                    <FolderOpen className="w-3.5 h-3.5" />
                                 </button>
                             </div>
-                            <button
-                                onClick={() => setWebhookModalOpen(true)}
-                                className="shrink-0 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-xl w-8 h-8 flex items-center justify-center gap-2 transition-colors"
-                                title="Manage Webhooks"
-                            >
-                                <Settings className="w-3.5 h-3.5" />
-                            </button>
+                        </div>
+
+                        <div className="space-y-1 min-w-0">
+                            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Discord Webhook</label>
+                            <div className="flex gap-1 w-full">
+                                <div ref={webhookDropdownRef} className="relative flex-1 min-w-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setWebhookDropdownOpen((prev) => !prev)}
+                                        ref={webhookDropdownButtonRef}
+                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-2.5 h-8 flex items-center justify-between gap-2 text-[11px] text-gray-300 hover:border-purple-500/50 hover:bg-black/50 transition-colors"
+                                        aria-haspopup="listbox"
+                                        aria-expanded={webhookDropdownOpen}
+                                    >
+                                        <span className="truncate">
+                                            {selectedWebhook?.name || 'Disabled'}
+                                        </span>
+                                        <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => setWebhookModalOpen(true)}
+                                    className="shrink-0 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-xl w-8 h-8 flex items-center justify-center gap-2 transition-colors"
+                                    title="Manage Webhooks"
+                                >
+                                    <Settings className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -1922,11 +1924,11 @@ function App() {
             className="space-y-3 matte-tiles-shell"
         >
             <div className="grid grid-cols-4 gap-4">
-                <div className="h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-upload-card matte-stat-card">
+                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
                     <div className="min-w-0">
-                        <div className="text-blue-200 text-xs font-medium uppercase tracking-wider">Upload Status</div>
+                        <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Upload Status</div>
                         <div className="mt-2 text-2xl font-bold text-white leading-none">{totalUploads}</div>
-                        <div className="mt-1 text-[11px] text-blue-100/70">
+                        <div className="mt-1 text-[11px] text-gray-500">
                             {successCount} success • {errorCount} error{uploadingCount > 0 ? ` • ${uploadingCount} active` : ''}
                         </div>
                     </div>
@@ -2018,8 +2020,8 @@ function App() {
             transition={{ delay: 0.2 }}
             className="grid grid-cols-2 gap-4 matte-tiles-shell"
         >
-            <div className="relative h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 rounded-2xl px-3 py-2 matte-upload-card matte-stat-card">
-                <div className="absolute left-3 top-2 text-blue-200 text-[11px] font-medium uppercase tracking-wider">Upload Status</div>
+            <div className="relative h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-3 py-2 matte-stat-card">
+                <div className="absolute left-3 top-2 text-gray-400 text-[11px] font-medium uppercase tracking-wider">Upload Status</div>
                 <div className="absolute inset-x-2 bottom-2 top-6 flex items-center justify-center">
                     <div className="w-full h-full max-h-[68px]">
                         <ResponsiveContainer width="100%" height="100%">
