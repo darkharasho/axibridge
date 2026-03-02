@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown } from 'lucide-react';
-import { DashboardLayout, IEmbedStatSettings, DEFAULT_DASHBOARD_LAYOUT, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME, KineticFontStyle, DEFAULT_KINETIC_FONT_STYLE } from './global.d';
+import { DashboardLayout, IEmbedStatSettings, DEFAULT_DASHBOARD_LAYOUT, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME, KineticFontStyle, DEFAULT_KINETIC_FONT_STYLE, KineticThemeVariant, DEFAULT_KINETIC_THEME_VARIANT } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
+import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME, KINETIC_SLATE_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -22,6 +22,7 @@ interface SettingsViewProps {
     onDisruptionMethodSaved?: (method: DisruptionMethod) => void;
     onUiThemeSaved?: (theme: UiTheme) => void;
     onKineticFontStyleSaved?: (style: KineticFontStyle) => void;
+    onKineticThemeVariantSaved?: (variant: KineticThemeVariant) => void;
     onDashboardLayoutSaved?: (layout: DashboardLayout) => void;
     dashboardLayout?: DashboardLayout;
     onGithubWebThemeSaved?: (themeId: string) => void;
@@ -94,7 +95,22 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, onKineticFontStyleSaved, onDashboardLayoutSaved, dashboardLayout: dashboardLayoutProp, onGithubWebThemeSaved, developerSettingsTrigger }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, onKineticFontStyleSaved, onKineticThemeVariantSaved, onDashboardLayoutSaved, dashboardLayout: dashboardLayoutProp, onGithubWebThemeSaved, developerSettingsTrigger }: SettingsViewProps) {
+    const normalizeKineticThemeVariant = (value: unknown): KineticThemeVariant => {
+        if (value === 'midnight' || value === 'slate') return value;
+        return DEFAULT_KINETIC_THEME_VARIANT;
+    };
+    const getKineticThemeIdForVariant = (variant: KineticThemeVariant): string => {
+        if (variant === 'midnight') return KINETIC_DARK_WEB_THEME_ID;
+        if (variant === 'slate') return KINETIC_SLATE_WEB_THEME_ID;
+        return KINETIC_WEB_THEME_ID;
+    };
+    const inferKineticThemeVariantFromThemeId = (themeId: unknown): KineticThemeVariant => {
+        if (themeId === KINETIC_DARK_WEB_THEME_ID) return 'midnight';
+        if (themeId === KINETIC_SLATE_WEB_THEME_ID) return 'slate';
+        return 'light';
+    };
+
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
     const [embedStats, setEmbedStats] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
@@ -104,6 +120,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [uiTheme, setUiTheme] = useState<UiTheme>(DEFAULT_UI_THEME);
     const [kineticFontStyle, setKineticFontStyle] = useState<KineticFontStyle>(DEFAULT_KINETIC_FONT_STYLE);
+    const [kineticThemeVariant, setKineticThemeVariant] = useState<KineticThemeVariant>(DEFAULT_KINETIC_THEME_VARIANT);
     const [dashboardLayout, setDashboardLayout] = useState<DashboardLayout>(dashboardLayoutProp || DEFAULT_DASHBOARD_LAYOUT);
     const [githubRepoName, setGithubRepoName] = useState('');
     const [githubRepoOwner, setGithubRepoOwner] = useState('');
@@ -183,7 +200,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const availableWebThemes = useMemo(() => {
         if (uiTheme === 'crt') return [CRT_WEB_THEME];
         if (uiTheme === 'matte') return [MATTE_WEB_THEME];
-        if (uiTheme === 'kinetic') return [KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME];
+        if (uiTheme === 'kinetic') return [KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME, KINETIC_SLATE_WEB_THEME];
         return BASE_WEB_THEMES;
     }, [uiTheme]);
     const orderedThemes = useMemo(() => {
@@ -423,15 +440,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             return;
         }
         if (uiTheme === 'kinetic') {
-            if (githubWebTheme !== KINETIC_WEB_THEME_ID && githubWebTheme !== KINETIC_DARK_WEB_THEME_ID) {
-                setGithubWebTheme(KINETIC_WEB_THEME_ID);
+            const expectedThemeId = getKineticThemeIdForVariant(kineticThemeVariant);
+            if (githubWebTheme !== expectedThemeId) {
+                setGithubWebTheme(expectedThemeId);
             }
             return;
         }
-        if (githubWebTheme === CRT_WEB_THEME_ID || githubWebTheme === MATTE_WEB_THEME_ID || githubWebTheme === KINETIC_WEB_THEME_ID || githubWebTheme === KINETIC_DARK_WEB_THEME_ID) {
+        if (githubWebTheme === CRT_WEB_THEME_ID || githubWebTheme === MATTE_WEB_THEME_ID || githubWebTheme === KINETIC_WEB_THEME_ID || githubWebTheme === KINETIC_DARK_WEB_THEME_ID || githubWebTheme === KINETIC_SLATE_WEB_THEME_ID) {
             setGithubWebTheme(DEFAULT_WEB_THEME_ID);
         }
-    }, [uiTheme, githubWebTheme]);
+    }, [uiTheme, githubWebTheme, kineticThemeVariant]);
 
     const applySettingsToState = (settings: any) => {
         setDpsReportToken(settings.dpsReportToken || '');
@@ -444,6 +462,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         const resolvedTheme = (settings.uiTheme as UiTheme) || DEFAULT_UI_THEME;
         setUiTheme(resolvedTheme);
         setKineticFontStyle((settings.kineticFontStyle as KineticFontStyle) || DEFAULT_KINETIC_FONT_STYLE);
+        setKineticThemeVariant(normalizeKineticThemeVariant(settings.kineticThemeVariant ?? inferKineticThemeVariantFromThemeId(settings.githubWebTheme)));
         const resolvedLayout = settings.dashboardLayout === 'top' || settings.dashboardLayout === 'side'
             ? settings.dashboardLayout
             : (dashboardLayoutProp || DEFAULT_DASHBOARD_LAYOUT);
@@ -610,6 +629,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         disruptionMethod,
         uiTheme,
         kineticFontStyle,
+        kineticThemeVariant,
         dashboardLayout,
         githubRepoOwner,
         githubRepoName,
@@ -736,6 +756,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
         { key: 'disruptionMethod', label: 'CC/Strip Method', description: 'Count, duration, or tiered.', section: 'Stats' },
         { key: 'kineticFontStyle', label: 'Kinetic Font Style', description: 'Use kinetic default font or original app font.', section: 'App' },
+        { key: 'kineticThemeVariant', label: 'Kinetic Theme Variant', description: 'Light, Midnight, or Slate for Kinetic.', section: 'App' },
         { key: 'githubRepoOwner', label: 'GitHub Owner', description: 'GitHub Pages owner/org.', section: 'GitHub' },
         { key: 'githubRepoName', label: 'GitHub Repo', description: 'GitHub Pages repository.', section: 'GitHub' },
         { key: 'githubBranch', label: 'GitHub Branch', description: 'Branch for web uploads.', section: 'GitHub' },
@@ -764,6 +785,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             disruptionMethod: disruptionMethod,
             uiTheme,
             kineticFontStyle,
+            kineticThemeVariant,
             dashboardLayout,
             githubRepoName: githubRepoName || null,
             githubRepoOwner: githubRepoOwner || null,
@@ -778,6 +800,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         onDisruptionMethodSaved?.(disruptionMethod);
         onUiThemeSaved?.(uiTheme);
         onKineticFontStyleSaved?.(kineticFontStyle);
+        onKineticThemeVariantSaved?.(kineticThemeVariant);
         onGithubWebThemeSaved?.(githubWebTheme || DEFAULT_WEB_THEME_ID);
 
         setTimeout(() => {
@@ -809,6 +832,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         disruptionMethod,
         uiTheme,
         kineticFontStyle,
+        kineticThemeVariant,
         dashboardLayout,
         githubRepoName,
         githubRepoOwner,
@@ -1390,29 +1414,15 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </button>
                             <button
                                 type="button"
-                                onClick={() => {
-                                    setUiTheme('kinetic');
-                                    setGithubWebTheme(KINETIC_WEB_THEME_ID);
-                                }}
-                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'kinetic' && githubWebTheme !== KINETIC_DARK_WEB_THEME_ID
-                                    ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
+                                onClick={() => setUiTheme('kinetic')}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'kinetic'
+                                    ? (kineticThemeVariant === 'light'
+                                        ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
+                                        : 'bg-amber-500/20 text-amber-100 border-amber-300/45 shadow-[0_0_0_1px_rgba(252,211,77,0.08)]')
                                     : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
                                     }`}
                             >
                                 Kinetic Paper
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setUiTheme('kinetic');
-                                    setGithubWebTheme(KINETIC_DARK_WEB_THEME_ID);
-                                }}
-                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'kinetic' && githubWebTheme === KINETIC_DARK_WEB_THEME_ID
-                                    ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/50'
-                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
-                                    }`}
-                            >
-                                Kinetic Paper (Dark)
                             </button>
                             <button
                                 type="button"
@@ -1435,7 +1445,46 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     transition={{ duration: 0.24, ease: 'easeOut' }}
                                     className="mt-4 overflow-hidden"
                                 >
-                                    <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+                                    <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 space-y-3">
+                                        <div>
+                                            <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
+                                                Kinetic Variant
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setKineticThemeVariant('light')}
+                                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${kineticThemeVariant === 'light'
+                                                        ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
+                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                                        }`}
+                                                >
+                                                    Light
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setKineticThemeVariant('midnight')}
+                                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${kineticThemeVariant === 'midnight'
+                                                        ? 'bg-white/10 text-amber-100 border-amber-300/40'
+                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                                        }`}
+                                                >
+                                                    Midnight
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setKineticThemeVariant('slate')}
+                                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${kineticThemeVariant === 'slate'
+                                                        ? 'bg-white/10 text-amber-100 border-amber-300/40'
+                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                                        }`}
+                                                >
+                                                    Slate
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="border-t border-white/10" />
+                                        <div>
                                         <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
                                             Kinetic Font
                                         </div>
@@ -1466,6 +1515,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             >
                                                 Original App Font
                                             </button>
+                                        </div>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -1831,7 +1881,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     return (
                                         <button
                                             key={theme.id}
-                                            onClick={() => setGithubWebTheme(theme.id)}
+                                            onClick={() => {
+                                                setGithubWebTheme(theme.id);
+                                                if (uiTheme === 'kinetic') {
+                                                    setKineticThemeVariant(inferKineticThemeVariantFromThemeId(theme.id));
+                                                }
+                                            }}
                                             className={`rounded-xl border px-3 py-3 text-left transition-colors ${isActive
                                                 ? 'border-cyan-400/60 bg-cyan-500/10'
                                                 : 'border-white/10 bg-white/5 hover:border-white/30'

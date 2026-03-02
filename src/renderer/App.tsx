@@ -5,14 +5,14 @@ import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { Webhook } from './WebhookModal';
-import { DashboardLayout, DEFAULT_DASHBOARD_LAYOUT, DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_KINETIC_FONT_STYLE, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IUploadRetryQueueState, KineticFontStyle } from './global.d';
+import { DashboardLayout, DEFAULT_DASHBOARD_LAYOUT, DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DEFAULT_KINETIC_FONT_STYLE, DEFAULT_KINETIC_THEME_VARIANT, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeights, IStatsViewSettings, IUploadRetryQueueState, KineticFontStyle, KineticThemeVariant } from './global.d';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { AppLayout } from './app/AppLayout';
 import { useDevDatasets } from './app/hooks/useDevDatasets';
 import { useFilePicker } from './app/hooks/useFilePicker';
 import { useWebUpload } from './app/hooks/useWebUpload';
 import { shouldAttemptStatsSyncRecovery } from './stats/utils/statsSyncRecovery';
-import { DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME_ID } from '../shared/webThemes';
+import { DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME_ID } from '../shared/webThemes';
 
 const dataUrlToUint8Array = (dataUrl: string): Uint8Array => {
     const commaIndex = dataUrl.indexOf(',');
@@ -145,6 +145,17 @@ const buildDashboardLogSummary = (log: ILogData): DashboardLogSummary => {
 };
 
 function App() {
+    const normalizeKineticThemeVariant = (value: unknown): KineticThemeVariant => {
+        if (value === 'midnight' || value === 'slate') return value;
+        return DEFAULT_KINETIC_THEME_VARIANT;
+    };
+
+    const inferKineticThemeVariantFromThemeId = (themeId: unknown): KineticThemeVariant => {
+        if (themeId === KINETIC_DARK_WEB_THEME_ID) return 'midnight';
+        if (themeId === KINETIC_SLATE_WEB_THEME_ID) return 'slate';
+        return 'light';
+    };
+
     const EMPTY_RETRY_QUEUE: IUploadRetryQueueState = {
         failed: 0,
         retrying: 0,
@@ -166,8 +177,9 @@ function App() {
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [uiTheme, setUiTheme] = useState<'classic' | 'modern' | 'crt' | 'matte' | 'kinetic'>('classic');
     const [kineticFontStyle, setKineticFontStyle] = useState<KineticFontStyle>(DEFAULT_KINETIC_FONT_STYLE);
+    const [kineticThemeVariant, setKineticThemeVariant] = useState<KineticThemeVariant>(DEFAULT_KINETIC_THEME_VARIANT);
     const [dashboardLayout, setDashboardLayout] = useState<DashboardLayout>(DEFAULT_DASHBOARD_LAYOUT);
-    const [githubWebTheme, setGithubWebTheme] = useState<string>(DEFAULT_WEB_THEME_ID);
+    const [, setGithubWebTheme] = useState<string>(DEFAULT_WEB_THEME_ID);
     const [bulkUploadMode, setBulkUploadMode] = useState(false);
 
     const [screenshotData, setScreenshotData] = useState<ILogData | null>(null);
@@ -996,17 +1008,18 @@ function App() {
 
     useEffect(() => {
         const body = document.body;
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic', 'theme-kinetic-dark', 'theme-kinetic-font-original');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic', 'theme-kinetic-dark', 'theme-kinetic-slate', 'theme-kinetic-font-original');
         if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
         else if (uiTheme === 'matte') body.classList.add('theme-matte');
         else if (uiTheme === 'kinetic') {
             body.classList.add('theme-kinetic');
             if (kineticFontStyle === 'original') body.classList.add('theme-kinetic-font-original');
-            if (githubWebTheme === KINETIC_DARK_WEB_THEME_ID) body.classList.add('theme-kinetic-dark');
+            if (kineticThemeVariant === 'midnight' || kineticThemeVariant === 'slate') body.classList.add('theme-kinetic-dark');
+            if (kineticThemeVariant === 'slate') body.classList.add('theme-kinetic-slate');
         }
         else body.classList.add('theme-classic');
-    }, [uiTheme, githubWebTheme, kineticFontStyle]);
+    }, [uiTheme, kineticThemeVariant, kineticFontStyle]);
 
 
     // Stats calculation
@@ -1231,6 +1244,12 @@ function App() {
                 setUiTheme(settings.uiTheme);
             }
             setKineticFontStyle((settings.kineticFontStyle as KineticFontStyle) || DEFAULT_KINETIC_FONT_STYLE);
+            setKineticThemeVariant(
+                normalizeKineticThemeVariant(
+                    settings.kineticThemeVariant
+                    ?? inferKineticThemeVariantFromThemeId(settings.githubWebTheme)
+                )
+            );
             if (settings.dashboardLayout === 'top' || settings.dashboardLayout === 'side') {
                 setDashboardLayout(settings.dashboardLayout);
             } else {
@@ -2285,7 +2304,7 @@ function App() {
         filePickerOpen, setFilePickerOpen, setFilePickerError, setFilePickerSelected, filePickerError, filePickerSelected, loadLogFiles, logDirectory, selectSinceOpen, setSelectSinceOpen, selectDayOpen, setSelectDayOpen, selectBetweenOpen, setSelectBetweenOpen, selectDayDate, setSelectDayDate, setSelectSinceView, setSelectSinceDate, setSelectSinceHour, setSelectSinceMinute, setSelectSinceMeridiem, setSelectSinceMonthOpen, selectBetweenStart, setSelectBetweenStart, selectBetweenEnd, setSelectBetweenEnd, selectSinceDate, selectSinceHour, selectSinceMinute, selectSinceMeridiem, selectSinceView, selectSinceMonthOpen, filePickerFilter, setFilePickerFilter, filePickerLoading, filePickerAvailable, filePickerAll, filePickerListRef, setFilePickerAtBottom, lastPickedIndexRef, filePickerHasMore, filePickerAtBottom, setFilePickerMonthWindow, ensureMonthWindowForSince, handleAddSelectedFiles, uiTheme
     };
     const appLayoutCtx = {
-        shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, uiTheme, dashboardLayout, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, setKineticFontStyle, setDashboardLayout, setGithubWebTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
+        shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, uiTheme, dashboardLayout, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, setKineticFontStyle, setKineticThemeVariant, setDashboardLayout, setGithubWebTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
     };
 
     return <AppLayout ctx={appLayoutCtx} />;
