@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { Maximize2, X, Columns, Users } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -8,6 +8,7 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
+import { useMetricSectionState } from '../hooks/useMetricSectionState';
 
 type BoonOutputSectionProps = {
     stats: any;
@@ -18,7 +19,6 @@ type BoonOutputSectionProps = {
     activeBoonTab: string | null;
     setActiveBoonTab: (value: string | null) => void;
     activeBoonTable: any;
-    filteredBoonTables: any[];
     boonSearch: string;
     setBoonSearch: (value: string) => void;
     formatBoonMetricDisplay: (...args: any[]) => string;
@@ -44,7 +44,6 @@ export const BoonOutputSection = ({
     activeBoonTab,
     setActiveBoonTab,
     activeBoonTable,
-    filteredBoonTables,
     boonSearch,
     setBoonSearch,
     formatBoonMetricDisplay,
@@ -60,40 +59,36 @@ export const BoonOutputSection = ({
     sectionClass,
     sidebarListClass
 }: BoonOutputSectionProps) => {
-    const [sortState, setSortState] = useState<{ key: 'value' | 'fightTime'; dir: 'asc' | 'desc' }>({ key: 'value', dir: 'desc' });
-    const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: '', dir: 'desc' });
-    const isExpanded = expandedSection === 'boon-output';
-    const [selectedBoonColumnIds, setSelectedBoonColumnIds] = useState<string[]>([]);
-    const [selectedBoonPlayers, setSelectedBoonPlayers] = useState<string[]>([]);
     const allBoonColumns = stats.boonTables || [];
-    const selectedBoonColumns = selectedBoonColumnIds.length > 0
-        ? allBoonColumns.filter((boon: any) => selectedBoonColumnIds.includes(boon.id))
-        : allBoonColumns;
-    const visibleBoonColumns = selectedBoonColumns;
+    const boonMetrics = useMemo(
+        () => allBoonColumns.map((boon: any) => ({ ...boon, label: boon.name })),
+        [allBoonColumns]
+    );
+    const boonRows = useMemo(
+        () => (stats.boonTables || []).flatMap((t: any) => t.rows || []).filter((r: any) => !!r.account),
+        [stats.boonTables]
+    );
+    const {
+        sortState, updateSort,
+        denseSort, setDenseSort,
+        selectedColumnIds: selectedBoonColumnIds, setSelectedColumnIds: setSelectedBoonColumnIds,
+        selectedPlayers: selectedBoonPlayers, setSelectedPlayers: setSelectedBoonPlayers,
+        filteredMetrics: filteredBoonTables,
+        selectedMetrics: visibleBoonColumns,
+        playerOptions: boonPlayerOptions,
+        searchSelectedIds: boonSearchSelectedIds,
+    } = useMetricSectionState({
+        metrics: boonMetrics,
+        rows: boonRows,
+        search: boonSearch,
+        renderProfessionIcon,
+    });
+    const isExpanded = expandedSection === 'boon-output';
     const boonColumnOptions = filteredBoonTables.map((boon: any) => ({
         id: boon.id,
         label: boon.name,
         icon: boon.icon ? <img src={boon.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
     }));
-    const boonPlayerOptions = Array.from(new Map((stats.boonTables || [])
-        .flatMap((table: any) => table.rows || [])
-        .filter((row: any) => row.account)
-        .map((row: any) => [row.account, row])).values())
-        .map((row: any) => ({
-            id: row.account,
-            label: row.account,
-            icon: renderProfessionIcon(row.profession, row.professionList, 'w-3 h-3')
-        }));
-    const boonSearchSelectedIds = new Set([
-        ...selectedBoonColumnIds.map((id) => `column:${id}`),
-        ...selectedBoonPlayers.map((id) => `player:${id}`)
-    ]);
-    const updateSort = (key: 'value' | 'fightTime') => {
-        setSortState((prev) => ({
-            key,
-            dir: prev.key === key ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
-        }));
-    };
     return (
     <div
         id="boon-output"
@@ -130,16 +125,12 @@ export const BoonOutputSection = ({
                         <SearchSelectDropdown
                             options={[
                                 ...allBoonColumns.map((boon: any) => ({ id: boon.id, label: boon.name, type: 'column' as const })),
-                                ...Array.from(new Map((stats.boonTables || [])
-                                    .flatMap((table: any) => table.rows || [])
-                                    .filter((row: any) => row.account)
-                                    .map((row: any) => [row.account, row])).values())
-                                    .map((row: any) => ({
-                                        id: row.account,
-                                        label: row.account,
-                                        type: 'player' as const,
-                                        icon: renderProfessionIcon(row.profession, row.professionList, 'w-3 h-3')
-                                    }))
+                                ...boonPlayerOptions.map((option) => ({
+                                    id: option.id,
+                                    label: option.label,
+                                    type: 'player' as const,
+                                    icon: option.icon,
+                                })),
                             ]}
                             onSelect={(option: SearchSelectOption) => {
                                 if (option.type === 'column') {

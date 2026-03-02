@@ -54,6 +54,8 @@ Remaining: player aggregation core (lines 241–1616 of the outer IIFE), `fightD
 
 A `useMetricSectionState.ts` hook eliminates ~2000 lines of duplication.
 
+**Status:** Hook used in 7 sections: OffenseSection, DefenseSection, SupportSection, HealingSection, DamageMitigationSection, BoonOutputSection, SpecialBuffsSection. `filteredBoonTables` and `filteredSpecialTables` props removed from StatsView.tsx (now computed inside sections). Remaining candidates (ConditionsSection, ApmSection, PlayerBreakdownSection) have different enough sort/column patterns that partial hook usage has minimal benefit.
+
 ---
 
 ### 4. Split `src/renderer/App.tsx` (~2313 lines)

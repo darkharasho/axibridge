@@ -2523,12 +2523,6 @@ type SpikeFight = {
         setSelectedPlayers((prev) => prev.filter((key) => key !== playerKey));
     };
 
-    const filteredBoonTables = useMemo(() => {
-        const term = boonSearch.trim().toLowerCase();
-        const tables = safeStats.boonTables || [];
-        if (!term) return tables;
-        return tables.filter((boon: any) => boon.name.toLowerCase().includes(term));
-    }, [safeStats.boonTables, boonSearch]);
     const activeBoonTable = useMemo(() => {
         if (!activeBoonTab) return null;
         return (safeStats.boonTables || []).find((boon: any) => boon.id === activeBoonTab) ?? null;
@@ -2969,12 +2963,6 @@ type SpikeFight = {
         const value = boonUptimePercentByPlayer.get(selectedBoonUptimePlayerKey);
         return Number.isFinite(Number(value)) ? Number(value) : null;
     }, [boonUptimePercentByPlayer, selectedBoonUptimePlayerKey]);
-    const filteredSpecialTables = useMemo(() => {
-        const term = specialSearch.trim().toLowerCase();
-        const sorted = [...(safeStats.specialTables || [])].sort((a: any, b: any) => a.name.localeCompare(b.name));
-        if (!term) return sorted;
-        return sorted.filter((buff: any) => buff.name.toLowerCase().includes(term));
-    }, [safeStats.specialTables, specialSearch]);
     const sigilRelicTables = useMemo(() => {
         const tables = safeStats.specialTables || [];
         return [...tables]
@@ -3367,7 +3355,6 @@ type SpikeFight = {
                                 activeBoonTab={activeBoonTab}
                                 setActiveBoonTab={setActiveBoonTab}
                                 activeBoonTable={activeBoonTable}
-                                filteredBoonTables={filteredBoonTables}
                                 boonSearch={boonSearch}
                                 setBoonSearch={setBoonSearch}
                                 formatBoonMetricDisplay={formatBoonMetricDisplay}
@@ -3712,7 +3699,6 @@ type SpikeFight = {
                                 stats={safeStats}
                                 specialSearch={specialSearch}
                                 setSpecialSearch={setSpecialSearch}
-                                filteredSpecialTables={filteredSpecialTables}
                                 activeSpecialTab={activeSpecialTab}
                                 setActiveSpecialTab={setActiveSpecialTab}
                                 activeSpecialTable={activeSpecialTable}
@@ -4230,7 +4216,6 @@ type SpikeFight = {
                             activeBoonTab={activeBoonTab}
                             setActiveBoonTab={setActiveBoonTab}
                             activeBoonTable={activeBoonTable}
-                            filteredBoonTables={filteredBoonTables}
                             boonSearch={boonSearch}
                             setBoonSearch={setBoonSearch}
                             formatBoonMetricDisplay={formatBoonMetricDisplay}
@@ -4368,7 +4353,6 @@ type SpikeFight = {
                             stats={safeStats}
                             specialSearch={specialSearch}
                             setSpecialSearch={setSpecialSearch}
-                            filteredSpecialTables={filteredSpecialTables}
                             activeSpecialTab={activeSpecialTab}
                             setActiveSpecialTab={setActiveSpecialTab}
                             activeSpecialTable={activeSpecialTable}

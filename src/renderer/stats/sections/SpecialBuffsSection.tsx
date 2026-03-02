@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Maximize2, Sparkles, X, Columns, Users } from 'lucide-react';
+import { useMetricSectionState } from '../hooks/useMetricSectionState';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -12,7 +13,6 @@ type SpecialBuffsSectionProps = {
     stats: any;
     specialSearch: string;
     setSpecialSearch: (value: string) => void;
-    filteredSpecialTables: any[];
     activeSpecialTab: string | null;
     setActiveSpecialTab: (value: string | null) => void;
     activeSpecialTable: any | null;
@@ -38,7 +38,6 @@ export const SpecialBuffsSection = ({
     stats,
     specialSearch,
     setSpecialSearch,
-    filteredSpecialTables,
     activeSpecialTab,
     setActiveSpecialTab,
     activeSpecialTable,
@@ -55,33 +54,37 @@ export const SpecialBuffsSection = ({
 }: SpecialBuffsSectionProps) => {
     const [sortKey, setSortKey] = useState<SpecialSortKey>('total');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-    const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: '', dir: 'desc' });
     const isExpanded = expandedSection === 'special-buffs';
-    const [selectedSpecialColumns, setSelectedSpecialColumns] = useState<string[]>([]);
-    const [selectedSpecialPlayers, setSelectedSpecialPlayers] = useState<string[]>([]);
     const allSpecialColumns = stats.specialTables || [];
-    const selectedSpecialTables = selectedSpecialColumns.length > 0
-        ? allSpecialColumns.filter((buff: any) => selectedSpecialColumns.includes(buff.id))
-        : allSpecialColumns;
-    const visibleSpecialTables = selectedSpecialTables;
+    const specialMetrics = useMemo(
+        () => [...allSpecialColumns]
+            .sort((a: any, b: any) => a.name.localeCompare(b.name))
+            .map((buff: any) => ({ ...buff, label: buff.name })),
+        [allSpecialColumns]
+    );
+    const specialRows = useMemo(
+        () => (stats.specialTables || []).flatMap((t: any) => t.rows || []).filter((r: any) => !!r.account),
+        [stats.specialTables]
+    );
+    const {
+        denseSort, setDenseSort,
+        selectedColumnIds: selectedSpecialColumns, setSelectedColumnIds: setSelectedSpecialColumns,
+        selectedPlayers: selectedSpecialPlayers, setSelectedPlayers: setSelectedSpecialPlayers,
+        filteredMetrics: filteredSpecialTables,
+        selectedMetrics: visibleSpecialTables,
+        playerOptions: specialPlayerOptions,
+        searchSelectedIds: specialSearchSelectedIds,
+    } = useMetricSectionState({
+        metrics: specialMetrics,
+        rows: specialRows,
+        search: specialSearch,
+        renderProfessionIcon,
+    });
     const specialColumnOptions = filteredSpecialTables.map((buff: any) => ({
         id: buff.id,
         label: buff.name,
         icon: buff.icon ? <img src={buff.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
     }));
-    const specialPlayerOptions = Array.from(new Map((stats.specialTables || [])
-        .flatMap((table: any) => table.rows || [])
-        .filter((row: any) => row.account)
-        .map((row: any) => [row.account, row])).values())
-        .map((row: any) => ({
-            id: row.account,
-            label: row.account,
-            icon: renderProfessionIcon(row.profession, row.professionList, 'w-3 h-3')
-        }));
-    const specialSearchSelectedIds = new Set([
-        ...selectedSpecialColumns.map((id) => `column:${id}`),
-        ...selectedSpecialPlayers.map((id) => `player:${id}`)
-    ]);
 
     const sortedRows = useMemo(() => {
         if (!activeSpecialTable?.rows) return [];
@@ -146,16 +149,12 @@ export const SpecialBuffsSection = ({
                         <SearchSelectDropdown
                             options={[
                                 ...allSpecialColumns.map((buff: any) => ({ id: buff.id, label: buff.name, type: 'column' as const })),
-                                ...Array.from(new Map((stats.specialTables || [])
-                                    .flatMap((table: any) => table.rows || [])
-                                    .filter((row: any) => row.account)
-                                    .map((row: any) => [row.account, row])).values())
-                                    .map((row: any) => ({
-                                        id: row.account,
-                                        label: row.account,
-                                        type: 'player' as const,
-                                        icon: renderProfessionIcon(row.profession, row.professionList, 'w-3 h-3')
-                                    }))
+                                ...specialPlayerOptions.map((option) => ({
+                                    id: option.id,
+                                    label: option.label,
+                                    type: 'player' as const,
+                                    icon: option.icon,
+                                })),
                             ]}
                             onSelect={(option: SearchSelectOption) => {
                                 if (option.type === 'column') {
