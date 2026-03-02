@@ -1,7 +1,6 @@
 
 import { applyStabilityGeneration, getPlayerCleanses, getPlayerStrips, getPlayerDownContribution, getPlayerSquadHealing, getPlayerSquadBarrier, getPlayerOutgoingCrowdControl } from "../../shared/dashboardMetrics";
 import { Player } from '../../shared/dpsReportTypes';
-import { buildBoonTables } from "../../shared/boonGeneration";
 import { DisruptionMethod, IMvpWeights, IStatsViewSettings, DEFAULT_DISRUPTION_METHOD, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS } from '../global.d';
 import { buildConditionIconMap, computeOutgoingConditions, normalizeConditionLabel, resolveBuffMetaById, resolveConditionNameFromEntry } from '../../shared/conditionsMetrics';
 import { OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS, NON_DAMAGING_CONDITIONS } from './statsMetrics';
@@ -12,10 +11,11 @@ import { resolveFightTimestamp } from './utils/timestampUtils';
 import { computeSkillUsageData } from './computeSkillUsageData';
 import { computeSpikeDamageData } from './computeSpikeDamageData';
 import { computeIncomingStrikeDamageData } from './computeIncomingStrikeDamageData';
-import { computeBoonTimeline } from './computeBoonTimeline';
-import { computeBoonUptimeTimeline } from './computeBoonUptimeTimeline';
 import { computeCommanderStats } from './computeCommanderStats';
 import { resolveMapName } from './utils/labelUtils';
+import { computeTimelineAndMapData } from './computeTimelineAndMapData';
+import { computeFightDiffMode } from './computeFightDiffMode';
+import { computeSpecialTables } from './computeSpecialTables';
 
 interface UseStatsAggregationProps {
     logs: any[];
@@ -1542,7 +1542,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         const topSkills = topSkillsMetric === 'downContribution' ? topSkillsByDownContribution : topSkillsByDamage;
         const topIncomingSkills = Object.values(incomingSkillDamageMap).sort((a, b) => b.damage - a.damage).slice(0, 25);
 
-        // Map Data
+        // Helpers used by fightBreakdown below
         const resolvePermalink = (details: any, log: any) => {
             const direct = log?.permalink || details?.permalink;
             if (typeof direct === 'string' && direct.trim().length > 0) return direct.trim();
@@ -1574,78 +1574,9 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             }
             return null;
         };
-        const sortLogsByFightOrder = (a: { log: any; originalIndex: number }, b: { log: any; originalIndex: number }) => {
-            const aTimestamp = resolveFightTimestamp(a.log?.details, a.log);
-            const bTimestamp = resolveFightTimestamp(b.log?.details, b.log);
-            const aHasTimestamp = aTimestamp > 0;
-            const bHasTimestamp = bTimestamp > 0;
-            if (aHasTimestamp && bHasTimestamp && aTimestamp !== bTimestamp) {
-                return aTimestamp - bTimestamp;
-            }
-            if (aHasTimestamp !== bHasTimestamp) {
-                return aHasTimestamp ? -1 : 1;
-            }
-            return a.originalIndex - b.originalIndex;
-        };
-        const sortedFightLogs = logs
-            .map((log, originalIndex) => ({ log, originalIndex }))
-            .sort(sortLogsByFightOrder);
-        const sortedFightLogsWithDetails = sortedFightLogs.filter(({ log }) => hasDetailedRoster(log));
-        const mapCounts: Record<string, number> = {};
-        validLogs.forEach((log) => {
-            const name = resolveMapName(log?.details, log);
-            mapCounts[name] = (mapCounts[name] || 0) + 1;
-        });
-        const mapData = Object.entries(mapCounts)
-            .map(([name, value]) => {
-                const label = String(name).trim();
-                const isEbg = /eternal battlegrounds|^ebg$/i.test(label);
-                let color = '#64748b';
-                if (isEbg) {
-                    color = '#ffffff';
-                } else if (/red/i.test(label)) {
-                    color = '#ef4444';
-                } else if (/blue/i.test(label)) {
-                    color = '#3b82f6';
-                } else if (/green/i.test(label)) {
-                    color = '#22c55e';
-                }
-                return { name, value, color };
-            })
-            .sort((a, b) => b.value - a.value);
 
-        const { boonTables } = buildBoonTables(validLogs);
-        const boonTimeline = computeBoonTimeline(validLogs);
-        const boonUptimeTimeline = computeBoonUptimeTimeline(validLogs);
-
-        const timelineData = sortedFightLogs
-            .map(({ log }) => {
-                const details = log?.details;
-                const players = Array.isArray(details?.players) ? details.players : [];
-                const targets = Array.isArray(details?.targets) ? details.targets : [];
-                const summary = log?.dashboardSummary && typeof log.dashboardSummary === 'object'
-                    ? log.dashboardSummary
-                    : null;
-                const squadPlayers = players.filter((p: any) => !p.notInSquad);
-                const enemyTargets = targets.filter((t: any) => !t.isFake);
-                const summarySquadCount = Math.max(0, Number(summary?.squadCount || 0));
-                const summaryEnemyCount = Math.max(0, Number(summary?.enemyCount || 0));
-                const squadCount = squadPlayers.length > 0 ? squadPlayers.length : summarySquadCount;
-                const enemies = enemyTargets.length > 0 ? enemyTargets.length : summaryEnemyCount;
-                const friendlyCount = players.length > 0 ? players.length : squadCount;
-                return {
-                    timestamp: resolveFightTimestamp(details, log),
-                    squadCount,
-                    friendlyCount,
-                    enemies,
-                    isWin: resolveFightOutcomeForDisplay(details, log)
-                };
-            })
-            .map((entry, index) => ({
-                ...entry,
-                index: index + 1,
-                label: `Log ${index + 1}`
-            }));
+        // Map data, timeline, boon tables
+        const { sortedFightLogs, sortedFightLogsWithDetails, mapData, timelineData, boonTables, boonTimeline, boonUptimeTimeline } = computeTimelineAndMapData(logs, validLogs);
 
         // 1. Squad Class Data
         const squadClassCounts: Record<string, number> = {};
@@ -1789,209 +1720,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
         const commanderStats = computeCommanderStats(sortedFightLogsWithDetails);
 
-        const fightDiffMode = sortedFightLogsWithDetails
-            .map(({ log }, idx) => {
-                const details = log.details;
-                if (!details) return null;
-                const players = Array.isArray(details.players) ? details.players : [];
-                const squadPlayers = players.filter((p: any) => !p.notInSquad);
-                const allTargets = Array.isArray(details.targets) ? details.targets : [];
-                const timestamp = resolveFightTimestamp(details, log);
-                const mapName = resolveMapName(details, log);
-                const durationMs = Number(details.durationMS || 0);
-                const { squadDownsDeaths, enemyDownsDeaths, squadDeaths, enemyDeaths } = getFightDownsDeaths(details);
-                const targetFocusMap = new Map<string, { label: string; damage: number; hits: number }>();
-                const upsertTargetFocus = (label: string, damage: number, hits: number) => {
-                    const existing = targetFocusMap.get(label) || { label, damage: 0, hits: 0 };
-                    existing.damage += damage;
-                    existing.hits += hits;
-                    targetFocusMap.set(label, existing);
-                };
-
-                squadPlayers.forEach((player: any) => {
-                    const statsTargets = Array.isArray(player?.statsTargets) ? player.statsTargets : [];
-                    statsTargets.forEach((targetStats: any, targetIndex: number) => {
-                        const statsEntry = Array.isArray(targetStats) ? targetStats[0] : targetStats;
-                        // EI detailed WvW target slices commonly populate totalDmg/connectedDmg
-                        // while leaving damage unset.
-                        const damage = Number(
-                            statsEntry?.damage ??
-                            statsEntry?.totalDmg ??
-                            statsEntry?.connectedDmg ??
-                            0
-                        );
-                        const hits = Number(
-                            statsEntry?.connectedHits ??
-                            statsEntry?.connectedDamageCount ??
-                            statsEntry?.hits ??
-                            0
-                        );
-                        if (damage <= 0 && hits <= 0) return;
-                        const target = allTargets[targetIndex];
-                        if (target?.isFake) return;
-                        const rawLabel = target?.profession || target?.name || target?.id || `Target ${targetIndex + 1}`;
-                        const label = resolveProfessionLabel(rawLabel);
-                        upsertTargetFocus(label || String(rawLabel), damage, hits);
-                    });
-                });
-
-                // Fallback 1: derive per-target totals from cumulative targetDamage1S timelines.
-                if (targetFocusMap.size === 0) {
-                    const targetDamageTotals = new Map<number, number>();
-                    const extractTargetPhase0 = (series: any): number[][] => {
-                        if (!Array.isArray(series) || series.length === 0) return [];
-                        const first = series[0];
-                        if (Array.isArray(first) && Array.isArray(first[0])) {
-                            // Shape A: [phase][target][time]
-                            if (typeof first[0][0] === 'number') return first as number[][];
-                            // Shape B: [target][phase][time]
-                            if (Array.isArray(first[0]) && typeof first[0][0] === 'number') {
-                                return (series as any[]).map((targetEntry) => (Array.isArray(targetEntry) ? (targetEntry[0] || []) : []));
-                            }
-                        }
-                        return [];
-                    };
-                    squadPlayers.forEach((player: any) => {
-                        const phase0 = extractTargetPhase0(player?.targetDamage1S);
-                        phase0.forEach((cumulative: any, targetIndex: number) => {
-                            if (!Array.isArray(cumulative) || cumulative.length === 0) return;
-                            const values = cumulative
-                                .map((value: any) => Number(value))
-                                .filter((value: number) => Number.isFinite(value) && value >= 0);
-                            if (values.length === 0) return;
-                            const totalDamage = Math.max(0, values[values.length - 1] || 0);
-                            if (totalDamage <= 0) return;
-                            targetDamageTotals.set(targetIndex, (targetDamageTotals.get(targetIndex) || 0) + totalDamage);
-                        });
-                    });
-
-                    targetDamageTotals.forEach((damage, targetIndex) => {
-                        if (damage <= 0) return;
-                        const target = allTargets[targetIndex];
-                        if (target?.isFake) return;
-                        const rawLabel = target?.profession || target?.name || target?.id || `Target ${targetIndex + 1}`;
-                        const label = resolveProfessionLabel(rawLabel);
-                        upsertTargetFocus(label || String(rawLabel), damage, 0);
-                    });
-                }
-
-                // Fallback 2: use target-level total damage taken distributions when player target slices are missing.
-                if (targetFocusMap.size === 0) {
-                    allTargets.forEach((target: any, targetIndex: number) => {
-                        if (target?.isFake) return;
-                        const damageRows = Array.isArray(target?.totalDamageTaken)
-                            ? target.totalDamageTaken
-                            : (Array.isArray(target?.totalDamageDist) ? target.totalDamageDist : []);
-                        let damage = 0;
-                        let hits = 0;
-                        damageRows.forEach((entry: any) => {
-                            damage += Number(entry?.totalDamage || entry?.damage || 0);
-                            hits += Number(entry?.connectedHits || entry?.hits || 0);
-                        });
-                        if (damage <= 0 && Number(target?.damageTaken || 0) > 0) {
-                            damage = Number(target.damageTaken || 0);
-                        }
-                        if (damage <= 0 && hits <= 0) return;
-                        const rawLabel = target?.profession || target?.name || target?.id || `Target ${targetIndex + 1}`;
-                        const label = resolveProfessionLabel(rawLabel);
-                        upsertTargetFocus(label || String(rawLabel), damage, hits);
-                    });
-                }
-
-                // Fallback 3: if no damage-attribution is available, use enemy class counts to produce
-                // count-share focus so the comparison remains informative instead of empty.
-                if (targetFocusMap.size === 0) {
-                    const counts = new Map<string, number>();
-                    allTargets.forEach((target: any, targetIndex: number) => {
-                        if (target?.isFake) return;
-                        const rawLabel = target?.profession || target?.name || target?.id || `Target ${targetIndex + 1}`;
-                        const label = resolveProfessionLabel(rawLabel) || String(rawLabel);
-                        counts.set(label, (counts.get(label) || 0) + 1);
-                    });
-                    counts.forEach((count, label) => {
-                        if (count > 0) upsertTargetFocus(label, count, 0);
-                    });
-                }
-
-                const targetFocus = Array.from(targetFocusMap.values())
-                    .sort((a: { label: string; damage: number; hits: number }, b: { label: string; damage: number; hits: number }) =>
-                        b.damage - a.damage || b.hits - a.hits || a.label.localeCompare(b.label)
-                    );
-                const totalTargetDamage = targetFocus.reduce((sum, row) => sum + row.damage, 0);
-                const normalizedTargetFocus = targetFocus.map((row) => ({
-                    label: row.label,
-                    damage: row.damage,
-                    hits: row.hits,
-                    share: totalTargetDamage > 0 ? row.damage / totalTargetDamage : 0
-                }));
-                const enemyCount = allTargets.filter((target: any) => !target?.isFake).length;
-                const squadCount = squadPlayers.length;
-                const totalOutgoingDamage = squadPlayers.reduce((sum: number, player: any) => sum + Number(player?.dpsAll?.[0]?.damage || 0), 0);
-                const totalIncomingDamage = squadPlayers.reduce((sum: number, player: any) => sum + Number(player?.defenses?.[0]?.damageTaken || 0), 0);
-                const incomingBarrierAbsorbed = squadPlayers.reduce((sum: number, player: any) => sum + Number(player?.defenses?.[0]?.damageBarrier || 0), 0);
-                const outgoingBarrierAbsorbed = squadPlayers.reduce((sum: number, player: any) => {
-                    const outgoingBarrier = player?.extBarrierStats?.outgoingBarrier;
-                    if (!Array.isArray(outgoingBarrier)) return sum;
-                    let playerTotal = 0;
-                    outgoingBarrier.forEach((phase: any) => {
-                        if (Array.isArray(phase)) {
-                            phase.forEach((entry: any) => {
-                                playerTotal += Number(entry?.barrier || 0);
-                            });
-                        } else {
-                            playerTotal += Number(phase?.barrier || 0);
-                        }
-                    });
-                    return sum + playerTotal;
-                }, 0);
-                const squadRevivedPlayers = squadPlayers.reduce((sum: number, player: any) => (
-                    Number(player?.statsAll?.[0]?.saved || 0) > 0 ? sum + 1 : sum
-                ), 0);
-                const squadCleanses = squadPlayers.reduce((sum: number, player: any) => sum + Number(getPlayerCleanses(player) || 0), 0);
-                const squadStrips = squadPlayers.reduce((sum: number, player: any) => sum + Number(getPlayerStrips(player) || 0), 0);
-                const squadStability = squadPlayers.reduce((sum: number, player: any) => sum + Number(player?.stabGeneration || 0), 0);
-                const squadHealing = squadPlayers.reduce((sum: number, player: any) => sum + Number(getPlayerSquadHealing(player) || 0), 0);
-                const squadBarrierOutput = squadPlayers.reduce((sum: number, player: any) => sum + Number(getPlayerSquadBarrier(player) || 0), 0);
-                const squadCC = squadPlayers.reduce((sum: number, player: any) => sum + Number(getPlayerOutgoingCrowdControl(player) || 0), 0);
-                const squadDownContribution = squadPlayers.reduce((sum: number, player: any) => sum + Number(getPlayerDownContribution(player) || 0), 0);
-                const squadKdr = squadDeaths > 0 ? enemyDeaths / squadDeaths : enemyDeaths;
-                const squadMetrics = [
-                    { metricId: 'winFlag', metricLabel: 'Win (1) / Loss (0)', higherIsBetter: true, value: getFightOutcome(details) ? 1 : 0 },
-                    { metricId: 'squadCount', metricLabel: 'Squad Size', higherIsBetter: true, value: squadCount },
-                    { metricId: 'enemyCount', metricLabel: 'Enemy Count', higherIsBetter: false, value: enemyCount },
-                    { metricId: 'squadKdr', metricLabel: 'Squad KDR', higherIsBetter: true, value: squadKdr },
-                    { metricId: 'enemyDeaths', metricLabel: 'Enemy Deaths', higherIsBetter: true, value: enemyDeaths },
-                    { metricId: 'enemyDowns', metricLabel: 'Enemy Downs', higherIsBetter: true, value: Math.max(0, enemyDownsDeaths - enemyDeaths) },
-                    { metricId: 'squadDeaths', metricLabel: 'Squad Deaths', higherIsBetter: false, value: squadDeaths },
-                    { metricId: 'squadDowns', metricLabel: 'Squad Downs', higherIsBetter: false, value: Math.max(0, squadDownsDeaths - squadDeaths) },
-                    { metricId: 'damageDelta', metricLabel: 'Damage Delta', higherIsBetter: true, value: totalOutgoingDamage - totalIncomingDamage },
-                    { metricId: 'outgoingDamage', metricLabel: 'Outgoing Damage', higherIsBetter: true, value: totalOutgoingDamage },
-                    { metricId: 'incomingDamage', metricLabel: 'Incoming Damage', higherIsBetter: false, value: totalIncomingDamage },
-                    { metricId: 'cleanses', metricLabel: 'Squad Cleanses', higherIsBetter: true, value: squadCleanses },
-                    { metricId: 'strips', metricLabel: 'Squad Strips', higherIsBetter: true, value: squadStrips },
-                    { metricId: 'stability', metricLabel: 'Squad Stability', higherIsBetter: true, value: squadStability },
-                    { metricId: 'healing', metricLabel: 'Squad Healing', higherIsBetter: true, value: squadHealing },
-                    { metricId: 'barrierOut', metricLabel: 'Squad Barrier Out', higherIsBetter: true, value: squadBarrierOutput },
-                    { metricId: 'barrierIncomingAbsorb', metricLabel: 'Barrier Absorption (Incoming)', higherIsBetter: true, value: incomingBarrierAbsorbed },
-                    { metricId: 'enemyBarrierAbsorb', metricLabel: 'Enemy Barrier Absorption', higherIsBetter: false, value: outgoingBarrierAbsorbed },
-                    { metricId: 'cc', metricLabel: 'Squad CC', higherIsBetter: true, value: squadCC },
-                    { metricId: 'downContrib', metricLabel: 'Squad Down Contribution', higherIsBetter: true, value: squadDownContribution },
-                    { metricId: 'alliesRevived', metricLabel: 'Allies Revived (Players)', higherIsBetter: true, value: squadRevivedPlayers }
-                ];
-
-                return {
-                    id: log.filePath || log.id || `fight-${idx + 1}`,
-                    shortLabel: `F${idx + 1}`,
-                    fullLabel: `${mapName || (log.encounterName || 'Unknown Map')} • ${formatDurationMs(durationMs)}`,
-                    mapName,
-                    timestamp,
-                    duration: formatDurationMs(durationMs),
-                    isWin: getFightOutcome(details),
-                    targetFocus: normalizedTargetFocus,
-                    squadMetrics
-                };
-            })
-            .filter(Boolean);
+        const fightDiffMode = computeFightDiffMode(sortedFightLogsWithDetails);
 
         const attendanceData = Array.from(playerStats.values())
             .map((entry) => {
@@ -2081,67 +1810,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
         const incomingStrikeDamage = computeIncomingStrikeDamageData(validLogs);
 
-        const specialTables = Array.from(specialBuffAgg.entries()).map(([buffId, players]) => {
-            const meta = specialBuffMeta.get(buffId) || {};
-            const rows = Array.from(players.values()).map((entry) => {
-                const professionList = Array.from(entry.professions || []).filter((prof) => prof && prof !== 'Unknown');
-                let primaryProfession = entry.profession || 'Unknown';
-                if (professionList.length > 0) {
-                    primaryProfession = professionList[0];
-                    let maxTime = entry.professionTimeMs?.[primaryProfession] || 0;
-                    professionList.forEach((prof) => {
-                        const time = entry.professionTimeMs?.[prof] || 0;
-                        if (time > maxTime) {
-                            maxTime = time;
-                            primaryProfession = prof;
-                        }
-                    });
-                }
-                const durationMs = entry.durationMs || 0;
-                const total = entry.totalMs / 1000;
-                const perSecond = durationMs > 0 ? (entry.totalMs / durationMs) : 0;
-                const fullPlayerDurationMs = playerStats.get(entry.account)?.supportActiveMs || durationMs;
-                const uptimePerSecond = fullPlayerDurationMs > 0 ? (entry.uptimeMs / fullPlayerDurationMs) : 0;
-                return {
-                    account: entry.account,
-                    profession: primaryProfession,
-                    professionList,
-                    total,
-                    perSecond,
-                    uptimePerSecond,
-                    duration: durationMs / 1000
-                };
-            }).filter((row) => row.total > 0 || row.perSecond > 0);
-            return {
-                id: buffId,
-                name: meta.name || buffId,
-                icon: meta.icon,
-                rows
-            };
-        }).filter((table) => table.rows.length > 0);
-
-        const playerSkillBreakdowns = Array.from(playerSkillBreakdownMap.values())
-            .map((entry) => {
-                const skills = Array.from(entry.skills.values())
-                    .sort((a, b) => b.damage - a.damage);
-                const payload: any = {
-                    key: entry.key,
-                    account: entry.account,
-                    displayName: entry.displayName,
-                    profession: entry.profession,
-                    professionList: entry.professionList,
-                    totalFightMs: entry.totalFightMs,
-                    skills
-                };
-                if (shouldIncludePlayerSkillMap) {
-                    payload.skillMap = skills.reduce<Record<string, PlayerSkillDamageEntry>>((acc, skill) => {
-                        acc[skill.id] = skill;
-                        return acc;
-                    }, {});
-                }
-                return payload;
-            })
-            .sort((a, b) => a.displayName.localeCompare(b.displayName));
+        const { specialTables, playerSkillBreakdowns } = computeSpecialTables(specialBuffAgg, specialBuffMeta, playerStats, playerSkillBreakdownMap, shouldIncludePlayerSkillMap);
 
         return {
             total, wins, losses, avgSquadSize, avgEnemies, squadKDR, enemyKDR,

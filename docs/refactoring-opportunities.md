@@ -28,19 +28,22 @@ The entire Electron main process lives in one file: app lifecycle, console loggi
 
 ---
 
-### 2. Decompose `src/renderer/stats/computeStatsAggregation.ts` (~4734 lines → ~2209 lines)
+### 2. Decompose `src/renderer/stats/computeStatsAggregation.ts` (~4734 lines → ~1878 lines)
 
 A single monolithic function handles player aggregation, damage, conditions, boons, skill breakdowns, and fight diff mode — with 3–4 levels of nested loops and 15+ helpers defined inline.
 
-**Status:** Six major IIFEs extracted as standalone modules:
+**Status:** Nine major sections extracted as standalone modules:
 - `computeSkillUsageData.ts` — skill usage aggregation
 - `computeSpikeDamageData.ts` — outgoing spike damage
 - `computeIncomingStrikeDamageData.ts` — incoming strike damage by enemy class
 - `computeBoonTimeline.ts` — boon generation timeline
 - `computeBoonUptimeTimeline.ts` — boon uptime timeline
 - `computeCommanderStats.ts` — per-commander statistics
+- `computeTimelineAndMapData.ts` — fight sorting, map data, timeline, boon tables
+- `computeFightDiffMode.ts` — per-fight target focus and squad metrics comparison
+- `computeSpecialTables.ts` — special buff tables and player skill breakdowns
 
-Remaining: player aggregation core (lines 241–1616 of the outer IIFE), `fightDiffMode`, `timelineData`, and `specialTables` sections.
+Remaining: player aggregation core (the main per-log/per-player loop, ~1300 lines of the IIFE). `fightBreakdown`, `attendanceData`, and `squadCompByFight` sections also remain inline but are self-contained within the IIFE.
 
 ---
 
