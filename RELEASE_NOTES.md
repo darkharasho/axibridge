@@ -1,17 +1,17 @@
 # Release Notes
 
-Version v1.39.1 — March 1, 2026
+Version v1.39.2 — March 1, 2026
 
-## 🌟 Highlights
-- GitHub Pages build status handling now supports optional repository parameters for more flexible checks.
-- Dist-web assets updated for this release.
+## UI improvements
+- App and AppLayout layout and styling are cleaner, giving you a steadier, more intuitive UI.
 
-## 🛠️ Improvements
-- Dist-web assets refreshed to improve loading speed and visual consistency.
-- Internal wiring updated to better support the new optional repository parameters in GitHub Pages. 
+## Theme resolution
+- KINETIC_SLATE_WEB_THEME_ID is now supported in theme resolution, so that theme picks up correctly.
 
-## 🧯 Fixes
-None.
+## Behind the scenes
+- Added version utilities, details processing, and an upload retry queue to improve how uploads and reports are prepared.
+- Uploads that fail will be retried automatically.
+- Details are parsed and summarized for dashboards and reports.
 
-## ⚠️ Breaking Changes
-None.
+## QoL Improvements
+- General stability tweaks and small polish across the app to feel more reliable day-to-day.
