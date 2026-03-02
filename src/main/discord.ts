@@ -661,8 +661,21 @@ export class DiscordNotifier {
                     }
 
                     // --- Top Lists Helper ---
-                    const addTopList = (title: string, sortFn: (a: any, b: any) => number, valFn: (p: any) => any, fmtVal: (v: any) => string) => {
-                        const top = [...players].filter((p: any) => !p.notInSquad).sort(sortFn).slice(0, maxTopRows);
+                    const addTopList = (
+                        title: string,
+                        sortFn: (a: any, b: any) => number,
+                        valFn: (p: any) => any,
+                        fmtVal: (v: any) => string,
+                        options?: {
+                            filterFn?: (p: any) => boolean;
+                            allowZero?: boolean;
+                        }
+                    ) => {
+                        const top = [...players]
+                            .filter((p: any) => !p.notInSquad)
+                            .filter((p: any) => options?.filterFn ? options.filterFn(p) : true)
+                            .sort(sortFn)
+                            .slice(0, maxTopRows);
                         const classDisplay = settings.classDisplay ?? 'off';
                         const getClassToken = (p: any) => {
                             if (classDisplay === 'short') {
@@ -702,7 +715,14 @@ export class DiscordNotifier {
                             const p = top[i];
                             if (p) {
                                 const val = valFn(p);
-                                if (val > 0 || (typeof val === 'string' && val !== '0' && val !== '')) {
+                                const shouldRenderValue = options?.allowZero
+                                    ? (
+                                        typeof val === 'number'
+                                            ? Number.isFinite(val)
+                                            : (typeof val === 'string' ? val !== '' : Boolean(val))
+                                    )
+                                    : (val > 0 || (typeof val === 'string' && val !== '0' && val !== ''));
+                                if (shouldRenderValue) {
                                     const rank = (i + 1).toString().padEnd(2);
                                     const fullName = p.name || p.character_name || p.account || 'Unknown';
                                     const classToken = getClassToken(p);
@@ -866,7 +886,18 @@ export class DiscordNotifier {
 
                         let rowCount = 0;
                         enabledTopLists.forEach((item, index) => {
-                            addTopList(item.title, item.sortFn, item.valFn, item.fmtVal);
+                            addTopList(
+                                item.title,
+                                item.sortFn,
+                                item.valFn,
+                                item.fmtVal,
+                                item.title === 'Distance to Tag'
+                                    ? {
+                                        filterFn: (p: any) => !p?.isCommander,
+                                        allowZero: true
+                                    }
+                                    : undefined
+                            );
                             rowCount += 1;
                             const isRowEnd = rowCount === 2;
                             const isLast = index === enabledTopLists.length - 1;
