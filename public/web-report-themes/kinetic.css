@@ -236,6 +236,53 @@ body.web-report.theme-kinetic.theme-kinetic-dark {
     --accent-border: rgba(236, 197, 132, 0.4);
 }
 
+body.web-report.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate {
+    --bg-base: #353a41;
+    --bg-elevated: #41474f;
+    --bg-card: rgba(78, 85, 95, 0.84);
+    --bg-hover: rgba(92, 99, 110, 0.92);
+    --bg-input: rgba(68, 74, 83, 0.92);
+    --border-subtle: rgba(212, 218, 229, 0.14);
+    --border-default: rgba(212, 218, 229, 0.22);
+    --border-hover: rgba(226, 231, 241, 0.34);
+    --scrollbar-track: rgba(50, 55, 63, 0.92);
+    --scrollbar-thumb: rgba(202, 188, 164, 0.34);
+    --scrollbar-thumb-hover: rgba(220, 205, 182, 0.48);
+    --border-subtle: rgba(214, 204, 186, 0.16);
+    --border-default: rgba(224, 213, 194, 0.24);
+    --border-hover: rgba(235, 223, 204, 0.36);
+    --accent-bg: rgba(224, 213, 194, 0.12);
+    --accent-border: rgba(233, 221, 202, 0.26);
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .report-nav-sidebar .report-nav-group-btn.text-white {
+    background: rgba(81, 87, 97, 0.95) !important;
+    border-color: rgba(233, 221, 202, 0.36) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .report-nav-sidebar .report-nav-submenu {
+    background: rgba(68, 74, 83, 0.95) !important;
+    border-color: rgba(224, 213, 194, 0.18) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .report-nav-sidebar .report-nav-item-btn:hover {
+    background: rgba(90, 97, 108, 0.92) !important;
+    border-color: rgba(233, 221, 202, 0.28) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .report-nav-sidebar .report-nav-item-btn.text-white {
+    background: rgba(81, 87, 97, 0.93) !important;
+    border-color: rgba(233, 221, 202, 0.34) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .report-back-link {
+    background-color: rgba(76, 82, 92, 0.95) !important;
+}
+
+body.web-report.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .report-back-link:hover {
+    background-color: rgba(90, 97, 108, 0.96) !important;
+}
+
 body.web-report.theme-kinetic.theme-kinetic-dark .bg-emerald-500\/20.text-emerald-300.border-emerald-500\/40 {
     background-color: rgba(95, 157, 127, 0.3) !important;
     border-color: rgba(157, 220, 187, 0.58) !important;

@@ -5,7 +5,7 @@ import https from 'node:https'
 import { createHash } from 'node:crypto'
 import util from 'node:util'
 import { spawn } from 'node:child_process'
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID, type WebTheme } from '../shared/webThemes';
+import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME, KINETIC_SLATE_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID, type WebTheme } from '../shared/webThemes';
 import { computeOutgoingConditions } from '../shared/conditionsMetrics';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'
@@ -1949,9 +1949,20 @@ const normalizeUiThemeChoice = (value: unknown): 'classic' | 'modern' | 'crt' | 
     return 'classic';
 };
 
+const normalizeKineticThemeVariant = (value: unknown): 'light' | 'midnight' | 'slate' => {
+    if (value === 'midnight' || value === 'slate') return value;
+    return 'light';
+};
+
+const inferKineticThemeVariantFromThemeId = (themeId: unknown): 'light' | 'midnight' | 'slate' => {
+    if (themeId === KINETIC_DARK_WEB_THEME_ID) return 'midnight';
+    if (themeId === KINETIC_SLATE_WEB_THEME_ID) return 'slate';
+    return 'light';
+};
+
 const resolveWebUiThemeChoice = (appUiTheme: unknown, selectedThemeId: unknown): 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' => {
     if (selectedThemeId === MATTE_WEB_THEME_ID) return 'matte';
-    if (selectedThemeId === KINETIC_WEB_THEME_ID || selectedThemeId === KINETIC_DARK_WEB_THEME_ID) return 'kinetic';
+    if (selectedThemeId === KINETIC_WEB_THEME_ID || selectedThemeId === KINETIC_DARK_WEB_THEME_ID || selectedThemeId === KINETIC_SLATE_WEB_THEME_ID) return 'kinetic';
     if (selectedThemeId === CRT_WEB_THEME_ID) return 'crt';
     return normalizeUiThemeChoice(appUiTheme);
 };
@@ -1959,12 +1970,12 @@ const resolveWebUiThemeChoice = (appUiTheme: unknown, selectedThemeId: unknown):
 const resolveWebPublishTheme = (uiTheme: string, requestedThemeId: string): { selectedTheme: WebTheme; uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' } => {
     const availableThemes = uiTheme === 'crt'
         ? [CRT_WEB_THEME]
-        : (uiTheme === 'kinetic' ? [KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME] : [...BASE_WEB_THEMES, MATTE_WEB_THEME]);
+        : (uiTheme === 'kinetic' ? [KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME, KINETIC_SLATE_WEB_THEME] : [...BASE_WEB_THEMES, MATTE_WEB_THEME]);
     const themeId = uiTheme === 'crt'
         ? CRT_WEB_THEME_ID
         : (uiTheme === 'matte'
             ? MATTE_WEB_THEME_ID
-            : (uiTheme === 'kinetic' && requestedThemeId !== KINETIC_WEB_THEME_ID && requestedThemeId !== KINETIC_DARK_WEB_THEME_ID
+            : (uiTheme === 'kinetic' && requestedThemeId !== KINETIC_WEB_THEME_ID && requestedThemeId !== KINETIC_DARK_WEB_THEME_ID && requestedThemeId !== KINETIC_SLATE_WEB_THEME_ID
                 ? KINETIC_WEB_THEME_ID
                 : requestedThemeId));
     const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
@@ -2137,7 +2148,8 @@ const buildWebReportPayload = (
     reportMeta: any,
     sourceStats: any,
     uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic',
-    webThemeId: string
+    webThemeId: string,
+    kineticThemeVariant?: 'light' | 'midnight' | 'slate'
 ) => {
     const payload = {
         meta: { ...(reportMeta || {}) },
@@ -2145,7 +2157,8 @@ const buildWebReportPayload = (
             ...(sourceStats || {}),
             reportTheme: {
                 ui: uiThemeValue,
-                paletteId: webThemeId
+                paletteId: webThemeId,
+                ...(uiThemeValue === 'kinetic' ? { variant: normalizeKineticThemeVariant(kineticThemeVariant) } : {})
             },
             uiTheme: uiThemeValue,
             webThemeId
@@ -2869,6 +2882,7 @@ if (!gotTheLock) {
                 disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
                 uiTheme: store.get('uiTheme', 'classic'),
                 kineticFontStyle: store.get('kineticFontStyle', 'default'),
+                kineticThemeVariant: normalizeKineticThemeVariant(store.get('kineticThemeVariant', inferKineticThemeVariantFromThemeId(store.get('githubWebTheme', DEFAULT_WEB_THEME_ID)))),
                 dashboardLayout: store.get('dashboardLayout', 'side'),
                 autoUpdateSupported: updateSupported,
                 autoUpdateDisabledReason: updateDisabledReason,
@@ -2906,7 +2920,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', dashboardLayout?: 'top' | 'side', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', kineticThemeVariant?: 'light' | 'midnight' | 'slate', dashboardLayout?: 'top' | 'side', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -2979,6 +2993,9 @@ if (!gotTheLock) {
             if (settings.kineticFontStyle !== undefined) {
                 store.set('kineticFontStyle', settings.kineticFontStyle);
             }
+            if (settings.kineticThemeVariant !== undefined) {
+                store.set('kineticThemeVariant', normalizeKineticThemeVariant(settings.kineticThemeVariant));
+            }
             if (settings.dashboardLayout !== undefined) {
                 store.set('dashboardLayout', settings.dashboardLayout);
             }
@@ -3011,7 +3028,7 @@ if (!gotTheLock) {
             }
         };
 
-        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', dashboardLayout?: 'top' | 'side', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        ipcMain.on('save-settings', (_event, settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', kineticThemeVariant?: 'light' | 'midnight' | 'slate', dashboardLayout?: 'top' | 'side', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             applySettings(settings);
         });
 
@@ -3059,6 +3076,7 @@ if (!gotTheLock) {
                 disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
                 uiTheme: store.get('uiTheme', 'classic'),
                 kineticFontStyle: store.get('kineticFontStyle', 'default'),
+                kineticThemeVariant: normalizeKineticThemeVariant(store.get('kineticThemeVariant', inferKineticThemeVariantFromThemeId(store.get('githubWebTheme', DEFAULT_WEB_THEME_ID)))),
                 dashboardLayout: store.get('dashboardLayout', 'side'),
                 githubRepoOwner: store.get('githubRepoOwner', null),
                 githubRepoName: store.get('githubRepoName', null),
@@ -4411,11 +4429,13 @@ if (!gotTheLock) {
                 const uiTheme = store.get('uiTheme', 'classic') as string;
                 const requestedThemeId = (store.get('githubWebTheme', DEFAULT_WEB_THEME_ID) as string) || DEFAULT_WEB_THEME_ID;
                 const { selectedTheme, uiThemeValue } = resolveWebPublishTheme(uiTheme, requestedThemeId);
+                const kineticThemeVariant = normalizeKineticThemeVariant(store.get('kineticThemeVariant', inferKineticThemeVariantFromThemeId(selectedTheme?.id || DEFAULT_WEB_THEME_ID)));
                 const builtReport = buildWebReportPayload(
                     reportMeta,
                     payload.stats || {},
                     uiThemeValue,
-                    selectedTheme?.id || DEFAULT_WEB_THEME_ID
+                    selectedTheme?.id || DEFAULT_WEB_THEME_ID,
+                    kineticThemeVariant
                 );
                 const reportPayload = builtReport.payload;
 
@@ -4498,8 +4518,9 @@ if (!gotTheLock) {
 
                 const mergedEntries = [indexEntry, ...existingEntries.filter((entry) => entry?.id !== reportMeta.id)];
                 const kineticFont = (store.get('kineticFontStyle', 'default') as string) === 'original' ? 'original' : 'default';
+                const kineticVariant = normalizeKineticThemeVariant(store.get('kineticThemeVariant', inferKineticThemeVariantFromThemeId(selectedTheme?.id || DEFAULT_WEB_THEME_ID)));
                 const indexPayload = {
-                    siteTheme: { ui: uiThemeValue, paletteId: selectedTheme?.id || DEFAULT_WEB_THEME_ID, kineticFont },
+                    siteTheme: { ui: uiThemeValue, paletteId: selectedTheme?.id || DEFAULT_WEB_THEME_ID, kineticFont, ...(uiThemeValue === 'kinetic' ? { kineticVariant } : {}) },
                     entries: mergedEntries
                 };
 
@@ -4663,11 +4684,13 @@ if (!gotTheLock) {
                 const uiTheme = store.get('uiTheme', 'classic') as string;
                 const requestedThemeId = (store.get('githubWebTheme', DEFAULT_WEB_THEME_ID) as string) || DEFAULT_WEB_THEME_ID;
                 const { selectedTheme, uiThemeValue } = resolveWebPublishTheme(uiTheme, requestedThemeId);
+                const localKineticVariant = normalizeKineticThemeVariant(store.get('kineticThemeVariant', inferKineticThemeVariantFromThemeId(selectedTheme?.id || DEFAULT_WEB_THEME_ID)));
                 const builtReport = buildWebReportPayload(
                     reportMeta,
                     payload.stats || {},
                     uiThemeValue,
-                    selectedTheme?.id || DEFAULT_WEB_THEME_ID
+                    selectedTheme?.id || DEFAULT_WEB_THEME_ID,
+                    localKineticVariant
                 );
                 const reportPayload = builtReport.payload;
                 const reportsRoot = path.join(webRoot, 'reports');
@@ -4751,7 +4774,7 @@ if (!gotTheLock) {
                 const mergedLocalEntries = [indexEntry, ...normalizedExistingEntries.filter((entry) => entry?.id !== reportMeta.id)];
                 const localKineticFont = (store.get('kineticFontStyle', 'default') as string) === 'original' ? 'original' : 'default';
                 const localIndexPayload = {
-                    siteTheme: { ui: uiThemeValue, paletteId: selectedTheme?.id || DEFAULT_WEB_THEME_ID, kineticFont: localKineticFont },
+                    siteTheme: { ui: uiThemeValue, paletteId: selectedTheme?.id || DEFAULT_WEB_THEME_ID, kineticFont: localKineticFont, ...(uiThemeValue === 'kinetic' ? { kineticVariant: localKineticVariant } : {}) },
                     entries: mergedLocalEntries
                 };
                 fs.writeFileSync(indexPath, JSON.stringify(localIndexPayload, null, 2));

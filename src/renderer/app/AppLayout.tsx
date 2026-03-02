@@ -63,6 +63,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setDisruptionMethod,
         setUiTheme,
         setKineticFontStyle,
+        setKineticThemeVariant,
         setDashboardLayout,
         setGithubWebTheme,
         developerSettingsTrigger,
@@ -643,6 +644,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         onDisruptionMethodSaved={setDisruptionMethod}
                         onUiThemeSaved={setUiTheme}
                         onKineticFontStyleSaved={setKineticFontStyle}
+                        onKineticThemeVariantSaved={setKineticThemeVariant}
                         onDashboardLayoutSaved={setDashboardLayout}
                         dashboardLayout={dashboardLayout}
                         onGithubWebThemeSaved={setGithubWebTheme}

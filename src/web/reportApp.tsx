@@ -1,6 +1,6 @@
 import { CSSProperties, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
-import { CRT_WEB_THEME_ID, DEFAULT_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
+import { CRT_WEB_THEME_ID, DEFAULT_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME_ID, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -80,6 +80,7 @@ interface ReportIndexEntry {
 
 type UiThemeChoice = 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic';
 type KineticWebFontChoice = 'default' | 'original';
+type KineticThemeVariantChoice = 'light' | 'midnight' | 'slate';
 
 const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md glass-card';
 const WEB_THEME_OVERRIDE_COOKIE = 'arcbridge_web_theme_override';
@@ -140,6 +141,24 @@ const writeCookieValue = (name: string, value: string, days = 365) => {
 const clearCookieValue = (name: string) => {
     if (typeof document === 'undefined') return;
     document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+};
+
+const normalizeKineticThemeVariant = (value: unknown): KineticThemeVariantChoice => {
+    if (value === 'midnight' || value === 'slate') return value;
+    return 'light';
+};
+
+const getKineticThemeIdForVariant = (value: unknown): string => {
+    const normalized = normalizeKineticThemeVariant(value);
+    if (normalized === 'midnight') return KINETIC_DARK_WEB_THEME_ID;
+    if (normalized === 'slate') return KINETIC_SLATE_WEB_THEME_ID;
+    return KINETIC_WEB_THEME_ID;
+};
+
+const inferKineticThemeVariantFromThemeId = (value: unknown): KineticThemeVariantChoice => {
+    if (value === KINETIC_DARK_WEB_THEME_ID) return 'midnight';
+    if (value === KINETIC_SLATE_WEB_THEME_ID) return 'slate';
+    return 'light';
 };
 
 const withThemeIdParam = (url: string, themeId: string): string => {
@@ -207,7 +226,7 @@ const readThemeOverrideFromRuntime = (): string | null => {
 const resolveUiThemeFromOverride = (themeIdOverride: string | null, fallback: UiThemeChoice): UiThemeChoice => {
     if (!themeIdOverride) return fallback;
     if (themeIdOverride === MATTE_WEB_THEME_ID) return 'matte';
-    if (themeIdOverride === KINETIC_WEB_THEME_ID || themeIdOverride === KINETIC_DARK_WEB_THEME_ID) return 'kinetic';
+    if (themeIdOverride === KINETIC_WEB_THEME_ID || themeIdOverride === KINETIC_DARK_WEB_THEME_ID || themeIdOverride === KINETIC_SLATE_WEB_THEME_ID) return 'kinetic';
     if (themeIdOverride === CRT_WEB_THEME_ID) return 'crt';
     // For base palette overrides, preserve the report's structural theme. The viewer is
     // changing the accent color only, not the layout (e.g. matte + Arcane stays matte).
@@ -220,11 +239,16 @@ const readStoredThemeId = (value: unknown): string | null => {
     return normalized ? normalized : null;
 };
 
-const readReportThemeId = (stats: any): string | null => (
-    readStoredThemeId(stats?.reportTheme?.paletteId)
-    || readStoredThemeId(stats?.reportTheme?.themeId)
-    || readStoredThemeId(stats?.webThemeId)
-);
+const readReportThemeId = (stats: any): string | null => {
+    const explicit = readStoredThemeId(stats?.reportTheme?.paletteId)
+        || readStoredThemeId(stats?.reportTheme?.themeId)
+        || readStoredThemeId(stats?.webThemeId);
+    if (explicit) return explicit;
+    if (stats?.reportTheme?.ui === 'kinetic') {
+        return getKineticThemeIdForVariant(stats?.reportTheme?.variant);
+    }
+    return null;
+};
 
 const readReportUiTheme = (stats: any): UiThemeChoice | null => {
     const explicit = stats?.reportTheme?.ui;
@@ -237,7 +261,7 @@ const readReportUiTheme = (stats: any): UiThemeChoice | null => {
     }
     const themeId = readReportThemeId(stats);
     if (themeId === MATTE_WEB_THEME_ID) return 'matte';
-    if (themeId === KINETIC_WEB_THEME_ID || themeId === KINETIC_DARK_WEB_THEME_ID) return 'kinetic';
+    if (themeId === KINETIC_WEB_THEME_ID || themeId === KINETIC_DARK_WEB_THEME_ID || themeId === KINETIC_SLATE_WEB_THEME_ID) return 'kinetic';
     if (themeId === CRT_WEB_THEME_ID) return 'crt';
     return null;
 };
@@ -247,7 +271,7 @@ const isLegacyKineticReport = (stats: any): boolean => (
     && !readReportThemeId(stats)
 );
 
-const parseSiteTheme = (data: unknown): { ui: UiThemeChoice; paletteId: string; kineticFont: KineticWebFontChoice } | null => {
+const parseSiteTheme = (data: unknown): { ui: UiThemeChoice; paletteId: string; kineticFont: KineticWebFontChoice; kineticVariant: KineticThemeVariantChoice } | null => {
     if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
     const payload = data as any;
     const ui = payload?.siteTheme?.ui;
@@ -255,7 +279,8 @@ const parseSiteTheme = (data: unknown): { ui: UiThemeChoice; paletteId: string; 
     if ((ui === 'classic' || ui === 'modern' || ui === 'crt' || ui === 'matte' || ui === 'kinetic')
         && paletteId && typeof paletteId === 'string') {
         const kineticFont: KineticWebFontChoice = payload?.siteTheme?.kineticFont === 'original' ? 'original' : 'default';
-        return { ui, paletteId, kineticFont };
+        const kineticVariant = normalizeKineticThemeVariant(payload?.siteTheme?.kineticVariant ?? inferKineticThemeVariantFromThemeId(paletteId));
+        return { ui, paletteId, kineticFont, kineticVariant };
     }
     return null;
 };
@@ -422,7 +447,7 @@ export function ReportApp() {
     const [uiTheme, setUiTheme] = useState<UiThemeChoice>(() => resolveUiThemeFromOverride(initialThemeOverride, 'classic'));
     const [defaultUiTheme, setDefaultUiTheme] = useState<UiThemeChoice>('classic');
     const [defaultThemeId, setDefaultThemeId] = useState<string>(DEFAULT_WEB_THEME.id);
-    const [siteTheme, setSiteTheme] = useState<{ ui: UiThemeChoice; paletteId: string; kineticFont: KineticWebFontChoice } | null>(null);
+    const [siteTheme, setSiteTheme] = useState<{ ui: UiThemeChoice; paletteId: string; kineticFont: KineticWebFontChoice; kineticVariant: KineticThemeVariantChoice } | null>(null);
     const [themeIdOverride, setThemeIdOverride] = useState<string | null>(initialThemeOverride);
     const requestedView = useMemo(() => (initialSearchParams.get('view') || '').trim().toLowerCase(), [initialSearchParams]);
     const reportId = useMemo(
@@ -994,9 +1019,11 @@ export function ReportApp() {
     }, [navGroupByAnchor, navGroups]);
     const isMatteUi = uiTheme === 'matte';
     const resolvedTheme = theme ?? DEFAULT_WEB_THEME;
-    const isKineticDarkTheme = isKineticUi && resolvedTheme.id === KINETIC_DARK_WEB_THEME_ID;
-    const accentRgb = isKineticUi ? (isKineticDarkTheme ? '142, 155, 214' : '90, 80, 68') : resolvedTheme.rgb;
-    const defaultLogoColor = isMatteUi ? '#d8e1eb' : (isKineticUi ? (isKineticDarkTheme ? '#f0d8a9' : '#24211d') : 'var(--accent)');
+    const kineticVariant = isKineticUi ? inferKineticThemeVariantFromThemeId(resolvedTheme.id) : 'light';
+    const isKineticDarkTheme = isKineticUi && kineticVariant !== 'light';
+    const isKineticSlateTheme = isKineticUi && kineticVariant === 'slate';
+    const accentRgb = isKineticUi ? (isKineticSlateTheme ? '181, 188, 201' : (isKineticDarkTheme ? '142, 155, 214' : '90, 80, 68')) : resolvedTheme.rgb;
+    const defaultLogoColor = isMatteUi ? '#d8e1eb' : (isKineticUi ? (isKineticSlateTheme ? '#ece1cd' : (isKineticDarkTheme ? '#f0d8a9' : '#24211d')) : 'var(--accent)');
     const accentVars = {
         '--accent': `rgb(${accentRgb})`,
         '--accent-rgb': accentRgb,
@@ -1019,8 +1046,8 @@ export function ReportApp() {
     const glassCardStyle: CSSProperties = isKineticUi
         ? {
             backgroundImage: 'none',
-            backgroundColor: isKineticDarkTheme ? 'rgba(57, 64, 93, 0.9)' : 'rgba(220, 210, 196, 0.95)',
-            borderColor: isKineticDarkTheme ? 'rgba(164, 177, 228, 0.28)' : 'rgba(78, 67, 56, 0.18)'
+            backgroundColor: isKineticSlateTheme ? 'rgba(78, 85, 95, 0.84)' : (isKineticDarkTheme ? 'rgba(57, 64, 93, 0.9)' : 'rgba(220, 210, 196, 0.95)'),
+            borderColor: isKineticSlateTheme ? 'rgba(223, 228, 238, 0.22)' : (isKineticDarkTheme ? 'rgba(164, 177, 228, 0.28)' : 'rgba(78, 67, 56, 0.18)')
         }
         : isMatteUi
         ? { backgroundImage: 'none', backgroundColor: 'var(--bg-card)' }
@@ -1030,7 +1057,7 @@ export function ReportApp() {
                 : 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.26), rgba(var(--accent-rgb), 0.08) 70%)'
         };
     const rollupTableHeaderStyle: CSSProperties = isKineticUi
-        ? { backgroundColor: isKineticDarkTheme ? '#39405d' : '#c9bead' }
+        ? { backgroundColor: isKineticSlateTheme ? '#4e555f' : (isKineticDarkTheme ? '#39405d' : '#c9bead') }
         : isMatteUi
         ? { backgroundColor: 'var(--bg-card)' }
         : { backgroundColor: scaleRgb(accentRgb, isModernUi ? 0.42 : 0.34) };
@@ -1258,17 +1285,18 @@ export function ReportApp() {
     useEffect(() => {
         const body = document.body;
         body.classList.add('web-report');
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic', 'theme-kinetic-dark', 'theme-kinetic-font-original');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic', 'theme-kinetic-dark', 'theme-kinetic-slate', 'theme-kinetic-font-original');
         if (isMatteUi) body.classList.add('theme-matte');
         else if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
         else if (uiTheme === 'kinetic') {
             body.classList.add('theme-kinetic');
             if (isKineticDarkTheme) body.classList.add('theme-kinetic-dark');
+            if (isKineticSlateTheme) body.classList.add('theme-kinetic-slate');
             if (kineticFontChoice === 'original') body.classList.add('theme-kinetic-font-original');
         }
         else body.classList.add('theme-classic');
-    }, [uiTheme, isMatteUi, isKineticDarkTheme, kineticFontChoice]);
+    }, [uiTheme, isMatteUi, isKineticDarkTheme, isKineticSlateTheme, kineticFontChoice]);
 
     useEffect(() => {
         ensureWebReportThemeStylesheet(uiTheme);
@@ -1879,7 +1907,7 @@ export function ReportApp() {
             <div
                 className="min-h-screen text-white relative overflow-x-hidden"
                 style={{
-                    backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? (isKineticDarkTheme ? '#2b3048' : '#d8d1c5') : (isModernUi ? '#0f141c' : '#0f172a')),
+                    backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? (isKineticSlateTheme ? '#353a41' : (isKineticDarkTheme ? '#2b3048' : '#d8d1c5')) : (isModernUi ? '#0f141c' : '#0f172a')),
                     backgroundImage: isMatteUi ? 'none' : reportBackgroundImage,
                     ...accentVars
                 }}
@@ -2249,7 +2277,7 @@ export function ReportApp() {
             <div
                 className="min-h-screen text-white relative overflow-x-hidden"
                 style={{
-                    backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? (isKineticDarkTheme ? '#2b3048' : '#d8d1c5') : (isModernUi ? '#0f141c' : '#0f172a')),
+                    backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? (isKineticSlateTheme ? '#353a41' : (isKineticDarkTheme ? '#2b3048' : '#d8d1c5')) : (isModernUi ? '#0f141c' : '#0f172a')),
                     backgroundImage: isMatteUi ? 'none' : reportBackgroundImage,
                     ...accentVars
                 }}
@@ -2580,7 +2608,7 @@ export function ReportApp() {
         <div
             className="min-h-screen text-white relative overflow-x-hidden"
             style={{
-                backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? (isKineticDarkTheme ? '#2b3048' : '#d8d1c5') : (isModernUi ? '#0f141c' : '#0f172a')),
+                backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? (isKineticSlateTheme ? '#353a41' : (isKineticDarkTheme ? '#2b3048' : '#d8d1c5')) : (isModernUi ? '#0f141c' : '#0f172a')),
                 backgroundImage: isMatteUi ? 'none' : reportBackgroundImage,
                 ...accentVars
             }}

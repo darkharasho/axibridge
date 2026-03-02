@@ -4468,6 +4468,61 @@ body.theme-kinetic.theme-kinetic-dark .terminal-header {
     border-bottom: 1px solid rgba(230, 198, 143, 0.24) !important;
 }
 
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate {
+    --bg-base: #353a41;
+    --bg-elevated: #41474f;
+    --bg-card: rgba(78, 85, 95, 0.84);
+    --bg-hover: rgba(92, 99, 110, 0.92);
+    --bg-input: rgba(68, 74, 83, 0.92);
+    --border-subtle: rgba(212, 218, 229, 0.14);
+    --border-default: rgba(212, 218, 229, 0.22);
+    --border-hover: rgba(226, 231, 241, 0.34);
+    --scrollbar-track: rgba(55, 60, 68, 0.92);
+    --scrollbar-thumb: rgba(202, 188, 164, 0.34);
+    --scrollbar-thumb-hover: rgba(220, 205, 182, 0.48);
+    --border-subtle: rgba(214, 204, 186, 0.16);
+    --border-default: rgba(224, 213, 194, 0.24);
+    --border-hover: rgba(235, 223, 204, 0.36);
+    --accent-bg: rgba(224, 213, 194, 0.12);
+    --accent-border: rgba(233, 221, 202, 0.26);
+}
+
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .settings-view button.bg-white\/5:not(.settings-back-button),
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .settings-view button.bg-white\/10:not(.settings-back-button) {
+    background-color: rgba(76, 82, 92, 0.95) !important;
+    border-color: rgba(224, 213, 194, 0.32) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .settings-view button.bg-white\/5:not(.settings-back-button):hover,
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .settings-view button.bg-white\/10:not(.settings-back-button):hover {
+    background-color: rgba(90, 97, 108, 0.96) !important;
+    border-color: rgba(235, 223, 204, 0.42) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .app-version-pill {
+    border-color: rgba(224, 213, 194, 0.34) !important;
+    background-color: rgba(74, 80, 89, 0.95) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .app-version-pill:hover {
+    background-color: rgba(88, 95, 106, 0.96) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .terminal-window ::-webkit-scrollbar-track {
+    background-color: rgba(56, 61, 69, 0.74) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .terminal-window {
+    background-color: rgba(62, 68, 77, 0.98) !important;
+    border-top: 1px solid rgba(224, 213, 194, 0.24) !important;
+    box-shadow: 0 -10px 34px rgba(21, 24, 30, 0.34) !important;
+}
+
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .terminal-header {
+    background-color: rgba(55, 60, 69, 0.98) !important;
+    border-bottom: 1px solid rgba(224, 213, 194, 0.2) !important;
+}
+
 body.theme-kinetic.theme-kinetic-dark .terminal-window .text-gray-300 {
     color: #f1dfbf !important;
 }
