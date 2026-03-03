@@ -94,8 +94,8 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
         icon: Shield,
         sectionIds: ['defense-detailed', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'heal-effectiveness'],
         items: [
-            { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert },
             { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
+            { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert },
             { id: 'defense-mitigation', label: 'Damage Mitigation', icon: Gw2DamMitIcon },
             { id: 'boon-output', label: 'Boon Output', icon: Gw2BoonIcon },
             { id: 'boon-timeline', label: 'Boon Timeline', icon: Gw2AegisIcon },
