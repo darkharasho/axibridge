@@ -28,11 +28,11 @@ The entire Electron main process lives in one file: app lifecycle, console loggi
 
 ---
 
-### 2. Decompose `src/renderer/stats/computeStatsAggregation.ts` (~4734 lines → ~1878 lines)
+### 2. Decompose `src/renderer/stats/computeStatsAggregation.ts` (~4734 lines → ~627 lines)
 
 A single monolithic function handles player aggregation, damage, conditions, boons, skill breakdowns, and fight diff mode — with 3–4 levels of nested loops and 15+ helpers defined inline.
 
-**Status:** Nine major sections extracted as standalone modules:
+**Status:** Complete. Eleven standalone modules extracted:
 - `computeSkillUsageData.ts` — skill usage aggregation
 - `computeSpikeDamageData.ts` — outgoing spike damage
 - `computeIncomingStrikeDamageData.ts` — incoming strike damage by enemy class
@@ -42,8 +42,10 @@ A single monolithic function handles player aggregation, damage, conditions, boo
 - `computeTimelineAndMapData.ts` — fight sorting, map data, timeline, boon tables
 - `computeFightDiffMode.ts` — per-fight target focus and squad metrics comparison
 - `computeSpecialTables.ts` — special buff tables and player skill breakdowns
+- `computePlayerAggregation.ts` — main per-log/per-player accumulation loop, all types (`PlayerStats`, `DamageMitigationRow`, etc.), and helpers (`getFightDownsDeaths`, `getFightOutcome`, `resolveProfessionLabel`)
+- `computeFightBreakdown.ts` — fightBreakdown construction and its helpers (`resolvePermalink`, `resolveFightDurationLabel`, `resolveFightOutcomeForDisplay`)
 
-Remaining: player aggregation core (the main per-log/per-player loop, ~1300 lines of the IIFE). `fightBreakdown`, `attendanceData`, and `squadCompByFight` sections also remain inline but are self-contained within the IIFE.
+`computeStatsAggregation.ts` reduced from ~4734 → 627 lines; serves as a pure coordinator calling extracted modules.
 
 ---
 
@@ -61,16 +63,19 @@ A `useMetricSectionState.ts` hook eliminates ~2000 lines of duplication.
 
 ---
 
-### 4. Split `src/renderer/App.tsx` (~2015 lines → ~1771 lines)
+### 4. Split `src/renderer/App.tsx` (~2015 lines → ~1138 lines)
 
 Root component manages all log state, settings, upload state, navigation, dashboard summary caching, and all render logic.
 
-**Status:** Three hooks extracted to `src/renderer/app/hooks/`:
+**Status:** Complete. Six hooks extracted to `src/renderer/app/hooks/`:
 - `useSettings.ts` — settings load, persistence, theme body-class effect, all setting state/handlers
 - `useUploadRetryQueue.ts` — retry queue state, IPC listener, retry/resume handlers
 - `useAppNavigation.ts` — view state, modal open/close, webhook dropdown, scroll/resize tracking, navigation handlers
+- `useLogQueue.ts` — batched log update queue (`setLogsDeferred`, `queueLogUpdate`, `normalizeIncomingStatus`, flush timers)
+- `useDetailsHydration.ts` — log details fetching, stats batch hydration, `scheduleDetailsHydration`, retry tracking
+- `useUploadListeners.ts` — all IPC listeners (`onUploadStatus`, `onUploadComplete`, `onRequestScreenshot`) and full screenshot capture chain; `dataUrlToUint8Array` moved here
 
-App.tsx reduced from ~2015 → ~1771 lines (−244 lines). Remaining inline: log state, screenshot capture chain, IPC listeners for upload status/complete, bulk upload mode management.
+App.tsx reduced from ~2015 → ~1138 lines (−877 lines).
 
 ---
 

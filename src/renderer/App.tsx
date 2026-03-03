@@ -1,7 +1,6 @@
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FolderOpen, UploadCloud, FileText, Settings, Image as ImageIcon, Layout, ChevronDown, Grid3X3, Trash2, FilePlus2 } from 'lucide-react';
-import { toPng } from 'html-to-image';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
@@ -16,23 +15,9 @@ import { useSettings } from './app/hooks/useSettings';
 import { useUploadRetryQueue } from './app/hooks/useUploadRetryQueue';
 import { useAppNavigation } from './app/hooks/useAppNavigation';
 import { shouldAttemptStatsSyncRecovery } from './stats/utils/statsSyncRecovery';
-
-const dataUrlToUint8Array = (dataUrl: string): Uint8Array => {
-    const commaIndex = dataUrl.indexOf(',');
-    if (commaIndex === -1) {
-        throw new Error('Invalid data URL');
-    }
-    const base64 = dataUrl.slice(commaIndex + 1);
-    if (typeof globalThis.atob !== 'function') {
-        throw new Error('Base64 decoder is not available');
-    }
-    const binaryString = globalThis.atob(base64);
-    const buffer = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i += 1) {
-        buffer[i] = binaryString.charCodeAt(i);
-    }
-    return buffer;
-};
+import { useLogQueue } from './app/hooks/useLogQueue';
+import { useDetailsHydration } from './app/hooks/useDetailsHydration';
+import { useUploadListeners } from './app/hooks/useUploadListeners';
 
 function App() {
     const [logs, setLogs] = useState<ILogData[]>([]);
@@ -41,6 +26,9 @@ function App() {
     const canceledLogsRef = useRef<Set<string>>(new Set());
     const [bulkUploadMode, setBulkUploadMode] = useState(false);
     const [screenshotData, setScreenshotData] = useState<ILogData | null>(null);
+    const bulkUploadModeRef = useRef(bulkUploadMode);
+
+    const { setLogsDeferred, queueLogUpdate, pendingLogUpdatesRef, pendingLogFlushTimerRef } = useLogQueue(setLogs, bulkUploadModeRef);
 
     // Updater State
     const {
@@ -102,9 +90,6 @@ function App() {
     const versionClickTimesRef = useRef<number[]>([]);
     const bulkUploadExpectedRef = useRef<number | null>(null);
     const bulkUploadCompletedRef = useRef(0);
-    const pendingLogUpdatesRef = useRef<Map<string, ILogData>>(new Map());
-    const pendingLogFlushTimerRef = useRef<number | null>(null);
-    const screenshotCaptureChainRef = useRef<Promise<void>>(Promise.resolve());
 
     // Navigation
     const {
@@ -133,80 +118,6 @@ function App() {
         whatsNewVersion,
         logsCount: logs.length,
     });
-    const setLogsDeferred = useCallback((updater: (currentLogs: ILogData[]) => ILogData[]) => {
-        startTransition(() => {
-            setLogs(updater);
-        });
-    }, []);
-    const normalizeIncomingStatus = useCallback((candidate: ILogData): ILogData => {
-        if ((candidate.details || candidate.detailsAvailable) && candidate.detailsFetchExhausted) {
-            candidate = { ...candidate, detailsFetchExhausted: false };
-        }
-        if ((candidate.details || candidate.detailsAvailable) && candidate.detailsKnownUnavailable) {
-            candidate = { ...candidate, detailsKnownUnavailable: false };
-        }
-        if (candidate.status === 'success' && candidate.detailsAvailable && !candidate.details) {
-            return { ...candidate, status: 'calculating' as const };
-        }
-        return candidate;
-    }, []);
-    const hasLogChanges = useCallback((existing: ILogData, merged: ILogData) => {
-        const keys = new Set<string>([
-            ...Object.keys(existing),
-            ...Object.keys(merged)
-        ]);
-        for (const key of keys) {
-            const typedKey = key as keyof ILogData;
-            if (existing[typedKey] !== merged[typedKey]) {
-                return true;
-            }
-        }
-        return false;
-    }, []);
-    const flushQueuedLogUpdates = useCallback(() => {
-        pendingLogFlushTimerRef.current = null;
-        if (pendingLogUpdatesRef.current.size === 0) return;
-        const updatesByIdentity = new Map(pendingLogUpdatesRef.current);
-        pendingLogUpdatesRef.current.clear();
-        setLogsDeferred((currentLogs) => {
-            if (updatesByIdentity.size === 0) return currentLogs;
-            let changed = false;
-            const consumed = new Set<string>();
-            const nextLogs = currentLogs.map((existing) => {
-                const identity = String(existing.filePath || existing.id || '');
-                if (!identity) return existing;
-                const incoming = updatesByIdentity.get(identity);
-                if (!incoming) return existing;
-                consumed.add(identity);
-                const merged = normalizeIncomingStatus({ ...existing, ...incoming });
-                if (!hasLogChanges(existing, merged)) return existing;
-                changed = true;
-                return merged;
-            });
-            const newLogs: ILogData[] = [];
-            updatesByIdentity.forEach((incoming, identity) => {
-                if (consumed.has(identity)) return;
-                newLogs.push(normalizeIncomingStatus(incoming));
-                changed = true;
-            });
-            if (!changed) return currentLogs;
-            if (newLogs.length === 0) return nextLogs;
-            return [...newLogs.reverse(), ...nextLogs];
-        });
-    }, [hasLogChanges, normalizeIncomingStatus, setLogsDeferred]);
-    const queueLogUpdate = useCallback((incoming: ILogData) => {
-        const identity = incoming.filePath || incoming.id;
-        if (!identity) return;
-        pendingLogUpdatesRef.current.set(String(identity), incoming);
-        if (pendingLogFlushTimerRef.current !== null) return;
-        const pendingCount = pendingLogUpdatesRef.current.size;
-        const delayMs = bulkUploadModeRef.current
-            ? (pendingCount > 24 ? 240 : pendingCount > 10 ? 180 : 120)
-            : 16;
-        pendingLogFlushTimerRef.current = window.setTimeout(() => {
-            flushQueuedLogUpdates();
-        }, delayMs);
-    }, [flushQueuedLogUpdates]);
 
     const { webUploadState, setWebUploadState, handleWebUpload } = useWebUpload();
     const devDatasetsState = useDevDatasets({
@@ -375,47 +286,14 @@ function App() {
         bulkStatsAwaitingRef.current = false;
         bulkFlushIdRef.current = null;
     }, [computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, logsForStats.length, setLogsDeferred]);
-    const applyHydratedStatsBatch = useCallback((batch: Array<{ filePath: string; details: any }>) => {
-        if (batch.length === 0) return;
-        setLogsForStats((currentStatsLogs) => {
-            const updatesByPath = new Map(batch.map((entry) => [entry.filePath, entry.details]));
-            let changed = false;
-            const next = currentStatsLogs.map((entry) => {
-                const filePath = entry.filePath || '';
-                const details = updatesByPath.get(filePath);
-                if (!details) return entry;
-                updatesByPath.delete(filePath);
-                if (entry.details === details && entry.statsDetailsLoaded === true && entry.status === 'success') {
-                    return entry;
-                }
-                changed = true;
-                return {
-                    ...entry,
-                    details,
-                    statsDetailsLoaded: true,
-                    detailsFetchExhausted: false,
-                    status: 'success' as const
-                };
-            });
-            if (updatesByPath.size === 0) {
-                return changed ? next : currentStatsLogs;
-            }
-            const additions: ILogData[] = [];
-            updatesByPath.forEach((details, filePath) => {
-                const base = logsRef.current.find((log) => log.filePath === filePath);
-                additions.push({
-                    ...(base || { id: filePath, filePath, permalink: '' }),
-                    details,
-                    statsDetailsLoaded: true,
-                    detailsFetchExhausted: false,
-                    status: 'success'
-                } as ILogData);
-                changed = true;
-            });
-            if (!changed) return currentStatsLogs;
-            return additions.length > 0 ? [...additions, ...next] : next;
-        });
-    }, [setLogsForStats, logsRef]);
+
+    const { fetchLogDetails, scheduleDetailsHydration } = useDetailsHydration({
+        viewRef,
+        logsRef,
+        setLogs,
+        setLogsDeferred,
+        setLogsForStats,
+    });
 
     const enabledTopListCount = [
         embedStatSettings.showDamage,
@@ -451,7 +329,6 @@ function App() {
         [bulkUploadMode, logs]
     );
     const bulkUploadActiveRef = useRef(isBulkUploadActive);
-    const bulkUploadModeRef = useRef(bulkUploadMode);
 
     const calculatingCount = logs.filter((log) => log.status === 'calculating').length;
 
@@ -498,28 +375,6 @@ function App() {
         }
     }, [view]);
 
-    useEffect(() => {
-        return () => {
-            if (pendingLogFlushTimerRef.current !== null) {
-                window.clearTimeout(pendingLogFlushTimerRef.current);
-                pendingLogFlushTimerRef.current = null;
-            }
-            if (hydrateDetailsQueueRef.current !== null) {
-                const cancelIdle = (window as any).cancelIdleCallback;
-                if (typeof cancelIdle === 'function') {
-                    cancelIdle(hydrateDetailsQueueRef.current);
-                } else {
-                    window.clearTimeout(hydrateDetailsQueueRef.current);
-                }
-                hydrateDetailsQueueRef.current = null;
-            }
-            if (hydrateDetailsRetryTimerRef.current !== null) {
-                window.clearTimeout(hydrateDetailsRetryTimerRef.current);
-                hydrateDetailsRetryTimerRef.current = null;
-            }
-        };
-    }, []);
-
     const logListVirtualization = useMemo(() => {
         const rowHeight = 132;
         const overscan = 6;
@@ -544,259 +399,6 @@ function App() {
             visibleLogs: logs.slice(startIndex, endIndex)
         };
     }, [logs, logsViewportHeight, logsScrollTop, expandedLogId, screenshotData]);
-
-    const fetchLogDetails = useCallback(async (log: ILogData) => {
-        if (log.details || !log.filePath || !window.electronAPI?.getLogDetails) return;
-        setLogs((currentLogs) => {
-            const idx = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
-            if (idx < 0) return currentLogs;
-            const updated = [...currentLogs];
-            updated[idx] = { ...updated[idx], detailsLoading: true };
-            return updated;
-        });
-        let timeoutId: number | null = null;
-        const result = await Promise.race([
-            window.electronAPI.getLogDetails({
-                filePath: log.filePath,
-                permalink: log.permalink
-            }),
-            new Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>((resolve) => {
-                timeoutId = window.setTimeout(() => resolve({ success: false, error: 'Details request timed out.' }), 12000);
-            })
-        ]).finally(() => {
-            if (timeoutId !== null) {
-                window.clearTimeout(timeoutId);
-            }
-        });
-        if (!result?.success || !result.details) {
-            setLogs((currentLogs) => {
-                const idx = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
-                if (idx < 0) return currentLogs;
-                const updated = [...currentLogs];
-                const existing = updated[idx];
-                const terminal = Boolean((result as any)?.terminal);
-                updated[idx] = terminal
-                    ? {
-                        ...existing,
-                        detailsLoading: false,
-                        detailsAvailable: false,
-                        detailsFetchExhausted: true,
-                        detailsKnownUnavailable: true,
-                        status: existing.status === 'error' ? 'error' : 'success'
-                    }
-                    : { ...existing, detailsLoading: false };
-                return updated;
-            });
-            return;
-        }
-        setLogs((currentLogs) => {
-            const existingIndex = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
-            if (existingIndex < 0) return currentLogs;
-            const updated = [...currentLogs];
-            const existing = updated[existingIndex];
-            updated[existingIndex] = {
-                ...existing,
-                details: result.details,
-                detailsLoading: false,
-                detailsFetchExhausted: false,
-                status: 'success'
-            };
-            return updated;
-        });
-    }, []);
-
-    const pendingDetailsRef = useRef<Set<string>>(new Set());
-    const hydrateDetailsQueueRef = useRef<number | null>(null);
-    const hydrateDetailsRetryTimerRef = useRef<number | null>(null);
-    const detailsHydrationAttemptsRef = useRef<Map<string, number>>(new Map());
-    const MAX_DETAILS_HYDRATION_ATTEMPTS = 8;
-
-    const scheduleDetailsHydration = useCallback((force = false) => {
-        if (hydrateDetailsQueueRef.current !== null && !force) return;
-        const schedule = typeof (window as any).requestIdleCallback === 'function'
-            ? (window as any).requestIdleCallback
-            : (cb: () => void) => window.setTimeout(cb, 150);
-        hydrateDetailsQueueRef.current = schedule(async () => {
-            hydrateDetailsQueueRef.current = null;
-            if (!window.electronAPI?.getLogDetails) return;
-            const statsViewActive = viewRef.current === 'stats';
-            const rawCandidates = logsRef.current
-                .filter((log) => {
-                    if (!log.filePath || log.details || log.statsDetailsLoaded) return false;
-                    if (log.detailsAvailable) return true;
-                    return (log.status === 'success' || log.status === 'calculating' || log.status === 'discord') && Boolean(log.permalink);
-                })
-                .sort((a, b) => {
-                    const aTime = a.uploadTime || 0;
-                    const bTime = b.uploadTime || 0;
-                    if (aTime !== bTime) return aTime - bTime;
-                    return (a.filePath || '').localeCompare(b.filePath || '');
-                });
-            const activePaths = new Set(rawCandidates.map((log) => String(log.filePath || '')));
-            detailsHydrationAttemptsRef.current.forEach((_attempts, filePath) => {
-                if (!activePaths.has(filePath)) {
-                    detailsHydrationAttemptsRef.current.delete(filePath);
-                }
-            });
-            const allCandidates = rawCandidates.filter((log) => {
-                const attempts = detailsHydrationAttemptsRef.current.get(String(log.filePath || '')) || 0;
-                return attempts < MAX_DETAILS_HYDRATION_ATTEMPTS;
-            });
-            if (allCandidates.length === 0) return;
-            const maxPerPass = statsViewActive ? allCandidates.length : Math.min(allCandidates.length, 2);
-            const candidates = allCandidates.slice(0, maxPerPass);
-            const hasMore = allCandidates.length > candidates.length;
-            const hydratedBatch: Array<{ filePath: string; details: any }> = [];
-            const failedPaths = new Set<string>();
-            const terminalFailures = new Set<string>();
-            const flushHydratedBatch = () => {
-                if (hydratedBatch.length === 0) return;
-                const batch = hydratedBatch.splice(0, hydratedBatch.length);
-                applyHydratedStatsBatch(batch);
-                if (statsViewActive) {
-                    setLogsDeferred((currentLogs) => {
-                        if (batch.length === 0) return currentLogs;
-                        const updatedPaths = new Set(batch.map((entry) => entry.filePath));
-                        let changed = false;
-                        const next = currentLogs.map((entry) => {
-                            const filePath = entry.filePath || '';
-                            if (!updatedPaths.has(filePath)) return entry;
-                            if (entry.statsDetailsLoaded && entry.status === 'success') return entry;
-                            changed = true;
-                            return {
-                                ...entry,
-                                statsDetailsLoaded: true,
-                                detailsFetchExhausted: false,
-                                status: 'success' as const
-                            };
-                        });
-                        return changed ? next : currentLogs;
-                    });
-                    return;
-                }
-                setLogsDeferred((currentLogs) => {
-                    if (batch.length === 0) return currentLogs;
-                    const updatesByPath = new Map(batch.map((entry) => [entry.filePath, entry.details]));
-                    let changed = false;
-                    const next = currentLogs.map((entry) => {
-                        const details = updatesByPath.get(entry.filePath || '');
-                        if (!details) return entry;
-                        changed = true;
-                        return {
-                            ...entry,
-                            details,
-                            statsDetailsLoaded: true,
-                            detailsFetchExhausted: false,
-                            status: 'success' as const
-                        };
-                    });
-                    return changed ? next : currentLogs;
-                });
-            };
-            const maxConcurrent = 1;
-            const flushThreshold = statsViewActive ? 8 : 2;
-            let nextIndex = 0;
-            const runWorker = async () => {
-                while (nextIndex < candidates.length) {
-                    const currentIndex = nextIndex;
-                    nextIndex += 1;
-                    const log = candidates[currentIndex];
-                    const filePath = log.filePath!;
-                    if (pendingDetailsRef.current.has(filePath)) continue;
-                    pendingDetailsRef.current.add(filePath);
-                    try {
-                        let timeoutId: number | null = null;
-                        const result = await Promise.race([
-                            window.electronAPI.getLogDetails({
-                                filePath,
-                                permalink: log.permalink
-                            }),
-                            new Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>((resolve) => {
-                                timeoutId = window.setTimeout(() => resolve({ success: false, error: 'Details request timed out.' }), 12000);
-                            })
-                        ]).finally(() => {
-                            if (timeoutId !== null) {
-                                window.clearTimeout(timeoutId);
-                            }
-                        });
-                        if (result?.success && result.details) {
-                            detailsHydrationAttemptsRef.current.delete(filePath);
-                            hydratedBatch.push({ filePath, details: result.details });
-                            if (hydratedBatch.length >= flushThreshold) {
-                                flushHydratedBatch();
-                            }
-                        } else {
-                            if ((result as any)?.terminal) {
-                                terminalFailures.add(filePath);
-                            }
-                            failedPaths.add(filePath);
-                        }
-                        if (!statsViewActive) {
-                            await new Promise((resolve) => window.setTimeout(resolve, 40));
-                        }
-                    } catch {
-                        failedPaths.add(filePath);
-                    } finally {
-                        pendingDetailsRef.current.delete(filePath);
-                    }
-                }
-            };
-            await Promise.all(Array.from({ length: Math.min(maxConcurrent, candidates.length) }, () => runWorker()));
-            flushHydratedBatch();
-            const retryableFailures: string[] = [];
-            const exhaustedFailures: string[] = [];
-            failedPaths.forEach((filePath) => {
-                if (terminalFailures.has(filePath)) {
-                    detailsHydrationAttemptsRef.current.set(filePath, MAX_DETAILS_HYDRATION_ATTEMPTS);
-                    exhaustedFailures.push(filePath);
-                    return;
-                }
-                const previousAttempts = detailsHydrationAttemptsRef.current.get(filePath) || 0;
-                const nextAttempts = previousAttempts + 1;
-                detailsHydrationAttemptsRef.current.set(filePath, nextAttempts);
-                if (nextAttempts < MAX_DETAILS_HYDRATION_ATTEMPTS) {
-                    retryableFailures.push(filePath);
-                } else {
-                    exhaustedFailures.push(filePath);
-                }
-            });
-            if (exhaustedFailures.length > 0) {
-                const exhaustedSet = new Set(exhaustedFailures);
-                setLogsDeferred((currentLogs) => {
-                    let changed = false;
-                    const next = currentLogs.map((entry) => {
-                        const filePath = entry.filePath || '';
-                        if (!exhaustedSet.has(filePath)) return entry;
-                        if (entry.detailsFetchExhausted && !entry.detailsAvailable && entry.status !== 'calculating') {
-                            return entry;
-                        }
-                        changed = true;
-                        const nextStatus: ILogData['status'] = entry.status === 'error' ? 'error' : 'success';
-                        return {
-                            ...entry,
-                            detailsAvailable: false,
-                            detailsFetchExhausted: true,
-                            detailsKnownUnavailable: terminalFailures.has(filePath) || entry.detailsKnownUnavailable,
-                            status: nextStatus
-                        };
-                    });
-                    return changed ? next : currentLogs;
-                });
-            }
-            if (hasMore || retryableFailures.length > 0) {
-                const delayMs = retryableFailures.length > 0
-                    ? (statsViewActive ? 260 : 420)
-                    : (statsViewActive ? 0 : 180);
-                if (hydrateDetailsRetryTimerRef.current !== null) {
-                    window.clearTimeout(hydrateDetailsRetryTimerRef.current);
-                }
-                hydrateDetailsRetryTimerRef.current = window.setTimeout(() => {
-                    hydrateDetailsRetryTimerRef.current = null;
-                    scheduleDetailsHydration(true);
-                }, delayMs);
-            }
-        });
-    }, [applyHydratedStatsBatch, setLogsDeferred]);
 
     const endBulkUpload = useCallback(() => {
         bulkUploadExpectedRef.current = null;
@@ -866,255 +468,20 @@ function App() {
         scheduleDetailsHydration
     ]);
 
-    useEffect(() => {
-        // Listen for status updates during upload process
-        const cleanupStatus = window.electronAPI.onUploadStatus((data: ILogData) => {
-            if (data.filePath && canceledLogsRef.current.has(data.filePath)) {
-                return;
-            }
-            queueLogUpdate(data);
-        });
-
-        const cleanupUpload = window.electronAPI.onUploadComplete((data: ILogData) => {
-            if (data.filePath && canceledLogsRef.current.has(data.filePath)) {
-                return;
-            }
-            lastUploadCompleteAtRef.current = Date.now();
-            console.log('[App] Upload Complete Data:', {
-                path: data.filePath,
-                status: data.status,
-                hasDetails: !!data.details,
-                playerCount: data.details?.players?.length
-            });
-            if (bulkUploadModeRef.current) {
-                queueLogUpdate(data);
-                bulkUploadCompletedRef.current += 1;
-                if (bulkUploadExpectedRef.current !== null && bulkUploadCompletedRef.current >= bulkUploadExpectedRef.current) {
-                    endBulkUpload();
-                }
-                return;
-            }
-            queueLogUpdate(data);
-        });
-
-        let screenshotSubscriptionDisposed = false;
-        const waitMs = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
-        const waitFrame = () => new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-        const escapeSelector = (value: string) => {
-            if (typeof window !== 'undefined' && (window as any).CSS?.escape) {
-                return (window as any).CSS.escape(value);
-            }
-            return value.replace(/"/g, '\\"');
-        };
-        const waitForNodes = async (selector: string, expectedCount: number, timeoutMs: number) => {
-            const start = performance.now();
-            while (!screenshotSubscriptionDisposed && performance.now() - start < timeoutMs) {
-                const nodes = Array.from(document.querySelectorAll(selector));
-                if (nodes.length >= expectedCount) {
-                    return nodes;
-                }
-                await waitMs(90);
-            }
-            return screenshotSubscriptionDisposed ? [] : Array.from(document.querySelectorAll(selector));
-        };
-        const waitForNode = async (nodeId: string, timeoutMs: number) => {
-            const start = performance.now();
-            while (!screenshotSubscriptionDisposed && performance.now() - start < timeoutMs) {
-                const node = document.getElementById(nodeId);
-                if (node) return node as HTMLElement;
-                await waitMs(90);
-            }
-            if (screenshotSubscriptionDisposed) return null;
-            return document.getElementById(nodeId) as HTMLElement | null;
-        };
-        const safeToPng = async (node: HTMLElement, options: any) => {
-            return Promise.race([
-                toPng(node, { ...options, cacheBust: false, skipAutoScale: true }),
-                new Promise<string>((_, reject) => setTimeout(() => reject(new Error('Screenshot generation timed out')), 5000))
-            ]);
-        };
-        const captureScreenshotForLog = async (incoming: ILogData) => {
-            const logKey = incoming.id || incoming.filePath;
-            if (!logKey || screenshotSubscriptionDisposed) {
-                if (!logKey) {
-                    console.error('Screenshot request missing log identifier.');
-                }
-                return;
-            }
-            console.log('Screenshot requested for:', logKey);
-            const payload = {
-                ...incoming,
-                id: logKey,
-                splitEnemiesByTeam: Boolean((incoming as any)?.splitEnemiesByTeam)
-            };
-            setScreenshotData(payload);
-            await waitFrame();
-            await waitMs(bulkUploadModeRef.current ? 240 : 120);
-            if (screenshotSubscriptionDisposed) return;
-            const mode = (incoming as any)?.mode || 'image';
-            try {
-                if (mode === 'image-beta') {
-                    const selector = `[data-screenshot-id="${escapeSelector(logKey)}"]`;
-                    const details: any = (incoming as any)?.details || {};
-                    const players = Array.isArray(details.players) ? details.players : [];
-                    const targets = Array.isArray(details.targets) ? details.targets : [];
-                    const normalizeTeamId = (raw: any): number | null => {
-                        const value = raw?.teamID ?? raw?.teamId ?? raw?.team;
-                        const num = Number(value);
-                        return Number.isFinite(num) && num > 0 ? num : null;
-                    };
-                    const allyTeamIds = new Set<number>();
-                    players.forEach((player: any) => {
-                        if (player?.notInSquad) return;
-                        const teamId = normalizeTeamId(player);
-                        if (teamId !== null) allyTeamIds.add(teamId);
-                    });
-                    const enemyTeamIds = new Set<number>();
-                    targets.forEach((target: any) => {
-                        if (target?.isFake) return;
-                        if (target?.enemyPlayer === false) return;
-                        const teamId = normalizeTeamId(target);
-                        if (teamId === null || allyTeamIds.has(teamId)) return;
-                        enemyTeamIds.add(teamId);
-                    });
-                    players.forEach((player: any) => {
-                        if (!player?.notInSquad) return;
-                        const teamId = normalizeTeamId(player);
-                        if (teamId === null || allyTeamIds.has(teamId)) return;
-                        enemyTeamIds.add(teamId);
-                    });
-                    const resolvedEnemyTeamIds = Array.from(enemyTeamIds).sort((a, b) => a - b);
-                    const activeEmbedStatSettings = embedStatSettingsRef.current;
-                    const enemySummaryTileCount = activeEmbedStatSettings.showEnemySummary
-                        ? ((incoming as any)?.splitEnemiesByTeam ? resolvedEnemyTeamIds.length : 1)
-                        : 0;
-                    const summaryTileCount = (activeEmbedStatSettings.showSquadSummary ? 1 : 0) + enemySummaryTileCount;
-                    const expectedCount = summaryTileCount
-                        + (activeEmbedStatSettings.showClassSummary ? (
-                            (activeEmbedStatSettings.showSquadSummary ? 1 : 0)
-                            + (activeEmbedStatSettings.showEnemySummary
-                                ? (((incoming as any)?.splitEnemiesByTeam ? resolvedEnemyTeamIds.length : 1))
-                                : 0)
-                        ) : 0)
-                        + (activeEmbedStatSettings.showIncomingStats ? 4 : 0)
-                        + enabledTopListCountRef.current;
-                    const nodes = await waitForNodes(selector, Math.max(1, expectedCount), 5000);
-                    if (nodes.length === 0) {
-                        const fallbackNode = await waitForNode(`log-screenshot-${logKey}`, 1500);
-                        if (!fallbackNode) {
-                            console.error('Screenshot nodes not found.');
-                            return;
-                        }
-                        const fallbackDataUrl = await safeToPng(fallbackNode, {
-                            backgroundColor: '#10141b',
-                            quality: 0.95,
-                            pixelRatio: 3
-                        });
-                        const fallbackBuffer = dataUrlToUint8Array(fallbackDataUrl);
-                        window.electronAPI.sendScreenshot(logKey, fallbackBuffer);
-                        return;
-                    }
-                    const buffers: { group: string; buffer: Uint8Array }[] = [];
-                    for (const node of nodes) {
-                        if (screenshotSubscriptionDisposed) return;
-                        const transparent = (node as HTMLElement).dataset.screenshotTransparent === 'true';
-                        try {
-                            const dataUrl = await safeToPng(node as HTMLElement, {
-                                backgroundColor: transparent ? 'rgba(0,0,0,0)' : '#10141b',
-                                quality: 0.95,
-                                pixelRatio: 3,
-                                width: (node as HTMLElement).offsetWidth,
-                                height: (node as HTMLElement).offsetHeight
-                            });
-                            const buffer = dataUrlToUint8Array(dataUrl);
-                            const group = (node as HTMLElement).dataset.screenshotGroup || 'default';
-                            buffers.push({ group, buffer });
-                        } catch (innerErr) {
-                            console.error('Failed to screenshot a specific tile:', innerErr);
-                        }
-                    }
-                    if (buffers.length === 0) {
-                        throw new Error('No tiles were successfully captured');
-                    }
-                    const groups: Uint8Array[][] = [];
-                    const incomingBuffers: Uint8Array[] = [];
-                    let currentPair: Uint8Array[] = [];
-                    let i = 0;
-                    while (i < buffers.length) {
-                        const entry = buffers[i];
-                        if (entry.group === 'incoming') {
-                            while (i < buffers.length && buffers[i].group === 'incoming') {
-                                incomingBuffers.push(buffers[i].buffer);
-                                i += 1;
-                            }
-                            if (currentPair.length > 0) {
-                                groups.push(currentPair);
-                                currentPair = [];
-                            }
-                            if (incomingBuffers.length > 0) {
-                                groups.push([...incomingBuffers]);
-                                incomingBuffers.length = 0;
-                            }
-                            continue;
-                        }
-                        currentPair.push(entry.buffer);
-                        if (currentPair.length === 2) {
-                            groups.push(currentPair);
-                            currentPair = [];
-                        }
-                        i += 1;
-                    }
-                    if (currentPair.length > 0) {
-                        groups.push(currentPair);
-                    }
-                    window.electronAPI.sendScreenshotsGroups(logKey, groups);
-                    return;
-                }
-                const node = await waitForNode(`log-screenshot-${logKey}`, 2000);
-                if (!node) {
-                    console.error('Screenshot node not found');
-                    return;
-                }
-                const dataUrl = await safeToPng(node, {
-                    backgroundColor: '#10141b',
-                    quality: 0.95,
-                    pixelRatio: 3
-                });
-                const buffer = dataUrlToUint8Array(dataUrl);
-                window.electronAPI.sendScreenshot(logKey, buffer);
-            } catch (err) {
-                console.error('Screenshot failed:', err);
-            } finally {
-                if (!screenshotSubscriptionDisposed) {
-                    setScreenshotData(null);
-                }
-            }
-        };
-        const cleanupScreenshot = window.electronAPI.onRequestScreenshot((data: ILogData) => {
-            screenshotCaptureChainRef.current = screenshotCaptureChainRef.current
-                .catch(() => undefined)
-                .then(async () => {
-                    if (screenshotSubscriptionDisposed) return;
-                    await captureScreenshotForLog(data);
-                    if (bulkUploadModeRef.current) {
-                        await waitMs(80);
-                    }
-                });
-        });
-
-        return () => {
-            screenshotSubscriptionDisposed = true;
-            if (pendingLogFlushTimerRef.current !== null) {
-                window.clearTimeout(pendingLogFlushTimerRef.current);
-                pendingLogFlushTimerRef.current = null;
-            }
-            pendingLogUpdatesRef.current.clear();
-            setScreenshotData(null);
-            cleanupStatus();
-            cleanupUpload();
-            cleanupScreenshot();
-        };
-    }, []);
+    useUploadListeners({
+        queueLogUpdate,
+        endBulkUpload,
+        setScreenshotData,
+        embedStatSettingsRef,
+        enabledTopListCountRef,
+        bulkUploadModeRef,
+        canceledLogsRef,
+        lastUploadCompleteAtRef,
+        bulkUploadExpectedRef,
+        bulkUploadCompletedRef,
+        pendingLogFlushTimerRef,
+        pendingLogUpdatesRef,
+    });
 
     const isModernTheme = uiTheme === 'modern' || uiTheme === 'kinetic';
     const isTopDashboardLayout = dashboardLayout === 'top';
