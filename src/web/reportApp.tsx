@@ -228,9 +228,8 @@ const resolveUiThemeFromOverride = (themeIdOverride: string | null, fallback: Ui
     if (themeIdOverride === MATTE_WEB_THEME_ID) return 'matte';
     if (themeIdOverride === KINETIC_WEB_THEME_ID || themeIdOverride === KINETIC_DARK_WEB_THEME_ID || themeIdOverride === KINETIC_SLATE_WEB_THEME_ID) return 'kinetic';
     if (themeIdOverride === CRT_WEB_THEME_ID) return 'crt';
-    // For base palette overrides, preserve the report's structural theme. The viewer is
-    // changing the accent color only, not the layout (e.g. matte + Arcane stays matte).
-    return fallback;
+    // Base palette overrides (Arcane, Cobalt, etc.) fully switch to the classic structure.
+    return 'classic';
 };
 
 const readStoredThemeId = (value: unknown): string | null => {
@@ -240,14 +239,16 @@ const readStoredThemeId = (value: unknown): string | null => {
 };
 
 const readReportThemeId = (stats: any): string | null => {
-    const explicit = readStoredThemeId(stats?.reportTheme?.paletteId)
-        || readStoredThemeId(stats?.reportTheme?.themeId)
-        || readStoredThemeId(stats?.webThemeId);
-    if (explicit) return explicit;
+    // For kinetic themes always derive the full theme ID from the variant field.
+    // paletteId may be the generic 'KineticPaper' (light) in older or mis-synced
+    // reports where githubWebTheme was stored before the variant-specific IDs existed.
     if (stats?.reportTheme?.ui === 'kinetic') {
         return getKineticThemeIdForVariant(stats?.reportTheme?.variant);
     }
-    return null;
+    return readStoredThemeId(stats?.reportTheme?.paletteId)
+        || readStoredThemeId(stats?.reportTheme?.themeId)
+        || readStoredThemeId(stats?.webThemeId)
+        || null;
 };
 
 const readReportUiTheme = (stats: any): UiThemeChoice | null => {
@@ -440,7 +441,9 @@ export function ReportApp() {
     const [error, setError] = useState<string | null>(null);
     const [reportPathHint, setReportPathHint] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [theme, setTheme] = useState<WebTheme | null>(null);
+    const [theme, setTheme] = useState<WebTheme>(() =>
+        (initialThemeOverride ? WEB_THEMES.find((e) => e.id === initialThemeOverride) : null) ?? DEFAULT_WEB_THEME
+    );
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
@@ -611,7 +614,13 @@ export function ReportApp() {
         siteThemeRef.current = siteTheme;
         setDefaultUiTheme(siteTheme.ui);
         if (!themeIdOverride) {
-            setDefaultThemeId(siteTheme.paletteId);
+            // For kinetic site themes, derive the correct variant-specific ID from kineticVariant.
+            // paletteId may be 'KineticPaper' (light) in legacy index.json files even when the
+            // actual configured variant is midnight or slate.
+            const resolvedPaletteId = siteTheme.ui === 'kinetic'
+                ? getKineticThemeIdForVariant(siteTheme.kineticVariant)
+                : siteTheme.paletteId;
+            setDefaultThemeId(resolvedPaletteId);
         }
         const cookieFont = readCookieValue(KINETIC_WEB_FONT_OVERRIDE_COOKIE);
         if (!cookieFont) {
@@ -1018,8 +1027,16 @@ export function ReportApp() {
         };
     }, [navGroupByAnchor, navGroups]);
     const isMatteUi = uiTheme === 'matte';
-    const resolvedTheme = theme ?? DEFAULT_WEB_THEME;
-    const kineticVariant = isKineticUi ? inferKineticThemeVariantFromThemeId(resolvedTheme.id) : 'light';
+    const resolvedTheme = theme;
+    // Use the kinetic override ID directly when an explicit kinetic variant is selected,
+    // otherwise fall back to defaultThemeId so the site/report's dark or slate variant is
+    // preserved (e.g. no-override on a kinetic-midnight site stays midnight).
+    const kineticVariantSourceId = (themeIdOverride === KINETIC_WEB_THEME_ID
+        || themeIdOverride === KINETIC_DARK_WEB_THEME_ID
+        || themeIdOverride === KINETIC_SLATE_WEB_THEME_ID)
+        ? themeIdOverride
+        : defaultThemeId;
+    const kineticVariant = isKineticUi ? inferKineticThemeVariantFromThemeId(kineticVariantSourceId) : 'light';
     const isKineticDarkTheme = isKineticUi && kineticVariant !== 'light';
     const isKineticSlateTheme = isKineticUi && kineticVariant === 'slate';
     const accentRgb = isKineticUi ? (isKineticSlateTheme ? '181, 188, 201' : (isKineticDarkTheme ? '142, 155, 214' : '90, 80, 68')) : resolvedTheme.rgb;

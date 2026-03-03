@@ -110,6 +110,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (themeId === KINETIC_SLATE_WEB_THEME_ID) return 'slate';
         return 'light';
     };
+    const isKineticWebThemeId = (themeId: unknown): boolean => {
+        return themeId === KINETIC_WEB_THEME_ID
+            || themeId === KINETIC_DARK_WEB_THEME_ID
+            || themeId === KINETIC_SLATE_WEB_THEME_ID;
+    };
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
@@ -440,13 +445,15 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             return;
         }
         if (uiTheme === 'kinetic') {
-            const expectedThemeId = getKineticThemeIdForVariant(kineticThemeVariant);
-            if (githubWebTheme !== expectedThemeId) {
-                setGithubWebTheme(expectedThemeId);
+            if (isKineticWebThemeId(githubWebTheme)) {
+                const expectedThemeId = getKineticThemeIdForVariant(kineticThemeVariant);
+                if (githubWebTheme !== expectedThemeId) {
+                    setGithubWebTheme(expectedThemeId);
+                }
             }
             return;
         }
-        if (githubWebTheme === CRT_WEB_THEME_ID || githubWebTheme === MATTE_WEB_THEME_ID || githubWebTheme === KINETIC_WEB_THEME_ID || githubWebTheme === KINETIC_DARK_WEB_THEME_ID || githubWebTheme === KINETIC_SLATE_WEB_THEME_ID) {
+        if (githubWebTheme === CRT_WEB_THEME_ID || githubWebTheme === MATTE_WEB_THEME_ID || isKineticWebThemeId(githubWebTheme)) {
             setGithubWebTheme(DEFAULT_WEB_THEME_ID);
         }
     }, [uiTheme, githubWebTheme, kineticThemeVariant]);
@@ -1886,7 +1893,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             key={theme.id}
                                             onClick={() => {
                                                 setGithubWebTheme(theme.id);
-                                                if (uiTheme === 'kinetic') {
+                                                if (uiTheme === 'kinetic' && isKineticWebThemeId(theme.id)) {
                                                     setKineticThemeVariant(inferKineticThemeVariantFromThemeId(theme.id));
                                                 }
                                             }}

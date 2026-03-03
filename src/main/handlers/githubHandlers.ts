@@ -413,14 +413,12 @@ const resolveWebUiThemeChoice = (appUiTheme: unknown, selectedThemeId: unknown):
 const resolveWebPublishTheme = (uiTheme: string, requestedThemeId: string): { selectedTheme: WebTheme; uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' } => {
     const availableThemes = uiTheme === 'crt'
         ? [CRT_WEB_THEME]
-        : (uiTheme === 'kinetic' ? [KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME, KINETIC_SLATE_WEB_THEME] : [...BASE_WEB_THEMES, MATTE_WEB_THEME]);
+        : [...BASE_WEB_THEMES, MATTE_WEB_THEME, KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME, KINETIC_SLATE_WEB_THEME];
     const themeId = uiTheme === 'crt'
         ? CRT_WEB_THEME_ID
         : (uiTheme === 'matte'
             ? MATTE_WEB_THEME_ID
-            : (uiTheme === 'kinetic' && requestedThemeId !== KINETIC_WEB_THEME_ID && requestedThemeId !== KINETIC_DARK_WEB_THEME_ID && requestedThemeId !== KINETIC_SLATE_WEB_THEME_ID
-                ? KINETIC_WEB_THEME_ID
-                : requestedThemeId));
+            : requestedThemeId);
     const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
     const uiThemeValue = resolveWebUiThemeChoice(uiTheme, selectedTheme?.id);
     return { selectedTheme, uiThemeValue };
