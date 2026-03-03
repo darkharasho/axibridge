@@ -33,6 +33,7 @@ import { DefenseSection } from './stats/sections/DefenseSection';
 import { DamageMitigationSection } from './stats/sections/DamageMitigationSection';
 import { SupportSection } from './stats/sections/SupportSection';
 import { HealingSection } from './stats/sections/HealingSection';
+import { HealEffectivenessSection } from './stats/sections/HealEffectivenessSection';
 import { SpecialBuffsSection } from './stats/sections/SpecialBuffsSection';
 import { SigilRelicUptimeSection } from './stats/sections/SigilRelicUptimeSection';
 import { FightDiffModeSection } from './stats/sections/FightDiffModeSection';
@@ -53,6 +54,7 @@ import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
 import { prefetchIconUrls, renderProfessionIcon as renderProfessionIconShared } from './stats/ui/StatsViewShared';
 import { STATS_LOADING_JOKE_INTERVAL_MS, STATS_LOADING_JOKES, shuffled } from './stats/loadingJokes';
+import { computeHealEffectivenessData } from './stats/computeHealEffectivenessData';
 
 interface StatsViewProps {
     logs: ILogData[];
@@ -113,6 +115,7 @@ const ORDERED_SECTION_IDS = [
     'incoming-strike-damage',
     'support-detailed',
     'healing-stats',
+    'heal-effectiveness',
     'fight-diff-mode',
     'special-buffs',
     'sigil-relic-uptime',
@@ -370,6 +373,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
             damageMitigationMinions: asArray((source as any).damageMitigationMinions),
             supportPlayers: asArray((source as any).supportPlayers),
             healingPlayers: asArray((source as any).healingPlayers),
+            healEffectiveness: asArray((source as any).healEffectiveness),
             boonTables: asArray((source as any).boonTables),
             boonTimeline: asArray((source as any).boonTimeline),
             boonUptimeTimeline: asArray((source as any).boonUptimeTimeline),
@@ -484,6 +488,12 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
             resUtilitySkills: Array.isArray(source?.resUtilitySkills) ? source.resUtilitySkills : []
         } as SkillUsageSummary;
     }, [computedSkillUsageData, precomputedStats?.skillUsageData]);
+
+    const healEffectivenessFights = useMemo(() => {
+        const precomputed = Array.isArray((safeStats as any)?.healEffectiveness) ? (safeStats as any).healEffectiveness : [];
+        if (precomputed.length > 0) return precomputed;
+        return computeHealEffectivenessData(logs);
+    }, [safeStats, logs]);
 
     // console logging removed to avoid blocking view transitions
 
@@ -3543,6 +3553,10 @@ type SpikeFight = {
                                 skillUsageData={skillUsageData}
                             />
 
+                            <HealEffectivenessSection
+                                fights={healEffectivenessFights}
+                            />
+
                             <FightDiffModeSection
                             />
 
@@ -3936,6 +3950,10 @@ type SpikeFight = {
                             activeResUtilitySkill={activeResUtilitySkill}
                             setActiveResUtilitySkill={setActiveResUtilitySkill}
                             skillUsageData={skillUsageData}
+                        />}
+
+                        {isSectionVisible('heal-effectiveness') && <HealEffectivenessSection
+                            fights={healEffectivenessFights}
                         />}
 
                         {isSectionVisible('fight-diff-mode') && <FightDiffModeSection

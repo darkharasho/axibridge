@@ -1,5 +1,5 @@
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Activity, Maximize2, X, Columns, Users } from 'lucide-react';
+import { HeartPulse, Maximize2, X, Columns, Users } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
@@ -59,7 +59,7 @@ export const HealingSection = ({
     >
         <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-lime-300" />
+                <HeartPulse className="w-5 h-5 text-lime-300" />
                 Healing Stats
             </h3>
             <button

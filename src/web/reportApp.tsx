@@ -28,6 +28,7 @@ import {
     Map as MapIcon,
     Sparkles,
     HeartPulse,
+    Waves,
     Star,
     Skull,
     PanelLeft,
@@ -871,7 +872,7 @@ export function ReportApp() {
             id: 'defense',
             label: 'Defensive Stats',
             icon: Shield,
-            sectionIds: ['defense-detailed', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats'],
+            sectionIds: ['defense-detailed', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'heal-effectiveness'],
             items: [
                 { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
                 { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: Zap },
@@ -880,7 +881,8 @@ export function ReportApp() {
                 { id: 'boon-timeline', label: 'Boon Timeline', icon: Gw2AegisIcon },
                 { id: 'boon-uptime', label: 'Boon Uptime', icon: Gw2FuryIcon },
                 { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
-                { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse }
+                { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
+                { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves }
             ]
         },
         {

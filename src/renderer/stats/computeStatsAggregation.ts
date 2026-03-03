@@ -6,6 +6,7 @@ import { resolveFightTimestamp } from './utils/timestampUtils';
 import { computeSkillUsageData } from './computeSkillUsageData';
 import { computeSpikeDamageData } from './computeSpikeDamageData';
 import { computeIncomingStrikeDamageData } from './computeIncomingStrikeDamageData';
+import { computeHealEffectivenessData } from './computeHealEffectivenessData';
 import { computeCommanderStats } from './computeCommanderStats';
 import { resolveMapName } from './utils/labelUtils';
 import { computeTimelineAndMapData } from './computeTimelineAndMapData';
@@ -558,6 +559,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         const spikeDamage = computeSpikeDamageData(validLogs);
 
         const incomingStrikeDamage = computeIncomingStrikeDamageData(validLogs);
+        const healEffectiveness = computeHealEffectivenessData(validLogs);
 
         const { specialTables, playerSkillBreakdowns } = computeSpecialTables(specialBuffAgg, specialBuffMeta, playerStats, playerSkillBreakdownMap, shouldIncludePlayerSkillMap);
 
@@ -610,6 +612,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             squadCompByFight,
             spikeDamage,
             incomingStrikeDamage,
+            healEffectiveness,
             specialTables,
             topStatsPerSecond,
             topStatsLeaderboardsPerSecond: perSecondLeaderboards,

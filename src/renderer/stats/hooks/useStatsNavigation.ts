@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { Trophy, Shield, ShieldAlert, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route } from 'lucide-react';
+import { Trophy, Shield, ShieldAlert, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves } from 'lucide-react';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
 import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
@@ -92,7 +92,7 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
         id: 'defense',
         label: 'Defensive Stats',
         icon: Shield,
-        sectionIds: ['defense-detailed', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats'],
+        sectionIds: ['defense-detailed', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'heal-effectiveness'],
         items: [
             { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert },
             { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
@@ -102,6 +102,7 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
             { id: 'boon-uptime', label: 'Boon Uptime', icon: Gw2FuryIcon },
             { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
             { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
+            { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves },
         ]
     },
     {

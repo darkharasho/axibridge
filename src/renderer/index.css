@@ -5810,6 +5810,11 @@ body.web-report.theme-kinetic.theme-kinetic-dark #healing-stats .text-lime-300 {
     color: #f0debe !important;
 }
 
+body.theme-kinetic.theme-kinetic-dark #heal-effectiveness > div:first-child h3 svg,
+body.web-report.theme-kinetic.theme-kinetic-dark #heal-effectiveness > div:first-child h3 svg {
+    color: inherit !important;
+}
+
 body.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime > div:first-child h3 svg,
 body.web-report.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime > div:first-child h3 svg,
 body.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime .text-fuchsia-300,
