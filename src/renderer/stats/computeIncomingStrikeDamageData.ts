@@ -45,6 +45,7 @@ export function computeIncomingStrikeDamageData(validLogs: any[]) {
             burst1s: number;
             burst5s: number;
             burst30s: number;
+            totalDamage: number;
             skillName: string;
             buckets5s: number[];
             downIndices5s: number[];
@@ -54,6 +55,7 @@ export function computeIncomingStrikeDamageData(validLogs: any[]) {
         max1s: number;
         max5s: number;
         max30s: number;
+        maxTotal: number;
     }> = [];
     const playerMap = new Map<string, {
         key: string;
@@ -67,6 +69,7 @@ export function computeIncomingStrikeDamageData(validLogs: any[]) {
         peak1s: number;
         peak5s: number;
         peak30s: number;
+        totalDamage: number;
         peakFightLabel: string;
         peakSkillName: string;
     }>();
@@ -395,11 +398,13 @@ export function computeIncomingStrikeDamageData(validLogs: any[]) {
                 const bucketCount = Math.max(durationBuckets, damageBuckets);
                 const rawBuckets = getBuckets(entry.perSecond, 5);
                 const buckets5s = Array.from({ length: bucketCount }, (_, idx) => Number(rawBuckets[idx] || 0));
+                const totalDamage = buckets5s.reduce((sum, value) => sum + Number(value || 0), 0);
                 values[key] = {
                     hit,
                     burst1s,
                     burst5s,
                     burst30s,
+                    totalDamage,
                     skillName: entry.skillName || 'Unknown Skill',
                     buckets5s,
                     downIndices5s: markerIndicesFromTimes(downTimes, [], allReplayStarts, bucketCount, Number(details?.durationMS || 0)),
@@ -421,9 +426,11 @@ export function computeIncomingStrikeDamageData(validLogs: any[]) {
                     peak1s: 0,
                     peak5s: 0,
                     peak30s: 0,
+                    totalDamage: 0,
                     peakFightLabel: '',
                     peakSkillName: ''
                 };
+                existing.totalDamage += totalDamage;
                 existing.logs += 1;
                 if (hit > existing.peakHit) {
                     existing.peakHit = hit;
@@ -440,6 +447,7 @@ export function computeIncomingStrikeDamageData(validLogs: any[]) {
             const max1s = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.burst1s || 0)), 0);
             const max5s = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.burst5s || 0)), 0);
             const max30s = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.burst30s || 0)), 0);
+            const maxTotal = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.totalDamage || 0)), 0);
             fights.push({
                 id: log.filePath || log.id || `fight-${index + 1}`,
                 shortLabel: `F${index + 1}`,
@@ -449,7 +457,8 @@ export function computeIncomingStrikeDamageData(validLogs: any[]) {
                 maxHit,
                 max1s,
                 max5s,
-                max30s
+                max30s,
+                maxTotal
             });
         });
 
