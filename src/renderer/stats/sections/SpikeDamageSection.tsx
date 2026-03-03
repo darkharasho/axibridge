@@ -21,6 +21,7 @@ type SpikeDamagePlayer = {
     peak1sDown: number;
     peak5sDown: number;
     peak30sDown: number;
+    totalDamage?: number;
     peakFightLabel: string;
     peakSkillName: string;
 };
@@ -59,6 +60,9 @@ type SpikeDamageSectionProps = {
     groupedSpikePlayers: Array<{ profession: string; players: SpikeDamagePlayer[] }>;
     spikeMode: 'hit' | '1s' | '5s' | '30s';
     setSpikeMode: (value: 'hit' | '1s' | '5s' | '30s') => void;
+    showTotalDamageToggle?: boolean;
+    useTotalDamage?: boolean;
+    setUseTotalDamage?: (value: boolean) => void;
     damageBasis?: 'all' | 'downContribution';
     setDamageBasis?: (value: 'all' | 'downContribution') => void;
     showDamageBasisToggle?: boolean;
@@ -89,6 +93,9 @@ export const SpikeDamageSection = ({
     groupedSpikePlayers,
     spikeMode,
     setSpikeMode,
+    showTotalDamageToggle = false,
+    useTotalDamage = false,
+    setUseTotalDamage,
     damageBasis = 'all',
     setDamageBasis,
     showDamageBasisToggle = false,
@@ -124,7 +131,9 @@ export const SpikeDamageSection = ({
         ? (getProfessionColor(selectedSpikePlayer.profession) || '#fda4af')
         : '#fda4af';
     const isDownContributionMode = damageBasis === 'downContribution';
-    const modeLabel = spikeMode === 'hit'
+    const modeLabel = useTotalDamage
+        ? 'All Damage'
+        : spikeMode === 'hit'
         ? (isDownContributionMode ? 'Highest Down Contribution' : 'Highest Damage')
         : spikeMode === '1s'
             ? '1s Burst'
@@ -132,7 +141,9 @@ export const SpikeDamageSection = ({
                 ? '5s Burst'
                 : '30s Burst';
     const peakValueForPlayer = (player: SpikeDamagePlayer) => (
-        spikeMode === 'hit'
+        useTotalDamage
+            ? Number(player.totalDamage || 0)
+            : spikeMode === 'hit'
             ? (isDownContributionMode ? player.peakHitDown : player.peakHit)
             : spikeMode === '1s'
                 ? (isDownContributionMode ? player.peak1sDown : player.peak1s)
@@ -233,6 +244,18 @@ export const SpikeDamageSection = ({
                     </p>
                 </div>
                 <div className={`flex items-center gap-3 ${isExpanded ? 'pr-10 md:pr-0' : ''}`}>
+                    {showTotalDamageToggle && setUseTotalDamage && (
+                        <PillToggleGroup
+                            value={useTotalDamage ? 'allDamage' : 'peak'}
+                            onChange={(value) => setUseTotalDamage(value === 'allDamage')}
+                            options={[
+                                { value: 'peak', label: 'Peak' },
+                                { value: 'allDamage', label: 'All Damage' }
+                            ]}
+                            activeClassName="bg-cyan-500/20 text-cyan-200 border border-cyan-500/40"
+                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                        />
+                    )}
                     {showDamageBasisToggle && setDamageBasis && (
                         <PillToggleGroup
                             value={damageBasis}
@@ -245,18 +268,20 @@ export const SpikeDamageSection = ({
                             inactiveClassName="border border-transparent text-gray-400 hover:text-white"
                         />
                     )}
-                    <PillToggleGroup
-                        value={spikeMode}
-                        onChange={(value) => setSpikeMode(value as 'hit' | '1s' | '5s' | '30s')}
-                        options={[
-                            { value: 'hit', label: 'Highest Damage' },
-                            { value: '1s', label: '1s' },
-                            { value: '5s', label: '5s' },
-                            { value: '30s', label: '30s' }
-                        ]}
-                        activeClassName="bg-rose-500/20 text-rose-200 border border-rose-500/40"
-                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                    />
+                    {!useTotalDamage && (
+                        <PillToggleGroup
+                            value={spikeMode}
+                            onChange={(value) => setSpikeMode(value as 'hit' | '1s' | '5s' | '30s')}
+                            options={[
+                                { value: 'hit', label: 'Highest Damage' },
+                                { value: '1s', label: '1s' },
+                                { value: '5s', label: '5s' },
+                                { value: '30s', label: '30s' }
+                            ]}
+                            activeClassName="bg-rose-500/20 text-rose-200 border border-rose-500/40"
+                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                        />
+                    )}
                     <button
                         type="button"
                         onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
