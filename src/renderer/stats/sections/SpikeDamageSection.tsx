@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Maximize2, ShieldAlert, Zap, X } from 'lucide-react';
+import { Maximize2, Zap, X } from 'lucide-react';
 import { getProfessionColor } from '../../../shared/professionUtils';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';

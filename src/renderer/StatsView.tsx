@@ -1266,7 +1266,7 @@ type SpikeFight = {
         }
 
         const fights: SpikeFight[] = precomputedFights.map((fight: any, index: number) => {
-            const values = fight?.values && typeof fight.values === 'object' ? fight.values : {};
+            const values = ((fight?.values && typeof fight.values === 'object' ? fight.values : {}) as SpikeFight['values']);
             return {
                 id: String(fight?.id || `fight-${index + 1}`),
                 shortLabel: String(fight?.shortLabel || `F${index + 1}`),

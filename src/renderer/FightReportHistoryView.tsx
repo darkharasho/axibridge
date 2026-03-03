@@ -61,7 +61,7 @@ const buildRepoOptions = (settings: any): HistoryRepoOption[] => {
         pushOption(defaultFullName, `${defaultFullName} (Default)`, defaultBaseUrl);
     }
 
-    const favorites = Array.isArray(settings?.githubFavoriteRepos)
+    const favorites: string[] = Array.isArray(settings?.githubFavoriteRepos)
         ? settings.githubFavoriteRepos.filter((entry: unknown): entry is string => typeof entry === 'string' && entry.trim().length > 0)
         : [];
 

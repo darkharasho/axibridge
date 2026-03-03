@@ -282,6 +282,7 @@ export function computeIncomingStrikeDamageData(validLogs: any[]) {
                 burst1s: number;
                 burst5s: number;
                 burst30s: number;
+                totalDamage: number;
                 skillName: string;
                 buckets5s: number[];
                 downIndices5s: number[];
