@@ -1,18 +1,9 @@
 # Release Notes
 
-Version v1.40.1 — March 3, 2026
+Version v1.40.2 — March 3, 2026
 
-## View histories across sites
-- You can now view histories from multiple sites in one place, making it easier to compare performance at a glance.
-
-## SpikeDamageSection enhancements
-- Title icon support: SpikeDamageSection can show a title icon, helping you skim sections faster.
-- Total damage readout and toggle: A total damage value is now available and you can toggle its visibility. This applies to new uploads going forward; past numbers won’t change.
-- More robust calculations: Enhanced type safety in SpikeDamageSection and computeIncomingStrikeDamageData for better reliability with new uploads.
-- NOTE: These changes affect new uploads; existing data remains unchanged.
-
-## SpikeFight UI update
-- SpikeFight now uses ShieldAlert visuals to clearly indicate shield status during fights.
-
-## QoL Improvements & Fixes
-- Reordered items in STATS_TOC_GROUPS for consistency.
+## Stats & Screenshot Sharing Improvements
+- Screenshot sharing now uses integrated shareStage state management for a more predictable and stable flow.
+- Stats dashboards aggregate data per minute, so you’ll see finer-grained activity in charts and lists.
+- UI updates reflect the new per-minute data in the stats views (StatsView, TopPlayersSection, StatsHeader).
+- NOTE: Per-minute aggregation applies to new data going forward; existing stats won’t be retroactively changed.
