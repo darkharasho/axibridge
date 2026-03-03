@@ -539,6 +539,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
 
     const {
         sharing,
+        shareStage,
         handleShare
     } = useStatsScreenshot(embedded);
     const mvpStatWeightKeys: Record<string, keyof IMvpWeights> = {
@@ -3300,6 +3301,7 @@ type SpikeFight = {
                 onWebUploadToTarget={handleWebUploadToTarget}
                 canUploadWeb={canUploadWeb}
                 sharing={sharing}
+                shareStage={shareStage}
                 canShareDiscord={canShareDiscord}
                 onShare={handleShare}
                 actionsDisabled={statsActionsDisabled}
