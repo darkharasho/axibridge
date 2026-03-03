@@ -355,6 +355,8 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
             leaderboards: asObject((source as any).leaderboards),
             topStatsPerSecond: asObject((source as any).topStatsPerSecond),
             topStatsLeaderboardsPerSecond: asObject((source as any).topStatsLeaderboardsPerSecond),
+            topStatsPerMinute: asObject((source as any).topStatsPerMinute),
+            topStatsLeaderboardsPerMinute: asObject((source as any).topStatsLeaderboardsPerMinute),
             maxDownContrib: withFallbackObject((source as any).maxDownContrib, emptyTopStat),
             maxBarrier: withFallbackObject((source as any).maxBarrier, emptyTopStat),
             maxHealing: withFallbackObject((source as any).maxHealing, emptyTopStat),

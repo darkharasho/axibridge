@@ -4,7 +4,7 @@ import { useStatsSharedContext } from '../StatsViewContext';
 type TopPlayersSectionProps = {
     showTopStats: boolean;
     showMvp: boolean;
-    topStatsMode: 'total' | 'perSecond';
+    topStatsMode: 'total' | 'perSecond' | 'perMinute';
     expandedLeader: string | null;
     setExpandedLeader: (value: string | null | ((prev: string | null) => string | null)) => void;
     formatTopStatValue: (value: number) => string;
@@ -128,6 +128,11 @@ export const TopPlayersSection = ({
 }: TopPlayersSectionProps) => {
     const { stats, formatWithCommas, renderProfessionIcon, isSectionVisible, isFirstVisibleSection, sectionClass } = useStatsSharedContext();
     if (!showTopStats) return null;
+    const headingSuffix = topStatsMode === 'perSecond'
+        ? 'Per Second'
+        : topStatsMode === 'perMinute'
+            ? 'Per Minute'
+            : 'Total Accumulated Stats';
     return (
         <div
             id="top-players"
@@ -137,7 +142,7 @@ export const TopPlayersSection = ({
         >
             <h3 className="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-yellow-400" />
-                Top Players (Total Accumulated Stats)
+                {`Top Players (${headingSuffix})`}
             </h3>
             {showMvp && (
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)] gap-3 mb-6">
@@ -244,12 +249,19 @@ export const TopPlayersSection = ({
 
             {(() => {
                 const isPerSecond = topStatsMode === 'perSecond';
-                const topStatsData = isPerSecond && stats.topStatsPerSecond ? stats.topStatsPerSecond : stats;
+                const isPerMinute = topStatsMode === 'perMinute';
+                const topStatsData = isPerSecond && stats.topStatsPerSecond
+                    ? stats.topStatsPerSecond
+                    : isPerMinute && stats.topStatsPerMinute
+                        ? stats.topStatsPerMinute
+                        : stats;
                 const topStatsLeaderboards = isPerSecond && stats.topStatsLeaderboardsPerSecond
                     ? stats.topStatsLeaderboardsPerSecond
-                    : stats.leaderboards;
-                const titlePrefix = isPerSecond ? '' : 'Total ';
-                const titleSuffix = isPerSecond ? ' /s' : '';
+                    : isPerMinute && stats.topStatsLeaderboardsPerMinute
+                        ? stats.topStatsLeaderboardsPerMinute
+                        : stats.leaderboards;
+                const titlePrefix = (isPerSecond || isPerMinute) ? '' : 'Total ';
+                const titleSuffix = isPerSecond ? ' /s' : isPerMinute ? ' /m' : '';
                 const leaderCards = [
                     { icon: HelpingHand, title: `Down Contribution${titleSuffix}`, data: topStatsData.maxDownContrib, color: 'red', statKey: 'downContrib', higherIsBetter: true },
                     { icon: Shield, title: `${titlePrefix}Barrier${titleSuffix}`, data: topStatsData.maxBarrier, color: 'yellow', statKey: 'barrier', higherIsBetter: true },
@@ -262,7 +274,7 @@ export const TopPlayersSection = ({
                     { icon: Crosshair, title: 'Closest to Tag', data: topStatsData.closestToTag, color: 'indigo', unit: 'dist', statKey: 'closestToTag', higherIsBetter: false }
                 ];
                 const formatValue = (value: number) => {
-                    if (!isPerSecond || !Number.isFinite(value)) {
+                    if ((!isPerSecond && !isPerMinute) || !Number.isFinite(value)) {
                         return formatTopStatValue(value);
                     }
                     return formatWithCommas(value, 2);

@@ -54,7 +54,7 @@ export interface IStatsViewSettings {
     showTopStats: boolean;
     showMvp: boolean;
     roundCountStats: boolean;
-    topStatsMode: 'total' | 'perSecond';
+    topStatsMode: 'total' | 'perSecond' | 'perMinute';
     topSkillDamageSource: 'total' | 'target';
     topSkillsMetric: 'damage' | 'downContribution';
 }
