@@ -758,7 +758,7 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
                                                             type="datetime-local"
                                                             value={selectBetweenStart}
                                                             onChange={e => setSelectBetweenStart(e.target.value)}
-                                                            onClick={e => { try { (e.target as any).showPicker(); } catch (err) { } }}
+                                                            onClick={e => (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.()}
                                                             style={{ colorScheme: 'dark' }}
                                                             className="w-full bg-black/40 border border-cyan-500/30 rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-400 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
                                                         />
@@ -769,7 +769,7 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
                                                             type="datetime-local"
                                                             value={selectBetweenEnd}
                                                             onChange={e => setSelectBetweenEnd(e.target.value)}
-                                                            onClick={e => { try { (e.target as any).showPicker(); } catch (err) { } }}
+                                                            onClick={e => (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.()}
                                                             style={{ colorScheme: 'dark' }}
                                                             className="w-full bg-black/40 border border-cyan-500/30 rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-400 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
                                                         />
