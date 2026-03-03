@@ -117,7 +117,7 @@ describe('computeStatsAggregation (commander stats)', () => {
         expect(row.kills).toBe(8);
         expect(row.downs).toBe(11);
         expect(row.commanderDeaths).toBe(1);
-        expect(Number(row.kdr || 0)).toBeCloseTo(8, 5);
+        expect(Number(row.kdr || 0)).toBeCloseTo(2, 5);
         expect(row.avgTimeToFirstEnemyDownMs).toBe(9_000);
         expect(row.avgTimeToFirstEnemyDeathMs).toBe(19_500);
         expect(row.avgDownToKillConversionMs).toBe(10_500);

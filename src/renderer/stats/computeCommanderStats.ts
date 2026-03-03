@@ -719,8 +719,8 @@ const rows = Array.from(commanders.values())
         const weightedBoonUptimePct = entry.boonDurationMs > 0
             ? entry.boonWeightedPctMs / entry.boonDurationMs
             : 0;
-        const kdr = entry.totalCommanderDeaths > 0
-            ? entry.totalKills / entry.totalCommanderDeaths
+        const kdr = entry.totalAlliesDead > 0
+            ? entry.totalKills / entry.totalAlliesDead
             : entry.totalKills;
         const totalMinutes = Math.max(1 / 60, entry.totalDurationMs / 60000);
         const fights = [...entry.fightRows].sort((a, b) => {

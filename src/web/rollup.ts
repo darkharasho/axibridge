@@ -7,6 +7,7 @@ export interface RollupCommanderRow {
     kills: number;
     downs: number;
     commanderDeaths: number;
+    alliesDead: number;
     wins: number;
     losses: number;
     kdr: number;
@@ -60,6 +61,7 @@ type CommanderAccumulator = {
     kills: number;
     downs: number;
     commanderDeaths: number;
+    alliesDead: number;
     wins: number;
     losses: number;
     lastSeenTs: number;
@@ -268,6 +270,7 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
                 kills: 0,
                 downs: 0,
                 commanderDeaths: 0,
+                alliesDead: 0,
                 wins: 0,
                 losses: 0,
                 lastSeenTs: 0
@@ -277,6 +280,7 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
             existing.kills += Math.max(0, toFiniteNumber(row?.kills));
             existing.downs += Math.max(0, toFiniteNumber(row?.downs));
             existing.commanderDeaths += Math.max(0, toFiniteNumber(row?.commanderDeaths));
+            existing.alliesDead += Math.max(0, toFiniteNumber(row?.alliesDead));
             existing.wins += Math.max(0, toFiniteNumber(row?.wins));
             existing.losses += Math.max(0, toFiniteNumber(row?.losses));
             existing.lastSeenTs = Math.max(existing.lastSeenTs, timestamp);
@@ -298,8 +302,8 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
 
     const commanderRows: RollupCommanderRow[] = Array.from(commanders.values())
         .map((entry) => {
-            const kdr = entry.commanderDeaths > 0
-                ? entry.kills / entry.commanderDeaths
+            const kdr = entry.alliesDead > 0
+                ? entry.kills / entry.alliesDead
                 : entry.kills;
             return {
                 account: entry.account,
@@ -310,6 +314,7 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
                 kills: entry.kills,
                 downs: entry.downs,
                 commanderDeaths: entry.commanderDeaths,
+                alliesDead: entry.alliesDead,
                 wins: entry.wins,
                 losses: entry.losses,
                 kdr,
