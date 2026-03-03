@@ -19,6 +19,7 @@ import { buildRollupData, RollupData } from './rollup';
 import {
     ShieldCheck,
     Shield,
+    ShieldAlert,
     CalendarDays,
     Users,
     ExternalLink,
@@ -875,7 +876,7 @@ export function ReportApp() {
             sectionIds: ['defense-detailed', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'heal-effectiveness'],
             items: [
                 { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
-                { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: Zap },
+                { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert },
                 { id: 'defense-mitigation', label: 'Damage Mitigation', icon: Gw2DamMitIcon },
                 { id: 'boon-output', label: 'Boon Output', icon: Gw2BoonIcon },
                 { id: 'boon-timeline', label: 'Boon Timeline', icon: Gw2AegisIcon },
