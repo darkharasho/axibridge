@@ -657,7 +657,7 @@ const migrateLegacyInstallName = () => {
 
 
 function createTray() {
-    const iconPath = path.join(process.env.VITE_PUBLIC || '', 'img/ArcBridgeAppIcon.png');
+    const iconPath = path.join(process.env.VITE_PUBLIC || '', 'img/ArcBridge.png');
     const icon = nativeImage.createFromPath(iconPath);
     tray = new Tray(icon.resize({ width: 16, height: 16 }));
 
