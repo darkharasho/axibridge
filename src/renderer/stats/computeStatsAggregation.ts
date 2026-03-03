@@ -299,12 +299,28 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             maxStab: getTopFromLeaderboard([]),
             closestToTag: getTopFromLeaderboard([])
         };
+        const topStatsPerMinute: any = {
+            maxDownContrib: getTopFromLeaderboard([]),
+            maxBarrier: getTopFromLeaderboard([]),
+            maxHealing: getTopFromLeaderboard([]),
+            maxDodges: getTopFromLeaderboard([]),
+            maxStrips: getTopFromLeaderboard([]),
+            maxCleanses: getTopFromLeaderboard([]),
+            maxCC: getTopFromLeaderboard([]),
+            maxStab: getTopFromLeaderboard([]),
+            closestToTag: getTopFromLeaderboard([])
+        };
 
         const perSecondLeaderboards: Record<string, any[]> = {};
+        const perMinuteLeaderboards: Record<string, any[]> = {};
         const getPerSecondVal = (s: PlayerStats, k: string) => {
             if (k === 'closestToTag') return getVal(s, k);
             const seconds = Math.max(1, (s.totalFightMs || 0) / 1000);
             return getVal(s, k) / seconds;
+        };
+        const getPerMinuteVal = (s: PlayerStats, k: string) => {
+            if (k === 'closestToTag') return getVal(s, k);
+            return getPerSecondVal(s, k) * 60;
         };
         Object.values(statKeys).forEach((k) => {
             const higherIsBetter = k !== 'closestToTag';
@@ -313,6 +329,13 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 profession: stat.profession,
                 professionList: stat.professionList,
                 value: getPerSecondVal(stat, k),
+                count: stat.logsJoined
+            })), higherIsBetter);
+            perMinuteLeaderboards[k] = buildLeaderboard(playerEntries.map(({ stat }) => ({
+                account: stat.account,
+                profession: stat.profession,
+                professionList: stat.professionList,
+                value: getPerMinuteVal(stat, k),
                 count: stat.logsJoined
             })), higherIsBetter);
         });
@@ -326,6 +349,15 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         topStatsPerSecond.maxCC = getTopFromLeaderboard(perSecondLeaderboards.cc);
         topStatsPerSecond.maxStab = getTopFromLeaderboard(perSecondLeaderboards.stability);
         topStatsPerSecond.closestToTag = getTopFromLeaderboard(perSecondLeaderboards.closestToTag);
+        topStatsPerMinute.maxDownContrib = getTopFromLeaderboard(perMinuteLeaderboards.downContrib);
+        topStatsPerMinute.maxBarrier = getTopFromLeaderboard(perMinuteLeaderboards.barrier);
+        topStatsPerMinute.maxHealing = getTopFromLeaderboard(perMinuteLeaderboards.healing);
+        topStatsPerMinute.maxDodges = getTopFromLeaderboard(perMinuteLeaderboards.dodges);
+        topStatsPerMinute.maxStrips = getTopFromLeaderboard(perMinuteLeaderboards.strips);
+        topStatsPerMinute.maxCleanses = getTopFromLeaderboard(perMinuteLeaderboards.cleanses);
+        topStatsPerMinute.maxCC = getTopFromLeaderboard(perMinuteLeaderboards.cc);
+        topStatsPerMinute.maxStab = getTopFromLeaderboard(perMinuteLeaderboards.stability);
+        topStatsPerMinute.closestToTag = getTopFromLeaderboard(perMinuteLeaderboards.closestToTag);
 
         const topStats = {
             maxDownContrib: getTopFromLeaderboard(leaderboards.downContrib),
@@ -616,6 +648,8 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             specialTables,
             topStatsPerSecond,
             topStatsLeaderboardsPerSecond: perSecondLeaderboards,
+            topStatsPerMinute,
+            topStatsLeaderboardsPerMinute: perMinuteLeaderboards,
             avgMvpScore
         };
     })();

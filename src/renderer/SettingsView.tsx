@@ -2229,7 +2229,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <div className="flex gap-2">
                                     {([
                                         { id: 'total', label: 'Total' },
-                                        { id: 'perSecond', label: 'Per Second' }
+                                        { id: 'perSecond', label: 'Per Second' },
+                                        { id: 'perMinute', label: 'Per Minute' }
                                     ] as const).map((option) => (
                                         <button
                                             key={option.id}
