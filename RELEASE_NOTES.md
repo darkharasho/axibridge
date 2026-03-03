@@ -1,17 +1,28 @@
 # Release Notes
 
-Version v1.39.2 — March 1, 2026
+Version v1.40.0 — March 3, 2026
 
-## UI improvements
-- App and AppLayout layout and styling are cleaner, giving you a steadier, more intuitive UI.
+## New features and major updates
+- Heal Effectiveness: a new Heal Effectiveness section with calculation logic for healing metrics. See how efficiently healing is used in fights.
+- Fight diff and timeline/map data: fight differences are now computed with new tables, plus timeline and map data are processed to show how fights change over time.
+- Spike damage and WvW labels: added spike damage data and utilities to handle World vs World labels.
+- Settings and uploads: new handlers to manage application settings and log uploads more directly from the app.
+- KDR updates: KDR now uses total allies dead and adds an alliesDead field in rollup data.
+  - NOTE: this applies to new data going forward; existing recordings won’t gain the alliesDead field retroactively.
+- Top lists: enhanced addTopList with filtering options and zero allowances to focus the data you care about.
+- MVP cards: visuals updated for improved visibility and hover feedback.
 
-## Theme resolution
-- KINETIC_SLATE_WEB_THEME_ID is now supported in theme resolution, so that theme picks up correctly.
+## Big UX improvements
+- File picker UX refined: easier to pick and attach files, with clearer interactions.
 
-## Behind the scenes
-- Added version utilities, details processing, and an upload retry queue to improve how uploads and reports are prepared.
-- Uploads that fail will be retried automatically.
-- Details are parsed and summarized for dashboards and reports.
+## Visual/Theme updates
+- Icon path fix: application icon now loads from the correct filename.
+- Kinetic slate web theme: updated to align with the new visuals.
+- Frontend assets refreshed: dist-web assets updated to reflect the UI changes.
 
 ## QoL Improvements
-- General stability tweaks and small polish across the app to feel more reliable day-to-day.
+- Code and state management facelift: App component split into hooks for settings, upload retry queue, and navigation; metrics, constants, and shared state structures reorganized for clarity and maintainability. This should make future tweaks smoother and debugging quicker.
+
+## Fixes
+- Date picker reliability: showPicker behavior refined so date picking is more predictable.
+- Web reports theme overrides: user theme overrides are now respected in web reports again.
