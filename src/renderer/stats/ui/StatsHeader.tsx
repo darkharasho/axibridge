@@ -14,6 +14,7 @@ type StatsHeaderProps = {
     onWebUploadToTarget?: (repoFullName: string) => void;
     canUploadWeb?: boolean;
     sharing: boolean;
+    shareStage?: 'idle' | 'settling' | 'capturing' | 'sending';
     canShareDiscord: boolean;
     onShare: () => void;
     actionsDisabled?: boolean;
@@ -32,6 +33,7 @@ export const StatsHeader = ({
     onWebUploadToTarget,
     canUploadWeb = true,
     sharing,
+    shareStage = 'idle',
     canShareDiscord,
     onShare,
     actionsDisabled = false
@@ -47,6 +49,13 @@ export const StatsHeader = ({
     const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
     const uploadMenuRef = useRef<HTMLDivElement | null>(null);
     const alternateUploadTargets = uploadTargets.filter((target) => !target.isDefault);
+    const shareLabel = shareStage === 'settling'
+        ? 'Settling...'
+        : shareStage === 'capturing'
+            ? 'Capturing...'
+            : shareStage === 'sending'
+                ? 'Sending...'
+                : (sharing ? 'Sharing...' : 'Share to Discord');
 
     useEffect(() => {
         if (!uploadMenuOpen) return;
@@ -153,7 +162,7 @@ export const StatsHeader = ({
                         className="stats-action-discord flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Share2 className="w-4 h-4" />
-                        {sharing ? 'Sharing...' : 'Share to Discord'}
+                        {shareLabel}
                     </button>
                     {!canShareDiscord && (
                         <div className="stats-share-tooltip pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md border border-white/10 bg-black/90 px-2 py-1 text-[11px] text-gray-200 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">

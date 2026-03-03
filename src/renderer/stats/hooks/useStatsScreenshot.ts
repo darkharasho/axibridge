@@ -2,7 +2,57 @@ import { useState } from 'react';
 import { toPng } from 'html-to-image';
 
 export const useStatsScreenshot = (embedded: boolean) => {
-    const [sharing, setSharing] = useState(false);
+    const [shareStage, setShareStage] = useState<'idle' | 'settling' | 'capturing' | 'sending'>('idle');
+    const sharing = shareStage !== 'idle';
+
+    const waitForVisualSettling = async (node: HTMLElement) => {
+        const nextPaint = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        const readLayoutSignature = () => {
+            const rect = node.getBoundingClientRect();
+            return [
+                Math.round(rect.width),
+                Math.round(rect.height),
+                node.scrollWidth,
+                node.scrollHeight
+            ].join(':');
+        };
+
+        try {
+            await (document as any).fonts?.ready;
+        } catch {
+            // Ignore font readiness issues and continue with the capture flow.
+        }
+
+        await nextPaint();
+        await nextPaint();
+
+        const startedAt = performance.now();
+        let lastSignature = readLayoutSignature();
+        let stableSince = performance.now();
+
+        while (performance.now() - startedAt < 3200) {
+            await nextPaint();
+            const currentSignature = readLayoutSignature();
+            if (currentSignature !== lastSignature) {
+                lastSignature = currentSignature;
+                stableSince = performance.now();
+            }
+
+            const activeAnimations = typeof document.getAnimations === 'function'
+                ? document.getAnimations().filter((animation) => animation.playState !== 'finished').length
+                : 0;
+            const elapsed = performance.now() - startedAt;
+            const stableFor = performance.now() - stableSince;
+            const hitMinimumDelay = elapsed >= 700;
+            const isStable = stableFor >= 350;
+            if (hitMinimumDelay && isStable && activeAnimations === 0) {
+                break;
+            }
+        }
+
+        await nextPaint();
+        await nextPaint();
+    };
 
     const withImageFetchProxy = async <T,>(fn: () => Promise<T>) => {
         if (!window.electronAPI?.fetchImageAsDataUrl) {
@@ -110,12 +160,11 @@ export const useStatsScreenshot = (embedded: boolean) => {
     const handleShare = async () => {
         // @ts-ignore
         if (embedded || !window.electronAPI?.sendStatsScreenshot) return;
-        setSharing(true);
+        setShareStage('settling');
         const node = document.getElementById('stats-dashboard-container');
         if (node) {
             try {
-                // Wait a moment for UI to settle if anything changed
-                await new Promise(r => setTimeout(r, 100));
+                await waitForVisualSettling(node);
 
                 const excluded = Array.from(node.querySelectorAll('.stats-share-exclude')) as HTMLElement[];
                 node.classList.add('stats-share-mode');
@@ -125,23 +174,87 @@ export const useStatsScreenshot = (embedded: boolean) => {
                 });
                 let dataUrl: string;
                 const restoreAssets = await inlineExternalAssets(node);
+                let captureNode: HTMLElement | null = null;
+                let captureHost: HTMLDivElement | null = null;
                 try {
-                    const scrollWidth = node.scrollWidth;
-                    const scrollHeight = node.scrollHeight;
-                    dataUrl = await withImageFetchProxy(() => toPng(node, {
+                    setShareStage('capturing');
+                    captureNode = node.cloneNode(true) as HTMLElement;
+                    captureHost = document.createElement('div');
+                    captureHost.setAttribute('aria-hidden', 'true');
+                    captureHost.style.position = 'fixed';
+                    captureHost.style.left = '-100000px';
+                    captureHost.style.top = '0';
+                    captureHost.style.pointerEvents = 'none';
+                    captureHost.style.opacity = '0';
+                    captureHost.style.zIndex = '-1';
+                    captureHost.style.background = '#10141b';
+                    captureNode.id = 'stats-dashboard-capture-clone';
+                    captureNode.style.width = `${node.clientWidth}px`;
+                    captureNode.style.maxWidth = `${node.clientWidth}px`;
+                    captureNode.style.height = 'auto';
+                    captureNode.style.maxHeight = 'none';
+                    captureNode.style.minHeight = '0';
+                    captureNode.style.overflow = 'visible';
+                    captureNode.style.overflowY = 'visible';
+                    captureNode.style.paddingRight = '0';
+
+                    const scrollableNodes = [captureNode, ...Array.from(captureNode.querySelectorAll('*')) as HTMLElement[]];
+                    scrollableNodes.forEach((el) => {
+                        const computed = window.getComputedStyle(el);
+                        const overflowY = computed.overflowY;
+                        const overflowX = computed.overflowX;
+                        const isVerticallyScrollable = overflowY === 'auto' || overflowY === 'scroll';
+                        const isHorizontallyScrollable = overflowX === 'auto' || overflowX === 'scroll';
+                        if (isVerticallyScrollable) {
+                            el.style.overflowY = 'visible';
+                            el.style.maxHeight = 'none';
+                            if (el !== captureNode) {
+                                el.style.height = 'auto';
+                                el.style.minHeight = '0';
+                            }
+                            el.style.paddingRight = '0';
+                            // Hide scrollbar chrome in case any browser keeps a gutter reserved.
+                            (el.style as any).scrollbarWidth = 'none';
+                            (el.style as any).msOverflowStyle = 'none';
+                        }
+                        if (isHorizontallyScrollable) {
+                            el.style.overflowX = 'visible';
+                        }
+                    });
+
+                    captureHost.appendChild(captureNode);
+                    document.body.appendChild(captureHost);
+                    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+
+                    const renderNode = captureNode;
+
+                    const captureWidth = Math.max(
+                        renderNode.scrollWidth,
+                        renderNode.getBoundingClientRect().width,
+                        node.clientWidth
+                    );
+                    const captureHeight = Math.max(
+                        renderNode.scrollHeight,
+                        renderNode.getBoundingClientRect().height,
+                        node.scrollHeight
+                    );
+
+                    dataUrl = await withImageFetchProxy(() => toPng(renderNode, {
                         backgroundColor: '#10141b',
                         quality: 0.95,
                         pixelRatio: 2,
                         cacheBust: true,
-                        width: scrollWidth,
-                        height: scrollHeight,
+                        width: captureWidth,
+                        height: captureHeight,
                         style: {
                             overflow: 'visible',
                             maxHeight: 'none',
-                            height: 'auto'
+                            height: 'auto',
+                            paddingRight: '0'
                         }
                     }));
                 } finally {
+                    captureHost?.remove();
                     restoreAssets();
                     node.classList.remove('stats-share-mode');
                     excluded.forEach((el) => {
@@ -155,18 +268,22 @@ export const useStatsScreenshot = (embedded: boolean) => {
                 const arrayBuffer = await blob.arrayBuffer();
                 const buffer = new Uint8Array(arrayBuffer);
 
+                setShareStage('sending');
                 // @ts-ignore
                 window.electronAPI.sendStatsScreenshot(buffer);
             } catch (err) {
                 console.error("Failed to capture stats:", err);
+                setShareStage('idle');
             }
+        } else {
+            setShareStage('idle');
         }
-        setTimeout(() => setSharing(false), 2000);
+        setTimeout(() => setShareStage('idle'), 1500);
     };
 
     return {
         sharing,
-        setSharing,
+        shareStage,
         handleShare
     };
 };
