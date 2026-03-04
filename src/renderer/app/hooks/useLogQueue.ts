@@ -1,5 +1,33 @@
 import { startTransition, useCallback, useEffect, useRef } from 'react';
 
+export const normalizeQueuedLogStatus = (candidate: ILogData): ILogData => {
+    if ((candidate.details || candidate.detailsAvailable) && candidate.detailsFetchExhausted) {
+        candidate = { ...candidate, detailsFetchExhausted: false };
+    }
+    if ((candidate.details || candidate.detailsAvailable) && candidate.detailsKnownUnavailable) {
+        candidate = { ...candidate, detailsKnownUnavailable: false };
+    }
+    const detailsResolved = Boolean(candidate.details)
+        || Boolean(candidate.statsDetailsLoaded)
+        || Boolean(candidate.detailsKnownUnavailable)
+        || (candidate.detailsAvailable === false)
+        || Boolean(candidate.detailsFetchExhausted);
+    if (candidate.status === 'calculating' && detailsResolved) {
+        return { ...candidate, status: 'success' as const };
+    }
+    if (
+        candidate.status === 'success'
+        && candidate.detailsAvailable
+        && !candidate.details
+        && !candidate.statsDetailsLoaded
+        && !candidate.detailsFetchExhausted
+        && !candidate.detailsKnownUnavailable
+    ) {
+        return { ...candidate, status: 'calculating' as const };
+    }
+    return candidate;
+};
+
 export function useLogQueue(
     setLogs: React.Dispatch<React.SetStateAction<ILogData[]>>,
     bulkUploadModeRef: React.MutableRefObject<boolean>
@@ -13,18 +41,7 @@ export function useLogQueue(
         });
     }, [setLogs]);
 
-    const normalizeIncomingStatus = useCallback((candidate: ILogData): ILogData => {
-        if ((candidate.details || candidate.detailsAvailable) && candidate.detailsFetchExhausted) {
-            candidate = { ...candidate, detailsFetchExhausted: false };
-        }
-        if ((candidate.details || candidate.detailsAvailable) && candidate.detailsKnownUnavailable) {
-            candidate = { ...candidate, detailsKnownUnavailable: false };
-        }
-        if (candidate.status === 'success' && candidate.detailsAvailable && !candidate.details) {
-            return { ...candidate, status: 'calculating' as const };
-        }
-        return candidate;
-    }, []);
+    const normalizeIncomingStatus = useCallback((candidate: ILogData): ILogData => normalizeQueuedLogStatus(candidate), []);
 
     const hasLogChanges = useCallback((existing: ILogData, merged: ILogData) => {
         const keys = new Set<string>([

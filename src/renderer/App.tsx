@@ -15,7 +15,7 @@ import { useSettings } from './app/hooks/useSettings';
 import { useUploadRetryQueue } from './app/hooks/useUploadRetryQueue';
 import { useAppNavigation } from './app/hooks/useAppNavigation';
 import { shouldAttemptStatsSyncRecovery } from './stats/utils/statsSyncRecovery';
-import { useLogQueue } from './app/hooks/useLogQueue';
+import { normalizeQueuedLogStatus, useLogQueue } from './app/hooks/useLogQueue';
 import { useDetailsHydration } from './app/hooks/useDetailsHydration';
 import { useUploadListeners } from './app/hooks/useUploadListeners';
 
@@ -285,6 +285,23 @@ function App() {
     const bulkUploadActiveRef = useRef(isBulkUploadActive);
 
     const calculatingCount = logs.filter((log) => log.status === 'calculating').length;
+
+    useEffect(() => {
+        if (!logs.some((log) => log.status === 'calculating')) {
+            return;
+        }
+        setLogsDeferred((currentLogs) => {
+            let changed = false;
+            const next = currentLogs.map((entry) => {
+                if (entry.status !== 'calculating') return entry;
+                const normalized = normalizeQueuedLogStatus(entry);
+                if (normalized.status === entry.status) return entry;
+                changed = true;
+                return normalized;
+            });
+            return changed ? next : currentLogs;
+        });
+    }, [logs, setLogsDeferred]);
 
     useEffect(() => {
         if (bulkUploadMode && calculatingCount > 1) {
