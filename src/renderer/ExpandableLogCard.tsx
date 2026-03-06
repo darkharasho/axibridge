@@ -1,6 +1,6 @@
 import { forwardRef, memo, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, Trash2 } from 'lucide-react';
 import { getPlayerDamage, getPlayerDps, getPlayerDownsTaken, getPlayerDeaths, getPlayerDamageTaken, getPlayerDodges, getPlayerMissed, getPlayerBlocked, getPlayerEvaded, getPlayerResurrects, getTargetStatTotal } from '../shared/dashboardMetrics';
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeIncomingDisruptions as getIncomingDisruptions, computeDownContribution as getPlayerDownContribution, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl, computeSquadBarrier as getPlayerSquadBarrier, computeSquadHealing as getPlayerSquadHealing } from '../shared/combatMetrics';
 import { Player } from '../shared/dpsReportTypes';
@@ -13,6 +13,7 @@ interface ExpandableLogCardProps {
     isExpanded: boolean;
     onToggle: () => void;
     onCancel?: () => void;
+    onRemove?: () => void;
     layoutEnabled?: boolean;
     motionEnabled?: boolean;
     screenshotMode?: boolean;
@@ -32,7 +33,7 @@ interface ExpandableLogCardProps {
 }
 
 const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>(
-    ({ log, isExpanded, onToggle, onCancel, layoutEnabled = true, motionEnabled = true, screenshotMode, embedStatSettings, disruptionMethod, screenshotSection, useClassIcons }, ref) => {
+    ({ log, isExpanded, onToggle, onCancel, onRemove, layoutEnabled = true, motionEnabled = true, screenshotMode, embedStatSettings, disruptionMethod, screenshotSection, useClassIcons }, ref) => {
     const details = log.details || {};
     const shouldComputeDetails = isExpanded || screenshotMode || Boolean(screenshotSection);
     const allPlayers: Player[] = Array.isArray(details.players) ? details.players : [];
@@ -90,6 +91,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                             : hasError ? 'error'
                                 : 'success';
     const isCancellable = Boolean(!log.details && !isExpanded && onCancel && (isQueued || isPending || isUploading || isRetrying));
+    const canRemove = Boolean(onRemove && !isCancellable);
     const squadDisplayCount = shouldComputeDetails ? squadPlayers.length : squadPlayerCount;
     const nonSquadDisplayCount = shouldComputeDetails ? nonSquadPlayers.length : nonSquadPlayerCount;
     const [relativeNow, setRelativeNow] = useState(() => Date.now());
@@ -1080,7 +1082,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         ? {
             initial: { opacity: 0, x: 20, scale: 0.95 },
             animate: { opacity: 1, x: 0, scale: 1 },
-            exit: { opacity: 0, scale: 0.9 },
+            exit: { opacity: 0, x: 40, scale: 0.96 },
             layout: layoutEnabled
         }
         : {};
@@ -1120,35 +1122,50 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         <span>{formattedTime()}</span>
                     </div>
                 </div>
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (isCancellable) {
-                            onCancel?.();
-                            return;
-                        }
-                        onToggle();
-                    }}
-                    disabled={Boolean(log.detailsLoading) || (!log.details && !isExpanded && !onCancel)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 border ${isCancellable
-                        ? 'bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20'
-                        : log.detailsLoading
-                            ? 'bg-white/5 text-gray-500 border-white/10 cursor-not-allowed'
-                            : !log.details && !isExpanded && !onCancel
-                                ? 'bg-white/5 text-gray-600 border-white/5 cursor-not-allowed opacity-50'
-                                : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white group-hover:border-white/20'
-                        }`}
-                >
-                    {isCancellable ? (
-                        <><span>Cancel</span></>
-                    ) : log.detailsLoading ? (
-                        <><span>Loading…</span></>
-                    ) : isExpanded ? (
-                        <><ChevronUp className="w-3 h-3" /><span>Hide</span></>
-                    ) : (
-                        <><ChevronDown className="w-3 h-3" /><span>Details</span></>
+                <div className="flex items-center gap-2 shrink-0">
+                    {canRemove && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRemove?.();
+                            }}
+                            className="p-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all"
+                            title="Remove log from recent activity"
+                            aria-label="Remove log from recent activity"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                     )}
-                </button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (isCancellable) {
+                                onCancel?.();
+                                return;
+                            }
+                            onToggle();
+                        }}
+                        disabled={Boolean(log.detailsLoading) || (!log.details && !isExpanded && !onCancel)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 border ${isCancellable
+                            ? 'bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20'
+                            : log.detailsLoading
+                                ? 'bg-white/5 text-gray-500 border-white/10 cursor-not-allowed'
+                                : !log.details && !isExpanded && !onCancel
+                                    ? 'bg-white/5 text-gray-600 border-white/5 cursor-not-allowed opacity-50'
+                                    : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white group-hover:border-white/20'
+                            }`}
+                    >
+                        {isCancellable ? (
+                            <><span>Cancel</span></>
+                        ) : log.detailsLoading ? (
+                            <><span>Loading…</span></>
+                        ) : isExpanded ? (
+                            <><ChevronUp className="w-3 h-3" /><span>Hide</span></>
+                        ) : (
+                            <><ChevronDown className="w-3 h-3" /><span>Details</span></>
+                        )}
+                    </button>
+                </div>
             </div>
 
             {/* Expanded View */}

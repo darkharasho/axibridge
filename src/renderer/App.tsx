@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { FolderOpen, UploadCloud, FileText, Settings, Image as ImageIcon, Layout, ChevronDown, Grid3X3, Trash2, FilePlus2 } from 'lucide-react';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
@@ -278,6 +278,9 @@ function App() {
         () => webhooks.find((hook) => hook.id === selectedWebhookId) || null,
         [webhooks, selectedWebhookId]
     );
+    const pendingStatsRemovalIdsRef = useRef<Set<string>>(new Set());
+    const pendingStatsClearRef = useRef(false);
+    const pendingStatsRemovalTimerRef = useRef<number | null>(null);
 
     const isBulkUploadActive = useMemo(
         () => bulkUploadMode || logs.some((log) => log.status === 'queued' || log.status === 'pending' || log.status === 'uploading' || log.status === 'retrying' || log.status === 'calculating'),
@@ -397,6 +400,68 @@ function App() {
             window.setTimeout(() => scheduleDetailsHydration(true), 620);
         }
     }, [scheduleDetailsHydration, requestFlush, setLogsForStats]);
+
+    const flushPendingStatsRemovals = useCallback(() => {
+        pendingStatsRemovalTimerRef.current = null;
+        if (pendingStatsClearRef.current) {
+            pendingStatsClearRef.current = false;
+            pendingStatsRemovalIdsRef.current.clear();
+            setLogsForStats([]);
+            requestFlush?.();
+            return;
+        }
+        if (pendingStatsRemovalIdsRef.current.size === 0) return;
+        const pendingIds = new Set(pendingStatsRemovalIdsRef.current);
+        pendingStatsRemovalIdsRef.current.clear();
+        setLogsForStats((currentLogs) => currentLogs.filter((entry) => !pendingIds.has(String(entry.filePath || entry.id || ''))));
+        requestFlush?.();
+    }, [requestFlush, setLogsForStats]);
+
+    const scheduleAsyncStatsRecompute = useCallback(() => {
+        if (pendingStatsRemovalTimerRef.current !== null) return;
+        pendingStatsRemovalTimerRef.current = window.setTimeout(() => {
+            flushPendingStatsRemovals();
+        }, 140);
+    }, [flushPendingStatsRemovals]);
+
+    useEffect(() => {
+        return () => {
+            if (pendingStatsRemovalTimerRef.current !== null) {
+                window.clearTimeout(pendingStatsRemovalTimerRef.current);
+                pendingStatsRemovalTimerRef.current = null;
+            }
+        };
+    }, []);
+
+    const removeLogFromActivity = useCallback((log: ILogData) => {
+        const identity = String(log.filePath || log.id || '');
+        if (!identity) return;
+        if (log.filePath) {
+            canceledLogsRef.current.add(log.filePath);
+        }
+        pendingLogUpdatesRef.current.delete(identity);
+        setLogs((currentLogs) => currentLogs.filter((entry) => String(entry.filePath || entry.id || '') !== identity));
+        pendingStatsRemovalIdsRef.current.add(identity);
+        scheduleAsyncStatsRecompute();
+        if (expandedLogId === log.filePath) {
+            setExpandedLogId(null);
+        }
+        setScreenshotData((current) => {
+            const currentIdentity = current ? String(current.filePath || current.id || '') : '';
+            return currentIdentity === identity ? null : current;
+        });
+    }, [expandedLogId, pendingLogUpdatesRef, scheduleAsyncStatsRecompute]);
+
+    const clearLogsFromActivity = useCallback(() => {
+        setLogs([]);
+        setExpandedLogId(null);
+        setScreenshotData(null);
+        canceledLogsRef.current.clear();
+        pendingLogUpdatesRef.current.clear();
+        pendingStatsClearRef.current = true;
+        pendingStatsRemovalIdsRef.current.clear();
+        scheduleAsyncStatsRecompute();
+    }, [pendingLogUpdatesRef, scheduleAsyncStatsRecompute]);
 
     // Dashboard stats (upload counts, pie chart, squad/enemy averages, win/loss)
     const { totalUploads, statusCounts, uploadPieData, avgSquadSize, avgEnemies, winLoss, squadKdr } = useDashboardStats(logs);
@@ -953,12 +1018,7 @@ function App() {
                         Add Logs
                     </button>
                     <button
-                        onClick={() => {
-                            setLogs([]);
-                            setExpandedLogId(null);
-                            setScreenshotData(null);
-                            canceledLogsRef.current.clear();
-                        }}
+                        onClick={clearLogsFromActivity}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-colors"
                         title="Clear all logs"
                     >
@@ -1050,33 +1110,31 @@ function App() {
                         {logListVirtualization.enabled && logListVirtualization.topSpacer > 0 && (
                             <div aria-hidden="true" style={{ height: `${logListVirtualization.topSpacer}px` }} />
                         )}
-                        {logListVirtualization.visibleLogs.map((log) => (
-                            <ExpandableLogCard
-                                key={log.filePath || log.id}
-                                log={log}
-                                isExpanded={expandedLogId === log.filePath}
-                                onToggle={() => {
-                                    const nextExpanded = expandedLogId === log.filePath ? null : log.filePath;
-                                    setExpandedLogId(nextExpanded);
-                                    if (nextExpanded) {
-                                        fetchLogDetails(log);
-                                    }
-                                }}
-                                layoutEnabled={!isBulkUploadActive}
-                                motionEnabled={!isBulkUploadActive}
-                                onCancel={() => {
-                                    if (!log.filePath) return;
-                                    canceledLogsRef.current.add(log.filePath);
-                                    setLogs((currentLogs) => currentLogs.filter((entry) => entry.filePath !== log.filePath));
-                                    if (expandedLogId === log.filePath) {
-                                        setExpandedLogId(null);
-                                    }
-                                }}
-                                embedStatSettings={embedStatSettings}
-                                disruptionMethod={disruptionMethod}
-                                useClassIcons={true}
-                            />
-                        ))}
+                        <AnimatePresence initial={false}>
+                            {logListVirtualization.visibleLogs.map((log) => (
+                                <ExpandableLogCard
+                                    key={log.filePath || log.id}
+                                    log={log}
+                                    isExpanded={expandedLogId === log.filePath}
+                                    onToggle={() => {
+                                        const nextExpanded = expandedLogId === log.filePath ? null : log.filePath;
+                                        setExpandedLogId(nextExpanded);
+                                        if (nextExpanded) {
+                                            fetchLogDetails(log);
+                                        }
+                                    }}
+                                    layoutEnabled={!isBulkUploadActive}
+                                    motionEnabled={!isBulkUploadActive}
+                                    onCancel={() => {
+                                        removeLogFromActivity(log);
+                                    }}
+                                    onRemove={() => removeLogFromActivity(log)}
+                                    embedStatSettings={embedStatSettings}
+                                    disruptionMethod={disruptionMethod}
+                                    useClassIcons={true}
+                                />
+                            ))}
+                        </AnimatePresence>
                         {logListVirtualization.enabled && logListVirtualization.bottomSpacer > 0 && (
                             <div aria-hidden="true" style={{ height: `${logListVirtualization.bottomSpacer}px` }} />
                         )}
