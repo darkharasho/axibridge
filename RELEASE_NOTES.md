@@ -1,16 +1,21 @@
 # Release Notes
 
-Version v1.40.8 — March 6, 2026
+Version v1.40.9 — March 6, 2026
 
-## MVP split: Offensive vs Defensive with unified weighting
-- You’ll see separate Offensive and Defensive MVP views, both using a single, consistent weighting system.
-- The rankings now reflect a unified approach, making comparisons across modes clearer.
-- Navigation between MVP views is more responsive.
+## ExpandableLogCard improvements
+- You can now remove items directly from ExpandableLogCard.
+- Transitions are smoother when items expand/collapse thanks to the new animation work.
 
-## Top Players UI improvements
-- Top Players section got a cleaner layout and smoother updates.
-- The UI tweaks make it easier to scan and compare top performers at a glance.
+## BoonTimelineSection: incoming damage heatmap
+- A new heatmap shows incoming damage over time, making spikes easier to spot at a glance.
+- Helps you see when to react or adjust strategy around damage bursts.
 
-## Tar packaging and notes
-- Tar package version updated to 7.5.10.
-- NOTE: This packaging change applies to new uploads going forward; existing uploads aren’t retroactively affected.
+## StatsView: updated damage calculations
+- StatsView now uses new damage calculations, so the numbers reflect the latest logic.
+- You’ll notice updated totals and breakdowns that align with the new math.
+
+## QoL Improvements
+- General polish across the UI and slightly smoother interactions as parts of the UI refresh.
+
+## Fixes
+- Various internal fixes and stability tweaks to keep things snappy and reliable.
