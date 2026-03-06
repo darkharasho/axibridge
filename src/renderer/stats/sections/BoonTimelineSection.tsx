@@ -1,4 +1,4 @@
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, CartesianGrid, Cell, ComposedChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Maximize2, X } from 'lucide-react';
 import { Gw2AegisIcon } from '../../ui/Gw2AegisIcon';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
@@ -52,7 +52,14 @@ type BoonTimelineSectionProps = {
     selectedFightIndex: number | null;
     setSelectedFightIndex: (value: number | null) => void;
     drilldownTitle: string;
-    drilldownData: Array<{ label: string; value: number }>;
+    drilldownData: Array<{
+        label: string;
+        value: number;
+        incomingDamage?: number;
+        incomingIntensity?: number;
+    }>;
+    showIncomingHeatmap: boolean;
+    setShowIncomingHeatmap: (value: boolean) => void;
 };
 
 export const BoonTimelineSection = ({
@@ -74,7 +81,9 @@ export const BoonTimelineSection = ({
     selectedFightIndex,
     setSelectedFightIndex,
     drilldownTitle,
-    drilldownData
+    drilldownData,
+    showIncomingHeatmap,
+    setShowIncomingHeatmap
 }: BoonTimelineSectionProps) => {
     const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
     const sectionId = 'boon-timeline';
@@ -102,6 +111,11 @@ export const BoonTimelineSection = ({
         ? null
         : chartData.find((entry) => entry.index === selectedFightIndex) || null;
     const infoFight = selectedFight || topFight;
+    const hasIncomingHeatData = drilldownData.some((entry) => Number(entry?.incomingDamage || 0) > 0);
+    const drilldownHeatData = drilldownData.map((entry) => ({
+        ...entry,
+        incomingHeatBand: 1
+    }));
     const formatFightTimestamp = (timestampMs: number) => {
         if (!Number.isFinite(timestampMs) || timestampMs <= 0) return '';
         try {
@@ -392,13 +406,27 @@ export const BoonTimelineSection = ({
                 <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                         <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">{drilldownTitle}</div>
-                        <button
-                            type="button"
-                            onClick={() => setSelectedFightIndex(null)}
-                            className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-gray-200"
-                        >
-                            Clear
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
+                                className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                                    showIncomingHeatmap
+                                        ? 'text-red-200 hover:text-red-100'
+                                        : 'text-gray-400 hover:text-gray-200'
+                                }`}
+                                title="Toggle squad incoming damage intensity heatmap overlay"
+                            >
+                                Squad Damage Heatmap
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedFightIndex(null)}
+                                className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-gray-200"
+                            >
+                                Clear
+                            </button>
+                        </div>
                     </div>
                     <div className="h-[220px] relative">
                         {drilldownData.length === 0 ? (
@@ -407,15 +435,39 @@ export const BoonTimelineSection = ({
                             </div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={drilldownData}>
+                                <ComposedChart data={drilldownHeatData}>
                                     <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                     <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
                                     <YAxis tick={{ fill: '#e2e8f0', fontSize: 10 }} tickFormatter={(value: number) => formatWithCommas(value / 1000, 0)} />
+                                    <YAxis yAxisId="incomingHeat" hide domain={[0, 1]} />
                                     <Tooltip
                                         contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
-                                        formatter={(value: any) => [formatWithCommas(Number(value || 0) / 1000, 0), 'Generation']}
+                                        formatter={(value: any, name: any, item: any) => {
+                                            const point = item?.payload || {};
+                                            if (String(name || '') === 'Incoming Damage Heat') {
+                                                return [formatWithCommas(Number(point?.incomingDamage || 0), 0), 'Squad Incoming Damage'];
+                                            }
+                                            return [formatWithCommas(Number(value || 0) / 1000, 0), 'Generation'];
+                                        }}
                                         labelFormatter={(value: any) => String(value || '')}
                                     />
+                                    {showIncomingHeatmap && hasIncomingHeatData && (
+                                        <Bar
+                                            yAxisId="incomingHeat"
+                                            dataKey="incomingHeatBand"
+                                            name="Incoming Damage Heat"
+                                            barSize={24}
+                                            fill="rgba(239,68,68,0.35)"
+                                            stroke="none"
+                                            isAnimationActive={false}
+                                        >
+                                            {drilldownData.map((entry, index) => {
+                                                const intensity = Math.max(0, Math.min(1, Number(entry?.incomingIntensity || 0)));
+                                                const alpha = 0.06 + (0.52 * intensity);
+                                                return <Cell key={`incoming-heat-${index}`} fill={`rgba(239, 68, 68, ${alpha.toFixed(3)})`} />;
+                                            })}
+                                        </Bar>
+                                    )}
                                     <Line
                                         type="monotone"
                                         dataKey="value"
@@ -425,7 +477,7 @@ export const BoonTimelineSection = ({
                                         dot={{ r: 2 }}
                                         activeDot={{ r: 4 }}
                                     />
-                                </LineChart>
+                                </ComposedChart>
                             </ResponsiveContainer>
                         )}
                     </div>

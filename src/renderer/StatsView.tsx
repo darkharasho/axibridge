@@ -5,7 +5,7 @@ import { ShieldAlert } from 'lucide-react';
 
 import { formatTopStatValue, formatWithCommas } from './stats/utils/dashboardUtils';
 import { sanitizeWvwLabel, buildFightLabel } from './stats/utils/labelUtils';
-import { parseTimestamp } from './stats/utils/timestampUtils';
+import { parseTimestamp, resolveFightTimestamp } from './stats/utils/timestampUtils';
 import { NON_DAMAGING_CONDITIONS } from './stats/statsMetrics';
 import { StatsSharedContext } from './stats/StatsViewContext';
 import { useStatsNavigation } from './stats/hooks/useStatsNavigation';
@@ -573,6 +573,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     const [boonTimelinePlayerFilter, setBoonTimelinePlayerFilter] = useState('');
     const [selectedBoonTimelinePlayerKey, setSelectedBoonTimelinePlayerKey] = useState<string | null>(null);
     const [selectedBoonTimelineFightIndex, setSelectedBoonTimelineFightIndex] = useState<number | null>(null);
+    const [showBoonTimelineIncomingHeatmap, setShowBoonTimelineIncomingHeatmap] = useState(false);
     const [boonUptimeSearch, setBoonUptimeSearch] = useState('');
     const [activeBoonUptimeId, setActiveBoonUptimeId] = useState<string | null>(null);
     const [boonUptimePlayerFilter, setBoonUptimePlayerFilter] = useState('');
@@ -2698,6 +2699,116 @@ type SpikeFight = {
         const fightPeak = boonTimelineChartData.reduce((best: number, entry) => Math.max(best, Number(entry?.maxTotal || 0)), 0);
         return Math.max(1, selectedPeak, fightPeak);
     }, [boonTimelineChartData]);
+    const squadIncomingDamageBucketsByFightId = useMemo(() => {
+        const map = new Map<string, number[]>();
+        const normalizeCumulativeSeries = (value: any): number[] => {
+            if (!Array.isArray(value) || value.length === 0) return [];
+            const first = value[0];
+            if (typeof first === 'number') {
+                return value.map((entry: any) => Number(entry || 0));
+            }
+            if (Array.isArray(first) && first.length > 0) {
+                if (typeof first[0] === 'number') {
+                    return first.map((entry: any) => Number(entry || 0));
+                }
+                if (Array.isArray(first[0]) && Array.isArray(first[0][0])) {
+                    const phase0Targets = first
+                        .map((series: any) => Array.isArray(series) ? series.map((entry: any) => Number(entry || 0)) : null)
+                        .filter((series: number[] | null): series is number[] => Array.isArray(series) && series.length > 0);
+                    const maxLen = phase0Targets.reduce((len, series) => Math.max(len, series.length), 0);
+                    if (maxLen <= 0) return [];
+                    const out = new Array<number>(maxLen).fill(0);
+                    phase0Targets.forEach((series) => {
+                        for (let i = 0; i < maxLen; i += 1) {
+                            out[i] += Number(series[i] || 0);
+                        }
+                    });
+                    return out;
+                }
+            }
+            return [];
+        };
+        const toPerSecond = (series: number[]) => {
+            if (!Array.isArray(series) || series.length === 0) return [] as number[];
+            const deltas: number[] = [];
+            for (let i = 0; i < series.length; i += 1) {
+                const current = Number(series[i] || 0);
+                const prev = i > 0 ? Number(series[i - 1] || 0) : 0;
+                deltas.push(Math.max(0, current - prev));
+            }
+            return deltas;
+        };
+        const getBuckets = (values: number[], bucketSizeSeconds: number) => {
+            if (!Array.isArray(values) || values.length === 0 || bucketSizeSeconds <= 0) return [] as number[];
+            const out: number[] = [];
+            for (let i = 0; i < values.length; i += bucketSizeSeconds) {
+                const end = Math.min(i + bucketSizeSeconds, values.length);
+                const bucket = values.slice(i, end).reduce((sum, value) => sum + Number(value || 0), 0);
+                out.push(bucket);
+            }
+            return out;
+        };
+        const sortedLogs = [...logs]
+            .map((log) => ({ log, ts: resolveFightTimestamp(log?.details, log) }))
+            .sort((a, b) => a.ts - b.ts)
+            .map((entry) => entry.log);
+        sortedLogs.forEach((log: any, fightIndex: number) => {
+            const details = log?.details;
+            const players = Array.isArray(details?.players) ? details.players : [];
+            const squadPlayers = players.filter((entry: any) => !entry?.notInSquad);
+            const perSecondSeries: number[][] = squadPlayers.map((player: any) => toPerSecond(normalizeCumulativeSeries(player?.damageTaken1S)));
+            const squadIncomingDamageTotal = squadPlayers.reduce((sum: number, player: any) => {
+                const defenses = Array.isArray(player?.defenses) ? player.defenses[0] : player?.defenses;
+                return sum + Math.max(0, Number(defenses?.damageTaken || 0));
+            }, 0);
+            const maxLen = perSecondSeries.reduce((best: number, series: number[]) => Math.max(best, Array.isArray(series) ? series.length : 0), 0);
+            const summedPerSecond = new Array<number>(maxLen).fill(0);
+            perSecondSeries.forEach((series: number[]) => {
+                if (!Array.isArray(series)) return;
+                for (let i = 0; i < maxLen; i += 1) {
+                    summedPerSecond[i] += Number(series[i] || 0);
+                }
+            });
+            const durationBucketCount = Math.ceil(Math.max(0, Number(details?.durationMS || 0)) / 5000);
+            const damageBucketCount = Math.ceil(maxLen / 5);
+            const bucketCount = Math.max(1, durationBucketCount, damageBucketCount);
+            const rawBuckets = getBuckets(summedPerSecond, 5);
+            const buckets = Array.from({ length: bucketCount }, (_, bucketIndex) => Number(rawBuckets[bucketIndex] || 0));
+            const bucketSum = buckets.reduce((sum, value) => sum + Number(value || 0), 0);
+            if (squadIncomingDamageTotal > 0 && bucketSum > 0) {
+                const scale = squadIncomingDamageTotal / bucketSum;
+                for (let i = 0; i < buckets.length; i += 1) {
+                    buckets[i] = Number(buckets[i] || 0) * scale;
+                }
+            }
+            map.set(String(log?.filePath || log?.id || `fight-${fightIndex + 1}`), buckets);
+        });
+        return map;
+    }, [logs]);
+    const fallbackIncomingDamageBucketsByFightId = useMemo(() => {
+        const map = new Map<string, number[]>();
+        incomingStrikeDamageData.fights.forEach((fight: any, fightIndex: number) => {
+            const values = (fight?.values && typeof fight.values === 'object') ? Object.values(fight.values) as any[] : [];
+            const bucketCount = Math.max(
+                0,
+                ...values.map((entry: any) => Array.isArray(entry?.buckets5s) ? entry.buckets5s.length : 0)
+            );
+            const buckets = Array.from({ length: bucketCount }, (_, bucketIndex) => values.reduce((sum: number, entry: any) => {
+                const series = Array.isArray(entry?.buckets5s) ? entry.buckets5s : [];
+                return sum + Number(series[bucketIndex] || 0);
+            }, 0));
+            map.set(String(fight?.id || `fight-${fightIndex + 1}`), buckets);
+        });
+        return map;
+    }, [incomingStrikeDamageData.fights]);
+    const squadIncomingDamageTotalByFightId = useMemo(() => {
+        const map = new Map<string, number>();
+        const fights = Array.isArray((safeStats as any)?.fightBreakdown) ? (safeStats as any).fightBreakdown : [];
+        fights.forEach((fight: any, index: number) => {
+            map.set(String(fight?.id || `fight-${index + 1}`), Math.max(0, Number(fight?.totalIncomingDamage || 0)));
+        });
+        return map;
+    }, [safeStats.fightBreakdown]);
     const boonTimelineDrilldown = useMemo(() => {
         const selectedPoint = selectedBoonTimelineFightIndex === null
             ? null
@@ -2705,7 +2816,12 @@ type SpikeFight = {
         if (!selectedPoint || !activeBoonTimeline || !selectedBoonTimelinePlayerKey) {
             return {
                 title: 'Fight Breakdown',
-                data: [] as Array<{ label: string; value: number }>
+                data: [] as Array<{
+                    label: string;
+                    value: number;
+                    incomingDamage: number;
+                    incomingIntensity: number;
+                }>
             };
         }
         const selectedFight = activeBoonTimeline.fights[selectedPoint.index];
@@ -2747,11 +2863,41 @@ type SpikeFight = {
             label: `${index * 5}s-${(index + 1) * 5}s`,
             value: Number(scaledBuckets[index] || 0)
         }));
+        const primaryIncomingByFightId = squadIncomingDamageBucketsByFightId.get(String(selectedFight?.id || ''))
+            || squadIncomingDamageBucketsByFightId.get(String(selectedPoint?.fightId || ''))
+            || [];
+        const fallbackIncomingByFightId = fallbackIncomingDamageBucketsByFightId.get(String(selectedFight?.id || ''))
+            || fallbackIncomingDamageBucketsByFightId.get(String(selectedPoint?.fightId || ''))
+            || [];
+        const primaryIncomingTotal = primaryIncomingByFightId.reduce((sum, value) => sum + Number(value || 0), 0);
+        const fallbackIncomingTotal = fallbackIncomingByFightId.reduce((sum, value) => sum + Number(value || 0), 0);
+        const incomingShape = primaryIncomingTotal > 0 ? primaryIncomingByFightId : fallbackIncomingByFightId;
+        const incomingShapeTotal = primaryIncomingTotal > 0 ? primaryIncomingTotal : fallbackIncomingTotal;
+        const incomingTotal = Math.max(
+            0,
+            Number(squadIncomingDamageTotalByFightId.get(String(selectedFight?.id || ''))
+                ?? squadIncomingDamageTotalByFightId.get(String(selectedPoint?.fightId || ''))
+                ?? 0)
+        );
+        let incomingBuckets = Array.from({ length: bucketCount }, (_, index) => Number(incomingShape[index] || 0));
+        if (incomingTotal > 0 && incomingShapeTotal > 0) {
+            const scale = incomingTotal / incomingShapeTotal;
+            incomingBuckets = incomingBuckets.map((value) => Number(value || 0) * scale);
+        }
+        const incomingMax = incomingBuckets.reduce((best, value) => Math.max(best, Number(value || 0)), 0);
+        const dataWithIncoming = data.map((entry, index) => {
+            const incomingDamage = Number(incomingBuckets[index] || 0);
+            return {
+                ...entry,
+                incomingDamage,
+                incomingIntensity: incomingMax > 0 ? Math.max(0, Math.min(1, incomingDamage / incomingMax)) : 0
+            };
+        });
         return {
             title: `Fight Breakdown - ${selectedPoint.shortLabel || 'Fight'} (5s ${boonTimelineScopeLabel} Generation Buckets)`,
-            data
+            data: dataWithIncoming
         };
-    }, [selectedBoonTimelineFightIndex, boonTimelineChartData, activeBoonTimeline, selectedBoonTimelinePlayerKey, boonTimelineScope, boonTimelineScopeLabel]);
+    }, [selectedBoonTimelineFightIndex, boonTimelineChartData, activeBoonTimeline, selectedBoonTimelinePlayerKey, boonTimelineScope, boonTimelineScopeLabel, squadIncomingDamageBucketsByFightId, fallbackIncomingDamageBucketsByFightId, squadIncomingDamageTotalByFightId]);
     const boonUptimeSubgroupKeyPrefix = '__subgroup__:';
     const boonUptimeBoons = useMemo(() => {
         const source = Array.isArray((safeStats as any)?.boonUptimeTimeline) ? (safeStats as any).boonUptimeTimeline : [];
@@ -3518,6 +3664,8 @@ type SpikeFight = {
                                 setSelectedFightIndex={setSelectedBoonTimelineFightIndex}
                                 drilldownTitle={boonTimelineDrilldown.title}
                                 drilldownData={boonTimelineDrilldown.data}
+                                showIncomingHeatmap={showBoonTimelineIncomingHeatmap}
+                                setShowIncomingHeatmap={setShowBoonTimelineIncomingHeatmap}
                             />
                             <BoonUptimeSection
                                 boonSearch={boonUptimeSearch}
@@ -4049,6 +4197,8 @@ type SpikeFight = {
                             setSelectedFightIndex={setSelectedBoonTimelineFightIndex}
                             drilldownTitle={boonTimelineDrilldown.title}
                             drilldownData={boonTimelineDrilldown.data}
+                            showIncomingHeatmap={showBoonTimelineIncomingHeatmap}
+                            setShowIncomingHeatmap={setShowBoonTimelineIncomingHeatmap}
                         />}
                         {isSectionVisible('boon-uptime') && <BoonUptimeSection
                             boonSearch={boonUptimeSearch}
