@@ -1709,7 +1709,7 @@ body.web-report #root {
     overflow: visible;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
     body.web-report .mobile-bottom-pad {
         padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
     }
