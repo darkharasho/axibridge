@@ -475,6 +475,10 @@ export function ReportApp() {
     const [metricsSpecSearchFocused, setMetricsSpecSearchFocused] = useState(false);
     const [activeGroup, setActiveGroup] = useState('overview');
     const [activeSectionId, setActiveSectionId] = useState<string>('kdr');
+    const [viewportWidth, setViewportWidth] = useState<number>(() => {
+        if (typeof window === 'undefined') return 1280;
+        return Math.max(0, Math.round(window.visualViewport?.width || window.innerWidth || 1280));
+    });
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
         overview: true,
         roster: false,
@@ -524,6 +528,8 @@ export function ReportApp() {
         const isLocalhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(window.location.host);
         return isLocalhost && window.location.pathname.startsWith('/web/');
     }, []);
+    const isNarrowViewport = viewportWidth < 1024;
+    const isCompactViewport = viewportWidth < 640;
     const assetBasePathCandidates = useMemo(() => {
         const primary = basePath;
         const candidates = [primary, './', '/'];
@@ -592,6 +598,24 @@ export function ReportApp() {
             setKineticFontChoice(persisted);
         }
     }, []);
+
+    useEffect(() => {
+        const updateViewportWidth = () => {
+            const width = Math.max(0, Math.round(window.visualViewport?.width || window.innerWidth || 1280));
+            setViewportWidth(width);
+        };
+        updateViewportWidth();
+        window.addEventListener('resize', updateViewportWidth, { passive: true });
+        window.visualViewport?.addEventListener('resize', updateViewportWidth);
+        return () => {
+            window.removeEventListener('resize', updateViewportWidth);
+            window.visualViewport?.removeEventListener('resize', updateViewportWidth);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isNarrowViewport) setTocOpen(false);
+    }, [isNarrowViewport]);
 
     useEffect(() => {
         const effectiveThemeId = themeIdOverride || defaultThemeId;
@@ -1948,9 +1972,9 @@ export function ReportApp() {
                         />
                     </div>
                 )}
-                <div className={`fixed inset-0 z-20 bg-black/40 backdrop-blur-sm transition-opacity lg:hidden ${tocOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setTocOpen(false)} />
+                <div className={`fixed inset-0 z-20 bg-black/40 backdrop-blur-sm transition-opacity ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setTocOpen(false)} />
                 <aside
-                    className={`fixed z-30 top-0 bottom-0 w-64 max-w-[80vw] transition-transform duration-300 lg:hidden ${tocOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                    className={`fixed z-30 top-0 bottom-0 w-64 max-w-[80vw] transition-transform duration-300 ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 >
                     <div className="report-nav-sidebar h-full bg-white/5 border-r border-white/10 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] flex flex-col">
                         <div className="px-5 pt-6 pb-4 flex items-center justify-between">
@@ -2052,7 +2076,7 @@ export function ReportApp() {
                         </nav>
                     </div>
                 </aside>
-                <aside className="report-nav-sidebar hidden lg:flex fixed inset-y-0 left-0 w-64 border-r border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-20">
+                <aside className={`report-nav-sidebar fixed inset-y-0 left-0 w-64 border-r border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-20 ${isNarrowViewport ? 'hidden' : 'flex'}`}>
                     <div className="flex flex-col w-full">
                         <div className="px-6 pt-6 pb-5">
                             <div className="flex items-center gap-3">
@@ -2163,7 +2187,7 @@ export function ReportApp() {
                         </div>
                     </div>
                 </aside>
-                <div className="max-w-[1850px] mx-1 sm:mx-2 lg:mx-auto px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:pl-[17rem] lg:pr-10 mobile-bottom-pad">
+                <div className={`max-w-[1850px] mx-1 sm:mx-2 px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 mobile-bottom-pad ${isNarrowViewport ? '' : 'lg:mx-auto lg:pl-[17rem] lg:pr-10'}`}>
                     <div className={`${glassCard} p-5 sm:p-6 mb-6 mx-1 sm:mx-1 lg:mx-0`} style={glassCardStyle}>
                         <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
@@ -2200,7 +2224,7 @@ export function ReportApp() {
                             </div>
                             <button
                                 onClick={() => setTocOpen(true)}
-                                className="hidden sm:flex lg:hidden px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2"
+                                className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2`}
                             >
                                 <PanelLeft className="w-4 h-4" />
                                 Contents
@@ -2223,7 +2247,7 @@ export function ReportApp() {
                             </div>
                         </div>
                     </div>
-                    <div className="sm:hidden mb-4">
+                    <div className={`${isNarrowViewport && isCompactViewport ? '' : 'hidden'} mb-4`}>
                         <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Jump to</div>
                         <div className="flex gap-2 overflow-x-auto pr-2 pb-1 snap-x snap-mandatory">
                             {(activeGroupDef?.items || []).map((item) => {
@@ -2262,7 +2286,7 @@ export function ReportApp() {
                         {legalNoticePane}
                     </div>
                 </div>
-                <div className="fixed bottom-4 left-4 right-4 z-30 sm:hidden mobile-action-bar">
+                <div className={`fixed bottom-4 left-4 right-4 z-30 mobile-action-bar ${isNarrowViewport ? '' : 'hidden'}`}>
                     <div className="flex items-center justify-between gap-2 rounded-2xl bg-slate-950/70 border border-white/15 backdrop-blur-xl px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
                         <a
                             href={themedIndexHref}
