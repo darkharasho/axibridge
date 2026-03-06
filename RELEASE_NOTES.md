@@ -1,8 +1,16 @@
 # Release Notes
 
-Version v1.40.7 — March 4, 2026
+Version v1.40.8 — March 6, 2026
 
-## Fixes
-- OverviewSection now uses the correct fields for allied and enemy stats. Allied Downs/Deaths and Enemy Downs/Deaths are now shown from the appropriate totalSquad*/totalEnemy* values (no more swapped numbers).
-- Added unit tests to lock in the correct calculations and prevent regressions.
-- NOTE: This only changes how numbers are displayed in the Overview. If you have dashboards open, refresh to see the corrected totals.
+## MVP split: Offensive vs Defensive with unified weighting
+- You’ll see separate Offensive and Defensive MVP views, both using a single, consistent weighting system.
+- The rankings now reflect a unified approach, making comparisons across modes clearer.
+- Navigation between MVP views is more responsive.
+
+## Top Players UI improvements
+- Top Players section got a cleaner layout and smoother updates.
+- The UI tweaks make it easier to scan and compare top performers at a glance.
+
+## Tar packaging and notes
+- Tar package version updated to 7.5.10.
+- NOTE: This packaging change applies to new uploads going forward; existing uploads aren’t retroactively affected.
