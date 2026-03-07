@@ -1,12 +1,16 @@
 # Release Notes
 
-Version v1.40.10 — March 6, 2026
+Version v1.40.11 — March 6, 2026
 
-## SkillUsageSection: Select all / Clear all
-You can now quickly select all players or clear the selection in SkillUsageSection. It makes managing large rosters much faster—no more clicking one by one.
+## Major features
+- Split-by-Class toggle added to the Stats dashboard. You can group players by class or see all players together, making it easier to compare class performance.
+- Special buffs now display as aggregated outputs, so buff numbers and summaries are cleaner and easier to scan.
 
-## UX improvements for MVP cards and layout
-MVP cards now respond more cleanly across web and app breakpoints. Score placement and pill sizes have been refined so the important info is easier to spot, no matter your screen size.
+## UI/UX improvements
+- Stats views feel smoother when navigating dashboards and exploring data.
 
-## UI assets and web build updates
-Web and dist assets have been refreshed to align with the layout tweaks. No action required on your end—the UI should feel smoother out of the box.
+## Fixes
+- Button hover styles in the StatsHeader updated for better accessibility (clearer hover state and contrast).
+
+## QoL Improvements
+- General polish across the stats panels for readability and consistency.
