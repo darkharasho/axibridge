@@ -162,6 +162,16 @@ export const computePlayerAggregation = ({
     skillDamageSource: string;
     splitPlayersByClass: boolean;
 }) => {
+    type SpecialBuffAggEntry = {
+        key: string;
+        account: string;
+        profession: string;
+        professions: Set<string>;
+        professionTimeMs: Record<string, number>;
+        totalMs: number;
+        uptimeMs: number;
+        durationMs: number;
+    };
 
     let wins = 0;
     let losses = 0;
@@ -191,16 +201,8 @@ export const computePlayerAggregation = ({
     const incomingCondiTotals: Record<string, any> = {};
     const enemyProfessionCounts: Record<string, number> = {};
     const specialBuffMeta = new Map<string, { name?: string; stacking?: boolean; icon?: string }>();
-    const specialBuffAgg = new Map<string, Map<string, {
-        key: string;
-        account: string;
-        profession: string;
-        professions: Set<string>;
-        professionTimeMs: Record<string, number>;
-        totalMs: number;
-        uptimeMs: number;
-        durationMs: number;
-    }>>();
+    const specialBuffAgg = new Map<string, Map<string, SpecialBuffAggEntry>>();
+    const specialBuffOutputAgg = new Map<string, Map<string, SpecialBuffAggEntry>>();
 
     const isBoon = (meta?: { classification?: string }) => {
         if (!meta?.classification) return true;
@@ -327,6 +329,90 @@ export const computePlayerAggregation = ({
         const accountLabel = account;
         return { key, accountLabel, profession: resolvedProfession };
     };
+    const normalizeStatePairs = (states: any): Array<[number, number]> => {
+        if (!Array.isArray(states)) return [];
+        return states
+            .map((entry: any) => {
+                if (Array.isArray(entry)) return [Number(entry[0]), Number(entry[1])] as [number, number];
+                if (entry && typeof entry === 'object') return [Number(entry.time), Number(entry.value)] as [number, number];
+                return null;
+            })
+            .filter((entry: any): entry is [number, number] =>
+                !!entry
+                && Number.isFinite(entry[0])
+                && Number.isFinite(entry[1])
+                && entry[0] >= 0
+            )
+            .sort((a, b) => a[0] - b[0]);
+    };
+    const resolveNonStackingFactor = (rawValue: number) => {
+        const safeValue = Math.max(0, Number(rawValue || 0));
+        if (!Number.isFinite(safeValue) || safeValue <= 0) return 0;
+        if (safeValue <= 1) return safeValue;
+        if (safeValue <= 100) return safeValue / 100;
+        return 1;
+    };
+    const integrateSourceStates = (states: any, durationMs: number, stacking: boolean) => {
+        const normalized = normalizeStatePairs(states);
+        if (normalized.length === 0 || durationMs <= 0) return { totalMs: 0, uptimeMs: 0 };
+        const resolvedDurationMs = Math.max(1, Number(durationMs || 0));
+        const clampTime = (value: number) => Math.max(0, Math.min(resolvedDurationMs, Number(value || 0)));
+        let totalMs = 0;
+        let uptimeMs = 0;
+        const addSegment = (startMs: number, endMs: number, value: number) => {
+            const start = clampTime(startMs);
+            const end = clampTime(endMs);
+            if (end <= start) return;
+            const segmentMs = Math.max(0, end - start);
+            if (segmentMs <= 0) return;
+            const safeValue = Math.max(0, Number(value || 0));
+            if (safeValue <= 0) return;
+            uptimeMs += segmentMs;
+            if (stacking) {
+                totalMs += segmentMs * safeValue;
+            } else {
+                totalMs += segmentMs * resolveNonStackingFactor(safeValue);
+            }
+        };
+        let prevTime = clampTime(normalized[0][0]);
+        let prevValue = Math.max(0, Number(normalized[0][1] || 0));
+        for (let idx = 1; idx < normalized.length; idx += 1) {
+            const [timeMs, rawValue] = normalized[idx];
+            const currentTime = clampTime(timeMs);
+            addSegment(prevTime, currentTime, prevValue);
+            prevTime = currentTime;
+            prevValue = Math.max(0, Number(rawValue || 0));
+        }
+        addSegment(prevTime, resolvedDurationMs, prevValue);
+        return { totalMs, uptimeMs };
+    };
+    const ensureSpecialBuffEntry = (
+        map: Map<string, Map<string, SpecialBuffAggEntry>>,
+        buffId: string,
+        key: string,
+        account: string,
+        profession: string
+    ) => {
+        if (!map.has(buffId)) {
+            map.set(buffId, new Map());
+        }
+        const bucket = map.get(buffId)!;
+        let agg = bucket.get(key);
+        if (!agg) {
+            agg = {
+                key,
+                account,
+                profession: profession || 'Unknown',
+                professions: new Set<string>(),
+                professionTimeMs: {},
+                totalMs: 0,
+                uptimeMs: 0,
+                durationMs: 0
+            };
+            bucket.set(key, agg);
+        }
+        return agg;
+    };
 
     // Precompute global enemy averages across all logs (by skill id)
     validLogs.forEach((log) => {
@@ -354,6 +440,33 @@ export const computePlayerAggregation = ({
         const details = log.details;
         if (!details) return;
         const players = details.players as unknown as Player[];
+        const squadPlayers = players.filter((player: any) => !player?.notInSquad);
+        const allPlayers = Array.isArray(players) ? players : [];
+        const specialBuffSourceIdentityByName = new Map<string, { key: string; accountLabel: string; profession: string }>();
+        const specialBuffSourceIdentityByInstanceId = new Map<number, { key: string; accountLabel: string; profession: string }>();
+        const specialBuffSourceActiveMsByKey = new Map<string, number>();
+        const specialBuffOutputDurationSeen = new Set<string>();
+        const registerSpecialSourceIdentity = (value: any, identity: { key: string; accountLabel: string; profession: string }) => {
+            const normalized = String(value || '').trim().toLowerCase();
+            if (!normalized) return;
+            if (!specialBuffSourceIdentityByName.has(normalized)) {
+                specialBuffSourceIdentityByName.set(normalized, identity);
+            }
+        };
+        allPlayers.forEach((player: any) => {
+            const identity = getPlayerIdentity(player);
+            const sourceActiveMs = Array.isArray(player?.activeTimes) && typeof player.activeTimes[0] === 'number'
+                ? Number(player.activeTimes[0] || 0)
+                : Number(details?.durationMS || 0);
+            specialBuffSourceActiveMsByKey.set(identity.key, Math.max(0, sourceActiveMs));
+            const instanceId = Number(player?.instanceID);
+            if (Number.isFinite(instanceId) && instanceId > 0 && !specialBuffSourceIdentityByInstanceId.has(instanceId)) {
+                specialBuffSourceIdentityByInstanceId.set(instanceId, identity);
+            }
+            [player?.name, player?.display_name, player?.character_name, player?.account].forEach((candidate) => {
+                registerSpecialSourceIdentity(candidate, identity);
+            });
+        });
         const targets = details.targets || [];
 
         // Basic Setup (Commander Tag, Distance Util)
@@ -423,7 +536,6 @@ export const computePlayerAggregation = ({
             return playerDistToTag;
         };
 
-        const squadPlayers = players.filter(p => !p.notInSquad);
         totalSquadSizeAccum += squadPlayers.length;
         totalEnemiesAccum += targets.filter((t: any) => !t.isFake).length;
 
@@ -575,25 +687,14 @@ export const computePlayerAggregation = ({
                         specialBuffMeta.set(buffId, { name: meta?.name, stacking, icon: meta?.icon });
                     }
 
-                    if (!specialBuffAgg.has(buffId)) {
-                        specialBuffAgg.set(buffId, new Map());
-                    }
-                    const bucket = specialBuffAgg.get(buffId)!;
                     const specialBucketKey = identity.key;
-                    let agg = bucket.get(specialBucketKey);
-                    if (!agg) {
-                        agg = {
-                            key: specialBucketKey,
-                            account: identity.accountLabel,
-                            profession: s.profession || p.profession || 'Unknown',
-                            professions: new Set<string>(),
-                            professionTimeMs: {},
-                            totalMs: 0,
-                            uptimeMs: 0,
-                            durationMs: 0
-                        };
-                        bucket.set(specialBucketKey, agg);
-                    }
+                    const agg = ensureSpecialBuffEntry(
+                        specialBuffAgg,
+                        buffId,
+                        specialBucketKey,
+                        identity.accountLabel,
+                        s.profession || p.profession || 'Unknown'
+                    );
                     const prof = p.profession || s.profession;
                     if (prof && prof !== 'Unknown') {
                         agg.professions.add(prof);
@@ -603,6 +704,52 @@ export const computePlayerAggregation = ({
                     agg.totalMs += hasTotalMs ? totalMs : 0;
                     agg.uptimeMs += hasUptimeMs ? uptimeMs : 0;
                     agg.durationMs += activeMs;
+
+                    const statesPerSource = (buff?.statesPerSource && typeof buff.statesPerSource === 'object')
+                        ? buff.statesPerSource
+                        : null;
+                    if (statesPerSource) {
+                        Object.entries(statesPerSource).forEach(([sourceName, states]) => {
+                            const sourceNameText = String(sourceName || '').trim();
+                            const sourceNameLower = sourceNameText.toLowerCase();
+                            const instanceMatch = sourceNameText.match(/\bpl-(\d+)\b/i);
+                            const sourceIdentity = specialBuffSourceIdentityByName.get(sourceNameLower)
+                                || (instanceMatch ? specialBuffSourceIdentityByInstanceId.get(Number(instanceMatch[1])) : undefined)
+                                || {
+                                    key: `source:${sourceNameLower || 'unknown'}`,
+                                    accountLabel: sourceNameText || 'Unknown Source',
+                                    profession: resolveProfessionLabel(sourceNameText.replace(/\s+pl-\d+\s*$/i, '').trim() || 'Unknown')
+                                };
+                            const sourceDurationMs = Number(specialBuffSourceActiveMsByKey.get(sourceIdentity.key) || details?.durationMS || 0);
+                            if (!Number.isFinite(sourceDurationMs) || sourceDurationMs <= 0) return;
+                            const sourceContribution = integrateSourceStates(states, sourceDurationMs, stacking);
+                            const hasSourceTotal = Number.isFinite(sourceContribution.totalMs) && sourceContribution.totalMs > 0;
+                            const hasSourceUptime = Number.isFinite(sourceContribution.uptimeMs) && sourceContribution.uptimeMs > 0;
+                            if (!hasSourceTotal && !hasSourceUptime) return;
+                            const sourceAgg = ensureSpecialBuffEntry(
+                                specialBuffOutputAgg,
+                                buffId,
+                                sourceIdentity.key,
+                                sourceIdentity.accountLabel,
+                                sourceIdentity.profession
+                            );
+                            const sourceProf = sourceIdentity.profession || 'Unknown';
+                            if (sourceProf && sourceProf !== 'Unknown') {
+                                sourceAgg.professions.add(sourceProf);
+                                sourceAgg.profession = sourceProf;
+                            }
+                            sourceAgg.totalMs += hasSourceTotal ? sourceContribution.totalMs : 0;
+                            sourceAgg.uptimeMs += hasSourceUptime ? sourceContribution.uptimeMs : 0;
+                            const durationSeenKey = `${buffId}::${sourceIdentity.key}`;
+                            if (!specialBuffOutputDurationSeen.has(durationSeenKey)) {
+                                specialBuffOutputDurationSeen.add(durationSeenKey);
+                                if (sourceProf && sourceProf !== 'Unknown') {
+                                    sourceAgg.professionTimeMs[sourceProf] = (sourceAgg.professionTimeMs[sourceProf] || 0) + sourceDurationMs;
+                                }
+                                sourceAgg.durationMs += sourceDurationMs;
+                            }
+                        });
+                    }
                 });
             }
 
@@ -1181,6 +1328,7 @@ export const computePlayerAggregation = ({
         enemyProfessionCounts,
         specialBuffMeta,
         specialBuffAgg,
+        specialBuffOutputAgg,
         damageMitigationPlayersMap,
         damageMitigationMinionsMap,
         mitigationCumulativeCounts,

@@ -11,6 +11,16 @@ export function computeSpecialTables(
         uptimeMs: number;
         durationMs: number;
     }>>,
+    specialBuffOutputAgg: Map<string, Map<string, {
+        key: string;
+        account: string;
+        profession: string;
+        professions: Set<string>;
+        professionTimeMs: Record<string, number>;
+        totalMs: number;
+        uptimeMs: number;
+        durationMs: number;
+    }>>,
     specialBuffMeta: Map<string, { name?: string; stacking?: boolean; icon?: string }>,
     playerStats: Map<string, { supportActiveMs?: number }>,
     playerSkillBreakdownMap: Map<string, {
@@ -24,9 +34,18 @@ export function computeSpecialTables(
     }>,
     shouldIncludePlayerSkillMap: boolean
 ) {
-    const specialTables = Array.from(specialBuffAgg.entries()).map(([buffId, players]) => {
-        const meta = specialBuffMeta.get(buffId) || {};
-        const rows = Array.from(players.values()).map((entry) => {
+    const buildSpecialRows = (players: Map<string, {
+        key: string;
+        account: string;
+        profession: string;
+        professions: Set<string>;
+        professionTimeMs: Record<string, number>;
+        totalMs: number;
+        uptimeMs: number;
+        durationMs: number;
+    }> | undefined) => {
+        if (!players) return [];
+        return Array.from(players.values()).map((entry) => {
             const professionList = Array.from(entry.professions || []).filter((prof) => prof && prof !== 'Unknown');
             let primaryProfession = entry.profession || 'Unknown';
             if (professionList.length > 0) {
@@ -55,13 +74,25 @@ export function computeSpecialTables(
                 duration: durationMs / 1000
             };
         }).filter((row) => row.total > 0 || row.perSecond > 0);
+    };
+    const specialBuffIds = new Set<string>([
+        ...Array.from(specialBuffAgg.keys()),
+        ...Array.from(specialBuffOutputAgg.keys()),
+    ]);
+    const specialTables = Array.from(specialBuffIds.values()).map((buffId) => {
+        const meta = specialBuffMeta.get(buffId) || {};
+        const rowsReceived = buildSpecialRows(specialBuffAgg.get(buffId));
+        const rowsOutput = buildSpecialRows(specialBuffOutputAgg.get(buffId));
+        const rows = rowsReceived;
         return {
             id: buffId,
             name: meta.name || buffId,
             icon: meta.icon,
-            rows
+            rows,
+            rowsReceived,
+            rowsOutput
         };
-    }).filter((table) => table.rows.length > 0);
+    }).filter((table) => table.rowsReceived.length > 0 || table.rowsOutput.length > 0);
 
     const playerSkillBreakdowns = Array.from(playerSkillBreakdownMap.values())
         .map((entry) => {

@@ -1,0 +1,56 @@
+{
+  "generatedFrom": "last-16 logs from 2026-03-06 in arcdps.cbtlogs/1",
+  "auras": {
+    "Chaos Aura": [
+      "Mesmer",
+      "Ranger",
+      "Elementalist",
+      "Engineer",
+      "Guardian",
+      "Thief",
+      "Necromancer",
+      "Warrior"
+    ],
+    "Dark Aura": [
+      "Ranger",
+      "Engineer",
+      "Guardian",
+      "Elementalist",
+      "Thief",
+      "Necromancer",
+      "Mesmer"
+    ],
+    "Fire Aura": [
+      "Elementalist",
+      "Engineer",
+      "Necromancer",
+      "Warrior",
+      "Mesmer",
+      "Guardian",
+      "Ranger"
+    ],
+    "Frost Aura": [
+      "Elementalist",
+      "Ranger",
+      "Engineer",
+      "Guardian",
+      "Necromancer"
+    ],
+    "Light Aura": [
+      "Guardian",
+      "Engineer",
+      "Elementalist",
+      "Necromancer",
+      "Warrior",
+      "Ranger",
+      "Mesmer"
+    ],
+    "Magnetic Aura": [
+      "Elementalist",
+      "Engineer"
+    ],
+    "Shocking Aura": [
+      "Elementalist"
+    ]
+  }
+}

@@ -143,7 +143,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         const {
             playerStats, skillDamageMap, incomingSkillDamageMap, playerSkillBreakdownMap,
             outgoingCondiTotals, incomingCondiTotals, enemyProfessionCounts,
-            specialBuffMeta, specialBuffAgg,
+            specialBuffMeta, specialBuffAgg, specialBuffOutputAgg,
             damageMitigationPlayersMap, damageMitigationMinionsMap,
             wins, losses, totalSquadSizeAccum, totalEnemiesAccum,
             totalSquadDeaths, totalSquadKills, totalEnemyDeaths, totalEnemyKills,
@@ -628,7 +628,14 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         const incomingStrikeDamage = computeIncomingStrikeDamageData(validLogs);
         const healEffectiveness = computeHealEffectivenessData(validLogs);
 
-        const { specialTables, playerSkillBreakdowns } = computeSpecialTables(specialBuffAgg, specialBuffMeta, playerStats, playerSkillBreakdownMap, shouldIncludePlayerSkillMap);
+        const { specialTables, playerSkillBreakdowns } = computeSpecialTables(
+            specialBuffAgg,
+            specialBuffOutputAgg,
+            specialBuffMeta,
+            playerStats,
+            playerSkillBreakdownMap,
+            shouldIncludePlayerSkillMap
+        );
 
         return {
             total, wins, losses, avgSquadSize, avgEnemies, squadKDR, enemyKDR,

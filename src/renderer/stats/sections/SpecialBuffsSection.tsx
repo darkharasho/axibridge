@@ -19,6 +19,7 @@ type SpecialBuffsSectionProps = {
 };
 
 type SpecialSortKey = 'total' | 'perSecond' | 'duration';
+type SpecialViewMode = 'received' | 'output';
 const truncateSidebarLabel = (name: string, max = 30) => {
     if (!name) return '';
     return name.length > max ? `${name.slice(0, max - 1)}…` : name;
@@ -34,17 +35,28 @@ export const SpecialBuffsSection = ({
     const { stats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, sidebarListClass } = useStatsSharedContext();
     const [sortKey, setSortKey] = useState<SpecialSortKey>('total');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+    const [viewMode, setViewMode] = useState<SpecialViewMode>('received');
     const isExpanded = expandedSection === 'special-buffs';
     const allSpecialColumns = stats.specialTables || [];
+    const getRowsForMode = (table: any): any[] => {
+        if (!table) return [];
+        if (viewMode === 'output') {
+            if (Array.isArray(table.rowsOutput)) return table.rowsOutput;
+            return [];
+        }
+        if (Array.isArray(table.rowsReceived)) return table.rowsReceived;
+        return Array.isArray(table.rows) ? table.rows : [];
+    };
     const specialMetrics = useMemo(
         () => [...allSpecialColumns]
+            .filter((buff: any) => getRowsForMode(buff).length > 0)
             .sort((a: any, b: any) => a.name.localeCompare(b.name))
             .map((buff: any) => ({ ...buff, label: buff.name })),
-        [allSpecialColumns]
+        [allSpecialColumns, viewMode]
     );
     const specialRows = useMemo(
-        () => (stats.specialTables || []).flatMap((t: any) => t.rows || []).filter((r: any) => !!r.account),
-        [stats.specialTables]
+        () => (stats.specialTables || []).flatMap((t: any) => getRowsForMode(t)).filter((r: any) => !!r.account),
+        [stats.specialTables, viewMode]
     );
     const {
         denseSort, setDenseSort,
@@ -66,9 +78,10 @@ export const SpecialBuffsSection = ({
         icon: buff.icon ? <img src={buff.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
     }));
 
+    const activeRowsForMode = useMemo(() => getRowsForMode(activeSpecialTable), [activeSpecialTable, viewMode]);
     const sortedRows = useMemo(() => {
-        if (!activeSpecialTable?.rows) return [];
-        const rows = [...activeSpecialTable.rows];
+        if (!activeRowsForMode.length) return [];
+        const rows = [...activeRowsForMode];
         rows.sort((a: any, b: any) => {
             const aVal = Number(a?.[sortKey] ?? 0);
             const bVal = Number(b?.[sortKey] ?? 0);
@@ -77,7 +90,7 @@ export const SpecialBuffsSection = ({
             return String(a?.account || '').localeCompare(String(b?.account || ''));
         });
         return rows;
-    }, [activeSpecialTable, sortKey, sortDirection]);
+    }, [activeRowsForMode, sortKey, sortDirection]);
 
     const updateSort = (nextKey: SpecialSortKey) => {
         if (sortKey === nextKey) {
@@ -109,15 +122,28 @@ export const SpecialBuffsSection = ({
                 <Sparkles className="w-5 h-5 text-purple-300" />
                 Special Buffs
             </h3>
-            <button
-                type="button"
-                onClick={() => (expandedSection === 'special-buffs' ? closeExpandedSection() : openExpandedSection('special-buffs'))}
-                className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
-                aria-label={expandedSection === 'special-buffs' ? 'Close Special Buffs' : 'Expand Special Buffs'}
-                title={expandedSection === 'special-buffs' ? 'Close' : 'Expand'}
-            >
-                {expandedSection === 'special-buffs' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center gap-2">
+                <PillToggleGroup
+                    value={viewMode}
+                    onChange={(value) => setViewMode(value as SpecialViewMode)}
+                    options={[
+                        { value: 'received', label: 'Received' },
+                        { value: 'output', label: 'Output' }
+                    ]}
+                    className="inline-flex w-auto"
+                    activeClassName="bg-purple-500/20 text-purple-200 border border-purple-500/40"
+                    inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                />
+                <button
+                    type="button"
+                    onClick={() => (expandedSection === 'special-buffs' ? closeExpandedSection() : openExpandedSection('special-buffs'))}
+                    className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                    aria-label={expandedSection === 'special-buffs' ? 'Close Special Buffs' : 'Expand Special Buffs'}
+                    title={expandedSection === 'special-buffs' ? 'Close' : 'Expand'}
+                >
+                    {expandedSection === 'special-buffs' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+            </div>
         </div>
         {stats.specialTables.length === 0 ? (
             <div className="text-center text-gray-500 italic py-8">No special buff data available</div>
@@ -226,7 +252,7 @@ export const SpecialBuffsSection = ({
                     )}
                 </div>
                 <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
-                    {allSpecialColumns.length === 0 ? (
+                    {visibleSpecialTables.length === 0 ? (
                         <div className="px-4 py-10 text-center text-gray-500 italic text-sm">No special buffs match this filter</div>
                     ) : (
                         (() => {
@@ -235,7 +261,7 @@ export const SpecialBuffsSection = ({
                             const playerMap = new Map<string, any>();
                             columnTables.forEach((table: any) => {
                                 const rowMap = new Map<string, any>();
-                                table.rows.forEach((row: any) => {
+                                getRowsForMode(table).forEach((row: any) => {
                                     const key = row.account || row.name || row.id;
                                     if (!key) return;
                                     rowMap.set(key, row);
@@ -283,7 +309,7 @@ export const SpecialBuffsSection = ({
                             return (
                                 <DenseStatsTable
                                     title="Special Buffs - Dense View"
-                                    subtitle="Totals"
+                                    subtitle={viewMode === 'output' ? 'Output Totals' : 'Received Totals'}
                                     sortColumnId={resolvedSortColumnId}
                                     sortDirection={denseSort.dir}
                                     onSortColumn={(columnId) => {
@@ -360,6 +386,10 @@ export const SpecialBuffsSection = ({
                     <>
                         {!activeSpecialTable ? (
                             <div className="px-4 py-10 text-center text-gray-500 italic text-sm">Select a special buff to view details</div>
+                        ) : activeRowsForMode.length === 0 ? (
+                            <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
+                                No {viewMode} data available for this buff
+                            </div>
                         ) : (
                             <StatsTableShell
                                 expanded={expandedSection === 'special-buffs'}
@@ -369,7 +399,9 @@ export const SpecialBuffsSection = ({
                                         <div className="text-sm font-semibold text-gray-200">
                                             <InlineIconLabel name={activeSpecialTable.name} iconUrl={activeSpecialTable.icon} iconClassName="h-4 w-4" />
                                         </div>
-                                        <div className="text-xs uppercase tracking-widest text-gray-500">Totals</div>
+                                        <div className="text-xs uppercase tracking-widest text-gray-500">
+                                            {viewMode === 'output' ? 'Output Totals' : 'Received Totals'}
+                                        </div>
                                     </div>
                                 }
                                 columns={
