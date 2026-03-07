@@ -1,16 +1,21 @@
 # Release Notes
 
-Version v1.40.11 — March 6, 2026
+Version v1.40.12 — March 7, 2026
 
-## Major features
-- Split-by-Class toggle added to the Stats dashboard. You can group players by class or see all players together, making it easier to compare class performance.
-- Special buffs now display as aggregated outputs, so buff numbers and summaries are cleaner and easier to scan.
+## SettingsView: faster last-call data
+- The last-call data fetch in SettingsView was cleaned up to load faster and be more reliable.
+- You’ll still see the same info, but it should feel snappier and less flaky.
 
-## UI/UX improvements
-- Stats views feel smoother when navigating dashboards and exploring data.
+NOTE: This is mainly internal cleanup with user-facing speed and reliability benefits.
 
-## Fixes
-- Button hover styles in the StatsHeader updated for better accessibility (clearer hover state and contrast).
+## Asset and UI visuals
+- Front-end bundles were refreshed and a new gradient image was added to keep visuals in sync with the code changes.
+- These asset updates help keep the UI stable after the changes under the hood.
+
+## Tests and stability
+- Added comprehensive tests for SettingsView and related utilities to catch edge cases earlier.
+- This should translate to fewer surprises when you update or tweak settings in the future.
 
 ## QoL Improvements
-- General polish across the stats panels for readability and consistency.
+- Small polish in the SettingsView code paths aims for more consistent behavior across sessions.
+- The broader test coverage and asset refresh reduce chances of flaky UI in edge cases.
