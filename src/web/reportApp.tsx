@@ -1,6 +1,6 @@
 import { CSSProperties, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
-import { CRT_WEB_THEME_ID, DEFAULT_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME_ID, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
+import { CRT_WEB_THEME_ID, DARK_GLASS_WEB_THEME_ID, DEFAULT_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME_ID, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME_ID, WebTheme, WEB_THEMES } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -80,7 +80,7 @@ interface ReportIndexEntry {
     };
 }
 
-type UiThemeChoice = 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic';
+type UiThemeChoice = 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass';
 type KineticWebFontChoice = 'default' | 'original';
 type KineticThemeVariantChoice = 'light' | 'midnight' | 'slate';
 
@@ -112,6 +112,8 @@ const getWebReportThemeStylesheetHref = (uiTheme: UiThemeChoice): string => {
                 ? 'matte'
                 : uiTheme === 'kinetic'
                     ? 'kinetic'
+                    : uiTheme === 'dark-glass'
+                        ? 'dark-glass'
                     : 'classic';
     return `./web-report-themes/${file}.css`;
 };
@@ -247,6 +249,13 @@ const readReportThemeId = (stats: any): string | null => {
     if (stats?.reportTheme?.ui === 'kinetic') {
         return getKineticThemeIdForVariant(stats?.reportTheme?.variant);
     }
+    // dark-glass maps to the Aurora web theme when no explicit palette is stored.
+    if (stats?.reportTheme?.ui === 'dark-glass' || stats?.uiTheme === 'dark-glass') {
+        return readStoredThemeId(stats?.reportTheme?.paletteId)
+            || readStoredThemeId(stats?.reportTheme?.themeId)
+            || readStoredThemeId(stats?.webThemeId)
+            || DARK_GLASS_WEB_THEME_ID;
+    }
     return readStoredThemeId(stats?.reportTheme?.paletteId)
         || readStoredThemeId(stats?.reportTheme?.themeId)
         || readStoredThemeId(stats?.webThemeId)
@@ -255,11 +264,11 @@ const readReportThemeId = (stats: any): string | null => {
 
 const readReportUiTheme = (stats: any): UiThemeChoice | null => {
     const explicit = stats?.reportTheme?.ui;
-    if (explicit === 'modern' || explicit === 'classic' || explicit === 'crt' || explicit === 'matte' || explicit === 'kinetic') {
+    if (explicit === 'modern' || explicit === 'classic' || explicit === 'crt' || explicit === 'matte' || explicit === 'kinetic' || explicit === 'dark-glass') {
         return explicit;
     }
     const legacy = stats?.uiTheme;
-    if (legacy === 'modern' || legacy === 'classic' || legacy === 'crt' || legacy === 'matte' || legacy === 'kinetic') {
+    if (legacy === 'modern' || legacy === 'classic' || legacy === 'crt' || legacy === 'matte' || legacy === 'kinetic' || legacy === 'dark-glass') {
         return legacy;
     }
     const themeId = readReportThemeId(stats);
@@ -279,7 +288,13 @@ const parseSiteTheme = (data: unknown): { ui: UiThemeChoice; paletteId: string; 
     const payload = data as any;
     const ui = payload?.siteTheme?.ui;
     const paletteId = payload?.siteTheme?.paletteId;
-    if ((ui === 'classic' || ui === 'modern' || ui === 'crt' || ui === 'matte' || ui === 'kinetic')
+    if (ui === 'dark-glass') {
+        const resolvedPaletteId = (typeof paletteId === 'string' && paletteId.trim())
+            ? paletteId
+            : DARK_GLASS_WEB_THEME_ID;
+        return { ui: 'dark-glass', paletteId: resolvedPaletteId, kineticFont: 'default', kineticVariant: 'light' };
+    }
+    if ((ui === 'classic' || ui === 'modern' || ui === 'crt' || ui === 'matte' || ui === 'kinetic' || ui === 'dark-glass')
         && paletteId && typeof paletteId === 'string') {
         const kineticFont: KineticWebFontChoice = payload?.siteTheme?.kineticFont === 'original' ? 'original' : 'default';
         const kineticVariant = normalizeKineticThemeVariant(payload?.siteTheme?.kineticVariant ?? inferKineticThemeVariantFromThemeId(paletteId));
@@ -1054,6 +1069,7 @@ export function ReportApp() {
         };
     }, [navGroupByAnchor, navGroups]);
     const isMatteUi = uiTheme === 'matte';
+    const isDarkGlassUi = uiTheme === 'dark-glass';
     const resolvedTheme = theme;
     // Use the kinetic override ID directly when an explicit kinetic variant is selected,
     // otherwise fall back to defaultThemeId so the site/report's dark or slate variant is
@@ -1066,7 +1082,11 @@ export function ReportApp() {
     const kineticVariant = isKineticUi ? inferKineticThemeVariantFromThemeId(kineticVariantSourceId) : 'light';
     const isKineticDarkTheme = isKineticUi && kineticVariant !== 'light';
     const isKineticSlateTheme = isKineticUi && kineticVariant === 'slate';
-    const accentRgb = isKineticUi ? (isKineticSlateTheme ? '181, 188, 201' : (isKineticDarkTheme ? '142, 155, 214' : '90, 80, 68')) : resolvedTheme.rgb;
+    const accentRgb = isDarkGlassUi
+        ? '26, 115, 232'
+        : isKineticUi
+            ? (isKineticSlateTheme ? '181, 188, 201' : (isKineticDarkTheme ? '142, 155, 214' : '90, 80, 68'))
+            : resolvedTheme.rgb;
     const defaultLogoColor = isMatteUi ? '#d8e1eb' : (isKineticUi ? (isKineticSlateTheme ? '#ece1cd' : (isKineticDarkTheme ? '#f0d8a9' : '#24211d')) : 'var(--accent)');
     const accentVars = {
         '--accent': `rgb(${accentRgb})`,
@@ -1077,27 +1097,43 @@ export function ReportApp() {
         '--accent-glow': `rgba(${accentRgb}, ${isKineticUi ? (isKineticDarkTheme ? '0.14' : '0.08') : '0.18'})`,
         '--accent-glow-soft': `rgba(${accentRgb}, ${isKineticUi ? (isKineticDarkTheme ? '0.08' : '0.04') : '0.08'})`
     } as CSSProperties;
-    const isModernUi = uiTheme === 'modern' || uiTheme === 'matte' || uiTheme === 'kinetic';
-    const reportBackgroundImage = resolvedTheme.pattern
-        ? (isMatteUi
-            ? undefined
-            : isKineticUi
+    const isModernUi = uiTheme === 'modern' || uiTheme === 'matte' || uiTheme === 'kinetic' || uiTheme === 'dark-glass';
+    const darkGlassBackgroundImage = `
+        radial-gradient(ellipse 85% 220px at 38% -40px, rgba(26, 115, 232, 0.72) 0%, rgba(66, 133, 244, 0.55) 28%, rgba(103, 58, 183, 0.35) 52%, rgba(94, 53, 177, 0.12) 70%, transparent 88%),
+        radial-gradient(ellipse 55% 160px at 8% -20px, rgba(0, 188, 212, 0.38) 0%, rgba(26, 115, 232, 0.22) 45%, transparent 78%),
+        radial-gradient(ellipse 48% 140px at 88% -15px, rgba(94, 53, 177, 0.45) 0%, rgba(138, 43, 226, 0.25) 45%, transparent 80%),
+        radial-gradient(ellipse 35% 100px at 62% -5px, rgba(0, 230, 195, 0.12) 0%, transparent 70%)
+    `;
+    const reportBackgroundImage = isDarkGlassUi
+        ? darkGlassBackgroundImage
+        : resolvedTheme.pattern
+            ? (isMatteUi
                 ? undefined
-            : isModernUi
-                ? `linear-gradient(180deg, rgba(14, 18, 26, 0.72), rgba(18, 24, 34, 0.78)), ${resolvedTheme.pattern}`
-                : resolvedTheme.pattern)
-        : undefined;
+                : isKineticUi
+                    ? undefined
+                    : isModernUi
+                        ? `linear-gradient(180deg, rgba(14, 18, 26, 0.72), rgba(18, 24, 34, 0.78)), ${resolvedTheme.pattern}`
+                        : resolvedTheme.pattern)
+            : undefined;
     const glassCardStyle: CSSProperties = isKineticUi
         ? {
             backgroundImage: 'none',
             backgroundColor: isKineticSlateTheme ? 'rgba(78, 85, 95, 0.84)' : (isKineticDarkTheme ? 'rgba(57, 64, 93, 0.9)' : 'rgba(220, 210, 196, 0.95)'),
             borderColor: isKineticSlateTheme ? 'rgba(223, 228, 238, 0.22)' : (isKineticDarkTheme ? 'rgba(164, 177, 228, 0.28)' : 'rgba(78, 67, 56, 0.18)')
         }
+        : isDarkGlassUi
+        ? {
+            backgroundImage: 'none',
+            backgroundColor: 'var(--bg-card)',
+            borderColor: 'var(--border-default)'
+        }
         : isMatteUi
         ? { backgroundImage: 'none', backgroundColor: 'var(--bg-card)' }
         : {
             backgroundImage: isModernUi
-                ? 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.06) 70%)'
+                ? (isDarkGlassUi
+                    ? 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.16), rgba(var(--accent-rgb), 0.05) 70%)'
+                    : 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.06) 70%)')
                 : 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.26), rgba(var(--accent-rgb), 0.08) 70%)'
         };
     const rollupTableHeaderStyle: CSSProperties = isKineticUi
@@ -1329,10 +1365,11 @@ export function ReportApp() {
     useEffect(() => {
         const body = document.body;
         body.classList.add('web-report');
-        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic', 'theme-kinetic-dark', 'theme-kinetic-slate', 'theme-kinetic-font-original');
+        body.classList.remove('theme-classic', 'theme-modern', 'theme-crt', 'theme-matte', 'theme-kinetic', 'theme-kinetic-dark', 'theme-kinetic-slate', 'theme-kinetic-font-original', 'theme-dark-glass');
         if (isMatteUi) body.classList.add('theme-matte');
         else if (uiTheme === 'modern') body.classList.add('theme-modern');
         else if (uiTheme === 'crt') body.classList.add('theme-crt');
+        else if (uiTheme === 'dark-glass') body.classList.add('theme-dark-glass');
         else if (uiTheme === 'kinetic') {
             body.classList.add('theme-kinetic');
             if (isKineticDarkTheme) body.classList.add('theme-kinetic-dark');
@@ -1951,12 +1988,16 @@ export function ReportApp() {
             <div
                 className="min-h-screen text-white relative overflow-x-hidden"
                 style={{
-                    backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? (isKineticSlateTheme ? '#353a41' : (isKineticDarkTheme ? '#2b3048' : '#d8d1c5')) : (isModernUi ? '#0f141c' : '#0f172a')),
+                    backgroundColor: isMatteUi
+                        ? 'var(--bg-base)'
+                        : (isKineticUi
+                            ? (isKineticSlateTheme ? '#353a41' : (isKineticDarkTheme ? '#2b3048' : '#d8d1c5'))
+                            : (isDarkGlassUi ? '#101218' : (isModernUi ? '#0f141c' : '#0f172a'))),
                     backgroundImage: isMatteUi ? 'none' : reportBackgroundImage,
                     ...accentVars
                 }}
             >
-                {!isMatteUi && !isKineticUi && (
+                {!isMatteUi && !isKineticUi && !isDarkGlassUi && (
                     <div className="absolute inset-0 pointer-events-none">
                         <div
                             className="absolute -top-32 -right-24 h-80 w-80 rounded-full blur-[140px]"
@@ -2321,12 +2362,16 @@ export function ReportApp() {
             <div
                 className="min-h-screen text-white relative overflow-x-hidden"
                 style={{
-                    backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? (isKineticSlateTheme ? '#353a41' : (isKineticDarkTheme ? '#2b3048' : '#d8d1c5')) : (isModernUi ? '#0f141c' : '#0f172a')),
+                    backgroundColor: isMatteUi
+                        ? 'var(--bg-base)'
+                        : (isKineticUi
+                            ? (isKineticSlateTheme ? '#353a41' : (isKineticDarkTheme ? '#2b3048' : '#d8d1c5'))
+                            : (isDarkGlassUi ? '#101218' : (isModernUi ? '#0f141c' : '#0f172a'))),
                     backgroundImage: isMatteUi ? 'none' : reportBackgroundImage,
                     ...accentVars
                 }}
             >
-                {!isMatteUi && !isKineticUi && (
+                {!isMatteUi && !isKineticUi && !isDarkGlassUi && (
                     <div className="absolute inset-0 pointer-events-none">
                         <div
                             className="absolute -top-32 -right-24 h-80 w-80 rounded-full blur-[140px]"
@@ -2652,12 +2697,16 @@ export function ReportApp() {
         <div
             className="min-h-screen text-white relative overflow-x-hidden"
             style={{
-                backgroundColor: isMatteUi ? 'var(--bg-base)' : (isKineticUi ? (isKineticSlateTheme ? '#353a41' : (isKineticDarkTheme ? '#2b3048' : '#d8d1c5')) : (isModernUi ? '#0f141c' : '#0f172a')),
+                backgroundColor: isMatteUi
+                    ? 'var(--bg-base)'
+                    : (isKineticUi
+                        ? (isKineticSlateTheme ? '#353a41' : (isKineticDarkTheme ? '#2b3048' : '#d8d1c5'))
+                        : (isDarkGlassUi ? '#101218' : (isModernUi ? '#0f141c' : '#0f172a'))),
                 backgroundImage: isMatteUi ? 'none' : reportBackgroundImage,
                 ...accentVars
             }}
         >
-            {!isMatteUi && !isKineticUi && (
+            {!isMatteUi && !isKineticUi && !isDarkGlassUi && (
                 <div className="absolute inset-0 pointer-events-none">
                     <div
                         className="absolute -top-32 -right-24 h-80 w-80 rounded-full blur-[140px]"

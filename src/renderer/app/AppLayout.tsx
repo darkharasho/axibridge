@@ -250,14 +250,18 @@ export function AppLayout({ ctx }: { ctx: any }) {
             ? 'border border-[#3a6b52]/60 bg-[#09140e]/90'
             : uiTheme === 'modern'
                 ? 'border border-cyan-300/20 bg-[linear-gradient(180deg,rgba(16,24,34,0.96),rgba(12,18,28,0.94))]'
-                : 'border border-white/10 bg-slate-950/85';
+                : uiTheme === 'dark-glass'
+                    ? 'border border-white/[0.07] bg-[rgba(13,15,20,0.92)]'
+                    : 'border border-white/10 bg-slate-950/85';
     const statsSidebarShadowClass = uiTheme === 'matte'
         ? 'shadow-[-6px_-6px_12px_rgba(255,255,255,0.04),6px_6px_14px_rgba(0,0,0,0.45)]'
         : uiTheme === 'kinetic'
             ? 'shadow-[0_10px_24px_rgba(62,52,39,0.08)]'
         : uiTheme === 'modern'
             ? 'shadow-[0_16px_46px_rgba(0,0,0,0.5),0_0_0_1px_rgba(122,215,240,0.08)]'
-            : 'shadow-[0_20px_60px_rgba(0,0,0,0.45)]';
+            : uiTheme === 'dark-glass'
+                ? 'shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_0_1px_rgba(26,115,232,0.05)]'
+                : 'shadow-[0_20px_60px_rgba(0,0,0,0.45)]';
     const statsSidebarBlurClass = uiTheme === 'matte' || uiTheme === 'kinetic' ? '' : uiTheme === 'modern' ? 'backdrop-blur-lg' : 'backdrop-blur-md';
     const dashboardLayoutMode = dashboardLayout === 'top' || dashboardLayout === 'side'
         ? dashboardLayout
@@ -268,6 +272,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
             ? 'rounded-lg border border-stone-500/20 bg-[color:var(--bg-input)]'
         : uiTheme === 'modern'
             ? 'rounded-lg border border-cyan-300/15 bg-slate-900/65 backdrop-blur-sm'
+        : uiTheme === 'dark-glass'
+            ? 'rounded-lg border border-white/[0.05] bg-black/25'
         : '';
     const statsNavGroupShellClass = uiTheme === 'kinetic'
         ? 'rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-input)]'
@@ -345,7 +351,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
             <div className="app-titlebar h-10 shrink-0 w-full flex justify-between items-center px-4 bg-black/20 backdrop-blur-md border-b border-white/5 drag-region select-none z-50">
                 <div className="flex items-center gap-2">
                     <span className="arcbridge-logo h-4 w-4" style={arcbridgeLogoStyle} aria-label="ArcBridge logo" />
-                    <span className="text-xs font-medium text-gray-400">ArcBridge</span>
+                    <span className="text-xs font-medium arcbridge-gradient-text">ArcBridge</span>
                     {isDev ? (
                         <span className="dev-build-badge ml-1 rounded-full border border-amber-500/50 bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-amber-300">
                             Dev Build
@@ -369,7 +375,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
             <div className="legacy-orb absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
             <div className="legacy-orb absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/20 blur-[100px] pointer-events-none" />
 
-            <div className={`app-content relative z-10 ${(isModernTheme || view === 'stats' || view === 'history') ? 'max-w-none' : 'max-w-5xl mx-auto'} flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history') ? 'pt-8 px-8 pb-2 overflow-hidden' : (isModernTheme ? 'p-8 overflow-visible' : 'p-8 overflow-hidden')}`}>
+            <div className={`app-content relative z-10 ${(isModernTheme || uiTheme === 'dark-glass' || view === 'stats' || view === 'history') ? 'max-w-none' : 'max-w-5xl mx-auto'} flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history') ? 'pt-8 px-8 pb-2 overflow-hidden' : (isModernTheme ? 'p-8 overflow-visible' : 'p-8 overflow-hidden')}`}>
                 <header className="app-header flex flex-wrap justify-between items-center gap-3 mb-10 shrink-0">
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}

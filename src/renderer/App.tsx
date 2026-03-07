@@ -521,16 +521,15 @@ function App() {
     });
 
     const isModernTheme = uiTheme === 'modern' || uiTheme === 'kinetic';
+    const isDarkGlassTheme = uiTheme === 'dark-glass';
     const isTopDashboardLayout = dashboardLayout === 'top';
     const isCrtTheme = uiTheme === 'crt';
     const appIconPath = `${import.meta.env.BASE_URL || './'}svg/ArcBridge.svg`;
     const arcbridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;
     const isDev = import.meta.env.DEV;
-    const shellClassName = isModernTheme
+    const shellClassName = isModernTheme || isCrtTheme || isDarkGlassTheme
         ? 'app-shell h-screen w-screen text-white overflow-hidden flex flex-col'
-        : isCrtTheme
-            ? 'app-shell h-screen w-screen text-white overflow-hidden flex flex-col'
-            : 'app-shell h-screen w-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black text-white font-sans overflow-hidden flex flex-col';
+        : 'app-shell h-screen w-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black text-white font-sans overflow-hidden flex flex-col';
 
     const notificationTypeButtons = isTopDashboardLayout ? (
         <div className="grid grid-cols-3 gap-1.5">

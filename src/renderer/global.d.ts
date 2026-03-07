@@ -150,7 +150,7 @@ export interface IUploadRetryQueueState {
     entries: IUploadRetryQueueEntry[];
 }
 
-export type UiTheme = 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic';
+export type UiTheme = 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass';
 export type KineticFontStyle = 'default' | 'original';
 export type KineticThemeVariant = 'light' | 'midnight' | 'slate';
 export type DashboardLayout = 'top' | 'side';

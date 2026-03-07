@@ -8,6 +8,7 @@ export type WebTheme = {
 export const DEFAULT_WEB_THEME_ID = 'Arcane';
 export const CRT_WEB_THEME_ID = 'CRT';
 export const MATTE_WEB_THEME_ID = 'MatteSlate';
+export const DARK_GLASS_WEB_THEME_ID = 'Aurora';
 export const KINETIC_WEB_THEME_ID = 'KineticPaper';
 export const KINETIC_DARK_WEB_THEME_ID = 'KineticPaperDark';
 export const KINETIC_SLATE_WEB_THEME_ID = 'KineticPaperSlate';
@@ -46,6 +47,13 @@ export const KINETIC_SLATE_WEB_THEME: WebTheme = {
     pattern: 'linear-gradient(to bottom, #353a41, #353a41)'
 };
 
+export const DARK_GLASS_WEB_THEME: WebTheme = {
+    id: DARK_GLASS_WEB_THEME_ID,
+    label: 'Aurora',
+    rgb: '26, 115, 232',
+    pattern: 'radial-gradient(ellipse 90% 450px at 38% 0px, rgba(26, 115, 232, 0.62) 0%, rgba(66, 133, 244, 0.45) 28%, rgba(103, 58, 183, 0.28) 52%, transparent 85%), radial-gradient(ellipse 55% 320px at 8% -20px, rgba(0, 188, 212, 0.3) 0%, rgba(26, 115, 232, 0.18) 45%, transparent 78%), radial-gradient(ellipse 50% 280px at 88% -15px, rgba(94, 53, 177, 0.38) 0%, rgba(138, 43, 226, 0.2) 45%, transparent 80%), radial-gradient(ellipse 35% 200px at 62% 0px, rgba(0, 230, 195, 0.1) 0%, transparent 70%)'
+};
+
 export const BASE_WEB_THEMES: WebTheme[] = [
     DEFAULT_WEB_THEME,
     {
@@ -54,12 +62,7 @@ export const BASE_WEB_THEMES: WebTheme[] = [
         rgb: '192, 132, 252',
         pattern: 'radial-gradient(at 0% 0%, hsla(270, 70%, 20%, 1) 0, transparent 70%), radial-gradient(at 100% 0%, hsla(260, 80%, 25%, 1) 0, transparent 70%), radial-gradient(at 50% 100%, hsla(280, 60%, 30%, 1) 0, transparent 70%)'
     },
-    {
-        id: 'Aurora',
-        label: 'Aurora',
-        rgb: '34, 211, 238',
-        pattern: 'radial-gradient(at 0% 0%, hsla(160, 80%, 18%, 1) 0, transparent 70%), radial-gradient(at 100% 0%, hsla(280, 75%, 22%, 1) 0, transparent 70%), radial-gradient(at 50% 100%, hsla(200, 85%, 15%, 1) 0, transparent 70%)'
-    },
+    DARK_GLASS_WEB_THEME,
     {
         id: 'Autumn',
         label: 'Autumn',

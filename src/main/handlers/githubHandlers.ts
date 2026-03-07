@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import {
     BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID,
+    DARK_GLASS_WEB_THEME_ID,
     DEFAULT_WEB_THEME_ID,
     KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID,
     KINETIC_SLATE_WEB_THEME, KINETIC_SLATE_WEB_THEME_ID,
@@ -398,27 +399,29 @@ const withPagesPath = (pagesPath: string, repoPath: string) => {
 
 // ─── Theme helpers ─────────────────────────────────────────────────────────────
 
-const normalizeUiThemeChoice = (value: unknown): 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' => {
-    if (value === 'modern' || value === 'crt' || value === 'matte' || value === 'kinetic') return value;
+const normalizeUiThemeChoice = (value: unknown): 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass' => {
+    if (value === 'modern' || value === 'crt' || value === 'matte' || value === 'kinetic' || value === 'dark-glass') return value;
     return 'classic';
 };
 
-const resolveWebUiThemeChoice = (appUiTheme: unknown, selectedThemeId: unknown): 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' => {
+const resolveWebUiThemeChoice = (appUiTheme: unknown, selectedThemeId: unknown): 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass' => {
     if (selectedThemeId === MATTE_WEB_THEME_ID) return 'matte';
     if (selectedThemeId === KINETIC_WEB_THEME_ID || selectedThemeId === KINETIC_DARK_WEB_THEME_ID || selectedThemeId === KINETIC_SLATE_WEB_THEME_ID) return 'kinetic';
     if (selectedThemeId === CRT_WEB_THEME_ID) return 'crt';
     return normalizeUiThemeChoice(appUiTheme);
 };
 
-const resolveWebPublishTheme = (uiTheme: string, requestedThemeId: string): { selectedTheme: WebTheme; uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' } => {
+const resolveWebPublishTheme = (uiTheme: string, requestedThemeId: string): { selectedTheme: WebTheme; uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass' } => {
     const availableThemes = uiTheme === 'crt'
         ? [CRT_WEB_THEME]
         : [...BASE_WEB_THEMES, MATTE_WEB_THEME, KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME, KINETIC_SLATE_WEB_THEME];
     const themeId = uiTheme === 'crt'
         ? CRT_WEB_THEME_ID
-        : (uiTheme === 'matte'
+        : uiTheme === 'matte'
             ? MATTE_WEB_THEME_ID
-            : requestedThemeId);
+            : uiTheme === 'dark-glass'
+                ? (requestedThemeId === DEFAULT_WEB_THEME_ID ? DARK_GLASS_WEB_THEME_ID : requestedThemeId)
+                : requestedThemeId;
     const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
     const uiThemeValue = resolveWebUiThemeChoice(uiTheme, selectedTheme?.id);
     return { selectedTheme, uiThemeValue };
@@ -443,7 +446,7 @@ const formatBytes = (value: number) => {
 const buildWebReportPayload = (
     reportMeta: any,
     sourceStats: any,
-    uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic',
+    uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass',
     webThemeId: string,
     kineticThemeVariant?: 'light' | 'midnight' | 'slate'
 ) => {

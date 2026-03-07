@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown } from 'lucide-react';
 import { DashboardLayout, IEmbedStatSettings, DEFAULT_DASHBOARD_LAYOUT, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME, KineticFontStyle, DEFAULT_KINETIC_FONT_STYLE, KineticThemeVariant, DEFAULT_KINETIC_THEME_VARIANT, normalizeMvpWeights } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME, KINETIC_SLATE_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
+import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DARK_GLASS_WEB_THEME, DARK_GLASS_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME, KINETIC_SLATE_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -109,6 +109,13 @@ const IMPORT_SETTING_META: Array<{ key: string; label: string; description: stri
     { key: 'githubLogoPath', label: 'Web Logo', description: 'Logo path used for reports.', section: 'GitHub' },
     { key: 'githubFavoriteRepos', label: 'Favorite Repos', description: 'Pinned repos list.', section: 'GitHub' }
 ];
+
+const DARK_GLASS_PREVIEW_BACKGROUND = [
+    'radial-gradient(ellipse 85% 220px at 38% -40px, rgba(26, 115, 232, 0.72) 0%, rgba(66, 133, 244, 0.55) 28%, rgba(103, 58, 183, 0.35) 52%, rgba(94, 53, 177, 0.12) 70%, transparent 88%)',
+    'radial-gradient(ellipse 55% 160px at 8% -20px, rgba(0, 188, 212, 0.38) 0%, rgba(26, 115, 232, 0.22) 45%, transparent 78%)',
+    'radial-gradient(ellipse 48% 140px at 88% -15px, rgba(94, 53, 177, 0.45) 0%, rgba(138, 43, 226, 0.25) 45%, transparent 80%)',
+    'radial-gradient(ellipse 35% 100px at 62% -5px, rgba(0, 230, 195, 0.12) 0%, transparent 70%)'
+].join(', ');
 
 interface SettingsViewProps {
     onBack: () => void;
@@ -294,6 +301,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (uiTheme === 'crt') return [CRT_WEB_THEME];
         if (uiTheme === 'matte') return [MATTE_WEB_THEME];
         if (uiTheme === 'kinetic') return [KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME, KINETIC_SLATE_WEB_THEME];
+        if (uiTheme === 'dark-glass') return [DARK_GLASS_WEB_THEME];
         return BASE_WEB_THEMES;
     }, [uiTheme]);
     const orderedThemes = useMemo(() => {
@@ -301,7 +309,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (!active) return availableWebThemes;
         return [active, ...availableWebThemes.filter((theme) => theme.id !== githubWebTheme)];
     }, [availableWebThemes, githubWebTheme]);
-    const isModernLayout = uiTheme === 'classic' || uiTheme === 'modern' || uiTheme === 'crt' || uiTheme === 'matte' || uiTheme === 'kinetic';
+    const isModernLayout = uiTheme === 'classic' || uiTheme === 'modern' || uiTheme === 'crt' || uiTheme === 'matte' || uiTheme === 'kinetic' || uiTheme === 'dark-glass';
     const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
 
     const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
@@ -521,6 +529,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 if (githubWebTheme !== expectedThemeId) {
                     setGithubWebTheme(expectedThemeId);
                 }
+            }
+            return;
+        }
+        if (uiTheme === 'dark-glass') {
+            if (githubWebTheme !== DARK_GLASS_WEB_THEME_ID) {
+                setGithubWebTheme(DARK_GLASS_WEB_THEME_ID);
             }
             return;
         }
@@ -1469,6 +1483,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </button>
                             <button
                                 type="button"
+                                onClick={() => setUiTheme('dark-glass')}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'dark-glass'
+                                    ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
+                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                    }`}
+                            >
+                                Dark Glass
+                            </button>
+                            <button
+                                type="button"
                                 onClick={() => setUiTheme('crt')}
                                 className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${uiTheme === 'crt'
                                     ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60'
@@ -1528,37 +1552,37 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         </div>
                                         <div className="border-t border-white/10" />
                                         <div>
-                                        <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
-                                            Kinetic Font
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setKineticFontStyle('default')}
-                                                className={`kinetic-font-option px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${kineticFontStyle === 'default'
-                                                    ? 'kinetic-font-option--active'
-                                                    : ''
-                                                    } ${kineticFontStyle === 'default'
-                                                    ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
-                                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
-                                                    }`}
-                                            >
-                                                Default Kinetic Font
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setKineticFontStyle('original')}
-                                                className={`kinetic-font-option px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${kineticFontStyle === 'original'
-                                                    ? 'kinetic-font-option--active'
-                                                    : ''
-                                                    } ${kineticFontStyle === 'original'
-                                                    ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/50'
-                                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
-                                                    }`}
-                                            >
-                                                Original App Font
-                                            </button>
-                                        </div>
+                                            <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
+                                                Kinetic Font
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setKineticFontStyle('default')}
+                                                    className={`kinetic-font-option px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${kineticFontStyle === 'default'
+                                                        ? 'kinetic-font-option--active'
+                                                        : ''
+                                                        } ${kineticFontStyle === 'default'
+                                                            ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
+                                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                                        }`}
+                                                >
+                                                    Default Kinetic Font
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setKineticFontStyle('original')}
+                                                    className={`kinetic-font-option px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${kineticFontStyle === 'original'
+                                                        ? 'kinetic-font-option--active'
+                                                        : ''
+                                                        } ${kineticFontStyle === 'original'
+                                                            ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/50'
+                                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                                        }`}
+                                                >
+                                                    Original App Font
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -1576,8 +1600,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         ? 'dashboard-layout-option--active'
                                         : ''
                                         } ${dashboardLayout === 'top'
-                                        ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
-                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                            ? 'bg-teal-500/20 text-teal-200 border-teal-400/50'
+                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
                                         }`}
                                 >
                                     Upload Stats: Top
@@ -1589,8 +1613,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         ? 'dashboard-layout-option--active'
                                         : ''
                                         } ${dashboardLayout === 'side'
-                                        ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/50'
-                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
+                                            ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/50'
+                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30'
                                         }`}
                                 >
                                     Upload Stats: Side
@@ -1921,33 +1945,46 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             >
                                 {githubThemeStatus || 'Theme changes publish automatically to GitHub Pages.'}
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-56 overflow-y-auto pr-1">
-                                {orderedThemes.map((theme) => {
-                                    const isActive = theme.id === githubWebTheme;
-                                    return (
-                                        <button
-                                            key={theme.id}
-                                            onClick={() => {
-                                                setGithubWebTheme(theme.id);
-                                                if (uiTheme === 'kinetic' && isKineticWebThemeId(theme.id)) {
-                                                    setKineticThemeVariant(inferKineticThemeVariantFromThemeId(theme.id));
-                                                }
-                                            }}
-                                            className={`rounded-xl border px-3 py-3 text-left transition-colors ${isActive
-                                                ? 'border-cyan-400/60 bg-cyan-500/10'
-                                                : 'border-white/10 bg-white/5 hover:border-white/30'
-                                                }`}
-                                            style={{ boxShadow: isActive ? `0 0 18px rgba(${theme.rgb}, 0.25)` : undefined }}
-                                        >
-                                            <div
-                                                className="w-full h-12 rounded-lg mb-2 border border-white/10"
-                                                style={{ backgroundImage: theme.pattern, backgroundColor: '#10141b' }}
-                                            />
-                                            <div className="text-xs font-semibold text-gray-200">{theme.label}</div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            {uiTheme === 'dark-glass' ? (
+                                <div className="rounded-xl border border-[rgba(26,115,232,0.35)] bg-[rgba(26,115,232,0.06)] px-3 py-3 flex items-center gap-3">
+                                    <div
+                                        className="w-16 h-12 rounded-lg shrink-0 border border-white/10"
+                                        style={{ backgroundImage: DARK_GLASS_PREVIEW_BACKGROUND, backgroundColor: '#101218' }}
+                                    />
+                                    <div>
+                                        <div className="text-xs font-semibold text-gray-200">Aurora</div>
+                                        <div className="text-[11px] text-gray-500 mt-0.5">Locked to Dark Glass theme</div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-56 overflow-y-auto pr-1">
+                                    {orderedThemes.map((theme) => {
+                                        const isActive = theme.id === githubWebTheme;
+                                        return (
+                                            <button
+                                                key={theme.id}
+                                                onClick={() => {
+                                                    setGithubWebTheme(theme.id);
+                                                    if (uiTheme === 'kinetic' && isKineticWebThemeId(theme.id)) {
+                                                        setKineticThemeVariant(inferKineticThemeVariantFromThemeId(theme.id));
+                                                    }
+                                                }}
+                                                className={`rounded-xl border px-3 py-3 text-left transition-colors ${isActive
+                                                    ? 'border-cyan-400/60 bg-cyan-500/10'
+                                                    : 'border-white/10 bg-white/5 hover:border-white/30'
+                                                    }`}
+                                                style={{ boxShadow: isActive ? `0 0 18px rgba(${theme.rgb}, 0.25)` : undefined }}
+                                            >
+                                                <div
+                                                    className="w-full h-12 rounded-lg mb-2 border border-white/10"
+                                                    style={{ backgroundImage: theme.pattern, backgroundColor: '#10141b' }}
+                                                />
+                                                <div className="text-xs font-semibold text-gray-200">{theme.label}</div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                         <div className="bg-black/30 border border-white/10 rounded-xl p-4 mb-4">
                             <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Logo</div>
@@ -2669,7 +2706,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     <div className="h-[12vh] min-h-10 max-h-28" />
                     {/* Save Button (hidden with auto-save) */}
                 </div>
-            </div>
+            </div >
 
             <div className={`fixed bottom-4 left-4 right-4 z-40 ${isModernLayout ? 'lg:hidden' : ''}`}>
                 <div className="flex items-center justify-between gap-2 rounded-2xl border border-white/25 bg-white/5 backdrop-blur-2xl px-3 py-1.5 shadow-[0_24px_65px_rgba(0,0,0,0.55)]">
@@ -2691,49 +2728,51 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </button>
                 </div>
             </div>
-            {settingsNavOpen && (
-                <div
-                    className={`app-modal-overlay fixed inset-0 z-50 flex items-center justify-center px-4 ${isModernLayout ? 'lg:hidden' : ''}`}
-                    onClick={(event) => {
-                        if (event.target === event.currentTarget) {
-                            setSettingsNavOpen(false);
-                        }
-                    }}
-                >
-                    <div className="app-modal-card w-full max-w-sm max-h-[85vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
-                            <button
-                                onClick={() => setSettingsNavOpen(false)}
-                                className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
-                                aria-label="Close navigation"
-                            >
-                                <CloseIcon className="w-4 h-4" />
-                            </button>
-                        </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 pb-4">
-                            {SETTINGS_SECTIONS.map((item) => {
-                                return (
-                                    <button
-                                        key={item.id}
-                                        data-settings-nav-id={item.id}
-                                        onClick={() => {
-                                            scrollToSettingsSection(item.id);
-                                            setSettingsNavOpen(false);
-                                        }}
-                                        className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden text-gray-400`}
-                                    >
-                                        <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
-                                            {SETTINGS_SECTIONS.findIndex((section) => section.id === item.id) + 1}
-                                        </span>
-                                        <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{item.label}</span>
-                                    </button>
-                                );
-                            })}
+            {
+                settingsNavOpen && (
+                    <div
+                        className={`app-modal-overlay fixed inset-0 z-50 flex items-center justify-center px-4 ${isModernLayout ? 'lg:hidden' : ''}`}
+                        onClick={(event) => {
+                            if (event.target === event.currentTarget) {
+                                setSettingsNavOpen(false);
+                            }
+                        }}
+                    >
+                        <div className="app-modal-card w-full max-w-sm max-h-[85vh] rounded-2xl p-4 border border-white/20 bg-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
+                                <button
+                                    onClick={() => setSettingsNavOpen(false)}
+                                    className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                                    aria-label="Close navigation"
+                                >
+                                    <CloseIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 pb-4">
+                                {SETTINGS_SECTIONS.map((item) => {
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            data-settings-nav-id={item.id}
+                                            onClick={() => {
+                                                scrollToSettingsSection(item.id);
+                                                setSettingsNavOpen(false);
+                                            }}
+                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden text-gray-400`}
+                                        >
+                                            <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
+                                                {SETTINGS_SECTIONS.findIndex((section) => section.id === item.id) + 1}
+                                            </span>
+                                            <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{item.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <AnimatePresence>
                 {importModalOpen && (
@@ -3071,100 +3110,100 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                                                    h1: ({ children }) => {
-                                                        const label = extractHeadingText(children);
-                                                        const id = buildHeadingId(label);
-                                                        return (
-                                                            <h1
-                                                                id={id}
-                                                                data-heading-id={id}
-                                                                data-heading-key={slugifyHeading(label)}
-                                                                className="text-2xl font-bold text-white scroll-mt-6"
-                                                            >
-                                                                {children}
-                                                            </h1>
-                                                        );
-                                                    },
-                                                    h2: ({ children }) => {
-                                                        const label = extractHeadingText(children);
-                                                        const id = buildHeadingId(label);
-                                                        return (
-                                                            <h2
-                                                                id={id}
-                                                                data-heading-id={id}
-                                                                data-heading-key={slugifyHeading(label)}
-                                                                className="text-xl font-semibold text-white scroll-mt-6"
-                                                            >
-                                                                {children}
-                                                            </h2>
-                                                        );
-                                                    },
-                                                    h3: ({ children }) => {
-                                                        const label = extractHeadingText(children);
-                                                        const id = buildHeadingId(label);
-                                                        return (
-                                                            <h3
-                                                                id={id}
-                                                                data-heading-id={id}
-                                                                data-heading-key={slugifyHeading(label)}
-                                                                className="text-lg font-semibold text-white scroll-mt-6"
-                                                            >
-                                                                {children}
-                                                            </h3>
-                                                        );
-                                                    },
-                                                    p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
-                                                    ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
-                                                    ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
-                                                    li: ({ children }) => <li className="leading-6">{children}</li>,
-                                                    blockquote: ({ children }) => (
-                                                        <blockquote className="border-l-2 border-blue-400/40 pl-4 text-gray-300 italic">
-                                                            {children}
-                                                        </blockquote>
-                                                    ),
-                                                    a: ({ href, children }) => (
-                                                        <button
-                                                            className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
-                                                            onClick={() => href && window.electronAPI.openExternal(href)}
-                                                        >
-                                                            {children}
-                                                        </button>
-                                                    ),
-                                                    table: ({ children }) => (
-                                                        <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30">
-                                                            <table className="w-full border-collapse text-left text-sm">
-                                                                {children}
-                                                            </table>
-                                                        </div>
-                                                    ),
-                                                    th: ({ children }) => (
-                                                        <th className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-gray-300">
-                                                            {children}
-                                                        </th>
-                                                    ),
-                                                    td: ({ children }) => (
-                                                        <td className="border-b border-white/10 px-3 py-2 text-gray-200">
-                                                            {children}
-                                                        </td>
-                                                    ),
-                                                    pre: ({ children }) => (
-                                                        <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs text-blue-100">
-                                                            {children}
-                                                        </pre>
-                                                    ),
-                                                    code: (props: any) => {
-                                                        const { inline, className, children } = props;
-                                                        const isInline = inline ?? !className;
-                                                        return isInline ? (
-                                                            <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
-                                                                {children}
-                                                            </code>
-                                                        ) : (
-                                                            <code className="whitespace-pre-wrap text-blue-100">
-                                                                {children}
-                                                            </code>
-                                                        );
-                                                    }
+                        h1: ({ children }) => {
+                            const label = extractHeadingText(children);
+                            const id = buildHeadingId(label);
+                            return (
+                                <h1
+                                    id={id}
+                                    data-heading-id={id}
+                                    data-heading-key={slugifyHeading(label)}
+                                    className="text-2xl font-bold text-white scroll-mt-6"
+                                >
+                                    {children}
+                                </h1>
+                            );
+                        },
+                        h2: ({ children }) => {
+                            const label = extractHeadingText(children);
+                            const id = buildHeadingId(label);
+                            return (
+                                <h2
+                                    id={id}
+                                    data-heading-id={id}
+                                    data-heading-key={slugifyHeading(label)}
+                                    className="text-xl font-semibold text-white scroll-mt-6"
+                                >
+                                    {children}
+                                </h2>
+                            );
+                        },
+                        h3: ({ children }) => {
+                            const label = extractHeadingText(children);
+                            const id = buildHeadingId(label);
+                            return (
+                                <h3
+                                    id={id}
+                                    data-heading-id={id}
+                                    data-heading-key={slugifyHeading(label)}
+                                    className="text-lg font-semibold text-white scroll-mt-6"
+                                >
+                                    {children}
+                                </h3>
+                            );
+                        },
+                        p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
+                        li: ({ children }) => <li className="leading-6">{children}</li>,
+                        blockquote: ({ children }) => (
+                            <blockquote className="border-l-2 border-blue-400/40 pl-4 text-gray-300 italic">
+                                {children}
+                            </blockquote>
+                        ),
+                        a: ({ href, children }) => (
+                            <button
+                                className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                                onClick={() => href && window.electronAPI.openExternal(href)}
+                            >
+                                {children}
+                            </button>
+                        ),
+                        table: ({ children }) => (
+                            <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30">
+                                <table className="w-full border-collapse text-left text-sm">
+                                    {children}
+                                </table>
+                            </div>
+                        ),
+                        th: ({ children }) => (
+                            <th className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-gray-300">
+                                {children}
+                            </th>
+                        ),
+                        td: ({ children }) => (
+                            <td className="border-b border-white/10 px-3 py-2 text-gray-200">
+                                {children}
+                            </td>
+                        ),
+                        pre: ({ children }) => (
+                            <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs text-blue-100">
+                                {children}
+                            </pre>
+                        ),
+                        code: (props: any) => {
+                            const { inline, className, children } = props;
+                            const isInline = inline ?? !className;
+                            return isInline ? (
+                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
+                                    {children}
+                                </code>
+                            ) : (
+                                <code className="whitespace-pre-wrap text-blue-100">
+                                    {children}
+                                </code>
+                            );
+                        }
                     }}
                 >
                     {metricsSpecMarkdown}
@@ -3172,6 +3211,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             </ProofOfWorkModal>
 
             <HowToModal isOpen={howToOpen} onClose={() => setHowToOpen(false)} />
-        </div>
+        </div >
     );
 }

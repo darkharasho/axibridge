@@ -1,0 +1,125 @@
+body.web-report.theme-dark-glass {
+    --web-report-theme-file: dark-glass;
+    --bg-base: #101218;
+    --bg-elevated: rgba(30, 34, 45, 0.6);
+    --bg-card: rgba(255, 255, 255, 0.04);
+    --bg-hover: rgba(255, 255, 255, 0.08);
+    --bg-input: rgba(0, 0, 0, 0.5);
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border-default: rgba(255, 255, 255, 0.1);
+    --border-hover: rgba(255, 255, 255, 0.2);
+    --text-primary: #f5f7fa;
+    --text-secondary: #c0c7d2;
+    --text-muted: #7a8494;
+    --arcbridge-gradient: linear-gradient(105deg, #1a73e8 0%, #00c4d4 50%, #673ab7 100%);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body.web-report.theme-dark-glass .stats-view .fight-diff-select {
+    background-color: var(--bg-input) !important;
+    border-color: var(--border-default) !important;
+    color: rgb(226, 232, 240) !important;
+    box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.45);
+}
+
+body.web-report.theme-dark-glass .stats-view .fight-diff-select:focus {
+    border-color: rgba(26, 115, 232, 0.55) !important;
+    box-shadow: 0 0 0 1px rgba(26, 115, 232, 0.35), inset 0 1px 1px rgba(15, 23, 42, 0.45) !important;
+}
+
+body.web-report.theme-dark-glass .stats-view .fight-diff-select option {
+    background-color: rgb(12, 20, 32);
+    color: rgb(226, 232, 240);
+}
+
+body.web-report.theme-dark-glass .stats-view .squad-comp-player-tile {
+    background-image: linear-gradient(180deg, rgba(16, 185, 129, 0.34), rgba(5, 150, 105, 0.24));
+    border-color: rgba(110, 231, 183, 0.34);
+}
+
+body.web-report.theme-dark-glass .stats-view .squad-comp-board {
+    background-image: none !important;
+    background-color: rgba(0, 0, 0, 0.32) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.web-report.theme-dark-glass .stats-view .squad-comp-party-row {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.web-report.theme-dark-glass .stats-view .squad-comp-party-badge {
+    background-color: rgba(0, 0, 0, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+body.web-report.theme-dark-glass #report-list-container,
+body.web-report.theme-dark-glass #stats-dashboard-container,
+body.web-report.theme-dark-glass .glass-card {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-default) !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32) !important;
+    backdrop-filter: blur(14px);
+}
+
+body.web-report.theme-dark-glass .bg-gradient-to-br,
+body.web-report.theme-dark-glass .bg-gradient-to-r,
+body.web-report.theme-dark-glass .bg-gradient-to-t {
+    background-image: none !important;
+    background-color: var(--bg-hover) !important;
+}
+
+body.web-report.theme-dark-glass .uploader-kpi-card .translate-y-2 {
+    transform: translateY(0) !important;
+}
+
+body.web-report.theme-dark-glass .report-nav-sidebar {
+    background-color: rgba(14, 18, 26, 0.74) !important;
+    border-right-color: var(--border-default) !important;
+}
+
+body.web-report.theme-dark-glass .report-nav-sidebar .report-nav-group-btn {
+    border-color: transparent !important;
+}
+
+body.web-report.theme-dark-glass .report-nav-sidebar .report-nav-group-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--border-default) !important;
+}
+
+body.web-report.theme-dark-glass .report-nav-sidebar .report-nav-group-btn.text-white {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+body.web-report.theme-dark-glass .report-brand-label {
+    color: rgba(245, 247, 250, 0.95) !important;
+}
+
+body.web-report.theme-dark-glass .bg-white\/5 {
+    background-color: var(--bg-card) !important;
+}
+
+body.web-report.theme-dark-glass .bg-white\/10 {
+    background-color: var(--bg-hover) !important;
+}
+
+body.web-report.theme-dark-glass .bg-black\/20,
+body.web-report.theme-dark-glass .bg-black\/30 {
+    background-color: var(--bg-elevated) !important;
+}
+
+body.web-report.theme-dark-glass .border-white\/5 {
+    border-color: var(--border-subtle) !important;
+}
+
+body.web-report.theme-dark-glass .border-white\/10 {
+    border-color: var(--border-default) !important;
+}
+
+body.web-report.theme-dark-glass .border-white\/20 {
+    border-color: var(--border-hover) !important;
+}

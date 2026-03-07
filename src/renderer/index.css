@@ -689,8 +689,52 @@ body.theme-matte .app-shell {
     z-index: 1;
 }
 
+body.theme-dark-glass {
+    --bg-base: #101218;
+    --bg-elevated: rgba(30, 34, 45, 0.6);
+    --bg-card: rgba(255, 255, 255, 0.04);
+    --bg-hover: rgba(255, 255, 255, 0.08);
+    --bg-input: rgba(0, 0, 0, 0.5);
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border-default: rgba(255, 255, 255, 0.1);
+    --border-hover: rgba(255, 255, 255, 0.2);
+    /* Aurora palette: electric blue → teal → deep violet */
+    --arcbridge-gradient: linear-gradient(105deg, #1a73e8 0%, #00c4d4 50%, #673ab7 100%);
+    background: var(--bg-base);
+    color: var(--text-primary);
+}
+
+/* Wide atmospheric aurora across the top — inspired by Google's 2026 Winter Olympics dark page */
+body.theme-dark-glass .app-shell {
+    background-color: var(--bg-base) !important;
+    background-image:
+        /* Main sweep: electric blue core, left-of-centre */
+        radial-gradient(ellipse 85% 220px at 38% -40px,
+            rgba(26, 115, 232, 0.72) 0%,
+            rgba(66, 133, 244, 0.55) 28%,
+            rgba(103, 58, 183, 0.35) 52%,
+            rgba(94, 53, 177, 0.12) 70%,
+            transparent 88%),
+        /* Teal/cyan shimmer on the left shoulder */
+        radial-gradient(ellipse 55% 160px at 8% -20px,
+            rgba(0, 188, 212, 0.38) 0%,
+            rgba(26, 115, 232, 0.22) 45%,
+            transparent 78%),
+        /* Deep violet accent on the right */
+        radial-gradient(ellipse 48% 140px at 88% -15px,
+            rgba(94, 53, 177, 0.45) 0%,
+            rgba(138, 43, 226, 0.25) 45%,
+            transparent 80%),
+        /* Faint green-teal aurora shimmer centre-right */
+        radial-gradient(ellipse 35% 100px at 62% -5px,
+            rgba(0, 230, 195, 0.12) 0%,
+            transparent 70%) !important;
+}
+
 body.theme-matte .app-shell::before,
-body.theme-matte .app-shell::after {
+body.theme-matte .app-shell::after,
+body.theme-dark-glass .app-shell::before,
+body.theme-dark-glass .app-shell::after {
     display: none;
 }
 
@@ -711,8 +755,21 @@ body.theme-matte.web-report::before {
     display: none;
 }
 
-body.theme-matte .legacy-orb {
+body.theme-matte .legacy-orb,
+body.theme-dark-glass .legacy-orb {
     display: none;
+}
+
+body.theme-dark-glass .app-shell .bg-gradient-to-br,
+body.theme-dark-glass .app-shell .bg-gradient-to-r,
+body.theme-dark-glass .app-shell .bg-gradient-to-t {
+    background-image: none !important;
+    background-color: var(--bg-hover) !important;
+}
+
+/* Remove the downward nudge so numbers sit at true vertical center in the 2×2 KPI cards. */
+body.theme-dark-glass .uploader-kpi-card .translate-y-2 {
+    transform: translateY(0) !important;
 }
 
 body.theme-matte .app-shell .bg-white\/5 {
@@ -1882,13 +1939,13 @@ body:not(.web-report) .modal-pane.pb-10 {
 }
 
 /* Expanded section body should own the available height; no outer modal scrolling. */
-body:not(.web-report) .modal-pane > :not(:first-child) {
+body:not(.web-report) .modal-pane> :not(:first-child) {
     flex: 1 1 auto;
     min-height: 0;
 }
 
 /* Dense expanded layouts use a `flex-col gap-4` wrapper; make the table panel fill remainder. */
-body:not(.web-report) .modal-pane > .flex.flex-col.gap-4 > :last-child {
+body:not(.web-report) .modal-pane>.flex.flex-col.gap-4> :last-child {
     flex: 1 1 auto;
     min-height: 0;
 }
@@ -2294,15 +2351,15 @@ body.theme-matte .app-shell .stats-table-shell__head-stack {
     box-shadow: 0 8px 12px -10px var(--matte-dark) !important;
 }
 
-.app-shell .stats-table-shell__header > .bg-white\/5,
-.app-shell .stats-table-shell__columns > .bg-white\/5 {
+.app-shell .stats-table-shell__header>.bg-white\/5,
+.app-shell .stats-table-shell__columns>.bg-white\/5 {
     background-image: none !important;
     background-color: inherit !important;
     box-shadow: none !important;
 }
 
 /* Custom header rows inside the shared head stack should use the same surface color. */
-.stats-table-shell__head-stack > .bg-white\/5 {
+.stats-table-shell__head-stack>.bg-white\/5 {
     background-image: none !important;
     background-color: inherit !important;
     box-shadow: none !important;
@@ -2325,8 +2382,8 @@ body.theme-kinetic .app-shell .stats-table-shell__head-stack {
     box-shadow: none !important;
 }
 
-body.web-report .stats-table-shell__header > .bg-white\/5,
-body.web-report .stats-table-shell__columns > .bg-white\/5 {
+body.web-report .stats-table-shell__header>.bg-white\/5,
+body.web-report .stats-table-shell__columns>.bg-white\/5 {
     background-image: none !important;
     background-color: inherit !important;
     box-shadow: none !important;
@@ -2373,12 +2430,12 @@ body.theme-matte .stats-view .stats-table-shell__rows.flex-1 {
 }
 
 /* Match lighter web-report table row tone inside the app stats dashboard. */
-body.theme-modern .app-shell .stats-table-shell__rows > .grid {
+body.theme-modern .app-shell .stats-table-shell__rows>.grid {
     background-color: rgba(255, 255, 255, 0.03);
 }
 
 /* Keep sortable column header buttons as plain text in app stats dashboard. */
-.app-shell .stats-table-shell__columns > .grid button {
+.app-shell .stats-table-shell__columns>.grid button {
     border: 0 !important;
     box-shadow: none !important;
     background: transparent !important;
@@ -2411,12 +2468,12 @@ body.web-report .stats-table-shell__columns thead button:focus-visible {
 }
 
 /* Add subtle separation depth under the table column header row in app + web report. */
-.app-shell .stats-table-shell__columns > .grid.bg-white\/5,
-body.web-report .stats-table-shell__columns > .grid.bg-white\/5 {
+.app-shell .stats-table-shell__columns>.grid.bg-white\/5,
+body.web-report .stats-table-shell__columns>.grid.bg-white\/5 {
     box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.10), 0 12px 16px -10px rgba(0, 0, 0, 0.58) !important;
 }
 
-body.theme-kinetic .app-shell .stats-table-shell__columns > .grid.bg-white\/5 {
+body.theme-kinetic .app-shell .stats-table-shell__columns>.grid.bg-white\/5 {
     box-shadow: none !important;
     border-bottom: 1px solid var(--border-subtle) !important;
 }
@@ -3147,6 +3204,7 @@ body.theme-matte .whats-new-modal__scroll {
         opacity: 0;
         transform: translateY(8px);
     }
+
     100% {
         opacity: 1;
         transform: translateY(0);
@@ -3636,11 +3694,11 @@ body.theme-kinetic .dense-table__cell {
     border-bottom-color: var(--border-subtle) !important;
 }
 
-body.theme-kinetic .dense-table__row:nth-of-type(odd) > .dense-table__cell {
+body.theme-kinetic .dense-table__row:nth-of-type(odd)>.dense-table__cell {
     background: rgba(232, 223, 211, 0.78) !important;
 }
 
-body.theme-kinetic .dense-table__row:hover > .dense-table__cell {
+body.theme-kinetic .dense-table__row:hover>.dense-table__cell {
     background: rgba(226, 216, 203, 0.86) !important;
 }
 
@@ -4067,7 +4125,7 @@ body.theme-kinetic .skill-breakdown-tooltip .text-gray-200 {
     color: #3f372f !important;
 }
 
-body.theme-kinetic .count-class-tooltip .space-y-1 > div > span {
+body.theme-kinetic .count-class-tooltip .space-y-1>div>span {
     color: #3f372f !important;
 }
 
@@ -4695,11 +4753,11 @@ body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .dense-table__cell {
     background: rgba(78, 85, 95, 0.88) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .dense-table__row:nth-of-type(odd) > .dense-table__cell {
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .dense-table__row:nth-of-type(odd)>.dense-table__cell {
     background: rgba(72, 79, 88, 0.9) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .dense-table__row:hover > .dense-table__cell {
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .dense-table__row:hover>.dense-table__cell {
     background: rgba(90, 97, 108, 0.94) !important;
 }
 
@@ -4709,11 +4767,11 @@ body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .dense-table__cell--pi
     box-shadow: 4px 0 10px rgba(21, 24, 30, 0.34) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .dense-table__row:nth-of-type(odd) > .dense-table__cell--pinned {
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .dense-table__row:nth-of-type(odd)>.dense-table__cell--pinned {
     background: rgba(64, 70, 79, 0.96) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .dense-table__row:hover > .dense-table__cell--pinned {
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .dense-table__row:hover>.dense-table__cell--pinned {
     background: rgba(80, 87, 97, 0.98) !important;
 }
 
@@ -4736,12 +4794,12 @@ body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate #overview .overview-ca
     border-color: rgba(223, 189, 182, 0.34) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate #top-players > .grid:last-child > [role="button"] {
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate #top-players>.grid:last-child>[role="button"] {
     background-color: rgba(80, 87, 97, 0.54) !important;
     border-color: rgba(235, 198, 133, 0.24) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate #top-players > .grid:last-child > [role="button"]:hover {
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate #top-players>.grid:last-child>[role="button"]:hover {
     background-color: rgba(92, 100, 111, 0.68) !important;
 }
 
@@ -4862,8 +4920,8 @@ body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .dense-tab
     box-shadow: inset 0 0 0 1px rgba(224, 213, 194, 0.08), 0 0 0 1px rgba(21, 24, 30, 0.34) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .stats-table-layout__content > .stats-table-shell__rows,
-body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .stats-share-table > .stats-table-shell__rows {
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .stats-table-layout__content>.stats-table-shell__rows,
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .stats-share-table>.stats-table-shell__rows {
     background-color: rgba(60, 66, 75, 0.92) !important;
     border-top: 1px solid rgba(224, 213, 194, 0.12) !important;
 }
@@ -4881,7 +4939,7 @@ body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .dense-tab
 body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view th,
 body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate #attendance-ledger thead th,
 body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .stats-table-column-header,
-body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .stats-table-shell__columns > .grid,
+body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .stats-table-shell__columns>.grid,
 body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .dense-table__head-inner,
 body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .stats-table-shell__columns button,
 body.theme-kinetic.theme-kinetic-dark.theme-kinetic-slate .stats-view .stats-table-shell__columns thead button,
@@ -5166,31 +5224,31 @@ body.theme-kinetic .uploader-kpi-card {
     align-items: stretch !important;
 }
 
-body.theme-kinetic .uploader-kpi-card > div {
+body.theme-kinetic .uploader-kpi-card>div {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     height: 100%;
 }
 
-body.theme-kinetic .uploader-kpi-card > div.text-right {
+body.theme-kinetic .uploader-kpi-card>div.text-right {
     align-items: flex-end;
 }
 
-body.theme-kinetic .uploader-kpi-card > div > div:first-child {
+body.theme-kinetic .uploader-kpi-card>div>div:first-child {
     min-height: 14px;
     line-height: 1.1;
     display: flex;
     align-items: center;
 }
 
-body.theme-kinetic .uploader-kpi-card > div > div:nth-child(2) {
+body.theme-kinetic .uploader-kpi-card>div>div:nth-child(2) {
     min-height: 30px;
     display: flex;
     align-items: center;
 }
 
-body.theme-kinetic .uploader-kpi-card > div > div:last-child {
+body.theme-kinetic .uploader-kpi-card>div>div:last-child {
     min-height: 14px;
     line-height: 1.1;
     display: flex;
@@ -5236,10 +5294,10 @@ body.web-report.theme-kinetic.theme-kinetic-dark #attendance-ledger .bg-black\/3
     box-shadow: inset 0 0 0 1px rgba(236, 197, 132, 0.12), 0 0 0 1px rgba(22, 26, 41, 0.45) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-layout__content > .stats-table-shell__rows,
-body.theme-kinetic.theme-kinetic-dark .stats-view .stats-share-table > .stats-table-shell__rows,
-body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-layout__content > .stats-table-shell__rows,
-body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-share-table > .stats-table-shell__rows {
+body.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-layout__content>.stats-table-shell__rows,
+body.theme-kinetic.theme-kinetic-dark .stats-view .stats-share-table>.stats-table-shell__rows,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-layout__content>.stats-table-shell__rows,
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-share-table>.stats-table-shell__rows {
     border-top: 1px solid rgba(236, 197, 132, 0.16) !important;
 }
 
@@ -5274,11 +5332,11 @@ body.theme-kinetic.theme-kinetic-dark .dense-table__cell {
     border-bottom-color: rgba(226, 191, 136, 0.2) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark .dense-table__row:nth-of-type(odd) > .dense-table__cell {
+body.theme-kinetic.theme-kinetic-dark .dense-table__row:nth-of-type(odd)>.dense-table__cell {
     background: rgba(53, 61, 91, 0.9) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark .dense-table__row:hover > .dense-table__cell {
+body.theme-kinetic.theme-kinetic-dark .dense-table__row:hover>.dense-table__cell {
     background: rgba(70, 79, 116, 0.94) !important;
 }
 
@@ -5292,11 +5350,11 @@ body.theme-kinetic.theme-kinetic-dark .dense-table__cell--pinned {
     box-shadow: 4px 0 10px rgba(18, 22, 38, 0.45) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark .dense-table__row:nth-of-type(odd) > .dense-table__cell--pinned {
+body.theme-kinetic.theme-kinetic-dark .dense-table__row:nth-of-type(odd)>.dense-table__cell--pinned {
     background: rgba(46, 53, 79, 0.96) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark .dense-table__row:hover > .dense-table__cell--pinned {
+body.theme-kinetic.theme-kinetic-dark .dense-table__row:hover>.dense-table__cell--pinned {
     background: rgba(58, 66, 97, 0.98) !important;
 }
 
@@ -5471,7 +5529,7 @@ body.theme-kinetic.theme-kinetic-dark #top-skills-outgoing .top-skills-outgoing-
     color: #f0debe !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #defense-detailed > div:first-child h3 svg {
+body.theme-kinetic.theme-kinetic-dark #defense-detailed>div:first-child h3 svg {
     color: #f0debe !important;
 }
 
@@ -5635,48 +5693,48 @@ body.theme-kinetic.theme-kinetic-dark #overview .overview-card--red :is(.text-re
     color: #f0d9d3 !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > h3 svg {
+body.theme-kinetic.theme-kinetic-dark #top-players>h3 svg {
     color: #f2cd8a !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child > [role="button"] {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child>[role="button"] {
     background-color: rgba(58, 66, 98, 0.54) !important;
     border-color: rgba(235, 198, 133, 0.28) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child > [role="button"]:hover {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child>[role="button"]:hover {
     background-color: rgba(66, 75, 111, 0.68) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-red-500\/20"] {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child [class*="bg-red-500\/20"] {
     background-color: rgba(163, 88, 87, 0.36) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-yellow-500\/20"] {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child [class*="bg-yellow-500\/20"] {
     background-color: rgba(178, 142, 86, 0.36) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-green-500\/20"] {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child [class*="bg-green-500\/20"] {
     background-color: rgba(92, 150, 121, 0.34) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-cyan-500\/20"] {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child [class*="bg-cyan-500\/20"] {
     background-color: rgba(93, 146, 162, 0.34) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-blue-500\/20"] {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child [class*="bg-blue-500\/20"] {
     background-color: rgba(91, 121, 170, 0.34) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-purple-500\/20"] {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child [class*="bg-purple-500\/20"] {
     background-color: rgba(124, 103, 171, 0.34) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-pink-500\/20"] {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child [class*="bg-pink-500\/20"] {
     background-color: rgba(164, 106, 145, 0.34) !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child [class*="bg-indigo-500\/20"] {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child [class*="bg-indigo-500\/20"] {
     background-color: rgba(108, 116, 176, 0.34) !important;
 }
 
@@ -5692,47 +5750,49 @@ body.web-report #top-players .mvp-gold-icon-badge {
         font-size: 0.65rem !important;
         line-height: 1.15 !important;
     }
+
     body.web-report #top-players .mvp-stat-pill--gold {
         min-height: 1.45rem !important;
     }
+
     body.web-report #top-players .mvp-stat-pill--minor {
         min-height: 1.35rem !important;
     }
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-red-400 {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child .text-red-400 {
     color: #f3b8ae !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-yellow-400 {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child .text-yellow-400 {
     color: #f0d597 !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-green-400 {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child .text-green-400 {
     color: #b9e5c9 !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-cyan-400 {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child .text-cyan-400 {
     color: #b9deeb !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-blue-400 {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child .text-blue-400 {
     color: #b7caec !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-purple-400 {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child .text-purple-400 {
     color: #cabce8 !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-pink-400 {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child .text-pink-400 {
     color: #e4bfd6 !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-indigo-400 {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child .text-indigo-400 {
     color: #bec6ee !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #top-players > .grid:last-child .text-blue-300 {
+body.theme-kinetic.theme-kinetic-dark #top-players>.grid:last-child .text-blue-300 {
     color: #d5e4ff !important;
 }
 
@@ -5886,9 +5946,9 @@ body.theme-kinetic.theme-kinetic-dark .stats-view .dense-table__head--pinned,
 body.theme-kinetic.theme-kinetic-dark .stats-view th,
 body.theme-kinetic.theme-kinetic-dark #attendance-ledger thead th,
 body.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-column-header,
-body.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-shell__columns > .grid,
+body.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-shell__columns>.grid,
 body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-column-header,
-body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-shell__columns > .grid {
+body.web-report.theme-kinetic.theme-kinetic-dark .stats-view .stats-table-shell__columns>.grid {
     color: #d6e2ff !important;
 }
 
@@ -5951,32 +6011,32 @@ body.web-report.theme-kinetic.theme-kinetic-dark #damage-breakdown .text-sky-200
     color: #e8efff !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #healing-stats > div:first-child h3 svg,
-body.web-report.theme-kinetic.theme-kinetic-dark #healing-stats > div:first-child h3 svg,
+body.theme-kinetic.theme-kinetic-dark #healing-stats>div:first-child h3 svg,
+body.web-report.theme-kinetic.theme-kinetic-dark #healing-stats>div:first-child h3 svg,
 body.theme-kinetic.theme-kinetic-dark #healing-stats .text-lime-300,
 body.web-report.theme-kinetic.theme-kinetic-dark #healing-stats .text-lime-300 {
     color: #f0debe !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #heal-effectiveness > div:first-child h3 svg,
-body.web-report.theme-kinetic.theme-kinetic-dark #heal-effectiveness > div:first-child h3 svg {
+body.theme-kinetic.theme-kinetic-dark #heal-effectiveness>div:first-child h3 svg,
+body.web-report.theme-kinetic.theme-kinetic-dark #heal-effectiveness>div:first-child h3 svg {
     color: inherit !important;
 }
 
-body.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime > div:first-child h3 svg,
-body.web-report.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime > div:first-child h3 svg,
+body.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime>div:first-child h3 svg,
+body.web-report.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime>div:first-child h3 svg,
 body.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime .text-fuchsia-300,
 body.web-report.theme-kinetic.theme-kinetic-dark #sigil-relic-uptime .text-fuchsia-300 {
     color: #f0debe !important;
 }
 
 /* Dashboard side layout: modern/kinetic stats tiles need a compact grid in the side rail. */
-.dashboard-stats-side-rail .matte-tiles-shell > .grid.grid-cols-4 {
+.dashboard-stats-side-rail .matte-tiles-shell>.grid.grid-cols-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
 
 @media (max-width: 639px) {
-    .dashboard-stats-side-rail .matte-tiles-shell > .grid.grid-cols-4 {
+    .dashboard-stats-side-rail .matte-tiles-shell>.grid.grid-cols-4 {
         grid-template-columns: minmax(0, 1fr) !important;
     }
 }
