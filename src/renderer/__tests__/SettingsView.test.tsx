@@ -423,9 +423,8 @@ describe('SettingsView', () => {
             fireEvent.click(screen.getByText('Enemy Summary'));
 
             await waitFor(() => {
-                const lastCall = (mock.saveSettings.mock.calls as any[]).findLast((c) =>
-                    c[0]?.embedStatSettings !== undefined
-                );
+                const calls = mock.saveSettings.mock.calls as any[];
+                const lastCall = [...calls].reverse().find((c) => c[0]?.embedStatSettings !== undefined);
                 expect(lastCall?.[0]?.embedStatSettings).toMatchObject({ showEnemySummary: true });
             }, { timeout: 1000 });
         });
