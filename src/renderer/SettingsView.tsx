@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown } from 'lucide-react';
 import { DashboardLayout, IEmbedStatSettings, DEFAULT_DASHBOARD_LAYOUT, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, UiTheme, DEFAULT_UI_THEME, KineticFontStyle, DEFAULT_KINETIC_FONT_STYLE, KineticThemeVariant, DEFAULT_KINETIC_THEME_VARIANT, normalizeMvpWeights } from './global.d';
@@ -9,6 +9,106 @@ import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
 import { HowToModal } from './HowToModal';
 import { ProofOfWorkModal } from './ui/ProofOfWorkModal';
+
+// Pure helpers — defined outside the component so they are never recreated on re-render.
+// Exported so they can be unit-tested independently.
+
+export function normalizeKineticThemeVariant(value: unknown): KineticThemeVariant {
+    if (value === 'midnight' || value === 'slate') return value;
+    return DEFAULT_KINETIC_THEME_VARIANT;
+}
+
+export function getKineticThemeIdForVariant(variant: KineticThemeVariant): string {
+    if (variant === 'midnight') return KINETIC_DARK_WEB_THEME_ID;
+    if (variant === 'slate') return KINETIC_SLATE_WEB_THEME_ID;
+    return KINETIC_WEB_THEME_ID;
+}
+
+export function inferKineticThemeVariantFromThemeId(themeId: unknown): KineticThemeVariant {
+    if (themeId === KINETIC_DARK_WEB_THEME_ID) return 'midnight';
+    if (themeId === KINETIC_SLATE_WEB_THEME_ID) return 'slate';
+    return 'light';
+}
+
+export function isKineticWebThemeId(themeId: unknown): boolean {
+    return themeId === KINETIC_WEB_THEME_ID
+        || themeId === KINETIC_DARK_WEB_THEME_ID
+        || themeId === KINETIC_SLATE_WEB_THEME_ID;
+}
+
+export function slugifyHeading(label: string) {
+    return label
+        .toLowerCase()
+        .trim()
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+}
+
+export function extractHeadingText(node: React.ReactNode): string {
+    if (typeof node === 'string' || typeof node === 'number') return String(node);
+    if (Array.isArray(node)) return node.map(extractHeadingText).join('');
+    if (node && typeof node === 'object' && 'props' in node) {
+        return extractHeadingText((node as any).props?.children);
+    }
+    return '';
+}
+
+export function validateRepoName(value: string): string | null {
+    if (!value) return 'Repository name is required.';
+    if (!/^[A-Za-z0-9._-]+$/.test(value)) return 'Use letters, numbers, ., _, or - only.';
+    if (value.startsWith('.') || value.endsWith('.')) return 'Name cannot start or end with a dot.';
+    if (value.endsWith('.git')) return 'Name cannot end with .git.';
+    return null;
+}
+
+export function formatWeight(value: number) { return value.toFixed(2); }
+
+// Static data — defined outside so they are never recreated on re-render
+
+const SETTINGS_SECTIONS = [
+    { id: 'appearance', label: 'Appearance' },
+    { id: 'dps-token', label: 'dps.report Token' },
+    { id: 'github-pages', label: 'GitHub Pages' },
+    { id: 'embed-summary', label: 'Embed Summary' },
+    { id: 'embed-top', label: 'Embed Top Stats' },
+    { id: 'help-updates', label: 'Help & Updates' },
+    { id: 'dashboard-stats', label: 'Dashboard Stats' },
+    { id: 'mvp-weighting', label: 'MVP Weighting' },
+    { id: 'close-behavior', label: 'Close Behavior' },
+    { id: 'export-import', label: 'Export / Import' },
+    { id: 'legal', label: 'Legal' }
+];
+
+const IMPORT_SETTING_META: Array<{ key: string; label: string; description: string; section: string }> = [
+    { key: 'logDirectory', label: 'Log Directory', description: 'Path to the ArcDPS log folder.', section: 'Logs & Uploads' },
+    { key: 'dpsReportToken', label: 'dps.report Token', description: 'User token for uploads.', section: 'Logs & Uploads' },
+    { key: 'discordNotificationType', label: 'Discord Post Type', description: 'Image vs embed post format.', section: 'Discord' },
+    { key: 'discordEnemySplitSettings', label: 'Discord Team Split', description: 'Split enemy sections by Team ID.', section: 'Discord' },
+    { key: 'discordSplitEnemiesByTeam', label: 'Split Enemies by Team', description: 'Single toggle for all Discord notification types.', section: 'Discord' },
+    { key: 'discordWebhookUrl', label: 'Discord Webhook URL', description: 'Legacy single webhook URL.', section: 'Discord' },
+    { key: 'webhooks', label: 'Webhook List', description: 'Saved webhook entries.', section: 'Discord' },
+    { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
+    { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
+    { key: 'uiTheme', label: 'UI Theme', description: 'Classic, Modern Slate, Matte Slate, Kinetic Paper, or CRT Hacker theme.', section: 'App' },
+    { key: 'dashboardLayout', label: 'Dashboard Layout', description: 'Place upload stats at the top or in the side rail.', section: 'App' },
+    { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
+    { key: 'mvpWeights', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
+    { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
+    { key: 'disruptionMethod', label: 'CC/Strip Method', description: 'Count, duration, or tiered.', section: 'Stats' },
+    { key: 'kineticFontStyle', label: 'Kinetic Font Style', description: 'Use kinetic default font or original app font.', section: 'App' },
+    { key: 'kineticThemeVariant', label: 'Kinetic Theme Variant', description: 'Light, Midnight, or Slate for Kinetic.', section: 'App' },
+    { key: 'githubRepoOwner', label: 'GitHub Owner', description: 'GitHub Pages owner/org.', section: 'GitHub' },
+    { key: 'githubRepoName', label: 'GitHub Repo', description: 'GitHub Pages repository.', section: 'GitHub' },
+    { key: 'githubBranch', label: 'GitHub Branch', description: 'Branch for web uploads.', section: 'GitHub' },
+    { key: 'githubPagesBaseUrl', label: 'GitHub Pages URL', description: 'Base URL for hosted reports.', section: 'GitHub' },
+    { key: 'githubToken', label: 'GitHub Token', description: 'Token used for uploads.', section: 'GitHub' },
+    { key: 'githubWebTheme', label: 'Web Theme', description: 'Theme for hosted reports.', section: 'GitHub' },
+    { key: 'githubLogoPath', label: 'Web Logo', description: 'Logo path used for reports.', section: 'GitHub' },
+    { key: 'githubFavoriteRepos', label: 'Favorite Repos', description: 'Pinned repos list.', section: 'GitHub' }
+];
 
 interface SettingsViewProps {
     onBack: () => void;
@@ -29,8 +129,10 @@ interface SettingsViewProps {
     developerSettingsTrigger?: number;
 }
 
-// Toggle switch component
-function Toggle({ enabled, onChange, label, description }: {
+// Toggle switch component — memoized with a custom comparator that ignores onChange reference
+// changes. All onChange handlers use functional state updaters (setX(prev => ...)) so calling
+// a slightly older reference is always safe, and this prevents ~20 re-renders per state change.
+const Toggle = memo(function Toggle({ enabled, onChange, label, description }: {
     enabled: boolean;
     onChange: (value: boolean) => void;
     label: string;
@@ -60,7 +162,11 @@ function Toggle({ enabled, onChange, label, description }: {
             </div>
         </div>
     );
-}
+}, (prev, next) =>
+    prev.enabled === next.enabled &&
+    prev.label === next.label &&
+    prev.description === next.description
+);
 
 // Section component for grouping settings
 function SettingsSection({ title, icon: Icon, children, delay = 0, action, sectionId }: {
@@ -96,25 +202,6 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
 }
 
 export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, onKineticFontStyleSaved, onKineticThemeVariantSaved, onDashboardLayoutSaved, dashboardLayout: dashboardLayoutProp, onGithubWebThemeSaved, developerSettingsTrigger }: SettingsViewProps) {
-    const normalizeKineticThemeVariant = (value: unknown): KineticThemeVariant => {
-        if (value === 'midnight' || value === 'slate') return value;
-        return DEFAULT_KINETIC_THEME_VARIANT;
-    };
-    const getKineticThemeIdForVariant = (variant: KineticThemeVariant): string => {
-        if (variant === 'midnight') return KINETIC_DARK_WEB_THEME_ID;
-        if (variant === 'slate') return KINETIC_SLATE_WEB_THEME_ID;
-        return KINETIC_WEB_THEME_ID;
-    };
-    const inferKineticThemeVariantFromThemeId = (themeId: unknown): KineticThemeVariant => {
-        if (themeId === KINETIC_DARK_WEB_THEME_ID) return 'midnight';
-        if (themeId === KINETIC_SLATE_WEB_THEME_ID) return 'slate';
-        return 'light';
-    };
-    const isKineticWebThemeId = (themeId: unknown): boolean => {
-        return themeId === KINETIC_WEB_THEME_ID
-            || themeId === KINETIC_DARK_WEB_THEME_ID
-            || themeId === KINETIC_SLATE_WEB_THEME_ID;
-    };
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
@@ -187,7 +274,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [activeMetricsSpecHeadingId, setActiveMetricsSpecHeadingId] = useState('');
     const metricsSpecSearchRef = useRef<HTMLDivElement | null>(null);
     const metricsSpecHighlightRef = useRef<number | null>(null);
-    const [activeSettingsSectionId, setActiveSettingsSectionId] = useState('appearance');
+    const activeSettingsSectionIdRef = useRef('appearance');
+    const mobileNavLabelRef = useRef<HTMLSpanElement | null>(null);
     const lastDevSettingsTriggerRef = useRef<number>(developerSettingsTrigger || 0);
     const settingsScrollRef = useRef<HTMLDivElement | null>(null);
     const helpUpdatesRef = useRef<HTMLDivElement | null>(null);
@@ -217,23 +305,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
 
     const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
-    const extractHeadingText = (node: React.ReactNode): string => {
-        if (typeof node === 'string' || typeof node === 'number') return String(node);
-        if (Array.isArray(node)) return node.map(extractHeadingText).join('');
-        if (node && typeof node === 'object' && 'props' in node) {
-            return extractHeadingText((node as any).props?.children);
-        }
-        return '';
-    };
-    const slugifyHeading = (label: string) =>
-        label
-            .toLowerCase()
-            .trim()
-            .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-            .replace(/`([^`]+)`/g, '$1')
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-');
 
     const buildHeadingId = (label: string) => {
         const key = slugifyHeading(label || 'section') || 'section';
@@ -569,15 +640,32 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     bestId = section.id;
                 }
             });
-            setActiveSettingsSectionId(bestId);
+            if (bestId === activeSettingsSectionIdRef.current) return;
+            activeSettingsSectionIdRef.current = bestId;
+            // Update nav item classes directly — avoids re-rendering the entire SettingsView on scroll
+            container.ownerDocument.querySelectorAll<HTMLElement>('[data-settings-nav-id]').forEach((el) => {
+                const isNowActive = el.dataset.settingsNavId === bestId;
+                el.classList.toggle('text-white', isNowActive);
+                el.classList.toggle('text-gray-400', !isNowActive);
+            });
+            // Update mobile section label directly
+            if (mobileNavLabelRef.current) {
+                mobileNavLabelRef.current.textContent = SETTINGS_SECTIONS.find(s => s.id === bestId)?.label ?? 'Settings';
+            }
         };
 
         updateActiveSection();
-        container.addEventListener('scroll', updateActiveSection);
-        window.addEventListener('resize', updateActiveSection);
+        let scrollRaf = 0;
+        const onScrollOrResize = () => {
+            if (scrollRaf) cancelAnimationFrame(scrollRaf);
+            scrollRaf = requestAnimationFrame(updateActiveSection);
+        };
+        container.addEventListener('scroll', onScrollOrResize, { passive: true });
+        window.addEventListener('resize', onScrollOrResize);
         return () => {
-            container.removeEventListener('scroll', updateActiveSection);
-            window.removeEventListener('resize', updateActiveSection);
+            if (scrollRaf) cancelAnimationFrame(scrollRaf);
+            container.removeEventListener('scroll', onScrollOrResize);
+            window.removeEventListener('resize', onScrollOrResize);
         };
     }, []);
 
@@ -612,7 +700,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             return;
         }
         const selections: Record<string, boolean> = {};
-        const allowedKeys = new Set(importSettingMeta.map((item) => item.key));
+        const allowedKeys = new Set(IMPORT_SETTING_META.map((item) => item.key));
         Object.keys(result.settings).forEach((key) => {
             if (allowedKeys.has(key)) selections[key] = true;
         });
@@ -711,20 +799,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         setImportSelections((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const settingsSections = [
-        { id: 'appearance', label: 'Appearance' },
-        { id: 'dps-token', label: 'dps.report Token' },
-        { id: 'github-pages', label: 'GitHub Pages' },
-        { id: 'embed-summary', label: 'Embed Summary' },
-        { id: 'embed-top', label: 'Embed Top Stats' },
-        { id: 'help-updates', label: 'Help & Updates' },
-        { id: 'dashboard-stats', label: 'Dashboard Stats' },
-        { id: 'mvp-weighting', label: 'MVP Weighting' },
-        { id: 'close-behavior', label: 'Close Behavior' },
-        { id: 'export-import', label: 'Export / Import' },
-        { id: 'legal', label: 'Legal' }
-    ];
-
     const scrollToSettingsSection = (id: string) => {
         const container = settingsScrollRef.current;
         if (!container) return;
@@ -737,42 +811,15 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     };
 
     const stepSettingsSection = (direction: -1 | 1) => {
-        const index = settingsSections.findIndex((section) => section.id === activeSettingsSectionId);
+        const index = SETTINGS_SECTIONS.findIndex((section) => section.id === activeSettingsSectionIdRef.current);
         if (index === -1) return;
-        const nextIndex = Math.min(settingsSections.length - 1, Math.max(0, index + direction));
-        const next = settingsSections[nextIndex];
+        const nextIndex = Math.min(SETTINGS_SECTIONS.length - 1, Math.max(0, index + direction));
+        const next = SETTINGS_SECTIONS[nextIndex];
         if (next) {
             scrollToSettingsSection(next.id);
         }
     };
 
-    const importSettingMeta: Array<{ key: string; label: string; description: string; section: string }> = [
-        { key: 'logDirectory', label: 'Log Directory', description: 'Path to the ArcDPS log folder.', section: 'Logs & Uploads' },
-        { key: 'dpsReportToken', label: 'dps.report Token', description: 'User token for uploads.', section: 'Logs & Uploads' },
-        { key: 'discordNotificationType', label: 'Discord Post Type', description: 'Image vs embed post format.', section: 'Discord' },
-        { key: 'discordEnemySplitSettings', label: 'Discord Team Split', description: 'Split enemy sections by Team ID.', section: 'Discord' },
-        { key: 'discordSplitEnemiesByTeam', label: 'Split Enemies by Team', description: 'Single toggle for all Discord notification types.', section: 'Discord' },
-        { key: 'discordWebhookUrl', label: 'Discord Webhook URL', description: 'Legacy single webhook URL.', section: 'Discord' },
-        { key: 'webhooks', label: 'Webhook List', description: 'Saved webhook entries.', section: 'Discord' },
-        { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
-        { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
-        { key: 'uiTheme', label: 'UI Theme', description: 'Classic, Modern Slate, Matte Slate, Kinetic Paper, or CRT Hacker theme.', section: 'App' },
-        { key: 'dashboardLayout', label: 'Dashboard Layout', description: 'Place upload stats at the top or in the side rail.', section: 'App' },
-        { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
-        { key: 'mvpWeights', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
-        { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
-        { key: 'disruptionMethod', label: 'CC/Strip Method', description: 'Count, duration, or tiered.', section: 'Stats' },
-        { key: 'kineticFontStyle', label: 'Kinetic Font Style', description: 'Use kinetic default font or original app font.', section: 'App' },
-        { key: 'kineticThemeVariant', label: 'Kinetic Theme Variant', description: 'Light, Midnight, or Slate for Kinetic.', section: 'App' },
-        { key: 'githubRepoOwner', label: 'GitHub Owner', description: 'GitHub Pages owner/org.', section: 'GitHub' },
-        { key: 'githubRepoName', label: 'GitHub Repo', description: 'GitHub Pages repository.', section: 'GitHub' },
-        { key: 'githubBranch', label: 'GitHub Branch', description: 'Branch for web uploads.', section: 'GitHub' },
-        { key: 'githubPagesBaseUrl', label: 'GitHub Pages URL', description: 'Base URL for hosted reports.', section: 'GitHub' },
-        { key: 'githubToken', label: 'GitHub Token', description: 'Token used for uploads.', section: 'GitHub' },
-        { key: 'githubWebTheme', label: 'Web Theme', description: 'Theme for hosted reports.', section: 'GitHub' },
-        { key: 'githubLogoPath', label: 'Web Logo', description: 'Logo path used for reports.', section: 'GitHub' },
-        { key: 'githubFavoriteRepos', label: 'Favorite Repos', description: 'Pinned repos list.', section: 'GitHub' }
-    ];
 
     const saveSettings = () => {
         setIsSaving(true);
@@ -1198,45 +1245,37 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         return () => clearTimeout(timeout);
     }, [githubLogoPath, githubAuthStatus, githubRepoName, githubToken, hasLoaded]);
 
-    const validateRepoName = (value: string) => {
-        if (!value) return 'Repository name is required.';
-        if (!/^[A-Za-z0-9._-]+$/.test(value)) return 'Use letters, numbers, ., _, or - only.';
-        if (value.startsWith('.') || value.endsWith('.')) return 'Name cannot start or end with a dot.';
-        if (value.endsWith('.git')) return 'Name cannot end with .git.';
-        return null;
-    };
-
-    const updateEmbedStat = (key: keyof IEmbedStatSettings, value: boolean) => {
+    // Stable callbacks — useCallback with [] is safe here because all updaters use the
+    // functional form (setX(prev => ...)) which never captures stale state.
+    const updateEmbedStat = useCallback((key: keyof IEmbedStatSettings, value: boolean) => {
         setEmbedStats(prev => ({ ...prev, [key]: value }));
-    };
+    }, []);
 
-    const updateStatsViewSetting = (key: keyof IStatsViewSettings, value: boolean) => {
+    const updateStatsViewSetting = useCallback((key: keyof IStatsViewSettings, value: boolean) => {
         setStatsViewSettings(prev => ({ ...prev, [key]: value }));
-    };
+    }, []);
 
-    const updateStatsViewSettingValue = <K extends keyof IStatsViewSettings>(key: K, value: IStatsViewSettings[K]) => {
+    const updateStatsViewSettingValue = useCallback((key: keyof IStatsViewSettings, value: IStatsViewSettings[keyof IStatsViewSettings]) => {
         setStatsViewSettings(prev => ({ ...prev, [key]: value }));
-    };
+    }, []);
 
-    const updateTopStatsMode = (mode: IStatsViewSettings['topStatsMode']) => {
+    const updateTopStatsMode = useCallback((mode: IStatsViewSettings['topStatsMode']) => {
         setStatsViewSettings(prev => ({ ...prev, topStatsMode: mode }));
-    };
+    }, []);
 
-    const updateMaxTopRows = (value: number) => {
+    const updateMaxTopRows = useCallback((value: number) => {
         const clamped = Math.min(10, Math.max(1, Math.floor(value)));
         setEmbedStats(prev => ({ ...prev, maxTopListRows: clamped }));
-    };
+    }, []);
 
-    const updateMvpWeight = (key: keyof IMvpWeights, value: number) => {
+    const updateMvpWeight = useCallback((key: keyof IMvpWeights, value: number) => {
         const clamped = Math.min(1, Math.max(0, Math.round(value / 0.05) * 0.05));
         setMvpWeights(prev => ({ ...prev, [key]: clamped }));
-    };
+    }, []);
 
-    const formatWeight = (value: number) => value.toFixed(2);
-
-    const updateClassDisplay = (value: IEmbedStatSettings['classDisplay']) => {
+    const updateClassDisplay = useCallback((value: IEmbedStatSettings['classDisplay']) => {
         setEmbedStats(prev => ({ ...prev, classDisplay: value }));
-    };
+    }, []);
 
     const handleGithubConnect = async () => {
         if (!window.electronAPI?.startGithubOAuth) {
@@ -1260,7 +1299,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     };
 
     // Helper to enable/disable all stats in a category
-    const setAllTopLists = (enabled: boolean) => {
+    const setAllTopLists = useCallback((enabled: boolean) => {
         setEmbedStats(prev => ({
             ...prev,
             showDamage: enabled,
@@ -1280,7 +1319,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             showDeaths: enabled,
             showDodges: enabled,
         }));
-    };
+    }, []);
 
     const allTopListsEnabled = embedStats.showDamage && embedStats.showDownContribution &&
         embedStats.showHealing && embedStats.showBarrier && embedStats.showCleanses &&
@@ -1361,16 +1400,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <div className="rounded-2xl border border-white/10 bg-white/5 p-3 flex-1 min-h-0">
                             <div className="text-[11px] uppercase tracking-[0.25em] text-gray-500 mb-2">Sections</div>
                             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
-                                {settingsSections.map((item, index) => {
-                                    const isActive = item.id === activeSettingsSectionId;
+                                {SETTINGS_SECTIONS.map((item, index) => {
                                     return (
                                         <button
                                             key={item.id}
+                                            data-settings-nav-id={item.id}
                                             onClick={() => scrollToSettingsSection(item.id)}
-                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden ${isActive
-                                                ? 'text-white'
-                                                : 'text-gray-400'
-                                                }`}
+                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden text-gray-400`}
                                         >
                                             <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
                                                 {index + 1}
@@ -2641,8 +2677,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         onClick={() => setSettingsNavOpen((open) => !open)}
                         className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200 flex-1 justify-between"
                     >
-                        <span className="truncate max-w-[160px]">
-                            {settingsSections.find((item) => item.id === activeSettingsSectionId)?.label || 'Settings'}
+                        <span ref={mobileNavLabelRef} className="truncate max-w-[160px]">
+                            {SETTINGS_SECTIONS[0].label}
                         </span>
                         <ChevronDown className={`w-4 h-4 text-[color:var(--accent)] transition-transform ${settingsNavOpen ? 'rotate-180' : ''}`} />
                     </button>
@@ -2676,22 +2712,19 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </button>
                         </div>
                         <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 pb-4">
-                            {settingsSections.map((item) => {
-                                const isActive = item.id === activeSettingsSectionId;
+                            {SETTINGS_SECTIONS.map((item) => {
                                 return (
                                     <button
                                         key={item.id}
+                                        data-settings-nav-id={item.id}
                                         onClick={() => {
                                             scrollToSettingsSection(item.id);
                                             setSettingsNavOpen(false);
                                         }}
-                                        className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden ${isActive
-                                            ? 'text-white'
-                                            : 'text-gray-400'
-                                            }`}
+                                        className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden text-gray-400`}
                                     >
                                         <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
-                                            {settingsSections.findIndex((section) => section.id === item.id) + 1}
+                                            {SETTINGS_SECTIONS.findIndex((section) => section.id === item.id) + 1}
                                         </span>
                                         <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{item.label}</span>
                                     </button>
@@ -2725,7 +2758,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
                             <div className="max-h-[60vh] overflow-y-auto px-6 py-4 space-y-1">
                                 {(() => {
-                                    const items = importSettingMeta.filter((item) =>
+                                    const items = IMPORT_SETTING_META.filter((item) =>
                                         importPreviewSettings && Object.prototype.hasOwnProperty.call(importPreviewSettings, item.key)
                                     );
                                     const sections = Array.from(new Set(items.map((item) => item.section)));
