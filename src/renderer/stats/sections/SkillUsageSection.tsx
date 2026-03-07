@@ -74,6 +74,8 @@ export const SkillUsageSection = ({
     formatSkillUsageValue
 }: SkillUsageSectionProps) => {
     const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, renderProfessionIcon } = useStatsSharedContext();
+    const allPlayerKeys = groupedSkillUsagePlayers.flatMap((group) => group.players.map((player) => player.key));
+    const hasAllPlayersSelected = allPlayerKeys.length > 0 && allPlayerKeys.every((key) => selectedPlayers.includes(key));
     return (
     <div
         id="skill-usage"
@@ -122,11 +124,11 @@ export const SkillUsageSection = ({
             </div>
         </div>
         {selectedPlayers.length > 0 && (
-            <div className="flex items-center gap-2 pb-2 overflow-x-auto pr-1 -mx-1 px-1">
+            <div className="flex flex-wrap items-center gap-2 pb-2 pr-1">
                 <button
                     type="button"
                     onClick={() => setSelectedPlayers([])}
-                    className="shrink-0 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-[10px] uppercase tracking-widest text-gray-300 hover:text-white"
+                    className="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-[10px] uppercase tracking-widest text-gray-300 hover:text-white"
                 >
                     Clear All
                 </button>
@@ -134,7 +136,7 @@ export const SkillUsageSection = ({
                     const player = playerMapByKey.get(playerKey);
                     if (!player) return null;
                     return (
-                        <span key={player.key} className="flex items-center gap-1 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-200 shrink-0">
+                        <span key={player.key} className="max-w-full flex items-center gap-1 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-200">
                             <span className="truncate max-w-[140px]">{player.displayName}</span>
                             <span className="text-[10px] text-cyan-200/70">{player.logs} {player.logs === 1 ? 'log' : 'logs'}</span>
                             <button type="button" onClick={() => removeSelectedPlayer(player.key)} className="rounded-full p-1 text-cyan-200 hover:bg-white/20">
@@ -147,8 +149,27 @@ export const SkillUsageSection = ({
         )}
         <div className="grid gap-4 lg:grid-cols-2 items-stretch">
             <div className="space-y-2 flex flex-col h-[320px]">
-                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">
-                    Squad Players
+                <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">
+                        Squad Players
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setSelectedPlayers((prev) => {
+                                if (hasAllPlayersSelected) {
+                                    return prev.filter((key) => !allPlayerKeys.includes(key));
+                                }
+                                const next = new Set(prev);
+                                allPlayerKeys.forEach((key) => next.add(key));
+                                return Array.from(next);
+                            });
+                        }}
+                        disabled={allPlayerKeys.length === 0}
+                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border border-white/10 bg-white/5 text-[10px] uppercase tracking-widest text-gray-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {hasAllPlayersSelected ? 'Clear All' : 'Select All'}
+                    </button>
                 </div>
                 <input
                     type="search"
