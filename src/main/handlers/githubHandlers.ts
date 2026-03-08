@@ -609,6 +609,7 @@ const refreshDevWebTemplate = (templateDir: string, webRoot: string) => {
     });
     copyDir(templateDir, webRoot);
     ensureWebRootIndex(webRoot);
+    ensureDevWebIndex(webRoot);
 };
 
 const ensureDevWebIndex = (webRoot: string) => {
