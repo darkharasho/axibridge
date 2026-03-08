@@ -60,7 +60,6 @@ const EXPECTED_THEMES = [
     'theme-dark-glass',
 ] as const;
 
-type Theme = (typeof EXPECTED_THEMES)[number];
 
 interface CssRule {
     selector: string;
