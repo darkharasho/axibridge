@@ -1,21 +1,12 @@
 # Release Notes
 
-Version v1.40.12 — March 7, 2026
+Version v1.40.13 — March 7, 2026
 
-## SettingsView: faster last-call data
-- The last-call data fetch in SettingsView was cleaned up to load faster and be more reliable.
-- You’ll still see the same info, but it should feel snappier and less flaky.
+## Dark Glass theme
+- Adds a new Dark Glass theme with an aurora background and refreshed layout.
+- Web reports now stay in sync with the app theme for a consistent look across both interfaces.
 
-NOTE: This is mainly internal cleanup with user-facing speed and reliability benefits.
-
-## Asset and UI visuals
-- Front-end bundles were refreshed and a new gradient image was added to keep visuals in sync with the code changes.
-- These asset updates help keep the UI stable after the changes under the hood.
-
-## Tests and stability
-- Added comprehensive tests for SettingsView and related utilities to catch edge cases earlier.
-- This should translate to fewer surprises when you update or tweak settings in the future.
-
-## QoL Improvements
-- Small polish in the SettingsView code paths aims for more consistent behavior across sessions.
-- The broader test coverage and asset refresh reduce chances of flaky UI in edge cases.
+## Fixes
+- Keeps web/index.html stable after dev upload to prevent flaky pages.
+- Resolves CSS drift for pill-toggle tabs across matte and modern themes.
+NOTE: These fixes improve stability and keep UI aligned after updates.
