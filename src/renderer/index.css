@@ -453,6 +453,21 @@ body.theme-modern .stats-view .mvp-card--bronze {
     box-shadow: none;
 }
 
+/* Shared between app and web: gradient and semantic border colours in stats-view */
+body.theme-modern .stats-view .bg-gradient-to-br {
+    background-image: linear-gradient(135deg, rgba(24, 30, 39, 0.92), rgba(32, 40, 52, 0.88)) !important;
+}
+
+body.theme-modern .stats-view .border-green-500\/30,
+body.theme-modern .stats-view .border-green-500\/40 {
+    border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+body.theme-modern .stats-view .border-red-500\/30,
+body.theme-modern .stats-view .border-red-500\/40 {
+    border-color: rgba(248, 113, 113, 0.32) !important;
+}
+
 body.theme-modern .stats-layout-modern {
     grid-template-columns: 1fr !important;
 }
@@ -770,6 +785,46 @@ body.theme-dark-glass .app-shell .bg-gradient-to-t {
 /* Remove the downward nudge so numbers sit at true vertical center in the 2×2 KPI cards. */
 body.theme-dark-glass .uploader-kpi-card .translate-y-2 {
     transform: translateY(0) !important;
+}
+
+/* Shared stats-view component rules for dark-glass — kept in index.css so both
+   the Electron app and web report inherit identical styles. */
+body.theme-dark-glass .stats-view .fight-diff-select {
+    background-color: var(--bg-input) !important;
+    border-color: var(--border-default) !important;
+    color: rgb(226, 232, 240) !important;
+    box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.45);
+}
+
+body.theme-dark-glass .stats-view .fight-diff-select:focus {
+    border-color: rgba(26, 115, 232, 0.55) !important;
+    box-shadow: 0 0 0 1px rgba(26, 115, 232, 0.35), inset 0 1px 1px rgba(15, 23, 42, 0.45) !important;
+}
+
+body.theme-dark-glass .stats-view .fight-diff-select option {
+    background-color: rgb(12, 20, 32);
+    color: rgb(226, 232, 240);
+}
+
+body.theme-dark-glass .stats-view .squad-comp-player-tile {
+    background-image: linear-gradient(180deg, rgba(16, 185, 129, 0.34), rgba(5, 150, 105, 0.24));
+    border-color: rgba(110, 231, 183, 0.34);
+}
+
+body.theme-dark-glass .stats-view .squad-comp-board {
+    background-image: none !important;
+    background-color: rgba(0, 0, 0, 0.32) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.theme-dark-glass .stats-view .squad-comp-party-row {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.theme-dark-glass .stats-view .squad-comp-party-badge {
+    background-color: rgba(0, 0, 0, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 body.theme-matte .app-shell .bg-white\/5 {
@@ -1374,6 +1429,23 @@ body.theme-matte .file-picker-popover .file-picker-time-option:hover {
 body.theme-matte .file-picker-popover .file-picker-time-option--active {
     background-color: rgba(77, 139, 168, 0.28) !important;
     color: #d8f0ff !important;
+}
+
+/* Shared between app and web: gradient and semantic border colours in matte stats-view */
+body.theme-matte .stats-view .bg-gradient-to-br,
+body.theme-matte .stats-view .bg-gradient-to-r {
+    background-image: none !important;
+    background-color: var(--bg-card) !important;
+}
+
+body.theme-matte .stats-view .border-green-500\/30,
+body.theme-matte .stats-view .border-green-500\/40 {
+    border-color: rgba(157, 195, 174, 0.32) !important;
+}
+
+body.theme-matte .stats-view .border-red-500\/30,
+body.theme-matte .stats-view .border-red-500\/40 {
+    border-color: rgba(209, 160, 160, 0.32) !important;
 }
 
 /* Keep table shells and search fields inset across app + web report in matte stats view. */
