@@ -4,9 +4,22 @@ node_modules/
 # Build outputs
 dist-electron/
 dist-react/
+dist-web/
 dist/
 dist_out/
 release/
+
+# Dev web report build artifacts (copied from dist-web/ by dev upload)
+web/assets/
+web/img/
+web/svg/
+web/web/
+web/web-report-themes/
+web/logo.png
+web/logo.json
+web/report.json
+web/theme.json
+web/ui-theme.json
 
 # Logs
 *.log
