@@ -1,12 +1,11 @@
 # Release Notes
 
-Version v1.40.13 — March 7, 2026
+Version v1.40.14 — March 7, 2026
 
-## Dark Glass theme
-- Adds a new Dark Glass theme with an aurora background and refreshed layout.
-- Web reports now stay in sync with the app theme for a consistent look across both interfaces.
+## Dark glass theme polish
+The dark glass theme gets a refreshed look with new glass effect styles and backdrop filters for more depth and readability. Cards and panels in this theme now use semi-transparent backgrounds with subtle gradients and brighter edge highlights. Backdrop blur and saturation are applied more broadly to surfaces to feel punchier and more cohesive.
 
-## Fixes
-- Keeps web/index.html stable after dev upload to prevent flaky pages.
-- Resolves CSS drift for pill-toggle tabs across matte and modern themes.
-NOTE: These fixes improve stability and keep UI aligned after updates.
+NOTE: This only affects the dark glass theme; other themes are unchanged.
+
+## QoL Improvements
+- The 2×2 uploader KPI cards no longer sit with a downward nudge—the numbers stay vertically centered for a cleaner, crisper read.
