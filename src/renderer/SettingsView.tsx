@@ -524,11 +524,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             return;
         }
         if (uiTheme === 'kinetic') {
-            if (isKineticWebThemeId(githubWebTheme)) {
-                const expectedThemeId = getKineticThemeIdForVariant(kineticThemeVariant);
-                if (githubWebTheme !== expectedThemeId) {
-                    setGithubWebTheme(expectedThemeId);
-                }
+            const expectedThemeId = getKineticThemeIdForVariant(kineticThemeVariant);
+            if (githubWebTheme !== expectedThemeId) {
+                setGithubWebTheme(expectedThemeId);
             }
             return;
         }

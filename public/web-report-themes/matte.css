@@ -111,26 +111,6 @@ body.web-report.theme-matte .stats-view .stats-table-sidebar.bg-black\/20 {
     box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.7), inset -1px -1px 3px rgba(255, 255, 255, 0.05) !important;
 }
 
-body.web-report.theme-matte .stats-view .fight-diff-select {
-    background-color: var(--bg-input) !important;
-    border-color: var(--border-subtle) !important;
-    color: var(--text-primary) !important;
-    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.7), inset -1px -1px 3px rgba(255, 255, 255, 0.05) !important;
-}
-
-body.web-report.theme-matte .stats-view .fight-diff-select:focus {
-    border-color: rgba(147, 197, 253, 0.45) !important;
-    box-shadow:
-        inset 2px 2px 5px rgba(0, 0, 0, 0.7),
-        inset -1px -1px 3px rgba(255, 255, 255, 0.05),
-        0 0 0 1px rgba(147, 197, 253, 0.3) !important;
-}
-
-body.web-report.theme-matte .stats-view .fight-diff-select option {
-    background-color: var(--bg-input);
-    color: var(--text-primary);
-}
-
 body.web-report.theme-matte button.rounded-full,
 body.web-report.theme-matte a.rounded-full,
 body.web-report.theme-matte .rounded-full,
@@ -146,65 +126,6 @@ body.web-report.theme-matte .stats-table-shell__head-stack {
     box-shadow: 0 8px 12px -10px var(--matte-dark) !important;
 }
 
-body.web-report.theme-matte .stats-view .squad-comp-board {
-    background-image: none !important;
-    background-color: rgba(33, 37, 40, 0.88) !important;
-    box-shadow:
-        inset 3px 3px 7px rgba(0, 0, 0, 0.45),
-        inset -2px -2px 5px var(--matte-light) !important;
-}
-
-body.web-report.theme-matte .stats-view .squad-comp-party-row {
-    background-color: rgba(36, 40, 43, 0.9) !important;
-    border-color: rgba(255, 255, 255, 0.08) !important;
-    box-shadow:
-        -3px -3px 6px var(--matte-light),
-        4px 4px 8px var(--matte-dark) !important;
-}
-
-body.web-report.theme-matte .stats-view .squad-comp-party-badge {
-    background-color: rgba(31, 35, 38, 0.92) !important;
-    border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-body.web-report.theme-matte .stats-view .squad-comp-player-tile {
-    background-image: none !important;
-    background-color: rgba(58, 80, 69, 0.44) !important;
-    border-color: rgba(158, 192, 171, 0.32) !important;
-}
-
-body.web-report.theme-matte .stats-view .squad-comp-player-account {
-    color: #d9e4dc !important;
-}
-
-body.web-report.theme-matte .stats-view .squad-comp-player-character {
-    color: rgba(196, 208, 199, 0.78) !important;
-}
-
-body.web-report.theme-matte .stats-view .fight-comp-board {
-    background-image: none !important;
-    background-color: rgba(33, 37, 40, 0.88) !important;
-    box-shadow:
-        inset 3px 3px 7px rgba(0, 0, 0, 0.45),
-        inset -2px -2px 5px var(--matte-light) !important;
-}
-
-body.web-report.theme-matte .stats-view .fight-comp-fight-nav {
-    background-color: rgba(36, 40, 43, 0.9) !important;
-    border-color: rgba(255, 255, 255, 0.08) !important;
-    box-shadow:
-        -3px -3px 6px var(--matte-light),
-        4px 4px 8px var(--matte-dark) !important;
-}
-
-body.web-report.theme-matte .stats-view .fight-comp-card {
-    background-color: rgba(36, 40, 43, 0.9) !important;
-    border-color: rgba(255, 255, 255, 0.08) !important;
-    box-shadow:
-        -3px -3px 6px var(--matte-light),
-        4px 4px 8px var(--matte-dark) !important;
-}
-
 body.web-report.theme-matte .stats-view .fight-comp-party-badge,
 body.web-report.theme-matte .stats-view .fight-comp-class-icon {
     box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.5), inset -2px -2px 4px var(--matte-light) !important;
@@ -214,4 +135,31 @@ body.web-report.theme-matte .stats-view .fight-comp-class-icon--squad {
     box-shadow: none !important;
     background: transparent !important;
     border-color: transparent !important;
+}
+
+/* Pill toggle group: restore inset-neumorphic style (overridden by .bg-white\/5 rule above) */
+body.web-report.theme-matte .pill-toggle-group {
+    background-color: var(--bg-input) !important;
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.5), inset -2px -2px 5px rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--border-default) !important;
+    border-radius: 12px !important;
+}
+
+body.web-report.theme-matte .pill-toggle-option {
+    border: 1px solid transparent !important;
+    color: var(--text-secondary) !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+body.web-report.theme-matte .pill-toggle-option:hover {
+    color: var(--text-primary) !important;
+}
+
+body.web-report.theme-matte .pill-toggle-option--active {
+    background-color: var(--bg-elevated) !important;
+    color: var(--text-primary) !important;
+    box-shadow: -2px -2px 5px var(--matte-light), 2px 2px 5px var(--matte-dark) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 8px !important;
 }

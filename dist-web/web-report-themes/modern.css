@@ -88,21 +88,19 @@ body.web-report.theme-modern .stats-view .border-red-500\/40 {
     border-color: rgba(248, 113, 113, 0.32) !important;
 }
 
-body.web-report.theme-modern .stats-view .fight-diff-select {
-    background: linear-gradient(180deg, rgba(20, 30, 44, 0.86), rgba(15, 24, 36, 0.94)) !important;
-    border-color: rgba(96, 165, 250, 0.32) !important;
-    color: rgb(235, 241, 248) !important;
-    box-shadow: 0 8px 20px rgba(2, 6, 23, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+/* Pill toggle group: undo generic rounded-full→0 and bg-white/5→gradient overrides above */
+body.web-report.theme-modern .pill-toggle-group {
+    background-image: none !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 9999px !important;
 }
 
-body.web-report.theme-modern .stats-view .fight-diff-select:focus {
-    border-color: rgba(125, 211, 252, 0.5) !important;
-    box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.32), 0 8px 20px rgba(2, 6, 23, 0.28) !important;
+body.web-report.theme-modern .pill-toggle-option {
+    border-radius: 9999px !important;
 }
 
-body.web-report.theme-modern .stats-view .fight-diff-select option {
-    background-color: rgb(16, 25, 36);
-    color: rgb(235, 241, 248);
+body.web-report.theme-modern .pill-toggle-option--active {
+    border-radius: 9999px !important;
 }
 
 body.web-report.theme-modern .stats-table-shell__head-stack {
@@ -112,52 +110,4 @@ body.web-report.theme-modern .stats-table-shell__head-stack {
         inset 8px 0 12px -12px rgba(255, 255, 255, 0.25),
         inset -12px 0 16px -14px rgba(0, 0, 0, 0.55),
         0 8px 12px -10px rgba(0, 0, 0, 0.54) !important;
-}
-
-body.web-report.theme-modern .stats-view .squad-comp-board {
-    background-image: none !important;
-    background-color: rgba(18, 25, 35, 0.92) !important;
-}
-
-body.web-report.theme-modern .stats-view .squad-comp-party-row {
-    background-color: rgba(22, 30, 42, 0.86) !important;
-    border-color: rgba(143, 214, 234, 0.2) !important;
-}
-
-body.web-report.theme-modern .stats-view .squad-comp-party-badge {
-    background-color: rgba(10, 16, 25, 0.95) !important;
-    border-color: rgba(143, 214, 234, 0.2) !important;
-}
-
-body.web-report.theme-modern .stats-view .squad-comp-player-tile {
-    background-image: none !important;
-    background-color: rgba(23, 52, 50, 0.8) !important;
-    border-color: rgba(94, 234, 212, 0.28) !important;
-}
-
-body.web-report.theme-modern .stats-view .squad-comp-player-account {
-    color: #d7f7ef !important;
-}
-
-body.web-report.theme-modern .stats-view .squad-comp-player-character {
-    color: rgba(192, 248, 232, 0.78) !important;
-}
-
-body.web-report.theme-modern .stats-view .fight-comp-fight-nav {
-    background-color: rgba(22, 30, 42, 0.86) !important;
-    border-color: rgba(143, 214, 234, 0.2) !important;
-}
-
-body.web-report.theme-modern .stats-view .fight-comp-fight-nav-item {
-    background-image: none !important;
-}
-
-body.web-report.theme-modern .stats-view .fight-comp-board {
-    background-image: none !important;
-    background-color: rgba(18, 25, 35, 0.92) !important;
-}
-
-body.web-report.theme-modern .stats-view .fight-comp-card {
-    background-color: rgba(22, 30, 42, 0.86) !important;
-    border-color: rgba(143, 214, 234, 0.2) !important;
 }
