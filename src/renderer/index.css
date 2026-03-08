@@ -713,6 +713,10 @@ body.theme-dark-glass {
     --border-subtle: rgba(255, 255, 255, 0.05);
     --border-default: rgba(255, 255, 255, 0.1);
     --border-hover: rgba(255, 255, 255, 0.2);
+    --glass-tint-top: rgba(236, 245, 255, 0.1);
+    --glass-tint-bottom: rgba(95, 118, 148, 0.04);
+    --glass-edge-highlight: rgba(255, 255, 255, 0.22);
+    --glass-edge-shadow: rgba(9, 12, 18, 0.66);
     /* Aurora palette: electric blue → teal → deep violet */
     --arcbridge-gradient: linear-gradient(105deg, #1a73e8 0%, #00c4d4 50%, #673ab7 100%);
     background: var(--bg-base);
@@ -780,6 +784,36 @@ body.theme-dark-glass .app-shell .bg-gradient-to-r,
 body.theme-dark-glass .app-shell .bg-gradient-to-t {
     background-image: none !important;
     background-color: var(--bg-hover) !important;
+}
+
+body.theme-dark-glass .app-shell .backdrop-blur-sm,
+body.theme-dark-glass .app-shell .backdrop-blur-md,
+body.theme-dark-glass .app-shell .backdrop-blur-lg,
+body.theme-dark-glass .app-shell .backdrop-blur-xl,
+body.theme-dark-glass .app-shell .backdrop-blur-2xl {
+    backdrop-filter: blur(20px) saturate(135%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(135%) !important;
+}
+
+body.theme-dark-glass .app-shell .bg-white\/5.rounded-xl,
+body.theme-dark-glass .app-shell .bg-white\/5.rounded-2xl,
+body.theme-dark-glass .app-shell .bg-white\/10.rounded-xl,
+body.theme-dark-glass .app-shell .bg-white\/10.rounded-2xl,
+body.theme-dark-glass .app-shell .bg-black\/20.rounded-xl,
+body.theme-dark-glass .app-shell .bg-black\/20.rounded-2xl,
+body.theme-dark-glass .app-shell .bg-black\/30.rounded-xl,
+body.theme-dark-glass .app-shell .bg-black\/30.rounded-2xl {
+    background-color: rgba(17, 24, 34, 0.42) !important;
+    background-image:
+        linear-gradient(165deg, var(--glass-tint-top) 0%, rgba(255, 255, 255, 0.03) 34%, rgba(255, 255, 255, 0.015) 58%, var(--glass-tint-bottom) 100%),
+        linear-gradient(350deg, rgba(255, 255, 255, 0.05) 0%, transparent 40%);
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow:
+        inset 0 1px 0 var(--glass-edge-highlight),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+        0 24px 48px rgba(0, 0, 0, 0.36),
+        0 6px 18px var(--glass-edge-shadow) !important;
 }
 
 /* Remove the downward nudge so numbers sit at true vertical center in the 2×2 KPI cards. */

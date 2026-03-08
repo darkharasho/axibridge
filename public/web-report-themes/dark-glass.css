@@ -8,6 +8,10 @@ body.web-report.theme-dark-glass {
     --border-subtle: rgba(255, 255, 255, 0.05);
     --border-default: rgba(255, 255, 255, 0.1);
     --border-hover: rgba(255, 255, 255, 0.2);
+    --glass-tint-top: rgba(236, 245, 255, 0.1);
+    --glass-tint-bottom: rgba(95, 118, 148, 0.04);
+    --glass-edge-highlight: rgba(255, 255, 255, 0.22);
+    --glass-edge-shadow: rgba(9, 12, 18, 0.66);
     --text-primary: #f5f7fa;
     --text-secondary: #c0c7d2;
     --text-muted: #7a8494;
@@ -21,10 +25,47 @@ body.web-report.theme-dark-glass {
 body.web-report.theme-dark-glass #report-list-container,
 body.web-report.theme-dark-glass #stats-dashboard-container,
 body.web-report.theme-dark-glass .glass-card {
-    background-color: var(--bg-card) !important;
+    background-color: rgba(17, 24, 34, 0.42) !important;
+    background-image:
+        linear-gradient(165deg, var(--glass-tint-top) 0%, rgba(255, 255, 255, 0.03) 34%, rgba(255, 255, 255, 0.015) 58%, var(--glass-tint-bottom) 100%),
+        linear-gradient(350deg, rgba(255, 255, 255, 0.05) 0%, transparent 40%);
     border-color: var(--border-default) !important;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32) !important;
-    backdrop-filter: blur(14px);
+    box-shadow:
+        inset 0 1px 0 var(--glass-edge-highlight),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+        0 24px 48px rgba(0, 0, 0, 0.36),
+        0 6px 18px var(--glass-edge-shadow) !important;
+    backdrop-filter: blur(20px) saturate(135%);
+    -webkit-backdrop-filter: blur(20px) saturate(135%);
+}
+
+body.web-report.theme-dark-glass .backdrop-blur-sm,
+body.web-report.theme-dark-glass .backdrop-blur-md,
+body.web-report.theme-dark-glass .backdrop-blur-lg,
+body.web-report.theme-dark-glass .backdrop-blur-xl,
+body.web-report.theme-dark-glass .backdrop-blur-2xl {
+    backdrop-filter: blur(20px) saturate(135%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(135%) !important;
+}
+
+body.web-report.theme-dark-glass .bg-white\/5.rounded-xl,
+body.web-report.theme-dark-glass .bg-white\/5.rounded-2xl,
+body.web-report.theme-dark-glass .bg-white\/10.rounded-xl,
+body.web-report.theme-dark-glass .bg-white\/10.rounded-2xl,
+body.web-report.theme-dark-glass .bg-black\/20.rounded-xl,
+body.web-report.theme-dark-glass .bg-black\/20.rounded-2xl,
+body.web-report.theme-dark-glass .bg-black\/30.rounded-xl,
+body.web-report.theme-dark-glass .bg-black\/30.rounded-2xl {
+    background-color: rgba(17, 24, 34, 0.42) !important;
+    background-image:
+        linear-gradient(165deg, var(--glass-tint-top) 0%, rgba(255, 255, 255, 0.03) 34%, rgba(255, 255, 255, 0.015) 58%, var(--glass-tint-bottom) 100%),
+        linear-gradient(350deg, rgba(255, 255, 255, 0.05) 0%, transparent 40%);
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.045),
+        0 14px 32px rgba(0, 0, 0, 0.3) !important;
 }
 
 body.web-report.theme-dark-glass .bg-gradient-to-br,
