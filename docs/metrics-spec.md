@@ -465,6 +465,85 @@ Boon output tables are computed from player boon generation data:
 
 Implementation: `src/shared/boonGeneration.ts`.
 
+### Generation Milliseconds (Raw Accumulation)
+
+For each player, boon, fight, and category (`selfBuffs`/`groupBuffs`/`squadBuffs`):
+
+1. Read `generation = buffData[0].generation` from the EI buff entry.
+2. Determine `recipientCount`:
+   - `selfBuffs`: `1`
+   - `groupBuffs`: `max(groupCount - 1, 0)` (party members excluding self)
+   - `squadBuffs`: `max(squadCount - 1, 0)` (squad members excluding self)
+3. Compute:
+   - stacking boons: `generationMs = generation * durationMs * recipientCount`
+   - non-stacking boons: `generationMs = (generation / 100) * durationMs * recipientCount`
+
+The same formula applies to `wasted` → `wastedMs` (overwritten/overstack generation).
+
+These per-fight values are summed across all fights for each player–boon pair.
+
+### Display Metrics
+
+The Boon Output table supports three display metrics, computed per player per boon:
+
+#### Total (`total`)
+
+`total = generationMs / 1000`
+
+Units are **boon-seconds** — the total generation time across all recipients and
+fights. For stacking boons or squad-scope categories, this can be large.
+
+#### Average (`average`)
+
+`average = generationMs / activeTimeMs`
+
+Units are **generation rate** (dimensionless ratio). For non-stacking boons this
+represents the fraction of active time covered; for stacking boons it represents
+average stacks generated per unit time.
+
+#### Uptime (`uptime`)
+
+Uptime normalizes generation by both active time and recipient count to produce
+a per-recipient rate:
+
+- **Self** category:
+  - non-stacking: `uptimeRaw = (generationMs / activeTimeMs) * 100` → displayed as `%`
+  - stacking: `uptimeRaw = generationMs / activeTimeMs` → displayed as average stacks
+
+- **Group / Squad** categories:
+  - `denom = (totalRecipients - numFights) / numFights`
+    - where `totalRecipients` is the cumulative group or squad count across fights
+    - subtracting `numFights` removes self from each fight's count
+    - dividing by `numFights` gives the average recipient count per fight
+  - non-stacking: `uptimeRaw = (generationMs / activeTimeMs / denom) * 100` → displayed as `%`
+  - stacking: `uptimeRaw = generationMs / activeTimeMs / denom` → displayed as average stacks
+
+- **All (totalBuffs)** category:
+  - `generationMs = selfBuffs.generationMs + squadBuffs.generationMs`
+  - `denom = totalSquadSupported` (cumulative squad count across fights)
+  - non-stacking: `uptimeRaw = (generationMs / activeTimeMs / denom) * 100`
+  - stacking: `uptimeRaw = generationMs / activeTimeMs / denom`
+
+Interpretation:
+- For non-stacking boons, uptime% approximates "what fraction of active time did
+  each recipient have this boon up, on average, from this player's generation."
+- For stacking boons, uptime approximates "how many stacks did each recipient
+  have on average from this player's generation."
+- Values can exceed 100% for non-stacking boons when generation overlaps or
+  refreshes exceed active time.
+
+### Boon Eligibility
+
+Only buffs with `classification === "Boon"` (or empty/missing classification) in
+`buffMap` are included in boon output tables. Non-boon buffs are routed to
+Special Buffs instead.
+
+### Player Identity
+
+Players are keyed by `account` (falling back to `name` or `character_name`).
+When a player uses multiple professions across fights, the profession with the
+most cumulative active time is shown as the primary profession.
+
 ### Boon Timeline (Defense)
 
 The Boon Timeline section uses the same generation foundation as Boon Output
