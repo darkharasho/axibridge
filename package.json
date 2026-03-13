@@ -58,6 +58,7 @@
         "electron-updater": "^6.7.3",
         "form-data": "^4.0.5",
         "framer-motion": "^10.16.4",
+        "gw2-class-icons": "^0.1.0",
         "html-to-image": "^1.11.13",
         "lucide-react": "^0.292.0",
         "react": "^18.2.0",

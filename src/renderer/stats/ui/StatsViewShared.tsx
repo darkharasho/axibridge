@@ -1,6 +1,7 @@
 import { CSSProperties, useEffect, useRef, useState, type RefObject, type WheelEvent as ReactWheelEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { getProfessionColor, getProfessionIconPath } from '../../../shared/professionUtils';
+import { getProfessionColor } from '../../../shared/professionUtils';
+import { getProfessionIconPath } from '../../classIconUtils';
 
 const TRANSPARENT_ICON = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 const iconDataUrlCache = new Map<string, string>();

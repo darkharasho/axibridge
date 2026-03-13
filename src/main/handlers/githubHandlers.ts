@@ -1047,17 +1047,15 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const treeMap = new Map<string, string>();
             let hasIndex = false;
             let hasAssets = false;
-            let hasClassIcons = false;
             treeEntries.forEach((entry: any) => {
                 if (entry?.path && entry?.sha && entry?.type === 'blob') {
                     treeMap.set(entry.path, entry.sha);
                     if (entry.path === `${pagesPrefix}index.html`) hasIndex = true;
                     if (entry.path.startsWith(`${pagesPrefix}assets/`)) hasAssets = true;
-                    if (entry.path.startsWith(`${pagesPrefix}svg/class-icons/`)) hasClassIcons = true;
                 }
             });
 
-            if (hasIndex && hasAssets && hasClassIcons) {
+            if (hasIndex && hasAssets) {
                 return { success: true, updated: false };
             }
 
@@ -1516,16 +1514,14 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const treeMap = new Map<string, string>();
             let hasIndex = false;
             let hasAssets = false;
-            let hasClassIcons = false;
             treeEntries.forEach((entry: any) => {
                 if (entry?.path && entry?.sha && entry?.type === 'blob') {
                     treeMap.set(entry.path, entry.sha);
                     if (entry.path === withPagesPath(pagesPath, 'index.html')) hasIndex = true;
                     if (entry.path.startsWith(withPagesPath(pagesPath, 'assets/'))) hasAssets = true;
-                    if (entry.path.startsWith(withPagesPath(pagesPath, 'svg/class-icons/'))) hasClassIcons = true;
                 }
             });
-            const needsBaseTemplate = !hasIndex || !hasAssets || !hasClassIcons;
+            const needsBaseTemplate = !hasIndex || !hasAssets;
 
             const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
             const queueFile = (repoPath: string, content: Buffer) => {

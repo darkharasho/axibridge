@@ -5,7 +5,8 @@ import { getPlayerDamage, getPlayerDps, getPlayerDownsTaken, getPlayerDeaths, ge
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeIncomingDisruptions as getIncomingDisruptions, computeDownContribution as getPlayerDownContribution, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl, computeSquadBarrier as getPlayerSquadBarrier, computeSquadHealing as getPlayerSquadHealing } from '../shared/combatMetrics';
 import { Player } from '../shared/dpsReportTypes';
 import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DisruptionMethod, IEmbedStatSettings } from './global.d';
-import { getProfessionAbbrev, getProfessionEmoji, getProfessionIconPath } from '../shared/professionUtils';
+import { getProfessionAbbrev, getProfessionEmoji } from '../shared/professionUtils';
+import { getProfessionIconPath } from './classIconUtils';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 
 interface ExpandableLogCardProps {
