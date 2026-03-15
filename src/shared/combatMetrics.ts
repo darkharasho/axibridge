@@ -97,11 +97,26 @@ export function applySquadStabilityGeneration(
 }
 
 export function computeDownContribution(player: Player): number {
-    if (!player.statsTargets) return 0;
+    // Try statsTargets first (works when EI creates per-player targets)
     let total = 0;
-    for (const targetStats of player.statsTargets) {
-        if (targetStats && targetStats.length > 0) {
-            total += (targetStats[0] as any).downContribution || 0;
+    if (player.statsTargets) {
+        for (const targetStats of player.statsTargets) {
+            if (targetStats && targetStats.length > 0) {
+                total += (targetStats[0] as any).downContribution || 0;
+            }
+        }
+    }
+    if (total > 0) return total;
+
+    // Fallback to totalDamageDist (required when EI uses aggregate "Enemy Players" target,
+    // which zeroes out statsTargets.downContribution)
+    if (player.totalDamageDist) {
+        for (const targetList of player.totalDamageDist) {
+            if (targetList) {
+                for (const entry of targetList) {
+                    total += entry.downContribution || 0;
+                }
+            }
         }
     }
     return total;

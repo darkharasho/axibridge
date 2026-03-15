@@ -2,7 +2,7 @@
   "specVersion": "unknown",
   "method": "count",
   "source": "test-fixtures/boon/20260117-180636.json",
-  "generatedAt": "2026-02-27T01:45:06.694Z",
+  "generatedAt": "2026-03-15T03:07:46.848Z",
   "metrics": [
     {
       "name": "Before Mourning",
@@ -549,7 +549,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 239,
       "squadBarrier": 0,
       "squadHealing": 6661,
       "stabGeneration": 1268.935841
@@ -769,7 +769,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 592,
       "squadBarrier": 18815,
       "squadHealing": 18274,
       "stabGeneration": 581.5362220000001

@@ -856,7 +856,7 @@ export const computePlayerAggregation = ({
             const dpsAll = p.dpsAll?.[0];
             const support = p.support?.[0];
             OFFENSE_METRICS.forEach(m => {
-                if (m.id === 'downContributionPercent') return;
+                if (m.id === 'downContributionPercent' || m.id === 'downContribution') return;
                 if (!m.field) return;
                 let val = 0;
                 let denom = 0;
@@ -878,6 +878,9 @@ export const computePlayerAggregation = ({
                     if (m.isRate && denom > 0) s.offenseRateWeights[m.id] = (s.offenseRateWeights[m.id] || 0) + denom;
                 }
             });
+            // Use computeDownContribution for offenseTotals.downContribution — it falls back to
+            // totalDamageDist when EI uses the aggregate "Enemy Players" target (which zeroes statsTargets.downContribution)
+            s.offenseTotals.downContribution = (s.offenseTotals.downContribution || 0) + getPlayerDownContribution(p);
             if (p.targetDamageDist && Number.isFinite(battleStandardSkillId)) {
                 const connectedHits = p.targetDamageDist
                     .flatMap((group: any) => group || [])

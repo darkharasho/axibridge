@@ -126,6 +126,9 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         }
         const stripped: any = { ...statsViewSettings };
         delete stripped.topSkillsMetric;
+        delete stripped.topStatsMode;
+        delete stripped.roundCountStats;
+        delete stripped.showTopStats;
         const nextKey = JSON.stringify(stripped);
         if (aggregationSettingsKeyRef.current !== nextKey) {
             aggregationSettingsKeyRef.current = nextKey;

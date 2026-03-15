@@ -2,7 +2,7 @@
   "specVersion": "unknown",
   "method": "count",
   "source": "test-fixtures/boon/20260117-180135.json",
-  "generatedAt": "2026-02-27T01:45:06.490Z",
+  "generatedAt": "2026-03-15T03:07:46.640Z",
   "metrics": [
     {
       "name": "Guardian Kamoidra",
@@ -21,7 +21,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 231,
       "squadBarrier": 0,
       "squadHealing": 1005,
       "stabGeneration": 492.516598
@@ -65,7 +65,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 2660,
       "squadBarrier": 0,
       "squadHealing": 2100,
       "stabGeneration": 0
@@ -197,7 +197,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 554,
       "squadBarrier": 2503,
       "squadHealing": 13038,
       "stabGeneration": 762.463618
@@ -219,7 +219,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 207,
       "squadBarrier": 0,
       "squadHealing": 11007,
       "stabGeneration": 0
@@ -241,7 +241,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 1639,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 47.874582
@@ -285,7 +285,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 23040,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 19.189604
@@ -373,7 +373,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 6455,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 18.791892
@@ -483,7 +483,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 1092,
       "squadBarrier": 29675,
       "squadHealing": 7087,
       "stabGeneration": 747.5494180000001
@@ -527,7 +527,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 1817,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 8.998234
@@ -549,7 +549,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 1295,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 8.20281
@@ -593,7 +593,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 3578,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 29.977541999999996
@@ -637,7 +637,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 10,
       "squadBarrier": 0,
       "squadHealing": 12613,
       "stabGeneration": 1109.517052

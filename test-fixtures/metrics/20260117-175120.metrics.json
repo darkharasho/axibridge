@@ -2,7 +2,7 @@
   "specVersion": "unknown",
   "method": "count",
   "source": "test-fixtures/boon/20260117-175120.json",
-  "generatedAt": "2026-02-27T01:45:06.444Z",
+  "generatedAt": "2026-03-15T03:07:46.596Z",
   "metrics": [
     {
       "name": "Haro Forge",
@@ -21,7 +21,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 3315,
       "squadBarrier": 11642,
       "squadHealing": 17403,
       "stabGeneration": 44.893914
@@ -43,7 +43,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 12161,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 0

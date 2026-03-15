@@ -107,7 +107,9 @@ Implementation: `src/shared/dashboardMetrics.ts` (getPlayerStrips).
 ## Down Contribution
 
 Down contribution is the sum of `statsTargets[*][0].downContribution` across
-all targets for the player.
+all targets for the player. When EI uses an aggregate "Enemy Players" target
+(common in WvW), `statsTargets.downContribution` is zero; in that case the
+value is computed from `totalDamageDist[*][*].downContribution` instead.
 
 Implementation: `src/shared/combatMetrics.ts` (computeDownContribution).
 

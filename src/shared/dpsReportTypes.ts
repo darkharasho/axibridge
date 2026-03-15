@@ -129,6 +129,7 @@ export interface TotalDamageDist {
     evaded: number;
     blocked: number;
     max: number;
+    downContribution?: number;
 }
 
 export interface TotalDamageTaken {

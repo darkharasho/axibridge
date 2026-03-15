@@ -2,7 +2,7 @@
   "specVersion": "unknown",
   "method": "count",
   "source": "test-fixtures/boon/20260117-180259.json",
-  "generatedAt": "2026-02-27T01:45:06.553Z",
+  "generatedAt": "2026-03-15T03:07:46.704Z",
   "metrics": [
     {
       "name": "Dub Grumble",
@@ -43,7 +43,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 246,
       "squadBarrier": 0,
       "squadHealing": 2580,
       "stabGeneration": 468.20607500000006
@@ -109,7 +109,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 671,
       "squadBarrier": 0,
       "squadHealing": 14937,
       "stabGeneration": 610.1235730000001
@@ -131,7 +131,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 5863,
       "squadBarrier": 0,
       "squadHealing": 267,
       "stabGeneration": 66.743808
@@ -153,7 +153,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 1050,
       "squadBarrier": 11808,
       "squadHealing": 8933,
       "stabGeneration": 341.931657
@@ -197,7 +197,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 92,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 9.603112999999999
@@ -263,7 +263,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 5763,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 8.994770999999998
@@ -285,7 +285,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 169,
       "squadBarrier": 0,
       "squadHealing": 13656,
       "stabGeneration": 319.42300300000005
@@ -307,7 +307,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 2079,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 7.126292
@@ -373,7 +373,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 1080,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 357.314019
@@ -395,7 +395,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 3338,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 44.148248
@@ -417,7 +417,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 3210,
       "squadBarrier": 2364,
       "squadHealing": 201,
       "stabGeneration": 30.895083
@@ -461,7 +461,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 12322,
       "squadBarrier": 2364,
       "squadHealing": 1364,
       "stabGeneration": 18.293713
@@ -527,7 +527,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 251,
       "squadBarrier": 0,
       "squadHealing": 32679,
       "stabGeneration": 0
@@ -549,7 +549,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 685,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 67.178338
@@ -571,7 +571,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 261,
       "squadBarrier": 0,
       "squadHealing": 0,
       "stabGeneration": 5.301266
@@ -593,7 +593,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 202,
       "squadBarrier": 0,
       "squadHealing": 8850,
       "stabGeneration": 0
@@ -659,7 +659,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 43,
       "squadBarrier": 0,
       "squadHealing": 6547,
       "stabGeneration": 462.99171499999994
@@ -747,7 +747,7 @@
         "missed": 0,
         "blocked": 0
       },
-      "downContribution": 0,
+      "downContribution": 5095,
       "squadBarrier": 5934,
       "squadHealing": 148,
       "stabGeneration": 38.021375
