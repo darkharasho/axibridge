@@ -32,7 +32,7 @@ export interface DPSReportJSON {
     durationMS: number;
     fightName: string;
     success: boolean;
-    skillMap?: { [key: string]: { name: string; icon: string } };
+    skillMap?: { [key: string]: { name: string; icon: string; autoAttack?: boolean; isTraitProc?: boolean; isGearProc?: boolean; isUnconditionalProc?: boolean } };
     buffMap?: { [key: string]: { name: string; stacking: boolean; icon?: string; classification?: string } };
     combatReplayMetaData?: { inchToPixel?: number; pollingRate?: number };
     damageModMap?: Record<string, DamageModifierInfo>;

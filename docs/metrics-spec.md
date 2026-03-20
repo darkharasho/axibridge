@@ -414,6 +414,10 @@ player:
 - `apm = totalCasts / (activeSeconds / 60)`
 - `aps = totalCasts / activeSeconds`
 - Auto-attack counts are excluded for the "No Auto" variants.
+- Auto-attack, trait proc (`isTraitProc`), gear proc (`isGearProc`), and
+  unconditional proc (`isUnconditionalProc`) counts are excluded for the
+  "No Procs" variants. A skill matching multiple categories is excluded once
+  (union, not sum).
 
 The APM Breakdown groups players by profession and aggregates per-skill cast
 counts across the group.
