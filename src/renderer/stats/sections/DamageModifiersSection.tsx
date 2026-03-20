@@ -79,8 +79,6 @@ export const DamageModifiersSection = ({
             for (const [modId, vals] of Object.entries(modTotals)) {
                 const info = modMap[modId];
                 if (!info) continue;
-                // Filter: only show modifiers matching the incoming flag
-                if (info.incoming !== incoming) continue;
                 if (!summaryMap[modId]) {
                     summaryMap[modId] = {
                         id: modId,
