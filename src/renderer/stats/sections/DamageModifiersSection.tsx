@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X, Columns, Users, BarChart3, Table2 } from 'lucide-react';
+import { Maximize2, X, Columns, Users } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
-import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
@@ -110,9 +109,6 @@ export const DamageModifiersSection = ({
     const effectiveActiveMod = filteredMods.find((m) => m.id === activeMod)
         ? activeMod
         : filteredMods[0]?.id ?? '';
-
-    // --- View mode state ---
-    const [contentViewMode, setContentViewMode] = useState<'chart' | 'table'>('chart');
 
     // --- Expanded view state ---
     const [selectedColumnIds, setSelectedColumnIds] = useState<string[]>([]);
@@ -247,8 +243,6 @@ export const DamageModifiersSection = ({
                     renderProfessionIcon={renderProfessionIcon}
                     sidebarListClass={sidebarListClass}
                     expandedSection={expandedSection}
-                    contentViewMode={contentViewMode}
-                    setContentViewMode={setContentViewMode}
                 />
             )}
         </div>
@@ -277,15 +271,12 @@ type CollapsedViewProps = {
     renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => React.JSX.Element | null;
     sidebarListClass: string;
     expandedSection: string | null;
-    contentViewMode: 'chart' | 'table';
-    setContentViewMode: (v: 'chart' | 'table') => void;
 };
 
 const CollapsedView = ({
     config, incoming, search, setSearch, filteredMods, effectiveActiveMod, setActiveMod,
     playerRows, totalsKey, modMap, collapsedSort, updateCollapsedSort,
     isExpanded, formatWithCommas, renderProfessionIcon, sidebarListClass, expandedSection,
-    contentViewMode, setContentViewMode,
 }: CollapsedViewProps) => {
     const activeModInfo = modMap[effectiveActiveMod];
 
@@ -357,14 +348,14 @@ const CollapsedView = ({
         });
     }, [activeModPlayerData, collapsedSort, incoming]);
 
-    // Bar chart data — always sorted by damageGain desc (absolute value for incoming)
-    const barChartData = useMemo(() => {
-        return [...activeModPlayerData].sort(
-            (a, b) => Math.abs(b.damageGain) - Math.abs(a.damageGain)
-        );
+    const maxAbsGain = useMemo(() => {
+        let max = 0;
+        for (const row of activeModPlayerData) {
+            const abs = Math.abs(row.damageGain);
+            if (abs > max) max = abs;
+        }
+        return max;
     }, [activeModPlayerData]);
-
-    const maxAbsGain = barChartData.length > 0 ? Math.abs(barChartData[0].damageGain) : 0;
 
     return (
         <StatsTableLayout
@@ -429,132 +420,45 @@ const CollapsedView = ({
                                             </div>
                                         )}
                                     </div>
-                                    <PillToggleGroup
-                                        value={contentViewMode}
-                                        onChange={setContentViewMode}
-                                        options={[
-                                            { value: 'chart' as const, label: <BarChart3 className="w-3 h-3" /> },
-                                            { value: 'table' as const, label: <Table2 className="w-3 h-3" /> },
-                                        ]}
-                                        activeClassName={`${config.accentBg} ${config.accentText} border ${config.accentBorder}`}
-                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                                    />
                                 </div>
                             }
                             columns={
-                                <>
-                                    {/* Bar chart */}
-                                    {contentViewMode === 'chart' && barChartData.length > 0 && (
-                                        <div className="px-4 py-3 bg-black/30 border-b border-white/5">
-                                            <div className="flex flex-col gap-1.5">
-                                                {incoming ? (
-                                                    /* Bidirectional bars for incoming */
-                                                    barChartData.map((row) => {
-                                                        const absGain = Math.abs(row.damageGain);
-                                                        const widthPct = maxAbsGain > 0 ? (absGain / maxAbsGain) * 50 : 0;
-                                                        const pctOfTotal = row.totalDamage > 0
-                                                            ? ((absGain / row.totalDamage) * 100).toFixed(2)
-                                                            : '0.00';
-                                                        const isReduction = row.damageGain < 0;
-                                                        return (
-                                                            <div key={row.account} className="flex items-center gap-2 text-xs">
-                                                                <div className="flex items-center gap-1.5 w-28 flex-shrink-0 justify-end">
-                                                                    <span className="truncate text-gray-300">{row.account}</span>
-                                                                    {renderProfessionIcon(row.profession, row.professionList, 'w-3.5 h-3.5')}
-                                                                </div>
-                                                                <div className="flex-1 relative h-5 flex items-center">
-                                                                    {/* Center divider */}
-                                                                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/20" />
-                                                                    {isReduction ? (
-                                                                        /* Green bar extending left from center */
-                                                                        <div className="absolute right-1/2 top-0 bottom-0 flex items-center justify-start" style={{ width: `${widthPct}%` }}>
-                                                                            <div className="w-full h-full rounded-l" style={{ background: 'linear-gradient(to left, rgba(20,184,166,0.4), rgba(20,184,166,0.15))' }} />
-                                                                        </div>
-                                                                    ) : (
-                                                                        /* Red bar extending right from center */
-                                                                        <div className="absolute left-1/2 top-0 bottom-0 flex items-center justify-end" style={{ width: `${widthPct}%` }}>
-                                                                            <div className="w-full h-full rounded-r" style={{ background: 'linear-gradient(to right, rgba(239,68,68,0.4), rgba(239,68,68,0.15))' }} />
-                                                                        </div>
-                                                                    )}
-                                                                    {/* Label */}
-                                                                    <div className={`absolute top-0 bottom-0 flex items-center text-[10px] font-mono ${
-                                                                        isReduction ? 'right-1/2 pr-1 justify-end text-teal-300' : 'left-1/2 pl-1 justify-start text-red-300'
-                                                                    }`} style={{ width: '50%' }}>
-                                                                        <span className="truncate">
-                                                                            {isReduction ? '' : '+'}{formatWithCommas(row.damageGain, 0)} ({pctOfTotal}%)
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })
-                                                ) : (
-                                                    /* Simple horizontal bars for outgoing */
-                                                    barChartData.map((row) => {
-                                                        const widthPct = maxAbsGain > 0 ? (row.damageGain / maxAbsGain) * 100 : 0;
-                                                        const pctOfTotal = row.totalDamage > 0
-                                                            ? ((row.damageGain / row.totalDamage) * 100).toFixed(2)
-                                                            : '0.00';
-                                                        return (
-                                                            <div key={row.account} className="flex items-center gap-2 text-xs">
-                                                                <div className="flex items-center gap-1.5 w-28 flex-shrink-0 justify-end">
-                                                                    <span className="truncate text-gray-300">{row.account}</span>
-                                                                    {renderProfessionIcon(row.profession, row.professionList, 'w-3.5 h-3.5')}
-                                                                </div>
-                                                                <div className="flex-1 relative h-5">
-                                                                    <div
-                                                                        className="absolute inset-y-0 left-0 rounded"
-                                                                        style={{ width: `${Math.max(widthPct, 0)}%`, background: config.barGradientStyle }}
-                                                                    />
-                                                                    <div className={`relative h-full flex items-center px-2 text-[10px] font-mono ${config.accentText}`}>
-                                                                        +{formatWithCommas(row.damageGain, 0)} ({pctOfTotal}%)
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {/* Detail table column headers */}
-                                    {contentViewMode === 'table' && <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
-                                        <div className="text-center">#</div>
-                                        <div>Player</div>
-                                        <button
-                                            type="button"
-                                            onClick={() => updateCollapsedSort('damageGain')}
-                                            className={`text-right transition-colors ${collapsedSort.key === 'damageGain' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
-                                        >
-                                            Dmg Gain{collapsedSort.key === 'damageGain' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => updateCollapsedSort('pctTotal')}
-                                            className={`text-right transition-colors ${collapsedSort.key === 'pctTotal' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
-                                        >
-                                            % Total{collapsedSort.key === 'pctTotal' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => updateCollapsedSort('hitCoverage')}
-                                            className={`text-right transition-colors ${collapsedSort.key === 'hitCoverage' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
-                                        >
-                                            Hits{collapsedSort.key === 'hitCoverage' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => updateCollapsedSort('fightTime')}
-                                            className={`text-right transition-colors ${collapsedSort.key === 'fightTime' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
-                                        >
-                                            Fight Time{collapsedSort.key === 'fightTime' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                        </button>
-                                    </div>}
-                                </>
+                                <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                    <div className="text-center">#</div>
+                                    <div>Player</div>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateCollapsedSort('damageGain')}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'damageGain' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                    >
+                                        Dmg Gain{collapsedSort.key === 'damageGain' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateCollapsedSort('pctTotal')}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'pctTotal' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                    >
+                                        % Total{collapsedSort.key === 'pctTotal' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateCollapsedSort('hitCoverage')}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'hitCoverage' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                    >
+                                        Hits{collapsedSort.key === 'hitCoverage' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateCollapsedSort('fightTime')}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'fightTime' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                    >
+                                        Fight Time{collapsedSort.key === 'fightTime' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                    </button>
+                                </div>
                             }
                             rows={
                                 <>
-                                    {contentViewMode !== 'table' ? null : sortedPlayerData.length === 0 ? (
+                                    {sortedPlayerData.length === 0 ? (
                                         <div className="px-4 py-8 text-center text-gray-500 italic text-sm">No player data for this modifier</div>
                                     ) : (
                                         sortedPlayerData.map((row, idx) => {
@@ -564,24 +468,41 @@ const CollapsedView = ({
                                             const hitCoverage = row.totalHitCount > 0
                                                 ? `${row.hitCount}/${row.totalHitCount}`
                                                 : '—';
+                                            const barWidthPct = maxAbsGain > 0
+                                                ? (Math.abs(row.damageGain) / maxAbsGain) * 100
+                                                : 0;
+                                            const isReduction = incoming && row.damageGain < 0;
+                                            const barStyle = incoming
+                                                ? (isReduction
+                                                    ? 'linear-gradient(to left, rgba(20,184,166,0.2), rgba(20,184,166,0.05))'
+                                                    : 'linear-gradient(to right, rgba(239,68,68,0.2), rgba(239,68,68,0.05))')
+                                                : config.barGradientStyle;
                                             return (
-                                                <div key={`${row.account}-${idx}`} className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
-                                                    <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                        <span className="truncate">{row.account}</span>
-                                                    </div>
-                                                    <div className="text-right font-mono text-gray-300">
-                                                        {row.damageGain >= 0 ? '+' : ''}{formatWithCommas(row.damageGain, 0)}
-                                                    </div>
-                                                    <div className="text-right font-mono text-gray-400">
-                                                        {pctOfTotal}%
-                                                    </div>
-                                                    <div className="text-right font-mono text-gray-400">
-                                                        {hitCoverage}
-                                                    </div>
-                                                    <div className="text-right font-mono text-gray-400">
-                                                        {row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '—'}
+                                                <div key={`${row.account}-${idx}`} className="relative border-t border-white/5">
+                                                    {/* Bar overlay — mitigation grows from right, damage from left */}
+                                                    <div
+                                                        className={`absolute inset-y-0 pointer-events-none ${isReduction ? 'right-0' : 'left-0'}`}
+                                                        style={{ width: `${barWidthPct}%`, background: barStyle }}
+                                                    />
+                                                    {/* Row content */}
+                                                    <div className="relative grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200">
+                                                        <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                            <span className="truncate">{row.account}</span>
+                                                        </div>
+                                                        <div className="text-right font-mono text-gray-300">
+                                                            {row.damageGain >= 0 ? '+' : ''}{formatWithCommas(row.damageGain, 0)}
+                                                        </div>
+                                                        <div className="text-right font-mono text-gray-400">
+                                                            {pctOfTotal}%
+                                                        </div>
+                                                        <div className="text-right font-mono text-gray-400">
+                                                            {hitCoverage}
+                                                        </div>
+                                                        <div className="text-right font-mono text-gray-400">
+                                                            {row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '—'}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
