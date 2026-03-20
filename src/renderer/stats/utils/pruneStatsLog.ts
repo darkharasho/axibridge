@@ -10,7 +10,7 @@ const pick = (obj: any, keys: string[]) => {
 
 export const isStatsPrunedLog = (value: any): boolean => Boolean(value && value.__statsPruned === true);
 
-const pruneMetaMap = (source: any, options?: { includeClassification?: boolean; includeStacking?: boolean; includeAutoAttack?: boolean }) => {
+const pruneMetaMap = (source: any, options?: { includeClassification?: boolean; includeStacking?: boolean; includeAutoAttack?: boolean; includeProcFlags?: boolean }) => {
     if (!source || typeof source !== 'object') return source;
     const out: Record<string, any> = {};
     Object.entries(source).forEach(([key, value]) => {
@@ -30,6 +30,11 @@ const pruneMetaMap = (source: any, options?: { includeClassification?: boolean; 
         }
         if (options?.includeAutoAttack && typeof (value as any).autoAttack === 'boolean') {
             next.autoAttack = (value as any).autoAttack;
+        }
+        if (options?.includeProcFlags) {
+            if (typeof (value as any).isTraitProc === 'boolean') next.isTraitProc = (value as any).isTraitProc;
+            if (typeof (value as any).isGearProc === 'boolean') next.isGearProc = (value as any).isGearProc;
+            if (typeof (value as any).isUnconditionalProc === 'boolean') next.isUnconditionalProc = (value as any).isUnconditionalProc;
         }
         if (Object.keys(next).length > 0) {
             out[key] = next;
@@ -98,7 +103,7 @@ export const pruneDetailsForStats = (details: any) => {
         'playerDamageMitigation',
         'playerMinionDamageMitigation'
     ]);
-    pruned.skillMap = pruneMetaMap(pruned.skillMap, { includeClassification: false, includeStacking: false, includeAutoAttack: true });
+    pruned.skillMap = pruneMetaMap(pruned.skillMap, { includeClassification: false, includeStacking: false, includeAutoAttack: true, includeProcFlags: true });
     pruned.buffMap = pruneMetaMap(pruned.buffMap, { includeClassification: true, includeStacking: true });
     if (pruned.damageModMap && typeof pruned.damageModMap === 'object') {
         const prunedModMap: Record<string, any> = {};
