@@ -87,6 +87,7 @@ export const pruneDetailsForStats = (details: any) => {
         'combatReplayMetaData',
         'skillMap',
         'buffMap',
+        'damageModMap',
         'encounterDuration',
         'player_damage_mitigation',
         'player_minion_damage_mitigation',
@@ -95,6 +96,20 @@ export const pruneDetailsForStats = (details: any) => {
     ]);
     pruned.skillMap = pruneMetaMap(pruned.skillMap, { includeClassification: false, includeStacking: false });
     pruned.buffMap = pruneMetaMap(pruned.buffMap, { includeClassification: true, includeStacking: true });
+    if (pruned.damageModMap && typeof pruned.damageModMap === 'object') {
+        const prunedModMap: Record<string, any> = {};
+        Object.entries(pruned.damageModMap).forEach(([key, value]) => {
+            if (!value || typeof value !== 'object') return;
+            const v = value as any;
+            prunedModMap[key] = {
+                ...(typeof v.name === 'string' ? { name: v.name } : {}),
+                ...(typeof v.icon === 'string' ? { icon: v.icon } : {}),
+                ...(typeof v.description === 'string' ? { description: v.description } : {}),
+                ...(typeof v.incoming === 'boolean' ? { incoming: v.incoming } : {}),
+            };
+        });
+        pruned.damageModMap = prunedModMap;
+    }
     if (Array.isArray(pruned.players)) {
         const sourcePlayers = details.players as any[];
         const squadPlayers = sourcePlayers.filter((player: any) => !player?.notInSquad);
@@ -142,7 +157,9 @@ export const pruneDetailsForStats = (details: any) => {
                 'teamId',
                 'team',
                 'teamColor',
-                'team_color'
+                'team_color',
+                'damageModifiers',
+                'incomingDamageModifiers'
             ]);
             const minions = Array.isArray(player?.minions) ? player.minions : [];
             out.minions = minions.map((minion: any) => pick(minion, ['name', 'totalDamageTakenDist']));
