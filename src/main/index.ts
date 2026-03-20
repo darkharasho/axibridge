@@ -385,7 +385,10 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 console.log(`[Main] Upload successful: ${result.permalink}. Fetching details...`);
             }
 
-            let jsonDetails = cached?.jsonDetails || await uploader.fetchDetailedJson(result.permalink);
+            const cachedDetails = cached?.jsonDetails;
+            // Re-fetch if cached details are missing damageModMap (added in a later version)
+            const needsRefresh = cachedDetails && !cachedDetails.damageModMap;
+            let jsonDetails = (cachedDetails && !needsRefresh) ? cachedDetails : await uploader.fetchDetailedJson(result.permalink);
             if (cached?.entry?.result && isDetailsPermalinkNotFound(jsonDetails)) {
                 console.warn(`[Cache] Cached permalink returned 404 for ${filePath}. Re-uploading to refresh permalink.`);
                 if (cacheKey) {

@@ -29,6 +29,7 @@ import { DamageBreakdownSection } from './stats/sections/DamageBreakdownSection'
 import { BoonTimelineSection } from './stats/sections/BoonTimelineSection';
 import { BoonUptimeSection } from './stats/sections/BoonUptimeSection';
 import { OffenseSection } from './stats/sections/OffenseSection';
+import { DamageModifiersSection } from './stats/sections/DamageModifiersSection';
 import { ConditionsSection } from './stats/sections/ConditionsSection';
 import { BoonOutputSection } from './stats/sections/BoonOutputSection';
 import { DefenseSection } from './stats/sections/DefenseSection';
@@ -109,11 +110,13 @@ const ORDERED_SECTION_IDS = [
     'boon-timeline',
     'boon-uptime',
     'offense-detailed',
+    'damage-modifiers',
     'player-breakdown',
     'damage-breakdown',
     'spike-damage',
     'conditions-outgoing',
     'defense-detailed',
+    'incoming-damage-modifiers',
     'incoming-strike-damage',
     'support-detailed',
     'healing-stats',
@@ -619,6 +622,10 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     const [cleanseScope, setCleanseScope] = useState<'squad' | 'all'>('all');
     const [timelineFriendlyScope, setTimelineFriendlyScope] = useState<'squad' | 'squadAllies'>('squad');
     const [damageMitigationScope, setDamageMitigationScope] = useState<'player' | 'minions'>('player');
+    const [damageModSearch, setDamageModSearch] = useState('');
+    const [activeDamageMod, setActiveDamageMod] = useState('');
+    const [incomingDamageModSearch, setIncomingDamageModSearch] = useState('');
+    const [activeIncomingDamageMod, setActiveIncomingDamageMod] = useState('');
 
 
 
@@ -3705,6 +3712,14 @@ type SpikeFight = {
                                 setOffenseViewMode={setOffenseViewMode}
                             />
 
+                            <DamageModifiersSection
+                                search={damageModSearch}
+                                setSearch={setDamageModSearch}
+                                activeMod={activeDamageMod}
+                                setActiveMod={setActiveDamageMod}
+                                incoming={false}
+                            />
+
                             <PlayerBreakdownSection
                                 viewMode={playerBreakdownViewMode}
                                 setViewMode={setPlayerBreakdownViewMode}
@@ -3780,6 +3795,14 @@ type SpikeFight = {
                                 setActiveDefenseStat={setActiveDefenseStat}
                                 defenseViewMode={defenseViewMode}
                                 setDefenseViewMode={setDefenseViewMode}
+                            />
+
+                            <DamageModifiersSection
+                                search={incomingDamageModSearch}
+                                setSearch={setIncomingDamageModSearch}
+                                activeMod={activeIncomingDamageMod}
+                                setActiveMod={setActiveIncomingDamageMod}
+                                incoming={true}
                             />
 
                             <SpikeDamageSection
@@ -4052,6 +4075,14 @@ type SpikeFight = {
                             setOffenseViewMode={setOffenseViewMode}
                         />}
 
+                        {isSectionVisible('damage-modifiers') && <DamageModifiersSection
+                            search={damageModSearch}
+                            setSearch={setDamageModSearch}
+                            activeMod={activeDamageMod}
+                            setActiveMod={setActiveDamageMod}
+                            incoming={false}
+                        />}
+
                         {isSectionVisible('player-breakdown') && <PlayerBreakdownSection
                             viewMode={playerBreakdownViewMode}
                             setViewMode={setPlayerBreakdownViewMode}
@@ -4127,6 +4158,14 @@ type SpikeFight = {
                             setActiveDefenseStat={setActiveDefenseStat}
                             defenseViewMode={defenseViewMode}
                             setDefenseViewMode={setDefenseViewMode}
+                        />}
+
+                        {isSectionVisible('incoming-damage-modifiers') && <DamageModifiersSection
+                            search={incomingDamageModSearch}
+                            setSearch={setIncomingDamageModSearch}
+                            activeMod={activeIncomingDamageMod}
+                            setActiveMod={setActiveIncomingDamageMod}
+                            incoming={true}
                         />}
 
                         {isSectionVisible('incoming-strike-damage') && <SpikeDamageSection

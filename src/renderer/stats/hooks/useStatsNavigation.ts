@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { Trophy, Shield, ShieldAlert, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves } from 'lucide-react';
+import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame } from 'lucide-react';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
 import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
@@ -79,9 +79,10 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
         id: 'offense',
         label: 'Offensive Stats',
         icon: Swords,
-        sectionIds: ['offense-detailed', 'player-breakdown', 'damage-breakdown', 'spike-damage', 'conditions-outgoing'],
+        sectionIds: ['offense-detailed', 'damage-modifiers', 'player-breakdown', 'damage-breakdown', 'spike-damage', 'conditions-outgoing'],
         items: [
             { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords },
+            { id: 'damage-modifiers', label: 'Damage Modifiers', icon: Flame },
             { id: 'player-breakdown', label: 'Player Breakdown', icon: ListTree },
             { id: 'damage-breakdown', label: 'Damage Breakdown', icon: BarChart3 },
             { id: 'spike-damage', label: 'Spike Damage', icon: Zap },
@@ -92,9 +93,10 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
         id: 'defense',
         label: 'Defensive Stats',
         icon: Shield,
-        sectionIds: ['defense-detailed', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'heal-effectiveness'],
+        sectionIds: ['defense-detailed', 'incoming-damage-modifiers', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'heal-effectiveness'],
         items: [
             { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
+            { id: 'incoming-damage-modifiers', label: 'Incoming Modifiers', icon: ShieldOff },
             { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert },
             { id: 'defense-mitigation', label: 'Damage Mitigation', icon: Gw2DamMitIcon },
             { id: 'boon-output', label: 'Boon Output', icon: Gw2BoonIcon },

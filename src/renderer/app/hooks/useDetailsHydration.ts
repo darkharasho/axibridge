@@ -132,7 +132,10 @@ export function useDetailsHydration({
             const statsViewActive = viewRef.current === 'stats';
             const rawCandidates = logsRef.current
                 .filter((log) => {
-                    if (!log.filePath || log.details || log.statsDetailsLoaded) return false;
+                    if (!log.filePath) return false;
+                    // Re-hydrate if details exist but are missing damageModMap (stale pruning)
+                    const hasStaleDetails = log.details && !log.details.damageModMap;
+                    if ((log.details && !hasStaleDetails) || log.statsDetailsLoaded) return false;
                     if (log.detailsAvailable) return true;
                     return (log.status === 'success' || log.status === 'calculating' || log.status === 'discord') && Boolean(log.permalink);
                 })

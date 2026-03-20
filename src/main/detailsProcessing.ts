@@ -83,7 +83,8 @@ const PLAYER_KEYS = [
     'powerDamage1S', 'conditionDamage1S', 'powerDamageTaken1S', 'targetPowerDamage1S',
     'totalDamageTaken', 'totalDamageTakenDist', 'minions', 'combatReplayData',
     'hasCommanderTag', 'notInSquad', 'account', 'activeTimes',
-    'teamID', 'teamId', 'team', 'teamColor', 'team_color'
+    'teamID', 'teamId', 'team', 'teamColor', 'team_color',
+    'damageModifiers', 'incomingDamageModifiers'
 ];
 
 const TARGET_KEYS = [
@@ -100,7 +101,9 @@ const TOP_LEVEL_KEYS = [
     'permalink', 'uploadLinks', 'success', 'teamBreakdown', 'teamCounts',
     'combatReplayMetaData', 'skillMap', 'buffMap', 'encounterDuration',
     'player_damage_mitigation', 'player_minion_damage_mitigation',
-    'playerDamageMitigation', 'playerMinionDamageMitigation'
+    'playerDamageMitigation', 'playerMinionDamageMitigation',
+    'damageModMap',
+    'personalDamageMods'
 ];
 
 /**
