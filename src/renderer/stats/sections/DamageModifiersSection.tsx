@@ -23,7 +23,7 @@ const SECTION_CONFIG = {
         accentBg: 'bg-rose-500/20',
         accentText: 'text-rose-200',
         accentBorder: 'border-rose-500/40',
-        barGradient: 'from-rose-500/40 to-rose-500/15',
+        barGradientStyle: 'linear-gradient(to right, rgba(244,63,94,0.4), rgba(244,63,94,0.15))',
     },
     incoming: {
         sectionId: 'incoming-damage-modifiers',
@@ -31,7 +31,7 @@ const SECTION_CONFIG = {
         accentBg: 'bg-blue-500/20',
         accentText: 'text-blue-200',
         accentBorder: 'border-blue-500/40',
-        barGradient: 'from-blue-500/40 to-blue-500/15',
+        barGradientStyle: 'linear-gradient(to right, rgba(59,130,246,0.4), rgba(59,130,246,0.15))',
     },
 };
 
@@ -289,35 +289,42 @@ const CollapsedView = ({
 }: CollapsedViewProps) => {
     const activeModInfo = modMap[effectiveActiveMod];
 
-    // Build player data for the active modifier
+    // Build player data for the active modifier (merged by account to handle splitPlayersByClass)
     const activeModPlayerData = useMemo(() => {
         if (!effectiveActiveMod) return [];
-        return playerRows
-            .map((row: any) => {
-                const modTotals: Record<string, ModTotals> = row[totalsKey] ?? {};
-                const modData = modTotals[effectiveActiveMod];
-                if (!modData) return null;
-                return {
+        const byAccount = new Map<string, {
+            account: string; profession: string; professionList: string[];
+            totalFightMs: number; damageGain: number; hitCount: number; totalHitCount: number; totalDamage: number;
+        }>();
+        for (const row of playerRows) {
+            const modTotals: Record<string, ModTotals> = row[totalsKey] ?? {};
+            const modData = modTotals[effectiveActiveMod];
+            if (!modData) continue;
+            const existing = byAccount.get(row.account);
+            if (existing) {
+                existing.damageGain += modData.damageGain;
+                existing.hitCount += modData.hitCount;
+                existing.totalHitCount += modData.totalHitCount;
+                existing.totalDamage += modData.totalDamage;
+                existing.totalFightMs += row.totalFightMs || 0;
+                if (row.professionList) {
+                    const seen = new Set(existing.professionList);
+                    for (const p of row.professionList) { if (!seen.has(p)) existing.professionList.push(p); }
+                }
+            } else {
+                byAccount.set(row.account, {
                     account: row.account,
                     profession: row.profession,
-                    professionList: row.professionList,
+                    professionList: row.professionList ? [...row.professionList] : [],
                     totalFightMs: row.totalFightMs || 0,
                     damageGain: modData.damageGain,
                     hitCount: modData.hitCount,
                     totalHitCount: modData.totalHitCount,
                     totalDamage: modData.totalDamage,
-                };
-            })
-            .filter(Boolean) as Array<{
-                account: string;
-                profession: string;
-                professionList: string[];
-                totalFightMs: number;
-                damageGain: number;
-                hitCount: number;
-                totalHitCount: number;
-                totalDamage: number;
-            }>;
+                });
+            }
+        }
+        return Array.from(byAccount.values());
     }, [playerRows, effectiveActiveMod, totalsKey]);
 
     // Sort the player data for the detail table
@@ -438,7 +445,7 @@ const CollapsedView = ({
                                 <>
                                     {/* Bar chart */}
                                     {contentViewMode === 'chart' && barChartData.length > 0 && (
-                                        <div className="px-4 py-3 bg-white/[0.02] border-b border-white/5">
+                                        <div className="px-4 py-3 bg-black/30 border-b border-white/5">
                                             <div className="flex flex-col gap-1.5">
                                                 {incoming ? (
                                                     /* Bidirectional bars for incoming */
@@ -461,12 +468,12 @@ const CollapsedView = ({
                                                                     {isReduction ? (
                                                                         /* Green bar extending left from center */
                                                                         <div className="absolute right-1/2 top-0 bottom-0 flex items-center justify-start" style={{ width: `${widthPct}%` }}>
-                                                                            <div className="w-full h-full rounded-l bg-gradient-to-l from-teal-500/40 to-teal-500/15" />
+                                                                            <div className="w-full h-full rounded-l" style={{ background: 'linear-gradient(to left, rgba(20,184,166,0.4), rgba(20,184,166,0.15))' }} />
                                                                         </div>
                                                                     ) : (
                                                                         /* Red bar extending right from center */
                                                                         <div className="absolute left-1/2 top-0 bottom-0 flex items-center justify-end" style={{ width: `${widthPct}%` }}>
-                                                                            <div className="w-full h-full rounded-r bg-gradient-to-r from-red-500/40 to-red-500/15" />
+                                                                            <div className="w-full h-full rounded-r" style={{ background: 'linear-gradient(to right, rgba(239,68,68,0.4), rgba(239,68,68,0.15))' }} />
                                                                         </div>
                                                                     )}
                                                                     {/* Label */}
@@ -496,8 +503,8 @@ const CollapsedView = ({
                                                                 </div>
                                                                 <div className="flex-1 relative h-5">
                                                                     <div
-                                                                        className={`absolute inset-y-0 left-0 rounded bg-gradient-to-r ${config.barGradient}`}
-                                                                        style={{ width: `${Math.max(widthPct, 0)}%` }}
+                                                                        className="absolute inset-y-0 left-0 rounded"
+                                                                        style={{ width: `${Math.max(widthPct, 0)}%`, background: config.barGradientStyle }}
                                                                     />
                                                                     <div className={`relative h-full flex items-center px-2 text-[10px] font-mono ${config.accentText}`}>
                                                                         +{formatWithCommas(row.damageGain, 0)} ({pctOfTotal}%)
