@@ -1,0 +1,507 @@
+import { useMemo, useState } from 'react';
+import { Maximize2, X } from 'lucide-react';
+import { StatsTableLayout } from '../ui/StatsTableLayout';
+import { StatsTableShell } from '../ui/StatsTableShell';
+import { useStatsSharedContext } from '../StatsViewContext';
+
+type DamageModifiersSectionProps = {
+    search: string;
+    setSearch: (value: string) => void;
+    activeMod: string;
+    setActiveMod: (value: string) => void;
+    incoming: boolean;
+};
+
+const SECTION_CONFIG = {
+    outgoing: {
+        sectionId: 'damage-modifiers',
+        title: 'Damage Modifiers',
+        accentBg: 'bg-rose-500/20',
+        accentText: 'text-rose-200',
+        accentBorder: 'border-rose-500/40',
+        barGradient: 'from-rose-500/40 to-rose-500/15',
+    },
+    incoming: {
+        sectionId: 'incoming-damage-modifiers',
+        title: 'Incoming Damage Modifiers',
+        accentBg: 'bg-blue-500/20',
+        accentText: 'text-blue-200',
+        accentBorder: 'border-blue-500/40',
+        barGradient: 'from-blue-500/40 to-blue-500/15',
+    },
+};
+
+type ModTotals = { damageGain: number; hitCount: number; totalHitCount: number; totalDamage: number };
+type ModMapEntry = { name: string; icon: string; description: string; incoming: boolean };
+
+type ModSummary = {
+    id: string;
+    name: string;
+    icon: string;
+    description: string;
+    squadDamageGain: number;
+};
+
+export const DamageModifiersSection = ({
+    search,
+    setSearch,
+    activeMod,
+    setActiveMod,
+    incoming,
+}: DamageModifiersSectionProps) => {
+    const {
+        stats, formatWithCommas, renderProfessionIcon,
+        expandedSection, expandedSectionClosing,
+        openExpandedSection, closeExpandedSection,
+        isSectionVisible, isFirstVisibleSection,
+        sectionClass, sidebarListClass,
+    } = useStatsSharedContext();
+
+    const config = incoming ? SECTION_CONFIG.incoming : SECTION_CONFIG.outgoing;
+    const isExpanded = expandedSection === config.sectionId;
+
+    // --- Data access ---
+    const modMap: Record<string, ModMapEntry> = (stats as any).damageModMap ?? {};
+    const playerRows: any[] = incoming
+        ? ((stats as any).incomingDamageModPlayers ?? [])
+        : ((stats as any).damageModPlayers ?? []);
+
+    const totalsKey = incoming ? 'incomingDamageModTotals' : 'damageModTotals';
+
+    // --- Build sorted modifier list ---
+    const modSummaries = useMemo<ModSummary[]>(() => {
+        const summaryMap: Record<string, ModSummary> = {};
+        for (const row of playerRows) {
+            const modTotals: Record<string, ModTotals> = row[totalsKey] ?? {};
+            for (const [modId, vals] of Object.entries(modTotals)) {
+                const info = modMap[modId];
+                if (!info) continue;
+                // Filter: only show modifiers matching the incoming flag
+                if (info.incoming !== incoming) continue;
+                if (!summaryMap[modId]) {
+                    summaryMap[modId] = {
+                        id: modId,
+                        name: info.name,
+                        icon: info.icon,
+                        description: info.description,
+                        squadDamageGain: 0,
+                    };
+                }
+                summaryMap[modId].squadDamageGain += vals.damageGain;
+            }
+        }
+        return Object.values(summaryMap).sort(
+            (a, b) => Math.abs(b.squadDamageGain) - Math.abs(a.squadDamageGain)
+        );
+    }, [playerRows, modMap, incoming, totalsKey]);
+
+    // --- Filtered modifiers by search ---
+    const filteredMods = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        if (!term) return modSummaries;
+        return modSummaries.filter((m) => m.name.toLowerCase().includes(term));
+    }, [modSummaries, search]);
+
+    // Auto-select first modifier if active one is gone
+    const effectiveActiveMod = filteredMods.find((m) => m.id === activeMod)
+        ? activeMod
+        : filteredMods[0]?.id ?? '';
+
+    const [collapsedSort, setCollapsedSort] = useState<{ key: 'damageGain' | 'pctTotal' | 'hitCoverage' | 'fightTime'; dir: 'asc' | 'desc' }>({
+        key: 'damageGain', dir: 'desc',
+    });
+
+    const updateCollapsedSort = (key: typeof collapsedSort.key) => {
+        setCollapsedSort((prev) => ({
+            key,
+            dir: prev.key === key ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc',
+        }));
+    };
+
+    return (
+        <div
+            id={config.sectionId}
+            data-section-visible={isSectionVisible(config.sectionId)}
+            data-section-first={isFirstVisibleSection(config.sectionId)}
+            className={sectionClass(config.sectionId, `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+                isExpanded
+                    ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
+                        expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
+                    }`
+                    : ''
+            }`)}
+        >
+            {/* Section header */}
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
+                    {incoming ? (
+                        <svg className="w-5 h-5 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                    ) : (
+                        <svg className="w-5 h-5 text-rose-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        </svg>
+                    )}
+                    {config.title}
+                </h3>
+                <button
+                    type="button"
+                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(config.sectionId))}
+                    className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                    aria-label={isExpanded ? `Close ${config.title}` : `Expand ${config.title}`}
+                    title={isExpanded ? 'Close' : 'Expand'}
+                >
+                    {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+            </div>
+
+            {modSummaries.length === 0 ? (
+                <div className="text-center text-gray-500 italic py-8">No {incoming ? 'incoming ' : ''}damage modifier data available</div>
+            ) : (
+                <CollapsedView
+                    config={config}
+                    incoming={incoming}
+                    search={search}
+                    setSearch={setSearch}
+                    filteredMods={filteredMods}
+                    effectiveActiveMod={effectiveActiveMod}
+                    setActiveMod={setActiveMod}
+                    playerRows={playerRows}
+                    totalsKey={totalsKey}
+                    modMap={modMap}
+                    collapsedSort={collapsedSort}
+                    updateCollapsedSort={updateCollapsedSort}
+                    isExpanded={isExpanded}
+                    formatWithCommas={formatWithCommas}
+                    renderProfessionIcon={renderProfessionIcon}
+                    sidebarListClass={sidebarListClass}
+                    expandedSection={expandedSection}
+                />
+            )}
+        </div>
+    );
+};
+
+/* ─────────────────────────────────────────────
+ * COLLAPSED VIEW (sidebar + bar chart + table)
+ * ───────────────────────────────────────────── */
+
+type CollapsedViewProps = {
+    config: typeof SECTION_CONFIG.outgoing;
+    incoming: boolean;
+    search: string;
+    setSearch: (v: string) => void;
+    filteredMods: ModSummary[];
+    effectiveActiveMod: string;
+    setActiveMod: (v: string) => void;
+    playerRows: any[];
+    totalsKey: string;
+    modMap: Record<string, ModMapEntry>;
+    collapsedSort: { key: 'damageGain' | 'pctTotal' | 'hitCoverage' | 'fightTime'; dir: 'asc' | 'desc' };
+    updateCollapsedSort: (key: 'damageGain' | 'pctTotal' | 'hitCoverage' | 'fightTime') => void;
+    isExpanded: boolean;
+    formatWithCommas: (v: number, d: number) => string;
+    renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => React.JSX.Element | null;
+    sidebarListClass: string;
+    expandedSection: string | null;
+};
+
+const CollapsedView = ({
+    config, incoming, search, setSearch, filteredMods, effectiveActiveMod, setActiveMod,
+    playerRows, totalsKey, modMap, collapsedSort, updateCollapsedSort,
+    isExpanded, formatWithCommas, renderProfessionIcon, sidebarListClass, expandedSection,
+}: CollapsedViewProps) => {
+    const activeModInfo = modMap[effectiveActiveMod];
+
+    // Build player data for the active modifier
+    const activeModPlayerData = useMemo(() => {
+        if (!effectiveActiveMod) return [];
+        return playerRows
+            .map((row: any) => {
+                const modTotals: Record<string, ModTotals> = row[totalsKey] ?? {};
+                const modData = modTotals[effectiveActiveMod];
+                if (!modData) return null;
+                return {
+                    account: row.account,
+                    profession: row.profession,
+                    professionList: row.professionList,
+                    totalFightMs: row.totalFightMs || 0,
+                    damageGain: modData.damageGain,
+                    hitCount: modData.hitCount,
+                    totalHitCount: modData.totalHitCount,
+                    totalDamage: modData.totalDamage,
+                };
+            })
+            .filter(Boolean) as Array<{
+                account: string;
+                profession: string;
+                professionList: string[];
+                totalFightMs: number;
+                damageGain: number;
+                hitCount: number;
+                totalHitCount: number;
+                totalDamage: number;
+            }>;
+    }, [playerRows, effectiveActiveMod, totalsKey]);
+
+    // Sort the player data for the detail table
+    const sortedPlayerData = useMemo(() => {
+        return [...activeModPlayerData].sort((a, b) => {
+            let aVal: number, bVal: number;
+            switch (collapsedSort.key) {
+                case 'damageGain':
+                    aVal = incoming ? Math.abs(a.damageGain) : a.damageGain;
+                    bVal = incoming ? Math.abs(b.damageGain) : b.damageGain;
+                    break;
+                case 'pctTotal':
+                    aVal = a.totalDamage > 0 ? Math.abs(a.damageGain) / a.totalDamage : 0;
+                    bVal = b.totalDamage > 0 ? Math.abs(b.damageGain) / b.totalDamage : 0;
+                    break;
+                case 'hitCoverage':
+                    aVal = a.totalHitCount > 0 ? a.hitCount / a.totalHitCount : 0;
+                    bVal = b.totalHitCount > 0 ? b.hitCount / b.totalHitCount : 0;
+                    break;
+                case 'fightTime':
+                    aVal = a.totalFightMs;
+                    bVal = b.totalFightMs;
+                    break;
+                default:
+                    aVal = 0;
+                    bVal = 0;
+            }
+            const diff = collapsedSort.dir === 'desc' ? bVal - aVal : aVal - bVal;
+            return diff || a.account.localeCompare(b.account);
+        });
+    }, [activeModPlayerData, collapsedSort, incoming]);
+
+    // Bar chart data — always sorted by damageGain desc (absolute value for incoming)
+    const barChartData = useMemo(() => {
+        return [...activeModPlayerData].sort(
+            (a, b) => Math.abs(b.damageGain) - Math.abs(a.damageGain)
+        );
+    }, [activeModPlayerData]);
+
+    const maxAbsGain = barChartData.length > 0 ? Math.abs(barChartData[0].damageGain) : 0;
+
+    return (
+        <StatsTableLayout
+            expanded={isExpanded}
+            sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === config.sectionId ? 'h-full flex-1' : 'self-start'}`}
+            contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === config.sectionId ? 'flex flex-col min-h-0' : ''}`}
+            sidebar={
+                <>
+                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Modifiers</div>
+                    <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search modifiers..."
+                        className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                    />
+                    <div className={`${sidebarListClass} ${expandedSection === config.sectionId ? 'max-h-none flex-1 min-h-0' : ''}`}>
+                        {filteredMods.length === 0 ? (
+                            <div className="text-center text-gray-500 italic py-6 text-xs">No modifiers match this filter</div>
+                        ) : (
+                            filteredMods.map((mod) => (
+                                <button
+                                    key={mod.id}
+                                    onClick={() => setActiveMod(mod.id)}
+                                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors flex items-center gap-2 ${
+                                        effectiveActiveMod === mod.id
+                                            ? `${config.accentBg} ${config.accentText} ${config.accentBorder}`
+                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                    }`}
+                                >
+                                    {mod.icon && (
+                                        <img src={mod.icon} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
+                                    )}
+                                    <span className="flex flex-col min-w-0">
+                                        <span className="truncate">{mod.name}</span>
+                                        <span className="text-[10px] text-gray-500 font-normal">
+                                            {mod.squadDamageGain >= 0 ? '+' : ''}{formatWithCommas(mod.squadDamageGain, 0)} squad total
+                                        </span>
+                                    </span>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                </>
+            }
+            content={
+                <>
+                    {effectiveActiveMod && activeModInfo ? (
+                        <StatsTableShell
+                            expanded={isExpanded}
+                            header={
+                                <div className="flex items-center gap-3 px-4 py-3 bg-white/5">
+                                    {activeModInfo.icon && (
+                                        <img src={activeModInfo.icon} alt="" className="w-6 h-6 object-contain flex-shrink-0" />
+                                    )}
+                                    <div className="flex flex-col min-w-0">
+                                        <div className="text-sm font-semibold text-gray-200">{activeModInfo.name}</div>
+                                        {activeModInfo.description && (
+                                            <div
+                                                className="text-[11px] text-gray-400 leading-tight mt-0.5"
+                                                dangerouslySetInnerHTML={{ __html: activeModInfo.description }}
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            }
+                            columns={
+                                <>
+                                    {/* Bar chart */}
+                                    {barChartData.length > 0 && (
+                                        <div className="px-4 py-3 bg-white/[0.02] border-b border-white/5">
+                                            <div className="flex flex-col gap-1.5">
+                                                {incoming ? (
+                                                    /* Bidirectional bars for incoming */
+                                                    barChartData.map((row) => {
+                                                        const absGain = Math.abs(row.damageGain);
+                                                        const widthPct = maxAbsGain > 0 ? (absGain / maxAbsGain) * 50 : 0;
+                                                        const pctOfTotal = row.totalDamage > 0
+                                                            ? ((absGain / row.totalDamage) * 100).toFixed(2)
+                                                            : '0.00';
+                                                        const isReduction = row.damageGain < 0;
+                                                        return (
+                                                            <div key={row.account} className="flex items-center gap-2 text-xs">
+                                                                <div className="flex items-center gap-1.5 w-28 flex-shrink-0 justify-end">
+                                                                    <span className="truncate text-gray-300">{row.account}</span>
+                                                                    {renderProfessionIcon(row.profession, row.professionList, 'w-3.5 h-3.5')}
+                                                                </div>
+                                                                <div className="flex-1 relative h-5 flex items-center">
+                                                                    {/* Center divider */}
+                                                                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/20" />
+                                                                    {isReduction ? (
+                                                                        /* Green bar extending left from center */
+                                                                        <div className="absolute right-1/2 top-0 bottom-0 flex items-center justify-start" style={{ width: `${widthPct}%` }}>
+                                                                            <div className="w-full h-full rounded-l bg-gradient-to-l from-teal-500/40 to-teal-500/15" />
+                                                                        </div>
+                                                                    ) : (
+                                                                        /* Red bar extending right from center */
+                                                                        <div className="absolute left-1/2 top-0 bottom-0 flex items-center justify-end" style={{ width: `${widthPct}%` }}>
+                                                                            <div className="w-full h-full rounded-r bg-gradient-to-r from-red-500/40 to-red-500/15" />
+                                                                        </div>
+                                                                    )}
+                                                                    {/* Label */}
+                                                                    <div className={`absolute top-0 bottom-0 flex items-center text-[10px] font-mono ${
+                                                                        isReduction ? 'right-1/2 pr-1 justify-end text-teal-300' : 'left-1/2 pl-1 justify-start text-red-300'
+                                                                    }`} style={{ width: '50%' }}>
+                                                                        <span className="truncate">
+                                                                            {isReduction ? '' : '+'}{formatWithCommas(row.damageGain, 0)} ({pctOfTotal}%)
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    /* Simple horizontal bars for outgoing */
+                                                    barChartData.map((row) => {
+                                                        const widthPct = maxAbsGain > 0 ? (row.damageGain / maxAbsGain) * 100 : 0;
+                                                        const pctOfTotal = row.totalDamage > 0
+                                                            ? ((row.damageGain / row.totalDamage) * 100).toFixed(2)
+                                                            : '0.00';
+                                                        return (
+                                                            <div key={row.account} className="flex items-center gap-2 text-xs">
+                                                                <div className="flex items-center gap-1.5 w-28 flex-shrink-0 justify-end">
+                                                                    <span className="truncate text-gray-300">{row.account}</span>
+                                                                    {renderProfessionIcon(row.profession, row.professionList, 'w-3.5 h-3.5')}
+                                                                </div>
+                                                                <div className="flex-1 relative h-5">
+                                                                    <div
+                                                                        className={`absolute inset-y-0 left-0 rounded bg-gradient-to-r ${config.barGradient}`}
+                                                                        style={{ width: `${Math.max(widthPct, 0)}%` }}
+                                                                    />
+                                                                    <div className={`relative h-full flex items-center px-2 text-[10px] font-mono ${config.accentText}`}>
+                                                                        +{formatWithCommas(row.damageGain, 0)} ({pctOfTotal}%)
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {/* Detail table column headers */}
+                                    <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                        <div className="text-center">#</div>
+                                        <div>Player</div>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateCollapsedSort('damageGain')}
+                                            className={`text-right transition-colors ${collapsedSort.key === 'damageGain' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                        >
+                                            Dmg Gain{collapsedSort.key === 'damageGain' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateCollapsedSort('pctTotal')}
+                                            className={`text-right transition-colors ${collapsedSort.key === 'pctTotal' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                        >
+                                            % Total{collapsedSort.key === 'pctTotal' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateCollapsedSort('hitCoverage')}
+                                            className={`text-right transition-colors ${collapsedSort.key === 'hitCoverage' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                        >
+                                            Hits{collapsedSort.key === 'hitCoverage' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateCollapsedSort('fightTime')}
+                                            className={`text-right transition-colors ${collapsedSort.key === 'fightTime' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                        >
+                                            Fight Time{collapsedSort.key === 'fightTime' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                        </button>
+                                    </div>
+                                </>
+                            }
+                            rows={
+                                <>
+                                    {sortedPlayerData.length === 0 ? (
+                                        <div className="px-4 py-8 text-center text-gray-500 italic text-sm">No player data for this modifier</div>
+                                    ) : (
+                                        sortedPlayerData.map((row, idx) => {
+                                            const pctOfTotal = row.totalDamage > 0
+                                                ? ((Math.abs(row.damageGain) / row.totalDamage) * 100).toFixed(2)
+                                                : '0.00';
+                                            const hitCoverage = row.totalHitCount > 0
+                                                ? `${row.hitCount}/${row.totalHitCount}`
+                                                : '—';
+                                            return (
+                                                <div key={`${row.account}-${idx}`} className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
+                                                    <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                        <span className="truncate">{row.account}</span>
+                                                    </div>
+                                                    <div className="text-right font-mono text-gray-300">
+                                                        {row.damageGain >= 0 ? '+' : ''}{formatWithCommas(row.damageGain, 0)}
+                                                    </div>
+                                                    <div className="text-right font-mono text-gray-400">
+                                                        {pctOfTotal}%
+                                                    </div>
+                                                    <div className="text-right font-mono text-gray-400">
+                                                        {hitCoverage}
+                                                    </div>
+                                                    <div className="text-right font-mono text-gray-400">
+                                                        {row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '—'}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </>
+                            }
+                        />
+                    ) : (
+                        <div className="px-4 py-8 text-center text-gray-500 italic text-sm">Select a modifier from the sidebar</div>
+                    )}
+                </>
+            }
+        />
+    );
+};
