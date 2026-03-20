@@ -102,7 +102,8 @@ const TOP_LEVEL_KEYS = [
     'combatReplayMetaData', 'skillMap', 'buffMap', 'encounterDuration',
     'player_damage_mitigation', 'player_minion_damage_mitigation',
     'playerDamageMitigation', 'playerMinionDamageMitigation',
-    'damageModMap'
+    'damageModMap',
+    'personalDamageMods'
 ];
 
 /**

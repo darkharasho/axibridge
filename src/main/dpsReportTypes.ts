@@ -36,6 +36,7 @@ export interface DPSReportJSON {
     buffMap?: { [key: string]: { name: string; stacking: boolean; icon?: string; classification?: string } };
     combatReplayMetaData?: { inchToPixel?: number; pollingRate?: number };
     damageModMap?: Record<string, DamageModifierInfo>;
+    personalDamageMods?: Record<string, number[]>;
 }
 
 export interface Target {

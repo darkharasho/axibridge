@@ -43,6 +43,7 @@ type ModSummary = {
     icon: string;
     description: string;
     squadDamageGain: number;
+    isPersonal: boolean;
 };
 
 export const DamageModifiersSection = ({
@@ -70,6 +71,10 @@ export const DamageModifiersSection = ({
         : ((stats as any).damageModPlayers ?? []);
 
     const totalsKey = incoming ? 'incomingDamageModTotals' : 'damageModTotals';
+    const personalModKeys = useMemo(() => new Set<string>((stats as any).personalDamageModKeys ?? []), [stats]);
+
+    // --- Hypothetical toggle ---
+    const [showHypothetical, setShowHypothetical] = useState(false);
 
     // --- Build sorted modifier list ---
     const modSummaries = useMemo<ModSummary[]>(() => {
@@ -81,6 +86,9 @@ export const DamageModifiersSection = ({
                 if (!info) continue;
                 // Filter: only show modifiers matching the incoming flag
                 if (info.incoming !== incoming) continue;
+                // Filter: hide hypothetical (shared) modifiers unless toggled
+                const isPersonal = personalModKeys.has(modId);
+                if (!isPersonal && !showHypothetical) continue;
                 if (!summaryMap[modId]) {
                     summaryMap[modId] = {
                         id: modId,
@@ -88,6 +96,7 @@ export const DamageModifiersSection = ({
                         icon: info.icon,
                         description: info.description,
                         squadDamageGain: 0,
+                        isPersonal,
                     };
                 }
                 summaryMap[modId].squadDamageGain += vals.damageGain;
@@ -96,7 +105,7 @@ export const DamageModifiersSection = ({
         return Object.values(summaryMap).sort(
             (a, b) => Math.abs(b.squadDamageGain) - Math.abs(a.squadDamageGain)
         );
-    }, [playerRows, modMap, incoming, totalsKey]);
+    }, [playerRows, modMap, incoming, totalsKey, personalModKeys, showHypothetical]);
 
     // --- Filtered modifiers by search ---
     const filteredMods = useMemo(() => {
@@ -189,15 +198,29 @@ export const DamageModifiersSection = ({
                     )}
                     {config.title}
                 </h3>
-                <button
-                    type="button"
-                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(config.sectionId))}
-                    className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
-                    aria-label={isExpanded ? `Close ${config.title}` : `Expand ${config.title}`}
-                    title={isExpanded ? 'Close' : 'Expand'}
-                >
-                    {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setShowHypothetical((v) => !v)}
+                        className={`px-2.5 py-1.5 rounded-lg border text-[10px] uppercase tracking-widest transition-colors ${
+                            showHypothetical
+                                ? `${config.accentBg} ${config.accentText} ${config.accentBorder}`
+                                : 'border-white/10 bg-white/5 text-gray-400 hover:text-white hover:border-white/30'
+                        }`}
+                        title={showHypothetical ? 'Showing all modifiers (including hypothetical)' : 'Show hypothetical shared modifiers'}
+                    >
+                        Hypothetical
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(config.sectionId))}
+                        className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                        aria-label={isExpanded ? `Close ${config.title}` : `Expand ${config.title}`}
+                        title={isExpanded ? 'Close' : 'Expand'}
+                    >
+                        {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                    </button>
+                </div>
             </div>
 
             {modSummaries.length === 0 ? (
@@ -279,6 +302,7 @@ const CollapsedView = ({
     isExpanded, formatWithCommas, renderProfessionIcon, sidebarListClass, expandedSection,
 }: CollapsedViewProps) => {
     const activeModInfo = modMap[effectiveActiveMod];
+    const activeModIsHypothetical = !filteredMods.find((m) => m.id === effectiveActiveMod)?.isPersonal;
 
     // Build player data for the active modifier (merged by account to handle splitPlayersByClass)
     const activeModPlayerData = useMemo(() => {
@@ -383,7 +407,7 @@ const CollapsedView = ({
                                         effectiveActiveMod === mod.id
                                             ? `${config.accentBg} ${config.accentText} ${config.accentBorder}`
                                             : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
-                                    }`}
+                                    } ${!mod.isPersonal ? 'opacity-50' : ''}`}
                                 >
                                     {mod.icon && (
                                         <img src={mod.icon} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
@@ -478,7 +502,7 @@ const CollapsedView = ({
                                                     ? 'linear-gradient(to right, rgba(239,68,68,0.2), rgba(239,68,68,0.05))'
                                                     : config.barGradientStyle;
                                             return (
-                                                <div key={`${row.account}-${idx}`} className="relative border-t border-white/5">
+                                                <div key={`${row.account}-${idx}`} className={`relative border-t border-white/5 ${activeModIsHypothetical ? 'opacity-50' : ''}`}>
                                                     {/* Bar overlay — negative grows from right, positive from left */}
                                                     <div
                                                         className={`absolute inset-y-0 pointer-events-none ${isNegative ? 'right-0' : 'left-0'}`}
