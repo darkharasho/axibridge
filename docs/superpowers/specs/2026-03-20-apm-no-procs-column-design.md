@@ -72,7 +72,7 @@ This aligns the TypeScript type with the actual EI JSON payload.
 ### All Skills View
 
 Grid changes from 3 columns to 4:
-- Layout: `grid-cols-[1.6fr_0.7fr_0.9fr]` → `grid-cols-[1.6fr_0.6fr_0.7fr_0.8fr]`
+- Layout: `grid-cols-[1.6fr_0.7fr_0.9fr]` → `grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr]`
 - New header: sortable `APM (No Procs)` / `APS (No Procs)`
 - `allSkillsSort.key` type: `'apm' | 'apmNoAuto'` → `'apm' | 'apmNoAuto' | 'apmNoProcs'`
 - New data cell renders `apmNoProcs` / `apsNoProcs`
