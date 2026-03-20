@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X, Columns, Users } from 'lucide-react';
+import { Maximize2, X, Columns, Users, BarChart3, Table2 } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
+import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
@@ -109,6 +110,9 @@ export const DamageModifiersSection = ({
     const effectiveActiveMod = filteredMods.find((m) => m.id === activeMod)
         ? activeMod
         : filteredMods[0]?.id ?? '';
+
+    // --- View mode state ---
+    const [contentViewMode, setContentViewMode] = useState<'chart' | 'table'>('chart');
 
     // --- Expanded view state ---
     const [selectedColumnIds, setSelectedColumnIds] = useState<string[]>([]);
@@ -243,6 +247,8 @@ export const DamageModifiersSection = ({
                     renderProfessionIcon={renderProfessionIcon}
                     sidebarListClass={sidebarListClass}
                     expandedSection={expandedSection}
+                    contentViewMode={contentViewMode}
+                    setContentViewMode={setContentViewMode}
                 />
             )}
         </div>
@@ -271,12 +277,15 @@ type CollapsedViewProps = {
     renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => React.JSX.Element | null;
     sidebarListClass: string;
     expandedSection: string | null;
+    contentViewMode: 'chart' | 'table';
+    setContentViewMode: (v: 'chart' | 'table') => void;
 };
 
 const CollapsedView = ({
     config, incoming, search, setSearch, filteredMods, effectiveActiveMod, setActiveMod,
     playerRows, totalsKey, modMap, collapsedSort, updateCollapsedSort,
     isExpanded, formatWithCommas, renderProfessionIcon, sidebarListClass, expandedSection,
+    contentViewMode, setContentViewMode,
 }: CollapsedViewProps) => {
     const activeModInfo = modMap[effectiveActiveMod];
 
@@ -403,7 +412,7 @@ const CollapsedView = ({
                                     {activeModInfo.icon && (
                                         <img src={activeModInfo.icon} alt="" className="w-6 h-6 object-contain flex-shrink-0" />
                                     )}
-                                    <div className="flex flex-col min-w-0">
+                                    <div className="flex flex-col min-w-0 flex-1">
                                         <div className="text-sm font-semibold text-gray-200">{activeModInfo.name}</div>
                                         {activeModInfo.description && (
                                             <div className="text-[11px] text-gray-400 leading-tight mt-0.5">
@@ -413,12 +422,22 @@ const CollapsedView = ({
                                             </div>
                                         )}
                                     </div>
+                                    <PillToggleGroup
+                                        value={contentViewMode}
+                                        onChange={setContentViewMode}
+                                        options={[
+                                            { value: 'chart' as const, label: <BarChart3 className="w-3 h-3" /> },
+                                            { value: 'table' as const, label: <Table2 className="w-3 h-3" /> },
+                                        ]}
+                                        activeClassName={`${config.accentBg} ${config.accentText} border ${config.accentBorder}`}
+                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                    />
                                 </div>
                             }
                             columns={
                                 <>
                                     {/* Bar chart */}
-                                    {barChartData.length > 0 && (
+                                    {contentViewMode === 'chart' && barChartData.length > 0 && (
                                         <div className="px-4 py-3 bg-white/[0.02] border-b border-white/5">
                                             <div className="flex flex-col gap-1.5">
                                                 {incoming ? (
@@ -492,7 +511,7 @@ const CollapsedView = ({
                                         </div>
                                     )}
                                     {/* Detail table column headers */}
-                                    <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                    {contentViewMode === 'table' && <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                         <div className="text-center">#</div>
                                         <div>Player</div>
                                         <button
@@ -523,12 +542,12 @@ const CollapsedView = ({
                                         >
                                             Fight Time{collapsedSort.key === 'fightTime' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                         </button>
-                                    </div>
+                                    </div>}
                                 </>
                             }
                             rows={
                                 <>
-                                    {sortedPlayerData.length === 0 ? (
+                                    {contentViewMode !== 'table' ? null : sortedPlayerData.length === 0 ? (
                                         <div className="px-4 py-8 text-center text-gray-500 italic text-sm">No player data for this modifier</div>
                                     ) : (
                                         sortedPlayerData.map((row, idx) => {
