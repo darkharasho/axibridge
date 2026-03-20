@@ -10,7 +10,7 @@ const pick = (obj: any, keys: string[]) => {
 
 export const isStatsPrunedLog = (value: any): boolean => Boolean(value && value.__statsPruned === true);
 
-const pruneMetaMap = (source: any, options?: { includeClassification?: boolean; includeStacking?: boolean }) => {
+const pruneMetaMap = (source: any, options?: { includeClassification?: boolean; includeStacking?: boolean; includeAutoAttack?: boolean }) => {
     if (!source || typeof source !== 'object') return source;
     const out: Record<string, any> = {};
     Object.entries(source).forEach(([key, value]) => {
@@ -27,6 +27,9 @@ const pruneMetaMap = (source: any, options?: { includeClassification?: boolean; 
             } else if (typeof (value as any).stacking === 'number') {
                 next.stacking = Boolean((value as any).stacking);
             }
+        }
+        if (options?.includeAutoAttack && typeof (value as any).autoAttack === 'boolean') {
+            next.autoAttack = (value as any).autoAttack;
         }
         if (Object.keys(next).length > 0) {
             out[key] = next;
@@ -95,7 +98,7 @@ export const pruneDetailsForStats = (details: any) => {
         'playerDamageMitigation',
         'playerMinionDamageMitigation'
     ]);
-    pruned.skillMap = pruneMetaMap(pruned.skillMap, { includeClassification: false, includeStacking: false });
+    pruned.skillMap = pruneMetaMap(pruned.skillMap, { includeClassification: false, includeStacking: false, includeAutoAttack: true });
     pruned.buffMap = pruneMetaMap(pruned.buffMap, { includeClassification: true, includeStacking: true });
     if (pruned.damageModMap && typeof pruned.damageModMap === 'object') {
         const prunedModMap: Record<string, any> = {};

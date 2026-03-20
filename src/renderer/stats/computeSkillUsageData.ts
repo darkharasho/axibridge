@@ -11,6 +11,7 @@ export const computeSkillUsageData = (validLogs: any[]): SkillUsageSummary => {
     const logRecords: SkillUsageLogRecord[] = [];
     const skillNameMap = new Map<string, string>();
     const skillIconMap = new Map<string, string>();
+    const skillAutoAttackMap = new Map<string, boolean>();
 
     validLogs.forEach((log) => {
         const details = log.details;
@@ -52,6 +53,9 @@ export const computeSkillUsageData = (validLogs: any[]): SkillUsageSummary => {
                 skillTotals.set(sId, (skillTotals.get(sId) || 0) + count);
                 skillNameMap.set(sId, sName);
                 if (sIcon && !skillIconMap.has(sId)) skillIconMap.set(sId, sIcon);
+                if (!skillAutoAttackMap.has(sId) && typeof skillMap[sId]?.autoAttack === 'boolean') {
+                    skillAutoAttackMap.set(sId, skillMap[sId].autoAttack);
+                }
 
                 if (!record.skillEntries[sId]) record.skillEntries[sId] = { name: sName, icon: sIcon, players: {} };
                 if (!record.skillEntries[sId].icon && sIcon) record.skillEntries[sId].icon = sIcon;
@@ -62,7 +66,8 @@ export const computeSkillUsageData = (validLogs: any[]): SkillUsageSummary => {
     });
 
     const skillOptions = Array.from(skillTotals.entries()).map(([id, total]) => ({
-        id, name: skillNameMap.get(id) || id, total, icon: skillIconMap.get(id)
+        id, name: skillNameMap.get(id) || id, total, icon: skillIconMap.get(id),
+        autoAttack: skillAutoAttackMap.get(id)
     })).sort((a, b) => b.total - a.total);
 
     return {
