@@ -2067,7 +2067,7 @@ export function ReportApp() {
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
                                                 }`}
                                         >
-                                            <GroupIcon className="report-nav-group-icon w-4 h-4 shrink-0 text-[color:var(--accent)]" />
+                                            <GroupIcon className="report-nav-group-icon w-5 h-5 shrink-0 text-[color:var(--accent)]" />
                                             <span className="report-nav-group-label text-[11px] uppercase tracking-[0.22em] whitespace-nowrap min-w-0 truncate">{group.label}</span>
                                             <motion.span
                                                 className="report-nav-chevron ml-auto inline-flex shrink-0"
@@ -2108,7 +2108,7 @@ export function ReportApp() {
                                                             }}
                                                             className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] border transition-colors transform-gpu ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
                                                         >
-                                                            <ItemIcon className="w-3.5 h-3.5 shrink-0 text-[color:var(--accent)]" />
+                                                            <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                                             {item.label}
                                                         </motion.button>
                                                     );
@@ -2168,7 +2168,7 @@ export function ReportApp() {
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
                                                 }`}
                                         >
-                                            <GroupIcon className="report-nav-group-icon w-4 h-4 shrink-0 text-[color:var(--accent)]" />
+                                            <GroupIcon className="report-nav-group-icon w-5 h-5 shrink-0 text-[color:var(--accent)]" />
                                             <span className="report-nav-group-label text-[11px] uppercase tracking-[0.22em] whitespace-nowrap min-w-0 truncate">{group.label}</span>
                                             <motion.span
                                                 className="report-nav-chevron ml-auto inline-flex shrink-0"
@@ -2206,7 +2206,7 @@ export function ReportApp() {
                                                             onClick={() => handleSubNavClick(group.id, item.id)}
                                                             className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] border transition-colors transform-gpu ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
                                                         >
-                                                            <ItemIcon className="w-3.5 h-3.5 shrink-0 text-[color:var(--accent)]" />
+                                                            <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                                             {item.label}
                                                         </motion.button>
                                                     );
@@ -2306,7 +2306,7 @@ export function ReportApp() {
                                         className={`group flex items-center gap-2 px-3 py-2 rounded-full text-[10px] uppercase tracking-widest whitespace-nowrap border bg-gradient-to-br shadow-[0_10px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-200 active:translate-y-0 active:scale-[0.98] snap-start ${activeSectionId === item.id ? 'text-white border-[color:var(--accent-border)] from-[color:var(--accent-glow)] via-white/10 to-transparent' : 'text-gray-200 border-white/15 from-white/10 via-white/5 to-transparent hover:-translate-y-0.5 hover:border-[color:var(--accent-border)] hover:shadow-[0_18px_35px_rgba(0,0,0,0.45)]'}`}
                                     >
                                         <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border border-white/10 group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-glow)] transition-colors">
-                                            <Icon className="w-3 h-3 shrink-0 text-[color:var(--accent)]" />
+                                            <Icon className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                         </span>
                                         {item.label}
                                     </button>
@@ -2822,7 +2822,7 @@ export function ReportApp() {
                                 <div className="min-w-0 block text-left pl-1 sm:pl-2">
                                     <div className="flex flex-wrap items-center gap-2">
                                         <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-glow)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white">
-                                            <BarChart3 className="w-3.5 h-3.5" />
+                                            <BarChart3 className="w-4 h-4" />
                                             All Reports
                                         </span>
                                         <span className="text-[11px] uppercase tracking-widest text-white/60">Overview</span>

@@ -34,13 +34,13 @@ export const DevMockBanner = ({
                 <button
                     onClick={() => {
                         const url = devMockUploadState.url;
-                        if (url && window.electronAPI?.openExternal) {
-                            window.electronAPI.openExternal(url);
+                        if (url) {
+                            navigator.clipboard.writeText(url).catch(() => {});
                         }
                     }}
                     className="px-3 py-1 rounded-full text-[10px] border bg-white/5 text-gray-300 border-white/10 hover:text-white"
                 >
-                    Open in Browser
+                    Copy Link
                 </button>
             )}
         </div>
