@@ -51,6 +51,8 @@ export interface PlayerStats {
     revives: number;
     outgoingConditions: Record<string, any>;
     incomingConditions: Record<string, any>;
+    damageModTotals: Record<string, { damageGain: number; hitCount: number; totalHitCount: number; totalDamage: number }>;
+    incomingDamageModTotals: Record<string, { damageGain: number; hitCount: number; totalHitCount: number; totalDamage: number }>;
 }
 
 export type DamageMitigationTotals = {
@@ -568,7 +570,7 @@ export const computePlayerAggregation = ({
                     totalDist: 0, distCount: 0, dodges: 0, downs: 0, deaths: 0, totalFightMs: 0,
                     offenseTotals: {}, offenseRateWeights: {}, defenseActiveMs: 0, defenseTotals: {}, defenseMinionDamageTaken: {}, supportActiveMs: 0, supportTotals: {},
                     healingActiveMs: 0, healingTotals: {}, profession: identity.profession, professions: new Set(),
-                    professionTimeMs: {}, squadActiveMs: 0, firstSeenFightTs: 0, lastSeenFightTs: 0, lastSeenFightDurationMs: 0, isCommander: false, damage: 0, dps: 0, revives: 0, outgoingConditions: {}, incomingConditions: {}
+                    professionTimeMs: {}, squadActiveMs: 0, firstSeenFightTs: 0, lastSeenFightTs: 0, lastSeenFightDurationMs: 0, isCommander: false, damage: 0, dps: 0, revives: 0, outgoingConditions: {}, incomingConditions: {}, damageModTotals: {}, incomingDamageModTotals: {}
                 });
             }
             const s = playerStats.get(key)!;
@@ -1046,6 +1048,52 @@ export const computePlayerAggregation = ({
                         incomingSkillDamageMap[entry.id].hits += entry.hits;
                     });
                 });
+            }
+
+            // Aggregate outgoing damage modifiers
+            if (p.damageModifiers) {
+                for (const entry of p.damageModifiers) {
+                    const phase0 = entry.damageModifiers?.[0];
+                    if (!phase0) continue;
+                    const key = `d${entry.id}`;
+                    const existing = s.damageModTotals[key];
+                    if (existing) {
+                        existing.damageGain += phase0.damageGain;
+                        existing.hitCount += phase0.hitCount;
+                        existing.totalHitCount += phase0.totalHitCount;
+                        existing.totalDamage += phase0.totalDamage;
+                    } else {
+                        s.damageModTotals[key] = {
+                            damageGain: phase0.damageGain,
+                            hitCount: phase0.hitCount,
+                            totalHitCount: phase0.totalHitCount,
+                            totalDamage: phase0.totalDamage,
+                        };
+                    }
+                }
+            }
+
+            // Aggregate incoming damage modifiers
+            if (p.incomingDamageModifiers) {
+                for (const entry of p.incomingDamageModifiers) {
+                    const phase0 = entry.damageModifiers?.[0];
+                    if (!phase0) continue;
+                    const key = `d${entry.id}`;
+                    const existing = s.incomingDamageModTotals[key];
+                    if (existing) {
+                        existing.damageGain += phase0.damageGain;
+                        existing.hitCount += phase0.hitCount;
+                        existing.totalHitCount += phase0.totalHitCount;
+                        existing.totalDamage += phase0.totalDamage;
+                    } else {
+                        s.incomingDamageModTotals[key] = {
+                            damageGain: phase0.damageGain,
+                            hitCount: phase0.hitCount,
+                            totalHitCount: phase0.totalHitCount,
+                            totalDamage: phase0.totalDamage,
+                        };
+                    }
+                }
             }
         });
 
