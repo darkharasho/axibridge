@@ -140,10 +140,12 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         const splitPlayersByClass = Boolean(activeStatsViewSettings.splitPlayersByClass);
         const total = validLogs.length;
 
-        // Merge damageModMap across all logs (data lives under log.details)
+        // Merge damageModMap and personalDamageMods across all logs (data lives under log.details)
         const mergedDamageModMap: Record<string, { name: string; icon: string; description: string; incoming: boolean }> = {};
+        const personalDamageModKeys = new Set<string>();
         for (const log of validLogs) {
-            const modMap = (log as any).details?.damageModMap;
+            const details = (log as any).details;
+            const modMap = details?.damageModMap;
             if (modMap && typeof modMap === 'object') {
                 for (const [key, value] of Object.entries(modMap)) {
                     if (!mergedDamageModMap[key] && value && typeof value === 'object') {
@@ -154,6 +156,14 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                             description: v.description ?? '',
                             incoming: v.incoming ?? false,
                         };
+                    }
+                }
+            }
+            const personalMods = details?.personalDamageMods;
+            if (personalMods && typeof personalMods === 'object') {
+                for (const ids of Object.values(personalMods)) {
+                    if (Array.isArray(ids)) {
+                        for (const id of ids) personalDamageModKeys.add(`d${id}`);
                     }
                 }
             }
@@ -696,6 +706,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 healingTotals: s.healingTotals, activeMs: s.healingActiveMs
             })),
             damageModMap: mergedDamageModMap,
+            personalDamageModKeys: Array.from(personalDamageModKeys),
             damageModPlayers: Array.from(playerStats.values()).map(s => ({
                 account: s.account, profession: s.profession, professionList: s.professionList,
                 damageModTotals: s.damageModTotals, totalFightMs: s.totalFightMs,

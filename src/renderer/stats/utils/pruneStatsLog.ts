@@ -88,6 +88,7 @@ export const pruneDetailsForStats = (details: any) => {
         'skillMap',
         'buffMap',
         'damageModMap',
+        'personalDamageMods',
         'encounterDuration',
         'player_damage_mitigation',
         'player_minion_damage_mitigation',
