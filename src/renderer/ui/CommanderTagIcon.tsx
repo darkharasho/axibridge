@@ -18,6 +18,7 @@ export const CommanderTagIcon = ({ className }: CommanderTagIconProps) => {
                 maskRepeat: 'no-repeat',
                 maskPosition: 'center',
                 maskSize: 'contain',
+                maskMode: 'alpha',
                 WebkitMaskImage: `url("${iconUrl}")`,
                 WebkitMaskRepeat: 'no-repeat',
                 WebkitMaskPosition: 'center',

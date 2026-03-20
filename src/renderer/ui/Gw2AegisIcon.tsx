@@ -12,14 +12,15 @@ export const Gw2AegisIcon = ({ className = '' }: Gw2AegisIconProps) => {
             className={`inline-block shrink-0 ${className}`.trim()}
             style={{
                 backgroundColor: 'currentColor',
-                maskImage: `url(${iconPath})`,
-                WebkitMaskImage: `url(${iconPath})`,
+                maskImage: `url("${iconPath}")`,
+                WebkitMaskImage: `url("${iconPath}")`,
                 maskRepeat: 'no-repeat',
                 WebkitMaskRepeat: 'no-repeat',
                 maskPosition: 'center',
                 WebkitMaskPosition: 'center',
                 maskSize: 'contain',
-                WebkitMaskSize: 'contain'
+                WebkitMaskSize: 'contain',
+                maskMode: 'alpha'
             }}
         />
     );

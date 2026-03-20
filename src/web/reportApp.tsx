@@ -2067,7 +2067,7 @@ export function ReportApp() {
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
                                                 }`}
                                         >
-                                            <GroupIcon className="report-nav-group-icon w-4 h-4 text-[color:var(--accent)]" />
+                                            <GroupIcon className="report-nav-group-icon w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                             <span className="report-nav-group-label text-[11px] uppercase tracking-[0.22em] whitespace-nowrap min-w-0 truncate">{group.label}</span>
                                             <motion.span
                                                 className="report-nav-chevron ml-auto inline-flex shrink-0"
@@ -2108,7 +2108,7 @@ export function ReportApp() {
                                                             }}
                                                             className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] border transition-colors transform-gpu ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
                                                         >
-                                                            <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
+                                                            <ItemIcon className="w-3.5 h-3.5 shrink-0 text-[color:var(--accent)]" />
                                                             {item.label}
                                                         </motion.button>
                                                     );
@@ -2129,14 +2129,15 @@ export function ReportApp() {
                                     className="h-10 w-10 rounded-2xl border border-white/20"
                                     style={{
                                         backgroundColor: defaultLogoColor,
-                                        maskImage: `url(${arcbridgeLogoUrl})`,
-                                        WebkitMaskImage: `url(${arcbridgeLogoUrl})`,
+                                        maskImage: `url("${arcbridgeLogoUrl}")`,
+                                        WebkitMaskImage: `url("${arcbridgeLogoUrl}")`,
                                         maskRepeat: 'no-repeat',
                                         WebkitMaskRepeat: 'no-repeat',
                                         maskPosition: 'center',
                                         WebkitMaskPosition: 'center',
                                         maskSize: '65%',
-                                        WebkitMaskSize: '65%'
+                                        WebkitMaskSize: '65%',
+                                        maskMode: 'alpha'
                                     }}
                                     aria-label="ArcBridge logo"
                                 />
@@ -2167,7 +2168,7 @@ export function ReportApp() {
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
                                                 }`}
                                         >
-                                            <GroupIcon className="report-nav-group-icon w-4 h-4 text-[color:var(--accent)]" />
+                                            <GroupIcon className="report-nav-group-icon w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                             <span className="report-nav-group-label text-[11px] uppercase tracking-[0.22em] whitespace-nowrap min-w-0 truncate">{group.label}</span>
                                             <motion.span
                                                 className="report-nav-chevron ml-auto inline-flex shrink-0"
@@ -2205,7 +2206,7 @@ export function ReportApp() {
                                                             onClick={() => handleSubNavClick(group.id, item.id)}
                                                             className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] border transition-colors transform-gpu ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
                                                         >
-                                                            <ItemIcon className="w-3.5 h-3.5 text-[color:var(--accent)]" />
+                                                            <ItemIcon className="w-3.5 h-3.5 shrink-0 text-[color:var(--accent)]" />
                                                             {item.label}
                                                         </motion.button>
                                                     );
@@ -2242,14 +2243,15 @@ export function ReportApp() {
                                             className="w-16 h-16 sm:w-24 sm:h-24 mx-auto sm:mx-0"
                                             style={{
                                                 backgroundColor: defaultLogoColor,
-                                                maskImage: `url(${logoUrl})`,
-                                                WebkitMaskImage: `url(${logoUrl})`,
+                                                maskImage: `url("${logoUrl}")`,
+                                                WebkitMaskImage: `url("${logoUrl}")`,
                                                 maskRepeat: 'no-repeat',
                                                 WebkitMaskRepeat: 'no-repeat',
                                                 maskPosition: 'center',
                                                 WebkitMaskPosition: 'center',
                                                 maskSize: 'contain',
-                                                WebkitMaskSize: 'contain'
+                                                WebkitMaskSize: 'contain',
+                                                maskMode: 'alpha'
                                             }}
                                             aria-label="ArcBridge logo"
                                         />
@@ -2276,17 +2278,17 @@ export function ReportApp() {
                             </button>
                             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:overflow-visible pr-1 sm:pr-2">
                                 <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center gap-2 min-w-0 justify-start">
-                                    <CalendarDays className="w-4 h-4 text-[color:var(--accent)]" />
+                                    <CalendarDays className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                     {report.meta.dateLabel || 'Log Range'}
                                 </div>
                                 <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
-                                    <CommanderTagIcon className="w-4 h-4 text-[color:var(--accent)]" />
+                                    <CommanderTagIcon className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                     <span className="truncate">
                                         {report.meta.commanders.length ? report.meta.commanders.join(', ') : 'No Commanders'}
                                     </span>
                                 </div>
                                 <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
-                                    <ShieldCheck className="w-4 h-4 text-[color:var(--accent)]" />
+                                    <ShieldCheck className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                     Report {report.meta.appVersion ? `v${report.meta.appVersion}` : 'build'}
                                 </div>
                             </div>
@@ -2304,7 +2306,7 @@ export function ReportApp() {
                                         className={`group flex items-center gap-2 px-3 py-2 rounded-full text-[10px] uppercase tracking-widest whitespace-nowrap border bg-gradient-to-br shadow-[0_10px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-200 active:translate-y-0 active:scale-[0.98] snap-start ${activeSectionId === item.id ? 'text-white border-[color:var(--accent-border)] from-[color:var(--accent-glow)] via-white/10 to-transparent' : 'text-gray-200 border-white/15 from-white/10 via-white/5 to-transparent hover:-translate-y-0.5 hover:border-[color:var(--accent-border)] hover:shadow-[0_18px_35px_rgba(0,0,0,0.45)]'}`}
                                     >
                                         <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border border-white/10 group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-glow)] transition-colors">
-                                            <Icon className="w-3 h-3 text-[color:var(--accent)]" />
+                                            <Icon className="w-3 h-3 shrink-0 text-[color:var(--accent)]" />
                                         </span>
                                         {item.label}
                                     </button>
@@ -2337,21 +2339,21 @@ export function ReportApp() {
                             href={themedIndexHref}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
                         >
-                            <ArrowLeft className="w-4 h-4 text-[color:var(--accent)]" />
+                            <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                             Back
                         </a>
                         <button
                             onClick={() => setTocOpen(true)}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
                         >
-                            <PanelLeft className="w-4 h-4 text-[color:var(--accent)]" />
+                            <PanelLeft className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                             Contents
                         </button>
                         <button
                             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
                         >
-                            <ArrowUp className="w-4 h-4 text-[color:var(--accent)]" />
+                            <ArrowUp className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                             Top
                         </button>
                     </div>
@@ -2401,14 +2403,15 @@ export function ReportApp() {
                                             className="w-16 h-16 sm:w-24 sm:h-24 mx-auto sm:mx-0"
                                             style={{
                                                 backgroundColor: defaultLogoColor,
-                                                maskImage: `url(${logoUrl})`,
-                                                WebkitMaskImage: `url(${logoUrl})`,
+                                                maskImage: `url("${logoUrl}")`,
+                                                WebkitMaskImage: `url("${logoUrl}")`,
                                                 maskRepeat: 'no-repeat',
                                                 WebkitMaskRepeat: 'no-repeat',
                                                 maskPosition: 'center',
                                                 WebkitMaskPosition: 'center',
                                                 maskSize: 'contain',
-                                                WebkitMaskSize: 'contain'
+                                                WebkitMaskSize: 'contain',
+                                                maskMode: 'alpha'
                                             }}
                                             aria-label="ArcBridge logo"
                                         />
@@ -2428,14 +2431,14 @@ export function ReportApp() {
                             </div>
                             <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
                                 <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center gap-2">
-                                    <BarChart3 className="w-4 h-4 text-[color:var(--accent)]" />
+                                    <BarChart3 className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                     {rollupData?.uniqueRaids || 0} Raids
                                 </div>
                                 <a
                                     href={themedIndexHref}
                                     className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center justify-center gap-2 hover:border-[color:var(--accent-border)] transition-colors"
                                 >
-                                    <ArrowLeft className="w-4 h-4 text-[color:var(--accent)]" />
+                                    <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                     Back To Reports
                                 </a>
                             </div>
@@ -2736,14 +2739,15 @@ export function ReportApp() {
                                         className="w-16 h-16 sm:w-24 sm:h-24 mx-auto sm:mx-0"
                                         style={{
                                             backgroundColor: defaultLogoColor,
-                                            maskImage: `url(${logoUrl})`,
-                                            WebkitMaskImage: `url(${logoUrl})`,
+                                            maskImage: `url("${logoUrl}")`,
+                                            WebkitMaskImage: `url("${logoUrl}")`,
                                             maskRepeat: 'no-repeat',
                                             WebkitMaskRepeat: 'no-repeat',
                                             maskPosition: 'center',
                                             WebkitMaskPosition: 'center',
                                             maskSize: 'contain',
-                                            WebkitMaskSize: 'contain'
+                                            WebkitMaskSize: 'contain',
+                                            maskMode: 'alpha'
                                         }}
                                         aria-label="ArcBridge logo"
                                     />
@@ -2825,7 +2829,7 @@ export function ReportApp() {
                                     </div>
                                     <div className="text-base sm:text-lg font-semibold mt-2 text-white">Combined Stats Across Every Included Report</div>
                                     <div className="text-xs text-gray-300 mt-1 flex items-center gap-2">
-                                        <Users className="w-4 h-4 text-[color:var(--accent)]" />
+                                        <Users className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                         <span>Cross-report commander totals, roster attendance, and recent participation in one place.</span>
                                     </div>
                                 </div>
@@ -2861,7 +2865,7 @@ export function ReportApp() {
                                                 {formatReportTitle(entry.dateStart)}
                                             </div>
                                             <div className="text-xs text-gray-400 mt-1 flex items-center gap-2">
-                                                <Users className="w-4 h-4 text-[color:var(--accent)]" />
+                                                <Users className="w-4 h-4 shrink-0 text-[color:var(--accent)]" />
                                                 <span className="truncate">
                                                     {entry.commanders.length ? entry.commanders.join(', ') : 'No Commanders'}
                                                 </span>
