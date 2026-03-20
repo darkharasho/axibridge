@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X } from 'lucide-react';
+import { Maximize2, X, Columns, Users } from 'lucide-react';
+import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
+import { DenseStatsTable } from '../ui/DenseStatsTable';
+import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
@@ -107,6 +110,10 @@ export const DamageModifiersSection = ({
         ? activeMod
         : filteredMods[0]?.id ?? '';
 
+    // --- Expanded view state ---
+    const [selectedColumnIds, setSelectedColumnIds] = useState<string[]>([]);
+    const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+    const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: '', dir: 'desc' });
     const [collapsedSort, setCollapsedSort] = useState<{ key: 'damageGain' | 'pctTotal' | 'hitCoverage' | 'fightTime'; dir: 'asc' | 'desc' }>({
         key: 'damageGain', dir: 'desc',
     });
@@ -117,6 +124,43 @@ export const DamageModifiersSection = ({
             dir: prev.key === key ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc',
         }));
     };
+
+    // --- Expanded view helpers ---
+    const allColumnOptions = useMemo(() =>
+        modSummaries.map((m) => ({
+            id: m.id,
+            label: m.name,
+            icon: m.icon ? <img src={m.icon} alt="" className="h-4 w-4 object-contain" /> : undefined,
+        })),
+        [modSummaries]
+    );
+    const columnOptionsFiltered = useMemo(() =>
+        filteredMods.map((m) => ({
+            id: m.id,
+            label: m.name,
+            icon: m.icon ? <img src={m.icon} alt="" className="h-4 w-4 object-contain" /> : undefined,
+        })),
+        [filteredMods]
+    );
+    const visibleMods = selectedColumnIds.length > 0
+        ? modSummaries.filter((m) => selectedColumnIds.includes(m.id))
+        : modSummaries;
+
+    const playerOptions = useMemo(() =>
+        Array.from(new Map(
+            playerRows.map((row: any) => [row.account, row])
+        ).values()).map((row: any) => ({
+            id: row.account,
+            label: row.account,
+            icon: renderProfessionIcon(row.profession, row.professionList, 'w-3 h-3'),
+        })),
+        [playerRows, renderProfessionIcon]
+    );
+
+    const searchSelectedIds = useMemo(() => new Set([
+        ...selectedColumnIds.map((id) => `column:${id}`),
+        ...selectedPlayers.map((id) => `player:${id}`),
+    ]), [selectedColumnIds, selectedPlayers]);
 
     return (
         <div
@@ -158,7 +202,29 @@ export const DamageModifiersSection = ({
 
             {modSummaries.length === 0 ? (
                 <div className="text-center text-gray-500 italic py-8">No {incoming ? 'incoming ' : ''}damage modifier data available</div>
+            ) : isExpanded ? (
+                /* ===== EXPANDED / FULLSCREEN VIEW ===== */
+                <ExpandedView
+                    config={config}
+                    incoming={incoming}
+                    visibleMods={visibleMods}
+                    playerRows={playerRows}
+                    totalsKey={totalsKey}
+                    allColumnOptions={allColumnOptions}
+                    columnOptionsFiltered={columnOptionsFiltered}
+                    playerOptions={playerOptions}
+                    selectedColumnIds={selectedColumnIds}
+                    setSelectedColumnIds={setSelectedColumnIds}
+                    selectedPlayers={selectedPlayers}
+                    setSelectedPlayers={setSelectedPlayers}
+                    searchSelectedIds={searchSelectedIds}
+                    denseSort={denseSort}
+                    setDenseSort={setDenseSort}
+                    formatWithCommas={formatWithCommas}
+                    renderProfessionIcon={renderProfessionIcon}
+                />
             ) : (
+                /* ===== COLLAPSED VIEW ===== */
                 <CollapsedView
                     config={config}
                     incoming={incoming}
@@ -503,5 +569,201 @@ const CollapsedView = ({
                 </>
             }
         />
+    );
+};
+
+/* ─────────────────────────────────────────────
+ * EXPANDED / FULLSCREEN VIEW (dense table)
+ * ───────────────────────────────────────────── */
+
+type ExpandedViewProps = {
+    config: typeof SECTION_CONFIG.outgoing;
+    incoming: boolean;
+    visibleMods: ModSummary[];
+    playerRows: any[];
+    totalsKey: string;
+    allColumnOptions: Array<{ id: string; label: string; icon?: React.JSX.Element }>;
+    columnOptionsFiltered: Array<{ id: string; label: string; icon?: React.JSX.Element }>;
+    playerOptions: Array<{ id: string; label: string; icon: React.JSX.Element | null }>;
+    selectedColumnIds: string[];
+    setSelectedColumnIds: React.Dispatch<React.SetStateAction<string[]>>;
+    selectedPlayers: string[];
+    setSelectedPlayers: React.Dispatch<React.SetStateAction<string[]>>;
+    searchSelectedIds: Set<string>;
+    denseSort: { columnId: string; dir: 'asc' | 'desc' };
+    setDenseSort: React.Dispatch<React.SetStateAction<{ columnId: string; dir: 'asc' | 'desc' }>>;
+    formatWithCommas: (v: number, d: number) => string;
+    renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => React.JSX.Element | null;
+};
+
+const ExpandedView = ({
+    config, incoming, visibleMods,
+    playerRows, totalsKey, allColumnOptions, columnOptionsFiltered, playerOptions,
+    selectedColumnIds, setSelectedColumnIds,
+    selectedPlayers, setSelectedPlayers,
+    searchSelectedIds, denseSort, setDenseSort,
+    formatWithCommas, renderProfessionIcon,
+}: ExpandedViewProps) => {
+    const resolvedSortColumnId = visibleMods.find((m) => m.id === denseSort.columnId)?.id
+        || visibleMods[0]?.id
+        || '';
+
+    const rows = useMemo(() => {
+        return [...playerRows]
+            .filter((row: any) => selectedPlayers.length === 0 || selectedPlayers.includes(row.account))
+            .map((row: any) => {
+                const modTotals: Record<string, ModTotals> = row[totalsKey] ?? {};
+                const values: Record<string, string> = {};
+                const numericValues: Record<string, number> = {};
+                visibleMods.forEach((mod) => {
+                    const modData = modTotals[mod.id];
+                    if (modData) {
+                        const gain = modData.damageGain;
+                        numericValues[mod.id] = incoming ? Math.abs(gain) : gain;
+                        values[mod.id] = `${gain >= 0 ? '+' : ''}${formatWithCommas(gain, 0)}`;
+                    } else {
+                        numericValues[mod.id] = 0;
+                        values[mod.id] = '—';
+                    }
+                });
+                return { row, values, numericValues };
+            })
+            .sort((a, b) => {
+                const resolvedA = a.numericValues[resolvedSortColumnId] ?? 0;
+                const resolvedB = b.numericValues[resolvedSortColumnId] ?? 0;
+                const primary = denseSort.dir === 'desc' ? resolvedB - resolvedA : resolvedA - resolvedB;
+                return primary || String(a.row.account || '').localeCompare(String(b.row.account || ''));
+            });
+    }, [playerRows, selectedPlayers, totalsKey, visibleMods, resolvedSortColumnId, denseSort.dir, incoming, formatWithCommas]);
+
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="bg-black/20 border border-white/5 rounded-xl px-4 py-3">
+                <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Modifier Columns</div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <SearchSelectDropdown
+                        options={[
+                            ...allColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
+                            ...playerOptions.map((option) => ({ ...option, type: 'player' as const })),
+                        ]}
+                        onSelect={(option: SearchSelectOption) => {
+                            if (option.type === 'column') {
+                                setSelectedColumnIds((prev) =>
+                                    prev.includes(option.id) ? prev.filter((e) => e !== option.id) : [...prev, option.id]
+                                );
+                            } else {
+                                setSelectedPlayers((prev) =>
+                                    prev.includes(option.id) ? prev.filter((e) => e !== option.id) : [...prev, option.id]
+                                );
+                            }
+                        }}
+                        selectedIds={searchSelectedIds}
+                        className="w-full sm:w-64"
+                    />
+                    <ColumnFilterDropdown
+                        options={columnOptionsFiltered}
+                        selectedIds={selectedColumnIds}
+                        onToggle={(id) => {
+                            setSelectedColumnIds((prev) =>
+                                prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
+                            );
+                        }}
+                        onClear={() => setSelectedColumnIds([])}
+                        buttonIcon={<Columns className="h-3.5 w-3.5" />}
+                    />
+                    <ColumnFilterDropdown
+                        options={playerOptions}
+                        selectedIds={selectedPlayers}
+                        onToggle={(id) => {
+                            setSelectedPlayers((prev) =>
+                                prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
+                            );
+                        }}
+                        onClear={() => setSelectedPlayers([])}
+                        buttonLabel="Players"
+                        buttonIcon={<Users className="h-3.5 w-3.5" />}
+                    />
+                </div>
+                {(selectedColumnIds.length > 0 || selectedPlayers.length > 0) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedColumnIds([]);
+                                setSelectedPlayers([]);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                        >
+                            Clear All
+                        </button>
+                        {selectedColumnIds.map((id) => {
+                            const label = allColumnOptions.find((o) => o.id === id)?.label || id;
+                            return (
+                                <button
+                                    key={id}
+                                    type="button"
+                                    onClick={() => setSelectedColumnIds((prev) => prev.filter((e) => e !== id))}
+                                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                >
+                                    <span>{label}</span>
+                                    <span className="text-gray-400">&times;</span>
+                                </button>
+                            );
+                        })}
+                        {selectedPlayers.map((id) => (
+                            <button
+                                key={id}
+                                type="button"
+                                onClick={() => setSelectedPlayers((prev) => prev.filter((e) => e !== id))}
+                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                            >
+                                <span>{id}</span>
+                                <span className="text-gray-400">&times;</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+            <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                {visibleMods.length === 0 ? (
+                    <div className="px-4 py-10 text-center text-gray-500 italic text-sm">No modifiers match this filter</div>
+                ) : (
+                    <DenseStatsTable
+                        title={`${config.title} - Dense View`}
+                        subtitle={incoming ? 'Incoming' : 'Outgoing'}
+                        sortColumnId={resolvedSortColumnId}
+                        sortDirection={denseSort.dir}
+                        onSortColumn={(columnId) => {
+                            setDenseSort((prev) => ({
+                                columnId,
+                                dir: prev.columnId === columnId ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc',
+                            }));
+                        }}
+                        columns={visibleMods.map((mod) => ({
+                            id: mod.id,
+                            label: (
+                                <span className="flex items-center gap-1">
+                                    {mod.icon && <img src={mod.icon} alt="" className="w-3.5 h-3.5 object-contain" />}
+                                    <span className="truncate">{mod.name}</span>
+                                </span>
+                            ),
+                            align: 'right' as const,
+                            minWidth: 100,
+                        }))}
+                        rows={rows.map((entry, idx) => ({
+                            id: `${entry.row.account}-${idx}`,
+                            label: (
+                                <>
+                                    <span className="text-gray-500 font-mono">{idx + 1}</span>
+                                    {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
+                                    <span className="truncate">{entry.row.account}</span>
+                                </>
+                            ),
+                            values: entry.values,
+                        }))}
+                    />
+                )}
+            </div>
+        </div>
     );
 };
