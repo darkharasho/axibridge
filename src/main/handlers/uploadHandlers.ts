@@ -148,7 +148,7 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
             return { success: false, error: 'Missing filePath.' };
         }
         const details = getBulkLogDetails(filePath);
-        if (details && hasUsableFightDetails(details)) {
+        if (details && hasUsableFightDetails(details) && details.damageModMap) {
             return { success: true, details };
         }
         if (permalink) {
