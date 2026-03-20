@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Superpowers brainstorming
+.superpowers/
+
 # Build outputs
 dist-electron/
 dist-react/
