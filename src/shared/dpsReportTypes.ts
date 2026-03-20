@@ -1,3 +1,23 @@
+export interface DamageModifierInfo {
+    name: string;
+    icon: string;
+    description: string;
+    nonMultiplier: boolean;
+    skillBased: boolean;
+    approximate: boolean;
+    incoming: boolean;
+}
+
+export interface DamageModifierData {
+    id: number;
+    damageModifiers: Array<{
+        hitCount: number;
+        totalHitCount: number;
+        damageGain: number;
+        totalDamage: number;
+    }>;
+}
+
 export interface DPSReportJSON {
     evtc: {
         type: string;
@@ -15,6 +35,8 @@ export interface DPSReportJSON {
     skillMap?: { [key: string]: { name: string; icon: string } };
     buffMap?: { [key: string]: { name: string; stacking: boolean; icon?: string; classification?: string } };
     combatReplayMetaData?: { inchToPixel?: number; pollingRate?: number };
+    damageModMap?: Record<string, DamageModifierInfo>;
+    personalDamageMods?: Record<string, number[]>;
 }
 
 export interface Target {
@@ -71,6 +93,8 @@ export interface Player {
     account?: string;
     stabGeneration?: number; // Calculated field
     activeTimes?: number[];
+    damageModifiers?: DamageModifierData[];
+    incomingDamageModifiers?: DamageModifierData[];
 }
 
 export interface StatsAll {
