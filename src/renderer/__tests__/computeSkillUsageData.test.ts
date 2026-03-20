@@ -281,3 +281,31 @@ describe('edge cases', () => {
         expect(result.resUtilitySkills).toEqual([]);
     });
 });
+
+// ─── proc flag passthrough ───────────────────────────────────────────────────
+
+describe('computeSkillUsageData — proc flag passthrough', () => {
+    it('passes isTraitProc, isGearProc, and isUnconditionalProc from skillMap to skillOptions', () => {
+        const log = makeLog({
+            skillMap: {
+                s1001: { name: 'Windborne Notes', icon: 'https://example.com/wn.png', autoAttack: false, isTraitProc: true, isGearProc: false, isUnconditionalProc: false },
+                s1002: { name: 'Sigil of Fire', icon: 'https://example.com/fire.png', autoAttack: false, isTraitProc: false, isGearProc: true, isUnconditionalProc: false },
+            },
+        });
+        const result = computeSkillUsageData([log]);
+        const wnOption = result.skillOptions.find((o) => o.id === 's1001');
+        const sigOption = result.skillOptions.find((o) => o.id === 's1002');
+        expect(wnOption?.isTraitProc).toBe(true);
+        expect(wnOption?.isGearProc).toBe(false);
+        expect(sigOption?.isGearProc).toBe(true);
+        expect(sigOption?.isTraitProc).toBe(false);
+    });
+
+    it('leaves proc flags undefined when skillMap entries lack them', () => {
+        const result = computeSkillUsageData([makeLog()]);
+        const option = result.skillOptions.find((o) => o.id === 's1001');
+        expect(option?.isTraitProc).toBeUndefined();
+        expect(option?.isGearProc).toBeUndefined();
+        expect(option?.isUnconditionalProc).toBeUndefined();
+    });
+});

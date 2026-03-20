@@ -12,6 +12,7 @@ export const computeSkillUsageData = (validLogs: any[]): SkillUsageSummary => {
     const skillNameMap = new Map<string, string>();
     const skillIconMap = new Map<string, string>();
     const skillAutoAttackMap = new Map<string, boolean>();
+    const skillProcMap = new Map<string, { isTraitProc?: boolean; isGearProc?: boolean; isUnconditionalProc?: boolean }>();
 
     validLogs.forEach((log) => {
         const details = log.details;
@@ -56,6 +57,16 @@ export const computeSkillUsageData = (validLogs: any[]): SkillUsageSummary => {
                 if (!skillAutoAttackMap.has(sId) && typeof skillMap[sId]?.autoAttack === 'boolean') {
                     skillAutoAttackMap.set(sId, skillMap[sId].autoAttack);
                 }
+                if (!skillProcMap.has(sId)) {
+                    const entry = skillMap[sId];
+                    if (entry) {
+                        const proc: { isTraitProc?: boolean; isGearProc?: boolean; isUnconditionalProc?: boolean } = {};
+                        if (typeof entry.isTraitProc === 'boolean') proc.isTraitProc = entry.isTraitProc;
+                        if (typeof entry.isGearProc === 'boolean') proc.isGearProc = entry.isGearProc;
+                        if (typeof entry.isUnconditionalProc === 'boolean') proc.isUnconditionalProc = entry.isUnconditionalProc;
+                        if (Object.keys(proc).length > 0) skillProcMap.set(sId, proc);
+                    }
+                }
 
                 if (!record.skillEntries[sId]) record.skillEntries[sId] = { name: sName, icon: sIcon, players: {} };
                 if (!record.skillEntries[sId].icon && sIcon) record.skillEntries[sId].icon = sIcon;
@@ -67,7 +78,8 @@ export const computeSkillUsageData = (validLogs: any[]): SkillUsageSummary => {
 
     const skillOptions = Array.from(skillTotals.entries()).map(([id, total]) => ({
         id, name: skillNameMap.get(id) || id, total, icon: skillIconMap.get(id),
-        autoAttack: skillAutoAttackMap.get(id)
+        autoAttack: skillAutoAttackMap.get(id),
+        ...skillProcMap.get(id)
     })).sort((a, b) => b.total - a.total);
 
     return {

@@ -15,6 +15,9 @@ export interface SkillOption {
     name: string;
     total: number;
     autoAttack?: boolean;
+    isTraitProc?: boolean;
+    isGearProc?: boolean;
+    isUnconditionalProc?: boolean;
     icon?: string;
 }
 
