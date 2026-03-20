@@ -55,7 +55,7 @@ export const ApmSection = ({
     formatCastCountValue
 }: ApmSectionProps) => {
     const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, sidebarListClass, renderProfessionIcon } = useStatsSharedContext();
-    const [allSkillsSort, setAllSkillsSort] = useState<{ key: 'apm' | 'apmNoAuto'; dir: 'asc' | 'desc' }>({ key: 'apm', dir: 'desc' });
+    const [allSkillsSort, setAllSkillsSort] = useState<{ key: 'apm' | 'apmNoAuto' | 'apmNoProcs'; dir: 'asc' | 'desc' }>({ key: 'apm', dir: 'desc' });
     const isExpanded = expandedSection === 'apm-stats';
     const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: '', dir: 'desc' });
     const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
@@ -65,7 +65,7 @@ export const ApmSection = ({
         ? 'overflow-y-auto space-y-1 pr-1 flex-1 min-h-0'
         : `${sidebarListClass} max-h-72 overflow-y-auto`;
 
-    const toggleAllSkillsSort = (key: 'apm' | 'apmNoAuto') => {
+    const toggleAllSkillsSort = (key: 'apm' | 'apmNoAuto' | 'apmNoProcs') => {
         setAllSkillsSort((prev) => ({
             key,
             dir: prev.key === key ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
@@ -74,13 +74,12 @@ export const ApmSection = ({
     const sortedAllSkillsRows = useMemo(() => {
         const rows = [...(activeApmSpecTable?.playerRows || [])];
         rows.sort((a: any, b: any) => {
-            const aVal = allSkillsSort.key === 'apm'
-                ? Number(apmView === 'perSecond' ? a.aps : a.apm)
-                : Number(apmView === 'perSecond' ? a.apsNoAuto : a.apmNoAuto);
-            const bVal = allSkillsSort.key === 'apm'
-                ? Number(apmView === 'perSecond' ? b.aps : b.apm)
-                : Number(apmView === 'perSecond' ? b.apsNoAuto : b.apmNoAuto);
-            const diff = allSkillsSort.dir === 'desc' ? bVal - aVal : aVal - bVal;
+            const resolveVal = (row: any) => {
+                if (allSkillsSort.key === 'apm') return Number(apmView === 'perSecond' ? row.aps : row.apm);
+                if (allSkillsSort.key === 'apmNoAuto') return Number(apmView === 'perSecond' ? row.apsNoAuto : row.apmNoAuto);
+                return Number(apmView === 'perSecond' ? row.apsNoProcs : row.apmNoProcs);
+            };
+            const diff = allSkillsSort.dir === 'desc' ? resolveVal(b) - resolveVal(a) : resolveVal(a) - resolveVal(b);
             return diff || String(a.displayName || '').localeCompare(String(b.displayName || ''));
         });
         return rows;
@@ -472,7 +471,7 @@ export const ApmSection = ({
                                                 </div>
                                             </div>
                                             {isAllApmSkills || !activeApmSkill ? (
-                                                <div className="stats-table-column-header grid grid-cols-[1.6fr_0.7fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
                                                     <div>Player</div>
                                                     <button
                                                         type="button"
@@ -487,6 +486,13 @@ export const ApmSection = ({
                                                         className={`text-right transition-colors ${allSkillsSort.key === 'apmNoAuto' ? 'text-emerald-200' : 'text-gray-400 hover:text-gray-200'}`}
                                                     >
                                                         {apmView === 'perSecond' ? 'APS' : 'APM'} (No Auto){allSkillsSort.key === 'apmNoAuto' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleAllSkillsSort('apmNoProcs')}
+                                                        className={`text-right transition-colors ${allSkillsSort.key === 'apmNoProcs' ? 'text-emerald-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                    >
+                                                        {apmView === 'perSecond' ? 'APS' : 'APM'} (No Procs){allSkillsSort.key === 'apmNoProcs' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                     </button>
                                                 </div>
                                             ) : (
@@ -503,7 +509,7 @@ export const ApmSection = ({
                                                     {sortedAllSkillsRows.map((row: ApmPlayerRow, index: number) => (
                                                         <div
                                                             key={`${activeApmSpecTable.profession}-all-${row.key}`}
-                                                            className="grid grid-cols-[1.6fr_0.7fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5"
+                                                            className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5"
                                                         >
                                                             <div className="flex items-center gap-2 min-w-0">
                                                                 <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">{`#${index + 1}`}</span>
@@ -517,6 +523,9 @@ export const ApmSection = ({
                                                             </div>
                                                             <div className="text-right font-mono text-gray-300">
                                                                 {formatApmValue(apmView === 'perSecond' ? row.apsNoAuto : row.apmNoAuto)}
+                                                            </div>
+                                                            <div className="text-right font-mono text-gray-300">
+                                                                {formatApmValue(apmView === 'perSecond' ? row.apsNoProcs : row.apmNoProcs)}
                                                             </div>
                                                         </div>
                                                     ))}
