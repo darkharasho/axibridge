@@ -1,4 +1,4 @@
-import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
 
 
@@ -20,7 +20,7 @@ import { BoonCategory, BoonMetric, formatBoonMetricDisplay, getBoonMetricValue }
 import { DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IMvpWeights, IStatsViewSettings, IWebUploadState, normalizeMvpWeights } from './global.d';
 import type { PlayerSkillBreakdown, PlayerSkillDamageEntry, SkillUsageSummary } from './stats/statsTypes';
 import { getDefaultConditionIcon, normalizeConditionLabel } from '../shared/conditionsMetrics';
-
+import { DetailsCacheContext } from './cache/DetailsCacheContext';
 
 import { SkillUsageSection } from './stats/sections/SkillUsageSection';
 import { ApmSection } from './stats/sections/ApmSection';
@@ -164,6 +164,15 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         (id: string) => (sectionVisibility ? sectionVisibility(id) : true),
         [sectionVisibility]
     );
+
+    const detailsCache = useContext(DetailsCacheContext);
+    const getDetails = (log: any): any => {
+        if (detailsCache && log?.id) {
+            const cached = detailsCache.peek(log.id);
+            if (cached) return cached;
+        }
+        return log?.details || {};
+    };
 
     // --- Hook Integration ---
     const useExternalAggregation = !!externalAggregationResult;
@@ -1133,8 +1142,8 @@ type SpikeFight = {
         const playerMap = new Map<string, SpikePlayer>();
 
         logs.forEach((log) => {
-            const details = log?.details;
-            if (!details) return;
+            const details = getDetails(log);
+            if (!details || !details.players) return;
             const fightIndex = fights.length + 1;
             const fightName = sanitizeWvwLabel(details.fightName || log.fightName || `Fight ${fightIndex}`);
             const rawMap = details.zone || details.mapName || details.map || details.location || '';
@@ -1440,7 +1449,7 @@ type SpikeFight = {
             const id = String(log?.filePath || log?.id || '');
             return id === String(selectedPoint.fightId || '');
         });
-        const details = selectedLog?.details;
+        const details = getDetails(selectedLog);
         const toPairs = (value: any): Array<[number, number]> => {
             if (!Array.isArray(value)) return [];
             return value
@@ -1938,7 +1947,7 @@ type SpikeFight = {
             .slice(0, 30);
         if (normalizedRows.length > 0) return normalizedRows;
         const selectedLog = logs.find((log) => String(log?.filePath || log?.id || '') === String(selectedPoint.fightId || ''));
-        const details = selectedLog?.details;
+        const details = getDetails(selectedLog);
         if (details && selectedIncomingStrikePlayerKey) {
             const knownProfessionNames = new Set(Object.keys(PROFESSION_COLORS));
             const knownProfessionList = Object.keys(PROFESSION_COLORS)
@@ -2024,7 +2033,7 @@ type SpikeFight = {
             .slice(0, 30);
         if (normalizedRows.length > 0) return normalizedRows;
         const selectedLog = logs.find((log) => String(log?.filePath || log?.id || '') === String(selectedPoint.fightId || ''));
-        const details = selectedLog?.details;
+        const details = getDetails(selectedLog);
         if (details && selectedSpikePlayerKey) {
             const [account, profession] = selectedSpikePlayerKey.split('|');
             const resolveSkillMeta = (rawId: any) => {
@@ -2768,11 +2777,11 @@ type SpikeFight = {
             return out;
         };
         const sortedLogs = [...logs]
-            .map((log) => ({ log, ts: resolveFightTimestamp(log?.details, log) }))
+            .map((log) => ({ log, ts: resolveFightTimestamp(getDetails(log), log) }))
             .sort((a, b) => a.ts - b.ts)
             .map((entry) => entry.log);
         sortedLogs.forEach((log: any, fightIndex: number) => {
-            const details = log?.details;
+            const details = getDetails(log);
             const players = Array.isArray(details?.players) ? details.players : [];
             const squadPlayers = players.filter((entry: any) => !entry?.notInSquad);
             const perSecondSeries: number[][] = squadPlayers.map((player: any) => toPerSecond(normalizeCumulativeSeries(player?.damageTaken1S)));
