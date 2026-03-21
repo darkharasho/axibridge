@@ -22,6 +22,12 @@ import { extractDroppedLogFiles } from './app/utils/droppedFiles';
 import { DetailsCache } from './cache/DetailsCache';
 import { DetailsCacheProvider } from './cache/DetailsCacheContext';
 
+/** Strip details from log entries — logsForStats is metadata-only. */
+const stripDetailsFromEntries = (entries: ILogData[]): ILogData[] =>
+    entries.some(e => e.details)
+        ? entries.map(e => e.details ? { ...e, details: undefined } : e)
+        : entries;
+
 function App() {
     const [logs, setLogs] = useState<ILogData[]>([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -177,10 +183,16 @@ function App() {
     const detailsCacheRef = useRef<DetailsCache | null>(null);
     if (!detailsCacheRef.current) {
         detailsCacheRef.current = new DetailsCache({
-            lruCapacity: 5,
+            lruCapacity: 100,
+            resolveDetails: (logId: string) => {
+                const log = logsRef.current.find((l: any) => l.id === logId || l.filePath === logId);
+                return log?.details ?? null;
+            },
             fetchDetails: async (logId: string) => {
                 const log = logsRef.current.find((l: any) => l.id === logId || l.filePath === logId);
                 if (!log) return null;
+                // Fast path: details still in logs state (stripped from logsForStats only)
+                if (log.details) return log.details;
                 try {
                     const result = await window.electronAPI.getLogDetails({
                         filePath: log.filePath,
@@ -220,7 +232,8 @@ function App() {
         mvpWeights,
         statsViewSettings,
         disruptionMethod,
-        precomputedStats: precomputedStats || undefined
+        precomputedStats: precomputedStats || undefined,
+        detailsCache: detailsCacheRef.current
     });
     const { stats: computedStats, skillUsageData: computedSkillUsageData } = aggregationResult;
     const lastUploadCompleteAtRef = useRef(0);
@@ -405,7 +418,10 @@ function App() {
         const kickOffStatsCompute = (delayMs = 0) => {
             window.setTimeout(() => {
                 bulkStatsAwaitingRef.current = true;
-                setLogsForStats((prev) => (prev === logsRef.current ? [...logsRef.current] : logsRef.current));
+                setLogsForStats((prev) => {
+                    const source = prev === logsRef.current ? [...logsRef.current] : logsRef.current;
+                    return stripDetailsFromEntries(source);
+                });
                 const flushId = requestFlush?.();
                 if (flushId) {
                     bulkFlushIdRef.current = flushId;
@@ -511,7 +527,8 @@ function App() {
         statsSyncRecoveryAtRef.current = now;
         setLogsForStats((prev) => {
             if (prev.length === logsRef.current.length && prev.length > 0) return prev;
-            return logsRef.current.length > 0 ? logsRef.current : logs;
+            const source = logsRef.current.length > 0 ? logsRef.current : logs;
+            return stripDetailsFromEntries(source);
         });
         scheduleDetailsHydration(true);
     }, [

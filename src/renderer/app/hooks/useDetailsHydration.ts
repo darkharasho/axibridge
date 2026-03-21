@@ -33,13 +33,12 @@ export function useDetailsHydration({
                 const details = updatesByPath.get(filePath);
                 if (!details) return entry;
                 updatesByPath.delete(filePath);
-                if (entry.details === details && entry.statsDetailsLoaded === true && entry.status === 'success') {
+                if (entry.statsDetailsLoaded === true && entry.status === 'success') {
                     return entry;
                 }
                 changed = true;
                 return {
                     ...entry,
-                    details,
                     statsDetailsLoaded: true,
                     detailsFetchExhausted: false,
                     status: 'success' as const
@@ -49,11 +48,10 @@ export function useDetailsHydration({
                 return changed ? next : currentStatsLogs;
             }
             const additions: ILogData[] = [];
-            updatesByPath.forEach((details, filePath) => {
+            updatesByPath.forEach((_details, filePath) => {
                 const base = logsRef.current.find((log) => log.filePath === filePath);
                 additions.push({
                     ...(base || { id: filePath, filePath, permalink: '' }),
-                    details,
                     statsDetailsLoaded: true,
                     detailsFetchExhausted: false,
                     status: 'success'
@@ -63,7 +61,7 @@ export function useDetailsHydration({
             if (!changed) return currentStatsLogs;
             return additions.length > 0 ? [...additions, ...next] : next;
         });
-    }, [setLogsForStats, logsRef, detailsCache]);
+    }, [setLogsForStats, logsRef]);
 
     const fetchLogDetails = useCallback(async (log: ILogData) => {
         if ((detailsCache?.peek(log.id)) || !log.filePath || !window.electronAPI?.getLogDetails) return;
@@ -232,6 +230,9 @@ export function useDetailsHydration({
                         });
                         if (result?.success && result.details) {
                             detailsHydrationAttemptsRef.current.delete(filePath);
+                            if (detailsCache && log.id) {
+                                detailsCache.putMemoryOnly(log.id, result.details);
+                            }
                             hydratedBatch.push({ filePath, details: result.details });
                             if (hydratedBatch.length >= flushThreshold) {
                                 flushHydratedBatch();

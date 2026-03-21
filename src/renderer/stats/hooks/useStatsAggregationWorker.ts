@@ -2,6 +2,7 @@ import { startTransition, useContext, useEffect, useMemo, useRef, useState } fro
 import type { DisruptionMethod, IMvpWeights, IStatsViewSettings } from '../../global.d';
 import { computeStatsAggregation } from '../computeStatsAggregation';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
+import type { DetailsCache } from '../../cache/DetailsCache';
 
 interface UseStatsAggregationProps {
     logs: any[];
@@ -9,6 +10,7 @@ interface UseStatsAggregationProps {
     mvpWeights?: IMvpWeights;
     statsViewSettings?: IStatsViewSettings;
     disruptionMethod?: DisruptionMethod;
+    detailsCache?: DetailsCache | null;
 }
 
 export interface AggregationProgressState {
@@ -45,8 +47,9 @@ export interface AggregationDiagnosticsState {
     droppedLogMessages?: number;
 }
 
-export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod }: UseStatsAggregationProps) => {
-    const detailsCache = useContext(DetailsCacheContext);
+export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod, detailsCache: detailsCacheProp }: UseStatsAggregationProps) => {
+    const detailsCacheContext = useContext(DetailsCacheContext);
+    const detailsCache = detailsCacheProp ?? detailsCacheContext;
     const workerLogLimit = 8;
     const shouldUseWorker = logs.length > workerLogLimit;
     const [result, setResult] = useState(() => {

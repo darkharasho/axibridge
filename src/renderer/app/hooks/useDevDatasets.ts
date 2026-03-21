@@ -141,7 +141,11 @@ export function useDevDatasets({
     }, [detailsCache]);
     const publishLogsForStats = useCallback((entries: ILogData[]) => {
         setLogsForStats((prev) => {
-            const mergedEntries = mergeLogsForStatsSnapshot(entries, prev);
+            // Strip details — logsForStats is metadata-only; worker reads from DetailsCache
+            const stripped = entries.some(e => e.details)
+                ? entries.map(e => e.details ? { ...e, details: undefined } : e)
+                : entries;
+            const mergedEntries = mergeLogsForStatsSnapshot(stripped, prev);
             const nextKey = buildStatsSnapshotKey(mergedEntries);
             if (nextKey === lastPublishedStatsKeyRef.current) {
                 return prev;

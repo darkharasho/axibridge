@@ -6,21 +6,33 @@ const IDB_PREFIX = 'details:';
 type IdbEntry = { schemaVersion: number; details: any; storedAt: number };
 
 export type DetailsFetcher = (logId: string) => Promise<any | null>;
+export type DetailsResolver = (logId: string) => any | null;
 
 export class DetailsCache {
     private lru = new Map<string, any>();
     private lruCapacity: number;
     private fetchDetails: DetailsFetcher;
+    private resolveDetails: DetailsResolver | null;
     private inFlight = new Map<string, Promise<any | null>>();
 
-    constructor(options: { lruCapacity?: number; fetchDetails: DetailsFetcher }) {
+    constructor(options: { lruCapacity?: number; fetchDetails: DetailsFetcher; resolveDetails?: DetailsResolver }) {
         this.lruCapacity = options.lruCapacity ?? 5;
         this.fetchDetails = options.fetchDetails;
+        this.resolveDetails = options.resolveDetails ?? null;
     }
 
-    /** Synchronous — checks memory LRU only. */
+    /** Synchronous — checks memory LRU, then synchronous resolver if provided. */
     peek(logId: string): any | undefined {
-        return this.lru.get(logId);
+        const cached = this.lru.get(logId);
+        if (cached !== undefined) return cached;
+        if (this.resolveDetails) {
+            const resolved = this.resolveDetails(logId);
+            if (resolved) {
+                this.lruSet(logId, resolved);
+                return resolved;
+            }
+        }
+        return undefined;
     }
 
     /** Async — checks LRU → IndexedDB → IPC fallback. */
