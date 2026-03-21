@@ -1261,7 +1261,7 @@ Expanded view: dense table with modifiers as columns and players as rows.
 ### Implementation
 
 - Types: `src/shared/dpsReportTypes.ts` (`DamageModifierInfo`, `DamageModifierData`)
-- Pruning: `src/renderer/stats/utils/pruneStatsLog.ts`
+- Pruning: `src/main/detailsProcessing.ts` (`pruneDetailsForStats`)
 - Player aggregation: `src/renderer/stats/computePlayerAggregation.ts`
 - Stats aggregation: `src/renderer/stats/computeStatsAggregation.ts`
 - UI component: `src/renderer/stats/sections/DamageModifiersSection.tsx`
