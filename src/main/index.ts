@@ -531,8 +531,10 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 setBulkLogDetails(filePath, prunedDetails);
                 void updateGlobalManifest(prunedDetails, filePath);
             }
-            // Pre-warm renderer memory cache (LRU only, no IndexedDB)
-            if (prunedDetails && win?.webContents) {
+            // Pre-warm renderer memory cache (LRU only, no IndexedDB).
+            // Skip during bulk upload — IPC deserialization of 10-40MB objects blocks the renderer.
+            // Details flow via hydration after bulk upload ends.
+            if (prunedDetails && win?.webContents && !bulkUploadMode) {
                 win.webContents.send('details-prewarm', {
                     logId: result.id || filePath,
                     filePath,
