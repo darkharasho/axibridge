@@ -92,7 +92,8 @@ const TARGET_KEYS = [
     'totalHealth', 'healthPercentBurned', 'enemyPlayer',
     'totalDamageDist', 'totalDamageTaken', 'totalDamageTakenDist',
     'damageTaken', 'powerDamage1S', 'damage1S',
-    'profession', 'teamID', 'teamId', 'team', 'teamColor', 'team_color'
+    'profession', 'teamID', 'teamId', 'team', 'teamColor', 'team_color',
+    'buffs'
 ];
 
 const TOP_LEVEL_KEYS = [
@@ -103,7 +104,8 @@ const TOP_LEVEL_KEYS = [
     'player_damage_mitigation', 'player_minion_damage_mitigation',
     'playerDamageMitigation', 'playerMinionDamageMitigation',
     'damageModMap',
-    'personalDamageMods'
+    'personalDamageMods',
+    'conditionMetrics'
 ];
 
 /**

@@ -133,9 +133,14 @@ export function useDetailsHydration({
             const rawCandidates = logsRef.current
                 .filter((log) => {
                     if (!log.filePath) return false;
-                    // Re-hydrate if details exist but are missing damageModMap (stale pruning)
-                    const hasStaleDetails = log.details && !log.details.damageModMap;
-                    if ((log.details && !hasStaleDetails) || log.statsDetailsLoaded) return false;
+                    // Re-hydrate if details exist but are missing fields added in later versions,
+                    // or if targets are missing buffs data needed for outgoing condition uptime
+                    const targetsLackBuffs = Array.isArray(log.details?.targets) &&
+                        log.details.targets.length > 1 &&
+                        !log.details.targets.some((t: any) => Array.isArray(t?.buffs) && t.buffs.length > 0);
+                    const hasStaleDetails = log.details && (!log.details.damageModMap || !log.details.conditionMetrics || targetsLackBuffs);
+                    if (hasStaleDetails) return Boolean(log.permalink);
+                    if (log.details || log.statsDetailsLoaded) return false;
                     if (log.detailsAvailable) return true;
                     return (log.status === 'success' || log.status === 'calculating' || log.status === 'discord') && Boolean(log.permalink);
                 })

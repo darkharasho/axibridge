@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'fs';
 import { AUTH_RETRY_PAUSE_THRESHOLD, type UploadRetryQueueEntry, type UploadRetryRuntimeState, type UploadRetryQueuePayload } from '../uploadRetryQueue';
 import { BULK_PROCESS_CONCURRENCY } from '../../shared/constants';
-import { pruneDetailsForStats, hasUsableFightDetails } from '../detailsProcessing';
+import { pruneDetailsForStats, hasUsableFightDetails, attachConditionMetrics } from '../detailsProcessing';
 import { getDevDatasetsDir } from '../devDatasets';
 
 // ─── Module-level state ─────────────────────────────────────────────────────
@@ -148,7 +148,9 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
             return { success: false, error: 'Missing filePath.' };
         }
         const details = getBulkLogDetails(filePath);
-        if (details && hasUsableFightDetails(details) && details.damageModMap) {
+        const detailsTargetsHaveBuffs = !Array.isArray(details?.targets) || details.targets.length <= 1 ||
+            details.targets.some((t: any) => Array.isArray(t?.buffs) && t.buffs.length > 0);
+        if (details && hasUsableFightDetails(details) && details.damageModMap && details.conditionMetrics && detailsTargetsHaveBuffs) {
             return { success: true, details };
         }
         if (permalink) {
@@ -157,6 +159,7 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
                 const activePromise = (async () => {
                     const refreshed = await fetchDetailsFromPermalinkWithRetry(permalink);
                     if (!refreshed.details) return refreshed;
+                    attachConditionMetrics(refreshed.details);
                     const resolved = pruneDetailsForStats(refreshed.details);
                     setBulkLogDetails(filePath, resolved);
                     const knownHash = getKnownFileHash(filePath);

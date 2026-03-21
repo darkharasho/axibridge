@@ -19,8 +19,8 @@ type ConditionsSectionProps = {
     conditionDirection: 'outgoing' | 'incoming';
     setConditionDirection: (value: 'outgoing' | 'incoming') => void;
     conditionGridClass: string;
-    effectiveConditionSort: { key: 'applications' | 'damage'; dir: 'asc' | 'desc' };
-    setConditionSort: (value: { key: 'applications' | 'damage'; dir: 'asc' | 'desc' }) => void;
+    effectiveConditionSort: { key: 'applications' | 'damage' | 'uptime'; dir: 'asc' | 'desc' };
+    setConditionSort: (value: { key: 'applications' | 'damage' | 'uptime'; dir: 'asc' | 'desc' }) => void;
     showConditionDamage: boolean;
 };
 
@@ -172,18 +172,17 @@ export const ConditionsSection = ({
                                 activeClassName="bg-amber-500/20 text-amber-200 border border-amber-500/40"
                                 inactiveClassName="border border-transparent text-gray-400 hover:text-white"
                             />
-                            {showConditionDamage && (
-                                <PillToggleGroup
+                            <PillToggleGroup
                                     value={effectiveConditionSort.key}
-                                    onChange={(value) => setConditionSort({ key: value as 'applications' | 'damage', dir: 'desc' })}
+                                    onChange={(value) => setConditionSort({ key: value as 'applications' | 'damage' | 'uptime', dir: 'desc' })}
                                     options={[
                                         { value: 'applications', label: 'Applications' },
-                                        { value: 'damage', label: 'Damage' }
+                                        ...(conditionDirection === 'outgoing' ? [{ value: 'uptime', label: 'Uptime' }] : []),
+                                        ...(showConditionDamage ? [{ value: 'damage', label: 'Damage' }] : [])
                                     ]}
                                     activeClassName="bg-amber-500/20 text-amber-200 border border-amber-500/40"
                                     inactiveClassName="border border-transparent text-gray-400 hover:text-white"
                                 />
-                            )}
                         </div>
                     </div>
                     <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
@@ -202,28 +201,29 @@ export const ConditionsSection = ({
                                         const conditionTotals = player.conditions || {};
                                         const values: Record<string, string> = {};
                                         const numericValues: Record<string, number> = {};
+                                        const resolveMetricValue = (condition: any) => {
+                                            if (!condition) return 0;
+                                            if (metricKey === 'uptime') return Number(condition?.uptimeMs || 0) / 1000;
+                                            if (metricKey === 'damage') return Number(condition?.damage || 0);
+                                            return resolveApplications(condition);
+                                        };
+                                        const formatMetricValue = (val: number) =>
+                                            metricKey === 'uptime'
+                                                ? `${val.toLocaleString(undefined, { maximumFractionDigits: 0 })}s`
+                                                : Math.round(val || 0).toLocaleString();
                                         columns.forEach((column: any) => {
                                             if (column.id === 'all' || column.name === 'All Conditions') {
-                                                const totals = Object.values(conditionTotals).reduce(
-                                                    (acc: { applications: number; damage: number }, condition: any) => {
-                                                        const applications = resolveApplications(condition);
-                                                        acc.applications += Number(applications || 0);
-                                                        acc.damage += Number(condition?.damage || 0);
-                                                        return acc;
-                                                    },
-                                                    { applications: 0, damage: 0 }
+                                                const val = Object.values(conditionTotals).reduce(
+                                                    (acc: number, condition: any) => acc + resolveMetricValue(condition), 0
                                                 );
-                                                const val = metricKey === 'applications' ? totals.applications : totals.damage;
                                                 numericValues.all = val || 0;
-                                                values.all = Math.round(val || 0).toLocaleString();
+                                                values.all = formatMetricValue(val || 0);
                                                 return;
                                             }
                                             const condition = conditionTotals[column.name];
-                                            const val = metricKey === 'applications'
-                                                ? resolveApplications(condition)
-                                                : Number(condition?.damage || 0);
+                                            const val = resolveMetricValue(condition);
                                             numericValues[column.name] = Number(val || 0);
-                                            values[column.name] = Math.round(val || 0).toLocaleString();
+                                            values[column.name] = formatMetricValue(val || 0);
                                         });
                                         return { player, values, numericValues };
                                     })
@@ -243,7 +243,7 @@ export const ConditionsSection = ({
                                 return (
                                     <DenseStatsTable
                                         title="Conditions - Dense View"
-                                        subtitle={metricKey === 'applications' ? 'Applications' : 'Damage'}
+                                        subtitle={metricKey === 'uptime' ? 'Uptime (seconds)' : metricKey === 'applications' ? 'Applications' : 'Damage'}
                                         sortColumnId={resolvedSortColumnId}
                                         sortDirection={denseSort.dir}
                                         onSortColumn={(columnId) => {
@@ -416,6 +416,20 @@ export const ConditionsSection = ({
                                 >
                                     Applications {effectiveConditionSort.key === 'applications' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
                                 </button>
+                                {conditionDirection === 'outgoing' ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setConditionSort({
+                                                key: 'uptime',
+                                                dir: effectiveConditionSort.key === 'uptime' ? (effectiveConditionSort.dir === 'desc' ? 'asc' : 'desc') : 'desc'
+                                            });
+                                        }}
+                                        className={`text-right transition-colors ${effectiveConditionSort.key === 'uptime' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                    >
+                                        Uptime {effectiveConditionSort.key === 'uptime' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
+                                    </button>
+                                ) : null}
                                 {showConditionDamage ? (
                                     <button
                                         type="button"
@@ -441,37 +455,31 @@ export const ConditionsSection = ({
                                             const conditionTotals = player.conditions || {};
                                             if (activeConditionName === 'all') {
                                                 const totals = Object.values(conditionTotals).reduce(
-                                                    (acc: { applications: number; damage: number }, condition: any) => {
-                                                        const applications = resolveApplications(condition);
-                                                        acc.applications += Number(applications || 0);
+                                                    (acc: { applications: number; damage: number; uptimeMs: number }, condition: any) => {
+                                                        acc.applications += resolveApplications(condition);
                                                         acc.damage += Number(condition?.damage || 0);
+                                                        acc.uptimeMs += Number(condition?.uptimeMs || 0);
                                                         return acc;
                                                     },
-                                                    { applications: 0, damage: 0 }
+                                                    { applications: 0, damage: 0, uptimeMs: 0 }
                                                 );
-                                                return {
-                                                    ...player,
-                                                    applications: totals.applications,
-                                                    damage: totals.damage
-                                                };
+                                                return { ...player, ...totals };
                                             }
                                             const condition = conditionTotals[activeConditionName];
                                             return {
                                                 ...player,
                                                 applications: resolveApplications(condition),
-                                                damage: Number(condition?.damage || 0)
+                                                damage: Number(condition?.damage || 0),
+                                                uptimeMs: Number(condition?.uptimeMs || 0)
                                             };
                                         })
-                                        .filter((row: any) => row.applications > 0 || row.damage > 0)
+                                        .filter((row: any) => row.applications > 0 || row.damage > 0 || row.uptimeMs > 0)
                                         .sort((a: any, b: any) => {
-                                            const aVal = effectiveConditionSort.key === 'applications' ? (a.applications || 0) : (a.damage || 0);
-                                            const bVal = effectiveConditionSort.key === 'applications' ? (b.applications || 0) : (b.damage || 0);
+                                            const sortKey = effectiveConditionSort.key;
+                                            const aVal = sortKey === 'uptime' ? (a.uptimeMs || 0) : sortKey === 'damage' ? (a.damage || 0) : (a.applications || 0);
+                                            const bVal = sortKey === 'uptime' ? (b.uptimeMs || 0) : sortKey === 'damage' ? (b.damage || 0) : (b.applications || 0);
                                             const primary = effectiveConditionSort.dir === 'desc' ? bVal - aVal : aVal - bVal;
                                             if (primary !== 0) return primary;
-                                            const secondary = effectiveConditionSort.key === 'applications'
-                                                ? (b.damage || 0) - (a.damage || 0)
-                                                : (b.applications || 0) - (a.applications || 0);
-                                            if (secondary !== 0) return secondary;
                                             return String(a.account || '').localeCompare(String(b.account || ''));
                                         });
                                     if (rows.length === 0) {
@@ -533,6 +541,11 @@ export const ConditionsSection = ({
                                                         applicationsValue
                                                     )}
                                                 </div>
+                                                {conditionDirection === 'outgoing' ? (
+                                                    <div className="text-right font-mono text-gray-300">
+                                                        {Math.round((entry.uptimeMs || 0) / 1000).toLocaleString()}s
+                                                    </div>
+                                                ) : null}
                                                 {showConditionDamage ? (
                                                     <div className="text-right font-mono text-gray-300">
                                                         {showDamageTooltip ? (

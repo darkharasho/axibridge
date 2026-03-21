@@ -122,6 +122,7 @@ export type PlayerConditionTotals = Record<string, {
     skills: Record<string, ConditionSkillEntry>;
     applicationsFromBuffs?: number;
     applicationsFromBuffsActive?: number;
+    uptimeMs?: number;
 }>;
 
 export type OutgoingConditionSummaryEntry = {
@@ -131,6 +132,7 @@ export type OutgoingConditionSummaryEntry = {
     damage: number;
     applicationsFromBuffs?: number;
     applicationsFromBuffsActive?: number;
+    uptimeMs?: number;
 };
 
 export type OutgoingConditionsResult = {
@@ -169,6 +171,24 @@ const countAppliedFromStates = (states: Array<[number, number]> | undefined) => 
         prev = value;
     });
     return applied;
+};
+
+const computeUptimeFromStates = (states: Array<[number, number]> | undefined) => {
+    if (!states || states.length === 0) return 0;
+    let uptimeMs = 0;
+    let buffOn = 0;
+    let firstTime = 0;
+    for (const [time, value] of states) {
+        if (time === 0) continue;
+        if (value >= 1 && buffOn === 0) {
+            buffOn = value;
+            firstTime = time;
+        } else if (value === 0 && buffOn > 0) {
+            uptimeMs += time - firstTime;
+            buffOn = 0;
+        }
+    }
+    return uptimeMs;
 };
 
 const countActiveStateEntries = (states: Array<[number, number]> | undefined) => {
@@ -302,6 +322,7 @@ export const computeOutgoingConditions = (payload: {
                 buffStateSourcesSeen += 1;
                 const appliedCounts = countAppliedFromStates(states as Array<[number, number]>);
                 const activeCounts = countActiveStateEntries(states as Array<[number, number]>);
+                const uptimeMs = computeUptimeFromStates(states as Array<[number, number]>);
                 buffStateApplicationsTotal += appliedCounts;
 
                 const playerConditionTotals = playerConditions[key]?.[conditionName] || {
@@ -311,6 +332,7 @@ export const computeOutgoingConditions = (payload: {
                 };
                 playerConditionTotals.applicationsFromBuffs = (playerConditionTotals.applicationsFromBuffs || 0) + appliedCounts;
                 playerConditionTotals.applicationsFromBuffsActive = (playerConditionTotals.applicationsFromBuffsActive || 0) + activeCounts;
+                playerConditionTotals.uptimeMs = (playerConditionTotals.uptimeMs || 0) + uptimeMs;
                 playerConditions[key] = playerConditions[key] || {};
                 playerConditions[key][conditionName] = playerConditionTotals;
 
@@ -321,6 +343,7 @@ export const computeOutgoingConditions = (payload: {
                 };
                 overallTotals.applicationsFromBuffs = (overallTotals.applicationsFromBuffs || 0) + appliedCounts;
                 overallTotals.applicationsFromBuffsActive = (overallTotals.applicationsFromBuffsActive || 0) + activeCounts;
+                overallTotals.uptimeMs = (overallTotals.uptimeMs || 0) + uptimeMs;
                 summary[conditionName] = overallTotals;
             });
         });

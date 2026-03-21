@@ -642,27 +642,11 @@ export const computePlayerAggregation = ({
 
                     const conditionName = normalizeConditionLabel(meta?.name);
                     if (conditionName && NON_DAMAGING_CONDITIONS.has(conditionName) && (!meta?.classification || meta.classification === 'Condition')) {
+                        // buffUptimes on squad players = conditions ON the player = incoming from enemies.
+                        // Outgoing non-damaging conditions are sourced from target.buffs.statesPerSource
+                        // via computeOutgoingConditions() (applicationsFromBuffs / applicationsFromBuffsActive).
                         const seconds = totalMs / 1000;
                         const conditionIcon = meta?.icon;
-                        const outgoingSummary = outgoingCondiTotals[conditionName] || {
-                            name: conditionName,
-                            icon: conditionIcon,
-                            applications: 0,
-                            damage: 0
-                        };
-                        outgoingSummary.applicationsFromUptime = (outgoingSummary.applicationsFromUptime || 0) + seconds;
-                        if (!outgoingSummary.icon && conditionIcon) outgoingSummary.icon = conditionIcon;
-                        outgoingCondiTotals[conditionName] = outgoingSummary;
-
-                        const outgoingEntry = s.outgoingConditions[conditionName] || {
-                            applications: 0,
-                            damage: 0,
-                            skills: {},
-                            icon: conditionIcon
-                        };
-                        outgoingEntry.applicationsFromUptime = (outgoingEntry.applicationsFromUptime || 0) + seconds;
-                        if (!outgoingEntry.icon && conditionIcon) outgoingEntry.icon = conditionIcon;
-                        s.outgoingConditions[conditionName] = outgoingEntry;
 
                         const incomingSummary = incomingCondiTotals[conditionName] || {
                             name: conditionName,
@@ -1122,6 +1106,7 @@ export const computePlayerAggregation = ({
                 ex.damage += Number(v.damage || 0);
                 if (v.applicationsFromBuffs) ex.applicationsFromBuffs = (ex.applicationsFromBuffs || 0) + v.applicationsFromBuffs;
                 if (v.applicationsFromBuffsActive) ex.applicationsFromBuffsActive = (ex.applicationsFromBuffsActive || 0) + v.applicationsFromBuffsActive;
+                if (v.uptimeMs) ex.uptimeMs = (ex.uptimeMs || 0) + v.uptimeMs;
                 Object.entries(v.skills || {}).forEach(([sn, sv]) => {
                     const sk = ex.skills[sn] || { name: sv.name, hits: 0, damage: 0, icon: sv.icon };
                     sk.hits += Number(sv.hits || 0);
@@ -1139,6 +1124,7 @@ export const computePlayerAggregation = ({
             ex.damage += Number(v.damage || 0);
             if (v.applicationsFromBuffs) ex.applicationsFromBuffs = (ex.applicationsFromBuffs || 0) + v.applicationsFromBuffs;
             if (v.applicationsFromBuffsActive) ex.applicationsFromBuffsActive = (ex.applicationsFromBuffsActive || 0) + v.applicationsFromBuffsActive;
+            if (v.uptimeMs) ex.uptimeMs = (ex.uptimeMs || 0) + v.uptimeMs;
             if (!ex.icon && v.icon) ex.icon = v.icon;
             outgoingCondiTotals[cName] = ex;
         });

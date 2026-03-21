@@ -101,7 +101,8 @@ export const pruneDetailsForStats = (details: any) => {
         'player_damage_mitigation',
         'player_minion_damage_mitigation',
         'playerDamageMitigation',
-        'playerMinionDamageMitigation'
+        'playerMinionDamageMitigation',
+        'conditionMetrics'
     ]);
     pruned.skillMap = pruneMetaMap(pruned.skillMap, { includeClassification: false, includeStacking: false, includeAutoAttack: true, includeProcFlags: true });
     pruned.buffMap = pruneMetaMap(pruned.buffMap, { includeClassification: true, includeStacking: true });
@@ -205,7 +206,8 @@ export const pruneDetailsForStats = (details: any) => {
                 'teamId',
                 'team',
                 'teamColor',
-                'team_color'
+                'team_color',
+                'buffs'
             ]);
             out.combatReplayData = pruneCombatReplayData(target?.combatReplayData, false);
             return out;

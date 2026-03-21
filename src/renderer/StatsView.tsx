@@ -605,9 +605,12 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     });
     const isNonDamagingCondition = activeConditionName !== 'all' && NON_DAMAGING_CONDITIONS.has(activeConditionName);
     const showConditionDamage = !isNonDamagingCondition;
-    const conditionGridClass = showConditionDamage
-        ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr]'
-        : 'grid-cols-[0.4fr_1.6fr_1fr]';
+    const hasUptimeColumn = conditionDirection === 'outgoing';
+    const conditionGridClass = showConditionDamage && hasUptimeColumn
+        ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr_1fr]'
+        : showConditionDamage || hasUptimeColumn
+            ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr]'
+            : 'grid-cols-[0.4fr_1.6fr_1fr]';
     const effectiveConditionSort = showConditionDamage
         ? conditionSort
         : { key: 'applications', dir: conditionSort.key === 'applications' ? conditionSort.dir : 'desc' };
@@ -2270,7 +2273,8 @@ type SpikeFight = {
                     damage: 0,
                     applicationsFromUptime: 0,
                     applicationsFromBuffs: 0,
-                    applicationsFromBuffsActive: 0
+                    applicationsFromBuffsActive: 0,
+                    uptimeMs: 0
                 };
                 existing.applications += Number(entry?.applications || 0);
                 existing.damage += Number(entry?.damage || 0);
@@ -2282,6 +2286,9 @@ type SpikeFight = {
                 }
                 if (entry?.applicationsFromBuffsActive) {
                     existing.applicationsFromBuffsActive += Number(entry.applicationsFromBuffsActive || 0);
+                }
+                if (entry?.uptimeMs) {
+                    existing.uptimeMs += Number(entry.uptimeMs || 0);
                 }
                 if (!existing.icon && entry?.icon) existing.icon = entry.icon;
                 if (!existing.icon) existing.icon = getDefaultConditionIcon(name);
@@ -2302,6 +2309,7 @@ type SpikeFight = {
                     applicationsFromUptime: 0,
                     applicationsFromBuffs: 0,
                     applicationsFromBuffsActive: 0,
+                    uptimeMs: 0,
                     skills: {}
                 };
                 existing.applications += Number(cond?.applications || 0);
@@ -2314,6 +2322,9 @@ type SpikeFight = {
                 }
                 if (cond?.applicationsFromBuffsActive) {
                     existing.applicationsFromBuffsActive += Number(cond.applicationsFromBuffsActive || 0);
+                }
+                if (cond?.uptimeMs) {
+                    existing.uptimeMs += Number(cond.uptimeMs || 0);
                 }
                 if (!existing.icon && cond?.icon) existing.icon = cond.icon;
                 if (!existing.icon) existing.icon = getDefaultConditionIcon(name);
