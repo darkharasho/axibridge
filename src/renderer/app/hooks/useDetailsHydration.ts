@@ -36,18 +36,20 @@ export function useDetailsHydration({
             });
         }
         setLogsForStats((currentStatsLogs) => {
-            const updatesByPath = new Set(batch.map((entry) => entry.filePath));
+            const updatesByPath = new Map(batch.map((entry) => [entry.filePath, entry.details]));
             let changed = false;
             const next = currentStatsLogs.map((entry) => {
                 const filePath = entry.filePath || '';
-                if (!updatesByPath.has(filePath)) return entry;
+                const details = updatesByPath.get(filePath);
+                if (!details) return entry;
                 updatesByPath.delete(filePath);
-                if (entry.statsDetailsLoaded === true && entry.status === 'success') {
+                if (entry.details === details && entry.statsDetailsLoaded === true && entry.status === 'success') {
                     return entry;
                 }
                 changed = true;
                 return {
                     ...entry,
+                    details,
                     statsDetailsLoaded: true,
                     detailsFetchExhausted: false,
                     status: 'success' as const
@@ -57,10 +59,11 @@ export function useDetailsHydration({
                 return changed ? next : currentStatsLogs;
             }
             const additions: ILogData[] = [];
-            updatesByPath.forEach((filePath) => {
+            updatesByPath.forEach((details, filePath) => {
                 const base = logsRef.current.find((log) => log.filePath === filePath);
                 additions.push({
                     ...(base || { id: filePath, filePath, permalink: '' }),
+                    details,
                     statsDetailsLoaded: true,
                     detailsFetchExhausted: false,
                     status: 'success'
@@ -126,6 +129,7 @@ export function useDetailsHydration({
             const existing = updated[existingIndex];
             updated[existingIndex] = {
                 ...existing,
+                details: result.details,
                 detailsAvailable: true,
                 statsDetailsLoaded: true,
                 detailsLoading: false,
@@ -187,38 +191,20 @@ export function useDetailsHydration({
                 if (hydratedBatch.length === 0) return;
                 const batch = hydratedBatch.splice(0, hydratedBatch.length);
                 applyHydratedStatsBatch(batch);
-                if (statsViewActive) {
-                    setLogsDeferred((currentLogs) => {
-                        if (batch.length === 0) return currentLogs;
-                        const updatedPaths = new Set(batch.map((entry) => entry.filePath));
-                        let changed = false;
-                        const next = currentLogs.map((entry) => {
-                            const filePath = entry.filePath || '';
-                            if (!updatedPaths.has(filePath)) return entry;
-                            if (entry.statsDetailsLoaded && entry.status === 'success') return entry;
-                            changed = true;
-                            return {
-                                ...entry,
-                                statsDetailsLoaded: true,
-                                detailsFetchExhausted: false,
-                                status: 'success' as const
-                            };
-                        });
-                        return changed ? next : currentLogs;
-                    });
-                    return;
-                }
+                const updatesByPath = new Map(batch.map((entry) => [entry.filePath, entry.details]));
                 setLogsDeferred((currentLogs) => {
-                    if (batch.length === 0) return currentLogs;
-                    const updatedPaths = new Set(batch.map((entry) => entry.filePath));
+                    if (updatesByPath.size === 0) return currentLogs;
                     let changed = false;
                     const next = currentLogs.map((entry) => {
                         const filePath = entry.filePath || '';
-                        if (!updatedPaths.has(filePath)) return entry;
-                        if (entry.statsDetailsLoaded && entry.status === 'success') return entry;
+                        const details = updatesByPath.get(filePath);
+                        if (!details) return entry;
+                        if (entry.details === details && entry.statsDetailsLoaded && entry.status === 'success') return entry;
                         changed = true;
                         return {
                             ...entry,
+                            details,
+                            detailsAvailable: true,
                             statsDetailsLoaded: true,
                             detailsFetchExhausted: false,
                             status: 'success' as const
