@@ -60,6 +60,17 @@ const pick = (obj: any, keys: string[]): any => {
     return out;
 };
 
+const omit = (obj: any, keys: string[]): any => {
+    if (!obj || typeof obj !== 'object') return obj;
+    const out: any = {};
+    Object.keys(obj).forEach((key) => {
+        if (!keys.includes(key)) {
+            out[key] = obj[key];
+        }
+    });
+    return out;
+};
+
 const pruneCombatReplayData = (value: any): any => {
     const pruneEntry = (entry: any) => {
         if (!entry || typeof entry !== 'object') return null;
@@ -74,39 +85,7 @@ const pruneCombatReplayData = (value: any): any => {
     return value;
 };
 
-const PLAYER_KEYS = [
-    'name', 'display_name', 'character_name', 'profession', 'elite_spec', 'group',
-    'dpsAll', 'statsAll', 'dpsTargets', 'statsTargets', 'defenses', 'support',
-    'rotation', 'extHealingStats', 'extBarrierStats', 'squadBuffVolumes',
-    'selfBuffs', 'groupBuffs', 'squadBuffs', 'selfBuffsActive', 'groupBuffsActive', 'squadBuffsActive',
-    'buffUptimes', 'totalDamageDist', 'targetDamageDist', 'damage1S', 'targetDamage1S',
-    'powerDamage1S', 'conditionDamage1S', 'powerDamageTaken1S', 'targetPowerDamage1S',
-    'totalDamageTaken', 'totalDamageTakenDist', 'minions', 'combatReplayData',
-    'hasCommanderTag', 'notInSquad', 'account', 'activeTimes',
-    'teamID', 'teamId', 'team', 'teamColor', 'team_color',
-    'damageModifiers', 'incomingDamageModifiers'
-];
-
-const TARGET_KEYS = [
-    'id', 'name', 'isFake', 'dpsAll', 'statsAll', 'defenses',
-    'totalHealth', 'healthPercentBurned', 'enemyPlayer',
-    'totalDamageDist', 'totalDamageTaken', 'totalDamageTakenDist',
-    'damageTaken', 'powerDamage1S', 'damage1S',
-    'profession', 'teamID', 'teamId', 'team', 'teamColor', 'team_color',
-    'buffs'
-];
-
-const TOP_LEVEL_KEYS = [
-    'players', 'targets', 'durationMS', 'uploadTime', 'timeStart', 'timeStartStd',
-    'timeEnd', 'timeEndStd', 'fightName', 'zone', 'mapName', 'map', 'location',
-    'permalink', 'uploadLinks', 'success', 'teamBreakdown', 'teamCounts',
-    'combatReplayMetaData', 'skillMap', 'buffMap', 'encounterDuration',
-    'player_damage_mitigation', 'player_minion_damage_mitigation',
-    'playerDamageMitigation', 'playerMinionDamageMitigation',
-    'damageModMap',
-    'personalDamageMods',
-    'conditionMetrics'
-];
+const TOP_LEVEL_DENY = ['mechanics'];
 
 /**
  * Strip fields not needed by the stats pipeline from a full EI JSON payload.
@@ -115,15 +94,15 @@ const TOP_LEVEL_KEYS = [
  */
 export const pruneDetailsForStats = (details: any): any => {
     if (!details || typeof details !== 'object') return details;
-    const pruned: any = pick(details, TOP_LEVEL_KEYS);
+    const pruned: any = omit(details, TOP_LEVEL_DENY);
     if (Array.isArray(pruned.players)) {
-        pruned.players = pruned.players.map((player: any) => pick(player, PLAYER_KEYS));
+        pruned.players = pruned.players.map((player: any) => ({ ...player }));
     }
     if (Array.isArray(pruned.targets)) {
         pruned.targets = pruned.targets.map((target: any) => {
-            const base = pick(target, TARGET_KEYS);
-            base.combatReplayData = pruneCombatReplayData(target?.combatReplayData);
-            return base;
+            const out = { ...target };
+            out.combatReplayData = pruneCombatReplayData(target?.combatReplayData);
+            return out;
         });
     }
     return pruned;

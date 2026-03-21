@@ -107,7 +107,7 @@ describe('pruneDetailsForStats', () => {
         expect(pruneDetailsForStats(42)).toBe(42);
     });
 
-    it('retains known top-level keys', () => {
+    it('passes through all fields except denied ones', () => {
         const details = {
             players: [],
             targets: [],
@@ -115,21 +115,23 @@ describe('pruneDetailsForStats', () => {
             durationMS: 60000,
             success: true,
             permalink: 'https://dps.report/abc',
-            __unknown__: 'should be dropped'
+            mechanics: [{ name: 'Stomp', data: [] }],
+            __unknown__: 'should survive'
         };
         const pruned = pruneDetailsForStats(details);
         expect(pruned.fightName).toBe('Eternal Coliseum');
         expect(pruned.durationMS).toBe(60000);
         expect(pruned.success).toBe(true);
         expect(pruned.permalink).toBe('https://dps.report/abc');
-        expect(pruned.__unknown__).toBeUndefined();
+        expect(pruned.__unknown__).toBe('should survive');
+        expect(pruned.mechanics).toBeUndefined();
     });
 
-    it('prunes unknown player fields', () => {
+    it('passes through all player fields', () => {
         const player = {
             name: 'Alice',
             profession: 'Guardian',
-            __secret__: 'remove me',
+            __secret__: 'keep me',
             dpsAll: [{ dps: 10000 }]
         };
         const pruned = pruneDetailsForStats({ players: [player], targets: [] });
@@ -137,21 +139,21 @@ describe('pruneDetailsForStats', () => {
         expect(p.name).toBe('Alice');
         expect(p.profession).toBe('Guardian');
         expect(p.dpsAll).toBeDefined();
-        expect(p.__secret__).toBeUndefined();
+        expect(p.__secret__).toBe('keep me');
     });
 
-    it('prunes unknown target fields', () => {
+    it('passes through all target fields', () => {
         const target = {
             id: 1,
             name: 'Enemy',
             isFake: false,
-            __extra__: 'remove me'
+            __extra__: 'keep me'
         };
         const pruned = pruneDetailsForStats({ players: [], targets: [target] });
         const t = pruned.targets[0];
         expect(t.id).toBe(1);
         expect(t.name).toBe('Enemy');
-        expect(t.__extra__).toBeUndefined();
+        expect(t.__extra__).toBe('keep me');
     });
 
     it('prunes combatReplayData on targets to only start/down/dead', () => {
