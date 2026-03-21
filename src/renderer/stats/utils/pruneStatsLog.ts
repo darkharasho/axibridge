@@ -8,6 +8,19 @@ const pick = (obj: any, keys: string[]) => {
     return out;
 };
 
+const omit = (obj: any, keys: string[]): any => {
+    if (!obj || typeof obj !== 'object') return obj;
+    const out: any = {};
+    Object.keys(obj).forEach((key) => {
+        if (!keys.includes(key)) {
+            out[key] = obj[key];
+        }
+    });
+    return out;
+};
+
+const TOP_LEVEL_DENY = ['mechanics'];
+
 export const isStatsPrunedLog = (value: any): boolean => Boolean(value && value.__statsPruned === true);
 
 const pruneMetaMap = (source: any, options?: { includeClassification?: boolean; includeStacking?: boolean; includeAutoAttack?: boolean; includeProcFlags?: boolean }) => {
@@ -73,37 +86,7 @@ const pruneCombatReplayData = (value: any, keepPositions: boolean) => {
 
 export const pruneDetailsForStats = (details: any) => {
     if (!details || typeof details !== 'object') return details;
-    const pruned: any = pick(details, [
-        'players',
-        'targets',
-        'durationMS',
-        'uploadTime',
-        'timeStart',
-        'timeStartStd',
-        'timeEnd',
-        'timeEndStd',
-        'fightName',
-        'zone',
-        'mapName',
-        'map',
-        'location',
-        'permalink',
-        'uploadLinks',
-        'success',
-        'teamBreakdown',
-        'teamCounts',
-        'combatReplayMetaData',
-        'skillMap',
-        'buffMap',
-        'damageModMap',
-        'personalDamageMods',
-        'encounterDuration',
-        'player_damage_mitigation',
-        'player_minion_damage_mitigation',
-        'playerDamageMitigation',
-        'playerMinionDamageMitigation',
-        'conditionMetrics'
-    ]);
+    const pruned: any = omit(details, TOP_LEVEL_DENY);
     pruned.skillMap = pruneMetaMap(pruned.skillMap, { includeClassification: false, includeStacking: false, includeAutoAttack: true, includeProcFlags: true });
     pruned.buffMap = pruneMetaMap(pruned.buffMap, { includeClassification: true, includeStacking: true });
     if (pruned.damageModMap && typeof pruned.damageModMap === 'object') {
@@ -127,50 +110,7 @@ export const pruneDetailsForStats = (details: any) => {
             !player?.hasCommanderTag && !playerHasDirectTagDistance(player)
         ));
         pruned.players = sourcePlayers.map((player: any) => {
-            const out = pick(player, [
-                'name',
-                'display_name',
-                'character_name',
-                'profession',
-                'elite_spec',
-                'group',
-                'dpsAll',
-                'statsAll',
-                'dpsTargets',
-                'statsTargets',
-                'defenses',
-                'support',
-                'rotation',
-                'extHealingStats',
-                'extBarrierStats',
-                'squadBuffVolumes',
-                'selfBuffs',
-                'groupBuffs',
-                'squadBuffs',
-                'selfBuffsActive',
-                'groupBuffsActive',
-                'squadBuffsActive',
-                'buffUptimes',
-                'totalDamageDist',
-                'targetDamageDist',
-                'damage1S',
-                'targetDamage1S',
-                'powerDamageTaken1S',
-                'targetPowerDamage1S',
-                'totalDamageTaken',
-                'totalDamageTakenDist',
-                'hasCommanderTag',
-                'notInSquad',
-                'account',
-                'activeTimes',
-                'teamID',
-                'teamId',
-                'team',
-                'teamColor',
-                'team_color',
-                'damageModifiers',
-                'incomingDamageModifiers'
-            ]);
+            const out = { ...player };
             const minions = Array.isArray(player?.minions) ? player.minions : [];
             out.minions = minions.map((minion: any) => pick(minion, ['name', 'totalDamageTakenDist']));
             const keepReplayPositions = (player?.hasCommanderTag && !player?.notInSquad)
@@ -185,30 +125,7 @@ export const pruneDetailsForStats = (details: any) => {
     }
     if (Array.isArray(pruned.targets)) {
         pruned.targets = pruned.targets.map((target: any) => {
-            const out = pick(target, [
-                'id',
-                'name',
-                'isFake',
-                'dpsAll',
-                'statsAll',
-                'defenses',
-                'totalHealth',
-                'healthPercentBurned',
-                'enemyPlayer',
-                'totalDamageDist',
-                'totalDamageTaken',
-                'totalDamageTakenDist',
-                'damageTaken',
-                'powerDamage1S',
-                'damage1S',
-                'profession',
-                'teamID',
-                'teamId',
-                'team',
-                'teamColor',
-                'team_color',
-                'buffs'
-            ]);
+            const out = { ...target };
             out.combatReplayData = pruneCombatReplayData(target?.combatReplayData, false);
             return out;
         });
