@@ -531,8 +531,14 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 setBulkLogDetails(filePath, prunedDetails);
                 void updateGlobalManifest(prunedDetails, filePath);
             }
-            // Pre-warm disabled — sending 10-40MB details over IPC blocks the renderer.
-            // Details are fetched on-demand via get-log-details when needed.
+            // Pre-warm renderer memory cache (LRU only, no IndexedDB)
+            if (prunedDetails && win?.webContents) {
+                win.webContents.send('details-prewarm', {
+                    logId: result.id || filePath,
+                    filePath,
+                    details: prunedDetails,
+                });
+            }
             if (bulkUploadMode) {
                 win?.webContents.send('upload-complete', {
                     ...result,

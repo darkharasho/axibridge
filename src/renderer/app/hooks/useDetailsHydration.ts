@@ -109,7 +109,10 @@ export function useDetailsHydration({
             });
             return;
         }
-        // Details written to state below — cache populated lazily via get() when needed
+        // Populate memory LRU (no IndexedDB — structured clone too expensive on hot path)
+        if (detailsCache && result.details && log.id) {
+            detailsCache.putMemoryOnly(log.id, result.details);
+        }
         setLogs((currentLogs) => {
             const existingIndex = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
             if (existingIndex < 0) return currentLogs;

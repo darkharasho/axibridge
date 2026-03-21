@@ -76,6 +76,12 @@ export class DetailsCache {
         this.idbPut(logId, details);
     }
 
+    /** Memory LRU only — no IndexedDB. Use for hot-path pre-warming where
+     *  structured clone cost is unacceptable (10-40MB objects). */
+    putMemoryOnly(logId: string, details: any): void {
+        this.lruSet(logId, details);
+    }
+
     /** Evict from memory LRU only (IndexedDB retained). */
     evict(logId: string): void {
         this.lru.delete(logId);
