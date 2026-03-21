@@ -1144,8 +1144,8 @@ function App() {
                         {logListVirtualization.enabled && logListVirtualization.topSpacer > 0 && (
                             <div aria-hidden="true" style={{ height: `${logListVirtualization.topSpacer}px` }} />
                         )}
-                        <AnimatePresence initial={false}>
-                            {logListVirtualization.visibleLogs.map((log) => (
+                        {isBulkUploadActive ? (
+                            logListVirtualization.visibleLogs.map((log) => (
                                 <ExpandableLogCard
                                     key={log.filePath || log.id}
                                     log={log}
@@ -1157,8 +1157,8 @@ function App() {
                                             fetchLogDetails(log);
                                         }
                                     }}
-                                    layoutEnabled={!isBulkUploadActive}
-                                    motionEnabled={!isBulkUploadActive}
+                                    layoutEnabled={false}
+                                    motionEnabled={false}
                                     onCancel={() => {
                                         removeLogFromActivity(log);
                                     }}
@@ -1167,8 +1167,34 @@ function App() {
                                     disruptionMethod={disruptionMethod}
                                     useClassIcons={true}
                                 />
-                            ))}
-                        </AnimatePresence>
+                            ))
+                        ) : (
+                            <AnimatePresence initial={false}>
+                                {logListVirtualization.visibleLogs.map((log) => (
+                                    <ExpandableLogCard
+                                        key={log.filePath || log.id}
+                                        log={log}
+                                        isExpanded={expandedLogId === log.filePath}
+                                        onToggle={() => {
+                                            const nextExpanded = expandedLogId === log.filePath ? null : log.filePath;
+                                            setExpandedLogId(nextExpanded);
+                                            if (nextExpanded) {
+                                                fetchLogDetails(log);
+                                            }
+                                        }}
+                                        layoutEnabled={!isBulkUploadActive}
+                                        motionEnabled={!isBulkUploadActive}
+                                        onCancel={() => {
+                                            removeLogFromActivity(log);
+                                        }}
+                                        onRemove={() => removeLogFromActivity(log)}
+                                        embedStatSettings={embedStatSettings}
+                                        disruptionMethod={disruptionMethod}
+                                        useClassIcons={true}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        )}
                         {logListVirtualization.enabled && logListVirtualization.bottomSpacer > 0 && (
                             <div aria-hidden="true" style={{ height: `${logListVirtualization.bottomSpacer}px` }} />
                         )}

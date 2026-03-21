@@ -113,11 +113,11 @@ export function useAppNavigation({
         return () => observer.disconnect();
     }, [view, logsCount]);
 
-    // Cleanup RAF on unmount
+    // Cleanup scroll throttle on unmount
     useEffect(() => {
         return () => {
             if (logsScrollRafRef.current !== null) {
-                window.cancelAnimationFrame(logsScrollRafRef.current);
+                window.clearTimeout(logsScrollRafRef.current);
                 logsScrollRafRef.current = null;
             }
         };
@@ -126,10 +126,12 @@ export function useAppNavigation({
     const handleLogsListScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
         logsScrollTopRef.current = event.currentTarget.scrollTop;
         if (logsScrollRafRef.current !== null) return;
-        logsScrollRafRef.current = window.requestAnimationFrame(() => {
+        // Throttle to ~10Hz — RAF (60Hz) causes excessive virtualization
+        // recalculation when combined with bulk upload state flushes
+        logsScrollRafRef.current = window.setTimeout(() => {
             logsScrollRafRef.current = null;
             setLogsScrollTop(logsScrollTopRef.current);
-        });
+        }, 100) as unknown as number;
     }, []);
 
     const handleWhatsNewClose = useCallback(async () => {
