@@ -1,30 +1,41 @@
 # Release Notes
 
-Version v1.40.15 — March 14, 2026
+Version v1.41.0 — March 20, 2026
 
-## Boon Generation Metrics
+## Damage Modifiers Section
 
-- Boon Output tables now show Total, Average, and Uptime per player and boon, giving a clearer read on how boon generation plays out across fights.
-- A new Generation Milliseconds (Raw Accumulation) view tracks the raw time spent generating boons, which feeds the Total/Average/Uptime displays.
-- These metrics rely on detailed buff data from EI; if the data isn’t present, some values may be unavailable.
+- A new Damage Modifiers section is now available in the stats dashboard, showing per-player modifier totals aggregated across fights.
+- The section includes both a collapsed sidebar view and a full expanded/fullscreen dense table view.
+- A chart/table toggle lets you switch between a bar chart overlay and a raw table for each modifier.
+- Personal vs. shared damage modifiers can be filtered with a hypothetical toggle.
+- Negative modifiers (reduced damage) are visually distinguished from positive ones.
+- The damage modifier data is merged across all selected logs and exposed in the stats output.
 
-NOTE: The new metrics are based on the buff data EI provides and may not appear for older uploads lacking those details.
+NOTE: Damage modifier data depends on EI providing `damageModMap` in the log JSON. Older uploads may not include this data; re-uploading those logs will pick it up.
 
-## Down Contribution Fix for Aggregate Targets
+## APM (No Procs) Column
 
-- Down contribution is now computed from totalDamageDist when EI uses an aggregate target (like Enemy Players), instead of relying on the zeroed aggregate target path.
-- This fixes some cases where down contributions would look incorrect in WvW-style data.
+- A new APM (No Procs) column has been added to the All Skills view, showing actions per minute excluding auto-attacks, trait procs, gear procs, and unconditional procs.
+- Proc flags are now preserved through the full data pipeline: EI JSON parsing, renderer-side pruning, and `computeSkillUsageData`.
 
-## Icon Refactor / UI cleanup
+## Condition Metrics Improvements
 
-- Refactored class icon handling and removed a large set of unused SVG icons (e.g., Amalgam.svg, Antiquary.svg, Berserker.svg, etc.).
-- UI may show fewer icons for some classes now. NOTE: If you relied on specific icons, you might notice gaps.
+- Condition metrics tracking now handles outgoing conditions more accurately, with improved pruning logic to keep only the relevant condition data through the processing pipeline.
 
-## Docs / Metrics Spec Updates
+## Pruning Improvements
 
-- Updated docs/metrics-spec.md to explain the aggregate-target down-contribution behavior and to add the new boon-generation metrics section with how Total/Average/Uptime are calculated and displayed.
-- These changes make the boon data easier to read and compare across fights and players.
+- Both the main-process and renderer-side pruners have been converted from allowlist to denylist models, which makes it easier to preserve new EI fields automatically without needing to explicitly add them.
 
-## QoL Improvements
+## Bug Fixes
 
-- General doc clarifications around boon metrics and down-contribution calculations; no user-facing UI behavior changes beyond the sections above.
+- Fixed `damageModMap` and modifier arrays being dropped during main-process pruning, causing missing data on subsequent views.
+- Fixed a case where cached log details missing `damageModMap` would not trigger a re-fetch; affected logs now re-hydrate correctly.
+- Reverted and re-applied the EI incoming flag modifier filter — modifiers are now split by the player data itself rather than filtered by an EI flag.
+- Fixed SVG fill colors on icon components and corrected button label from prior text to "Copy Link".
+- Removed an XSS risk from a `dangerouslySetInnerHTML` usage in the modifiers section.
+- Fixed bar gradient rendering and duplicate player entries in the modifiers chart view.
+
+## Internal Changes
+
+- Added design specs and implementation plans for damage modifiers, APM No Procs, and pruning denylist conversion.
+- `autoAttack` option is now included in skill metadata and flows through pruning logic.
