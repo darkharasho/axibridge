@@ -19,6 +19,8 @@ import { normalizeQueuedLogStatus, useLogQueue } from './app/hooks/useLogQueue';
 import { useDetailsHydration } from './app/hooks/useDetailsHydration';
 import { useUploadListeners } from './app/hooks/useUploadListeners';
 import { extractDroppedLogFiles } from './app/utils/droppedFiles';
+import { DetailsCache } from './cache/DetailsCache';
+import { DetailsCacheProvider } from './cache/DetailsCacheContext';
 
 function App() {
     const [logs, setLogs] = useState<ILogData[]>([]);
@@ -172,6 +174,25 @@ function App() {
         applyDevDatasetSnapshot,
         loadDevDatasets
     } = devDatasetsState;
+    const detailsCacheRef = useRef<DetailsCache | null>(null);
+    if (!detailsCacheRef.current) {
+        detailsCacheRef.current = new DetailsCache({
+            lruCapacity: 5,
+            fetchDetails: async (logId: string) => {
+                const log = logsRef.current.find((l: any) => l.id === logId || l.filePath === logId);
+                if (!log) return null;
+                try {
+                    const result = await window.electronAPI.getLogDetails({
+                        filePath: log.filePath,
+                        permalink: log.permalink,
+                    });
+                    return result?.success ? result.details ?? null : null;
+                } catch {
+                    return null;
+                }
+            },
+        });
+    }
     const filePickerState = useFilePicker({
         logDirectory,
         setLogs,
@@ -1153,7 +1174,11 @@ function App() {
         shellClassName, isDev, arcbridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, isModernTheme, setWebUploadState, statsViewMounted, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, uiTheme, dashboardLayout, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setUiTheme, setKineticFontStyle, setKineticThemeVariant, setDashboardLayout, setGithubWebTheme, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, statsTilesPanel, activityPanel, configurationPanel, screenshotData, embedStatSettings, showClassIcons, enabledTopListCount, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore
     };
 
-    return <AppLayout ctx={appLayoutCtx} />;
+    return (
+        <DetailsCacheProvider cache={detailsCacheRef.current!}>
+            <AppLayout ctx={appLayoutCtx} />
+        </DetailsCacheProvider>
+    );
 }
 
 export default App;
