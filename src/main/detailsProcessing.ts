@@ -87,6 +87,19 @@ const pruneCombatReplayData = (value: any): any => {
 
 const TOP_LEVEL_DENY = ['mechanics'];
 
+const PLAYER_DENY = [
+    // Buff volume variants (~2.6 MB/log combined)
+    'buffUptimesActive', 'buffVolumes', 'buffVolumesActive',
+    'offGroupBuffVolumes', 'offGroupBuffVolumesActive',
+    'groupBuffVolumes', 'groupBuffVolumesActive',
+    'selfBuffVolumes', 'selfBuffVolumesActive',
+    'offGroupBuffs', 'offGroupBuffsActive',
+    // Time series (~50 KB/log combined)
+    'boonsStates', 'conditionsStates', 'healthPercents', 'barrierPercents',
+    // Misc unused
+    'consumables', 'weaponSets', 'weapons', 'guildID',
+];
+
 /**
  * Strip fields not needed by the stats pipeline from a full EI JSON payload.
  * Reduces memory footprint and IPC transfer size.
@@ -96,7 +109,7 @@ export const pruneDetailsForStats = (details: any): any => {
     if (!details || typeof details !== 'object') return details;
     const pruned: any = omit(details, TOP_LEVEL_DENY);
     if (Array.isArray(pruned.players)) {
-        pruned.players = pruned.players.map((player: any) => ({ ...player }));
+        pruned.players = pruned.players.map((player: any) => omit(player, PLAYER_DENY));
     }
     if (Array.isArray(pruned.targets)) {
         pruned.targets = pruned.targets.map((target: any) => {
