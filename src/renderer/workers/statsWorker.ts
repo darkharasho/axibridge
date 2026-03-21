@@ -1,5 +1,4 @@
 import { computeStatsAggregation } from '../stats/computeStatsAggregation';
-import { isStatsPrunedLog, pruneLogForStats } from '../stats/utils/pruneStatsLog';
 
 type WorkerPayload = {
     logs: any[];
@@ -129,7 +128,7 @@ self.onmessage = (event: MessageEvent) => {
             droppedLogMessages += 1;
             return;
         }
-        latestPayload.logs.push(isStatsPrunedLog(data.payload) ? data.payload : pruneLogForStats(data.payload));
+        latestPayload.logs.push(data.payload);
         return;
     }
     if (data?.type === 'flush') {

@@ -1,6 +1,6 @@
 import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const IDB_PREFIX = 'details:';
 
 type IdbEntry = { schemaVersion: number; details: any; storedAt: number };

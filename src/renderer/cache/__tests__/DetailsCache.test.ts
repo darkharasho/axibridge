@@ -69,7 +69,7 @@ describe('DetailsCache', () => {
         it('get reads from IndexedDB on LRU miss', async () => {
             const { get: idbGetMock } = await import('idb-keyval');
             (idbGetMock as any).mockResolvedValueOnce({
-                schemaVersion: 1,
+                schemaVersion: 2,
                 details: { id: 'from-idb' },
                 storedAt: Date.now(),
             });
@@ -95,7 +95,7 @@ describe('DetailsCache', () => {
             await cache.put('log-1', { id: 'written' });
             expect(idbSetMock).toHaveBeenCalledWith(
                 'details:log-1',
-                expect.objectContaining({ schemaVersion: 1, details: { id: 'written' } })
+                expect.objectContaining({ schemaVersion: 2, details: { id: 'written' } })
             );
         });
 

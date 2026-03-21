@@ -98,6 +98,13 @@ const PLAYER_DENY = [
     'boonsStates', 'conditionsStates', 'healthPercents', 'barrierPercents',
     // Misc unused
     'consumables', 'weaponSets', 'weapons', 'guildID',
+    // Confirmed-unused damage/condition detail fields
+    'targetConditionDamage1S',
+    'damageModifiersTarget',
+    'incomingDamageModifiersTarget',
+    'deathRecap',
+    'conditionDamage1S',
+    'conditionDamageTaken1S',
 ];
 
 /**

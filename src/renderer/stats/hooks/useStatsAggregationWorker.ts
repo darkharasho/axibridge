@@ -1,7 +1,6 @@
 import { startTransition, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { DisruptionMethod, IMvpWeights, IStatsViewSettings } from '../../global.d';
 import { computeStatsAggregation } from '../computeStatsAggregation';
-import { pruneLogForStats } from '../utils/pruneStatsLog';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 
 interface UseStatsAggregationProps {
@@ -112,7 +111,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                 return cached.pruned;
             }
         }
-        const pruned = pruneLogForStats(logWithDetails);
+        const pruned = logWithDetails;
         prunedLogCacheRef.current.set(cacheKey, {
             sourceLog: logWithDetails,
             sourceDetails: detailsRef,
