@@ -21,6 +21,19 @@ const omit = (obj: any, keys: string[]): any => {
 
 const TOP_LEVEL_DENY = ['mechanics'];
 
+const PLAYER_DENY = [
+    // Buff volume variants (~2.6 MB/log combined)
+    'buffUptimesActive', 'buffVolumes', 'buffVolumesActive',
+    'offGroupBuffVolumes', 'offGroupBuffVolumesActive',
+    'groupBuffVolumes', 'groupBuffVolumesActive',
+    'selfBuffVolumes', 'selfBuffVolumesActive',
+    'offGroupBuffs', 'offGroupBuffsActive',
+    // Time series (~50 KB/log combined)
+    'boonsStates', 'conditionsStates', 'healthPercents', 'barrierPercents',
+    // Misc unused
+    'consumables', 'weaponSets', 'weapons', 'guildID',
+];
+
 export const isStatsPrunedLog = (value: any): boolean => Boolean(value && value.__statsPruned === true);
 
 const pruneMetaMap = (source: any, options?: { includeClassification?: boolean; includeStacking?: boolean; includeAutoAttack?: boolean; includeProcFlags?: boolean }) => {
@@ -110,7 +123,7 @@ export const pruneDetailsForStats = (details: any) => {
             !player?.hasCommanderTag && !playerHasDirectTagDistance(player)
         ));
         pruned.players = sourcePlayers.map((player: any) => {
-            const out = { ...player };
+            const out = omit(player, PLAYER_DENY);
             const minions = Array.isArray(player?.minions) ? player.minions : [];
             out.minions = minions.map((minion: any) => pick(minion, ['name', 'totalDamageTakenDist']));
             const keepReplayPositions = (player?.hasCommanderTag && !player?.notInSquad)
