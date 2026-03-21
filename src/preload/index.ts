@@ -64,6 +64,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     setConsoleLogForwarding: (enabled: boolean) => ipcRenderer.send('set-console-log-forwarding', enabled),
     getLogDetails: (payload: { filePath: string }) => ipcRenderer.invoke('get-log-details', payload),
+    onDetailsPrewarm: (callback: (data: any) => void) => {
+        ipcRenderer.on('details-prewarm', (_event, value) => callback(value))
+        return () => {
+            ipcRenderer.removeAllListeners('details-prewarm')
+        }
+    },
 
     // Auto Updater
     checkForUpdates: () => ipcRenderer.send('check-for-updates'),
