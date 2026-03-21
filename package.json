@@ -60,6 +60,7 @@
         "framer-motion": "^10.16.4",
         "gw2-class-icons": "^0.1.0",
         "html-to-image": "^1.11.13",
+        "idb-keyval": "^6.2.2",
         "lucide-react": "^0.292.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
