@@ -346,6 +346,7 @@ export interface IElectronAPI {
     onConsoleLogHistory: (callback: (logs: Array<{ type: 'info' | 'error', message: string, timestamp: string }>) => void) => () => void;
     setConsoleLogForwarding: (enabled: boolean) => void;
     getLogDetails: (payload: { filePath: string; permalink?: string }) => Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>;
+    onDetailsPrewarm?: (callback: (data: any) => void) => (() => void);
     getLogs: () => Promise<ILogData[]>;
     saveLogs: (logs: ILogData[]) => void;
     // Auto Updater

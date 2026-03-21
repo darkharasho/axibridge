@@ -531,6 +531,14 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 setBulkLogDetails(filePath, prunedDetails);
                 void updateGlobalManifest(prunedDetails, filePath);
             }
+            // Pre-warm renderer cache with pruned details
+            if (prunedDetails && win?.webContents) {
+                win.webContents.send('details-prewarm', {
+                    logId: result.id || filePath,
+                    filePath,
+                    details: prunedDetails,
+                });
+            }
             if (bulkUploadMode) {
                 win?.webContents.send('upload-complete', {
                     ...result,
