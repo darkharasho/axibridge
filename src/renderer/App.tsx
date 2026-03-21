@@ -543,16 +543,8 @@ function App() {
         pendingLogUpdatesRef,
     });
 
-    useEffect(() => {
-        const cache = detailsCacheRef.current;
-        if (!cache || !window.electronAPI?.onDetailsPrewarm) return;
-        const cleanup = window.electronAPI.onDetailsPrewarm((payload: any) => {
-            if (payload?.details && (payload.logId || payload.filePath)) {
-                cache.putSync(payload.logId || payload.filePath, payload.details);
-            }
-        });
-        return cleanup;
-    }, []);
+    // Pre-warm listener disabled — putSync's IndexedDB structured clone blocks the main thread.
+    // Cache is populated lazily via get() when consumers need it.
 
     const isModernTheme = uiTheme === 'modern' || uiTheme === 'kinetic';
     const isDarkGlassTheme = uiTheme === 'dark-glass';

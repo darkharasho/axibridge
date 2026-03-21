@@ -309,9 +309,11 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             const prefetchAndStep = async () => {
                 if (cancelled || streamSessionRef.current !== streamSession || !workerRef.current) return;
                 // Pre-fetch next batch of details into the LRU so peek() hits in step()
+                // Skip prefetch for logs that already have details in state
                 const prefetchEnd = Math.min(index + 4, totalLogs);
                 for (let i = index; i < prefetchEnd; i++) {
                     const log = logs[i];
+                    if (log?.details) continue; // already in state, no need to fetch
                     const logId = log?.id || log?.filePath;
                     if (detailsCache && logId && !detailsCache.peek(logId)) {
                         try { await detailsCache.get(logId); } catch { /* fallback to log.details */ }
