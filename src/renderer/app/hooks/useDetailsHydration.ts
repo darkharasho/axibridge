@@ -24,17 +24,7 @@ export function useDetailsHydration({
 
     const applyHydratedStatsBatch = useCallback((batch: Array<{ filePath: string; details: any }>) => {
         if (batch.length === 0) return;
-        // Write details to cache instead of React state
-        if (detailsCache) {
-            batch.forEach((batchEntry) => {
-                if (batchEntry.details && batchEntry.filePath) {
-                    // Resolve log.id for cache key — must match how consumers look up
-                    const matchedLog = logsRef.current.find((l) => l.filePath === batchEntry.filePath);
-                    const cacheKey = matchedLog?.id || batchEntry.filePath;
-                    detailsCache.putSync(cacheKey, batchEntry.details);
-                }
-            });
-        }
+        // Details written to state below — cache populated lazily via get() when needed
         setLogsForStats((currentStatsLogs) => {
             const updatesByPath = new Map(batch.map((entry) => [entry.filePath, entry.details]));
             let changed = false;
@@ -119,9 +109,7 @@ export function useDetailsHydration({
             });
             return;
         }
-        if (detailsCache && result.details && log.id) {
-            detailsCache.putSync(log.id, result.details);
-        }
+        // Details written to state below — cache populated lazily via get() when needed
         setLogs((currentLogs) => {
             const existingIndex = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
             if (existingIndex < 0) return currentLogs;
@@ -241,10 +229,6 @@ export function useDetailsHydration({
                         });
                         if (result?.success && result.details) {
                             detailsHydrationAttemptsRef.current.delete(filePath);
-                            if (detailsCache) {
-                                const cacheKey = log.id || filePath;
-                                detailsCache.putSync(cacheKey, result.details);
-                            }
                             hydratedBatch.push({ filePath, details: result.details });
                             if (hydratedBatch.length >= flushThreshold) {
                                 flushHydratedBatch();
