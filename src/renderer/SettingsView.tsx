@@ -134,6 +134,7 @@ interface SettingsViewProps {
     dashboardLayout?: DashboardLayout;
     onGithubWebThemeSaved?: (themeId: string) => void;
     developerSettingsTrigger?: number;
+    isBulkUploadActive?: boolean;
 }
 
 // Toggle switch component — memoized with a custom comparator that ignores onChange reference
@@ -208,7 +209,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, onKineticFontStyleSaved, onKineticThemeVariantSaved, onDashboardLayoutSaved, dashboardLayout: dashboardLayoutProp, onGithubWebThemeSaved, developerSettingsTrigger }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onUiThemeSaved, onKineticFontStyleSaved, onKineticThemeVariantSaved, onDashboardLayoutSaved, dashboardLayout: dashboardLayoutProp, onGithubWebThemeSaved, developerSettingsTrigger, isBulkUploadActive }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
@@ -3208,7 +3209,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 </ReactMarkdown>
             </ProofOfWorkModal>
 
-            <HowToModal isOpen={howToOpen} onClose={() => setHowToOpen(false)} />
+            <HowToModal isOpen={howToOpen} onClose={() => setHowToOpen(false)} isBulkUploadActive={isBulkUploadActive} />
         </div >
     );
 }

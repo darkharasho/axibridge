@@ -126,12 +126,12 @@ export function useAppNavigation({
     const handleLogsListScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
         logsScrollTopRef.current = event.currentTarget.scrollTop;
         if (logsScrollRafRef.current !== null) return;
-        // Throttle to ~10Hz — RAF (60Hz) causes excessive virtualization
-        // recalculation when combined with bulk upload state flushes
+        // Throttle to ~16Hz for responsive scrolling — balances virtualization
+        // recalculation with smooth scroll perception during bulk upload
         logsScrollRafRef.current = window.setTimeout(() => {
             logsScrollRafRef.current = null;
             setLogsScrollTop(logsScrollTopRef.current);
-        }, 100) as unknown as number;
+        }, 60) as unknown as number;
     }, []);
 
     const handleWhatsNewClose = useCallback(async () => {

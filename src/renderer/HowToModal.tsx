@@ -140,7 +140,7 @@ const renderTree = (node: HelpNode, selectedId: string, onSelect: (id: string) =
     );
 };
 
-export function HowToModal({ isOpen, onClose }: HowToModalProps) {
+export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalProps & { isBulkUploadActive?: boolean }) {
     const [selectedId, setSelectedId] = useState(ROOT.id);
 
     useEffect(() => {
@@ -155,18 +155,18 @@ export function HowToModal({ isOpen, onClose }: HowToModalProps) {
     const breadcrumb = getBreadcrumb(selectedNode.id);
 
     return (
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
             <motion.div
-                initial={{ opacity: 0 }}
+                initial={isBulkUploadActive ? undefined : { opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                exit={isBulkUploadActive ? undefined : { opacity: 0 }}
                 className="app-modal-overlay fixed inset-0 z-[74] flex items-center justify-center bg-black/70 backdrop-blur-md"
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.96, y: 18 }}
+                    initial={isBulkUploadActive ? undefined : { opacity: 0, scale: 0.96, y: 18 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.96, y: 18 }}
+                    exit={isBulkUploadActive ? undefined : { opacity: 0, scale: 0.96, y: 18 }}
                     transition={{ duration: 0.2 }}
                     className="app-modal-card w-full max-w-6xl mx-4 h-[min(82vh,860px)] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/95 to-blue-950/40 shadow-[0_20px_80px_rgba(0,0,0,0.6)] flex flex-col"
                 >

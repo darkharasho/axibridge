@@ -100,7 +100,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         whatsNewNotes,
         walkthroughOpen,
         handleWalkthroughClose,
-        handleWalkthroughLearnMore
+        handleWalkthroughLearnMore,
+        isBulkUploadActive
     } = ctx;
 
     const [activeNavView, setActiveNavView] = useState(view);
@@ -662,6 +663,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         onHelpUpdatesFocusConsumed={handleHelpUpdatesFocusConsumed}
                         onOpenWalkthrough={() => setWalkthroughOpen(true)}
                         onOpenWhatsNew={() => setWhatsNewOpen(true)}
+                        isBulkUploadActive={isBulkUploadActive}
                     />
                 ) : view === 'history' ? (
                     <FightReportHistoryView />
@@ -702,9 +704,9 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 enabledTopListCount={enabledTopListCount}
             />
 
-            <DevDatasetsModal ctx={devDatasetsCtx} />
+            <DevDatasetsModal ctx={devDatasetsCtx} isBulkUploadActive={isBulkUploadActive} />
 
-            <FilePickerModal ctx={filePickerCtx} />
+            <FilePickerModal ctx={filePickerCtx} isBulkUploadActive={isBulkUploadActive} />
 
             {webhookDropdownOpen && webhookDropdownStyle && createPortal(
                 <div

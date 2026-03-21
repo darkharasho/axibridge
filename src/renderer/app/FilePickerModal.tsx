@@ -82,7 +82,7 @@ const FilePickerItem = memo(({ entry, index, isSelected, isFocused, toggleSelect
         prev.entry.path === next.entry.path;
 });
 
-export function FilePickerModal({ ctx }: { ctx: any }) {
+export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkUploadActive?: boolean }) {
     const {
         filePickerOpen,
         setFilePickerOpen,
@@ -290,13 +290,13 @@ export function FilePickerModal({ ctx }: { ctx: any }) {
     };
 
     return (
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
             {filePickerOpen && (
                 <motion.div
                     className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg file-picker-modal focus:outline-none"
-                    initial={{ opacity: 0 }}
+                    initial={isBulkUploadActive ? undefined : { opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    exit={isBulkUploadActive ? undefined : { opacity: 0 }}
                     tabIndex={-1}
                     onClick={(event) => event.target === event.currentTarget && handleClose()}
                     onKeyDown={handleKeyDown}

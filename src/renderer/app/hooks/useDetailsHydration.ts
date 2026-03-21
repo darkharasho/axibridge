@@ -202,7 +202,7 @@ export function useDetailsHydration({
                     return changed ? next : currentLogs;
                 });
             };
-            const maxConcurrent = 1;
+            const maxConcurrent = 3; // Fetch up to 3 details in parallel (was 1, now parallelize for 3× speedup)
             const flushThreshold = statsViewActive ? 8 : 2;
             let nextIndex = 0;
             const runWorker = async () => {

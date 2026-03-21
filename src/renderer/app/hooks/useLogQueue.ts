@@ -94,8 +94,11 @@ export function useLogQueue(
         pendingLogUpdatesRef.current.set(String(identity), incoming);
         if (pendingLogFlushTimerRef.current !== null) return;
         const pendingCount = pendingLogUpdatesRef.current.size;
+        // Sweet spot batching: 50-80ms avoids render thrashing while staying responsive
+        // Too fast (24-40ms) causes scroll lag from too many renders
+        // Too slow (120-240ms) causes perceptible UI lag
         const delayMs = bulkUploadModeRef.current
-            ? (pendingCount > 24 ? 240 : pendingCount > 10 ? 180 : 120)
+            ? (pendingCount > 20 ? 80 : pendingCount > 10 ? 65 : 50)
             : 16;
         pendingLogFlushTimerRef.current = window.setTimeout(() => {
             flushQueuedLogUpdates();

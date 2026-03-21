@@ -3,6 +3,7 @@ import type { DisruptionMethod, IMvpWeights, IStatsViewSettings } from '../../gl
 import { computeStatsAggregation } from '../computeStatsAggregation';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import type { DetailsCache } from '../../cache/DetailsCache';
+import { getAggregationCache, hashAggregationSettings } from '../aggregationCache';
 
 interface UseStatsAggregationProps {
     logs: any[];
@@ -405,6 +406,17 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         if (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker) return null;
         const startedAt = Date.now();
         const computeStartedAt = performance.now();
+
+        // Check aggregation cache for matching log count + settings
+        const settingsHash = hashAggregationSettings(mvpWeights, aggregationStatsViewSettings, disruptionMethod);
+        const cache = getAggregationCache();
+        const cachedResult = cache.get(logs.length, settingsHash);
+        if (cachedResult) {
+            const computeMs = 0; // Cache hit is instant
+            const completedAt = Date.now();
+            return { result: cachedResult, computeMs, startedAt, completedAt };
+        }
+
         // Assemble details from cache for inline computation
         const logsWithDetails = logs.map((log: any) => {
             const logId = log?.id || log?.filePath;
@@ -415,6 +427,10 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             return log;
         });
         const result = computeStatsAggregation({ logs: logsWithDetails, precomputedStats, mvpWeights, statsViewSettings: aggregationStatsViewSettings, disruptionMethod });
+
+        // Store in cache for future calls with same log count + settings
+        cache.set(logs.length, settingsHash, result);
+
         const computeMs = Math.max(0, performance.now() - computeStartedAt);
         const completedAt = Date.now();
         return { result, computeMs, startedAt, completedAt };
