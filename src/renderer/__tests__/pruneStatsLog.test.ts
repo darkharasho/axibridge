@@ -38,3 +38,53 @@ describe('pruneDetailsForStats — skillMap proc flags', () => {
         expect(pruned.skillMap.s500.isUnconditionalProc).toBeUndefined();
     });
 });
+
+describe('pruneDetailsForStats — denylist behavior', () => {
+    it('strips denied top-level fields', () => {
+        const details = {
+            players: [],
+            targets: [],
+            mechanics: [{ name: 'Stomp', data: [] }],
+            fightName: 'Test',
+        };
+        const pruned = pruneDetailsForStats(details);
+        expect(pruned.mechanics).toBeUndefined();
+        expect(pruned.fightName).toBe('Test');
+    });
+
+    it('passes through unknown top-level fields', () => {
+        const details = {
+            players: [],
+            targets: [],
+            newEiField: { some: 'data' },
+        };
+        const pruned = pruneDetailsForStats(details);
+        expect(pruned.newEiField).toEqual({ some: 'data' });
+    });
+
+    it('passes through unknown player fields', () => {
+        const details = {
+            players: [{ name: 'Alice', futureField: 'new data', combatReplayData: null, minions: [] }],
+            targets: [],
+        };
+        const pruned = pruneDetailsForStats(details);
+        expect(pruned.players[0].futureField).toBe('new data');
+    });
+
+    it('passes through unknown target fields', () => {
+        const details = {
+            players: [],
+            targets: [{ id: 1, futureField: 'new data', combatReplayData: null }],
+        };
+        const pruned = pruneDetailsForStats(details);
+        expect(pruned.targets[0].futureField).toBe('new data');
+    });
+
+    it('does not mutate original player objects', () => {
+        const player = { name: 'Alice', minions: [{ name: 'Golem', totalDamageTakenDist: [], extra: true }], combatReplayData: { start: 0, extra: true } };
+        const details = { players: [player], targets: [] };
+        pruneDetailsForStats(details);
+        expect(player.minions[0].extra).toBe(true);
+        expect(player.combatReplayData.extra).toBe(true);
+    });
+});
