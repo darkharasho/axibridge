@@ -36,6 +36,7 @@ import { DefenseSection } from './stats/sections/DefenseSection';
 import { DamageMitigationSection } from './stats/sections/DamageMitigationSection';
 import { SupportSection } from './stats/sections/SupportSection';
 import { HealingSection } from './stats/sections/HealingSection';
+import { HealingBreakdownSection } from './stats/sections/HealingBreakdownSection';
 import { HealEffectivenessSection } from './stats/sections/HealEffectivenessSection';
 import { SpecialBuffsSection } from './stats/sections/SpecialBuffsSection';
 import { SigilRelicUptimeSection } from './stats/sections/SigilRelicUptimeSection';
@@ -120,6 +121,7 @@ const ORDERED_SECTION_IDS = [
     'incoming-strike-damage',
     'support-detailed',
     'healing-stats',
+    'healing-breakdown',
     'heal-effectiveness',
     'fight-diff-mode',
     'special-buffs',
@@ -404,7 +406,8 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
             commanderStats: withFallbackObject((source as any).commanderStats, { rows: [] }),
             squadCompByFight: asArray((source as any).squadCompByFight),
             fightDiffMode: asArray((source as any).fightDiffMode),
-            playerSkillBreakdowns: asArray((source as any).playerSkillBreakdowns)
+            playerSkillBreakdowns: asArray((source as any).playerSkillBreakdowns),
+            healingBreakdownPlayers: asArray((source as any).healingBreakdownPlayers)
         };
 
         const downContribRows = asArray((normalized as any).leaderboards?.downContrib)
@@ -3918,6 +3921,10 @@ type SpikeFight = {
                                 skillUsageData={skillUsageData}
                             />
 
+                            <HealingBreakdownSection
+                                healingBreakdownPlayers={safeStats.healingBreakdownPlayers}
+                            />
+
                             <HealEffectivenessSection
                                 fights={healEffectivenessFights}
                             />
@@ -4337,6 +4344,10 @@ type SpikeFight = {
                             activeResUtilitySkill={activeResUtilitySkill}
                             setActiveResUtilitySkill={setActiveResUtilitySkill}
                             skillUsageData={skillUsageData}
+                        />}
+
+                        {isSectionVisible('healing-breakdown') && <HealingBreakdownSection
+                            healingBreakdownPlayers={safeStats.healingBreakdownPlayers}
                         />}
 
                         {isSectionVisible('heal-effectiveness') && <HealEffectivenessSection

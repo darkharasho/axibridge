@@ -93,7 +93,7 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
         id: 'defense',
         label: 'Defensive Stats',
         icon: Shield,
-        sectionIds: ['defense-detailed', 'incoming-damage-modifiers', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'heal-effectiveness'],
+        sectionIds: ['defense-detailed', 'incoming-damage-modifiers', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'healing-breakdown', 'heal-effectiveness'],
         items: [
             { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
             { id: 'incoming-damage-modifiers', label: 'Incoming Modifiers', icon: ShieldOff },
@@ -104,6 +104,7 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
             { id: 'boon-uptime', label: 'Boon Uptime', icon: Gw2FuryIcon },
             { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
             { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
+            { id: 'healing-breakdown', label: 'Healing Breakdown', icon: ListTree },
             { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves },
         ]
     },
