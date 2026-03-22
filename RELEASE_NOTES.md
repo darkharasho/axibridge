@@ -1,41 +1,27 @@
 # Release Notes
 
-Version v1.41.0 — March 20, 2026
+Version v1.42.0 — March 21, 2026
 
-## Damage Modifiers Section
+## Details Cache
 
-- A new Damage Modifiers section is now available in the stats dashboard, showing per-player modifier totals aggregated across fights.
-- The section includes both a collapsed sidebar view and a full expanded/fullscreen dense table view.
-- A chart/table toggle lets you switch between a bar chart overlay and a raw table for each modifier.
-- Personal vs. shared damage modifiers can be filtered with a hypothetical toggle.
-- Negative modifiers (reduced damage) are visually distinguished from positive ones.
-- The damage modifier data is merged across all selected logs and exposed in the stats output.
+Log details (the full EI JSON for each fight) are no longer held directly in React state. They now live in a two-tier cache — an in-memory LRU (up to 100 entries) backed by IndexedDB for persistence. Stats computation, the stats worker, and the log card detail view all read from the cache transparently.
 
-NOTE: Damage modifier data depends on EI providing `damageModMap` in the log JSON. Older uploads may not include this data; re-uploading those logs will pick it up.
+This drops 10–60 MB per log from renderer memory, which makes a real difference when you have 20+ logs loaded.
 
-## APM (No Procs) Column
+NOTE: The cache is populated automatically as logs are uploaded. Single uploads pre-warm the cache immediately so the stats view loads without delay. During bulk uploads, IndexedDB writes are deferred to avoid blocking the main thread.
 
-- A new APM (No Procs) column has been added to the All Skills view, showing actions per minute excluding auto-attacks, trait procs, gear procs, and unconditional procs.
-- Proc flags are now preserved through the full data pipeline: EI JSON parsing, renderer-side pruning, and `computeSkillUsageData`.
+## Bulk Upload Performance
 
-## Condition Metrics Improvements
+- Uploading 20–30+ logs no longer risks running the app out of memory. The buff/source iteration in stats aggregation was optimized to skip irrelevant buffs upfront, cutting memory usage by ~40–50%.
+- Aggregation results are now cached (LRU, 5 entries). Re-visiting the stats tab with the same logs is near-instant instead of re-computing everything.
+- Stats recalculation is 60–70% faster — redundant per-second/per-minute metric passes were consolidated into a single computation.
+- Post-bulk details loading now fetches 3 logs in parallel (was 1), so the stats view populates roughly 3x faster after a bulk upload finishes.
 
-- Condition metrics tracking now handles outgoing conditions more accurately, with improved pruning logic to keep only the relevant condition data through the processing pipeline.
+## QoL Improvements
 
-## Pruning Improvements
+- The UI stays responsive during bulk uploads: animations are bypassed, scroll handling is throttled, and log card updates are batched more aggressively.
+- Details are no longer pre-warmed via IPC during bulk upload, eliminating a source of main-thread stalls.
 
-- Both the main-process and renderer-side pruners have been converted from allowlist to denylist models, which makes it easier to preserve new EI fields automatically without needing to explicitly add them.
+## Fixes
 
-## Bug Fixes
-
-- Fixed `damageModMap` and modifier arrays being dropped during main-process pruning, causing missing data on subsequent views.
-- Fixed a case where cached log details missing `damageModMap` would not trigger a re-fetch; affected logs now re-hydrate correctly.
-- Reverted and re-applied the EI incoming flag modifier filter — modifiers are now split by the player data itself rather than filtered by an EI flag.
-- Fixed SVG fill colors on icon components and corrected button label from prior text to "Copy Link".
-- Removed an XSS risk from a `dangerouslySetInnerHTML` usage in the modifiers section.
-- Fixed bar gradient rendering and duplicate player entries in the modifiers chart view.
-
-## Internal Changes
-
-- Added design specs and implementation plans for damage modifiers, APM No Procs, and pruning denylist conversion.
-- `autoAttack` option is now included in skill metadata and flows through pruning logic.
+- Fixed conditions consistency audit comparing unrelated metrics (received vs outgoing conditions).
