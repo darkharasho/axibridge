@@ -107,13 +107,26 @@ export const SquadDamageComparisonSection = () => {
                                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" />
                                 <Tooltip
                                     cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                                    contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
-                                    formatter={(value: any, name: any) => [formatWithCommas(Math.abs(Number(value || 0)), 0), String(name || '')]}
-                                    labelFormatter={(_, payload?: readonly any[]) => {
+                                    content={({ payload }: any) => {
                                         const point = payload?.[0]?.payload;
-                                        if (!point) return '';
-                                        const winLabel = point.isWin === true ? ' W' : point.isWin === false ? ' L' : '';
-                                        return `${point.fullLabel}${winLabel}`;
+                                        if (!point) return null;
+                                        return (
+                                            <div style={{ backgroundColor: '#161c24', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', padding: '10px 12px', fontSize: '12px' }}>
+                                                <p style={{ margin: 0, color: '#94a3b8' }}>
+                                                    {point.fullLabel}{' '}
+                                                    {point.isWin === true && <span style={{ color: '#22c55e', fontWeight: 700 }}>W</span>}
+                                                    {point.isWin === false && <span style={{ color: '#ef4444', fontWeight: 700 }}>L</span>}
+                                                </p>
+                                                <p style={{ margin: '4px 0 0', color: '#e2e8f0' }}>
+                                                    <span style={{ display: 'inline-block', width: 8, height: 8, backgroundColor: '#22c55e', borderRadius: 2, marginRight: 6 }} />
+                                                    Outgoing Damage : {formatWithCommas(Math.abs(point.outgoing), 0)}
+                                                </p>
+                                                <p style={{ margin: '2px 0 0', color: '#e2e8f0' }}>
+                                                    <span style={{ display: 'inline-block', width: 8, height: 8, backgroundColor: '#ef4444', borderRadius: 2, marginRight: 6 }} />
+                                                    Incoming Damage : {formatWithCommas(Math.abs(point.incoming), 0)}
+                                                </p>
+                                            </div>
+                                        );
                                     }}
                                 />
                                 <Bar dataKey="outgoing" name="Outgoing Damage" stackId="stack">
