@@ -4,7 +4,7 @@ import { computeStatsAggregation } from '../stats/computeStatsAggregation';
 describe('computeStatsAggregation (skill damage source reconciliation)', () => {
     it('uses buffMap skill names when skillMap entry is missing', () => {
         const vampAuraId = 30285;
-        const playerKey = 'BreakN.5496|Berserker';
+        const playerKey = 'BreakN.5496';
         const log = {
             status: 'success',
             filePath: 'skill-damage-buff-fallback-test',
@@ -51,7 +51,7 @@ describe('computeStatsAggregation (skill damage source reconciliation)', () => {
     it('keeps skills that exist only in totalDamageDist when top skill source is target', () => {
         const battleMaulId = 31710;
         const arcingSliceId = 123;
-        const playerKey = 'BreakN.5496|Berserker';
+        const playerKey = 'BreakN.5496';
         const log = {
             status: 'success',
             filePath: 'skill-damage-source-test',
@@ -113,7 +113,7 @@ describe('computeStatsAggregation (skill damage source reconciliation)', () => {
 
     it('uses totalDamageDist when targetDamageDist has same skill id with zero damage', () => {
         const battleMaulId = 31710;
-        const playerKey = 'BreakN.5496|Berserker';
+        const playerKey = 'BreakN.5496';
         const log = {
             status: 'success',
             filePath: 'skill-damage-source-zero-target-test',
@@ -163,7 +163,7 @@ describe('computeStatsAggregation (skill damage source reconciliation)', () => {
 
     it('reconciles partial target skill totals with higher totalDamageDist values', () => {
         const battleMaulId = 31710;
-        const playerKey = 'BreakN.5496|Berserker';
+        const playerKey = 'BreakN.5496';
         const log = {
             status: 'success',
             filePath: 'skill-damage-source-partial-target-test',
@@ -214,7 +214,7 @@ describe('computeStatsAggregation (skill damage source reconciliation)', () => {
     it('does not infer spike hit from totalDamage/connectedHits when max fields are missing', () => {
         const battleMaulId = 31710;
         const arcDividerId = 29852;
-        const playerKey = 'BreakN.5496|Berserker';
+        const playerKey = 'BreakN.5496';
         const log = {
             status: 'success',
             filePath: 'spike-hit-max-only-test',
@@ -260,7 +260,7 @@ describe('computeStatsAggregation (skill damage source reconciliation)', () => {
         const battleMaulId = 54922;
         const whirlwindId = 14447;
         const arcDividerId = 29852;
-        const playerKey = 'BreakN.5496|Berserker';
+        const playerKey = 'BreakN.5496';
         const log = {
             status: 'success',
             filePath: 'spike-hit-detailed-wvw-outlier-test',

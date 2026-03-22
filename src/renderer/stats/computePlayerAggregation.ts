@@ -924,7 +924,6 @@ export const computePlayerAggregation = ({
                 }
                 return { name, icon };
             };
-            const playerAccount = p.account || p.name || 'Unknown';
             const playerProfession = p.profession || 'Unknown';
 
             // Healing Breakdown (per-skill)
@@ -933,13 +932,13 @@ export const computePlayerAggregation = ({
                 const phase0 = dist[0];
                 return Array.isArray(phase0) ? phase0 : [];
             };
-            const healingPlayerKey = `${playerAccount}|${playerProfession}`;
+            const healingPlayerKey = identity.key;
             let healingBd = healingBreakdownMap.get(healingPlayerKey);
             if (!healingBd) {
                 healingBd = {
                     key: healingPlayerKey,
-                    account: playerAccount,
-                    displayName: playerAccount,
+                    account: identity.accountLabel,
+                    displayName: identity.accountLabel,
                     profession: playerProfession,
                     professionList: [playerProfession],
                     healingSkills: new Map(),
@@ -984,13 +983,13 @@ export const computePlayerAggregation = ({
                 skillDamageMap[entry.id].hits += entry.connectedHits;
                 skillDamageMap[entry.id].downContribution += Number(entry.downContribution || 0);
             };
-            const playerKey = `${playerAccount}|${playerProfession}`;
+            const playerKey = identity.key;
             let playerBreakdown = playerSkillBreakdownMap.get(playerKey);
             if (!playerBreakdown) {
                 playerBreakdown = {
                     key: playerKey,
-                    account: playerAccount,
-                    displayName: playerAccount,
+                    account: identity.accountLabel,
+                    displayName: identity.accountLabel,
                     profession: playerProfession,
                     professionList: [playerProfession],
                     totalFightMs: 0,

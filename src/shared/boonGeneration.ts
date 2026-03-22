@@ -178,7 +178,7 @@ export const formatBoonMetricDisplay = (
     return formatted;
 };
 
-export const buildBoonTables = (logs: Array<{ details?: any }>) => {
+export const buildBoonTables = (logs: Array<{ details?: any }>, splitPlayersByClass = false) => {
     const boonMeta = new Map<string, BuffInfo>();
     const playerAgg = new Map<string, {
         account: string;
@@ -229,9 +229,10 @@ export const buildBoonTables = (logs: Array<{ details?: any }>) => {
             const group = player.group ?? 0;
             const groupCount = groupCounts.get(group) || 1;
             const activeTimeMs = getActiveTimeMs(player, durationMs);
+            const key = splitPlayersByClass && profession !== 'Unknown' ? `${account}::${profession}` : account;
 
-            if (!playerAgg.has(account)) {
-                playerAgg.set(account, {
+            if (!playerAgg.has(key)) {
+                playerAgg.set(key, {
                     account,
                     profession,
                     professions: new Set<string>(),
@@ -244,7 +245,7 @@ export const buildBoonTables = (logs: Array<{ details?: any }>) => {
                 });
             }
 
-            const agg = playerAgg.get(account)!;
+            const agg = playerAgg.get(key)!;
             agg.profession = profession;
             if (profession && profession !== 'Unknown') {
                 agg.professions.add(profession);
