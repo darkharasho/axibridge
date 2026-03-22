@@ -171,6 +171,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
         const {
             playerStats, skillDamageMap, incomingSkillDamageMap, playerSkillBreakdownMap,
+            healingBreakdownMap,
             outgoingCondiTotals, incomingCondiTotals, enemyProfessionCounts,
             specialBuffMeta, specialBuffAgg, specialBuffOutputAgg,
             damageMitigationPlayersMap, damageMitigationMinionsMap,
@@ -657,13 +658,14 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         const incomingStrikeDamage = computeIncomingStrikeDamageData(validLogs);
         const healEffectiveness = computeHealEffectivenessData(validLogs);
 
-        const { specialTables, playerSkillBreakdowns } = computeSpecialTables(
+        const { specialTables, playerSkillBreakdowns, healingBreakdownPlayers } = computeSpecialTables(
             specialBuffAgg,
             specialBuffOutputAgg,
             specialBuffMeta,
             playerStats,
             playerSkillBreakdownMap,
-            shouldIncludePlayerSkillMap
+            shouldIncludePlayerSkillMap,
+            healingBreakdownMap
         );
 
         return {
@@ -685,6 +687,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             topSkillsByDamage,
             topSkillsByDownContribution,
             playerSkillBreakdowns,
+            healingBreakdownPlayers,
             topSkillsMetric,
             mapData, timelineData, boonTables, boonTimeline, boonUptimeTimeline,
             offensePlayers: Array.from(playerStats.values()).map(s => ({
