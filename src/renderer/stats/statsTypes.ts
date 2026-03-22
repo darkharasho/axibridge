@@ -94,3 +94,24 @@ export interface ApmSpecBucket {
     skills: ApmSkillEntry[];
     skillMap: Map<string, ApmSkillEntry>;
 }
+
+export interface PlayerHealingSkillEntry {
+    id: string;
+    name: string;
+    icon?: string;
+    total: number;
+    hits: number;
+    max: number;
+}
+
+export interface PlayerHealingBreakdown {
+    key: string;
+    account: string;
+    displayName: string;
+    profession: string;
+    professionList: string[];
+    totalHealing: number;
+    totalBarrier: number;
+    healingSkills: PlayerHealingSkillEntry[];
+    barrierSkills: PlayerHealingSkillEntry[];
+}

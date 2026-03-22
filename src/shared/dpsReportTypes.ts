@@ -66,9 +66,26 @@ export interface Player {
     rotation?: Array<{ id: number; skills?: number[] }>;
     extHealingStats?: {
         outgoingHealingAllies?: { healing: number; downedHealing?: number }[][];
+        totalHealingDist?: Array<Array<{
+            id: number;
+            totalHealing: number;
+            totalDownedHealing?: number;
+            hits: number;
+            min: number;
+            max: number;
+            indirectHealing?: boolean;
+        }>>;
     };
     extBarrierStats?: {
         outgoingBarrierAllies?: { barrier: number }[][];
+        totalBarrierDist?: Array<Array<{
+            id: number;
+            totalBarrier: number;
+            hits: number;
+            min: number;
+            max: number;
+            indirectBarrier?: boolean;
+        }>>;
     };
     squadBuffVolumes?: SquadBuffVolume[];
     selfBuffs?: BuffGeneration[];
