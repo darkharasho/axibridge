@@ -39,7 +39,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
         }));
     }, [fights]);
 
-    const summaryMaxY = toSqrt(1200);
+    const summaryMaxY = 2 * toSqrt(600);
 
     const totalDeaths = useMemo(() => fights.reduce((sum, f) => sum + f.eventCount, 0), [fights]);
     const overallAvg = useMemo(() => {
@@ -62,7 +62,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
         }));
     }, [selectedFight]);
 
-    const scatterMaxY = toSqrt(1200);
+    const scatterMaxY = 2 * toSqrt(600);
 
     const hasAnyData = fights.some((f) => f.hasReplayData);
 
