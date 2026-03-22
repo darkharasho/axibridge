@@ -1,27 +1,25 @@
 # Release Notes
 
-Version v1.42.0 — March 21, 2026
+Version v1.43.0 — March 22, 2026
 
-## Details Cache
+## Squad Stats
 
-Log details (the full EI JSON for each fight) are no longer held directly in React state. They now live in a two-tier cache — an in-memory LRU (up to 100 entries) backed by IndexedDB for persistence. Stats computation, the stats worker, and the log card detail view all read from the cache transparently.
+Three new sections under a dedicated Squad Stats nav group:
 
-This drops 10–60 MB per log from renderer memory, which makes a real difference when you have 20+ logs loaded.
+- **Damage Comparison** — A diverging bar chart showing your squad's total damage vs. the enemy's across each fight. Win/loss fights are color-coded, and the tooltip shows exact numbers.
+- **Kill Pressure (KDR)** — Per-fight kill/death ratio on a diverging log-scale chart centered at 1.0. Makes it easy to spot which fights your squad dominated and which ones went sideways.
+- **Tag Distance Deaths** — A scatter chart plotting how far from the commander each death occurred and when it happened. Commander death times are shown as dimmed gold vertical lines. Distances are capped at 1,200 with a linear scale so outliers don't crush the rest of the data.
 
-NOTE: The cache is populated automatically as logs are uploaded. Single uploads pre-warm the cache immediately so the stats view loads without delay. During bulk uploads, IndexedDB writes are deferred to avoid blocking the main thread.
+## Healing Breakdown
 
-## Bulk Upload Performance
+A new section that shows per-player healing and barrier output broken down by skill. Select a player to see which skills are doing the heavy lifting, with a metric mode toggle to switch between totals, per-second, and per-hit views. Barrier and healing are shown side by side.
 
-- Uploading 20–30+ logs no longer risks running the app out of memory. The buff/source iteration in stats aggregation was optimized to skip irrelevant buffs upfront, cutting memory usage by ~40–50%.
-- Aggregation results are now cached (LRU, 5 entries). Re-visiting the stats tab with the same logs is near-instant instead of re-computing everything.
-- Stats recalculation is 60–70% faster — redundant per-second/per-minute metric passes were consolidated into a single computation.
-- Post-bulk details loading now fetches 3 logs in parallel (was 1), so the stats view populates roughly 3x faster after a bulk upload finishes.
+## Boon Uptime: Subgroup Members
 
-## QoL Improvements
-
-- The UI stays responsive during bulk uploads: animations are bypassed, scroll handling is throttled, and log card updates are batched more aggressively.
-- Details are no longer pre-warmed via IPC during bulk upload, eliminating a source of main-thread stalls.
+Hovering over a subgroup in the Boon Uptime section now shows a tooltip listing the players in that subgroup. Also added a class-split option for boon table generation.
 
 ## Fixes
 
-- Fixed conditions consistency audit comparing unrelated metrics (received vs outgoing conditions).
+- Players who swapped classes mid-session were showing up as separate entries in skill breakdowns, boon tables, and healing breakdown. Player keying is now account-based by default, with an explicit class-split toggle when you actually want per-profession rows.
+- Aggregation cache now accounts for details count, so switching between summary and detailed views doesn't serve stale results.
+- Removed a conditional max-width on the app content area that was clipping the layout at certain window sizes.
