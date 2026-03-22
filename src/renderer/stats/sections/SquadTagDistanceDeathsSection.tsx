@@ -23,6 +23,8 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
     const isExpanded = expandedSection === sectionId;
     const [selectedFightIndex, setSelectedFightIndex] = useState<number | null>(null);
 
+    const DISTANCE_CAP = 2000;
+
     const summaryData = useMemo(() => {
         return fights.map((fight, idx) => ({
             index: idx,
@@ -30,13 +32,14 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
             fullLabel: fight.fullLabel,
             isWin: fight.isWin,
             avgDistance: fight.avgDistance,
+            displayAvgDistance: Math.min(fight.avgDistance, DISTANCE_CAP),
             eventCount: fight.eventCount,
             hasReplayData: fight.hasReplayData,
         }));
     }, [fights]);
 
     const summaryMaxY = useMemo(() => {
-        return Math.max(500, ...summaryData.map((d) => d.avgDistance));
+        return Math.min(DISTANCE_CAP, Math.max(500, ...summaryData.map((d) => d.avgDistance)));
     }, [summaryData]);
 
     const totalDeaths = useMemo(() => fights.reduce((sum, f) => sum + f.eventCount, 0), [fights]);
@@ -52,7 +55,8 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
         if (!selectedFight) return [];
         return selectedFight.events.map((event, idx) => ({
             x: event.timeIntoFightSec,
-            y: event.distanceFromTag,
+            y: Math.min(event.distanceFromTag, DISTANCE_CAP),
+            rawDistance: event.distanceFromTag,
             playerAccount: event.playerAccount,
             timeMs: event.timeIntoFightMs,
             index: idx,
@@ -61,7 +65,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
 
     const scatterMaxY = useMemo(() => {
         if (scatterData.length === 0) return 1000;
-        return Math.max(500, ...scatterData.map((d) => d.y));
+        return Math.min(DISTANCE_CAP, Math.max(500, ...scatterData.map((d) => d.rawDistance)));
     }, [scatterData]);
 
     const hasAnyData = fights.some((f) => f.hasReplayData);
@@ -158,7 +162,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                             );
                                         }}
                                     />
-                                    <Bar dataKey="avgDistance" name="Avg Distance" style={{ cursor: 'pointer' }}>
+                                    <Bar dataKey="displayAvgDistance" name="Avg Distance" style={{ cursor: 'pointer' }}>
                                         {summaryData.map((entry, idx) => (
                                             <Cell
                                                 key={`bar-${idx}`}
@@ -244,7 +248,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                                 return (
                                                     <div style={{ backgroundColor: '#161c24', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', padding: '10px 12px', fontSize: '12px' }}>
                                                         <p style={{ margin: 0, color: '#94a3b8' }}>{point.playerAccount}</p>
-                                                        <p style={{ margin: '4px 0 0', color: '#e2e8f0' }}>{point.x}s — {formatWithCommas(point.y, 0)} from tag</p>
+                                                        <p style={{ margin: '4px 0 0', color: '#e2e8f0' }}>{point.x}s — {formatWithCommas(point.rawDistance, 0)} from tag</p>
                                                     </div>
                                                 );
                                             }}
