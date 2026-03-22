@@ -122,7 +122,7 @@ export const SquadDamageComparisonSection = () => {
                                     {chartData.map((entry) => (
                                         <Cell
                                             key={entry.fightId}
-                                            fill={entry.isWin === false ? '#4ade80' : '#22c55e'}
+                                            fill="#22c55e"
                                         />
                                     ))}
                                 </Bar>
@@ -130,7 +130,7 @@ export const SquadDamageComparisonSection = () => {
                                     {chartData.map((entry) => (
                                         <Cell
                                             key={entry.fightId}
-                                            fill={entry.isWin === false ? '#f87171' : '#ef4444'}
+                                            fill="#ef4444"
                                         />
                                     ))}
                                 </Bar>
