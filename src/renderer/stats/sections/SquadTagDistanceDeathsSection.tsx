@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts';
 import { Crosshair, Maximize2, X } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 import type { TagDistanceDeathFightSummary } from '../computeTagDistanceDeaths';
@@ -23,7 +23,8 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
     const isExpanded = expandedSection === sectionId;
     const [selectedFightIndex, setSelectedFightIndex] = useState<number | null>(null);
 
-    const DISTANCE_CAP = 2000;
+    const toSqrt = (v: number) => Math.sqrt(Math.max(0, v));
+    const fromSqrt = (v: number) => Math.round(v * v);
 
     const summaryData = useMemo(() => {
         return fights.map((fight, idx) => ({
@@ -32,14 +33,15 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
             fullLabel: fight.fullLabel,
             isWin: fight.isWin,
             avgDistance: fight.avgDistance,
-            displayAvgDistance: Math.min(fight.avgDistance, DISTANCE_CAP),
+            sqrtAvgDistance: toSqrt(fight.avgDistance),
             eventCount: fight.eventCount,
             hasReplayData: fight.hasReplayData,
         }));
     }, [fights]);
 
     const summaryMaxY = useMemo(() => {
-        return Math.min(DISTANCE_CAP, Math.max(500, ...summaryData.map((d) => d.avgDistance)));
+        if (summaryData.length === 0) return toSqrt(1000);
+        return Math.max(toSqrt(500), ...summaryData.map((d) => d.sqrtAvgDistance));
     }, [summaryData]);
 
     const totalDeaths = useMemo(() => fights.reduce((sum, f) => sum + f.eventCount, 0), [fights]);
@@ -55,7 +57,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
         if (!selectedFight) return [];
         return selectedFight.events.map((event, idx) => ({
             x: event.timeIntoFightSec,
-            y: Math.min(event.distanceFromTag, DISTANCE_CAP),
+            y: toSqrt(event.distanceFromTag),
             rawDistance: event.distanceFromTag,
             playerAccount: event.playerAccount,
             timeMs: event.timeIntoFightMs,
@@ -64,8 +66,8 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
     }, [selectedFight]);
 
     const scatterMaxY = useMemo(() => {
-        if (scatterData.length === 0) return 1000;
-        return Math.min(DISTANCE_CAP, Math.max(500, ...scatterData.map((d) => d.rawDistance)));
+        if (scatterData.length === 0) return toSqrt(1000);
+        return Math.max(toSqrt(500), ...scatterData.map((d) => d.y));
     }, [scatterData]);
 
     const hasAnyData = fights.some((f) => f.hasReplayData);
@@ -140,7 +142,13 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                     <YAxis
                                         tick={{ fill: '#e2e8f0', fontSize: 10 }}
                                         domain={[0, summaryMaxY]}
-                                        tickFormatter={(value: number) => formatWithCommas(value, 0)}
+                                        tickFormatter={(value: number) => String(fromSqrt(value))}
+                                    />
+                                    <ReferenceLine
+                                        y={toSqrt(600)}
+                                        stroke="rgba(251,191,36,0.5)"
+                                        strokeDasharray="6 4"
+                                        label={{ value: '600', position: 'right', fill: '#fbbf24', fontSize: 9 }}
                                     />
                                     <Tooltip
                                         cursor={{ fill: 'rgba(255,255,255,0.04)' }}
@@ -162,7 +170,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                             );
                                         }}
                                     />
-                                    <Bar dataKey="displayAvgDistance" name="Avg Distance" style={{ cursor: 'pointer' }}>
+                                    <Bar dataKey="sqrtAvgDistance" name="Avg Distance" style={{ cursor: 'pointer' }}>
                                         {summaryData.map((entry, idx) => (
                                             <Cell
                                                 key={`bar-${idx}`}
@@ -239,7 +247,12 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                             unit=""
                                             tick={{ fill: '#e2e8f0', fontSize: 10 }}
                                             domain={[0, scatterMaxY]}
-                                            tickFormatter={(value: number) => formatWithCommas(value, 0)}
+                                            tickFormatter={(value: number) => String(fromSqrt(value))}
+                                        />
+                                        <ReferenceLine
+                                            y={toSqrt(600)}
+                                            stroke="rgba(251,191,36,0.5)"
+                                            strokeDasharray="6 4"
                                         />
                                         <Tooltip
                                             content={({ payload }: any) => {
