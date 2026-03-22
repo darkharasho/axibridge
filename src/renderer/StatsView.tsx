@@ -53,6 +53,10 @@ import { AttendanceSection } from './stats/sections/AttendanceSection';
 import { CommanderPushTimingSection, CommanderStatsSection, CommanderTagDeathResponseSection, CommanderTagMovementSection, CommanderTargetConversionSection } from './stats/sections/CommanderStatsSection';
 import { SquadCompByFightSection } from './stats/sections/SquadCompByFightSection';
 import { FightCompSection } from './stats/sections/FightCompSection';
+import { SquadDamageComparisonSection } from './stats/sections/SquadDamageComparisonSection';
+import { SquadKillPressureSection } from './stats/sections/SquadKillPressureSection';
+import { SquadTagDistanceDeathsSection } from './stats/sections/SquadTagDistanceDeathsSection';
+import { computeTagDistanceDeaths } from './stats/computeTagDistanceDeaths';
 import { StatsHeader } from './stats/ui/StatsHeader';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
@@ -102,6 +106,10 @@ const ORDERED_SECTION_IDS = [
     'commander-target-conversion',
     'commander-tag-movement',
     'commander-tag-death-response',
+    'squad-damage-comparison',
+    'squad-kill-pressure',
+    'heal-effectiveness',
+    'squad-tag-distance-deaths',
     'attendance-ledger',
     'squad-comp-fight',
     'fight-comp',
@@ -122,7 +130,6 @@ const ORDERED_SECTION_IDS = [
     'support-detailed',
     'healing-stats',
     'healing-breakdown',
-    'heal-effectiveness',
     'fight-diff-mode',
     'special-buffs',
     'sigil-relic-uptime',
@@ -513,6 +520,14 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         if (precomputed.length > 0) return precomputed;
         return computeHealEffectivenessData(logs);
     }, [safeStats, logs]);
+
+    const tagDistanceDeathsData = useMemo(() => {
+        return computeTagDistanceDeaths(
+            logs
+                .filter((log: any) => log?.details)
+                .map((log: any) => ({ log }))
+        );
+    }, [logs]);
 
     // console logging removed to avoid blocking view transitions
 
@@ -3968,10 +3983,6 @@ type SpikeFight = {
                                 healingBreakdownPlayers={safeStats.healingBreakdownPlayers}
                             />
 
-                            <HealEffectivenessSection
-                                fights={healEffectivenessFights}
-                            />
-
                             <FightDiffModeSection
                             />
 
@@ -4063,6 +4074,18 @@ type SpikeFight = {
                                 getProfessionIconPath={getProfessionIconPath}
                             />
 
+                            <SquadDamageComparisonSection />
+
+                            <SquadKillPressureSection />
+
+                            <HealEffectivenessSection
+                                fights={healEffectivenessFights}
+                            />
+
+                            <SquadTagDistanceDeathsSection
+                                fights={tagDistanceDeathsData}
+                            />
+
                             <AttendanceSection
                                 attendanceRows={attendanceData}
                                 getProfessionIconPath={getProfessionIconPath}
@@ -4139,6 +4162,18 @@ type SpikeFight = {
 
                         {isSectionVisible('commander-tag-death-response') && <CommanderTagDeathResponseSection
                             commanderStats={commanderStats}
+                        />}
+
+                        {isSectionVisible('squad-damage-comparison') && <SquadDamageComparisonSection />}
+
+                        {isSectionVisible('squad-kill-pressure') && <SquadKillPressureSection />}
+
+                        {isSectionVisible('heal-effectiveness') && <HealEffectivenessSection
+                            fights={healEffectivenessFights}
+                        />}
+
+                        {isSectionVisible('squad-tag-distance-deaths') && <SquadTagDistanceDeathsSection
+                            fights={tagDistanceDeathsData}
                         />}
 
                         {isSectionVisible('attendance-ledger') && <AttendanceSection
@@ -4392,10 +4427,6 @@ type SpikeFight = {
 
                         {isSectionVisible('healing-breakdown') && <HealingBreakdownSection
                             healingBreakdownPlayers={safeStats.healingBreakdownPlayers}
-                        />}
-
-                        {isSectionVisible('heal-effectiveness') && <HealEffectivenessSection
-                            fights={healEffectivenessFights}
                         />}
 
                         {isSectionVisible('fight-diff-mode') && <FightDiffModeSection
