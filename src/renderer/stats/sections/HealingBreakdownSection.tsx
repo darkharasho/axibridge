@@ -1,70 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ListTree, Maximize2, X } from 'lucide-react';
+import { DenseStatsTable } from '../ui/DenseStatsTable';
+import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { InlineIconLabel } from '../ui/StatsViewShared';
-import type { PlayerHealingBreakdown, PlayerHealingSkillEntry } from '../statsTypes';
+import type { PlayerHealingBreakdown } from '../statsTypes';
 import { useStatsSharedContext } from '../StatsViewContext';
 
 type HealingBreakdownSectionProps = {
     healingBreakdownPlayers: PlayerHealingBreakdown[];
 };
 
-const SkillTable = ({
-    title,
-    skills,
-    grandTotal,
-    formatWithCommas,
-    emptyMessage,
-}: {
-    title: string;
-    skills: PlayerHealingSkillEntry[];
-    grandTotal: number;
-    formatWithCommas: (n: number, d: number) => string;
-    emptyMessage: string;
-}) => (
-    <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden stats-share-table flex-1 min-h-0 flex flex-col">
-        <div className="stats-table-shell__head-stack">
-            <div className="flex items-center justify-between px-4 py-2 bg-white/5">
-                <div className="text-[10px] uppercase tracking-[0.25em] text-gray-400">{title}</div>
-                <div className="text-[10px] text-gray-500">{skills.length} {skills.length === 1 ? 'skill' : 'skills'}</div>
-            </div>
-            <div className="stats-table-column-header grid grid-cols-[2fr_0.6fr_0.8fr_0.6fr_0.6fr_0.5fr] text-[10px] uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-1.5">
-                <div>Skill</div>
-                <div className="text-right">Hits</div>
-                <div className="text-right">Total</div>
-                <div className="text-right">Avg</div>
-                <div className="text-right">Max</div>
-                <div className="text-right">Pct</div>
-            </div>
-        </div>
-        <div className="stats-table-shell__rows flex-1 min-h-0 overflow-y-auto">
-            {skills.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-xs text-gray-500 py-6">
-                    {emptyMessage}
-                </div>
-            ) : (
-                skills.map((skill, idx) => {
-                    const avg = skill.hits > 0 ? Math.round(skill.total / skill.hits) : 0;
-                    const pct = grandTotal > 0 ? (skill.total / grandTotal) * 100 : 0;
-                    return (
-                        <div
-                            key={`${skill.id}-${idx}`}
-                            className="grid grid-cols-[2fr_0.6fr_0.8fr_0.6fr_0.6fr_0.5fr] gap-1 px-4 py-1.5 text-xs text-gray-200 border-t border-white/5"
-                        >
-                            <div className="min-w-0">
-                                <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-4 w-4" />
-                            </div>
-                            <div className="text-right font-mono text-gray-300">{formatWithCommas(skill.hits, 0)}</div>
-                            <div className="text-right font-mono text-gray-300">{formatWithCommas(skill.total, 0)}</div>
-                            <div className="text-right font-mono text-gray-300">{formatWithCommas(avg, 0)}</div>
-                            <div className="text-right font-mono text-gray-300">{formatWithCommas(skill.max, 0)}</div>
-                            <div className="text-right font-mono text-gray-300">{formatWithCommas(pct, 1)}%</div>
-                        </div>
-                    );
-                })
-            )}
-        </div>
-    </div>
-);
+type MetricMode = 'healing' | 'barrier';
 
 export const HealingBreakdownSection = ({
     healingBreakdownPlayers
@@ -72,8 +18,15 @@ export const HealingBreakdownSection = ({
     const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, renderProfessionIcon, formatWithCommas } = useStatsSharedContext();
     const sectionId = 'healing-breakdown';
     const isExpanded = expandedSection === sectionId;
+    const [metricMode, setMetricMode] = useState<MetricMode>('healing');
     const [playerFilter, setPlayerFilter] = useState('');
     const [selectedPlayerKey, setSelectedPlayerKey] = useState<string | null>(null);
+    const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: 'total', dir: 'desc' });
+
+    const getPlayerTotal = (player: PlayerHealingBreakdown) =>
+        metricMode === 'healing' ? player.totalHealing : player.totalBarrier;
+    const getPlayerSkills = (player: PlayerHealingBreakdown) =>
+        metricMode === 'healing' ? player.healingSkills : player.barrierSkills;
 
     const filteredPlayers = useMemo(() => {
         const term = playerFilter.trim().toLowerCase();
@@ -85,11 +38,11 @@ export const HealingBreakdownSection = ({
                 || String(player.profession || '').toLowerCase().includes(term)
             );
         return [...source].sort((a, b) => {
-            const delta = b.totalHealing - a.totalHealing;
+            const delta = getPlayerTotal(b) - getPlayerTotal(a);
             if (delta !== 0) return delta;
             return String(a.displayName || '').localeCompare(String(b.displayName || ''));
         });
-    }, [healingBreakdownPlayers, playerFilter]);
+    }, [healingBreakdownPlayers, playerFilter, metricMode]);
 
     const selectedPlayer = useMemo(() => {
         if (!selectedPlayerKey) return null;
@@ -127,6 +80,16 @@ export const HealingBreakdownSection = ({
                     </p>
                 </div>
                 <div className={`flex items-center gap-3 ${isExpanded ? 'pr-10 md:pr-0' : ''}`}>
+                    <PillToggleGroup
+                        value={metricMode}
+                        onChange={(value) => setMetricMode(value as MetricMode)}
+                        options={[
+                            { value: 'healing', label: 'Healing' },
+                            { value: 'barrier', label: 'Barrier' }
+                        ]}
+                        activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-500/40"
+                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                    />
                     <button
                         type="button"
                         onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
@@ -142,6 +105,73 @@ export const HealingBreakdownSection = ({
             {healingBreakdownPlayers.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/20 px-4 py-6 text-center text-xs text-gray-400">
                     No healing breakdown data available for the current selection.
+                </div>
+            ) : isExpanded ? (
+                <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                    {(() => {
+                        const modeLabel = metricMode === 'healing' ? 'Healing' : 'Barrier';
+                        const denseColumns = [
+                            { id: 'total', label: 'Total', align: 'right' as const, minWidth: 90 },
+                            { id: 'hits', label: 'Hits', align: 'right' as const, minWidth: 70 },
+                            { id: 'avg', label: 'Avg', align: 'right' as const, minWidth: 70 },
+                            { id: 'max', label: 'Max', align: 'right' as const, minWidth: 70 },
+                            { id: 'pct', label: 'Pct', align: 'right' as const, minWidth: 60 },
+                        ];
+                        const rows = filteredPlayers
+                            .filter((player) => getPlayerTotal(player) > 0)
+                            .map((player) => {
+                                const total = getPlayerTotal(player);
+                                const skills = getPlayerSkills(player);
+                                const totalHits = skills.reduce((sum, s) => sum + s.hits, 0);
+                                const maxHit = skills.reduce((best, s) => Math.max(best, s.max), 0);
+                                const avg = totalHits > 0 ? Math.round(total / totalHits) : 0;
+                                const grandTotal = filteredPlayers.reduce((sum, p) => sum + getPlayerTotal(p), 0);
+                                const pct = grandTotal > 0 ? (total / grandTotal) * 100 : 0;
+                                return {
+                                    player,
+                                    numericValues: { total, hits: totalHits, avg, max: maxHit, pct },
+                                    values: {
+                                        total: formatWithCommas(total, 0),
+                                        hits: formatWithCommas(totalHits, 0),
+                                        avg: formatWithCommas(avg, 0),
+                                        max: formatWithCommas(maxHit, 0),
+                                        pct: `${formatWithCommas(pct, 1)}%`,
+                                    }
+                                };
+                            })
+                            .sort((a, b) => {
+                                const aVal = a.numericValues[denseSort.columnId as keyof typeof a.numericValues] ?? 0;
+                                const bVal = b.numericValues[denseSort.columnId as keyof typeof b.numericValues] ?? 0;
+                                const diff = denseSort.dir === 'desc' ? bVal - aVal : aVal - bVal;
+                                return diff || String(a.player.displayName || '').localeCompare(String(b.player.displayName || ''));
+                            });
+                        return (
+                            <DenseStatsTable
+                                title={`Healing Breakdown - ${modeLabel}`}
+                                subtitle={modeLabel}
+                                sortColumnId={denseSort.columnId}
+                                sortDirection={denseSort.dir}
+                                onSortColumn={(columnId) => {
+                                    setDenseSort((prev) => ({
+                                        columnId,
+                                        dir: prev.columnId === columnId ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc'
+                                    }));
+                                }}
+                                columns={denseColumns}
+                                rows={rows.map((entry, idx) => ({
+                                    id: `${entry.player.key}-${idx}`,
+                                    label: (
+                                        <>
+                                            <span className="text-gray-500 font-mono">{idx + 1}</span>
+                                            {renderProfessionIcon(entry.player.profession, entry.player.professionList, 'w-4 h-4')}
+                                            <span className="truncate">{entry.player.displayName}</span>
+                                        </>
+                                    ),
+                                    values: entry.values
+                                }))}
+                            />
+                        );
+                    })()}
                 </div>
             ) : (
                 <div className="grid gap-4 lg:grid-cols-[280px_1fr] items-stretch">
@@ -184,7 +214,7 @@ export const HealingBreakdownSection = ({
                                                     </div>
                                                 </div>
                                                 <div className="text-xs font-mono text-emerald-200 shrink-0">
-                                                    {formatWithCommas(player.totalHealing, 0)}
+                                                    {formatWithCommas(getPlayerTotal(player), 0)}
                                                 </div>
                                             </div>
                                         </button>
@@ -194,29 +224,71 @@ export const HealingBreakdownSection = ({
                         </div>
                     </div>
 
-                    <div className="flex gap-3 h-[420px]">
-                        {!selectedPlayer ? (
-                            <div className="flex-1 bg-black/30 border border-white/5 rounded-xl flex items-center justify-center text-xs text-gray-500">
-                                Select a player to view skill breakdown.
-                            </div>
-                        ) : (
-                            <>
-                                <SkillTable
-                                    title="Total Healing"
-                                    skills={selectedPlayer.healingSkills}
-                                    grandTotal={selectedPlayer.totalHealing}
-                                    formatWithCommas={formatWithCommas}
-                                    emptyMessage="No healing skills."
-                                />
-                                <SkillTable
-                                    title="Total Barrier"
-                                    skills={selectedPlayer.barrierSkills}
-                                    grandTotal={selectedPlayer.totalBarrier}
-                                    formatWithCommas={formatWithCommas}
-                                    emptyMessage="No barrier skills."
-                                />
-                            </>
-                        )}
+                    <div className="space-y-2 flex flex-col h-[420px]">
+                        <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden stats-share-table flex-1 min-h-0 flex flex-col">
+                            {!selectedPlayer ? (
+                                <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                                    Select a player to view skill breakdown.
+                                </div>
+                            ) : (() => {
+                                const skills = getPlayerSkills(selectedPlayer);
+                                const grandTotal = getPlayerTotal(selectedPlayer);
+                                const modeLabel = metricMode === 'healing' ? 'Healing' : 'Barrier';
+                                return (
+                                    <div className="h-full flex flex-col">
+                                        <div className="stats-table-shell__head-stack">
+                                            <div className="flex items-center justify-between px-4 py-3 bg-white/5">
+                                                <div className="min-w-0 text-sm text-gray-200">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <span className="text-[10px] uppercase tracking-[0.25em] text-gray-400 shrink-0">Skill Totals /</span>
+                                                        {renderProfessionIcon(selectedPlayer.profession, selectedPlayer.professionList, 'w-4 h-4')}
+                                                        <span className="truncate font-semibold">{selectedPlayer.displayName}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs text-gray-400 uppercase tracking-[0.18em]">
+                                                    {modeLabel} / {skills.length} {skills.length === 1 ? 'skill' : 'skills'}
+                                                </div>
+                                            </div>
+                                            <div className="stats-table-column-header grid grid-cols-[2fr_0.6fr_0.8fr_0.6fr_0.6fr_0.5fr] text-[10px] uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-1.5">
+                                                <div>Skill</div>
+                                                <div className="text-right">Hits</div>
+                                                <div className="text-right">Total</div>
+                                                <div className="text-right">Avg</div>
+                                                <div className="text-right">Max</div>
+                                                <div className="text-right">Pct</div>
+                                            </div>
+                                        </div>
+                                        <div className="stats-table-shell__rows flex-1 min-h-0 overflow-y-auto">
+                                            {skills.length === 0 ? (
+                                                <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                                                    No {modeLabel.toLowerCase()} skills for this player.
+                                                </div>
+                                            ) : (
+                                                skills.map((skill, idx) => {
+                                                    const avg = skill.hits > 0 ? Math.round(skill.total / skill.hits) : 0;
+                                                    const pct = grandTotal > 0 ? (skill.total / grandTotal) * 100 : 0;
+                                                    return (
+                                                        <div
+                                                            key={`${skill.id}-${idx}`}
+                                                            className="grid grid-cols-[2fr_0.6fr_0.8fr_0.6fr_0.6fr_0.5fr] gap-1 px-4 py-1.5 text-xs text-gray-200 border-t border-white/5"
+                                                        >
+                                                            <div className="min-w-0">
+                                                                <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-4 w-4" />
+                                                            </div>
+                                                            <div className="text-right font-mono text-gray-300">{formatWithCommas(skill.hits, 0)}</div>
+                                                            <div className="text-right font-mono text-gray-300">{formatWithCommas(skill.total, 0)}</div>
+                                                            <div className="text-right font-mono text-gray-300">{formatWithCommas(avg, 0)}</div>
+                                                            <div className="text-right font-mono text-gray-300">{formatWithCommas(skill.max, 0)}</div>
+                                                            <div className="text-right font-mono text-gray-300">{formatWithCommas(pct, 1)}%</div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
                     </div>
                 </div>
             )}
