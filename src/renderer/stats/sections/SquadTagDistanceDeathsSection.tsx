@@ -54,6 +54,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
             y: Math.min(event.distanceFromTag, DISTANCE_CAP),
             rawDistance: event.distanceFromTag,
             playerAccount: event.playerAccount,
+            isCommander: event.isCommander,
             timeMs: event.timeIntoFightMs,
             index: idx,
         }));
@@ -249,7 +250,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                                 if (!point) return null;
                                                 return (
                                                     <div style={{ backgroundColor: '#161c24', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', padding: '10px 12px', fontSize: '12px' }}>
-                                                        <p style={{ margin: 0, color: '#94a3b8' }}>{point.playerAccount}</p>
+                                                        <p style={{ margin: 0, color: point.isCommander ? '#fbbf24' : '#94a3b8' }}>{point.playerAccount}{point.isCommander ? ' ★' : ''}</p>
                                                         <p style={{ margin: '4px 0 0', color: '#e2e8f0' }}>{point.x}s — {formatWithCommas(point.rawDistance, 0)} from tag</p>
                                                     </div>
                                                 );
@@ -259,7 +260,10 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                             {scatterData.map((entry) => (
                                                 <Cell
                                                     key={`scatter-${entry.index}`}
-                                                    fill={selectedFight.isWin === false ? '#f87171' : '#22c55e'}
+                                                    fill={entry.isCommander ? '#fbbf24' : (selectedFight.isWin === false ? '#f87171' : '#22c55e')}
+                                                    stroke={entry.isCommander ? '#ffffff' : 'none'}
+                                                    strokeWidth={entry.isCommander ? 2 : 0}
+                                                    r={entry.isCommander ? 6 : undefined}
                                                 />
                                             ))}
                                         </Scatter>
