@@ -658,7 +658,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
         const incomingStrikeDamage = computeIncomingStrikeDamageData(validLogs);
         const healEffectiveness = computeHealEffectivenessData(validLogs);
-        const tagDistanceDeaths = computeTagDistanceDeaths(validLogs.map(({ log }) => ({ log })));
+        const tagDistanceDeaths = computeTagDistanceDeaths(validLogs.map((log) => ({ log })));
 
         const { specialTables, playerSkillBreakdowns, healingBreakdownPlayers } = computeSpecialTables(
             specialBuffAgg,
