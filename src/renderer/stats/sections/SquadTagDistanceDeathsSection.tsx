@@ -244,6 +244,14 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                             stroke="rgba(251,191,36,0.5)"
                                             strokeDasharray="6 4"
                                         />
+                                        {scatterData.filter((d) => d.isCommander).map((d) => (
+                                            <ReferenceLine
+                                                key={`cmd-${d.index}`}
+                                                x={d.x}
+                                                stroke="rgba(251,191,36,0.25)"
+                                                strokeDasharray="4 4"
+                                            />
+                                        ))}
                                         <Tooltip
                                             content={({ payload }: any) => {
                                                 const point = payload?.[0]?.payload;
