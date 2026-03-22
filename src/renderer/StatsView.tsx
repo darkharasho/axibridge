@@ -56,7 +56,7 @@ import { FightCompSection } from './stats/sections/FightCompSection';
 import { SquadDamageComparisonSection } from './stats/sections/SquadDamageComparisonSection';
 import { SquadKillPressureSection } from './stats/sections/SquadKillPressureSection';
 import { SquadTagDistanceDeathsSection } from './stats/sections/SquadTagDistanceDeathsSection';
-import { computeTagDistanceDeaths } from './stats/computeTagDistanceDeaths';
+import type { TagDistanceDeathFightSummary } from './stats/computeTagDistanceDeaths';
 import { StatsHeader } from './stats/ui/StatsHeader';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
@@ -521,13 +521,9 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         return computeHealEffectivenessData(logs);
     }, [safeStats, logs]);
 
-    const tagDistanceDeathsData = useMemo(() => {
-        return computeTagDistanceDeaths(
-            logs
-                .filter((log: any) => log?.details)
-                .map((log: any) => ({ log }))
-        );
-    }, [logs]);
+    const tagDistanceDeathsData: TagDistanceDeathFightSummary[] = useMemo(() => {
+        return Array.isArray((safeStats as any)?.tagDistanceDeaths) ? (safeStats as any).tagDistanceDeaths : [];
+    }, [safeStats]);
 
     // console logging removed to avoid blocking view transitions
 

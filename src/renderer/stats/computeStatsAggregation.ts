@@ -14,6 +14,7 @@ import { computeFightDiffMode } from './computeFightDiffMode';
 import { computeSpecialTables } from './computeSpecialTables';
 import { computePlayerAggregation, PlayerStats, DamageMitigationRow, DamageMitigationTotals, resolveProfessionLabel } from './computePlayerAggregation';
 import { computeFightBreakdown } from './computeFightBreakdown';
+import { computeTagDistanceDeaths } from './computeTagDistanceDeaths';
 
 interface UseStatsAggregationProps {
     logs: any[];
@@ -657,6 +658,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
 
         const incomingStrikeDamage = computeIncomingStrikeDamageData(validLogs);
         const healEffectiveness = computeHealEffectivenessData(validLogs);
+        const tagDistanceDeaths = computeTagDistanceDeaths(validLogs.map(({ log }) => ({ log })));
 
         const { specialTables, playerSkillBreakdowns, healingBreakdownPlayers } = computeSpecialTables(
             specialBuffAgg,
@@ -737,6 +739,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             spikeDamage,
             incomingStrikeDamage,
             healEffectiveness,
+            tagDistanceDeaths,
             specialTables,
             topStatsPerSecond,
             topStatsLeaderboardsPerSecond: perSecondLeaderboards,
