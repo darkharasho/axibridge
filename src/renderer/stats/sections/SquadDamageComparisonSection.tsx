@@ -107,22 +107,28 @@ export const SquadDamageComparisonSection = () => {
                                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
-                                    formatter={(value: any, name: string | undefined) => {
-                                        const absVal = formatWithCommas(Math.abs(Number(value || 0)), 0);
-                                        return [absVal, name ?? ''];
-                                    }}
-                                    labelFormatter={(_, payload?: readonly any[]) => {
+                                    content={({ payload }: any) => {
                                         const point = payload?.[0]?.payload;
-                                        if (!point) return '';
-                                        const winLabel = point.isWin === true ? ' ✓' : point.isWin === false ? ' ✗' : '';
-                                        return `${point.fullLabel}${winLabel}`;
+                                        if (!point) return null;
+                                        const winIndicator = point.isWin === true
+                                            ? <span style={{ color: '#22c55e', fontWeight: 700 }}>W</span>
+                                            : point.isWin === false
+                                                ? <span style={{ color: '#ef4444', fontWeight: 700 }}>L</span>
+                                                : null;
+                                        return (
+                                            <div className="bg-[#161c24] border border-white/10 rounded-lg px-3 py-2 text-xs">
+                                                <div className="text-gray-300 font-medium">{point.fullLabel} {winIndicator}</div>
+                                                <div className="text-white mt-1">Outgoing Damage: {formatWithCommas(Math.abs(point.outgoing), 0)}</div>
+                                                <div className="text-white">Incoming Damage: {formatWithCommas(Math.abs(point.incoming), 0)}</div>
+                                            </div>
+                                        );
                                     }}
                                 />
                                 <Bar dataKey="outgoing" name="Outgoing Damage" stackId="stack">
                                     {chartData.map((entry) => (
                                         <Cell
                                             key={entry.fightId}
-                                            fill="#22c55e"
+                                            fill="#16a34a"
                                         />
                                     ))}
                                 </Bar>
@@ -130,7 +136,7 @@ export const SquadDamageComparisonSection = () => {
                                     {chartData.map((entry) => (
                                         <Cell
                                             key={entry.fightId}
-                                            fill="#ef4444"
+                                            fill="#dc2626"
                                         />
                                     ))}
                                 </Bar>
