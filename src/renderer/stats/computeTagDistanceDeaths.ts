@@ -10,6 +10,7 @@ export type TagDistanceDeathEvent = {
     timeIntoFightMs: number;
     timeIntoFightSec: number;
     distanceFromTag: number;
+    isCommander: boolean;
 };
 
 export type TagDistanceDeathFightSummary = {
@@ -68,7 +69,7 @@ export const computeTagDistanceDeaths = (
         const events: TagDistanceDeathEvent[] = [];
 
         for (const player of squadPlayers) {
-            if (player.hasCommanderTag) continue;
+            const isCommanderPlayer = !!player.hasCommanderTag;
             const replay = player?.combatReplayData;
             if (!replay?.positions || !Array.isArray(replay.dead) || !Array.isArray(replay.down)) continue;
 
@@ -96,11 +97,12 @@ export const computeTagDistanceDeaths = (
 
                 const [px, py] = playerPositions[playerIdx];
                 const [tx, ty] = tagPositions[tagIdx];
-                const distanceFromTag = Math.round(Math.hypot(px - tx, py - ty) / inchToPixel);
+                const distanceFromTag = isCommanderPlayer ? 0 : Math.round(Math.hypot(px - tx, py - ty) / inchToPixel);
 
                 events.push({
                     fightId, shortLabel, fullLabel, isWin,
                     playerAccount: player.account || 'Unknown',
+                    isCommander: isCommanderPlayer,
                     timeIntoFightMs: downStartMs,
                     timeIntoFightSec: Math.round(downStartMs / 1000),
                     distanceFromTag,
