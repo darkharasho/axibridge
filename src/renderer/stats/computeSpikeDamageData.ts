@@ -18,12 +18,18 @@ const getHighestSingleHit = (player: any, details: any) => {
     };
     const readEntryPeak = (entry: any) => {
         if (!entry || typeof entry !== 'object') return;
+        if (entry.indirectDamage) return;
+        const totalDamage = Number(entry.totalDamage || 0);
         const candidates = [
             Number(entry.max),
             Number(entry.maxDamage),
             Number(entry.maxHit)
-        ].filter((n) => Number.isFinite(n));
-        const peak = candidates.length > 0 ? Math.max(...candidates) : 0;
+        ].filter((n) => Number.isFinite(n) && n > 0);
+        let peak = candidates.length > 0 ? Math.max(...candidates) : 0;
+        // Guard: max should never exceed totalDamage (corrupted totalDamageDist entries)
+        if (peak > 0 && Number.isFinite(totalDamage) && totalDamage > 0 && peak > totalDamage) {
+            peak = totalDamage;
+        }
         if (peak > bestValue) {
             bestValue = peak;
             bestName = resolveSkillName(entry.id);
@@ -106,7 +112,7 @@ export function computeSpikeDamageData(validLogs: any[]) {
         peakSkillName: string;
     }>();
 
-    const getPerSecondDamageSeries = (player: any) => {
+    const getPerSecondDamageSeries = (player: any): { perSecond: number[]; usedFallback: boolean } => {
         const toPerSecond = (series: number[]) => {
             if (!Array.isArray(series) || series.length === 0) return [] as number[];
             const deltas: number[] = [];
@@ -156,10 +162,11 @@ export function computeSpikeDamageData(validLogs: any[]) {
         const totalPhase0 = Array.isArray(player?.damage1S) && Array.isArray(player.damage1S[0])
             ? player.damage1S[0]
             : null;
+        const usedFallback = !targetPhase0;
         const cumulative = targetPhase0
             ? targetPhase0
             : (Array.isArray(totalPhase0) ? totalPhase0.map((v: any) => Number(v || 0)) : []);
-        return toPerSecond(cumulative);
+        return { perSecond: toPerSecond(cumulative), usedFallback };
     };
 
     const getMaxRollingDamage = (values: number[], window: number) => {
@@ -356,8 +363,17 @@ export function computeSpikeDamageData(validLogs: any[]) {
                 const spike = getHighestSingleHit(player, details);
                 const hit = Number(spike.peak || 0);
                 const hitDown = Number(spike.peakDownContribution || 0);
-                const perSecond = getPerSecondDamageSeries(player);
+                const { perSecond: perSecondRaw, usedFallback } = getPerSecondDamageSeries(player);
                 const { damageTotal, downContributionTotal } = getDamageAndDownContributionTotals(player, details);
+                // When damage1S fallback was used, it includes pet/minion damage.
+                // Scale down to personal-only damage using targetDamageDist totals.
+                const perSecondTotal = usedFallback ? perSecondRaw.reduce((sum, v) => sum + v, 0) : 0;
+                const personalRatio = usedFallback && perSecondTotal > 0 && damageTotal > 0 && damageTotal < perSecondTotal
+                    ? Math.min(1, damageTotal / perSecondTotal)
+                    : 1;
+                const perSecond = personalRatio < 1
+                    ? perSecondRaw.map((v) => Math.round(v * personalRatio))
+                    : perSecondRaw;
                 const downRatio = damageTotal > 0 ? Math.min(1, Math.max(0, downContributionTotal / damageTotal)) : 0;
                 const perSecondDown = perSecond.map((value) => Number(value || 0) * downRatio);
                 const burst1s = Number(getMaxRollingDamage(perSecond, 1) || 0);
