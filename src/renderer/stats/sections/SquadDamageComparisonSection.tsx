@@ -108,21 +108,12 @@ export const SquadDamageComparisonSection = () => {
                                 <Tooltip
                                     cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                                     contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
-                                    content={({ payload }: any) => {
+                                    formatter={(value: any, name: any) => [formatWithCommas(Math.abs(Number(value || 0)), 0), String(name || '')]}
+                                    labelFormatter={(_, payload?: readonly any[]) => {
                                         const point = payload?.[0]?.payload;
-                                        if (!point) return null;
-                                        const winIndicator = point.isWin === true
-                                            ? <span style={{ color: '#22c55e', fontWeight: 700 }}>W</span>
-                                            : point.isWin === false
-                                                ? <span style={{ color: '#ef4444', fontWeight: 700 }}>L</span>
-                                                : null;
-                                        return (
-                                            <div className="bg-[#161c24] border border-white/10 rounded-lg px-3 py-2 text-xs">
-                                                <div className="text-gray-300 font-medium">{point.fullLabel} {winIndicator}</div>
-                                                <div className="text-white mt-1">Outgoing Damage: {formatWithCommas(Math.abs(point.outgoing), 0)}</div>
-                                                <div className="text-white">Incoming Damage: {formatWithCommas(Math.abs(point.incoming), 0)}</div>
-                                            </div>
-                                        );
+                                        if (!point) return '';
+                                        const winLabel = point.isWin === true ? ' W' : point.isWin === false ? ' L' : '';
+                                        return `${point.fullLabel}${winLabel}`;
                                     }}
                                 />
                                 <Bar dataKey="outgoing" name="Outgoing Damage" stackId="stack">

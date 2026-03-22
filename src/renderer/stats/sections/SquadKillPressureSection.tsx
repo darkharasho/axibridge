@@ -117,8 +117,9 @@ export const SquadKillPressureSection = () => {
                                     label={{ value: 'KDR 1.0', position: 'right', fill: '#fbbf24', fontSize: 9 }}
                                 />
                                 <Tooltip
+                                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                                     contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
-                                    formatter={(value: any, _name: string | undefined, props: any) => {
+                                    formatter={(value: any, _name: any, props: any) => {
                                         const point = props?.payload;
                                         if (!point) return [String(value), 'KDR'];
                                         return [
@@ -129,7 +130,7 @@ export const SquadKillPressureSection = () => {
                                     labelFormatter={(_, payload?: readonly any[]) => {
                                         const point = payload?.[0]?.payload;
                                         if (!point) return '';
-                                        const winLabel = point.isWin === true ? ' ✓' : point.isWin === false ? ' ✗' : '';
+                                        const winLabel = point.isWin === true ? ' W' : point.isWin === false ? ' L' : '';
                                         return `${point.fullLabel}${winLabel}`;
                                     }}
                                 />
