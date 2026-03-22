@@ -532,7 +532,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
         const topIncomingSkills = Object.values(incomingSkillDamageMap).sort((a, b) => b.damage - a.damage).slice(0, 25);
 
         // Map data, timeline, boon tables
-        const { sortedFightLogs, sortedFightLogsWithDetails, mapData, timelineData, boonTables, boonTimeline, boonUptimeTimeline } = computeTimelineAndMapData(logs, validLogs);
+        const { sortedFightLogs, sortedFightLogsWithDetails, mapData, timelineData, boonTables, boonTimeline, boonUptimeTimeline } = computeTimelineAndMapData(logs, validLogs, splitPlayersByClass);
 
         // 1. Squad Class Data
         const squadClassCounts: Record<string, number> = {};
@@ -653,7 +653,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
                 };
             });
 
-        const spikeDamage = computeSpikeDamageData(validLogs);
+        const spikeDamage = computeSpikeDamageData(validLogs, splitPlayersByClass);
 
         const incomingStrikeDamage = computeIncomingStrikeDamageData(validLogs);
         const healEffectiveness = computeHealEffectivenessData(validLogs);

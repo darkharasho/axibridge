@@ -61,7 +61,7 @@ const getHighestSingleHit = (player: any, details: any) => {
     return { peak: bestValue, peakDownContribution: bestDownContribution, skillName: bestName || 'Unknown Skill' };
 };
 
-export function computeSpikeDamageData(validLogs: any[]) {
+export function computeSpikeDamageData(validLogs: any[], splitPlayersByClass = false) {
     const fights: Array<{
         id: string;
         shortLabel: string;
@@ -359,7 +359,7 @@ export function computeSpikeDamageData(validLogs: any[]) {
                 const account = String(player?.account || player?.name || 'Unknown');
                 const characterName = String(player?.character_name || player?.display_name || player?.name || '');
                 const profession = String(player?.profession || 'Unknown');
-                const key = `${account}|${profession}`;
+                const key = splitPlayersByClass && profession !== 'Unknown' ? `${account}::${profession}` : account;
                 const spike = getHighestSingleHit(player, details);
                 const hit = Number(spike.peak || 0);
                 const hitDown = Number(spike.peakDownContribution || 0);
