@@ -6,7 +6,7 @@ import { DisruptionMethod } from '../global.d';
 import { buildConditionIconMap, computeOutgoingConditions, normalizeConditionLabel, resolveBuffMetaById, resolveConditionNameFromEntry } from '../../shared/conditionsMetrics';
 import { NON_DAMAGING_CONDITIONS, OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS } from './statsMetrics';
 import { isResUtilitySkill } from './utils/dashboardUtils';
-import { PlayerSkillDamageEntry } from './statsTypes';
+import { PlayerSkillDamageEntry, PlayerHealingSkillEntry } from './statsTypes';
 import { PROFESSION_COLORS } from '../../shared/professionUtils';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 
@@ -198,6 +198,15 @@ export const computePlayerAggregation = ({
         professionList: string[];
         totalFightMs: number;
         skills: Map<string, PlayerSkillDamageEntry>;
+    }>();
+    const healingBreakdownMap = new Map<string, {
+        key: string;
+        account: string;
+        displayName: string;
+        profession: string;
+        professionList: string[];
+        healingSkills: Map<string, PlayerHealingSkillEntry>;
+        barrierSkills: Map<string, PlayerHealingSkillEntry>;
     }>();
     const outgoingCondiTotals: Record<string, any> = {};
     const incomingCondiTotals: Record<string, any> = {};
@@ -915,6 +924,56 @@ export const computePlayerAggregation = ({
                 }
                 return { name, icon };
             };
+            const playerAccount = p.account || p.name || 'Unknown';
+            const playerProfession = p.profession || 'Unknown';
+
+            // Healing Breakdown (per-skill)
+            const extractPhase0 = (dist: any) => {
+                if (!Array.isArray(dist)) return [];
+                const phase0 = dist[0];
+                return Array.isArray(phase0) ? phase0 : [];
+            };
+            const healingPlayerKey = `${playerAccount}|${playerProfession}`;
+            let healingBd = healingBreakdownMap.get(healingPlayerKey);
+            if (!healingBd) {
+                healingBd = {
+                    key: healingPlayerKey,
+                    account: playerAccount,
+                    displayName: playerAccount,
+                    profession: playerProfession,
+                    professionList: [playerProfession],
+                    healingSkills: new Map(),
+                    barrierSkills: new Map(),
+                };
+                healingBreakdownMap.set(healingPlayerKey, healingBd);
+            }
+            if (playerProfession && !healingBd.professionList.includes(playerProfession)) {
+                healingBd.professionList.push(playerProfession);
+            }
+            const pushHealingSkillEntry = (entry: any, skillMap: Map<string, PlayerHealingSkillEntry>, totalField: string) => {
+                if (!entry?.id) return;
+                const amount = Number(entry[totalField] || 0);
+                if (!Number.isFinite(amount) || amount <= 0) return;
+                const { name, icon } = resolveSkillMeta(entry);
+                const skillId = `s${entry.id}`;
+                let existing = skillMap.get(skillId);
+                if (!existing) {
+                    existing = { id: skillId, name, icon, total: 0, hits: 0, max: 0 };
+                    skillMap.set(skillId, existing);
+                }
+                if (existing.name.startsWith('Skill ') && !name.startsWith('Skill ')) existing.name = name;
+                if (!existing.icon && icon) existing.icon = icon;
+                existing.total += amount;
+                existing.hits += Number(entry.hits || 0);
+                existing.max = Math.max(existing.max, Number(entry.max || 0));
+            };
+            extractPhase0(p.extHealingStats?.totalHealingDist).forEach((entry: any) => {
+                pushHealingSkillEntry(entry, healingBd!.healingSkills, 'totalHealing');
+            });
+            extractPhase0(p.extBarrierStats?.totalBarrierDist).forEach((entry: any) => {
+                pushHealingSkillEntry(entry, healingBd!.barrierSkills, 'totalBarrier');
+            });
+
             const pushSkillDamageEntry = (entry: any) => {
                 if (!entry?.id) return;
                 const { name, icon } = resolveSkillMeta(entry);
@@ -925,8 +984,6 @@ export const computePlayerAggregation = ({
                 skillDamageMap[entry.id].hits += entry.connectedHits;
                 skillDamageMap[entry.id].downContribution += Number(entry.downContribution || 0);
             };
-            const playerAccount = p.account || p.name || 'Unknown';
-            const playerProfession = p.profession || 'Unknown';
             const playerKey = `${playerAccount}|${playerProfession}`;
             let playerBreakdown = playerSkillBreakdownMap.get(playerKey);
             if (!playerBreakdown) {
@@ -1371,6 +1428,7 @@ export const computePlayerAggregation = ({
         skillDamageMap,
         incomingSkillDamageMap,
         playerSkillBreakdownMap,
+        healingBreakdownMap,
         outgoingCondiTotals,
         incomingCondiTotals,
         enemyProfessionCounts,
