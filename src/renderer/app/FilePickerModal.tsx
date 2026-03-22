@@ -812,8 +812,13 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                     Loading logs...
                                 </div>
                             ) : filteredAvailable.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
-                                    {filePickerAvailable.length > 0 || filePickerAll.length > 0 ? 'No logs matching your current filters.' : 'No logs found in this folder.'}
+                                <div className="flex-1 flex flex-col items-center justify-center gap-3 text-sm text-gray-500">
+                                    <span>{filePickerAvailable.length > 0 || filePickerAll.length > 0 ? 'No logs matching your current filters.' : 'No logs found in this folder.'}</span>
+                                    {filePickerHasMore && (
+                                        <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-xl text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white transition-colors">
+                                            Load older logs
+                                        </button>
+                                    )}
                                 </div>
                             ) : (
                                 <div

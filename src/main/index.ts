@@ -733,6 +733,7 @@ function createWindow() {
         icon: appIcon,
         webPreferences: {
             preload: path.join(__dirname, '../preload/index.js'),
+            backgroundThrottling: false,
         },
         width: bounds ? bounds.width : 1200,
         height: bounds ? bounds.height : 860,
@@ -801,6 +802,15 @@ function createWindow() {
     } else {
         win.loadFile(path.join(process.env.DIST || '', 'dist-react/index.html'))
     }
+
+    win.webContents.on('render-process-gone', (_event, details) => {
+        log.error(`[Main] Renderer process gone (reason: ${details.reason}), reloading...`);
+        if (!app.isPackaged) {
+            win?.loadURL(VITE_DEV_SERVER_URL);
+        } else {
+            win?.loadFile(path.join(process.env.DIST || '', 'dist-react/index.html'));
+        }
+    });
 }
 
 function setupAutoUpdater() {
