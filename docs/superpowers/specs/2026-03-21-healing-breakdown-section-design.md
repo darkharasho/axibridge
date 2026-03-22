@@ -15,6 +15,8 @@ EI JSON provides per-skill healing and barrier distribution data:
 
 Skill name and icon are resolved via `details.skillMap` and `details.buffMap` using the same `resolveSkillMeta` pattern used in damage breakdown and heal effectiveness.
 
+**Note:** `totalHealingDist` and `totalBarrierDist` are not currently typed on the `Player` interface in `dpsReportTypes.ts`. The `extHealingStats` and `extBarrierStats` interfaces must be extended to include these fields. See Files Changed table.
+
 ## Types
 
 New types in `src/renderer/stats/statsTypes.ts`:
@@ -24,7 +26,7 @@ interface PlayerHealingSkillEntry {
     id: string;           // skill ID (e.g. "s59562")
     name: string;         // resolved skill name
     icon?: string;        // skill icon URL
-    totalHealing: number; // sum across all fights
+    total: number;        // sum across all fights (healing or barrier depending on context)
     hits: number;         // sum across all fights
     max: number;          // global max single hit across all fights
 }
@@ -37,39 +39,46 @@ interface PlayerHealingBreakdown {
     professionList: string[];
     totalHealing: number;     // sum of all healing skills
     totalBarrier: number;     // sum of all barrier skills
-    healingSkills: PlayerHealingSkillEntry[];  // sorted by totalHealing DESC
-    barrierSkills: PlayerHealingSkillEntry[];  // same shape, totalHealing field holds barrier value
+    healingSkills: PlayerHealingSkillEntry[];  // sorted by total DESC
+    barrierSkills: PlayerHealingSkillEntry[];  // sorted by total DESC
 }
 ```
 
-The `PlayerHealingSkillEntry` type is reused for both healing and barrier tables. For barrier entries, `totalHealing` holds the barrier amount (the field name is reused to keep one type).
+The `PlayerHealingSkillEntry` type is reused for both healing and barrier tables. The `total` field holds either healing or barrier amount depending on context, following the generic naming pattern used by `HealEffectivenessSkillRow.amount`.
 
 ## Aggregation
 
 ### Location
 
-Inside `computePlayerAggregation.ts`, in the existing per-player loop, after the current healing totals block (lines ~803-849) and near the skill damage aggregation block (lines ~898-970).
+**Accumulation phase**: Inside `computePlayerAggregation.ts`, in the existing per-player loop, after the healing totals block (lines ~803-849). Build intermediate `healingBreakdownMap: Map<string, { ..., healingSkills: Map, barrierSkills: Map }>` similar to `playerSkillBreakdownMap`.
 
-### Logic
+**Finalization phase**: Inside `computeSpecialTables.ts` (alongside the existing `playerSkillBreakdowns` finalization at lines ~97-120), convert the intermediate map to the final `PlayerHealingBreakdown[]` array with sorted skill arrays.
+
+### Accumulation Logic
 
 For each player in each log:
 
-1. **Healing skills**: Iterate `player.extHealingStats.totalHealingDist[0]`. For each entry:
+1. **Healing skills**: Extract phase-0 entries from `player.extHealingStats.totalHealingDist` (accessed via `any` cast, same pattern as `computeHealEffectivenessData.ts`). For each entry:
    - Resolve skill name/icon via `resolveSkillMeta(entry.id)`
-   - Accumulate into `healingSkillMap[skillId]`: `totalHealing += entry.totalHealing`, `hits += entry.hits`, `max = Math.max(current.max, entry.max)`
+   - Accumulate into per-player `healingSkillMap[skillId]`: `total += entry.totalHealing`, `hits += entry.hits`, `max = Math.max(current.max, entry.max)`
 
-2. **Barrier skills**: Same pattern for `player.extBarrierStats.totalBarrierDist[0]`:
-   - Accumulate into `barrierSkillMap[skillId]`: `totalHealing += entry.totalBarrier`, `hits += entry.hits`, `max = Math.max(current.max, entry.max)`
+2. **Barrier skills**: Same pattern for `player.extBarrierStats.totalBarrierDist` phase-0 entries:
+   - Accumulate into per-player `barrierSkillMap[skillId]`: `total += entry.totalBarrier`, `hits += entry.hits`, `max = Math.max(current.max, entry.max)`
 
-3. After all logs processed for a player, convert maps to sorted arrays (descending by total).
+### Finalization Logic
 
-4. Build `PlayerHealingBreakdown` with totals and sorted skill arrays.
+In `computeSpecialTables.ts`, after the `playerSkillBreakdowns` finalization:
+
+1. Convert each player's `healingSkills` and `barrierSkills` Maps to sorted arrays (descending by `total`)
+2. Compute `totalHealing` and `totalBarrier` as sums of respective skill arrays
+3. Build final `PlayerHealingBreakdown` objects
+4. Sort player array by `displayName`
 
 ### Output
 
-Add `healingBreakdownPlayers: PlayerHealingBreakdown[]` to the aggregation result object, following the same pattern as `playerSkillBreakdowns: PlayerSkillBreakdown[]`.
+Return `healingBreakdownPlayers: PlayerHealingBreakdown[]` from `computeSpecialTables` alongside `specialTables` and `playerSkillBreakdowns`. Wire through `computeStatsAggregation.ts` into the aggregation result.
 
-Wire through the worker/inline aggregation path — no new worker messages needed since it's part of the existing aggregation result.
+No new worker messages needed since it's part of the existing aggregation result. The aggregation cache (`aggregationCache.ts`) handles this transparently since it caches the entire result object and keys by `[logCount, settingsHash]`.
 
 ## UI Component
 
@@ -87,7 +96,7 @@ type HealingBreakdownSectionProps = {
 
 ### Layout
 
-- **Left pane**: Player list sorted by total healing, each row shows profession icon + player name + formatted total healing value
+- **Left pane**: Player list sorted by total healing (always sorted by healing total, not barrier), each row shows profession icon + player name + formatted total healing value
 - **Right pane**: Two side-by-side tables when a player is selected:
   - **Total Healing** table (left): columns — Skill Name (with icon), Hits, Total, Avg, Max, Pct
   - **Total Barrier** table (right): same columns
@@ -159,7 +168,7 @@ Per-player, per-skill healing and barrier totals aggregated across all selected 
 
 ### Entry Fields
 
-Each entry contains: `id` (skill ID), `totalHealing`/`totalBarrier`, `hits`, `min`, `max`.
+Each entry contains: `id` (skill ID), `totalHealing`/`totalBarrier`, `hits`, `max`. (`min` is available in the EI JSON but not tracked in aggregation.)
 
 ### Aggregation
 
@@ -186,16 +195,19 @@ After editing, run `npm run sync:metrics-spec`.
 - Verify barrier skills are populated separately
 - Verify empty/missing `totalHealingDist`/`totalBarrierDist` produces empty arrays gracefully
 - Existing audit tests should continue to pass (no changes to existing metric outputs)
+- Test file: `src/renderer/__tests__/healingBreakdown.test.ts`
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
+| `src/shared/dpsReportTypes.ts` | Extend `extHealingStats` with `totalHealingDist`, extend `extBarrierStats` with `totalBarrierDist` |
 | `src/renderer/stats/statsTypes.ts` | Add `PlayerHealingSkillEntry`, `PlayerHealingBreakdown` |
-| `src/renderer/stats/computePlayerAggregation.ts` | Add healing/barrier skill aggregation in per-player loop |
+| `src/renderer/stats/computePlayerAggregation.ts` | Add healing/barrier skill accumulation in per-player loop, return intermediate map |
+| `src/renderer/stats/computeSpecialTables.ts` | Finalize `healingBreakdownPlayers` from intermediate map (alongside `playerSkillBreakdowns`) |
 | `src/renderer/stats/computeStatsAggregation.ts` | Wire `healingBreakdownPlayers` into aggregation output |
 | `src/renderer/stats/sections/HealingBreakdownSection.tsx` | New section component |
 | `src/renderer/StatsView.tsx` | Import, register, render the new section |
-| `src/renderer/stats/hooks/useStatsNavigation.ts` | Add nav entry in defense group |
+| `src/renderer/stats/hooks/useStatsNavigation.ts` | Add nav entry in defense group (`sectionIds` + `items` arrays) |
 | `src/shared/metrics-spec.md` | Add Healing Breakdown documentation |
 | `docs/metrics-spec.md` | Synced copy (via `npm run sync:metrics-spec`) |
