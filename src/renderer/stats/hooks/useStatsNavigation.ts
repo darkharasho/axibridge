@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame } from 'lucide-react';
+import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown } from 'lucide-react';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
 import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
@@ -65,6 +65,18 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
         ]
     },
     {
+        id: 'squad-stats',
+        label: 'Squad Stats',
+        icon: Users,
+        sectionIds: ['squad-damage-comparison', 'squad-kill-pressure', 'heal-effectiveness', 'squad-tag-distance-deaths'],
+        items: [
+            { id: 'squad-damage-comparison', label: 'Damage Comparison', icon: ArrowUpDown },
+            { id: 'squad-kill-pressure', label: 'Kill Pressure', icon: Target },
+            { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves },
+            { id: 'squad-tag-distance-deaths', label: 'Tag Distance Deaths', icon: Crosshair },
+        ]
+    },
+    {
         id: 'roster',
         label: 'Roster Intel',
         icon: FileText,
@@ -93,7 +105,7 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
         id: 'defense',
         label: 'Defensive Stats',
         icon: Shield,
-        sectionIds: ['defense-detailed', 'incoming-damage-modifiers', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'healing-breakdown', 'heal-effectiveness'],
+        sectionIds: ['defense-detailed', 'incoming-damage-modifiers', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'healing-breakdown'],
         items: [
             { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
             { id: 'incoming-damage-modifiers', label: 'Incoming Modifiers', icon: ShieldOff },
@@ -105,7 +117,6 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
             { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
             { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
             { id: 'healing-breakdown', label: 'Healing Breakdown', icon: ListTree },
-            { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves },
         ]
     },
     {
