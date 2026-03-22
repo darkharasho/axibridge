@@ -23,8 +23,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
     const isExpanded = expandedSection === sectionId;
     const [selectedFightIndex, setSelectedFightIndex] = useState<number | null>(null);
 
-    const toSqrt = (v: number) => Math.sqrt(Math.max(0, v));
-    const fromSqrt = (v: number) => Math.round(v * v);
+    const DISTANCE_CAP = 1200;
 
     const summaryData = useMemo(() => {
         return fights.map((fight, idx) => ({
@@ -33,13 +32,11 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
             fullLabel: fight.fullLabel,
             isWin: fight.isWin,
             avgDistance: fight.avgDistance,
-            sqrtAvgDistance: toSqrt(fight.avgDistance),
+            clampedAvgDistance: Math.min(fight.avgDistance, DISTANCE_CAP),
             eventCount: fight.eventCount,
             hasReplayData: fight.hasReplayData,
         }));
     }, [fights]);
-
-    const summaryMaxY = 2 * toSqrt(600);
 
     const totalDeaths = useMemo(() => fights.reduce((sum, f) => sum + f.eventCount, 0), [fights]);
     const overallAvg = useMemo(() => {
@@ -54,15 +51,13 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
         if (!selectedFight) return [];
         return selectedFight.events.map((event, idx) => ({
             x: event.timeIntoFightSec,
-            y: toSqrt(event.distanceFromTag),
+            y: Math.min(event.distanceFromTag, DISTANCE_CAP),
             rawDistance: event.distanceFromTag,
             playerAccount: event.playerAccount,
             timeMs: event.timeIntoFightMs,
             index: idx,
         }));
     }, [selectedFight]);
-
-    const scatterMaxY = 2 * toSqrt(600);
 
     const hasAnyData = fights.some((f) => f.hasReplayData);
 
@@ -135,11 +130,11 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                     <XAxis dataKey="shortLabel" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
                                     <YAxis
                                         tick={{ fill: '#e2e8f0', fontSize: 10 }}
-                                        domain={[0, summaryMaxY]}
-                                        tickFormatter={(value: number) => String(fromSqrt(value))}
+                                        domain={[0, DISTANCE_CAP]}
+                                        tickFormatter={(value: number) => value >= DISTANCE_CAP ? `${DISTANCE_CAP}+` : String(value)}
                                     />
                                     <ReferenceLine
-                                        y={toSqrt(600)}
+                                        y={600}
                                         stroke="rgba(251,191,36,0.5)"
                                         strokeDasharray="6 4"
                                         label={{ value: '600', position: 'right', fill: '#fbbf24', fontSize: 9 }}
@@ -164,7 +159,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                             );
                                         }}
                                     />
-                                    <Bar dataKey="sqrtAvgDistance" name="Avg Distance" style={{ cursor: 'pointer' }}>
+                                    <Bar dataKey="clampedAvgDistance" name="Avg Distance" style={{ cursor: 'pointer' }}>
                                         {summaryData.map((entry, idx) => (
                                             <Cell
                                                 key={`bar-${idx}`}
@@ -240,11 +235,11 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                             name="Distance"
                                             unit=""
                                             tick={{ fill: '#e2e8f0', fontSize: 10 }}
-                                            domain={[0, scatterMaxY]}
-                                            tickFormatter={(value: number) => String(fromSqrt(value))}
+                                            domain={[0, DISTANCE_CAP]}
+                                            tickFormatter={(value: number) => value >= DISTANCE_CAP ? `${DISTANCE_CAP}+` : String(value)}
                                         />
                                         <ReferenceLine
-                                            y={toSqrt(600)}
+                                            y={600}
                                             stroke="rgba(251,191,36,0.5)"
                                             strokeDasharray="6 4"
                                         />
