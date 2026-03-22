@@ -3102,6 +3102,48 @@ type SpikeFight = {
         });
         return Array.from(subgroups.values()).sort((a, b) => Number(a.subgroupId || 0) - Number(b.subgroupId || 0));
     }, [boonUptimeFightsWithSubgroups, boonUptimeSubgroupKeyPrefix]);
+    const boonUptimeSubgroupMembers = useMemo(() => {
+        const fights = Array.isArray((safeStats as any)?.squadCompByFight) ? (safeStats as any).squadCompByFight : [];
+        const memberMap = new Map<number, Map<string, { account: string; professions: Set<string>; fightCount: number }>>();
+        fights.forEach((fight: any) => {
+            const parties = Array.isArray(fight?.parties) ? fight.parties : [];
+            parties.forEach((party: any) => {
+                const subgroupId = Number(party?.party ?? 0);
+                if (!Number.isFinite(subgroupId) || subgroupId <= 0) return;
+                if (!memberMap.has(subgroupId)) memberMap.set(subgroupId, new Map());
+                const subgroupMap = memberMap.get(subgroupId)!;
+                const players = Array.isArray(party?.players) ? party.players : [];
+                players.forEach((player: any) => {
+                    const account = String(player?.account || '').trim();
+                    if (!account || account === 'Unknown') return;
+                    const profession = String(player?.profession || 'Unknown');
+                    const existing = subgroupMap.get(account);
+                    if (existing) {
+                        existing.fightCount += 1;
+                        existing.professions.add(profession);
+                    } else {
+                        subgroupMap.set(account, { account, professions: new Set([profession]), fightCount: 1 });
+                    }
+                });
+            });
+        });
+        const result = new Map<number, Array<{ account: string; profession: string; professionList: string[]; fightCount: number }>>();
+        memberMap.forEach((members, subgroupId) => {
+            const entries = Array.from(members.values())
+                .map((member) => {
+                    const profList = Array.from(member.professions);
+                    return {
+                        account: member.account,
+                        profession: profList[0] || 'Unknown',
+                        professionList: profList,
+                        fightCount: member.fightCount
+                    };
+                })
+                .sort((a, b) => b.fightCount - a.fightCount || a.account.localeCompare(b.account));
+            result.set(subgroupId, entries);
+        });
+        return result;
+    }, [safeStats.squadCompByFight]);
     const boonUptimePercentByPlayer = useMemo(() => {
         const map = new Map<string, number>();
         const players = [
@@ -3754,6 +3796,7 @@ type SpikeFight = {
                                 drilldownData={boonUptimeDrilldown.data}
                                 overallUptimePercent={boonUptimeOverallPercent}
                                 showStackCapLine={Boolean(activeBoonUptime?.stacking)}
+                                subgroupMembers={boonUptimeSubgroupMembers}
                             />
 
                             <OffenseSection
@@ -4323,6 +4366,7 @@ type SpikeFight = {
                             drilldownData={boonUptimeDrilldown.data}
                             overallUptimePercent={boonUptimeOverallPercent}
                             showStackCapLine={Boolean(activeBoonUptime?.stacking)}
+                            subgroupMembers={boonUptimeSubgroupMembers}
                         />}
 
                         {isSectionVisible('support-detailed') && <SupportSection

@@ -1,9 +1,12 @@
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Maximize2, X } from 'lucide-react';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { Gw2FuryIcon } from '../../ui/Gw2FuryIcon';
 import { getProfessionColor } from '../../../shared/professionUtils';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { useFixedTooltipPosition } from '../ui/StatsViewShared';
 
 type BoonUptimeBoon = {
     id: string;
@@ -60,6 +63,76 @@ type BoonUptimeSectionProps = {
     drilldownData: Array<{ label: string; value: number; maxValue?: number }>;
     overallUptimePercent: number | null;
     showStackCapLine?: boolean;
+    subgroupMembers?: Map<number, Array<{ account: string; profession: string; professionList: string[]; fightCount: number }>>;
+};
+
+const SubgroupMembersTooltip = ({
+    members,
+    renderProfessionIcon
+}: {
+    members: Array<{ account: string; profession: string; professionList: string[]; fightCount: number }>;
+    renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => JSX.Element | null;
+}) => {
+    const [open, setOpen] = useState(false);
+    const wrapperRef = useRef<HTMLSpanElement | null>(null);
+    const tooltipRef = useRef<HTMLDivElement | null>(null);
+    const closeTimeoutRef = useRef<number | null>(null);
+    const tooltipStyle = useFixedTooltipPosition(open, [members.length], wrapperRef, tooltipRef);
+
+    const cancelClose = () => {
+        if (closeTimeoutRef.current !== null) {
+            window.clearTimeout(closeTimeoutRef.current);
+            closeTimeoutRef.current = null;
+        }
+    };
+    const scheduleClose = () => {
+        cancelClose();
+        closeTimeoutRef.current = window.setTimeout(() => {
+            setOpen(false);
+            closeTimeoutRef.current = null;
+        }, 140);
+    };
+
+    useEffect(() => () => cancelClose(), []);
+
+    return (
+        <>
+            {' · '}
+            <span
+                ref={wrapperRef}
+                className="cursor-help border-b border-dotted border-cyan-300/40 hover:border-cyan-200/70 transition-colors"
+                onMouseEnter={() => { cancelClose(); setOpen(true); }}
+                onMouseLeave={scheduleClose}
+            >
+                {members.length} {members.length === 1 ? 'player' : 'players'}
+            </span>
+            {open && typeof document !== 'undefined' && createPortal(
+                <div
+                    ref={tooltipRef}
+                    style={tooltipStyle}
+                    className={`z-[9999] w-max max-w-xs rounded-md border border-white/10 bg-[#0d1117]/95 px-3 py-2 text-[11px] text-gray-200 shadow-lg backdrop-blur-sm ${open ? 'block' : 'hidden'}`}
+                    onMouseEnter={() => { cancelClose(); setOpen(true); }}
+                    onMouseLeave={scheduleClose}
+                >
+                    <div className="mb-1.5 text-[9px] uppercase tracking-wider text-cyan-300/80">
+                        Subgroup Members
+                    </div>
+                    <div className="space-y-1">
+                        {members.map((member) => (
+                            <div key={member.account} className="flex items-center gap-2">
+                                {renderProfessionIcon(member.profession, member.professionList, 'w-3.5 h-3.5')}
+                                <span className="text-gray-100 truncate">{member.account}</span>
+                                <span className="ml-auto shrink-0 text-[10px] text-gray-400">
+                                    {member.fightCount} {member.fightCount === 1 ? 'fight' : 'fights'}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>,
+                document.body
+            )}
+        </>
+    );
 };
 
 export const BoonUptimeSection = ({
@@ -81,7 +154,8 @@ export const BoonUptimeSection = ({
     drilldownTitle,
     drilldownData,
     overallUptimePercent,
-    showStackCapLine = false
+    showStackCapLine = false,
+    subgroupMembers
 }: BoonUptimeSectionProps) => {
     const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
     const sectionId = 'boon-uptime';
@@ -269,7 +343,12 @@ export const BoonUptimeSection = ({
                                                     </div>
                                                     <div className={`text-[10px] truncate ${isSubgroup ? 'text-cyan-200/80' : 'text-gray-400'}`}>
                                                         {player.logs} {player.logs === 1 ? 'fight' : 'fights'}
-                                                        {isSubgroup ? ' averaged across subgroup members' : ''}
+                                                        {isSubgroup && player.subgroupId != null && subgroupMembers?.has(player.subgroupId) ? (
+                                                            <SubgroupMembersTooltip
+                                                                members={subgroupMembers.get(player.subgroupId)!}
+                                                                renderProfessionIcon={renderProfessionIcon}
+                                                            />
+                                                        ) : isSubgroup ? ' averaged across subgroup members' : ''}
                                                     </div>
                                                 </div>
                                                 <div className={`text-xs font-mono shrink-0 ${isSubgroup ? 'text-cyan-100' : 'text-amber-200'}`}>

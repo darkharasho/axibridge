@@ -152,7 +152,7 @@ const buildClassColumns = (counts: Record<string, number>, maxRows = 5) => {
     return columns;
 };
 
-const useFixedTooltipPosition = (
+export const useFixedTooltipPosition = (
     open: boolean,
     deps: any[],
     wrapperRef: RefObject<HTMLElement>,
