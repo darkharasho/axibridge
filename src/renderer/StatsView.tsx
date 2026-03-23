@@ -3097,6 +3097,7 @@ type SpikeFight = {
             String(log?.filePath || '') === selectedFightId
             || String(log?.id || '') === selectedFightId
         ) || logAtIndex;
+        const selectedLogDetails = getDetails(selectedLog);
         // Normalize Windows paths for map lookup (map keys may have double backslash, fight IDs single)
         const normPath = (p: string) => p.replace(/\\/g, '/').toLowerCase();
         const normFightId = normPath(selectedFightId);
@@ -3123,7 +3124,7 @@ type SpikeFight = {
             stabIncomingBuckets = stabIncomingBuckets.map((v: number) => Number(v || 0) * scale);
         }
         // If map had no shape data, try computing directly from selectedLog player time-series
-        if (!stabIncomingBuckets.some(v => v > 0) && selectedLog?.details?.players) {
+        if (!stabIncomingBuckets.some(v => v > 0) && selectedLogDetails?.players) {
             // Full normalization matching squadIncomingDamageBucketsByFightId (handles 1D, 2D, 3D WvW formats)
             const normCum = (val: any): number[] => {
                 if (!Array.isArray(val) || val.length === 0) return [];
@@ -3150,7 +3151,7 @@ type SpikeFight = {
                 for (let i = 0; i < s.length; i += 5) out.push(s.slice(i, Math.min(i + 5, s.length)).reduce((a, b) => a + b, 0));
                 return out;
             };
-            const allPlayers = (selectedLog.details.players as any[]).filter((p: any) => !p?.notInSquad);
+            const allPlayers = ((selectedLogDetails?.players || []) as any[]).filter((p: any) => !p?.notInSquad);
             // Try damageTaken1S first, then powerDamageTaken1S (matches computeIncomingStrikeDamageData fallback)
             const trySource = (field: string) => {
                 const arrays = allPlayers.map((p: any) => toDeltas(normCum(p?.[field]))).filter((a: number[]) => a.length > 0);
@@ -3175,17 +3176,17 @@ type SpikeFight = {
         if (!stabIncomingBuckets.some(v => v > 0) && incomingTotal > 0) {
             stabIncomingBuckets = Array.from({ length: bucketCount }, () => incomingTotal / bucketCount);
         }
-        const selectedPlayerDetails = selectedLog?.details?.players?.find((p: any) =>
+        const selectedPlayerDetails = selectedLogDetails?.players?.find((p: any) =>
             String(p?.account || p?.name || 'Unknown') === selectedStabPerfPlayerKey
         );
         const selectedPlayerGroup = Number(selectedPlayerDetails?.group ?? 0);
         const playerDeathsPerBucket = new Map<string, number[]>();
         const playerDistancesPerBucket = new Map<string, number[]>();
         const partyMembersMap = new Map<string, { displayName: string; stacksPerBucket: number[] }>();
-        if (selectedLog?.details?.players && selectedPlayerGroup > 0) {
-            const squadPlayers = selectedLog.details.players.filter((p: any) => !p?.notInSquad);
+        if (selectedLogDetails?.players && selectedPlayerGroup > 0) {
+            const squadPlayers = (selectedLogDetails.players as any[]).filter((p: any) => !p?.notInSquad);
             // Combat replay metadata for per-5s distance computation
-            const replayMeta = (selectedLog.details as any)?.combatReplayMetaData || {};
+            const replayMeta = (selectedLogDetails as any)?.combatReplayMetaData || {};
             const inchesToPixel = Number(replayMeta?.inchToPixel || 0) > 0 ? Number(replayMeta.inchToPixel) : 1;
             const pollingRate = Number(replayMeta?.pollingRate || 0) > 0 ? Number(replayMeta.pollingRate) : 500;
             const getFirstSeg = (replayData: any) => Array.isArray(replayData) ? replayData[0] : replayData;
