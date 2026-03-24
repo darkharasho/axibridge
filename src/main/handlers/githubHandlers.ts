@@ -835,11 +835,47 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, isOverride);
             const filePath = withPagesPath(pagesPath, `reports/${reportId}/report.json`);
             const file = await getGithubFile(owner, repo, filePath, branch, token);
-            if (!file?.content) {
+            if (!file) {
                 return { success: false, error: 'Report not found.' };
             }
-            const decoded = Buffer.from(file.content, 'base64').toString('utf8');
-            const report = JSON.parse(decoded);
+            let reportJson: string;
+            if (file.content) {
+                // File within 1MB Contents API limit — base64 encoded
+                reportJson = Buffer.from(file.content, 'base64').toString('utf8');
+            } else if (file.download_url) {
+                // File exceeds 1MB — fetch raw content via download_url
+                const rawResp = await new Promise<string>((resolve, reject) => {
+                    const url = new URL(file.download_url);
+                    https.get(
+                        { hostname: url.hostname, path: url.pathname + url.search, headers: { 'User-Agent': 'ArcBridge' } },
+                        (res) => {
+                            if (res.statusCode === 301 || res.statusCode === 302) {
+                                const redirect = res.headers.location;
+                                if (!redirect) return reject(new Error('Redirect with no location'));
+                                const rUrl = new URL(redirect);
+                                https.get(
+                                    { hostname: rUrl.hostname, path: rUrl.pathname + rUrl.search, headers: { 'User-Agent': 'ArcBridge' } },
+                                    (rRes) => {
+                                        let d = '';
+                                        rRes.setEncoding('utf8');
+                                        rRes.on('data', (c) => (d += c));
+                                        rRes.on('end', () => resolve(d));
+                                    }
+                                ).on('error', reject);
+                                return;
+                            }
+                            let d = '';
+                            res.setEncoding('utf8');
+                            res.on('data', (c) => (d += c));
+                            res.on('end', () => resolve(d));
+                        }
+                    ).on('error', reject);
+                });
+                reportJson = rawResp;
+            } else {
+                return { success: false, error: 'Report not found.' };
+            }
+            const report = JSON.parse(reportJson);
             return { success: true, report };
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to load report.' };
