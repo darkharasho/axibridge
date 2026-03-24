@@ -41,7 +41,7 @@ export const TopSkillsSection = ({
         <div
             data-section-visible={isSectionVisible('top-skills-outgoing')}
             data-section-first={isFirstVisibleSection('top-skills-outgoing')}
-            className={sectionClass('top-skills-outgoing', 'grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8')}
+            className={sectionClass('top-skills-outgoing', 'grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 mt-4')}
         >
         <div
             id="top-skills-outgoing"
