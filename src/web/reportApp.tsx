@@ -876,6 +876,12 @@ export function ReportApp() {
                     // Support new object format { siteTheme, entries } and legacy plain array.
                     const entries = Array.isArray(data) ? data : (Array.isArray(data?.entries) ? data.entries : []);
                     setIndex(entries);
+                    // Apply site-wide palette and glass from index.json
+                    if (!Array.isArray(data) && data?.colorPalette) {
+                        const { palette, glass } = readPaletteFromReport(data);
+                        setColorPalette(palette);
+                        setGlassSurfaces(glass);
+                    }
                 })
                 .catch(() => {
                     if (!isMounted) return;
