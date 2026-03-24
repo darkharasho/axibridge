@@ -54,7 +54,7 @@ Top to bottom:
      - Since: "Since Mar 24 2:30 PM · 8 logs found"
      - Range: "Mar 22 – Mar 24 · 15 logs found"
      - Preset: "Last 3 days · 23 logs found"
-   - Count reflects date-filtered matches from `filePickerAvailable` (before search narrowing)
+   - Count reflects date-filtered matches from `filePickerAll` (consistent with what `handleApplyPreset` and `handleApplyDateFilters` use for selection)
    - "Select All N" button (full width) — sets `filePickerSelected` to all date-matching files. If all are already selected, button text changes to "Deselect All" and clears selection.
 
 ### Right Panel (flex remaining ~840px)
