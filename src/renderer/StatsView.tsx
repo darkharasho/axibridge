@@ -3733,11 +3733,7 @@ type SpikeFight = {
                                 className="stats-dissolve-bar__fill"
                                 style={{ width: `${statsSettling.progressPercent}%` }}
                             />
-                            <div
-                                className="stats-dissolve-bar__glow"
-                                style={{ left: `calc(${statsSettling.progressPercent}% - 5px)` }}
-                            />
-                            <div style={{ position: 'absolute', left: `${statsSettling.progressPercent}%`, top: '50%', transform: 'translateY(-50%)' }}>
+                            <div style={{ position: 'absolute', left: `${statsSettling.progressPercent}%`, top: '50%', transform: 'translateY(-50%)', transition: 'left 0.6s ease' }}>
                                 <span className="stats-dissolve-bar__particle" />
                                 <span className="stats-dissolve-bar__particle" />
                                 <span className="stats-dissolve-bar__particle" />
