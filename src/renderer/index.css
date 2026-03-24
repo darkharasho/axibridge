@@ -953,24 +953,24 @@ body.web-report #top-players .mvp-gold-icon-badge {
 /* ── Particle dissolve loading: keyframes ── */
 
 @keyframes dissolve-scatter-1 {
-  0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
-  100% { transform: translate(14px, -10px) scale(0); opacity: 0; }
+  0% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  100% { transform: translate(20px, -14px) scale(0); opacity: 0; }
 }
 @keyframes dissolve-scatter-2 {
-  0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
-  100% { transform: translate(10px, 8px) scale(0); opacity: 0; }
+  0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+  100% { transform: translate(14px, 12px) scale(0); opacity: 0; }
 }
 @keyframes dissolve-scatter-3 {
-  0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
-  100% { transform: translate(18px, -5px) scale(0); opacity: 0; }
+  0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  100% { transform: translate(24px, -8px) scale(0); opacity: 0; }
 }
 @keyframes dissolve-scatter-4 {
-  0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
-  100% { transform: translate(8px, 11px) scale(0); opacity: 0; }
+  0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+  100% { transform: translate(12px, 16px) scale(0); opacity: 0; }
 }
 @keyframes dissolve-scatter-5 {
-  0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
-  100% { transform: translate(22px, -7px) scale(0); opacity: 0; }
+  0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  100% { transform: translate(28px, -10px) scale(0); opacity: 0; }
 }
 
 @keyframes dissolve-glow {
@@ -1004,9 +1004,9 @@ body.web-report #top-players .mvp-gold-icon-badge {
 
 .stats-dissolve-bar {
   position: relative;
-  height: 3px;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--brand-primary) 10%, transparent);
   overflow: visible;
   margin-top: 8px;
 }
@@ -1023,9 +1023,9 @@ body.web-report #top-players .mvp-gold-icon-badge {
 
 .stats-dissolve-bar__glow {
   position: absolute;
-  top: -4px;
-  width: 10px;
-  height: 11px;
+  top: -6px;
+  width: 16px;
+  height: 18px;
   border-radius: 50%;
   background: radial-gradient(circle, color-mix(in srgb, var(--brand-secondary) 50%, transparent), transparent);
   animation: dissolve-glow 1.5s ease-in-out infinite;
@@ -1039,27 +1039,27 @@ body.web-report #top-players .mvp-gold-icon-badge {
 }
 
 .stats-dissolve-bar__particle:nth-child(1) {
-  width: 3px; height: 3px;
+  width: 4px; height: 4px;
   background: var(--brand-secondary);
   animation: dissolve-scatter-1 1.8s ease-out infinite;
 }
 .stats-dissolve-bar__particle:nth-child(2) {
-  width: 2px; height: 2px;
+  width: 3px; height: 3px;
   background: var(--brand-primary);
   animation: dissolve-scatter-2 1.8s ease-out infinite 0.2s;
 }
 .stats-dissolve-bar__particle:nth-child(3) {
-  width: 2px; height: 2px;
+  width: 3px; height: 3px;
   background: var(--brand-secondary);
   animation: dissolve-scatter-3 1.8s ease-out infinite 0.5s;
 }
 .stats-dissolve-bar__particle:nth-child(4) {
-  width: 3px; height: 3px;
+  width: 4px; height: 4px;
   background: var(--brand-primary);
   animation: dissolve-scatter-4 1.8s ease-out infinite 0.3s;
 }
 .stats-dissolve-bar__particle:nth-child(5) {
-  width: 2px; height: 2px;
+  width: 3px; height: 3px;
   background: var(--brand-secondary);
   animation: dissolve-scatter-5 1.8s ease-out infinite 0.7s;
 }
@@ -1082,19 +1082,17 @@ body.web-report #top-players .mvp-gold-icon-badge {
   overflow: hidden;
 }
 
-.stats-section-wrap--unloaded {
-  min-height: 120px;
-}
-
 .stats-section-wrap--unloaded > :first-child {
-  opacity: 0;
+  opacity: 0.45;
   pointer-events: none;
+  filter: saturate(0.4);
 }
 
 .stats-section-wrap--materializing > :first-child {
-  opacity: 0;
+  opacity: 0.7;
   pointer-events: none;
-  transition: opacity 300ms ease;
+  filter: saturate(0.7);
+  transition: opacity 300ms ease, filter 300ms ease;
 }
 
 .stats-section-wrap--loaded > :first-child {
@@ -1125,11 +1123,13 @@ body.web-report #top-players .mvp-gold-icon-badge {
 
 .stats-dissolve-skeleton {
   position: absolute;
-  inset: 0;
+  top: 40px;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 36px 16px 16px;
   pointer-events: none;
   z-index: 1;
 }
