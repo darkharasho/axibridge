@@ -581,7 +581,10 @@ function App() {
                     setNotificationType('image');
                     handleUpdateSettings({ discordNotificationType: 'image' });
                 }}
-                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-[4px] border transition-all ${notificationType === 'image' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                className="flex items-center justify-center gap-2 h-8 text-[11px] rounded-[4px] border transition-all"
+                style={notificationType === 'image'
+                    ? { background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--brand-primary)' }
+                    : { background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}
             >
                 <ImageIcon className="w-4 h-4" />
                 <span className="font-medium">Image</span>
@@ -591,7 +594,10 @@ function App() {
                     setNotificationType('embed');
                     handleUpdateSettings({ discordNotificationType: 'embed' });
                 }}
-                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-[4px] border transition-all ${notificationType === 'embed' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                className="flex items-center justify-center gap-2 h-8 text-[11px] rounded-[4px] border transition-all"
+                style={notificationType === 'embed'
+                    ? { background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--brand-primary)' }
+                    : { background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}
             >
                 <Layout className="w-4 h-4" />
                 <span className="font-medium">Embed</span>
@@ -601,7 +607,10 @@ function App() {
                     setNotificationType('image-beta');
                     handleUpdateSettings({ discordNotificationType: 'image-beta' });
                 }}
-                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-[4px] border transition-all ${notificationType === 'image-beta' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                className="flex items-center justify-center gap-2 h-8 text-[11px] rounded-[4px] border transition-all"
+                style={notificationType === 'image-beta'
+                    ? { background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--brand-primary)' }
+                    : { background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}
             >
                 <Grid3X3 className="w-4 h-4" />
                 <span className="font-medium">Tiled</span>
@@ -614,80 +623,80 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="rounded-[4px] border p-3 transition-colors matte-config-panel"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', borderRadius: '4px', boxShadow: 'var(--shadow-card)' }}
+            className="flex flex-col gap-3"
         >
-            <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.95fr)] gap-4 items-start p-2">
-                <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-1 gap-3 min-w-0">
-                    <div className="space-y-1 min-w-0">
-                        <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Log Directory</label>
-                        <div className="flex gap-1 w-full max-w-full">
-                            <div className="flex-1 min-w-0 rounded-[4px] border px-1.5 h-8 flex items-center gap-2 transition-colors" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}>
-                                <div className="pl-1 shrink-0">
-                                    <FolderOpen className="w-4 h-4 text-blue-400" />
-                                </div>
-                                <input
-                                    type="text"
-                                    value={logDirectory || ''}
-                                    placeholder="C:\...\arcdps.cbtlogs"
-                                    className="flex-1 bg-transparent border-none text-[11px] text-gray-300 placeholder-gray-600 focus:ring-0 px-2 min-w-0 w-full h-full"
-                                    onChange={(e) => setLogDirectory(e.target.value)}
-                                    onBlur={(e) => {
-                                        if (e.target.value) {
-                                            window.electronAPI.startWatching(e.target.value);
-                                        }
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && logDirectory) {
-                                            window.electronAPI.startWatching(logDirectory);
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <button
-                                onClick={handleSelectDirectory}
-                                className="shrink-0 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-[4px] w-8 h-8 flex items-center justify-center transition-colors"
-                                title="Browse..."
-                            >
-                                <FolderOpen className="w-3.5 h-3.5" />
-                            </button>
+            {/* Watch Folder card */}
+            <div className="rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Watch Folder</div>
+                <div className="flex gap-1 w-full max-w-full">
+                    <div className="flex-1 min-w-0 rounded-[4px] border px-1.5 h-8 flex items-center gap-2 transition-colors" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}>
+                        <div className="pl-1 shrink-0">
+                            <FolderOpen className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
                         </div>
+                        <input
+                            type="text"
+                            value={logDirectory || ''}
+                            placeholder="C:\...\arcdps.cbtlogs"
+                            className="flex-1 bg-transparent border-none text-[11px] text-gray-300 placeholder-gray-600 focus:ring-0 px-2 min-w-0 w-full h-full"
+                            onChange={(e) => setLogDirectory(e.target.value)}
+                            onBlur={(e) => {
+                                if (e.target.value) {
+                                    window.electronAPI.startWatching(e.target.value);
+                                }
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && logDirectory) {
+                                    window.electronAPI.startWatching(logDirectory);
+                                }
+                            }}
+                        />
                     </div>
+                    <button
+                        onClick={handleSelectDirectory}
+                        className="shrink-0 rounded-[4px] w-8 h-8 flex items-center justify-center border transition-colors"
+                        style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--brand-primary)' }}
+                        title="Browse..."
+                    >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </div>
 
-                    <div className="space-y-1 min-w-0">
-                        <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Discord Webhook</label>
-                        <div className="flex gap-1 w-full">
-                            <div ref={webhookDropdownRef} className="relative flex-1 min-w-0">
-                                <button
-                                    type="button"
-                                    onClick={() => setWebhookDropdownOpen((prev) => !prev)}
-                                    ref={webhookDropdownButtonRef}
-                                    className="w-full rounded-[4px] border px-2.5 h-8 flex items-center justify-between gap-2 text-[11px] transition-colors"
-                                    style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                                    aria-haspopup="listbox"
-                                    aria-expanded={webhookDropdownOpen}
-                                >
-                                    <span className="truncate">
-                                        {selectedWebhook?.name || 'Disabled'}
-                                    </span>
-                                    <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
-                                </button>
-                            </div>
-                            <button
-                                onClick={() => setWebhookModalOpen(true)}
-                                className="shrink-0 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-[4px] w-8 h-8 flex items-center justify-center gap-2 transition-colors"
-                                title="Manage Webhooks"
-                            >
-                                <Settings className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
+            {/* Discord Webhook card */}
+            <div className="rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Discord Webhook</div>
+                <div className="flex gap-1 w-full">
+                    <div ref={webhookDropdownRef} className="relative flex-1 min-w-0">
+                        <button
+                            type="button"
+                            onClick={() => setWebhookDropdownOpen((prev) => !prev)}
+                            ref={webhookDropdownButtonRef}
+                            className="w-full rounded-[4px] border px-2.5 h-8 flex items-center justify-between gap-2 text-[11px] transition-colors"
+                            style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            aria-haspopup="listbox"
+                            aria-expanded={webhookDropdownOpen}
+                        >
+                            <span className="truncate">
+                                {selectedWebhook?.name || 'Disabled'}
+                            </span>
+                            <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
                     </div>
+                    <button
+                        onClick={() => setWebhookModalOpen(true)}
+                        className="shrink-0 rounded-[4px] w-8 h-8 flex items-center justify-center gap-2 border transition-colors"
+                        style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--brand-primary)' }}
+                        title="Manage Webhooks"
+                    >
+                        <Settings className="w-3.5 h-3.5" />
+                    </button>
                 </div>
+            </div>
 
-                <div className="space-y-1 min-w-0">
-                    <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Notification Type</label>
-                    {notificationTypeButtons}
-                </div>
+            {/* Notification Type card */}
+            <div className="rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Notification Type</div>
+                {notificationTypeButtons}
             </div>
         </motion.div>
     );
@@ -712,9 +721,9 @@ function App() {
             <div className="grid grid-cols-4 gap-3">
                 <div className="h-24 rounded-[4px] border px-4 py-3 flex items-center justify-between gap-3 matte-stat-card" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <div className="min-w-0">
-                        <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Upload Status</div>
-                        <div className="mt-2 text-2xl font-bold text-white leading-none">{totalUploads}</div>
-                        <div className="mt-1 text-[11px] text-gray-500">
+                        <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Upload Status</div>
+                        <div className="mt-2 text-2xl font-bold leading-none" style={{ color: 'var(--brand-primary)' }}>{totalUploads}</div>
+                        <div className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                             {successCount} success • {errorCount} error{uploadingCount > 0 ? ` • ${uploadingCount} active` : ''}
                         </div>
                     </div>
@@ -755,46 +764,46 @@ function App() {
                 </div>
                 <div className="h-24 rounded-[4px] border px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <div>
-                        <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">W / L</div>
+                        <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>W / L</div>
                         <div className="inline-flex items-baseline text-2xl font-bold leading-none">
                             <span style={{ color: '#86efac' }}>{winLoss.wins}</span>
-                            <span className="text-gray-500 mx-2">/</span>
+                            <span className="mx-2" style={{ color: 'var(--text-muted)' }}>/</span>
                             <span style={{ color: '#fca5a5' }}>{winLoss.losses}</span>
                         </div>
-                        <div className="text-[11px] text-gray-500">Totals</div>
+                        <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Totals</div>
                     </div>
                     <div className="text-right">
-                        <div className="text-[11px] uppercase tracking-widest text-gray-500">Win rate</div>
+                        <div className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Win rate</div>
                         <div className="text-xl font-semibold text-emerald-200">{winRate}%</div>
-                        <div className="text-[11px] text-gray-500">{totalUploads} logs</div>
+                        <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{totalUploads} logs</div>
                     </div>
                 </div>
                 <div className="h-24 rounded-[4px] border px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <div>
-                        <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Avg Players</div>
+                        <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Avg Players</div>
                         <div className="inline-flex items-baseline text-2xl font-bold leading-none">
                             <span style={{ color: '#86efac' }}>{avgSquadSize}</span>
-                            <span className="text-gray-500 mx-2">/</span>
+                            <span className="mx-2" style={{ color: 'var(--text-muted)' }}>/</span>
                             <span style={{ color: '#fca5a5' }}>{avgEnemies}</span>
                         </div>
-                        <div className="text-[11px] text-gray-500">Squad / Enemy</div>
+                        <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Squad / Enemy</div>
                     </div>
                     <div className="text-right">
-                        <div className="text-[11px] uppercase tracking-widest text-gray-500">Diff</div>
+                        <div className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Diff</div>
                         <div className="text-xl font-semibold text-sky-200">{avgSquadSize - avgEnemies}</div>
-                        <div className="text-[11px] text-gray-500">Ratio {(avgEnemies ? (avgSquadSize / avgEnemies) : 0).toFixed(2)}</div>
+                        <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Ratio {(avgEnemies ? (avgSquadSize / avgEnemies) : 0).toFixed(2)}</div>
                     </div>
                 </div>
                 <div className="h-24 rounded-[4px] border px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <div>
-                        <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Squad KDR</div>
+                        <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Squad KDR</div>
                         <div className="text-2xl font-bold text-emerald-300 leading-none">{squadKdr}</div>
-                        <div className="text-[11px] text-gray-500">Kills / Deaths</div>
+                        <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Kills / Deaths</div>
                     </div>
                     <div className="text-right">
-                        <div className="text-[11px] uppercase tracking-widest text-gray-500">Success</div>
+                        <div className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Success</div>
                         <div className="text-xl font-semibold text-emerald-200">{successCount}</div>
-                        <div className="text-[11px] text-gray-500">Errors {errorCount}</div>
+                        <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Errors {errorCount}</div>
                     </div>
                 </div>
             </div>
@@ -859,7 +868,7 @@ function App() {
                     <button
                         onClick={() => filePickerState.setFilePickerOpen(true)}
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
-                        style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card-inner)', color: 'var(--text-secondary)' }}
+                        style={{ borderColor: 'var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                         title="Select logs to upload"
                     >
                         <FilePlus2 className="w-3 h-3" />

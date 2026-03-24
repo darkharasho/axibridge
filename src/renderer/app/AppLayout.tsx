@@ -640,10 +640,10 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 handleUpdateSettings({ selectedWebhookId: null });
                                 setWebhookDropdownOpen(false);
                             }}
-                            className={`w-full px-3 py-2 text-left text-sm transition-colors ${!selectedWebhookId
-                                ? 'bg-purple-500/20 text-purple-100'
-                                : 'text-gray-300 hover:bg-white/10'
-                                }`}
+                            className="w-full px-3 py-2 text-left text-sm transition-colors"
+                            style={!selectedWebhookId
+                                ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
+                                : { color: 'var(--text-secondary)' }}
                             role="option"
                             aria-selected={!selectedWebhookId}
                         >
@@ -658,10 +658,10 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     handleUpdateSettings({ selectedWebhookId: hook.id });
                                     setWebhookDropdownOpen(false);
                                 }}
-                                className={`w-full px-3 py-2 text-left text-sm transition-colors ${selectedWebhookId === hook.id
-                                    ? 'bg-purple-500/20 text-purple-100'
-                                    : 'text-gray-300 hover:bg-white/10'
-                                    }`}
+                                className="w-full px-3 py-2 text-left text-sm transition-colors"
+                                style={selectedWebhookId === hook.id
+                                    ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
+                                    : { color: 'var(--text-secondary)' }}
                                 role="option"
                                 aria-selected={selectedWebhookId === hook.id}
                             >
