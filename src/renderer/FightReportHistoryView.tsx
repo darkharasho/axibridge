@@ -317,7 +317,7 @@ export function FightReportHistoryView() {
     return (
         <div className="flex-1 min-h-0 -mx-8 -mb-2 flex flex-col">
             {/* Tab bar */}
-            <div className="flex items-center gap-0 border-b" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="flex items-center gap-0 border-b px-8" style={{ borderColor: 'var(--border-default)' }}>
                 <button type="button" onClick={() => setActiveTab('list')}
                     className="px-4 py-2 text-xs"
                     style={{
