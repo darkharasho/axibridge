@@ -609,13 +609,6 @@ function App() {
         </div>
     );
 
-    const notificationTypePanel = (
-        <div className="space-y-1 min-w-0">
-            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1 block">Notification Type</label>
-            {notificationTypeButtons}
-        </div>
-    );
-
     const configurationPanel = (
         <motion.div
             initial={{ opacity: 0, y: 20 }}

@@ -54,9 +54,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         aggregationDiagnostics,
         statsDataProgress,
         setStatsViewSettings,
-        colorPalette,
         setColorPalette,
-        glassSurfaces,
         setGlassSurfaces,
         handleWebUpload,
         selectedWebhookId,
@@ -485,7 +483,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 <WebUploadOverlay
                     webUploadState={webUploadState}
                     isDev={isDev}
-                    isModernTheme={false}
                     setWebUploadState={setWebUploadState}
                 />
 

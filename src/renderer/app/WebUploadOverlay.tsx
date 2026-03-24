@@ -4,12 +4,10 @@ import type { IWebUploadState } from '../global.d';
 export function WebUploadOverlay({
     webUploadState,
     isDev,
-    isModernTheme,
     setWebUploadState
 }: {
     webUploadState: IWebUploadState;
     isDev: boolean;
-    isModernTheme: boolean;
     setWebUploadState: Dispatch<SetStateAction<IWebUploadState>>;
 }) {
     if (!(webUploadState.uploading || webUploadState.stage)) return null;
@@ -48,8 +46,8 @@ export function WebUploadOverlay({
                         {webUploadState.detail}
                     </pre>
                 )}
-                <div className={`mt-4 h-2 rounded-full overflow-hidden ${isModernTheme ? 'bg-slate-800/70 border border-white/20' : 'bg-white/10'}`}>
-                    <div className={`h-full transition-all ${isModernTheme ? 'bg-slate-200 shadow-[0_0_10px_rgba(226,232,240,0.6)]' : 'bg-gradient-to-r from-cyan-300 to-blue-400'}`} style={{ width: `${webUploadState.progress ?? (webUploadState.uploading ? 35 : 100)}%` }} />
+                <div className="mt-4 h-2 rounded-full overflow-hidden bg-white/10">
+                    <div className="h-full transition-all bg-gradient-to-r from-cyan-300 to-blue-400" style={{ width: `${webUploadState.progress ?? (webUploadState.uploading ? 35 : 100)}%` }} />
                 </div>
                 <div className="text-xs text-gray-500 mt-2">{typeof webUploadState.progress === 'number' ? `${Math.round(webUploadState.progress)}%` : 'Preparing...'}</div>
                 {hasFailure && (
