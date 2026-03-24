@@ -359,7 +359,7 @@ export interface IElectronAPI {
     getGithubRepos: () => Promise<{ success: boolean; repos?: Array<{ full_name: string; name: string; owner: string }>; error?: string }>;
     getGithubOrgs: () => Promise<{ success: boolean; orgs?: Array<{ login: string }>; error?: string }>;
     getGithubReports: (payload?: { owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; reports?: any[]; error?: string }>;
-    deleteGithubReports: (payload: { ids: string[] }) => Promise<{ success: boolean; removed?: string[]; error?: string }>;
+    deleteGithubReports: (payload: { ids: string[]; owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; removed?: string[]; error?: string }>;
     listLogFiles: (payload: { dir: string }) => Promise<{ success: boolean; files?: Array<{ path: string; name: string; mtimeMs: number; size: number }>; error?: string }>;
     createGithubRepo: (params: { name: string; branch?: string; owner?: string }) => Promise<{ success: boolean; repo?: { full_name: string; owner: string; name: string; pagesUrl?: string }; error?: string }>;
     ensureGithubTemplate: () => Promise<{ success: boolean; updated?: boolean; error?: string }>;

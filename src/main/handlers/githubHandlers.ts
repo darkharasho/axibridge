@@ -810,12 +810,13 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         }
     });
 
-    ipcMain.handle('delete-github-reports', async (_event, payload: { ids: string[] }) => {
+    ipcMain.handle('delete-github-reports', async (_event, payload: { ids: string[]; owner?: string; repo?: string; branch?: string }) => {
         try {
             const token = store.get('githubToken') as string | undefined;
-            const owner = store.get('githubRepoOwner') as string | undefined;
-            const repo = store.get('githubRepoName') as string | undefined;
-            const branch = (store.get('githubBranch') as string | undefined) || 'main';
+            const isOverride = !!(payload?.owner && payload?.repo);
+            const owner = (isOverride ? payload.owner! : store.get('githubRepoOwner') as string | undefined);
+            const repo = (isOverride ? payload.repo! : store.get('githubRepoName') as string | undefined);
+            const branch = payload?.branch || (store.get('githubBranch') as string | undefined) || 'main';
             const ids = payload?.ids?.filter(Boolean) || [];
             if (!token) {
                 return { success: false, error: 'GitHub not connected.' };
@@ -826,15 +827,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             if (ids.length === 0) {
                 return { success: false, error: 'No reports selected.' };
             }
-            let pagesPath = getStoredPagesPath();
-            if (!pagesPath) {
-                try {
-                    const resolved = await resolvePagesSource(owner, repo, branch, token);
-                    pagesPath = resolved.pagesPath;
-                } catch {
-                    pagesPath = '';
-                }
-            }
+            const pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, isOverride);
             const pagesPrefix = pagesPath ? `${pagesPath}/` : '';
 
             const headRef = await getGithubRef(owner, repo, branch, token);
