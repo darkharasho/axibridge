@@ -356,27 +356,23 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
 
     const [dissolveCompletedForLogKey, setDissolveCompletedForLogKey] = useState<string | null>(null);
     const rawDissolveActive = (showDissolveLoading && settlingProgressPercent < 100) || dissolveCompleting;
-    // hasMeaningfulStats: true when the aggregation produced actual fight data (not empty)
-    const hasMeaningfulStats = stats != null && Number((stats as any)?.total || 0) > 0;
-    // noDataExpected: true when the app genuinely has no logs (empty state, not bulk deferral)
-    const noDataExpected = logs.length === 0 && (statsDataProgress?.total ?? 0) === 0 && !statsDataProgress?.active;
+
+    // Compare computed fights against expected fights to decide if loading is done.
+    // Expected = total uploaded logs minus errored/unavailable ones.
+    // Computed = fights the aggregation actually produced (stats.total).
+    // Loading stays active until computed >= expected (or expected is 0).
+    const computedFights = Number((stats as any)?.total || 0);
+    const expectedFights = Math.max(0, (statsDataProgress?.total ?? 0) - (statsDataProgress?.unavailable ?? 0));
+    const allFightsComputed = expectedFights === 0 || computedFights >= expectedFights;
 
     useEffect(() => {
         if (dissolveCompletedForLogKey === logIdentityKey) return;
-        // Only mark completed when there's actual data to show, or when there's
-        // genuinely nothing expected (empty app). This keeps the dissolve active
-        // through: bulk upload deferral, worker running on detailless logs, and
-        // details hydration — until real fight stats are computed.
-        if (!rawDissolveActive && !dissolveCompleting && !aggregationSettling.active && (hasMeaningfulStats || noDataExpected)) {
+        if (!rawDissolveActive && !dissolveCompleting && !aggregationSettling.active && allFightsComputed) {
             setDissolveCompletedForLogKey(logIdentityKey);
         }
-    }, [rawDissolveActive, dissolveCompleting, aggregationSettling.active, dissolveCompletedForLogKey, logIdentityKey, hasMeaningfulStats, noDataExpected]);
-    // dissolveActive gates section rendering (unloaded/materializing visual state).
-    // It stays true until there's meaningful stats data to show. This covers:
-    // - bulk upload deferral (logsForStats empty, main logs uploading)
-    // - worker ran on detailless logs (stats empty, details hydrating)
-    // - any gap between aggregation phases
-    const awaitingData = dissolveCompletedForLogKey !== logIdentityKey && !embedded && !hasMeaningfulStats && !noDataExpected;
+    }, [rawDissolveActive, dissolveCompleting, aggregationSettling.active, dissolveCompletedForLogKey, logIdentityKey, allFightsComputed]);
+    // dissolveActive: keep loading until all expected fights are computed.
+    const awaitingData = dissolveCompletedForLogKey !== logIdentityKey && !embedded && !allFightsComputed;
     const dissolveActive = (rawDissolveActive && dissolveCompletedForLogKey !== logIdentityKey) || awaitingData;
     const statsActionsDisabled = dissolveActive || !sectionContentReady;
 
