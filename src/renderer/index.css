@@ -954,23 +954,23 @@ body.web-report #top-players .mvp-gold-icon-badge {
 
 @keyframes dissolve-scatter-1 {
   0% { transform: translate(0, 0) scale(1); opacity: 0.9; }
-  100% { transform: translate(-14px, -12px) scale(0); opacity: 0; }
+  100% { transform: translate(-22px, -18px) scale(0); opacity: 0; }
 }
 @keyframes dissolve-scatter-2 {
   0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
-  100% { transform: translate(-10px, 10px) scale(0); opacity: 0; }
+  100% { transform: translate(-16px, 16px) scale(0); opacity: 0; }
 }
 @keyframes dissolve-scatter-3 {
   0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
-  100% { transform: translate(-18px, -8px) scale(0); opacity: 0; }
+  100% { transform: translate(-28px, -12px) scale(0); opacity: 0; }
 }
 @keyframes dissolve-scatter-4 {
   0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
-  100% { transform: translate(-6px, 14px) scale(0); opacity: 0; }
+  100% { transform: translate(-10px, 22px) scale(0); opacity: 0; }
 }
 @keyframes dissolve-scatter-5 {
   0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
-  100% { transform: translate(-20px, -6px) scale(0); opacity: 0; }
+  100% { transform: translate(-30px, -10px) scale(0); opacity: 0; }
 }
 
 @keyframes dissolve-glow {
@@ -979,10 +979,10 @@ body.web-report #top-players .mvp-gold-icon-badge {
 }
 
 @keyframes particle-float {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.25; }
-  25% { transform: translateY(-7px) scale(1.15); opacity: 0.6; }
-  50% { transform: translateY(-2px) scale(0.85); opacity: 0.4; }
-  75% { transform: translateY(-9px) scale(1.05); opacity: 0.55; }
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.35; }
+  25% { transform: translateY(-12px) scale(1.2); opacity: 0.75; }
+  50% { transform: translateY(-4px) scale(0.9); opacity: 0.5; }
+  75% { transform: translateY(-16px) scale(1.1); opacity: 0.65; }
 }
 
 @keyframes dissolve-shimmer {
@@ -1040,27 +1040,27 @@ body.web-report #top-players .mvp-gold-icon-badge {
 }
 
 .stats-dissolve-bar__particle:nth-child(1) {
-  width: 5px; height: 5px;
+  width: 8px; height: 8px;
   background: var(--brand-secondary);
   animation: dissolve-scatter-1 1.8s ease-out infinite;
 }
 .stats-dissolve-bar__particle:nth-child(2) {
-  width: 4px; height: 4px;
+  width: 6px; height: 6px;
   background: var(--brand-primary);
   animation: dissolve-scatter-2 1.8s ease-out infinite 0.2s;
 }
 .stats-dissolve-bar__particle:nth-child(3) {
-  width: 4px; height: 4px;
+  width: 7px; height: 7px;
   background: var(--brand-secondary);
   animation: dissolve-scatter-3 1.8s ease-out infinite 0.5s;
 }
 .stats-dissolve-bar__particle:nth-child(4) {
-  width: 5px; height: 5px;
+  width: 8px; height: 8px;
   background: var(--brand-primary);
   animation: dissolve-scatter-4 1.8s ease-out infinite 0.3s;
 }
 .stats-dissolve-bar__particle:nth-child(5) {
-  width: 4px; height: 4px;
+  width: 6px; height: 6px;
   background: var(--brand-secondary);
   animation: dissolve-scatter-5 1.8s ease-out infinite 0.7s;
 }
@@ -1141,9 +1141,9 @@ body.web-report #top-players .mvp-gold-icon-badge {
   z-index: 2;
 }
 
-.stats-dissolve-particle:nth-of-type(1) { top: 20%; left: 25%; width: 6px; height: 6px; background: color-mix(in srgb, var(--brand-primary) 45%, transparent); animation: particle-float 3.2s ease-in-out infinite; }
-.stats-dissolve-particle:nth-of-type(2) { top: 55%; left: 70%; width: 5px; height: 5px; background: color-mix(in srgb, var(--brand-secondary) 40%, transparent); animation: particle-float 2.8s ease-in-out infinite 0.6s; }
-.stats-dissolve-particle:nth-of-type(3) { top: 40%; left: 50%; width: 6px; height: 6px; background: color-mix(in srgb, var(--brand-primary) 35%, transparent); animation: particle-float 3.6s ease-in-out infinite 1.2s; }
+.stats-dissolve-particle:nth-of-type(1) { top: 20%; left: 25%; width: 10px; height: 10px; background: color-mix(in srgb, var(--brand-primary) 55%, transparent); animation: particle-float 3.2s ease-in-out infinite; }
+.stats-dissolve-particle:nth-of-type(2) { top: 55%; left: 70%; width: 8px; height: 8px; background: color-mix(in srgb, var(--brand-secondary) 50%, transparent); animation: particle-float 2.8s ease-in-out infinite 0.6s; }
+.stats-dissolve-particle:nth-of-type(3) { top: 40%; left: 50%; width: 10px; height: 10px; background: color-mix(in srgb, var(--brand-primary) 45%, transparent); animation: particle-float 3.6s ease-in-out infinite 1.2s; }
 
 /* Materializing: particles fade out */
 .stats-section-wrap--materializing .stats-dissolve-particle {
