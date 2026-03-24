@@ -473,8 +473,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     setWebUploadState={setWebUploadState}
                 />
 
-                {view === 'stats' && statsViewMounted && (
-                    <div className="flex flex-1 min-h-0">
+                {statsViewMounted && (
+                    <div className="flex flex-1 min-h-0" style={view !== 'stats' ? { display: 'none' } : undefined}>
                         <div className="flex-1 min-h-0 flex gap-3">
                             <aside
                                 className="relative w-[248px] -mr-[176px] shrink-0 self-stretch min-h-0 overflow-visible"
