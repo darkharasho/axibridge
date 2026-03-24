@@ -1314,6 +1314,12 @@ body.glass-surfaces .backdrop-blur-xl { backdrop-filter: blur(20px) !important; 
 body.glass-surfaces .backdrop-blur-lg { backdrop-filter: blur(12px) !important; }
 body.glass-surfaces .backdrop-blur-md { backdrop-filter: blur(8px) !important; }
 
+/* --- Native select/option styling --- */
+select option {
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
 /* --- Hover states --- */
 .hover\:bg-white\/10:hover { background-color: var(--bg-hover) !important; }
 .hover\:bg-white\/5:hover { background-color: var(--bg-hover) !important; }

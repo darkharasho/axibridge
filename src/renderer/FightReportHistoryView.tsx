@@ -145,7 +145,7 @@ export function FightReportHistoryView() {
                         <select
                             value={selectedOption.key}
                             onChange={(event) => setSelectedRepoKey(event.target.value)}
-                            className="w-full appearance-none rounded-[4px] pl-3 pr-9 py-2.5 text-sm focus:outline-none focus:border-blue-500/50"
+                            className="w-full appearance-none rounded-[4px] pl-3 pr-9 py-2.5 text-sm focus:outline-none"
                             style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
                             aria-label="Select GitHub Pages history source"
                         >
