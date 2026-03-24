@@ -326,16 +326,15 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     }, [statsSettling.active, statsSettling.progressPercent, embedded]);
 
     // Once dissolve has completed once, never show it again (prevents re-trigger on tab switch)
-    const dissolveCompletedOnceRef = useRef(false);
+    const [dissolveCompletedOnce, setDissolveCompletedOnce] = useState(false);
     const rawDissolveActive = (showDissolveLoading && statsSettling.progressPercent < 100) || dissolveCompleting;
-    if (!rawDissolveActive && showDissolveLoading === false && dissolveCompletedOnceRef.current === false && statsSettling.progressPercent === 0) {
-        // Stats loaded instantly (< 8 logs) or already computed — no dissolve needed
-    } else if (dissolveCompletedOnceRef.current && !rawDissolveActive) {
-        // Already completed once — stay suppressed
-    } else if (!rawDissolveActive && dissolveCompleting === false && statsSettling.active === false) {
-        dissolveCompletedOnceRef.current = true;
-    }
-    const dissolveActive = rawDissolveActive && !dissolveCompletedOnceRef.current;
+    useEffect(() => {
+        if (dissolveCompletedOnce) return;
+        if (!rawDissolveActive && !dissolveCompleting && !statsSettling.active) {
+            setDissolveCompletedOnce(true);
+        }
+    }, [rawDissolveActive, dissolveCompleting, statsSettling.active, dissolveCompletedOnce]);
+    const dissolveActive = rawDissolveActive && !dissolveCompletedOnce;
 
     const sectionWrapClass = dissolveActive
         ? (dissolveCompleting ? 'stats-section-wrap stats-section-wrap--materializing' : 'stats-section-wrap stats-section-wrap--unloaded')
@@ -3754,7 +3753,7 @@ type SpikeFight = {
                 devMockAvailable={devMockAvailable}
                 devMockUploadState={devMockUploadState}
             />
-            {statsSettling.active && !dissolveCompletedOnceRef.current && (
+            {statsSettling.active && !dissolveCompletedOnce && (
                 <div className="mb-3 text-xs">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
