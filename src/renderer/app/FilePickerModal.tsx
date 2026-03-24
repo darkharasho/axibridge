@@ -371,7 +371,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                         transition={{ type: "spring", bounce: 0, duration: 0.4 }}
                     >
                         {/* Left Panel */}
-                        <div className="w-[260px] min-w-[260px] flex flex-col overflow-y-auto border-r" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                        <div className="w-[260px] min-w-[260px] flex flex-col border-r" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
                             {/* Search box */}
                             <div className="p-3 pb-0">
                                 <div className="relative">
@@ -768,8 +768,14 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                     <button onClick={() => {
                                         if (filePickerSelected.size >= dateFilteredCount && dateFilteredCount > 0) {
                                             setFilePickerSelected(new Set());
+                                        } else if (activePreset) {
+                                            // Re-apply preset selection without toggling.
+                                            // Cannot use handleApplyPreset — it toggles off when preset === activePreset.
+                                            const saved = activePreset;
+                                            setActivePreset(null);
+                                            handleApplyPreset(saved);
                                         } else {
-                                            if (activePreset) { handleApplyPreset(activePreset); } else { handleApplyDateFilters(); }
+                                            handleApplyDateFilters();
                                         }
                                     }} className="w-full py-1.5 rounded-[4px] text-[11px] font-medium border transition-colors bg-cyan-500/15 text-cyan-200 border-cyan-500/30 hover:bg-cyan-500/25">
                                         {filePickerSelected.size >= dateFilteredCount && dateFilteredCount > 0 ? 'Deselect All' : `Select All ${dateFilteredCount}`}
