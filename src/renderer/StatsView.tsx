@@ -330,7 +330,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     useEffect(() => {
         if (aggregationSettling.progressPercent >= 100 && aggregationSettling.active && !embedded) {
             setDissolveCompleting(true);
-            const timer = setTimeout(() => setDissolveCompleting(false), 900);
+            const timer = setTimeout(() => setDissolveCompleting(false), 500);
             return () => clearTimeout(timer);
         }
     }, [aggregationSettling.progressPercent, aggregationSettling.active, embedded]);
@@ -353,7 +353,12 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
             setDissolveCompletedForLogKey(logIdentityKey);
         }
     }, [rawDissolveActive, dissolveCompleting, aggregationSettling.active, dissolveCompletedForLogKey, logIdentityKey, stats, logs.length]);
-    const dissolveActive = rawDissolveActive && dissolveCompletedForLogKey !== logIdentityKey;
+    // dissolveActive gates section rendering (unloaded/materializing visual state).
+    // It's true when: (1) the normal dissolve is playing (rawDissolveActive), OR
+    // (2) stats data is pending but hasn't reached the stats view yet (bulk upload gap
+    // where logsForStats is empty but main logs are uploading).
+    const awaitingData = dissolveCompletedForLogKey !== logIdentityKey && !embedded && Boolean(statsDataProgress?.active);
+    const dissolveActive = (rawDissolveActive && dissolveCompletedForLogKey !== logIdentityKey) || awaitingData;
     const statsActionsDisabled = dissolveActive || !sectionContentReady;
 
     const sectionWrapClass = dissolveActive
