@@ -543,12 +543,8 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const classDisplay = settings.classDisplay ?? 'off';
     const showClassIcons = classDisplay === 'emoji' && useClassIcons;
     const alwaysShowDetailedClassInfo = !screenshotMode;
-    const useCompactClassNamesInDetails = typeof document !== 'undefined'
-        && (
-            document.body.classList.contains('theme-classic')
-            || document.body.classList.contains('theme-matte')
-            || document.body.classList.contains('theme-crt')
-        );
+    // Unified theme always uses the top dashboard layout; compact class names are not needed.
+    const useCompactClassNamesInDetails = false;
     const getClassToken = (p: any) => {
         if (classDisplay === 'short') {
             return getProfessionAbbrev(p.profession || 'Unknown');

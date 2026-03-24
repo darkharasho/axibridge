@@ -77,7 +77,6 @@ interface StatsViewProps {
     embedded?: boolean;
     sectionVisibility?: (id: string) => boolean;
     dashboardTitle?: string;
-    uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass';
     canShareDiscord?: boolean;
     statsDataProgress?: {
         active: boolean;
@@ -146,7 +145,7 @@ const EMPTY_SKILL_USAGE_SUMMARY: SkillUsageSummary = {
 
 const EMPTY_ANY_ARRAY: any[] = [];
 
-export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, uiTheme, canShareDiscord = true, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
+export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, canShareDiscord = true, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
     const activeMvpWeights = normalizeMvpWeights(mvpWeights || DEFAULT_MVP_WEIGHTS);
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
     const activeWebUploadState = webUploadState || DEFAULT_WEB_UPLOAD_STATE;
@@ -559,7 +558,6 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         stats: safeStats,
         skillUsageData,
         activeStatsViewSettings: statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS,
-        uiTheme: uiTheme || 'classic',
         embedded,
         onWebUpload
     });
@@ -3571,23 +3569,12 @@ type SpikeFight = {
         }`
         : `flex-1 overflow-y-auto pr-2 space-y-6 min-h-0 border border-white/5 p-4 rounded-xl ${expandedSection ? '' : 'backdrop-blur-2xl'
         }`;
-    const scrollContainerStyle: CSSProperties | undefined = (embedded && uiTheme === 'dark-glass')
-        ? {
-            // Match app dark-glass main surface (neutral charcoal, no accent tint).
-            backgroundColor: 'rgba(13, 15, 20, 0.92)',
-            backgroundImage: 'none'
-        }
-        : (embedded && uiTheme !== 'matte' && uiTheme !== 'kinetic')
+    const scrollContainerStyle: CSSProperties | undefined = embedded
         ? {
             backgroundColor: 'rgba(3, 7, 18, 0.75)',
             backgroundImage: 'linear-gradient(160deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.04) 70%)'
         }
-        : (embedded && uiTheme === 'kinetic')
-            ? {
-                backgroundColor: 'var(--bg-elevated)',
-                backgroundImage: 'none'
-            }
-            : undefined;
+        : undefined;
     const resolvedScrollContainerStyle: CSSProperties | undefined = blurStatsDashboard
         ? {
             ...(scrollContainerStyle || {}),

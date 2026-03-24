@@ -7,7 +7,6 @@ interface UseStatsUploadsProps {
     stats: any;
     skillUsageData: any;
     activeStatsViewSettings: any;
-    uiTheme: string;
     embedded: boolean;
     onWebUpload?: (payload: { meta: any; stats: any }) => Promise<void> | void;
 }
@@ -17,7 +16,6 @@ export const useStatsUploads = ({
     stats,
     skillUsageData,
     activeStatsViewSettings,
-    uiTheme,
     embedded,
     onWebUpload
 }: UseStatsUploadsProps) => {
@@ -127,7 +125,6 @@ export const useStatsUploads = ({
             ...stats,
             skillUsageData,
             statsViewSettings: activeStatsViewSettings,
-            uiTheme: uiTheme || 'classic'
         };
         if (Array.isArray(baseStats.fightDiffMode) && baseStats.fightDiffMode.length > 0) {
             return baseStats;

@@ -8,8 +8,8 @@ import {
     type IEmbedStatSettings,
     type IMvpWeights,
     type IStatsViewSettings,
-    type UiTheme
 } from '../../global.d';
+import type { ColorPalette } from '../../../shared/webThemes';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 
 interface UseDevDatasetsOptions {
@@ -24,7 +24,7 @@ interface UseDevDatasetsOptions {
     setMvpWeights: Dispatch<SetStateAction<IMvpWeights>>;
     setStatsViewSettings: Dispatch<SetStateAction<IStatsViewSettings>>;
     setDisruptionMethod: Dispatch<SetStateAction<DisruptionMethod>>;
-    setUiTheme: Dispatch<SetStateAction<UiTheme>>;
+    setColorPalette: Dispatch<SetStateAction<ColorPalette>>;
     setSelectedWebhookId: Dispatch<SetStateAction<string | null>>;
     setBulkUploadMode: Dispatch<SetStateAction<boolean>>;
 }
@@ -41,7 +41,7 @@ export function useDevDatasets({
     setMvpWeights,
     setStatsViewSettings,
     setDisruptionMethod,
-    setUiTheme,
+    setColorPalette,
     setSelectedWebhookId,
     setBulkUploadMode
 }: UseDevDatasetsOptions) {
@@ -180,8 +180,8 @@ export function useDevDatasets({
         if (state.disruptionMethod === 'count' || state.disruptionMethod === 'duration' || state.disruptionMethod === 'tiered') {
             setDisruptionMethod(state.disruptionMethod);
         }
-        if (state.uiTheme === 'classic' || state.uiTheme === 'modern' || state.uiTheme === 'crt' || state.uiTheme === 'matte') {
-            setUiTheme(state.uiTheme);
+        if (state.colorPalette) {
+            setColorPalette(state.colorPalette);
         }
         if (state.selectedWebhookId === null || typeof state.selectedWebhookId === 'string') {
             setSelectedWebhookId(state.selectedWebhookId ?? null);
@@ -189,7 +189,7 @@ export function useDevDatasets({
         if (typeof state.bulkUploadMode === 'boolean') {
             setBulkUploadMode(state.bulkUploadMode);
         }
-    }, [setView, setExpandedLogId, setNotificationType, setEmbedStatSettings, setMvpWeights, setStatsViewSettings, setDisruptionMethod, setUiTheme, setSelectedWebhookId, setBulkUploadMode]);
+    }, [setView, setExpandedLogId, setNotificationType, setEmbedStatSettings, setMvpWeights, setStatsViewSettings, setDisruptionMethod, setColorPalette, setSelectedWebhookId, setBulkUploadMode]);
 
     const loadDevDatasets = useCallback(async () => {
         if (!window.electronAPI?.listDevDatasets) return;
