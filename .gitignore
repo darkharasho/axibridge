@@ -4,6 +4,9 @@ node_modules/
 # Superpowers brainstorming
 .superpowers/
 
+# Git worktrees
+.worktrees/
+
 # Build outputs
 dist-electron/
 dist-react/
