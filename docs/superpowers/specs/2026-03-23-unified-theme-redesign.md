@@ -45,12 +45,13 @@ Each palette defines 6 CSS variables. All other variables (backgrounds, borders,
 ### Amber Warm
 ```css
 --brand-primary: #f59e0b;
---brand-secondary: #ef4444;
---brand-gradient: linear-gradient(135deg, #f59e0b, #ef4444);
+--brand-secondary: #e67e22;
+--brand-gradient: linear-gradient(135deg, #f59e0b, #e67e22);
 --accent-bg: rgba(245, 158, 11, 0.10);
 --accent-bg-strong: rgba(245, 158, 11, 0.18);
 --accent-border: rgba(245, 158, 11, 0.35);
 ```
+Note: Secondary uses orange (`#e67e22`) instead of red to avoid conflict with semantic error/danger colors in stats.
 
 ### Emerald Mint
 ```css
@@ -92,9 +93,10 @@ Each palette defines 6 CSS variables. All other variables (backgrounds, borders,
   /* Radius */
   --radius-sm: 2px;
   --radius-md: 4px;
+  --radius-lg: 8px;  /* Reserved for future use */
 
   /* Typography */
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 ```
@@ -115,21 +117,26 @@ These apply to both the Electron renderer and the web report. The web report rec
 ### UI Themes (Electron)
 - `UiTheme` type and all 6 values (`classic`, `modern`, `matte`, `crt`, `kinetic`, `dark-glass`)
 - `uiTheme` setting in electron-store and IPC handlers
-- All `body.theme-*` CSS selectors in `index.css` (estimated ~2000+ lines of theme-specific overrides)
+- All `body.theme-*` CSS selectors in `index.css` (~4000-5000 lines of theme-specific overrides across ~1400 rule blocks)
 - All ternary theme checks in JSX (`uiTheme === 'matte' ? ... : ...`)
 - Theme-specific font imports (Manrope, Share Tech Mono, Edu SA Hand)
 - Theme-specific CSS variables (`--matte-light`, `--matte-dark`, `--glass-*`, etc.)
-- `webThemes.ts` theme definitions (except what's needed for palette/surface config)
+- `webThemes.ts` — `BASE_WEB_THEMES` (40+ gradient background definitions), `WebTheme` type, all theme objects. Palette config replaces this.
+- `KineticFontStyle`, `KineticThemeVariant`, `DEFAULT_KINETIC_FONT_STYLE`, `DEFAULT_KINETIC_THEME_VARIANT` types and defaults
+- `DashboardLayout` type and `dashboardLayout` setting (navigation is now always horizontal)
 
 ### Web Report Themes
 - All 6 files in `public/web-report-themes/` (`classic.css`, `modern.css`, `matte.css`, `crt.css`, `kinetic.css`, `dark-glass.css`)
 - `githubWebTheme` setting
-- `WebTheme` type
 - Dynamic theme CSS loading in the web report
+- All theme resolution logic in `reportApp.tsx`: `readReportThemeId()`, `readReportUiTheme()`, `resolveUiThemeFromOverride()`, `isLegacyKineticReport()`, `getWebReportThemeStylesheetHref()`, `ensureWebReportThemeStylesheet()`, `UiThemeChoice` type, cookie/query-param theme overrides
+
+### IPC Channels
+- `applyGithubTheme` IPC channel and handler (replaced by palette/glass settings)
 
 ### Tests
 - `src/shared/__tests__/statsThemesContract.test.ts` (no longer needed — one theme, no duplication risk)
-- Theme-related test fixtures and assertions
+- Theme-related assertions in `SettingsView.test.tsx`
 
 ## Component Changes
 
@@ -187,12 +194,25 @@ No per-component logic needed. The solid surface variable definitions remain as 
 
 ## Web Report Integration
 
-The web report currently loads theme CSS dynamically from `public/web-report-themes/`. After this change:
+The web report currently loads theme CSS dynamically from `public/web-report-themes/` and has ~200 lines of theme resolution logic in `reportApp.tsx`.
 
+### New Behavior
 - The unified theme CSS is embedded directly (no dynamic loading)
 - `report.json` includes `colorPalette` and `glassSurfaces` values
 - The web report applies palette variables and glass class on load
 - All web-report-specific CSS files are deleted
+- All theme resolution functions in `reportApp.tsx` are removed
+
+### Backward Compatibility (Published Reports)
+Old published `report.json` files embed `reportTheme` with `ui` and `paletteId` fields (from `buildWebReportPayload()` in `githubHandlers.ts`). The new web report viewer must handle these:
+
+- If `report.json` contains `reportTheme.ui` (old format): ignore it, apply `electric-blue` palette as default
+- If `report.json` contains `colorPalette` (new format): apply it directly
+- The 40+ gradient background themes (`BASE_WEB_THEMES` in `webThemes.ts`) are **removed**. New reports use the unified dark background. Old reports that referenced these gradients will fall back to the new dark base.
+
+### Web Report Build Changes
+- `buildWebReportPayload()` in `githubHandlers.ts` updated to emit `colorPalette` and `glassSurfaces` instead of `reportTheme`
+- `resolveWebPublishTheme()` and `resolveWebUiThemeChoice()` removed
 
 ## Migration Path
 
@@ -204,10 +224,13 @@ The web report currently loads theme CSS dynamically from `public/web-report-the
   - `crt` → `emerald-mint`
   - `kinetic` → `amber-warm`
   - `dark-glass` → `electric-blue` + `glassSurfaces: true`
-- Delete `uiTheme` and `githubWebTheme` from store
+- Delete from store: `uiTheme`, `githubWebTheme`, `kineticFontStyle`, `kineticThemeVariant`, `dashboardLayout`
+
+### Settings Import/Export
+- `importSettings` handler must also apply the migration mapping when it encounters old `uiTheme`/`githubWebTheme` keys in imported data. This prevents users from importing an old backup and getting broken theme state.
 
 ### Existing Web Reports
-- Previously published web reports include their theme CSS inline. They will continue to work as-is — this only affects newly published reports.
+- Old published `report.json` files with `reportTheme` are handled by backward-compatible reader logic (see Web Report Integration above).
 
 ## Font Loading
 
@@ -222,11 +245,56 @@ Remove imports for: Space Grotesk, Manrope, Share Tech Mono, Edu SA Hand. Keep I
 
 ## Performance Considerations
 
-- Removing 6 themes' worth of CSS overrides (~2000+ lines) reduces stylesheet size significantly
+- Removing 6 themes' worth of CSS overrides (~4000-5000 lines) reduces stylesheet size significantly
 - No backdrop-filter by default (solid surfaces) — better rendering performance during bulk uploads
 - Glass mode is opt-in, so users on lower-end hardware can avoid the blur cost
 - Existing bulk-upload performance optimizations (MotionConfig, CSS containment, display:none) are retained
 - `body.bulk-uploading` class continues to disable backdrop-filter even in glass mode
+
+## Files Affected
+
+### CSS (Major)
+- `src/renderer/index.css` — Remove ~4000-5000 lines of `body.theme-*` overrides; rewrite `:root` variables; add palette classes and glass mode
+
+### Types & Config
+- `src/renderer/global.d.ts` — Remove `UiTheme`, `WebTheme`, `KineticFontStyle`, `KineticThemeVariant`, `DashboardLayout`; add `ColorPalette` type
+- `src/shared/webThemes.ts` — Remove `BASE_WEB_THEMES`, all theme objects; replace with palette definitions
+
+### Renderer Components (Theme Logic Removal)
+- `src/renderer/App.tsx` — Remove `uiTheme` state, theme-conditional styling
+- `src/renderer/app/AppLayout.tsx` — Remove 30+ ternary theme checks for sidebar/nav
+- `src/renderer/ExpandableLogCard.tsx` — Remove `theme-classic` body class checks, `matte-log-card` class
+- `src/renderer/StatsView.tsx` — Remove `uiTheme` prop, theme-conditional scroll styling
+- `src/renderer/SettingsView.tsx` — Replace theme picker with palette picker + glass toggle
+- `src/renderer/app/hooks/useSettings.ts` — Remove theme class management, kinetic variant logic; add palette/glass class management
+- `src/renderer/stats/hooks/useStatsUploads.ts` — Remove `uiTheme` parameter
+- `src/renderer/app/DevDatasetsModal.tsx` — Remove `uiTheme` prop
+
+### Web Report
+- `src/web/reportApp.tsx` — Remove ~200 lines of theme resolution logic; add palette/glass reader
+- `src/web/rollup.ts` — Update any theme-dependent rendering
+
+### Main Process
+- `src/main/handlers/githubHandlers.ts` — Update `buildWebReportPayload()`, remove `resolveWebPublishTheme()`, `resolveWebUiThemeChoice()`
+- `src/main/handlers/settingsHandlers.ts` — Remove `uiTheme`/`githubWebTheme` store reads; add `colorPalette`/`glassSurfaces`
+- `src/main/index.ts` — Settings migration on startup; remove old theme store keys
+- `src/preload/index.ts` — Remove `applyGithubTheme` IPC binding
+
+### Static Assets
+- `public/web-report-themes/*.css` — Delete all 6 files
+
+### Tests
+- `src/shared/__tests__/statsThemesContract.test.ts` — Delete
+- `src/renderer/__tests__/SettingsView.test.tsx` — Update theme-related assertions
+- New tests: palette variable application, glass mode toggle, settings migration, old `report.json` backward compat
+
+## Testing Strategy
+
+1. **Unit tests**: Palette CSS variable application, glass mode class toggling, settings migration logic (old theme → new palette mapping), settings import with old keys
+2. **Integration tests**: SettingsView renders palette picker and glass toggle correctly
+3. **E2E web tests**: Web report renders correctly with new palette; old `report.json` files with `reportTheme` fall back gracefully
+4. **Visual verification**: Each palette renders correctly across all views (Dashboard, Stats, History, Settings)
+5. **Regression**: Run `npm run audit:metrics` and `npm run test:unit` to ensure no metric/stats regressions from CSS changes
 
 ## Mockup Reference
 
