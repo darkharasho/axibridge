@@ -336,6 +336,13 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
             {children}
             {dissolveActive && !dissolveCompleting && (
                 <>
+                    <div className="stats-dissolve-skeleton" aria-hidden="true">
+                        <div className="stats-dissolve-skeleton__row stats-dissolve-skeleton__row--wide" />
+                        <div className="stats-dissolve-skeleton__row stats-dissolve-skeleton__row--medium" />
+                        <div className="stats-dissolve-skeleton__row stats-dissolve-skeleton__row--narrow" />
+                        <div className="stats-dissolve-skeleton__row stats-dissolve-skeleton__row--wide" />
+                        <div className="stats-dissolve-skeleton__row stats-dissolve-skeleton__row--medium" />
+                    </div>
                     <span className="stats-dissolve-particle" />
                     <span className="stats-dissolve-particle" />
                     <span className="stats-dissolve-particle" />
@@ -3744,6 +3751,9 @@ type SpikeFight = {
                             </div>
                         </div>
                     )}
+                    {!embedded && dissolveActive && statsSettlingBannerJoke && (
+                        <div className="stats-dissolve-joke mt-2">{statsSettlingBannerJoke}</div>
+                    )}
                 </div>
             )}
 
@@ -4536,9 +4546,6 @@ type SpikeFight = {
                         />)}
 
                     </>
-                )}
-                {dissolveActive && (
-                    <div className="stats-dissolve-joke">{statsSettlingBannerJoke}</div>
                 )}
                 </StatsSharedContext.Provider>
                 {!embedded && <div className="h-24" aria-hidden="true" />}

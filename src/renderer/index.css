@@ -985,6 +985,11 @@ body.web-report #top-players .mvp-gold-icon-badge {
   75% { transform: translateY(-9px) scale(1.05); opacity: 0.55; }
 }
 
+@keyframes dissolve-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 @keyframes dissolve-heartbeat {
   0%, 100% { opacity: 0.4; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.3); }
@@ -1118,16 +1123,55 @@ body.web-report #top-players .mvp-gold-icon-badge {
   opacity: 0;
 }
 
-/* ── Joke footer ── */
+/* ── Skeleton rows inside unloaded sections ── */
+
+.stats-dissolve-skeleton {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 36px 16px 16px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.stats-dissolve-skeleton__row {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--brand-primary) 6%, transparent),
+    color-mix(in srgb, var(--brand-secondary) 9%, transparent),
+    color-mix(in srgb, var(--brand-primary) 6%, transparent)
+  );
+  background-size: 200% 100%;
+  animation: dissolve-shimmer 2.8s ease-in-out infinite;
+}
+
+.stats-dissolve-skeleton__row--wide { width: 80%; }
+.stats-dissolve-skeleton__row--medium { width: 55%; }
+.stats-dissolve-skeleton__row--narrow { width: 35%; }
+
+.stats-dissolve-skeleton__row:nth-child(2) { animation-delay: 0.15s; }
+.stats-dissolve-skeleton__row:nth-child(3) { animation-delay: 0.3s; }
+.stats-dissolve-skeleton__row:nth-child(4) { animation-delay: 0.45s; }
+.stats-dissolve-skeleton__row:nth-child(5) { animation-delay: 0.6s; }
+
+/* Materializing: skeletons fade out */
+.stats-section-wrap--materializing .stats-dissolve-skeleton {
+  transition: opacity 300ms ease;
+  opacity: 0;
+}
+
+/* ── Joke text ── */
 
 .stats-dissolve-joke {
   text-align: center;
-  padding: 10px 16px;
   font-size: 10px;
   font-style: italic;
   color: var(--text-muted);
   opacity: 0.6;
-  background: linear-gradient(to top, var(--bg-base) 60%, transparent);
 }
 
 /* ── Reduced motion / bulk upload ── */
@@ -1136,7 +1180,8 @@ body.web-report #top-players .mvp-gold-icon-badge {
   .stats-dissolve-bar__particle,
   .stats-dissolve-bar__glow,
   .stats-dissolve-heartbeat,
-  .stats-dissolve-particle {
+  .stats-dissolve-particle,
+  .stats-dissolve-skeleton__row {
     animation: none !important;
   }
 
@@ -1149,7 +1194,8 @@ body.web-report #top-players .mvp-gold-icon-badge {
 body.bulk-uploading .stats-dissolve-bar__particle,
 body.bulk-uploading .stats-dissolve-bar__glow,
 body.bulk-uploading .stats-dissolve-heartbeat,
-body.bulk-uploading .stats-dissolve-particle {
+body.bulk-uploading .stats-dissolve-particle,
+body.bulk-uploading .stats-dissolve-skeleton__row {
   animation: none !important;
 }
 
