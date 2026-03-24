@@ -1039,18 +1039,24 @@ body.web-report #top-players .mvp-gold-icon-badge {
 }
 
 @keyframes particle-float {
-  0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
-  10% { opacity: 0.7; transform: translate(5px, -8px) scale(1); }
-  22% { opacity: 0.5; transform: translate(-3px, -14px) scale(0.9); }
-  33% { opacity: 0; transform: translate(8px, -6px) scale(0.3); }
-  34% { opacity: 0; transform: translate(var(--p-dx, 40px), var(--p-dy, -30px)) scale(0.3); }
-  44% { opacity: 0.65; transform: translate(calc(var(--p-dx, 40px) - 6px), calc(var(--p-dy, -30px) - 10px)) scale(1.1); }
-  56% { opacity: 0.5; transform: translate(calc(var(--p-dx, 40px) + 4px), calc(var(--p-dy, -30px) - 16px)) scale(0.85); }
-  66% { opacity: 0; transform: translate(var(--p-dx, 40px), calc(var(--p-dy, -30px) - 8px)) scale(0.4); }
-  67% { opacity: 0; transform: translate(var(--p-ex, -50px), var(--p-ey, 40px)) scale(0.3); }
-  77% { opacity: 0.6; transform: translate(calc(var(--p-ex, -50px) + 5px), calc(var(--p-ey, 40px) - 8px)) scale(1); }
-  90% { opacity: 0.45; transform: translate(calc(var(--p-ex, -50px) - 4px), calc(var(--p-ey, 40px) - 14px)) scale(0.9); }
-  100% { opacity: 0; transform: translate(var(--p-ex, -50px), calc(var(--p-ey, 40px) - 6px)) scale(0.4); }
+  /* Phase 1: emerge and drift toward (dx, dy) */
+  0%  { opacity: 0;    transform: translate(0, 0) scale(0.3); }
+  5%  { opacity: 0.75; transform: translate(8px, -12px) scale(1.05); }
+  15% { opacity: 0.6;  transform: translate(calc(var(--p-dx, 60px) * 0.3), calc(var(--p-dy, -40px) * 0.3)) scale(0.95); }
+  25% { opacity: 0.7;  transform: translate(calc(var(--p-dx, 60px) * 0.6), calc(var(--p-dy, -40px) * 0.6)) scale(1.1); }
+  35% { opacity: 0.5;  transform: translate(var(--p-dx, 60px), var(--p-dy, -40px)) scale(0.85); }
+  40% { opacity: 0;    transform: translate(var(--p-dx, 60px), var(--p-dy, -40px)) scale(0.3); }
+  /* Phase 2: reappear at (ex, ey) origin and drift back differently */
+  42% { opacity: 0;    transform: translate(var(--p-ex, -80px), var(--p-ey, 50px)) scale(0.3); }
+  48% { opacity: 0.7;  transform: translate(calc(var(--p-ex, -80px) * 0.85), calc(var(--p-ey, 50px) * 0.85)) scale(1); }
+  58% { opacity: 0.6;  transform: translate(calc(var(--p-ex, -80px) * 0.5), calc(var(--p-ey, 50px) * 0.5)) scale(1.05); }
+  70% { opacity: 0.55; transform: translate(calc(var(--p-ex, -80px) * 0.15), calc(var(--p-ey, 50px) * 0.15)) scale(0.9); }
+  78% { opacity: 0;    transform: translate(0, 0) scale(0.3); }
+  /* Phase 3: short burst in opposite direction */
+  80% { opacity: 0;    transform: translate(calc(var(--p-dx, 60px) * -0.4), calc(var(--p-dy, -40px) * -0.5)) scale(0.4); }
+  86% { opacity: 0.65; transform: translate(calc(var(--p-dx, 60px) * -0.6), calc(var(--p-dy, -40px) * -0.7)) scale(1); }
+  94% { opacity: 0.4;  transform: translate(calc(var(--p-dx, 60px) * -0.8), calc(var(--p-dy, -40px) * -0.9)) scale(0.8); }
+  100%{ opacity: 0;    transform: translate(calc(var(--p-dx, 60px) * -1), calc(var(--p-dy, -40px) * -1)) scale(0.3); }
 }
 
 @keyframes dissolve-shimmer {
@@ -1177,7 +1183,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
     transparent 100%
   );
   background-size: 200% 100%;
-  animation: dissolve-shimmer 2.8s ease-in-out infinite;
+  animation: dissolve-shimmer 4s ease-in-out infinite;
   pointer-events: none;
   z-index: 1;
 }
@@ -1186,7 +1192,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
   pointer-events: none;
   filter: saturate(0.5) brightness(0.85);
   opacity: 0.7;
-  transition: opacity 300ms ease, filter 300ms ease;
+  transition: opacity 600ms ease, filter 600ms ease;
 }
 
 .stats-section-wrap--materializing::after {
@@ -1201,6 +1207,15 @@ body.web-report #top-players .mvp-gold-icon-badge {
   animation: section-arrive 400ms ease-out both;
 }
 
+/* Ambient particle layer — covers the full dashboard scroll area (fills gaps between sections) */
+.stats-dissolve-ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
 /* Floating particles over sections */
 .stats-dissolve-particle {
   position: absolute;
@@ -1210,9 +1225,12 @@ body.web-report #top-players .mvp-gold-icon-badge {
   animation: particle-float var(--p-dur, 3s) ease-in-out infinite var(--p-delay, 0s);
 }
 
-/* Materializing: particles fade out */
+/* Materializing: particles fade out (section + ambient) */
+.stats-section-wrap--materializing .stats-dissolve-particle,
+.stats-dissolve-ambient .stats-dissolve-particle {
+  transition: opacity 800ms ease;
+}
 .stats-section-wrap--materializing .stats-dissolve-particle {
-  transition: opacity 300ms ease;
   opacity: 0;
 }
 
@@ -1232,6 +1250,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
   .stats-dissolve-bar__glow,
   .stats-dissolve-heartbeat,
   .stats-dissolve-particle,
+  .stats-dissolve-ambient .stats-dissolve-particle,
   .stats-section-wrap--unloaded::after {
     animation: none !important;
   }
@@ -1246,6 +1265,7 @@ body.bulk-uploading .stats-dissolve-bar__particle,
 body.bulk-uploading .stats-dissolve-bar__glow,
 body.bulk-uploading .stats-dissolve-heartbeat,
 body.bulk-uploading .stats-dissolve-particle,
+body.bulk-uploading .stats-dissolve-ambient .stats-dissolve-particle,
 body.bulk-uploading .stats-section-wrap--unloaded::after {
   animation: none !important;
 }

@@ -330,7 +330,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     useEffect(() => {
         if (aggregationSettling.progressPercent >= 100 && aggregationSettling.active && !embedded) {
             setDissolveCompleting(true);
-            const timer = setTimeout(() => setDissolveCompleting(false), 500);
+            const timer = setTimeout(() => setDissolveCompleting(false), 900);
             return () => clearTimeout(timer);
         }
     }, [aggregationSettling.progressPercent, aggregationSettling.active, embedded]);
@@ -346,11 +346,13 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     const rawDissolveActive = (showDissolveLoading && aggregationSettling.progressPercent < 100) || dissolveCompleting;
     useEffect(() => {
         if (dissolveCompletedForLogKey === logIdentityKey) return;
-        // Mark completed after the dissolve completion animation finishes
-        if (!rawDissolveActive && !dissolveCompleting && !aggregationSettling.active && stats != null) {
+        // Don't mark completed when there are no logs — nothing to "complete" showing.
+        // This prevents the dissolve from being suppressed during bulk upload when
+        // logsForStats is empty but statsDataProgress reports pending uploads.
+        if (!rawDissolveActive && !dissolveCompleting && !aggregationSettling.active && stats != null && logs.length > 0) {
             setDissolveCompletedForLogKey(logIdentityKey);
         }
-    }, [rawDissolveActive, dissolveCompleting, aggregationSettling.active, dissolveCompletedForLogKey, logIdentityKey, stats]);
+    }, [rawDissolveActive, dissolveCompleting, aggregationSettling.active, dissolveCompletedForLogKey, logIdentityKey, stats, logs.length]);
     const dissolveActive = rawDissolveActive && dissolveCompletedForLogKey !== logIdentityKey;
     const statsActionsDisabled = dissolveActive || !sectionContentReady;
 
@@ -368,8 +370,8 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
             top: `${topRange[0] + Math.random() * (topRange[1] - topRange[0])}%`,
             left: `${leftRange[0] + Math.random() * (leftRange[1] - leftRange[0])}%`,
             size: 4 + Math.floor(Math.random() * 10),
-            dur: `${2 + Math.random() * 2.5}s`,
-            delay: `${Math.random() * 3}s`,
+            dur: `${4 + Math.random() * 4}s`,
+            delay: `${Math.random() * 4}s`,
             color: colors[Math.floor(Math.random() * colors.length)],
             dx: drift(), dy: drift(), ex: drift(), ey: drift(),
         };
