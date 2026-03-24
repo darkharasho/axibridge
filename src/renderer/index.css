@@ -96,6 +96,13 @@ body.glass-surfaces .app-shell {
   --bg-card: rgba(255, 255, 255, 0.035);
 }
 
+body.glass-surfaces .stats-view,
+body.glass-surfaces .app-shell {
+  --bg-card-inner: rgba(255, 255, 255, 0.05);
+  --bg-input: rgba(255, 255, 255, 0.04);
+  --bg-hover: rgba(255, 255, 255, 0.07);
+}
+
 body.glass-surfaces .stats-view [data-surface="card"],
 body.glass-surfaces .app-shell [data-surface="card"] {
   backdrop-filter: blur(12px);
@@ -106,12 +113,27 @@ body.glass-surfaces .stats-dashboard-nav-panel {
   backdrop-filter: blur(16px);
 }
 
+/* Settings sidebar in glass mode */
+body.glass-surfaces .settings-view aside > div {
+  backdrop-filter: blur(12px);
+}
+
+/* Stats section cards/tables in glass mode */
+body.glass-surfaces .stats-view .stats-section-wrap > div {
+  backdrop-filter: blur(10px);
+}
+
 /* Disable glass effects during bulk upload for performance */
 body.bulk-uploading.glass-surfaces .stats-view,
 body.bulk-uploading.glass-surfaces .app-shell {
   --bg-card: #1a1f2e;
+  --bg-card-inner: #222838;
+  --bg-input: #141822;
+  --bg-hover: rgba(255, 255, 255, 0.05);
 }
-body.bulk-uploading.glass-surfaces [data-surface="card"] {
+body.bulk-uploading.glass-surfaces [data-surface="card"],
+body.bulk-uploading.glass-surfaces .stats-section-wrap > div,
+body.bulk-uploading.glass-surfaces .settings-view aside > div {
   backdrop-filter: none;
 }
 
