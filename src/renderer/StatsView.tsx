@@ -325,23 +325,21 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         }
     }, [statsSettling.active, statsSettling.progressPercent, embedded]);
 
-    const dissolveActive = (showDissolveLoading && statsSettling.progressPercent < 100) || dissolveCompleting;
-
-    // Track if dissolve was ever active so we only play section-arrive once
-    const [dissolveWasActive, setDissolveWasActive] = useState(false);
-    useEffect(() => {
-        if (dissolveActive) setDissolveWasActive(true);
-    }, [dissolveActive]);
-    useEffect(() => {
-        if (dissolveWasActive && !dissolveActive) {
-            const timer = setTimeout(() => setDissolveWasActive(false), 500);
-            return () => clearTimeout(timer);
-        }
-    }, [dissolveWasActive, dissolveActive]);
+    // Once dissolve has completed once, never show it again (prevents re-trigger on tab switch)
+    const dissolveCompletedOnceRef = useRef(false);
+    const rawDissolveActive = (showDissolveLoading && statsSettling.progressPercent < 100) || dissolveCompleting;
+    if (!rawDissolveActive && showDissolveLoading === false && dissolveCompletedOnceRef.current === false && statsSettling.progressPercent === 0) {
+        // Stats loaded instantly (< 8 logs) or already computed — no dissolve needed
+    } else if (dissolveCompletedOnceRef.current && !rawDissolveActive) {
+        // Already completed once — stay suppressed
+    } else if (!rawDissolveActive && dissolveCompleting === false && statsSettling.active === false) {
+        dissolveCompletedOnceRef.current = true;
+    }
+    const dissolveActive = rawDissolveActive && !dissolveCompletedOnceRef.current;
 
     const sectionWrapClass = dissolveActive
         ? (dissolveCompleting ? 'stats-section-wrap stats-section-wrap--materializing' : 'stats-section-wrap stats-section-wrap--unloaded')
-        : (dissolveWasActive ? 'stats-section-wrap stats-section-wrap--loaded' : 'stats-section-wrap');
+        : 'stats-section-wrap';
 
     const dissolveParticlesRef = useRef<Array<{ top: string; left: string; size: number; dur: string; delay: string; color: string; dx: string; dy: string }>>([]);
     if (dissolveParticlesRef.current.length === 0) {
@@ -3752,7 +3750,7 @@ type SpikeFight = {
                 devMockAvailable={devMockAvailable}
                 devMockUploadState={devMockUploadState}
             />
-            {statsSettling.active && (
+            {statsSettling.active && !dissolveCompletedOnceRef.current && (
                 <div className="mb-3 text-xs">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
