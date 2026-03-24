@@ -101,6 +101,11 @@ body.glass-surfaces .app-shell [data-surface="card"] {
   backdrop-filter: blur(12px);
 }
 
+body.glass-surfaces .stats-dashboard-nav-panel {
+  background: rgba(15, 18, 25, 0.85) !important;
+  backdrop-filter: blur(16px);
+}
+
 /* Disable glass effects during bulk upload for performance */
 body.bulk-uploading.glass-surfaces .stats-view,
 body.bulk-uploading.glass-surfaces .app-shell {
