@@ -581,7 +581,7 @@ function App() {
                     setNotificationType('image');
                     handleUpdateSettings({ discordNotificationType: 'image' });
                 }}
-                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-xl border transition-all ${notificationType === 'image' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-[4px] border transition-all ${notificationType === 'image' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
             >
                 <ImageIcon className="w-4 h-4" />
                 <span className="font-medium">Image</span>
@@ -591,7 +591,7 @@ function App() {
                     setNotificationType('embed');
                     handleUpdateSettings({ discordNotificationType: 'embed' });
                 }}
-                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-xl border transition-all ${notificationType === 'embed' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-[4px] border transition-all ${notificationType === 'embed' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
             >
                 <Layout className="w-4 h-4" />
                 <span className="font-medium">Embed</span>
@@ -601,7 +601,7 @@ function App() {
                     setNotificationType('image-beta');
                     handleUpdateSettings({ discordNotificationType: 'image-beta' });
                 }}
-                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-xl border transition-all ${notificationType === 'image-beta' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                className={`flex items-center justify-center gap-2 h-8 text-[11px] rounded-[4px] border transition-all ${notificationType === 'image-beta' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'}`}
             >
                 <Grid3X3 className="w-4 h-4" />
                 <span className="font-medium">Tiled</span>
@@ -614,14 +614,15 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl hover:border-white/20 transition-colors matte-config-panel"
+            className="rounded-[4px] border p-3 transition-colors matte-config-panel"
+            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', borderRadius: '4px', boxShadow: 'var(--shadow-card)' }}
         >
             <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.95fr)] gap-4 items-start p-2">
                 <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-1 gap-3 min-w-0">
                     <div className="space-y-1 min-w-0">
                         <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold h-4 flex items-center">Log Directory</label>
                         <div className="flex gap-1 w-full max-w-full">
-                            <div className="flex-1 min-w-0 bg-black/40 border border-white/5 rounded-xl px-1.5 h-8 flex items-center gap-2 hover:border-blue-500/50 transition-colors">
+                            <div className="flex-1 min-w-0 rounded-[4px] border px-1.5 h-8 flex items-center gap-2 transition-colors" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}>
                                 <div className="pl-1 shrink-0">
                                     <FolderOpen className="w-4 h-4 text-blue-400" />
                                 </div>
@@ -645,7 +646,7 @@ function App() {
                             </div>
                             <button
                                 onClick={handleSelectDirectory}
-                                className="shrink-0 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl w-8 h-8 flex items-center justify-center transition-colors"
+                                className="shrink-0 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-[4px] w-8 h-8 flex items-center justify-center transition-colors"
                                 title="Browse..."
                             >
                                 <FolderOpen className="w-3.5 h-3.5" />
@@ -661,7 +662,8 @@ function App() {
                                     type="button"
                                     onClick={() => setWebhookDropdownOpen((prev) => !prev)}
                                     ref={webhookDropdownButtonRef}
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-2.5 h-8 flex items-center justify-between gap-2 text-[11px] text-gray-300 hover:border-purple-500/50 hover:bg-black/50 transition-colors"
+                                    className="w-full rounded-[4px] border px-2.5 h-8 flex items-center justify-between gap-2 text-[11px] transition-colors"
+                                    style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                                     aria-haspopup="listbox"
                                     aria-expanded={webhookDropdownOpen}
                                 >
@@ -673,7 +675,7 @@ function App() {
                             </div>
                             <button
                                 onClick={() => setWebhookModalOpen(true)}
-                                className="shrink-0 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-xl w-8 h-8 flex items-center justify-center gap-2 transition-colors"
+                                className="shrink-0 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-[4px] w-8 h-8 flex items-center justify-center gap-2 transition-colors"
                                 title="Manage Webhooks"
                             >
                                 <Settings className="w-3.5 h-3.5" />
@@ -707,8 +709,8 @@ function App() {
             transition={{ delay: 0.2 }}
             className="space-y-3 matte-tiles-shell"
         >
-            <div className="grid grid-cols-4 gap-4">
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card">
+            <div className="grid grid-cols-4 gap-3">
+                <div className="h-24 rounded-[4px] border px-4 py-3 flex items-center justify-between gap-3 matte-stat-card" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <div className="min-w-0">
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Upload Status</div>
                         <div className="mt-2 text-2xl font-bold text-white leading-none">{totalUploads}</div>
@@ -751,7 +753,7 @@ function App() {
                         </div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card">
+                <div className="h-24 rounded-[4px] border px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">W / L</div>
                         <div className="inline-flex items-baseline text-2xl font-bold leading-none">
@@ -767,7 +769,7 @@ function App() {
                         <div className="text-[11px] text-gray-500">{totalUploads} logs</div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card">
+                <div className="h-24 rounded-[4px] border px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Avg Players</div>
                         <div className="inline-flex items-baseline text-2xl font-bold leading-none">
@@ -783,7 +785,7 @@ function App() {
                         <div className="text-[11px] text-gray-500">Ratio {(avgEnemies ? (avgSquadSize / avgEnemies) : 0).toFixed(2)}</div>
                     </div>
                 </div>
-                <div className="h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card">
+                <div className="h-24 rounded-[4px] border px-4 py-3 flex items-center justify-between gap-3 matte-stat-card uploader-kpi-card" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <div>
                         <div className="text-gray-400 text-xs font-medium uppercase tracking-wider">Squad KDR</div>
                         <div className="text-2xl font-bold text-emerald-300 leading-none">{squadKdr}</div>
@@ -804,7 +806,8 @@ function App() {
             initial={{ opacity: 0, scale: 0.992 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3, duration: 0.24, ease: 'easeOut' }}
-            className={`bg-white/5 backdrop-blur-xl border ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-white/10'} rounded-2xl p-6 flex flex-col h-full shadow-2xl transition-all duration-300 relative matte-activity-panel`}
+            className={`rounded-[4px] border p-3 flex flex-col h-full transition-all duration-300 relative matte-activity-panel`}
+            style={{ background: isDragging ? 'rgba(59,130,246,0.08)' : 'var(--bg-card)', borderColor: isDragging ? 'var(--brand-primary)' : 'var(--border-default)', borderRadius: '4px', boxShadow: 'var(--shadow-card)' } as React.CSSProperties}
             onDragOver={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -847,37 +850,39 @@ function App() {
                 }
             }}
         >
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-gray-400" />
+            <div className="flex items-center justify-between mb-3 pb-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                    <FileText className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
                     Recent Activity
                 </h2>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => filePickerState.setFilePickerOpen(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
+                        style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card-inner)', color: 'var(--text-secondary)' }}
                         title="Select logs to upload"
                     >
-                        <FilePlus2 className="w-3.5 h-3.5" />
+                        <FilePlus2 className="w-3 h-3" />
                         Add Logs
                     </button>
                     <button
                         onClick={clearLogsFromActivity}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
+                        style={{ borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#f87171' }}
                         title="Clear all logs"
                     >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3 h-3" />
                         Clear Logs
                     </button>
                 </div>
             </div>
             {bulkCalculatingActive && calculatingCount > 0 && (
-                <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-100">
+                <div className="mb-3 rounded-[4px] border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
                     Bulk calculations are running. The app may feel less responsive until they finish.
                 </div>
             )}
             {(uploadRetryQueue.failed > 0 || uploadRetryQueue.retrying > 0 || uploadRetryQueue.entries.length > 0) && (
-                <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
+                <div className="mb-3 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
                     <div className="flex items-center justify-between gap-3">
                         <div className="font-semibold">Upload Retry Queue</div>
                         <div className="flex items-center gap-2">
@@ -924,7 +929,7 @@ function App() {
                 </div>
             )}
             {devDatasetLoadProgress && (
-                <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
+                <div className="mb-3 rounded-[4px] border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
                     <div className="flex flex-col items-center text-center gap-1">
                         <FilePlus2 className="w-5 h-5 text-amber-300" />
                         <div className="text-[11px] text-amber-100">

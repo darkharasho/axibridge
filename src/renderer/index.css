@@ -349,8 +349,8 @@ button:focus-visible,
     background-color: var(--bg-elevated);
     backdrop-filter: none;
     border: 1px solid var(--border-default);
-    border-radius: 12px;
-    box-shadow: none;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
     padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
 }
 

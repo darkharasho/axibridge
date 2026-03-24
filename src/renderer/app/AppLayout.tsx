@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, ChevronDown, FilePlus2, LayoutGrid, Minus, RefreshCw, Settings, Square, Trophy, X } from 'lucide-react';
+import { ChevronDown, FilePlus2, Minus, RefreshCw, Square, X } from 'lucide-react';
 import { Terminal as TerminalIcon } from 'lucide-react';
 import { SettingsView } from '../SettingsView';
 import { StatsView } from '../StatsView';
@@ -237,15 +237,15 @@ export function AppLayout({ ctx }: { ctx: any }) {
         () => STATS_TOC_GROUPS.find((group) => group.id === statsActiveGroup) || STATS_TOC_GROUPS[0],
         [statsActiveGroup]
     );
-    const statsSidebarSurfaceClass = 'border border-white/[0.07] bg-[rgba(13,15,20,0.92)]';
-    const statsSidebarShadowClass = 'shadow-[0_20px_60px_rgba(0,0,0,0.45)]';
-    const statsSidebarBlurClass = 'backdrop-blur-md';
-    const statsSubnavItemsClass = 'rounded-lg border border-white/[0.05] bg-black/25';
-    const statsNavGroupShellClass = 'rounded-lg border border-white/10 bg-white/[0.04]';
-    const statsNavGroupButtonStateClass = 'text-gray-200 hover:bg-white/[0.08]';
-    const statsNavGroupButtonActiveClass = 'bg-white/10 text-white';
-    const statsNavEntryStateClass = 'text-gray-200 hover:bg-white/[0.08]';
-    const statsNavEntryActiveClass = 'bg-white/10 text-white';
+    const statsSidebarSurfaceClass = 'border border-[color:var(--border-default)]';
+    const statsSidebarShadowClass = '';
+    const statsSidebarBlurClass = '';
+    const statsSubnavItemsClass = 'rounded-[4px] border border-[color:var(--border-subtle)]';
+    const statsNavGroupShellClass = 'rounded-[4px] border border-[color:var(--border-default)]';
+    const statsNavGroupButtonStateClass = 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]';
+    const statsNavGroupButtonActiveClass = 'text-white';
+    const statsNavEntryStateClass = 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]';
+    const statsNavEntryActiveClass = 'text-white';
     const statsSectionVisibility = useCallback((id: string) => {
         const sectionIds = Array.isArray((activeStatsGroupDef as any)?.sectionIds)
             ? (activeStatsGroupDef as any).sectionIds
@@ -304,7 +304,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
     return (
         <div className={shellClassName}>
             {/* Custom Title Bar */}
-            <div className="app-titlebar h-10 shrink-0 w-full flex justify-between items-center px-4 bg-black/20 backdrop-blur-md border-b border-white/5 drag-region select-none z-50">
+            <div className="app-titlebar h-10 shrink-0 w-full flex justify-between items-center px-4 border-b drag-region select-none z-50" style={{ background: 'var(--bg-base)', borderColor: 'var(--border-subtle)' }}>
                 <div className="flex items-center gap-2">
                     <span className="arcbridge-logo h-4 w-4" style={arcbridgeLogoStyle} aria-label="ArcBridge logo" />
                     <span className="text-xs font-medium arcbridge-gradient-text">ArcBridge</span>
@@ -327,158 +327,136 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 </div>
             </div>
 
-            {/* Background Orbs */}
-            <div className="legacy-orb absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
-            <div className="legacy-orb absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/20 blur-[100px] pointer-events-none" />
-
-            <div className={`app-content relative z-10 max-w-none flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history') ? 'pt-8 px-8 pb-2 overflow-hidden' : 'p-8 overflow-hidden'}`}>
-                <header className="app-header flex flex-wrap justify-between items-center gap-3 mb-10 shrink-0">
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-3 min-w-0"
+            <div className="flex items-center px-3 py-1.5 gap-1 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-elevated)' }}>
+                {(['dashboard', 'stats', 'history', 'settings'] as const).map((tab) => (
+                    <button
+                        key={tab}
+                        onClick={() => handleNavViewChange(tab)}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-[4px] transition-colors capitalize ${
+                            activeNavView === tab
+                                ? 'text-[color:var(--brand-primary)]'
+                                : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                        }`}
+                        style={activeNavView === tab ? { background: 'var(--accent-bg)' } : {}}
                     >
-                        <div className="flex items-center gap-3">
-                            <span className="arcbridge-logo h-8 w-8 rounded-md" style={arcbridgeLogoStyle} aria-label="ArcBridge logo" />
-                            <h1 className="text-3xl font-bold arcbridge-gradient-text">
-                                ArcBridge
-                            </h1>
-                        </div>
-                    </motion.div>
-                    <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
-                        <AnimatePresence mode="wait">
-                            {(updateAvailable || updateDownloaded) ? (
+                        {tab}
+                    </button>
+                ))}
+                <div className="ml-auto flex items-center gap-2">
+                    <AnimatePresence mode="wait">
+                        {(updateAvailable || updateDownloaded) ? (
+                            <motion.div
+                                key="updating"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                className="flex items-center gap-2"
+                            >
+                                {updateDownloaded ? (
+                                    <button
+                                        onClick={() => window.electronAPI.restartApp()}
+                                        className="flex items-center gap-2 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border transition-colors"
+                                        style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80', borderColor: 'rgba(34,197,94,0.3)' }}
+                                    >
+                                        <RefreshCw className="w-3 h-3" />
+                                        <span>Restart to Update</span>
+                                    </button>
+                                ) : (
+                                    <div
+                                        className="flex items-center gap-2 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border"
+                                        style={{ background: 'var(--accent-bg)', color: 'var(--brand-primary)', borderColor: 'var(--accent-border)' }}
+                                    >
+                                        <RefreshCw className="w-3 h-3 animate-spin" />
+                                        <span>{updateProgress ? `${Math.round(updateProgress.percent)}%` : 'Updating...'}</span>
+                                    </div>
+                                )}
+                            </motion.div>
+                        ) : (
+                            updateStatus && (
                                 <motion.div
-                                    key="updating"
+                                    key="status"
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 20 }}
-                                    className="flex items-center gap-2"
-                                >
-                                    {updateDownloaded ? (
-                                        <button
-                                            onClick={() => window.electronAPI.restartApp()}
-                                            className="flex items-center gap-2 text-xs font-medium px-3 py-1 bg-green-500/20 text-green-400 rounded-full border border-green-500/30 hover:bg-green-500/30 transition-colors"
-                                        >
-                                            <RefreshCw className="w-3 h-3" />
-                                            <span>Restart to Update</span>
-                                        </button>
-                                    ) : (
-                                        <div className="flex items-center gap-2 text-xs font-medium px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
-                                            <RefreshCw className="w-3 h-3 animate-spin" />
-                                            <span>{updateProgress ? `${Math.round(updateProgress.percent)}%` : 'Updating...'}</span>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            ) : (
-                                updateStatus && (
-                                    <motion.div
-                                        key="status"
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20 }}
-                                        className={`flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border ${updateStatus.includes('Error')
-                                            ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                                            : 'bg-white/5 text-gray-400 border-white/10'
-                                            }`}
-                                    >
-                                        <RefreshCw className={`w-3 h-3 ${updateStatus.includes('Checking') ? 'animate-spin' : ''}`} />
-                                        <span>{updateStatus}</span>
-                                    </motion.div>
-                                )
-                            )}
-                        </AnimatePresence>
-                        {!autoUpdateSupported && (
-                            <div
-                                className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border bg-amber-500/15 text-amber-200 border-amber-500/30"
-                                title={autoUpdateDisabledReason === 'portable'
-                                    ? 'Portable build detected'
-                                    : autoUpdateDisabledReason === 'missing-config'
-                                        ? 'Update config missing for this build'
-                                        : 'Auto-updates disabled in development'}
-                            >
-                                Auto-updates disabled
-                            </div>
-                        )}
-                        <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="app-version-pill text-xs font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10 cursor-pointer hover:bg-white/10 transition-colors select-none"
-                            onClick={() => {
-                                if (view === 'settings') {
-                                    if (!settingsUpdateCheckRef.current) {
-                                        window.electronAPI.checkForUpdates();
-                                        settingsUpdateCheckRef.current = true;
+                                    className="flex items-center gap-2 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border"
+                                    style={updateStatus.includes('Error')
+                                        ? { background: 'rgba(239,68,68,0.15)', color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }
+                                        : { background: 'var(--bg-card)', color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }
                                     }
-                                } else {
-                                    window.electronAPI.checkForUpdates();
-                                }
-                                if (view !== 'settings') return;
-                                const now = Date.now();
-                                versionClickTimesRef.current = versionClickTimesRef.current.filter((t: number) => now - t < 5000);
-                                versionClickTimesRef.current.push(now);
-                                if (versionClickTimeoutRef.current) {
-                                    clearTimeout(versionClickTimeoutRef.current);
-                                }
-                                versionClickTimeoutRef.current = setTimeout(() => {
-                                    versionClickTimesRef.current = [];
-                                }, 5200);
-                                if (versionClickTimesRef.current.length >= 5) {
-                                    setDeveloperSettingsTrigger((prev: number) => prev + 1);
-                                    versionClickTimesRef.current = [];
-                                }
-                            }}
-                            title="Check for updates"
-                        >
-                            v{appVersion}
-                        </motion.div>
-                        <button
-                            onClick={() => handleNavViewChange('dashboard')}
-                            className={`p-2 rounded-xl transition-all ${activeNavView === 'dashboard' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
-                            title="Dashboard"
-                        >
-                            <LayoutGrid className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={() => handleNavViewChange('stats')}
-                            className={`p-2 rounded-xl transition-all ${activeNavView === 'stats' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
-                            title="View Stats"
-                        >
-                            <Trophy className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={() => handleNavViewChange('history')}
-                            className={`p-2 rounded-xl transition-all ${activeNavView === 'history' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/35' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
-                            title="Fight Report History"
-                        >
-                            <BookOpen className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={() => handleNavViewChange('settings')}
-                            className={`p-2 rounded-xl transition-all ${activeNavView === 'settings' ? 'bg-purple-500/20 text-purple-500 border border-purple-500/30' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
-                            title="Settings"
-                        >
-                            <Settings className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={() => setShowTerminal(!showTerminal)}
-                            className={`p-2 rounded-xl transition-all ${showTerminal ? 'bg-gray-700/50 text-white border-gray-600' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'}`}
-                            title="Toggle Terminal"
-                        >
-                            <TerminalIcon className="w-5 h-5" />
-                        </button>
-                        {devDatasetsEnabled && (
-                            <button
-                                type="button"
-                                onClick={() => setDevDatasetsOpen(true)}
-                                className="p-2 rounded-xl transition-all bg-amber-500/20 text-amber-200 border border-amber-500/40 hover:bg-amber-500/30"
-                                title="Dev Datasets"
-                            >
-                                <FilePlus2 className="w-5 h-5" />
-                            </button>
+                                >
+                                    <RefreshCw className={`w-3 h-3 ${updateStatus.includes('Checking') ? 'animate-spin' : ''}`} />
+                                    <span>{updateStatus}</span>
+                                </motion.div>
+                            )
                         )}
-                    </div>
-                </header>
+                    </AnimatePresence>
+                    {!autoUpdateSupported && (
+                        <div
+                            className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border"
+                            style={{ background: 'rgba(245,158,11,0.1)', color: '#fbbf24', borderColor: 'rgba(245,158,11,0.3)' }}
+                            title={autoUpdateDisabledReason === 'portable'
+                                ? 'Portable build detected'
+                                : autoUpdateDisabledReason === 'missing-config'
+                                    ? 'Update config missing for this build'
+                                    : 'Auto-updates disabled in development'}
+                        >
+                            Auto-updates disabled
+                        </div>
+                    )}
+                    <button
+                        onClick={() => setShowTerminal(!showTerminal)}
+                        className={`p-1 rounded-[4px] transition-colors ${showTerminal ? 'text-[color:var(--text-primary)]' : 'text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]'}`}
+                        style={showTerminal ? { background: 'var(--accent-bg)' } : {}}
+                        title="Toggle Terminal"
+                    >
+                        <TerminalIcon className="w-3.5 h-3.5" />
+                    </button>
+                    {devDatasetsEnabled && (
+                        <button
+                            type="button"
+                            onClick={() => setDevDatasetsOpen(true)}
+                            className="p-1 rounded-[4px] transition-colors"
+                            style={{ background: 'rgba(245,158,11,0.12)', color: '#fbbf24', borderColor: 'rgba(245,158,11,0.3)' }}
+                            title="Dev Datasets"
+                        >
+                            <FilePlus2 className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                    <span
+                        className="app-version-pill text-[10px] px-2 py-0.5 rounded-[4px] border cursor-pointer select-none transition-colors"
+                        style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
+                        onClick={() => {
+                            if (view === 'settings') {
+                                if (!settingsUpdateCheckRef.current) {
+                                    window.electronAPI.checkForUpdates();
+                                    settingsUpdateCheckRef.current = true;
+                                }
+                            } else {
+                                window.electronAPI.checkForUpdates();
+                            }
+                            if (view !== 'settings') return;
+                            const now = Date.now();
+                            versionClickTimesRef.current = versionClickTimesRef.current.filter((t: number) => now - t < 5000);
+                            versionClickTimesRef.current.push(now);
+                            if (versionClickTimeoutRef.current) {
+                                clearTimeout(versionClickTimeoutRef.current);
+                            }
+                            versionClickTimeoutRef.current = setTimeout(() => {
+                                versionClickTimesRef.current = [];
+                            }, 5200);
+                            if (versionClickTimesRef.current.length >= 5) {
+                                setDeveloperSettingsTrigger((prev: number) => prev + 1);
+                                versionClickTimesRef.current = [];
+                            }
+                        }}
+                        title="Check for updates"
+                    >
+                        v{appVersion}
+                    </span>
+                </div>
+            </div>
+
+            <div className={`app-content relative z-10 max-w-none flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history') ? 'pt-4 px-4 pb-2 overflow-hidden' : 'p-4 overflow-hidden'}`} style={{ background: 'var(--bg-elevated)' }}>
 
                 <WebUploadOverlay
                     webUploadState={webUploadState}
@@ -493,7 +471,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 className="relative w-[248px] -mr-[176px] shrink-0 self-stretch min-h-0 overflow-visible"
                             >
                                 <div
-                                    className={`stats-dashboard-nav-panel group/statsnavpanel absolute inset-y-0 left-0 z-40 min-h-0 w-[72px] hover:w-[248px] rounded-xl ${statsSidebarSurfaceClass} ${statsSidebarBlurClass} ${statsSidebarShadowClass} overflow-hidden will-change-[width] transition-[width] duration-[1250ms] ease-[cubic-bezier(0.16,1,0.3,1)]`}
+                                    className={`stats-dashboard-nav-panel group/statsnavpanel absolute inset-y-0 left-0 z-40 min-h-0 w-[72px] hover:w-[248px] rounded-[4px] ${statsSidebarSurfaceClass} ${statsSidebarBlurClass} ${statsSidebarShadowClass} overflow-hidden will-change-[width] transition-[width] duration-[1250ms] ease-[cubic-bezier(0.16,1,0.3,1)]`}
+                                    style={{ background: 'var(--bg-card)', boxShadow: 'var(--shadow-card)' }}
                                     onMouseEnter={handleStatsNavMouseEnter}
                                     onMouseLeave={handleStatsNavMouseLeave}
                                 >
@@ -589,12 +568,12 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 )}
                 {view === 'stats' && !statsViewMounted && (
                     <div className="flex-1 min-h-0 flex items-center justify-center">
-                        <div className="w-full max-w-md rounded-2xl border border-white/15 bg-black/35 backdrop-blur-md px-6 py-8 text-center shadow-2xl">
-                            <div className="mx-auto mb-3 h-12 w-12 rounded-full border border-cyan-400/35 bg-cyan-500/10 flex items-center justify-center">
-                                <RefreshCw className="h-5 w-5 text-cyan-300 animate-spin" />
+                        <div className="w-full max-w-md rounded-[4px] border px-6 py-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                            <div className="mx-auto mb-3 h-12 w-12 rounded-full flex items-center justify-center" style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-border)' }}>
+                                <RefreshCw className="h-5 w-5 animate-spin" style={{ color: 'var(--brand-primary)' }} />
                             </div>
-                            <div className="text-sm font-semibold tracking-wide text-cyan-100">Loading Stats Dashboard</div>
-                            <div className="mt-1 text-xs text-cyan-200/75">Preparing sections and rendering data...</div>
+                            <div className="text-sm font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>Loading Stats Dashboard</div>
+                            <div className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>Preparing sections and rendering data...</div>
                         </div>
                     </div>
                 )}
@@ -618,14 +597,14 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     <FightReportHistoryView />
                 ) : view === 'stats' ? null : (
                     <div className="dashboard-view dashboard-modern flex flex-col gap-0 flex-1 min-h-0 overflow-hidden matte-dashboard-shell">
-                        <div className="matte-panel-shell shrink-0 pb-4">
+                        <div className="matte-panel-shell shrink-0 pb-3">
                             {statsTilesPanel}
                         </div>
                         <div className="grid grid-cols-[300px_1fr] gap-0 flex-1 min-h-0">
-                            <div className="dashboard-rail flex flex-col gap-4 overflow-y-auto border-r border-[var(--border-subtle,rgba(255,255,255,0.07))] pr-4 matte-panel-shell matte-rail-shell">
+                            <div className="dashboard-rail flex flex-col gap-3 overflow-y-auto pr-3 p-3 matte-panel-shell matte-rail-shell" style={{ background: 'var(--bg-elevated)', borderRight: '1px solid var(--border-subtle)' }}>
                                 {configurationPanel}
                             </div>
-                            <div className="min-h-0 overflow-y-auto pl-4 matte-activity-shell">
+                            <div className="min-h-0 overflow-y-auto p-3 matte-activity-shell">
                                 {activityPanel}
                             </div>
                         </div>
@@ -648,8 +627,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
             {webhookDropdownOpen && webhookDropdownStyle && createPortal(
                 <div
                     ref={webhookDropdownPortalRef}
-                    className="rounded-xl overflow-hidden glass-dropdown border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
-                    style={webhookDropdownStyle}
+                    className="rounded-[4px] overflow-hidden border"
+                    style={{ ...webhookDropdownStyle, background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-dropdown)' } as React.CSSProperties}
                     role="listbox"
                 >
                     <div className="relative z-10 max-h-64 overflow-y-auto">
