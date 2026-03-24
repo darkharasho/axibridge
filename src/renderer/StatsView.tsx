@@ -346,9 +346,6 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
                     <span className="stats-dissolve-particle" />
                     <span className="stats-dissolve-particle" />
                     <span className="stats-dissolve-particle" />
-                    <span className="stats-dissolve-particle" />
-                    <span className="stats-dissolve-particle" />
-                    <span className="stats-dissolve-particle" />
                 </>
             )}
         </div>

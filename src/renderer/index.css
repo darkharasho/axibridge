@@ -1079,19 +1079,20 @@ body.web-report #top-players .mvp-gold-icon-badge {
 
 .stats-section-wrap {
   position: relative;
+  overflow: hidden;
 }
 
 .stats-section-wrap--unloaded {
-  opacity: 1;
+  min-height: 120px;
 }
 
 .stats-section-wrap--unloaded > :first-child {
-  opacity: 0.35;
+  opacity: 0;
   pointer-events: none;
 }
 
 .stats-section-wrap--materializing > :first-child {
-  opacity: 0.55;
+  opacity: 0;
   pointer-events: none;
   transition: opacity 300ms ease;
 }
@@ -1100,7 +1101,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
   animation: section-arrive 400ms ease-out both;
 }
 
-/* Floating particles inside unloaded sections */
+/* Floating particles inside unloaded sections — use nth-of-type (spans) to skip skeleton div */
 .stats-dissolve-particle {
   position: absolute;
   border-radius: 50%;
@@ -1108,12 +1109,9 @@ body.web-report #top-players .mvp-gold-icon-badge {
   z-index: 2;
 }
 
-.stats-dissolve-particle:nth-child(1) { top: 18%; left: 22%; width: 3px; height: 3px; background: color-mix(in srgb, var(--brand-primary) 40%, transparent); animation: particle-float 3.2s ease-in-out infinite; }
-.stats-dissolve-particle:nth-child(2) { top: 52%; left: 68%; width: 2px; height: 2px; background: color-mix(in srgb, var(--brand-secondary) 35%, transparent); animation: particle-float 2.8s ease-in-out infinite 0.5s; }
-.stats-dissolve-particle:nth-child(3) { top: 35%; left: 85%; width: 3px; height: 3px; background: color-mix(in srgb, var(--brand-primary) 30%, transparent); animation: particle-float 3.6s ease-in-out infinite 1.0s; }
-.stats-dissolve-particle:nth-child(4) { top: 72%; left: 15%; width: 2px; height: 2px; background: color-mix(in srgb, var(--brand-secondary) 45%, transparent); animation: particle-float 2.5s ease-in-out infinite 1.5s; }
-.stats-dissolve-particle:nth-child(5) { top: 25%; left: 48%; width: 4px; height: 4px; background: color-mix(in srgb, var(--brand-primary) 25%, transparent); animation: particle-float 3.8s ease-in-out infinite 0.8s; }
-.stats-dissolve-particle:nth-child(6) { top: 65%; left: 78%; width: 2px; height: 2px; background: color-mix(in srgb, var(--brand-secondary) 30%, transparent); animation: particle-float 3.0s ease-in-out infinite 1.3s; }
+.stats-dissolve-particle:nth-of-type(1) { top: 20%; left: 25%; width: 3px; height: 3px; background: color-mix(in srgb, var(--brand-primary) 40%, transparent); animation: particle-float 3.2s ease-in-out infinite; }
+.stats-dissolve-particle:nth-of-type(2) { top: 55%; left: 70%; width: 2px; height: 2px; background: color-mix(in srgb, var(--brand-secondary) 35%, transparent); animation: particle-float 2.8s ease-in-out infinite 0.6s; }
+.stats-dissolve-particle:nth-of-type(3) { top: 40%; left: 50%; width: 3px; height: 3px; background: color-mix(in srgb, var(--brand-primary) 30%, transparent); animation: particle-float 3.6s ease-in-out infinite 1.2s; }
 
 /* Materializing: particles converge to center */
 .stats-section-wrap--materializing .stats-dissolve-particle {
