@@ -1179,6 +1179,17 @@ body.web-report #top-players .mvp-gold-icon-badge {
   opacity: 0;
 }
 
+/* ── Stats header entrance animation ── */
+
+@keyframes stats-header-slide-down {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.stats-header-entrance {
+  animation: stats-header-slide-down 0.35s ease-out both;
+}
+
 /* ── Joke text ── */
 
 .stats-dissolve-joke {

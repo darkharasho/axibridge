@@ -437,7 +437,7 @@ export function ReportApp() {
         return (
             <>
                 {before}
-                <mark className="rounded bg-cyan-500/30 px-1 text-cyan-100">{match}</mark>
+                <mark className="rounded bg-[color:var(--accent-bg-strong)] px-1 text-white">{match}</mark>
                 {after}
             </>
         );
@@ -461,12 +461,12 @@ export function ReportApp() {
             const nodeRect = node.getBoundingClientRect();
             const scrollOffset = Math.max(0, container.scrollTop + (nodeRect.top - containerRect.top) - 12);
             container.scrollTop = scrollOffset;
-            node.classList.add('ring-2', 'ring-cyan-400/70', 'bg-cyan-500/10');
+            node.classList.add('ring-2', 'ring-[color:var(--accent-border)]', 'bg-[color:var(--accent-bg)]');
             if (metricsSpecHighlightRef.current) {
                 window.clearTimeout(metricsSpecHighlightRef.current);
             }
             metricsSpecHighlightRef.current = window.setTimeout(() => {
-                node.classList.remove('ring-2', 'ring-cyan-400/70', 'bg-cyan-500/10');
+                node.classList.remove('ring-2', 'ring-[color:var(--accent-border)]', 'bg-[color:var(--accent-bg)]');
             }, 1600);
         });
     };
@@ -1149,7 +1149,7 @@ export function ReportApp() {
                     href="https://www.arena.net/en/legal/content-terms-of-use"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-300/80 hover:text-blue-200 underline underline-offset-2"
+                    className="text-[color:var(--brand-primary)] hover:text-white underline underline-offset-2"
                 >
                     Content Terms of Use
                 </a>
@@ -1165,7 +1165,7 @@ export function ReportApp() {
                     href="https://github.com/darkharasho/ArcBridge/blob/main/LICENSE"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-300/80 hover:text-blue-200 underline underline-offset-2"
+                    className="text-[color:var(--brand-primary)] hover:text-white underline underline-offset-2"
                 >
                     LICENSE
                 </a>
@@ -1174,7 +1174,7 @@ export function ReportApp() {
                     href="https://github.com/darkharasho/ArcBridge/blob/main/THIRD_PARTY_NOTICES.md"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-300/80 hover:text-blue-200 underline underline-offset-2"
+                    className="text-[color:var(--brand-primary)] hover:text-white underline underline-offset-2"
                 >
                     THIRD_PARTY_NOTICES.md
                 </a>
@@ -1263,13 +1263,13 @@ export function ReportApp() {
                     ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
                     li: ({ children }) => <li className="leading-6">{children}</li>,
                     blockquote: ({ children }) => (
-                        <blockquote className="border-l-2 border-blue-400/40 pl-4 text-gray-300 italic">
+                        <blockquote className="border-l-2 border-[color:var(--accent-border)] pl-4 text-gray-300 italic">
                             {children}
                         </blockquote>
                     ),
                     a: ({ href, children }) => (
                         <a
-                            className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                            className="text-[color:var(--brand-primary)] hover:text-white underline underline-offset-2"
                             href={href}
                             target="_blank"
                             rel="noreferrer"
@@ -1295,7 +1295,7 @@ export function ReportApp() {
                         </td>
                     ),
                     pre: ({ children }) => (
-                        <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs text-blue-100">
+                        <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs text-gray-200">
                             {children}
                         </pre>
                     ),
@@ -1303,11 +1303,11 @@ export function ReportApp() {
                         const { inline, children } = props;
                         const isInline = inline === true;
                         return isInline ? (
-                            <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
+                            <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-[color:var(--brand-primary)]">
                                 {children}
                             </code>
                         ) : (
-                            <code className="whitespace-pre-wrap text-blue-100">
+                            <code className="whitespace-pre-wrap text-gray-200">
                                 {children}
                             </code>
                         );
