@@ -1136,14 +1136,11 @@ body.web-report #top-players .mvp-gold-icon-badge {
 /* Floating particles over sections */
 .stats-dissolve-particle {
   position: absolute;
-  border-radius: 50%;
+  border-radius: 2px;
   pointer-events: none;
   z-index: 2;
+  animation: particle-float var(--p-dur, 3s) ease-in-out infinite var(--p-delay, 0s);
 }
-
-.stats-dissolve-particle:nth-of-type(1) { top: 20%; left: 25%; width: 10px; height: 10px; background: color-mix(in srgb, var(--brand-primary) 55%, transparent); animation: particle-float 3.2s ease-in-out infinite; }
-.stats-dissolve-particle:nth-of-type(2) { top: 55%; left: 70%; width: 8px; height: 8px; background: color-mix(in srgb, var(--brand-secondary) 50%, transparent); animation: particle-float 2.8s ease-in-out infinite 0.6s; }
-.stats-dissolve-particle:nth-of-type(3) { top: 40%; left: 50%; width: 10px; height: 10px; background: color-mix(in srgb, var(--brand-primary) 45%, transparent); animation: particle-float 3.6s ease-in-out infinite 1.2s; }
 
 /* Materializing: particles fade out */
 .stats-section-wrap--materializing .stats-dissolve-particle {

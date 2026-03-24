@@ -331,16 +331,39 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         ? (dissolveCompleting ? 'stats-section-wrap stats-section-wrap--materializing' : 'stats-section-wrap stats-section-wrap--unloaded')
         : 'stats-section-wrap stats-section-wrap--loaded';
 
+    const dissolveParticlesRef = useRef<Array<{ top: string; left: string; size: number; dur: string; delay: string; color: string }>>([]);
+    if (dissolveParticlesRef.current.length === 0) {
+        const colors = ['var(--brand-primary)', 'var(--brand-secondary)'];
+        for (let i = 0; i < 8; i++) {
+            dissolveParticlesRef.current.push({
+                top: `${10 + Math.random() * 75}%`,
+                left: `${5 + Math.random() * 88}%`,
+                size: 7 + Math.floor(Math.random() * 7),
+                dur: `${2.4 + Math.random() * 2}s`,
+                delay: `${Math.random() * 2.5}s`,
+                color: colors[i % 2],
+            });
+        }
+    }
+
     const renderSectionWrap = (children: React.ReactNode) => (
         <div className={sectionWrapClass}>
             {children}
-            {dissolveActive && !dissolveCompleting && (
-                <>
-                    <span className="stats-dissolve-particle" />
-                    <span className="stats-dissolve-particle" />
-                    <span className="stats-dissolve-particle" />
-                </>
-            )}
+            {dissolveActive && !dissolveCompleting && dissolveParticlesRef.current.map((p, i) => (
+                <span
+                    key={i}
+                    className="stats-dissolve-particle"
+                    style={{
+                        top: p.top,
+                        left: p.left,
+                        width: p.size,
+                        height: p.size,
+                        background: `color-mix(in srgb, ${p.color} 50%, transparent)`,
+                        ['--p-dur' as any]: p.dur,
+                        ['--p-delay' as any]: p.delay,
+                    }}
+                />
+            ))}
         </div>
     );
 
