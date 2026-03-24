@@ -342,7 +342,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     useEffect(() => {
         if (settlingProgressPercent >= 100 && aggregationSettling.active && !embedded) {
             setDissolveCompleting(true);
-            const timer = setTimeout(() => setDissolveCompleting(false), 500);
+            const timer = setTimeout(() => setDissolveCompleting(false), 1200);
             return () => clearTimeout(timer);
         }
     }, [settlingProgressPercent, aggregationSettling.active, embedded]);

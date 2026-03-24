@@ -1040,23 +1040,23 @@ body.web-report #top-players .mvp-gold-icon-badge {
 
 @keyframes particle-float {
   /* Phase 1: emerge and drift toward (dx, dy) */
-  0%  { opacity: 0;    transform: translate(0, 0) scale(0.3); }
-  5%  { opacity: 0.75; transform: translate(8px, -12px) scale(1.05); }
-  15% { opacity: 0.6;  transform: translate(calc(var(--p-dx, 60px) * 0.3), calc(var(--p-dy, -40px) * 0.3)) scale(0.95); }
-  25% { opacity: 0.7;  transform: translate(calc(var(--p-dx, 60px) * 0.6), calc(var(--p-dy, -40px) * 0.6)) scale(1.1); }
-  35% { opacity: 0.5;  transform: translate(var(--p-dx, 60px), var(--p-dy, -40px)) scale(0.85); }
-  40% { opacity: 0;    transform: translate(var(--p-dx, 60px), var(--p-dy, -40px)) scale(0.3); }
+  0%  { opacity: 0;   transform: translate(0, 0) scale(0.4); }
+  8%  { opacity: 0.4;  transform: translate(8px, -12px) scale(0.9); }
+  20% { opacity: 0.35; transform: translate(calc(var(--p-dx, 60px) * 0.3), calc(var(--p-dy, -40px) * 0.3)) scale(0.85); }
+  32% { opacity: 0.4;  transform: translate(calc(var(--p-dx, 60px) * 0.6), calc(var(--p-dy, -40px) * 0.6)) scale(0.95); }
+  40% { opacity: 0.3;  transform: translate(var(--p-dx, 60px), var(--p-dy, -40px)) scale(0.8); }
+  44% { opacity: 0;    transform: translate(var(--p-dx, 60px), var(--p-dy, -40px)) scale(0.4); }
   /* Phase 2: reappear at (ex, ey) origin and drift back differently */
-  42% { opacity: 0;    transform: translate(var(--p-ex, -80px), var(--p-ey, 50px)) scale(0.3); }
-  48% { opacity: 0.7;  transform: translate(calc(var(--p-ex, -80px) * 0.85), calc(var(--p-ey, 50px) * 0.85)) scale(1); }
-  58% { opacity: 0.6;  transform: translate(calc(var(--p-ex, -80px) * 0.5), calc(var(--p-ey, 50px) * 0.5)) scale(1.05); }
-  70% { opacity: 0.55; transform: translate(calc(var(--p-ex, -80px) * 0.15), calc(var(--p-ey, 50px) * 0.15)) scale(0.9); }
-  78% { opacity: 0;    transform: translate(0, 0) scale(0.3); }
-  /* Phase 3: short burst in opposite direction */
-  80% { opacity: 0;    transform: translate(calc(var(--p-dx, 60px) * -0.4), calc(var(--p-dy, -40px) * -0.5)) scale(0.4); }
-  86% { opacity: 0.65; transform: translate(calc(var(--p-dx, 60px) * -0.6), calc(var(--p-dy, -40px) * -0.7)) scale(1); }
-  94% { opacity: 0.4;  transform: translate(calc(var(--p-dx, 60px) * -0.8), calc(var(--p-dy, -40px) * -0.9)) scale(0.8); }
-  100%{ opacity: 0;    transform: translate(calc(var(--p-dx, 60px) * -1), calc(var(--p-dy, -40px) * -1)) scale(0.3); }
+  48% { opacity: 0;    transform: translate(var(--p-ex, -80px), var(--p-ey, 50px)) scale(0.4); }
+  56% { opacity: 0.35; transform: translate(calc(var(--p-ex, -80px) * 0.85), calc(var(--p-ey, 50px) * 0.85)) scale(0.9); }
+  68% { opacity: 0.3;  transform: translate(calc(var(--p-ex, -80px) * 0.5), calc(var(--p-ey, 50px) * 0.5)) scale(0.85); }
+  78% { opacity: 0.25; transform: translate(calc(var(--p-ex, -80px) * 0.15), calc(var(--p-ey, 50px) * 0.15)) scale(0.8); }
+  84% { opacity: 0;    transform: translate(0, 0) scale(0.4); }
+  /* Phase 3: gentle drift in opposite direction */
+  86% { opacity: 0;    transform: translate(calc(var(--p-dx, 60px) * -0.3), calc(var(--p-dy, -40px) * -0.3)) scale(0.5); }
+  92% { opacity: 0.3;  transform: translate(calc(var(--p-dx, 60px) * -0.5), calc(var(--p-dy, -40px) * -0.5)) scale(0.85); }
+  97% { opacity: 0.15; transform: translate(calc(var(--p-dx, 60px) * -0.7), calc(var(--p-dy, -40px) * -0.7)) scale(0.75); }
+  100%{ opacity: 0;    transform: translate(calc(var(--p-dx, 60px) * -0.8), calc(var(--p-dy, -40px) * -0.8)) scale(0.4); }
 }
 
 @keyframes dissolve-shimmer {
@@ -1065,12 +1065,12 @@ body.web-report #top-players .mvp-gold-icon-badge {
 }
 
 @keyframes dissolve-heartbeat {
-  0%, 100% { opacity: 0.4; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.3); }
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50% { opacity: 0.8; transform: scale(1.15); }
 }
 
 @keyframes section-arrive {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -1183,7 +1183,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
     transparent 100%
   );
   background-size: 200% 100%;
-  animation: dissolve-shimmer 4s ease-in-out infinite;
+  animation: dissolve-shimmer 6s ease-in-out infinite;
   pointer-events: none;
   z-index: 1;
 }
@@ -1192,7 +1192,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
   pointer-events: none;
   filter: saturate(0.5) brightness(0.85);
   opacity: 0.7;
-  transition: opacity 600ms ease, filter 600ms ease;
+  transition: opacity 1s ease, filter 1s ease;
 }
 
 .stats-section-wrap--materializing::after {
@@ -1200,11 +1200,11 @@ body.web-report #top-players .mvp-gold-icon-badge {
   position: absolute;
   inset: 0;
   opacity: 0;
-  transition: opacity 300ms ease;
+  transition: opacity 800ms ease;
 }
 
 .stats-section-wrap--loaded > *:not(.stats-dissolve-particle) {
-  animation: section-arrive 400ms ease-out both;
+  animation: section-arrive 800ms ease-out both;
 }
 
 /* Ambient particle layer — covers the full dashboard scroll area (fills gaps between sections) */
