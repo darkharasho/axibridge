@@ -303,10 +303,10 @@ export function AppLayout({ ctx }: { ctx: any }) {
     return (
         <div className={shellClassName}>
             {/* Custom Title Bar */}
-            <div className="app-titlebar h-10 shrink-0 w-full flex justify-between items-center px-4 border-b drag-region select-none z-50" style={{ background: 'var(--bg-base)', borderColor: 'var(--border-subtle)' }}>
-                <div className="flex items-center gap-2">
-                    <span className="arcbridge-logo h-4 w-4" style={arcbridgeLogoStyle} aria-label="ArcBridge logo" />
-                    <span style={{ fontFamily: '"Cinzel", serif', fontSize: '0.84rem', letterSpacing: '0.06em', fontWeight: 500 }}>
+            <div className="app-titlebar h-12 shrink-0 w-full flex justify-between items-center px-4 border-b drag-region select-none z-50" style={{ background: 'var(--bg-base)', borderColor: 'var(--border-subtle)' }}>
+                <div className="flex items-center gap-2.5">
+                    <span className="arcbridge-logo h-5 w-5" style={arcbridgeLogoStyle} aria-label="ArcBridge logo" />
+                    <span style={{ fontFamily: '"Cinzel", serif', fontSize: '0.95rem', letterSpacing: '0.06em', fontWeight: 500 }}>
                         <span style={{ color: '#ffffff' }}>Arc</span>
                         <span style={{ color: 'var(--brand-primary)' }}>Bridge</span>
                     </span>
