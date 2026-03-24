@@ -1129,7 +1129,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 className="flex items-center justify-between gap-4 mb-6"
             >
                 <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-                    <div className="p-2 rounded-[4px] bg-white/5 border border-white/10 text-amber-300 shrink-0">
+                    <div className="p-2 rounded-[4px] shrink-0" style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--brand-primary)' }}>
                         <Settings className="w-5 h-5" />
                     </div>
                     <div className="space-y-0">

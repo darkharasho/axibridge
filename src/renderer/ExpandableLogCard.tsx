@@ -213,13 +213,24 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     };
     const resolveEncounterDuration = () => {
-        const direct = [details.encounterDuration, log.encounterDuration]
+        // Check all available sources: useLogDetails cache, log.details (nested), and log top-level
+        const direct = [details.encounterDuration, log.details?.encounterDuration, log.encounterDuration]
             .find((value) => typeof value === 'string' && value.trim().length > 0);
         if (direct) {
-            return String(direct).trim();
+            const text = String(direct).trim();
+            // Normalize "Xm Ys" → "MM:SS"
+            const minuteSecondMatch = text.match(/(\d+)\s*m(?:in)?\s*(\d+)\s*s/i);
+            if (minuteSecondMatch) {
+                const minutes = Number(minuteSecondMatch[1]);
+                const seconds = Number(minuteSecondMatch[2]);
+                if (Number.isFinite(minutes) && Number.isFinite(seconds)) {
+                    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+            }
+            return text;
         }
 
-        const rawDuration = [details.duration, log.duration]
+        const rawDuration = [details.duration, log.details?.duration, log.duration]
             .find((value) => typeof value === 'string' && value.trim().length > 0);
         if (rawDuration) {
             const text = String(rawDuration).trim();
@@ -234,12 +245,12 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             return text;
         }
 
-        const durationMs = Number(details.durationMS ?? log.durationMS);
+        const durationMs = Number(details.durationMS ?? log.details?.durationMS ?? log.durationMS);
         if (Number.isFinite(durationMs) && durationMs > 0) {
             return formatDurationFromMs(durationMs);
         }
 
-        return '--:--';
+        return null;
     };
     const encounterDurationLabel = resolveEncounterDuration();
 
@@ -979,7 +990,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         <div className="flex-1 min-w-0 text-left">
                             <div className="flex justify-between items-start">
                                 <h4 className="text-2xl font-black text-white truncate leading-tight">{details.fightName || log.fightName || log.filePath.split(/[\\\/]/).pop()}</h4>
-                                <span className="text-lg text-blue-400 font-mono font-bold">{encounterDurationLabel}</span>
+                                {encounterDurationLabel && <span className="text-lg font-mono font-bold" style={{ color: 'var(--brand-primary)' }}>{encounterDurationLabel}</span>}
                             </div>
                             <div className="flex items-center gap-4 mt-2 text-sm font-medium text-gray-400">
                                 <span className="bg-white/5 px-2 py-0.5 rounded-md border border-white/10">{playerCount} Players {nonSquadDisplayCount > 0 ? `(${squadDisplayCount} Squad + ${nonSquadDisplayCount} Others)` : ''}</span>
@@ -1115,9 +1126,11 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                     </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start gap-3">
                         <h4 className="text-sm font-bold text-gray-200 truncate">{cardTitle}</h4>
-                        <span className="text-xs text-gray-500 font-mono">{encounterDurationLabel}</span>
+                        {encounterDurationLabel && (
+                            <span className="text-xs font-mono font-semibold shrink-0 tabular-nums" style={{ color: 'var(--brand-primary)' }}>{encounterDurationLabel}</span>
+                        )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                         <span>{statusLabel ? statusLabel : `${playerCount || '0'} Players${nonSquadDisplayCount > 0 ? ` (${squadDisplayCount} +${nonSquadDisplayCount})` : ''}`}</span>
@@ -1308,10 +1321,18 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     }
                                 }}
                                 disabled={!log.permalink}
-                                className={`log-card-dps-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg border active:scale-[0.98] ${!log.permalink
-                                    ? 'bg-blue-600/50 text-white/50 border-blue-400/10 cursor-not-allowed'
-                                    : 'bg-blue-600/90 text-white hover:bg-blue-600 border-blue-400/20'
+                                className={`log-card-dps-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] ${!log.permalink
+                                    ? 'text-white/50 cursor-not-allowed'
+                                    : 'text-white hover:brightness-110'
                                     }`}
+                                style={{
+                                    background: !log.permalink
+                                        ? 'color-mix(in srgb, var(--brand-primary) 30%, transparent)'
+                                        : 'color-mix(in srgb, var(--brand-primary) 70%, transparent)',
+                                    border: `1px solid ${!log.permalink
+                                        ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)'
+                                        : 'color-mix(in srgb, var(--brand-primary) 25%, transparent)'}`,
+                                }}
                             >
                                 <ExternalLink className="w-4 h-4" />
                                 <span>{log.permalink ? 'Open dps.report Report' : 'Link Pending...'}</span>
