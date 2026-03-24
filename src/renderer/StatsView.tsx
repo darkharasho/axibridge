@@ -367,9 +367,12 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     }, [rawDissolveActive, dissolveCompleting, aggregationSettling.active, dissolveCompletedForLogKey, logIdentityKey, stats, logs.length]);
     // dissolveActive gates section rendering (unloaded/materializing visual state).
     // It's true when: (1) the normal dissolve is playing (rawDissolveActive), OR
-    // (2) stats data is pending but hasn't reached the stats view yet (bulk upload gap
-    // where logsForStats is empty but main logs are uploading).
-    const awaitingData = dissolveCompletedForLogKey !== logIdentityKey && !embedded && Boolean(statsDataProgress?.active);
+    // (2) data hasn't reached the stats view yet — either because details are still
+    // pending (statsDataProgress.active) or because the main logs array has data
+    // that logsForStats hasn't received yet (bulk upload deferral gap).
+    const dataExpectedButMissing = logs.length === 0 && (statsDataProgress?.total ?? 0) > 0;
+    const awaitingData = dissolveCompletedForLogKey !== logIdentityKey && !embedded
+        && (Boolean(statsDataProgress?.active) || dataExpectedButMissing);
     const dissolveActive = (rawDissolveActive && dissolveCompletedForLogKey !== logIdentityKey) || awaitingData;
     const statsActionsDisabled = dissolveActive || !sectionContentReady;
 
