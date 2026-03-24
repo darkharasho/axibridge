@@ -387,8 +387,8 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
             top: `${topRange[0] + Math.random() * (topRange[1] - topRange[0])}%`,
             left: `${leftRange[0] + Math.random() * (leftRange[1] - leftRange[0])}%`,
             size: 4 + Math.floor(Math.random() * 10),
-            dur: `${4 + Math.random() * 4}s`,
-            delay: `${Math.random() * 4}s`,
+            dur: `${8 + Math.random() * 8}s`,
+            delay: `${Math.random() * 6}s`,
             color: colors[Math.floor(Math.random() * colors.length)],
             dx: drift(), dy: drift(), ex: drift(), ey: drift(),
         };
