@@ -34,9 +34,11 @@ The `statsSettling` memo treats details hydration progress (`statsDataProgress.a
 
 ## Fixes
 
-### Fix 1: Track dissolve completion by log count
+### Fix 1: Track dissolve completion by log identity
 
 **Files changed:** `src/renderer/StatsView.tsx`
+
+**Note:** This fix is partially redundant with Fix 3 — once details hydration no longer blocks the dissolve, the original `dissolveCompletedOnce` mechanism would work for tab-switch suppression. However, Fix 1 adds the important "re-dissolve for new data" capability: when the user loads new logs, the dissolve should play again for the new dataset. The current `dissolveCompletedOnce` boolean permanently suppresses all future dissolves, which is wrong.
 
 Remove:
 - `alreadySettledOnMount` ref (line 330)
@@ -44,14 +46,16 @@ Remove:
 - The effect that sets `dissolveCompletedOnce` (lines 333-339)
 
 Replace with:
-- `dissolveCompletedForLogCount` state (`number | null`, initial `null`)
-- When dissolve completes (the existing condition: `!rawDissolveActive && !dissolveCompleting && !statsSettling.active && stats != null`), store `logs.length`
-- `dissolveActive` check becomes: `rawDissolveActive && dissolveCompletedForLogCount !== logs.length`
-- When `logs.length` changes to a new value, the dissolve can play again for the new data set
+- `dissolveCompletedForLogKey` state (`string | null`, initial `null`)
+- Compute a `logIdentityKey` from the log set: `logs.length + ':' + (logs[0]?.id || '') + ':' + (logs[logs.length-1]?.id || '')`. This detects changes in both count and identity (covers add, remove, and swap scenarios).
+- When dissolve completes (the existing condition: `!rawDissolveActive && !dissolveCompleting && !aggregationSettling.active && stats != null`), store `logIdentityKey`
+- `dissolveActive` check becomes: `rawDissolveActive && dissolveCompletedForLogKey !== logIdentityKey`
 
 This means:
-- Tab switch with same logs = no dissolve replay (log count matches)
+- Tab switch with same logs = no dissolve replay (key matches)
 - New logs added = dissolve plays once for the new set
+- Logs removed and replaced with different logs (same count) = dissolve plays
+- Logs removed (count decreases) = dissolve plays (intentional — the data changed)
 - No stale refs involved
 
 ### Fix 2: Fallback path emits 'settled' phase
@@ -91,12 +95,14 @@ This aligns the fallback path with the worker path's completion semantics.
 Split the `statsSettling` memo into two concerns:
 
 **a) `aggregationSettling` memo** — gates the dissolve animation:
-- `active` is `true` only when `aggregationProgress.phase === 'streaming'` (actively computing)
+- `active` is `true` when `aggregationProgress.phase === 'streaming'` or `aggregationProgress.phase === 'computing'` (actively processing)
 - Becomes `false` when phase is `'settled'` or `'idle'`
 - This drives `dissolveActive`, particles, section materializing classes
+- The "syncing" branch (current lines 226-233: `detailsTotal > 0 && logs.length === 0`) stays here — this is a genuine aggregation-blocking condition where logs haven't arrived yet
 
 **b) `detailsProgress` memo** — display-only indicator:
 - Computes the "Loading fight details" / "X of Y fights prepared" text from `statsDataProgress`
+- The "all details unavailable" branch (current lines 218-225) moves here as a display-only error state
 - Drives a non-blocking status line in the UI (not the dissolve bar)
 - Does NOT affect `dissolveActive` or `sectionContentReady`
 
@@ -114,6 +120,7 @@ The existing dissolve bar UI can show `detailsProgress` text after the dissolve 
 - **Manual scenario A:** Load a few logs, switch to stats tab, navigate away, navigate back. Dissolve should NOT replay.
 - **Manual scenario B:** Bulk upload 20+ logs. After upload completes, stats should finish settling promptly (once aggregation completes), not wait for all details to hydrate.
 - **Manual animation check:** On first load with new logs, dissolve particles should animate, sections should materialize with fade-in transition, then particles fade out.
+- **Boundary test:** Test with exactly 8 logs (the worker/fallback threshold where `shouldUseWorker` flips) to verify Fix 2 doesn't cause issues at the boundary.
 - **Unit tests:** Existing `StatsView.integration.test.tsx` and `useStatsAggregationWorker` tests should still pass. No new test files needed for these regression fixes.
 
 ## Out of Scope
