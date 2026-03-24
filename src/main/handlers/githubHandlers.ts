@@ -782,27 +782,20 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         }
     });
 
-    ipcMain.handle('get-github-reports', async () => {
+    ipcMain.handle('get-github-reports', async (_event, payload?: { owner?: string; repo?: string; branch?: string }) => {
         try {
             const token = store.get('githubToken') as string | undefined;
-            const owner = store.get('githubRepoOwner') as string | undefined;
-            const repo = store.get('githubRepoName') as string | undefined;
-            const branch = (store.get('githubBranch') as string | undefined) || 'main';
+            const isOverride = !!(payload?.owner && payload?.repo);
+            const owner = (isOverride ? payload!.owner! : store.get('githubRepoOwner') as string | undefined);
+            const repo = (isOverride ? payload!.repo! : store.get('githubRepoName') as string | undefined);
+            const branch = payload?.branch || (store.get('githubBranch') as string | undefined) || 'main';
             if (!token) {
                 return { success: false, error: 'GitHub not connected.' };
             }
             if (!owner || !repo) {
                 return { success: false, error: 'Repository not configured.' };
             }
-            let pagesPath = getStoredPagesPath();
-            if (!pagesPath) {
-                try {
-                    const resolved = await resolvePagesSource(owner, repo, branch, token);
-                    pagesPath = resolved.pagesPath;
-                } catch {
-                    pagesPath = '';
-                }
-            }
+            const pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, isOverride);
             const indexPath = withPagesPath(pagesPath, 'reports/index.json');
             const existing = await getGithubFile(owner, repo, indexPath, branch, token);
             if (!existing?.content) {
