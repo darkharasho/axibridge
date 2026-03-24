@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useState, useRef, useMemo, memo } from 'react';
-import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, FileText, RefreshCw, Search, X } from 'lucide-react';
+import React, { useEffect, useRef, useMemo, memo } from 'react';
+import { ChevronLeft, ChevronRight, FileText, RefreshCw, Search, X } from 'lucide-react';
 
 // Helper to format file sizes
 function formatBytes(bytes: number, decimals = 2) {
@@ -130,11 +130,12 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
         ensureMonthWindowForSince,
         handleAddSelectedFiles,
         focusedIndex,
-        setFocusedIndex
+        setFocusedIndex,
+        activePreset,
+        setActivePreset,
+        handleApplyPreset,
+        dateFilteredCount
     } = ctx;
-
-    const [selectModeMenuOpen, setSelectModeMenuOpen] = useState(false);
-    const activeSelectMode = selectBetweenOpen ? 'Between' : selectSinceOpen ? 'Since' : selectDayOpen ? 'Day' : 'Select';
 
     // Keyboard navigation ref for container
     const containerRef = useRef<HTMLDivElement>(null);
@@ -282,11 +283,70 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
         setFilePickerOpen(false);
         setFilePickerError(null);
         setFilePickerSelected(new Set());
-        setSelectModeMenuOpen(false);
         setSelectDayOpen(false);
         setSelectSinceOpen(false);
         setSelectBetweenOpen(false);
+        setActivePreset(null);
         setFocusedIndex(null);
+    };
+
+    const handleFilterTabClick = (mode: 'Day' | 'Since' | 'Between') => {
+        const isActive = (mode === 'Day' && selectDayOpen) ||
+                         (mode === 'Since' && selectSinceOpen) ||
+                         (mode === 'Between' && selectBetweenOpen);
+
+        if (isActive) {
+            setSelectDayOpen(false);
+            setSelectSinceOpen(false);
+            setSelectBetweenOpen(false);
+            setFilePickerSelected(new Set());
+            return;
+        }
+
+        setActivePreset(null);
+        setFilePickerSelected(new Set());
+
+        setSelectDayOpen(mode === 'Day');
+        setSelectSinceOpen(mode === 'Since');
+        setSelectBetweenOpen(mode === 'Between');
+
+        const now = new Date();
+        if (mode === 'Day' && !selectDayDate) {
+            setSelectDayDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+        }
+        if (mode === 'Since' && !selectSinceDate) {
+            setSelectSinceDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+            const hour24 = now.getHours();
+            setSelectSinceMeridiem(hour24 >= 12 ? 'PM' : 'AM');
+            setSelectSinceHour(hour24 % 12 || 12);
+            setSelectSinceMinute(now.getMinutes());
+        }
+        if (mode === 'Between' && !selectBetweenEnd) {
+            const isoLocal = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            setSelectBetweenEnd(isoLocal);
+            const start = new Date(now.getTime() - (2 * 60 * 60 * 1000));
+            const startIsoLocal = new Date(start.getTime() - (start.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            setSelectBetweenStart(startIsoLocal);
+        }
+    };
+
+    const getFilterSummaryText = (): string => {
+        if (activePreset) return activePreset;
+        if (selectDayOpen && selectDayDate) {
+            return selectDayDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+        }
+        if (selectSinceOpen && selectSinceDate) {
+            const hour = selectSinceHour.toString().padStart(2, '0');
+            const min = selectSinceMinute.toString().padStart(2, '0');
+            return `Since ${selectSinceDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${hour}:${min} ${selectSinceMeridiem}`;
+        }
+        if (selectBetweenOpen && selectBetweenStart && selectBetweenEnd) {
+            const s = new Date(selectBetweenStart);
+            const e = new Date(selectBetweenEnd);
+            const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            return `${fmt(s)} – ${fmt(e)}`;
+        }
+        return '';
     };
 
     return (
@@ -303,172 +363,60 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                     ref={containerRef}
                 >
                     <motion.div
-                        className="app-modal-card file-picker-card relative isolate w-full max-w-4xl max-h-[92vh] flex flex-col rounded-[4px] overflow-hidden"
+                        className="app-modal-card file-picker-card relative isolate w-full max-w-[1100px] max-h-[92vh] flex flex-row rounded-[4px] overflow-hidden"
                         style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                         initial={{ opacity: 0, y: 20, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.98 }}
                         transition={{ type: "spring", bounce: 0, duration: 0.4 }}
                     >
-                        {/* Decorative background removed for unified theme */}
-                        <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-                        {/* Header */}
-                        <div className="flex-none px-6 pt-6 pb-5 border-b border-white/5">
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                    <div className="text-[10px] uppercase tracking-[0.35em] text-cyan-300/70">Recent Activity</div>
-                                    <h3 className="mt-2 text-xl font-semibold text-white flex items-center gap-2">
-                                        <FileText className="w-5 h-5 text-cyan-400" />
-                                        Add Logs
-                                    </h3>
-                                    <div className="text-sm tracking-wide text-gray-400 mt-1">Pull existing ArcDPS logs into the recent activity queue.</div>
+                        {/* Left Panel */}
+                        <div className="w-[260px] min-w-[260px] flex flex-col overflow-y-auto border-r" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                            {/* Search box */}
+                            <div className="p-3 pb-0">
+                                <div className="relative">
+                                    <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                                    <input type="text" value={filePickerFilter} onChange={(event) => setFilePickerFilter(event.target.value)} placeholder="Search..." className="file-picker-panel w-full rounded-[4px] pl-8 pr-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500/50 transition-colors" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }} />
                                 </div>
-                                <button
-                                    onClick={handleClose}
-                                    className="file-picker-close p-2.5 rounded-[4px] text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                                    style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}
-                                    aria-label="Close log picker"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
                             </div>
-                        </div>
 
-                        <div className="flex-none border-b border-white/5 bg-white/[0.02]">
-                            {/* Toolbar (Search & Filter toggles) */}
-                            <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-                                <div className="relative flex-1 min-w-[240px] max-w-md">
-                                    <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                                    <input
-                                        type="text"
-                                        value={filePickerFilter}
-                                        onChange={(event) => setFilePickerFilter(event.target.value)}
-                                        placeholder="Search by file name..."
-                                        className="file-picker-panel w-full rounded-[4px] pl-9 pr-4 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500/50 transition-colors"
-                                        style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
-                                    />
-                                </div>
-
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <button
-                                        onClick={() => loadLogFiles(logDirectory)}
-                                        className="px-4 py-2.5 rounded-[4px] text-sm font-medium border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:bg-white/10 transition-colors inline-flex items-center gap-2"
-                                    >
-                                        <RefreshCw className="w-4 h-4" />
-                                        Refresh
+                            {/* Quick preset chips */}
+                            <div className="px-3 pt-2.5 flex flex-wrap gap-1.5">
+                                {['Today', 'Yesterday', 'Last 3 days', 'This week'].map((preset) => (
+                                    <button key={preset} onClick={() => handleApplyPreset(preset)} className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-colors ${activePreset === preset ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40' : 'bg-white/5 text-gray-400 border-white/10 hover:text-white hover:bg-white/10'}`}>
+                                        {preset}
                                     </button>
-                                    {filePickerSelected.size > 0 && (
-                                        <button
-                                            onClick={() => setFilePickerSelected(new Set())}
-                                            className="px-4 py-2.5 rounded-[4px] text-sm font-medium border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:bg-white/10 transition-colors"
-                                        >
-                                            Clear Selection
-                                        </button>
-                                    )}
+                                ))}
+                            </div>
 
-                                    <div className="relative">
-                                        <button
-                                            onClick={() => setSelectModeMenuOpen((prev) => !prev)}
-                                            className={`px-4 py-2.5 rounded-[4px] text-sm font-medium border inline-flex items-center gap-2 transition-colors ${selectDayOpen || selectSinceOpen || selectBetweenOpen
-                                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
-                                                : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'
-                                                }`}
-                                        >
-                                            <CalendarRange className="w-4 h-4" />
-                                            Filter: <span className={selectDayOpen || selectSinceOpen || selectBetweenOpen ? 'font-bold text-cyan-100' : 'font-semibold text-gray-200'}>{activeSelectMode}</span>
-                                            <ChevronDown className={`w-4 h-4 transition-transform ${selectModeMenuOpen ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        <AnimatePresence>
-                                            {selectModeMenuOpen && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 4, scale: 0.98 }}
-                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                    exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                                                    transition={{ duration: 0.15 }}
-                                                    className="file-picker-popover absolute right-0 top-full mt-2 w-40 rounded-[4px] p-1.5 z-30" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
-                                                >
-                                                    {[
-                                                        { id: 'Select', label: 'None' },
-                                                        { id: 'Day', label: 'Specific Day' },
-                                                        { id: 'Since', label: 'Since Time' },
-                                                        { id: 'Between', label: 'Time Range' }
-                                                    ].map((mode) => (
-                                                        <button
-                                                            key={mode.id}
-                                                            onClick={() => {
-                                                                setSelectModeMenuOpen(false);
-                                                                setSelectDayOpen(mode.id === 'Day');
-                                                                setSelectSinceOpen(mode.id === 'Since');
-                                                                setSelectBetweenOpen(mode.id === 'Between');
-                                                                // Set default dates if empty
-                                                                const now = new Date();
-                                                                const isoLocal = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-
-                                                                if (mode.id === 'Day' && !selectDayDate) setSelectDayDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
-                                                                if (mode.id === 'Since' && !selectSinceDate) {
-                                                                    setSelectSinceDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
-                                                                    const hour24 = now.getHours();
-                                                                    setSelectSinceMeridiem(hour24 >= 12 ? 'PM' : 'AM');
-                                                                    setSelectSinceHour(hour24 % 12 || 12);
-                                                                    setSelectSinceMinute(now.getMinutes());
-                                                                }
-                                                                if (mode.id === 'Between' && !selectBetweenEnd) {
-                                                                    setSelectBetweenEnd(isoLocal);
-                                                                    const start = new Date(now.getTime() - (2 * 60 * 60 * 1000));
-                                                                    const startIsoLocal = new Date(start.getTime() - (start.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-                                                                    setSelectBetweenStart(startIsoLocal);
-                                                                }
-                                                            }}
-                                                            className={`w-full text-left px-3 py-2 rounded-[4px] text-sm transition-colors focus:outline-none ${(mode.id === 'Select' && !selectBetweenOpen && !selectSinceOpen && !selectDayOpen) ||
-                                                                (mode.id === 'Day' && selectDayOpen) ||
-                                                                (mode.id === 'Since' && selectSinceOpen) ||
-                                                                (mode.id === 'Between' && selectBetweenOpen)
-                                                                ? 'bg-cyan-500/30 text-cyan-100 font-medium'
-                                                                : 'text-gray-300 hover:bg-white/10 hover:text-white'
-                                                                }`}
-                                                        >
-                                                            {mode.label}
-                                                        </button>
-                                                    ))}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
+                            {/* Segmented filter tabs */}
+                            <div className="px-3 pt-3">
+                                <div className="flex rounded-[4px] overflow-hidden" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-input)' }}>
+                                    {(['Day', 'Since', 'Range'] as const).map((mode) => {
+                                        const modeKey = mode === 'Range' ? 'Between' : mode;
+                                        const isActive = (modeKey === 'Day' && selectDayOpen) || (modeKey === 'Since' && selectSinceOpen) || (modeKey === 'Between' && selectBetweenOpen);
+                                        return (
+                                            <button key={mode} onClick={() => handleFilterTabClick(modeKey as 'Day' | 'Since' | 'Between')} className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${isActive ? 'bg-cyan-500/20 text-cyan-200' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>
+                                                {mode}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
-                            {/* Inline Expandable Date Filter Panel */}
-                            <AnimatePresence>
-                                {(selectDayOpen || selectSinceOpen || selectBetweenOpen) && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{
-                                            height: 'auto',
-                                            opacity: 1,
-                                            transition: {
-                                                height: { duration: 0.24, ease: [0.22, 1, 0.36, 1] },
-                                                opacity: { duration: 0.16, delay: 0.04 }
-                                            }
-                                        }}
-                                        exit={{
-                                            height: 0,
-                                            opacity: 0,
-                                            transition: {
-                                                height: { duration: 0.18, ease: [0.4, 0, 1, 1] },
-                                                opacity: { duration: 0.12 }
-                                            }
-                                        }}
-                                        className="overflow-hidden"
-                                    >
+                            {/* Filter content area */}
+                            <div className="flex-1 overflow-y-auto px-3 pt-3 min-h-0">
+                                <AnimatePresence mode="wait">
+                                    {selectDayOpen && (
                                         <motion.div
-                                            initial={{ y: -8, opacity: 0.7 }}
-                                            animate={{ y: 0, opacity: 1, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } }}
-                                            exit={{ y: -6, opacity: 0, transition: { duration: 0.12 } }}
-                                            className="px-6 pb-4"
+                                            key="day-filter"
+                                            initial={{ opacity: 0, y: -8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -8 }}
+                                            transition={{ duration: 0.15 }}
                                         >
-                                        {selectDayOpen && (
                                             <div className="flex flex-col gap-4">
-                                                <div className="file-picker-panel flex-1 rounded-[4px] p-4 max-w-sm mx-auto w-full" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                                <div className="file-picker-panel flex-1 rounded-[4px] p-4 w-full" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
                                                     <div className="flex items-center justify-between mb-2">
                                                         <button
                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
@@ -554,7 +502,14 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                     return (
                                                                         <button
                                                                             key={`day-${day}`}
-                                                                            onClick={() => setSelectDayDate(new Date(year, month, day))}
+                                                                            onClick={() => {
+                                                                                setSelectDayDate(new Date(year, month, day));
+                                                                                const dayStart = new Date(year, month, day, 0, 0, 0, 0).getTime();
+                                                                                const dayEnd = new Date(year, month, day, 23, 59, 59, 999).getTime();
+                                                                                ensureMonthWindowForSince(dayStart);
+                                                                                const matching = filePickerAll.filter((e: any) => Number.isFinite(e.mtimeMs) && e.mtimeMs >= dayStart && e.mtimeMs <= dayEnd);
+                                                                                setFilePickerSelected(new Set(matching.map((e: any) => e.path)));
+                                                                            }}
                                                                             className={`h-7 w-7 rounded-full mx-auto flex items-center justify-center transition-colors border ${isSelected
                                                                                 ? 'file-picker-selected-cell font-semibold'
                                                                                 : 'border-transparent text-gray-200 hover:bg-white/10 hover:border-white/10'
@@ -568,20 +523,21 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         );
                                                     })()}
                                                 </div>
-                                                <div className="flex justify-end pt-2 border-t border-white/5">
-                                                    <button
-                                                        onClick={handleApplyDateFilters}
-                                                        className="px-6 py-2 rounded-[4px] text-sm font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:bg-white/10 transition-colors"
-                                                    >
-                                                        Select Matching Files
-                                                    </button>
-                                                </div>
                                             </div>
-                                        )}
-                                        {selectSinceOpen && (
+                                        </motion.div>
+                                    )}
+
+                                    {selectSinceOpen && (
+                                        <motion.div
+                                            key="since-filter"
+                                            initial={{ opacity: 0, y: -8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -8 }}
+                                            transition={{ duration: 0.15 }}
+                                        >
                                             <div className="flex flex-col gap-4">
-                                                <div className="flex items-stretch gap-4 flex-wrap">
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4 min-w-[280px]" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                                <div className="flex flex-col gap-3">
+                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
                                                         <div className="flex items-center justify-between mb-2">
                                                             <button
                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
@@ -681,7 +637,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             );
                                                         })()}
                                                     </div>
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4 min-w-[280px]" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
                                                         <div className="text-xs uppercase tracking-widest text-cyan-200/70 mb-2">Time</div>
                                                         <div className="grid grid-cols-3 gap-2">
                                                             <div>
@@ -743,15 +699,24 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         onClick={handleApplyDateFilters}
                                                         className="px-6 py-2 rounded-[4px] text-sm font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:bg-white/10 transition-colors"
                                                     >
-                                                        Select Matching Files
+                                                        Select Since
                                                     </button>
                                                 </div>
                                             </div>
-                                        )}
-                                        {selectBetweenOpen && (
+                                        </motion.div>
+                                    )}
+
+                                    {selectBetweenOpen && (
+                                        <motion.div
+                                            key="range-filter"
+                                            initial={{ opacity: 0, y: -8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -8 }}
+                                            transition={{ duration: 0.15 }}
+                                        >
                                             <div className="flex flex-col gap-4">
-                                                <div className="flex items-stretch gap-4 flex-wrap w-full max-w-2xl mx-auto">
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4 min-w-[200px]" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                                <div className="flex flex-col gap-3">
+                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
                                                         <div className="text-[10px] text-gray-400 mb-1">Start</div>
                                                         <input
                                                             type="datetime-local"
@@ -762,7 +727,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             style={{ colorScheme: 'dark', background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
                                                         />
                                                     </div>
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4 min-w-[200px]" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
                                                         <div className="text-[10px] text-gray-400 mb-1">End</div>
                                                         <input
                                                             type="datetime-local"
@@ -779,124 +744,140 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         onClick={handleApplyDateFilters}
                                                         className="px-6 py-2 rounded-[4px] text-sm font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:bg-white/10 transition-colors"
                                                     >
-                                                        Select Matching Files
+                                                        Select Range
                                                     </button>
                                                 </div>
                                             </div>
-                                        )}
                                         </motion.div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-
-                        {/* File List Header */}
-                        {!filePickerLoading && filteredAvailable.length > 0 && (
-                            <div className="flex-none px-6 py-3 bg-black/40 border-b border-white/5 grid grid-cols-[minmax(0,3.2fr)_minmax(140px,1.1fr)_86px] gap-4 text-[11px] uppercase tracking-[0.24em] text-gray-500 font-semibold">
-                                <div>Name</div>
-                                <div>Modified</div>
-                                <div className="text-right">Size</div>
-                            </div>
-                        )}
-
-                        {/* Main File List area */}
-                        <div className="file-picker-panel min-h-[140px] flex-1 overflow-hidden flex flex-col relative mx-4 my-4 rounded-[4px]" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
-                            {filePickerLoading ? (
-                                <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
-                                    <motion.div
-                                        animate={{ rotate: 360 }}
-                                        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                        className="w-5 h-5 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full mr-3"
-                                    />
-                                    Loading logs...
-                                </div>
-                            ) : filteredAvailable.length === 0 ? (
-                                <div className="flex-1 flex flex-col items-center justify-center gap-3 text-sm text-gray-500">
-                                    <span>{filePickerAvailable.length > 0 || filePickerAll.length > 0 ? 'No logs matching your current filters.' : 'No logs found in this folder.'}</span>
-                                    {filePickerHasMore && (
-                                        <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white transition-colors">
-                                            Load older logs
-                                        </button>
                                     )}
-                                </div>
-                            ) : (
-                                <div
-                                    ref={filePickerListRef}
-                                    onScroll={(event) => {
-                                        const target = event.currentTarget;
-                                        const atBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 4;
-                                        setFilePickerAtBottom(atBottom);
-                                    }}
-                                    className="flex-1 overflow-y-auto px-2.5 py-2.5 file-picker-scroll-container focus:outline-none"
-                                >
-                                    <div className="space-y-0.5">
-                                        {filteredAvailable.map((entry: any, index: number) => (
-                                            <FilePickerItem
-                                                key={entry.path}
-                                                entry={entry}
-                                                index={index}
-                                                isSelected={filePickerSelected.has(entry.path)}
-                                                isFocused={focusedIndex === index}
-                                                toggleSelection={toggleSelection}
-                                                setFocusedIndex={setFocusedIndex}
-                                            />
-                                        ))}
-                                    </div>
-                                    {!filePickerLoading && filePickerHasMore && filePickerAtBottom && (
-                                        <div className="mt-4 pb-4 flex justify-center">
-                                            <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white transition-colors">
-                                                Load older logs
-                                            </button>
+
+                                    {!selectDayOpen && !selectSinceOpen && !selectBetweenOpen && !activePreset && (
+                                        <div className="flex items-center justify-center h-24 text-xs text-gray-500 text-center px-2">
+                                            Select a filter mode or use a quick preset above.
                                         </div>
                                     )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Panel footer */}
+                            {(activePreset || selectDayOpen || selectSinceOpen || selectBetweenOpen) && dateFilteredCount > 0 && (
+                                <div className="flex-none p-3 border-t" style={{ borderColor: 'var(--border-default)' }}>
+                                    <div className="text-[10px] text-gray-400 mb-2">
+                                        {getFilterSummaryText()} · <span className="text-cyan-300">{dateFilteredCount} log{dateFilteredCount === 1 ? '' : 's'} found</span>
+                                    </div>
+                                    <button onClick={() => {
+                                        if (filePickerSelected.size >= dateFilteredCount && dateFilteredCount > 0) {
+                                            setFilePickerSelected(new Set());
+                                        } else {
+                                            if (activePreset) { handleApplyPreset(activePreset); } else { handleApplyDateFilters(); }
+                                        }
+                                    }} className="w-full py-1.5 rounded-[4px] text-[11px] font-medium border transition-colors bg-cyan-500/15 text-cyan-200 border-cyan-500/30 hover:bg-cyan-500/25">
+                                        {filePickerSelected.size >= dateFilteredCount && dateFilteredCount > 0 ? 'Deselect All' : `Select All ${dateFilteredCount}`}
+                                    </button>
                                 </div>
                             )}
                         </div>
 
-                        {/* Footer */}
-                        <div className="flex-none p-6 border-t border-white/5 bg-black/30">
-                            {filePickerError && <div className="text-sm text-rose-400 mb-4 font-medium px-3 py-2 bg-rose-500/10 rounded-[4px] border border-rose-500/20">{filePickerError}</div>}
-
-                            <div className="flex flex-wrap items-center justify-between gap-4">
-                                <div>
-                                    <div className="text-sm text-gray-300">
-                                        {filePickerSelected.size > 0
-                                            ? `${filePickerSelected.size} log${filePickerSelected.size === 1 ? '' : 's'} selected`
-                                            : `${filteredAvailable.length} log${filteredAvailable.length === 1 ? '' : 's'} available`}
-                                    </div>
-                                    <div className="mt-2 text-xs text-gray-500 flex flex-wrap items-center gap-4">
-                                        <span className="flex items-center gap-1.5"><code className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 border border-white/10">↑/↓</code> Navigate</span>
-                                        <span className="flex items-center gap-1.5"><code className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 border border-white/10">Space</code> Select</span>
-                                        <span className="flex items-center gap-1.5"><code className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 border border-white/10">Enter</code> Confirm</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={handleClose}
-                                        className="px-5 py-2.5 rounded-[4px] text-sm font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white transition-colors"
-                                    >
-                                        Cancel
+                        {/* Right Panel */}
+                        <div className="flex-1 flex flex-col min-w-0">
+                            {/* Header */}
+                            <div className="flex-none px-4 py-3 border-b border-white/5 flex items-center justify-between gap-3">
+                                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-cyan-400" />
+                                    Add Logs
+                                </h3>
+                                <div className="flex items-center gap-1.5">
+                                    <button onClick={() => loadLogFiles(logDirectory)} className="p-1.5 rounded-[4px] text-gray-400 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid var(--border-subtle)' }} title="Refresh">
+                                        <RefreshCw className="w-3.5 h-3.5" />
                                     </button>
-                                    <button
-                                        onClick={() => {
-                                            if (filePickerSelected.size > 0) {
-                                                handleAddSelectedFiles();
-                                            }
-                                        }}
-                                        disabled={filePickerSelected.size === 0}
-                                        className="px-5 py-2.5 rounded-[4px] text-sm font-semibold border bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                    >
-                                        Add to Recent Activity
-                                        {filePickerSelected.size > 0 && (
-                                            <span className="bg-emerald-500/30 text-emerald-100 px-2 py-0.5 rounded-lg text-xs">
-                                                {filePickerSelected.size}
-                                            </span>
-                                        )}
+                                    <button onClick={handleClose} className="p-1.5 rounded-[4px] text-gray-400 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid var(--border-subtle)' }} aria-label="Close log picker">
+                                        <X className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
                             </div>
-                        </div>
+
+                            {/* Column headers */}
+                            {!filePickerLoading && filteredAvailable.length > 0 && (
+                                <div className="flex-none px-4 py-2 bg-black/40 border-b border-white/5 grid grid-cols-[minmax(0,3.2fr)_minmax(140px,1.1fr)_86px] gap-4 text-[11px] uppercase tracking-[0.24em] text-gray-500 font-semibold">
+                                    <div>Name</div>
+                                    <div>Modified</div>
+                                    <div className="text-right">Size</div>
+                                </div>
+                            )}
+
+                            {/* File list */}
+                            <div className="file-picker-panel min-h-[140px] flex-1 overflow-hidden flex flex-col relative mx-3 my-3 rounded-[4px]" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
+                                {filePickerLoading ? (
+                                    <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
+                                        <motion.div
+                                            animate={{ rotate: 360 }}
+                                            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                            className="w-5 h-5 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full mr-3"
+                                        />
+                                        Loading logs...
+                                    </div>
+                                ) : filteredAvailable.length === 0 ? (
+                                    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-sm text-gray-500">
+                                        <span>{filePickerAvailable.length > 0 || filePickerAll.length > 0 ? 'No logs matching your current filters.' : 'No logs found in this folder.'}</span>
+                                        {filePickerHasMore && (
+                                            <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white transition-colors">
+                                                Load older logs
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div
+                                        ref={filePickerListRef}
+                                        onScroll={(event) => {
+                                            const target = event.currentTarget;
+                                            const atBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 4;
+                                            setFilePickerAtBottom(atBottom);
+                                        }}
+                                        className="flex-1 overflow-y-auto px-2.5 py-2.5 file-picker-scroll-container focus:outline-none"
+                                    >
+                                        <div className="space-y-0.5">
+                                            {filteredAvailable.map((entry: any, index: number) => (
+                                                <FilePickerItem
+                                                    key={entry.path}
+                                                    entry={entry}
+                                                    index={index}
+                                                    isSelected={filePickerSelected.has(entry.path)}
+                                                    isFocused={focusedIndex === index}
+                                                    toggleSelection={toggleSelection}
+                                                    setFocusedIndex={setFocusedIndex}
+                                                />
+                                            ))}
+                                        </div>
+                                        {!filePickerLoading && filePickerHasMore && filePickerAtBottom && (
+                                            <div className="mt-4 pb-4 flex justify-center">
+                                                <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white transition-colors">
+                                                    Load older logs
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex-none px-4 py-3 border-t border-white/5 bg-black/30">
+                                {filePickerError && (<div className="text-xs text-rose-400 mb-3 font-medium px-2.5 py-1.5 bg-rose-500/10 rounded-[4px] border border-rose-500/20">{filePickerError}</div>)}
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-xs text-gray-300">
+                                            {filePickerSelected.size > 0 ? `${filePickerSelected.size} log${filePickerSelected.size === 1 ? '' : 's'} selected` : `${filteredAvailable.length} log${filteredAvailable.length === 1 ? '' : 's'} available`}
+                                        </div>
+                                        {filePickerSelected.size > 0 && (<button onClick={() => setFilePickerSelected(new Set())} className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Clear</button>)}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={handleClose} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white transition-colors">Cancel</button>
+                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
+                                            Add to Recent Activity
+                                            {filePickerSelected.size > 0 && (<span className="bg-emerald-500/30 text-emerald-100 px-1.5 py-0.5 rounded-lg text-[10px]">{filePickerSelected.size}</span>)}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 </motion.div>
