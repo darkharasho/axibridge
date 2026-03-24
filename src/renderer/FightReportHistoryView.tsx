@@ -2,6 +2,7 @@ import { ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReportIndexEntry, ReportPayload } from '../shared/reportTypes';
 import { normalizeReportPayload } from '../shared/reportNormalization';
+import { StatsView } from './StatsView';
 
 type HistoryRepoOption = {
     key: string;
@@ -412,12 +413,26 @@ export function FightReportHistoryView() {
                         </div>
                     )}
                 </div>
-            ) : (
-                <div className="flex-1 min-h-0 flex items-center justify-center text-sm"
-                     style={{ color: 'var(--text-secondary)' }}>
-                    Detail panel — Task 9
-                </div>
-            )}
+            ) : (() => {
+                const activeReport = tabs.find((t) => t.id === activeTab);
+                return activeReport ? (
+                    <div className="flex-1 min-h-0 overflow-y-auto">
+                        <StatsView
+                            logs={[]}
+                            onBack={() => setActiveTab('list')}
+                            precomputedStats={activeReport.report.stats}
+                            statsViewSettings={activeReport.report.stats?.statsViewSettings}
+                            embedded
+                            dashboardTitle={activeReport.title}
+                        />
+                    </div>
+                ) : (
+                    <div className="flex-1 min-h-0 flex items-center justify-center text-sm"
+                         style={{ color: 'var(--text-secondary)' }}>
+                        Report not found. It may have been closed.
+                    </div>
+                );
+            })()}
         </div>
     );
 }
