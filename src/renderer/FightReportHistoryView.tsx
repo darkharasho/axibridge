@@ -138,9 +138,6 @@ export function FightReportHistoryView() {
     const [deleteMode, setDeleteMode] = useState(false);
     const [selectedForDelete, setSelectedForDelete] = useState<Set<string>>(new Set());
     const [deleteLoading, setDeleteLoading] = useState(false);
-    // setDeleteLoading / deleteLoading used in Task 10 delete handler and toolbar
-    void setDeleteLoading;
-    void deleteLoading;
 
     useEffect(() => {
         let mounted = true;
@@ -264,6 +261,37 @@ export function FightReportHistoryView() {
             setDetailError(err?.message || 'Failed to load report.');
         } finally {
             setDetailLoading(null);
+        }
+    };
+
+    const handleDeleteSelected = async () => {
+        const ids = Array.from(selectedForDelete);
+        if (ids.length === 0) return;
+        const confirmed = window.confirm(
+            `Delete ${ids.length} report${ids.length === 1 ? '' : 's'} from GitHub? This cannot be undone.`
+        );
+        if (!confirmed) return;
+        setDeleteLoading(true);
+        try {
+            const payload: any = { ids };
+            if (isOverride && selectedRepo) {
+                payload.owner = selectedRepo.owner;
+                payload.repo = selectedRepo.repo;
+            }
+            const result = await window.electronAPI.deleteGithubReports(payload);
+            if (result?.success) {
+                setTabs((prev) => prev.filter((t) => !ids.includes(t.id)));
+                setActiveTab((prev) => ids.includes(prev) ? 'list' : prev);
+                setSelectedForDelete(new Set());
+                setDeleteMode(false);
+                await fetchIndex();
+            } else {
+                setDetailError(result?.error || 'Failed to delete reports.');
+            }
+        } catch (err: any) {
+            setDetailError(err?.message || 'Failed to delete reports.');
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -410,6 +438,21 @@ export function FightReportHistoryView() {
                                     )}
                                 </button>
                             ))}
+                        </div>
+                    )}
+
+                    {deleteMode && selectedForDelete.size > 0 && (
+                        <div className="sticky bottom-0 py-3"
+                             style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border-default)' }}>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                    {selectedForDelete.size} report{selectedForDelete.size === 1 ? '' : 's'} selected
+                                </span>
+                                <button type="button" onClick={handleDeleteSelected} disabled={deleteLoading}
+                                    className="px-4 py-2 rounded-[4px] text-sm font-medium bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">
+                                    {deleteLoading ? 'Deleting...' : 'Delete Selected'}
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
