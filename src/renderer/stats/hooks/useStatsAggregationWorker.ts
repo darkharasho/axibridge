@@ -481,8 +481,8 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const resolvedAggregationProgress = (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker)
         ? aggregationProgress
         : {
-            active: false,
-            phase: 'idle' as const,
+            active: logs.length > 0,
+            phase: logs.length > 0 ? 'settled' as const : 'idle' as const,
             streamed: logs.length,
             total: logs.length,
             startedAt: 0,
