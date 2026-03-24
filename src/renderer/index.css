@@ -950,6 +950,214 @@ body.web-report #top-players .mvp-gold-icon-badge {
     touch-action: none;
 }
 
+/* ── Particle dissolve loading: keyframes ── */
+
+@keyframes dissolve-scatter-1 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+  100% { transform: translate(14px, -10px) scale(0); opacity: 0; }
+}
+@keyframes dissolve-scatter-2 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  100% { transform: translate(10px, 8px) scale(0); opacity: 0; }
+}
+@keyframes dissolve-scatter-3 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  100% { transform: translate(18px, -5px) scale(0); opacity: 0; }
+}
+@keyframes dissolve-scatter-4 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  100% { transform: translate(8px, 11px) scale(0); opacity: 0; }
+}
+@keyframes dissolve-scatter-5 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  100% { transform: translate(22px, -7px) scale(0); opacity: 0; }
+}
+
+@keyframes dissolve-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes particle-float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.25; }
+  25% { transform: translateY(-7px) scale(1.15); opacity: 0.6; }
+  50% { transform: translateY(-2px) scale(0.85); opacity: 0.4; }
+  75% { transform: translateY(-9px) scale(1.05); opacity: 0.55; }
+}
+
+@keyframes dissolve-heartbeat {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+@keyframes section-arrive {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Dissolve progress bar ── */
+
+.stats-dissolve-bar {
+  position: relative;
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+  overflow: visible;
+  margin-top: 8px;
+}
+
+.stats-dissolve-bar__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary));
+  transition: width 0.6s ease;
+}
+
+.stats-dissolve-bar__glow {
+  position: absolute;
+  top: -4px;
+  width: 10px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--brand-secondary) 50%, transparent), transparent);
+  animation: dissolve-glow 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.stats-dissolve-bar__particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.stats-dissolve-bar__particle:nth-child(1) {
+  width: 3px; height: 3px;
+  background: var(--brand-secondary);
+  animation: dissolve-scatter-1 1.8s ease-out infinite;
+}
+.stats-dissolve-bar__particle:nth-child(2) {
+  width: 2px; height: 2px;
+  background: var(--brand-primary);
+  animation: dissolve-scatter-2 1.8s ease-out infinite 0.2s;
+}
+.stats-dissolve-bar__particle:nth-child(3) {
+  width: 2px; height: 2px;
+  background: var(--brand-secondary);
+  animation: dissolve-scatter-3 1.8s ease-out infinite 0.5s;
+}
+.stats-dissolve-bar__particle:nth-child(4) {
+  width: 3px; height: 3px;
+  background: var(--brand-primary);
+  animation: dissolve-scatter-4 1.8s ease-out infinite 0.3s;
+}
+.stats-dissolve-bar__particle:nth-child(5) {
+  width: 2px; height: 2px;
+  background: var(--brand-secondary);
+  animation: dissolve-scatter-5 1.8s ease-out infinite 0.7s;
+}
+
+.stats-dissolve-heartbeat {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  animation: dissolve-heartbeat 1.8s ease-in-out infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* ── Section dissolve states ── */
+
+.stats-section-wrap {
+  position: relative;
+}
+
+.stats-section-wrap--unloaded {
+  opacity: 1;
+}
+
+.stats-section-wrap--unloaded > :first-child {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.stats-section-wrap--materializing > :first-child {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+
+.stats-section-wrap--loaded > :first-child {
+  animation: section-arrive 400ms ease-out both;
+}
+
+/* Floating particles inside unloaded sections */
+.stats-dissolve-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.stats-dissolve-particle:nth-child(1) { top: 18%; left: 22%; width: 3px; height: 3px; background: color-mix(in srgb, var(--brand-primary) 40%, transparent); animation: particle-float 3.2s ease-in-out infinite; }
+.stats-dissolve-particle:nth-child(2) { top: 52%; left: 68%; width: 2px; height: 2px; background: color-mix(in srgb, var(--brand-secondary) 35%, transparent); animation: particle-float 2.8s ease-in-out infinite 0.5s; }
+.stats-dissolve-particle:nth-child(3) { top: 35%; left: 85%; width: 3px; height: 3px; background: color-mix(in srgb, var(--brand-primary) 30%, transparent); animation: particle-float 3.6s ease-in-out infinite 1.0s; }
+.stats-dissolve-particle:nth-child(4) { top: 72%; left: 15%; width: 2px; height: 2px; background: color-mix(in srgb, var(--brand-secondary) 45%, transparent); animation: particle-float 2.5s ease-in-out infinite 1.5s; }
+.stats-dissolve-particle:nth-child(5) { top: 25%; left: 48%; width: 4px; height: 4px; background: color-mix(in srgb, var(--brand-primary) 25%, transparent); animation: particle-float 3.8s ease-in-out infinite 0.8s; }
+.stats-dissolve-particle:nth-child(6) { top: 65%; left: 78%; width: 2px; height: 2px; background: color-mix(in srgb, var(--brand-secondary) 30%, transparent); animation: particle-float 3.0s ease-in-out infinite 1.3s; }
+
+/* Materializing: particles converge to center */
+.stats-section-wrap--materializing .stats-dissolve-particle {
+  transition: top 300ms ease-in, left 300ms ease-in, opacity 200ms;
+  top: 50% !important;
+  left: 50% !important;
+  opacity: 0;
+}
+
+/* ── Joke footer ── */
+
+.stats-dissolve-joke {
+  text-align: center;
+  padding: 10px 16px;
+  font-size: 10px;
+  font-style: italic;
+  color: var(--text-muted);
+  opacity: 0.6;
+  background: linear-gradient(to top, var(--bg-base) 60%, transparent);
+}
+
+/* ── Reduced motion / bulk upload ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .stats-dissolve-bar__particle,
+  .stats-dissolve-bar__glow,
+  .stats-dissolve-heartbeat,
+  .stats-dissolve-particle {
+    animation: none !important;
+  }
+
+  .stats-section-wrap--loaded > :first-child {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+body.bulk-uploading .stats-dissolve-bar__particle,
+body.bulk-uploading .stats-dissolve-bar__glow,
+body.bulk-uploading .stats-dissolve-heartbeat,
+body.bulk-uploading .stats-dissolve-particle {
+  animation: none !important;
+}
+
+body.bulk-uploading .stats-section-wrap--loaded > :first-child {
+  animation: none;
+  opacity: 1;
+}
+
 /* Dashboard side layout: stats tiles need a compact grid in the side rail. */
 .dashboard-stats-side-rail .matte-tiles-shell>.grid.grid-cols-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
