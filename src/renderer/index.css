@@ -756,6 +756,16 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+/* Group container entrance animation on nav switch */
+.stats-group-enter {
+    animation: stats-group-enter 300ms ease-out;
+}
+
+@keyframes stats-group-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Content transition when switching metric tabs (keyed via animationKey) */
 .stats-content-animate {
     animation: stats-content-enter 350ms ease-out;

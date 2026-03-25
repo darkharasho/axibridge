@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, CSSProperties } from 'react';
 
 type StatsGroupContainerProps = {
     groupId: string;
@@ -20,7 +20,7 @@ export function StatsGroupContainer({
     return (
         <div
             id={`group-${groupId}`}
-            className="stats-group-container scroll-mt-24"
+            className="stats-group-container scroll-mt-24 stats-group-enter"
             style={{
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-default)',

@@ -463,7 +463,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
                 sectionCount={sections.length}
             >
                 {sections.map((s, i) => (
-                    <SectionPanel key={s.id} sectionId={s.id} isLast={i === sections.length - 1} index={i}>
+                    <SectionPanel key={s.id} sectionId={s.id} isLast={i === sections.length - 1}>
                         {renderSectionWrap(s.element)}
                     </SectionPanel>
                 ))}
