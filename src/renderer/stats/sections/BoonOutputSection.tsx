@@ -295,6 +295,32 @@ export const BoonOutputSection = ({
                 </div>
             </div>
         ) : (
+            <>
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <PillToggleGroup
+                    value={activeBoonCategory}
+                    onChange={setActiveBoonCategory}
+                    options={[
+                        { value: 'selfBuffs', label: 'Self' },
+                        { value: 'groupBuffs', label: 'Group' },
+                        { value: 'squadBuffs', label: 'Squad' },
+                        { value: 'totalBuffs', label: 'Total' }
+                    ]}
+                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                    inactiveClassName="text-[color:var(--text-secondary)]"
+                />
+                <PillToggleGroup
+                    value={activeBoonMetric}
+                    onChange={setActiveBoonMetric}
+                    options={[
+                        { value: 'total', label: 'Total Gen' },
+                        { value: 'average', label: 'Gen/Sec' },
+                        { value: 'uptime', label: 'Uptime' }
+                    ]}
+                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                    inactiveClassName="text-[color:var(--text-secondary)]"
+                />
+            </div>
             <StatsTableLayout
                 expanded={expandedSection === 'boon-output'}
                 sidebarClassName={`pr-3 flex flex-col min-h-0 overflow-y-auto ${expandedSection === 'boon-output' ? 'h-full flex-1' : ''}`}
@@ -342,32 +368,6 @@ export const BoonOutputSection = ({
                             header={null}
                             columns={
                                 <>
-                                    <div className="flex flex-wrap items-center justify-start gap-2 px-4 py-2">
-                                        <PillToggleGroup
-                                            value={activeBoonCategory}
-                                            onChange={setActiveBoonCategory}
-                                            options={[
-                                                { value: 'selfBuffs', label: 'Self' },
-                                                { value: 'groupBuffs', label: 'Group' },
-                                                { value: 'squadBuffs', label: 'Squad' },
-                                                { value: 'totalBuffs', label: 'Total' }
-                                            ]}
-                                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                            inactiveClassName="text-[color:var(--text-secondary)]"
-                                        />
-                                        <PillToggleGroup
-                                            value={activeBoonMetric}
-                                            onChange={setActiveBoonMetric}
-                                            options={[
-                                                { value: 'total', label: 'Total Gen' },
-                                                { value: 'average', label: 'Gen/Sec' },
-                                                { value: 'uptime', label: 'Uptime' }
-                                            ]}
-                                            className="sm:ml-auto"
-                                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                            inactiveClassName="text-[color:var(--text-secondary)]"
-                                        />
-                                    </div>
                                     <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider px-4 py-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
                                         <div className="text-center">#</div>
                                         <div>Player</div>
@@ -431,6 +431,7 @@ export const BoonOutputSection = ({
                     )
                 }
             />
+            </>
         )}
     </div>
     );

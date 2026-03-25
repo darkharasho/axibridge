@@ -279,6 +279,32 @@ export const SupportSection = ({
                 </div>
             </div>
         ) : (
+            <>
+            <div className="flex items-center gap-2 mb-2">
+                {activeSupportStat === 'condiCleanse' && (
+                    <PillToggleGroup
+                        value={cleanseScope}
+                        onChange={setCleanseScope}
+                        options={[
+                            { value: 'all', label: 'All' },
+                            { value: 'squad', label: 'Squad' }
+                        ]}
+                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                        inactiveClassName="text-[color:var(--text-secondary)]"
+                    />
+                )}
+                <PillToggleGroup
+                    value={supportViewMode}
+                    onChange={setSupportViewMode}
+                    options={[
+                        { value: 'total', label: 'Total' },
+                        { value: 'per1s', label: 'Stat/1s' },
+                        { value: 'per60s', label: 'Stat/60s' }
+                    ]}
+                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                    inactiveClassName="text-[color:var(--text-secondary)]"
+                />
+            </div>
             <StatsTableLayout
                 expanded={expandedSection === 'support-detailed'}
                 sidebarClassName={`pr-3 flex flex-col min-h-0 overflow-y-auto ${expandedSection === 'support-detailed' ? 'h-full flex-1' : ''}`}
@@ -354,46 +380,6 @@ export const SupportSection = ({
                                     header={null}
                                     columns={
                                         <>
-                                            {metric.id === 'condiCleanse' ? (
-                                                <div className="flex flex-wrap items-center gap-2 px-4 py-2">
-                                                    <PillToggleGroup
-                                                        value={cleanseScope}
-                                                        onChange={setCleanseScope}
-                                                        options={[
-                                                            { value: 'all', label: 'All' },
-                                                            { value: 'squad', label: 'Squad' }
-                                                        ]}
-                                                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                                        inactiveClassName="text-[color:var(--text-secondary)]"
-                                                    />
-                                                    <PillToggleGroup
-                                                        value={supportViewMode}
-                                                        onChange={setSupportViewMode}
-                                                        options={[
-                                                            { value: 'total', label: 'Total' },
-                                                            { value: 'per1s', label: 'Stat/1s' },
-                                                            { value: 'per60s', label: 'Stat/60s' }
-                                                        ]}
-                                                        className="sm:ml-auto"
-                                                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                                        inactiveClassName="text-[color:var(--text-secondary)]"
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-wrap items-center justify-start sm:justify-end px-4 py-2">
-                                                    <PillToggleGroup
-                                                        value={supportViewMode}
-                                                        onChange={setSupportViewMode}
-                                                        options={[
-                                                            { value: 'total', label: 'Total' },
-                                                            { value: 'per1s', label: 'Stat/1s' },
-                                                            { value: 'per60s', label: 'Stat/60s' }
-                                                        ]}
-                                                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                                        inactiveClassName="text-[color:var(--text-secondary)]"
-                                                    />
-                                                </div>
-                                            )}
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider px-4 py-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
                                                 <div className="text-center">#</div>
                                                 <div>Player</div>
@@ -452,6 +438,7 @@ export const SupportSection = ({
                     </>
                 }
             />
+            </>
         )}
     </div>
     );

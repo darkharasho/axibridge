@@ -273,6 +273,46 @@ export const HealingSection = ({
                 </div>
             </div>
         ) : (
+            <>
+            {(() => {
+                const activeMetric = HEALING_METRICS.find((entry) => entry.id === activeHealingMetric) || HEALING_METRICS[0];
+                const isResUtility = activeMetric.baseField === 'resUtility';
+                return (
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        {isResUtility ? (
+                            <PillToggleGroup
+                                value={activeResUtilitySkill}
+                                onChange={setActiveResUtilitySkill}
+                                options={[
+                                    { value: 'all', label: 'All' },
+                                    ...(skillUsageData.resUtilitySkills || []).map((skill) => ({
+                                        value: skill.id,
+                                        label: skill.name
+                                    }))
+                                ]}
+                                className="flex-wrap"
+                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                inactiveClassName="text-[color:var(--text-secondary)]"
+                            />
+                        ) : (
+                            <PillToggleGroup
+                                value={healingCategory}
+                                onChange={setHealingCategory}
+                                options={[
+                                    { value: 'total', label: 'Total' },
+                                    { value: 'squad', label: 'Squad' },
+                                    { value: 'group', label: 'Group' },
+                                    { value: 'self', label: 'Self' },
+                                    { value: 'offSquad', label: 'OffSquad' }
+                                ]}
+                                className="flex-wrap"
+                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                inactiveClassName="text-[color:var(--text-secondary)]"
+                            />
+                        )}
+                    </div>
+                );
+            })()}
             <StatsTableLayout
                 expanded={expandedSection === 'healing-stats'}
                 sidebarClassName={`pr-3 flex flex-col min-h-0 overflow-y-auto ${expandedSection === 'healing-stats' ? 'h-full flex-1' : ''}`}
@@ -340,42 +380,6 @@ export const HealingSection = ({
                                     header={null}
                                     columns={
                                         <>
-                                            {isResUtilityMetric && (
-                                                <div className="flex items-center justify-end px-4 py-2 flex-wrap">
-                                                    <PillToggleGroup
-                                                        value={activeResUtilitySkill}
-                                                        onChange={setActiveResUtilitySkill}
-                                                        options={[
-                                                            { value: 'all', label: 'All' },
-                                                            ...(skillUsageData.resUtilitySkills || []).map((skill) => ({
-                                                                value: skill.id,
-                                                                label: skill.name
-                                                            }))
-                                                        ]}
-                                                        className="flex-wrap"
-                                                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                                        inactiveClassName="text-[color:var(--text-secondary)]"
-                                                    />
-                                                </div>
-                                            )}
-                                            {!isResUtilityMetric && (
-                                                <div className="flex items-center justify-end px-4 py-2">
-                                                    <PillToggleGroup
-                                                        value={healingCategory}
-                                                        onChange={setHealingCategory}
-                                                        options={[
-                                                            { value: 'total', label: 'Total' },
-                                                            { value: 'squad', label: 'Squad' },
-                                                            { value: 'group', label: 'Group' },
-                                                            { value: 'self', label: 'Self' },
-                                                            { value: 'offSquad', label: 'OffSquad' }
-                                                        ]}
-                                                        className="flex-wrap"
-                                                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                                        inactiveClassName="text-[color:var(--text-secondary)]"
-                                                    />
-                                                </div>
-                                            )}
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider px-4 py-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
                                                 <div className="text-center">#</div>
                                                 <div>Player</div>
@@ -427,6 +431,7 @@ export const HealingSection = ({
                     </>
                 }
             />
+            </>
         )}
     </div>
     );

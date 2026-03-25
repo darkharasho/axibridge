@@ -311,6 +311,19 @@ export const ConditionsSection = ({
                     )}
                 </div>
             ) : (
+                <>
+                <div className="flex items-center gap-2 mb-2">
+                    <PillToggleGroup
+                        value={conditionDirection}
+                        onChange={setConditionDirection}
+                        options={[
+                            { value: 'outgoing', label: 'Outgoing' },
+                            { value: 'incoming', label: 'Incoming' }
+                        ]}
+                        activeClassName="bg-amber-500/20 text-amber-200 border border-amber-500/40"
+                        inactiveClassName="border border-transparent text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                    />
+                </div>
                 <StatsTableLayout
                 expanded={expandedSection === 'conditions-outgoing'}
                 sidebarClassName={`pr-3 flex flex-col min-h-0 overflow-y-auto ${expandedSection === 'conditions-outgoing' ? 'h-full flex-1' : ''}`}
@@ -367,18 +380,6 @@ export const ConditionsSection = ({
                         header={null}
                         columns={
                             <>
-                            <div className="flex items-center justify-end gap-2 px-4 py-2">
-                                <PillToggleGroup
-                                    value={conditionDirection}
-                                    onChange={setConditionDirection}
-                                    options={[
-                                        { value: 'outgoing', label: 'Outgoing' },
-                                        { value: 'incoming', label: 'Incoming' }
-                                    ]}
-                                    activeClassName="bg-amber-500/20 text-amber-200 border border-amber-500/40"
-                                    inactiveClassName="border border-transparent text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                                />
-                            </div>
                             <div className={`grid ${conditionGridClass} text-xs uppercase tracking-wider text-[color:var(--text-muted)] px-4 py-2`} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                                 <div className="text-center">#</div>
                                 <div>Player</div>
@@ -552,6 +553,7 @@ export const ConditionsSection = ({
                     />
                 }
             />
+                </>
             )
         ) : (
             <div className="text-center text-[color:var(--text-muted)] italic py-8">No condition data available</div>

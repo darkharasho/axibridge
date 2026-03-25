@@ -306,6 +306,32 @@ export const DefenseSection = ({
                 </div>
             </div>
         ) : (
+            <>
+            <div className="flex items-center gap-2 mb-2">
+                {isMinionDamageMetric(activeDefenseStat) && (
+                    <PillToggleGroup
+                        value={minionDamageMode}
+                        onChange={(value) => setMinionDamageMode(value as 'combined' | 'separate')}
+                        options={[
+                            { value: 'combined', label: 'Combined' },
+                            { value: 'separate', label: 'Separate' }
+                        ]}
+                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                        inactiveClassName="text-[color:var(--text-secondary)]"
+                    />
+                )}
+                <PillToggleGroup
+                    value={defenseViewMode}
+                    onChange={setDefenseViewMode}
+                    options={[
+                        { value: 'total', label: 'Total' },
+                        { value: 'per1s', label: 'Stat/1s' },
+                        { value: 'per60s', label: 'Stat/60s' }
+                    ]}
+                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                    inactiveClassName="text-[color:var(--text-secondary)]"
+                />
+            </div>
             <StatsTableLayout
                 expanded={expandedSection === 'defense-detailed'}
                 sidebarClassName={`pr-3 flex flex-col min-h-0 overflow-y-auto ${expandedSection === 'defense-detailed' ? 'h-full flex-1' : ''}`}
@@ -377,33 +403,6 @@ export const DefenseSection = ({
                                     header={null}
                                     columns={
                                         <>
-                                            <div className={`flex items-center px-4 py-2 ${isMinionDamageMetric(metric.id) ? 'justify-between' : 'justify-end'}`}>
-                                                {isMinionDamageMetric(metric.id) && (
-                                                    <PillToggleGroup
-                                                        value={minionDamageMode}
-                                                        onChange={(value) => setMinionDamageMode(value as 'combined' | 'separate')}
-                                                        options={[
-                                                            { value: 'combined', label: 'Combined' },
-                                                            { value: 'separate', label: 'Separate' }
-                                                        ]}
-                                                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                                        inactiveClassName="text-[color:var(--text-secondary)]"
-                                                    />
-                                                )}
-                                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                                    <PillToggleGroup
-                                                        value={defenseViewMode}
-                                                        onChange={setDefenseViewMode}
-                                                        options={[
-                                                            { value: 'total', label: 'Total' },
-                                                            { value: 'per1s', label: 'Stat/1s' },
-                                                            { value: 'per60s', label: 'Stat/60s' }
-                                                        ]}
-                                                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                                        inactiveClassName="text-[color:var(--text-secondary)]"
-                                                    />
-                                                </div>
-                                            </div>
                                             <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider px-4 py-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
                                                 <div className="text-center">#</div>
                                                 <div>Player</div>
@@ -468,6 +467,7 @@ export const DefenseSection = ({
                     </>
                 }
             />
+            </>
         )}
     </div>
     );
