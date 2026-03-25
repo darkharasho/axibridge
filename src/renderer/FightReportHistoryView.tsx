@@ -143,6 +143,9 @@ export function FightReportHistoryView() {
     const [searchQuery, setSearchQuery] = useState('');
     const [commanderFilter, setCommanderFilter] = useState<string>('');
     const [sectionVisibility, setSectionVisibility] = useState<((id: string) => boolean) | null>(null);
+    const handleSectionVisibilityChange = useCallback((fn: (id: string) => boolean) => {
+        setSectionVisibility(() => fn);
+    }, []);
     const [commanderDropdownOpen, setCommanderDropdownOpen] = useState(false);
     const commanderDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -629,7 +632,7 @@ export function FightReportHistoryView() {
                         transition={{ duration: 0.25, ease: 'easeOut' }}
                         className="flex-1 min-h-0 flex gap-3 px-4 pt-2 pb-2"
                     >
-                        <StatsNavSidebar onSectionVisibilityChange={(fn) => setSectionVisibility(() => fn)} />
+                        <StatsNavSidebar onSectionVisibilityChange={handleSectionVisibilityChange} />
                         <div className="flex-1 min-h-0 flex flex-col">
                             <StatsView
                                 logs={[]}
