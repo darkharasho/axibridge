@@ -155,7 +155,7 @@ export const AttendanceSection = ({
                     <div className={`rounded-[var(--radius-md)] overflow-hidden ${shouldScrollLedger ? 'max-h-[30rem] overflow-y-auto' : ''}`} style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                         <table className="w-full text-xs table-auto min-w-full border-separate border-spacing-0">
                             <thead>
-                                <tr className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}>
+                                <tr className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Account</th>
                                     <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Character(s)</th>
                                     <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Classes Played</th>
@@ -183,7 +183,7 @@ export const AttendanceSection = ({
                             </thead>
                             <tbody>
                                 {visibleRows.map((row) => (
-                                    <tr key={row.account} className="align-top" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                                    <tr key={row.account} className="align-top border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                         <td className="py-2 px-4 font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>{row.account}</td>
                                         <td className="py-2 px-4" style={{ color: 'var(--text-secondary)' }}>
                                             {row.characterNames.length > 0 ? row.characterNames.join(', ') : '-'}

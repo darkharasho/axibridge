@@ -595,7 +595,7 @@ export const SpikeDamageSection = ({
                         </div>
                     ) : (
                         <div className="incoming-skill-table-container rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] overflow-hidden">
-                            <div className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2 text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
+                            <div className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                                 <div>Skill</div>
                                 <div className="text-right">{isDownContributionMode ? 'Down Contrib' : 'Damage'}</div>
                                 <div className="text-right">Hits</div>
@@ -604,7 +604,7 @@ export const SpikeDamageSection = ({
                                 {displayRows.map((row, idx) => (
                                     <div
                                         key={`${row.skillName}-${idx}`}
-                                        className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2.5 text-sm text-[color:var(--text-primary)] border-b border-white/[0.05] last:border-b-0"
+                                        className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2.5 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)] last:border-b-0"
                                     >
                                         <div className="min-w-0 flex items-center gap-2">
                                             {row.icon ? (

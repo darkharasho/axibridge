@@ -433,7 +433,7 @@ const CollapsedView = ({
                                 </div>
                             }
                             columns={
-                                <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider px-4 py-2.5" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+                                <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-4 py-2 border-b border-[color:var(--border-default)]">
                                     <div className="text-center">#</div>
                                     <div>Player</div>
                                     <button
@@ -488,7 +488,7 @@ const CollapsedView = ({
                                                     ? 'linear-gradient(to right, rgba(239,68,68,0.2), rgba(239,68,68,0.05))'
                                                     : config.barGradientStyle;
                                             return (
-                                                <div key={`${row.account}-${idx}`} className={`relative border-t border-[color:var(--border-subtle)] ${activeModIsHypothetical ? 'opacity-50' : ''}`}>
+                                                <div key={`${row.account}-${idx}`} className={`relative border-b border-[color:var(--border-subtle)] ${activeModIsHypothetical ? 'opacity-50' : ''}`}>
                                                     {/* Bar overlay — negative grows from right, positive from left */}
                                                     <div
                                                         className={`absolute inset-y-0 pointer-events-none ${isNegative ? 'right-0' : 'left-0'}`}

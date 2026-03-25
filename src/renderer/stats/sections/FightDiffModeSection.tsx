@@ -218,12 +218,12 @@ export const FightDiffModeSection = () => {
                             expanded={expandedSection === 'fight-diff-mode'}
                             maxHeightClass="max-h-96"
                             header={(
-                                <div className="bg-[var(--bg-hover)] px-4 py-3 text-xs uppercase tracking-widest text-[color:var(--text-secondary)]">
+                                <div className="px-4 py-3 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                                     Target Focus Comparison
                                 </div>
                             )}
                             columns={targetFocusRows.length > 0 ? (
-                                <div className="bg-[var(--bg-hover)] overflow-x-auto">
+                                <div className="overflow-x-auto">
                                     <table className="w-full min-w-[700px] table-fixed text-xs">
                                         <colgroup>
                                             <col className="w-[220px]" />
@@ -279,7 +279,7 @@ export const FightDiffModeSection = () => {
                                         </colgroup>
                                         <tbody>
                                             {sortedTargetFocusRows.map((row) => (
-                                                <tr key={`focus-${row.label}`} className="border-t border-[color:var(--border-subtle)]">
+                                                <tr key={`focus-${row.label}`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                                     <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.label}</td>
                                                     <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatWithCommas(row.aDamage, 0)}</td>
                                                     <td className="py-2 px-3 text-right font-mono text-[color:var(--text-secondary)]">{formatPct(row.aShare)}</td>
@@ -309,12 +309,12 @@ export const FightDiffModeSection = () => {
                             expanded={expandedSection === 'fight-diff-mode'}
                             maxHeightClass="max-h-none"
                             header={(
-                                <div className="bg-[var(--bg-hover)] px-4 py-3 text-xs uppercase tracking-widest text-[color:var(--text-secondary)]">
+                                <div className="px-4 py-3 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                                     Squad Metric Comparison
                                 </div>
                             )}
                             columns={squadMetricRows.length > 0 ? (
-                                <div className="bg-[var(--bg-hover)] overflow-x-auto">
+                                <div className="overflow-x-auto">
                                     <table className="w-full min-w-[680px] table-fixed text-xs">
                                         <colgroup>
                                             <col className="w-[320px]" />
@@ -347,7 +347,7 @@ export const FightDiffModeSection = () => {
                                                 const improving = row.higherIsBetter ? row.delta >= 0 : row.delta <= 0;
                                                 const decimals = metricDecimals(row.metricId);
                                                 return (
-                                                    <tr key={`performer-${row.metricId}`} className="border-t border-[color:var(--border-subtle)]">
+                                                    <tr key={`performer-${row.metricId}`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                                         <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.metricLabel}</td>
                                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatWithCommas(Number(row.a?.value || 0), decimals)}</td>
                                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatWithCommas(Number(row.b?.value || 0), decimals)}</td>

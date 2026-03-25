@@ -570,7 +570,7 @@ export const PlayerBreakdownSection = ({
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="stats-table-column-header grid grid-cols-[1.2fr_0.8fr] text-xs uppercase tracking-wider text-[color:var(--text-muted)] px-4 py-2" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                                    <div className="stats-table-column-header grid grid-cols-[1.2fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-4 py-2 border-b border-[color:var(--border-default)]">
                                                         <div>Metric</div>
                                                         <div className="text-right">Value</div>
                                                     </div>
@@ -589,7 +589,7 @@ export const PlayerBreakdownSection = ({
                                                             )
                                                         }
                                                     ]).map((row) => (
-                                                        <div key={row.label} className="grid grid-cols-[1.2fr_0.8fr] px-4 py-3 text-sm text-[color:var(--text-primary)] border-t border-[color:var(--border-subtle)]">
+                                                        <div key={row.label} className="grid grid-cols-[1.2fr_0.8fr] px-4 py-3 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                                             <div className="font-semibold text-white">{row.label}</div>
                                                             <div className="text-right font-mono text-[color:var(--text-secondary)]">{row.value}</div>
                                                         </div>
@@ -810,7 +810,7 @@ export const PlayerBreakdownSection = ({
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="stats-table-column-header grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-[color:var(--text-muted)] px-4 py-2" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                                    <div className="stats-table-column-header grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-4 py-2 border-b border-[color:var(--border-default)]">
                                                         <div>Player</div>
                                                         <button
                                                             type="button"
@@ -845,7 +845,7 @@ export const PlayerBreakdownSection = ({
                                                         const damage = Number(skillEntry?.damage || 0);
                                                         const dps = player.totalFightMs > 0 ? damage / (player.totalFightMs / 1000) : 0;
                                                         return (
-                                                            <div key={`${activeClassBreakdown.profession}-${player.key}`} className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] px-4 py-3 text-sm text-[color:var(--text-primary)] border-t border-[color:var(--border-subtle)]">
+                                                            <div key={`${activeClassBreakdown.profession}-${player.key}`} className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] px-4 py-3 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                     {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4')}
                                                                     <div className="min-w-0">

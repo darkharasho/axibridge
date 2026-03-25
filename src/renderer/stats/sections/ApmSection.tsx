@@ -466,7 +466,7 @@ export const ApmSection = ({
                                                 </div>
                                             </div>
                                             {isAllApmSkills || !activeApmSkill ? (
-                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] text-xs uppercase tracking-wider px-4 py-2.5" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-4 py-2 border-b border-[color:var(--border-default)]">
                                                     <div>Player</div>
                                                     <button
                                                         type="button"
@@ -494,7 +494,7 @@ export const ApmSection = ({
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.8fr_0.8fr] text-xs uppercase tracking-wider px-4 py-2.5" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.8fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-4 py-2 border-b border-[color:var(--border-default)]">
                                                     <div>Player</div>
                                                     <div className="text-right">Casts</div>
                                                     <div className="text-right">{apmView === 'perSecond' ? 'APS' : 'APM'}</div>
@@ -507,8 +507,8 @@ export const ApmSection = ({
                                                     {sortedAllSkillsRows.map((row: ApmPlayerRow, index: number) => (
                                                         <div
                                                             key={`${activeApmSpecTable.profession}-all-${row.key}`}
-                                                            className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] px-4 py-3 text-sm"
-                                                            style={{ color: 'var(--text-primary)', borderTop: '1px solid var(--border-subtle)' }}
+                                                            className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] px-4 py-3 text-sm border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
+                                                            style={{ color: 'var(--text-primary)' }}
                                                         >
                                                             <div className="flex items-center gap-2 min-w-0">
                                                                 <span className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>{`#${index + 1}`}</span>
@@ -534,15 +534,15 @@ export const ApmSection = ({
                                             <>
                                                 <div className={`stats-table-shell__rows ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}`}>
                                                     {((activeApmSkill as any)?.playerRows || []).length === 0 ? (
-                                                        <div className="px-4 py-8 text-center text-sm italic" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)' }}>
+                                                        <div className="px-4 py-8 text-center text-sm italic border-b border-[color:var(--border-subtle)]" style={{ color: 'var(--text-muted)' }}>
                                                             No player rows available for this skill.
                                                         </div>
                                                     ) : (
                                                         ((activeApmSkill as any)?.playerRows || []).map((row: any, index: number) => (
                                                             <div
                                                                 key={`${activeApmSpecTable.profession}-${activeApmSkill.id}-${row.key}`}
-                                                                className="grid grid-cols-[1.4fr_0.8fr_0.8fr] px-4 py-3 text-sm"
-                                                                style={{ color: 'var(--text-primary)', borderTop: '1px solid var(--border-subtle)' }}
+                                                                className="grid grid-cols-[1.4fr_0.8fr_0.8fr] px-4 py-3 text-sm border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
+                                                                style={{ color: 'var(--text-primary)' }}
                                                             >
                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                     <span className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>{`#${index + 1}`}</span>

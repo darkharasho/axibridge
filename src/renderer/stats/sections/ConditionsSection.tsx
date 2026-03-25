@@ -382,7 +382,7 @@ export const ConditionsSection = ({
                         header={null}
                         columns={
                             <>
-                            <div className={`grid ${conditionGridClass} text-xs uppercase tracking-wider text-[color:var(--text-muted)] px-4 py-2`} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                            <div className={`grid ${conditionGridClass} text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-4 py-2 border-b border-[color:var(--border-default)]`}>
                                 <div className="text-center">#</div>
                                 <div>Player</div>
                                 <button
@@ -501,7 +501,7 @@ export const ConditionsSection = ({
                                         const applicationsValue = Math.round(entry.applications || 0).toLocaleString();
                                         const damageValue = Math.round(entry.damage || 0).toLocaleString();
                                         return (
-                                            <div key={`${entry.account}-${idx}`} className={`grid ${conditionGridClass} px-4 py-3 text-sm text-[color:var(--text-primary)] border-t border-[color:var(--border-subtle)]`}>
+                                            <div key={`${entry.account}-${idx}`} className={`grid ${conditionGridClass} px-4 py-3 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]`}>
                                                 <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {renderProfessionIcon(entry.profession, entry.professionList, 'w-4 h-4')}

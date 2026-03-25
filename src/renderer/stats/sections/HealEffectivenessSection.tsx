@@ -28,7 +28,7 @@ const SkillTable = ({
             <div className="px-4 py-8 text-center text-xs text-[color:var(--text-muted)] italic">No skill data available for this fight.</div>
         ) : (
             <>
-                <div className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
+                <div className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                     <div>Skill</div>
                     <div className="text-right">{metricLabel}</div>
                     <div className="text-right">Hits</div>
@@ -37,7 +37,7 @@ const SkillTable = ({
                     {rows.map((row, index) => (
                         <div
                             key={`${row.skillName}-${index}`}
-                            className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2.5 text-sm text-[color:var(--text-primary)] border-b border-white/[0.05] last:border-b-0"
+                            className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2.5 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)] last:border-b-0"
                         >
                             <div className="min-w-0">
                                 <InlineIconLabel

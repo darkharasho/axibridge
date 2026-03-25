@@ -238,7 +238,7 @@ export const HealingBreakdownSection = ({
                                                     {modeLabel} / {skills.length} {skills.length === 1 ? 'skill' : 'skills'}
                                                 </div>
                                             </div>
-                                            <div className="stats-table-column-header grid grid-cols-[2fr_0.6fr_0.8fr_0.6fr_0.6fr_0.5fr] text-[10px] uppercase tracking-wider text-[color:var(--text-secondary)] bg-[var(--bg-hover)] px-4 py-1.5">
+                                            <div className="stats-table-column-header grid grid-cols-[2fr_0.6fr_0.8fr_0.6fr_0.6fr_0.5fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-4 py-2 border-b border-[color:var(--border-default)]">
                                                 <div>Skill</div>
                                                 <div className="text-right">Hits</div>
                                                 <div className="text-right">Total</div>
@@ -259,7 +259,7 @@ export const HealingBreakdownSection = ({
                                                     return (
                                                         <div
                                                             key={`${skill.id}-${idx}`}
-                                                            className="grid grid-cols-[2fr_0.6fr_0.8fr_0.6fr_0.6fr_0.5fr] gap-1 px-4 py-1.5 text-xs text-[color:var(--text-primary)] border-t border-[color:var(--border-subtle)]"
+                                                            className="grid grid-cols-[2fr_0.6fr_0.8fr_0.6fr_0.6fr_0.5fr] gap-1 px-4 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
                                                         >
                                                             <div className="min-w-0">
                                                                 <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-4 w-4" />

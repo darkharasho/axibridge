@@ -405,7 +405,7 @@ export const DefenseSection = ({
                                     header={null}
                                     columns={
                                         <>
-                                            <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider px-4 py-2.5" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+                                            <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-4 py-2 border-b border-[color:var(--border-default)]">
                                                 <div className="text-center">#</div>
                                                 <div>Player</div>
                                                 <button
@@ -431,7 +431,7 @@ export const DefenseSection = ({
                                     rows={
                                         <>
                                             {rows.map((row: any, idx: number) => (
-                                                <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-4 py-3 text-sm border-t" style={{ color: 'var(--text-primary)', borderColor: 'var(--border-subtle)' }}>
+                                                <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-4 py-3 text-sm border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
                                                     <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}

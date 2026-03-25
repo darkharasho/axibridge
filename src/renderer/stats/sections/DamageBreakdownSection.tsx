@@ -185,7 +185,7 @@ export const DamageBreakdownSection = ({
                                                 {(metricMode === 'damage' ? 'Damage' : 'Down Contrib')} / {skillRows.length} {skillRows.length === 1 ? 'skill' : 'skills'}
                                             </div>
                                         </div>
-                                        <div className="stats-table-column-header grid grid-cols-[2fr_0.8fr_0.7fr] text-xs uppercase tracking-wider text-[color:var(--text-muted)] px-4 py-2" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                        <div className="stats-table-column-header grid grid-cols-[2fr_0.8fr_0.7fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-4 py-2 border-b border-[color:var(--border-default)]">
                                             <div>Skill</div>
                                             <div className="text-right">{metricMode === 'damage' ? 'Damage' : 'Down Contrib'}</div>
                                             <div className="text-right">% Total</div>
@@ -200,7 +200,7 @@ export const DamageBreakdownSection = ({
                                             skillRows.map((row, idx) => (
                                                 <div
                                                     key={`${row.id}-${idx}`}
-                                                    className="grid grid-cols-[2fr_0.8fr_0.7fr] gap-2 px-4 py-3 text-sm text-[color:var(--text-primary)] border-t border-[color:var(--border-subtle)]"
+                                                    className="grid grid-cols-[2fr_0.8fr_0.7fr] gap-2 px-4 py-3 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
                                                 >
                                                     <div className="min-w-0">
                                                         <InlineIconLabel
