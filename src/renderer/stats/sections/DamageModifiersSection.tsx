@@ -433,7 +433,7 @@ const CollapsedView = ({
                                 </div>
                             }
                             columns={
-                                <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider px-4 py-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+                                <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider px-4 py-2.5" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
                                     <div className="text-center">#</div>
                                     <div>Player</div>
                                     <button
@@ -495,7 +495,7 @@ const CollapsedView = ({
                                                         style={{ width: `${barWidthPct}%`, background: barStyle }}
                                                     />
                                                     {/* Row content */}
-                                                    <div className="relative grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] px-4 py-2 text-sm text-[color:var(--text-primary)]">
+                                                    <div className="relative grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] px-4 py-3 text-sm text-[color:var(--text-primary)]">
                                                         <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
                                                         <div className="flex items-center gap-2 min-w-0">
                                                             {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}

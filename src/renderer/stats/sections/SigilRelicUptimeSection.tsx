@@ -119,7 +119,7 @@ export const SigilRelicUptimeSection = ({
                                     maxHeightClass="max-h-72"
                                     header={null}
                                     columns={
-                                        <div className="grid grid-cols-[0.4fr_1.6fr_1fr] text-xs uppercase tracking-wider px-4 py-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+                                        <div className="grid grid-cols-[0.4fr_1.6fr_1fr] text-xs uppercase tracking-wider px-4 py-2.5" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
                                             <div className="text-center">#</div>
                                             <div>Player</div>
                                             <button
@@ -136,7 +136,7 @@ export const SigilRelicUptimeSection = ({
                                             {sortedRows.map((row: any, idx: number) => {
                                                 const uptimePct = Number(row.uptimePerSecond ?? row.perSecond ?? 0) * 100;
                                                 return (
-                                                    <div key={`${activeSigilRelicTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr] px-4 py-2 text-sm text-[color:var(--text-primary)] border-t border-[color:var(--border-subtle)]">
+                                                    <div key={`${activeSigilRelicTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr] px-4 py-3 text-sm text-[color:var(--text-primary)] border-t border-[color:var(--border-subtle)]">
                                                         <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
                                                         <div className="flex items-center gap-2 min-w-0">
                                                             {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}

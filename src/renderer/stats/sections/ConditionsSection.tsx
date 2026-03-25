@@ -501,7 +501,7 @@ export const ConditionsSection = ({
                                         const applicationsValue = Math.round(entry.applications || 0).toLocaleString();
                                         const damageValue = Math.round(entry.damage || 0).toLocaleString();
                                         return (
-                                            <div key={`${entry.account}-${idx}`} className={`grid ${conditionGridClass} px-4 py-2 text-sm text-[color:var(--text-primary)] border-t border-[color:var(--border-subtle)]`}>
+                                            <div key={`${entry.account}-${idx}`} className={`grid ${conditionGridClass} px-4 py-3 text-sm text-[color:var(--text-primary)] border-t border-[color:var(--border-subtle)]`}>
                                                 <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {renderProfessionIcon(entry.profession, entry.professionList, 'w-4 h-4')}

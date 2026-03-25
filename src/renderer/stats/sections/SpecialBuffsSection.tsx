@@ -401,7 +401,7 @@ export const SpecialBuffsSection = ({
                                 maxHeightClass="max-h-64"
                                 header={null}
                                 columns={
-                                    <div className="grid grid-cols-[0.4fr_1.5fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider px-4 py-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+                                    <div className="grid grid-cols-[0.4fr_1.5fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider px-4 py-2.5" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
                                         <div className="text-center">#</div>
                                         <div>Player</div>
                                         <button
@@ -433,7 +433,7 @@ export const SpecialBuffsSection = ({
                                 rows={
                                     <>
                                         {sortedRows.map((row: any, idx: number) => (
-                                            <div key={`${activeSpecialTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_0.8fr_0.8fr_0.8fr] px-4 py-2 text-sm border-t" style={{ color: 'var(--text-primary)', borderColor: 'var(--border-subtle)' }}>
+                                            <div key={`${activeSpecialTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_0.8fr_0.8fr_0.8fr] px-4 py-3 text-sm border-t" style={{ color: 'var(--text-primary)', borderColor: 'var(--border-subtle)' }}>
                                                 <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
