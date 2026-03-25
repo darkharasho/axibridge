@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 type StatsGroupContainerProps = {
     groupId: string;
@@ -7,6 +7,7 @@ type StatsGroupContainerProps = {
     accentColor: string;
     sectionCount: number;
     children: ReactNode;
+    visible?: boolean;
 };
 
 export function StatsGroupContainer({
@@ -16,17 +17,44 @@ export function StatsGroupContainer({
     accentColor,
     sectionCount,
     children,
+    visible = true,
 }: StatsGroupContainerProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const wasVisibleRef = useRef(visible);
+
+    useEffect(() => {
+        if (visible && !wasVisibleRef.current && containerRef.current) {
+            // Force animation replay by removing and re-adding the class
+            const el = containerRef.current;
+            el.classList.remove('stats-group-enter');
+            // Trigger reflow so browser sees the class removal
+            void el.offsetWidth;
+            el.classList.add('stats-group-enter');
+        }
+        wasVisibleRef.current = visible;
+    }, [visible]);
+
+    const hiddenStyle = !visible ? {
+        visibility: 'hidden' as const,
+        height: 0,
+        overflow: 'hidden' as const,
+        pointerEvents: 'none' as const,
+        position: 'absolute' as const,
+        width: '100%',
+    } : {};
+
     return (
         <div
             id={`group-${groupId}`}
-            className="stats-group-container scroll-mt-24 stats-group-enter"
+            ref={containerRef}
+            className="stats-group-container scroll-mt-24"
             style={{
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-default)',
                 borderLeft: `2px solid ${accentColor}`,
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-card)',
+                ...hiddenStyle,
             }}
         >
             <div

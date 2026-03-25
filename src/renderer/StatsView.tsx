@@ -452,11 +452,11 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         const group = STATS_TOC_GROUPS.find(g => g.id === groupId);
         if (!group) return null;
         const anyVisible = group.sectionIds.some(id => isSectionVisible(id));
-        if (!anyVisible) return null;
         return (
             <StatsGroupContainer
                 key={groupId}
                 groupId={groupId}
+                visible={anyVisible}
                 label={group.label}
                 icon={group.icon as React.ComponentType<{ className?: string }>}
                 accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
