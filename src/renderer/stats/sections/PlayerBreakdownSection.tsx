@@ -4,6 +4,7 @@ import { InlineIconLabel } from '../ui/StatsViewShared';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
+import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { formatTopStatValue } from '../utils/dashboardUtils';
 import type { PlayerSkillBreakdown, PlayerSkillDamageEntry } from '../statsTypes';
 import { useStatsSharedContext } from '../StatsViewContext';
@@ -145,26 +146,16 @@ export const PlayerBreakdownSection = ({
                                     {(isExpanded ? 'Squad Classes' : viewMode === 'player' ? 'Squad Players' : 'Squad Classes')}
                                 </div>
                                 {!isExpanded && (
-                                    <div className="flex items-center gap-1 rounded-full bg-[var(--bg-hover)] border border-[color:var(--border-default)] p-1">
-                                        {([
-                                            { id: 'player', label: 'Player' },
-                                            { id: 'class', label: 'Class' }
-                                        ] as const).map((option) => {
-                                            const isActive = viewMode === option.id;
-                                            return (
-                                                <button
-                                                    key={option.id}
-                                                    type="button"
-                                                    onClick={() => setViewMode(option.id)}
-                                                    className={`px-2.5 py-1 rounded-sm text-[11px] font-semibold transition-colors ${
-                                                        isActive ? 'bg-sky-500/30 text-sky-100' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
-                                                    }`}
-                                                >
-                                                    {option.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                    <PillToggleGroup
+                                        value={viewMode}
+                                        onChange={setViewMode}
+                                        options={[
+                                            { value: 'player' as const, label: 'Player' },
+                                            { value: 'class' as const, label: 'Class' }
+                                        ]}
+                                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                        inactiveClassName="text-[color:var(--text-secondary)]"
+                                    />
                                 )}
                             </div>
                             <div className="mb-2">
