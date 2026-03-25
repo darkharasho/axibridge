@@ -485,9 +485,23 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     onMouseEnter={handleStatsNavMouseEnter}
                                     onMouseLeave={handleStatsNavMouseLeave}
                                 >
-                                    <div className="h-full min-h-0 overflow-y-auto py-3 px-2 space-y-1.5">
-                                        <div className="px-2 h-5 text-[10px] uppercase tracking-[0.28em] text-gray-400 opacity-0 transition-opacity duration-300 group-hover/statsnavpanel:opacity-100">
-                                            Jump to
+                                    <div className="h-full min-h-0 overflow-y-auto py-3 px-3 space-y-1.5">
+                                        <div className="px-2 h-5 flex items-center gap-2 opacity-0 transition-opacity duration-300 group-hover/statsnavpanel:opacity-100">
+                                            <span
+                                                className="w-4 h-4 inline-block shrink-0"
+                                                style={{
+                                                    backgroundColor: 'var(--brand-primary)',
+                                                    WebkitMaskImage: 'url(/svg/AxiBridge.svg)',
+                                                    maskImage: 'url(/svg/AxiBridge.svg)',
+                                                    WebkitMaskSize: 'contain',
+                                                    maskSize: 'contain',
+                                                    WebkitMaskRepeat: 'no-repeat',
+                                                    maskRepeat: 'no-repeat',
+                                                    WebkitMaskPosition: 'center',
+                                                    maskPosition: 'center',
+                                                }}
+                                            />
+                                            <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: 'var(--text-secondary)' }}>Jump to</span>
                                         </div>
                                         {STATS_TOC_GROUPS.map((group) => {
                                             const GroupIcon = group.icon as any;
