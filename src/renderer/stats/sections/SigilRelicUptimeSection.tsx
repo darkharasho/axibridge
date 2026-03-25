@@ -71,7 +71,7 @@ export const SigilRelicUptimeSection = ({
                 <StatsTableLayout
                     expanded={isExpanded}
                     sidebarClassName={`px-3 pt-3 pb-2 flex flex-col min-h-0 ${isExpanded ? 'h-full flex-1' : 'self-start'}`}
-                    contentClassName={`bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden ${isExpanded ? 'flex flex-col min-h-0' : ''}`}
+                    contentClassName={`overflow-hidden ${isExpanded ? 'flex flex-col min-h-0' : ''}`}
                     sidebar={
                         <>
                             <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Sigil/Relic</div>

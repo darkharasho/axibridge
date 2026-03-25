@@ -108,7 +108,7 @@ export const ConditionsSection = ({
         {conditionSummary && conditionSummary.length > 0 ? (
             isExpanded ? (
                 <div className="flex flex-col gap-4">
-                    <div className="bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-4 py-3">
+                    <div className="border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-4 py-3">
                         <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Conditions</div>
                     <div className="flex flex-wrap items-center gap-2">
                         <SearchSelectDropdown
@@ -176,7 +176,7 @@ export const ConditionsSection = ({
                                 />
                         </div>
                     </div>
-                    <div className="bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden">
+                    <div className="overflow-hidden">
                         {filteredConditions.length === 0 ? (
                             <div className="px-4 py-10 text-center text-[color:var(--text-muted)] italic text-sm">No conditions match this filter</div>
                         ) : (
@@ -314,7 +314,7 @@ export const ConditionsSection = ({
                 <StatsTableLayout
                 expanded={expandedSection === 'conditions-outgoing'}
                 sidebarClassName={`px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'conditions-outgoing' ? 'h-full flex-1' : 'self-start'}`}
-                contentClassName={`bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden ${expandedSection === 'conditions-outgoing' ? 'flex flex-col min-h-0' : ''}`}
+                contentClassName={`overflow-hidden ${expandedSection === 'conditions-outgoing' ? 'flex flex-col min-h-0' : ''}`}
                 sidebar={
                     <>
                         <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Conditions</div>

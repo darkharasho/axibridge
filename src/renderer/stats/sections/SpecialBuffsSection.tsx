@@ -252,7 +252,7 @@ export const SpecialBuffsSection = ({
                         </div>
                     )}
                 </div>
-                <div className="border rounded-[var(--radius-md)] overflow-hidden" style={{ background: 'var(--bg-card-inner)', borderColor: 'var(--border-subtle)' }}>
+                <div className="overflow-hidden">
                     {visibleSpecialTables.length === 0 ? (
                         <div className="px-4 py-10 text-center italic text-sm" style={{ color: 'var(--text-muted)' }}>No special buffs match this filter</div>
                     ) : (
@@ -347,8 +347,8 @@ export const SpecialBuffsSection = ({
                 expanded={expandedSection === 'special-buffs'}
                 sidebarClassName={`px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'special-buffs' ? 'h-full flex-1' : 'self-start'}`}
                 sidebarStyle={undefined}
-                contentClassName={`border rounded-[var(--radius-md)] overflow-hidden ${expandedSection === 'special-buffs' ? 'flex flex-col min-h-0' : ''}`}
-                contentStyle={{ background: 'var(--bg-card-inner)', borderColor: 'var(--border-subtle)' }}
+                contentClassName={`overflow-hidden ${expandedSection === 'special-buffs' ? 'flex flex-col min-h-0' : ''}`}
+                contentStyle={undefined}
                 sidebar={
                     <>
                         <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Special Buffs</div>

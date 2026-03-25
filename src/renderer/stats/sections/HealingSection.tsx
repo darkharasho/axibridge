@@ -192,7 +192,7 @@ export const HealingSection = ({
                         </div>
                     )}
                 </div>
-                <div className="border rounded-[var(--radius-md)] overflow-hidden" style={{ background: 'var(--bg-card-inner)', borderColor: 'var(--border-subtle)' }}>
+                <div className="overflow-hidden">
                     {(() => {
                         const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
                         const resolveFieldName = (metricEntry: typeof HEALING_METRICS[number]) => {
@@ -277,8 +277,8 @@ export const HealingSection = ({
                 expanded={expandedSection === 'healing-stats'}
                 sidebarClassName={`px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'healing-stats' ? 'h-full flex-1' : 'self-start'}`}
                 sidebarStyle={undefined}
-                contentClassName={`border rounded-[var(--radius-md)] overflow-hidden ${expandedSection === 'healing-stats' ? 'flex flex-col min-h-0' : ''}`}
-                contentStyle={{ background: 'var(--bg-card-inner)', borderColor: 'var(--border-subtle)' }}
+                contentClassName={`overflow-hidden ${expandedSection === 'healing-stats' ? 'flex flex-col min-h-0' : ''}`}
+                contentStyle={undefined}
                 sidebar={
                     <>
                         <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Healing Tabs</div>
