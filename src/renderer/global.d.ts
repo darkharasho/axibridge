@@ -324,12 +324,8 @@ export interface IElectronAPI {
         githubFavoriteRepos?: string[] | null;
         walkthroughSeen?: boolean;
     }) => void;
-    onRequestScreenshot: (callback: (data: any) => void) => () => void;
     openExternal: (url: string) => Promise<{ success: boolean, error?: string }>;
     fetchImageAsDataUrl: (url: string) => Promise<{ success: boolean; dataUrl?: string; error?: string }>;
-    sendScreenshot: (id: string, buffer: Uint8Array) => void;
-    sendScreenshots: (id: string, buffers: Uint8Array[]) => void;
-    sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => void;
     onConsoleLog: (callback: (log: { type: 'info' | 'error', message: string, timestamp: string }) => void) => () => void;
     onConsoleLogHistory: (callback: (logs: Array<{ type: 'info' | 'error', message: string, timestamp: string }>) => void) => () => void;
     setConsoleLogForwarding: (enabled: boolean) => void;
@@ -346,7 +342,6 @@ export interface IElectronAPI {
     onUpdateError: (callback: (err: any) => void) => () => void;
     onDownloadProgress: (callback: (progress: any) => void) => () => void;
     onUpdateDownloaded: (callback: (info: any) => void) => () => void;
-    sendStatsScreenshot: (buffer: Uint8Array) => void;
     getAppVersion: () => Promise<string>;
     getWhatsNew: () => Promise<{
         version: string;

@@ -195,7 +195,6 @@ let autoUpdateRetryAttempts = 0;
 let autoUpdateRetryTimer: NodeJS.Timeout | null = null;
 let resolvedRetryCount = 0;
 const activeUploads = new Set<string>();
-const pendingDiscordLogs = new Map<string, { result: any, jsonDetails: any }>();
 const recentDiscordSends = new Map<string, number>();
 const DISCORD_DEDUPE_TTL_MS = 2 * 60 * 1000;
 let discordNoWebhookLogAt = 0;
@@ -510,17 +509,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                                 }
                             }
                         }
-                        if (notificationType === 'image' || notificationType === 'image-beta') {
-                            const logKey = result.id || filePath;
-                            if (!logKey) {
-                                console.error('[Main] Discord notification skipped: missing log identifier.');
-                            } else {
-                                pendingDiscordLogs.set(logKey, { result: { ...result, filePath, id: logKey }, jsonDetails });
-                                win?.webContents.send('request-screenshot', { ...result, id: logKey, filePath, details: jsonDetails, mode: notificationType, splitEnemiesByTeam });
-                            }
-                        } else {
-                            await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam }, jsonDetails);
-                        }
+                        await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam }, jsonDetails);
                     }
                 } catch (discordError: any) {
                     console.error('[Main] Discord notification failed:', discordError?.message || discordError);
@@ -1134,7 +1123,6 @@ if (!gotTheLock) {
         registerDiscordHandlers({
             store,
             getDiscord: () => discord,
-            pendingDiscordLogs,
             setConsoleLogForwarding,
             getConsoleLogHistory,
         });

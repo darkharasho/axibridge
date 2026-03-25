@@ -43,17 +43,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveSettings: (settings: any) => ipcRenderer.send('save-settings', settings),
     getLogs: () => ipcRenderer.invoke('get-logs'),
     saveLogs: (logs: any[]) => ipcRenderer.send('save-logs', logs),
-    onRequestScreenshot: (callback: (data: any) => void) => {
-        ipcRenderer.on('request-screenshot', (_event, value) => callback(value))
-        return () => {
-            ipcRenderer.removeAllListeners('request-screenshot')
-        }
-    },
     openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
     fetchImageAsDataUrl: (url: string) => ipcRenderer.invoke('fetch-image-data-url', url),
-    sendScreenshot: (id: string, buffer: Uint8Array) => ipcRenderer.send('send-screenshot', id, buffer),
-    sendScreenshots: (id: string, buffers: Uint8Array[]) => ipcRenderer.send('send-screenshots', id, buffers),
-    sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => ipcRenderer.send('send-screenshots-groups', id, groups),
     onConsoleLog: (callback: (log: any) => void) => {
         ipcRenderer.on('console-log', (_event, value) => callback(value))
         return () => ipcRenderer.removeAllListeners('console-log')
@@ -98,7 +89,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('update-downloaded', (_event, value) => callback(value))
         return () => ipcRenderer.removeAllListeners('update-downloaded')
     },
-    sendStatsScreenshot: (buffer: Uint8Array) => ipcRenderer.send('send-stats-screenshot', buffer),
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
     getWhatsNew: () => ipcRenderer.invoke('get-whats-new'),
     setLastSeenVersion: (version: string) => ipcRenderer.invoke('set-last-seen-version', version),
