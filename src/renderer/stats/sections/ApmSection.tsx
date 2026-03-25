@@ -507,7 +507,7 @@ export const ApmSection = ({
                                                     {sortedAllSkillsRows.map((row: ApmPlayerRow, index: number) => (
                                                         <div
                                                             key={`${activeApmSpecTable.profession}-all-${row.key}`}
-                                                            className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] px-4 py-3 text-sm border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
+                                                            className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] px-4 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
                                                             style={{ color: 'var(--text-primary)' }}
                                                         >
                                                             <div className="flex items-center gap-2 min-w-0">
@@ -541,7 +541,7 @@ export const ApmSection = ({
                                                         ((activeApmSkill as any)?.playerRows || []).map((row: any, index: number) => (
                                                             <div
                                                                 key={`${activeApmSpecTable.profession}-${activeApmSkill.id}-${row.key}`}
-                                                                className="grid grid-cols-[1.4fr_0.8fr_0.8fr] px-4 py-3 text-sm border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
+                                                                className="grid grid-cols-[1.4fr_0.8fr_0.8fr] px-4 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
                                                                 style={{ color: 'var(--text-primary)' }}
                                                             >
                                                                 <div className="flex items-center gap-2 min-w-0">

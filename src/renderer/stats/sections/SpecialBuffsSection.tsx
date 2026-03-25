@@ -433,7 +433,7 @@ export const SpecialBuffsSection = ({
                                 rows={
                                     <>
                                         {sortedRows.map((row: any, idx: number) => (
-                                            <div key={`${activeSpecialTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_0.8fr_0.8fr_0.8fr] px-4 py-3 text-sm border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
+                                            <div key={`${activeSpecialTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_0.8fr_0.8fr_0.8fr] px-4 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
                                                 <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}

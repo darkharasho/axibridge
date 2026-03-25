@@ -136,7 +136,7 @@ export const SigilRelicUptimeSection = ({
                                             {sortedRows.map((row: any, idx: number) => {
                                                 const uptimePct = Number(row.uptimePerSecond ?? row.perSecond ?? 0) * 100;
                                                 return (
-                                                    <div key={`${activeSigilRelicTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr] px-4 py-3 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                                    <div key={`${activeSigilRelicTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr] px-4 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                                         <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
                                                         <div className="flex items-center gap-2 min-w-0">
                                                             {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}

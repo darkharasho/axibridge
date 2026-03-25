@@ -200,7 +200,7 @@ export const DamageBreakdownSection = ({
                                             skillRows.map((row, idx) => (
                                                 <div
                                                     key={`${row.id}-${idx}`}
-                                                    className="grid grid-cols-[2fr_0.8fr_0.7fr] gap-2 px-4 py-3 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
+                                                    className="grid grid-cols-[2fr_0.8fr_0.7fr] gap-2 px-4 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
                                                 >
                                                     <div className="min-w-0">
                                                         <InlineIconLabel
