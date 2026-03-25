@@ -140,7 +140,7 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >
-                <div className="h-full min-h-0 overflow-y-auto py-3 px-2 space-y-1.5">
+                <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-1.5">
                     <div className="h-5 flex items-center gap-0 pl-[20px] pr-[20px] group-hover/statsnavpanel:gap-2 group-hover/statsnavpanel:pl-3 group-hover/statsnavpanel:pr-3 transition-[padding,gap] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)]">
                         <span
                             className="w-3.5 h-3.5 inline-block shrink-0"
