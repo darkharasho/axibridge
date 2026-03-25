@@ -140,8 +140,8 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >
-                <div className="h-full min-h-0 overflow-y-auto py-3 px-0 group-hover/statsnavpanel:px-2 transition-[padding] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)] space-y-1.5">
-                    <div className="h-5 flex items-center justify-center gap-0 group-hover/statsnavpanel:justify-start group-hover/statsnavpanel:gap-2 group-hover/statsnavpanel:px-3 transition-[gap] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)]">
+                <div className="h-full min-h-0 overflow-y-auto py-3 px-2 space-y-1.5">
+                    <div className="h-5 flex items-center gap-0 pl-[20px] pr-[20px] group-hover/statsnavpanel:gap-2 group-hover/statsnavpanel:pl-3 group-hover/statsnavpanel:pr-3 transition-[padding,gap] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)]">
                         <span
                             className="w-3.5 h-3.5 inline-block shrink-0"
                             style={{
@@ -178,7 +178,7 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
                             <div key={group.id} className={`stats-nav-group-shell ${shellClass}`}>
                                 <button type="button"
                                     onClick={() => { if (isOpenGroup) return; handleItemClick(group.id, defaultTarget); }}
-                                    className={`stats-nav-group-button ${isActiveGroup ? 'stats-nav-group-button--active' : ''} w-full h-9 flex items-center justify-center gap-0 text-left transition-[padding,gap,background-color,color,justify-content] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/statsnavpanel:justify-start group-hover/statsnavpanel:gap-2 group-hover/statsnavpanel:pl-3 group-hover/statsnavpanel:pr-3 ${isActiveGroup ? groupBtnActive : groupBtnState}`}
+                                    className={`stats-nav-group-button ${isActiveGroup ? 'stats-nav-group-button--active' : ''} w-full h-9 flex items-center gap-0 pl-[20px] pr-[20px] text-left transition-[padding,gap,background-color,color] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/statsnavpanel:gap-2 group-hover/statsnavpanel:pl-3 group-hover/statsnavpanel:pr-3 ${isActiveGroup ? groupBtnActive : groupBtnState}`}
                                 >
                                     <GroupIcon className={`w-3.5 h-3.5 text-[color:var(--brand-primary)] shrink-0 transition-transform duration-[1050ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isExpanded ? 'scale-110' : 'scale-100'}`} />
                                     <span className={`stats-nav-group-label text-[11px] leading-none font-semibold uppercase tracking-[0.18em] whitespace-nowrap overflow-hidden transition-[opacity,transform,max-width] duration-[1050ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isExpanded ? 'opacity-100 translate-x-0 max-w-[160px]' : 'opacity-0 -translate-x-2 max-w-0'}`}>{group.label}</span>
@@ -199,7 +199,7 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
                                                 >
                                                     <button type="button"
                                                         onClick={() => handleItemClick(group.id, item.id)}
-                                                        className={`stats-nav-entry ${isActive ? 'stats-nav-entry--active' : ''} w-full h-[34px] flex items-center text-left rounded-md transition-colors duration-150 ${isExpanded ? 'justify-start gap-2 px-2' : 'justify-center gap-0 px-0'} ${isActive ? entryActive : entryState}`}
+                                                        className={`stats-nav-entry ${isActive ? 'stats-nav-entry--active' : ''} w-full h-[34px] flex items-center text-left rounded-md transition-colors duration-150 ${isExpanded ? 'justify-start gap-2 px-2' : 'justify-start gap-0 pl-[10px]'} ${isActive ? entryActive : entryState}`}
                                                     >
                                                         <ItemIcon className="w-3.5 h-3.5 text-[color:var(--brand-primary)] shrink-0" />
                                                         <span className={`stats-nav-item-label text-xs leading-tight truncate overflow-hidden transition-[opacity,max-width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isExpanded ? 'opacity-100 max-w-[140px] translate-x-0' : 'opacity-0 max-w-0 -translate-x-1'}`}>{item.label}</span>
