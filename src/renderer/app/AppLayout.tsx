@@ -305,7 +305,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 />
 
                 {statsViewMounted && (
-                    <div className="flex flex-1 min-h-0" style={view !== 'stats' ? { display: 'none' } : undefined}>
+                    <div className="flex flex-1 min-h-0 relative" style={view !== 'stats' ? { display: 'none' } : undefined}>
+                        <div key={`stats-fade-${view}`} className="stats-view-fade-in" />
                         <div className="flex-1 min-h-0 flex gap-3">
                             <StatsNavSidebar onSectionVisibilityChange={handleStatsSectionVisibilityChange} />
                             <StatsErrorBoundary>

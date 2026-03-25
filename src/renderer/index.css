@@ -756,6 +756,21 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+/* Stats view fade-in overlay when switching to stats tab */
+.stats-view-fade-in {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: var(--bg-elevated);
+    pointer-events: none;
+    animation: stats-view-reveal 300ms ease-out forwards;
+}
+
+@keyframes stats-view-reveal {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
 /* Group container entrance animation on nav switch */
 .stats-group-enter {
     animation: stats-group-enter 250ms ease-out both;
