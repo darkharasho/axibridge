@@ -96,9 +96,9 @@ export function StatsGroupContainer({
             >
                 <div
                     className="flex items-center justify-center w-[18px] h-[18px] rounded-[3px]"
-                    style={{ background: `${accentColor}33` }}
+                    style={{ background: `${accentColor}33`, color: accentColor }}
                 >
-                    <Icon className="w-3 h-3" style={{ color: accentColor }} />
+                    <Icon className="w-3 h-3" />
                 </div>
                 <h2
                     className="text-xs font-bold uppercase tracking-[0.08em]"
