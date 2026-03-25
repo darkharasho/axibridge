@@ -91,9 +91,9 @@ export const TopSkillsSection = ({
                                     <span className="text-[color:var(--text-secondary)] text-xs ml-2">({skill.hits.toLocaleString()} hits)</span>
                                 </div>
                             </div>
-                            <div className="h-2 w-full bg-[var(--bg-hover)] rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-[var(--bg-hover)] rounded-sm overflow-hidden">
                                 <div
-                                    className="top-skills-outgoing-bar h-full bg-orange-500 rounded-full"
+                                    className="top-skills-outgoing-bar h-full bg-orange-500 rounded-sm"
                                     style={{ width: `${(Number((skill as any)[metricKey] || 0) / topSkillsPeak) * 100}%` }}
                                 />
                             </div>
@@ -132,9 +132,9 @@ export const TopSkillsSection = ({
                                     <span className="text-[color:var(--text-secondary)] text-xs ml-2">({skill.hits.toLocaleString()} hits)</span>
                                 </div>
                             </div>
-                            <div className="h-2 w-full bg-[var(--bg-hover)] rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-[var(--bg-hover)] rounded-sm overflow-hidden">
                                 <div
-                                    className="h-full bg-red-500 rounded-full"
+                                    className="h-full bg-red-500 rounded-sm"
                                     style={{ width: `${(skill.damage / (stats.topIncomingSkills[0]?.damage || 1)) * 100}%` }}
                                 />
                             </div>
