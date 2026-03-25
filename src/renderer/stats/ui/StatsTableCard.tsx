@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
-const defaultSidebarClass = 'stats-table-sidebar bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 overflow-hidden';
-const defaultContentClass = 'bg-black/30 border border-white/5 rounded-xl overflow-hidden';
+const defaultSidebarClass = 'stats-table-sidebar px-3 pt-3 pb-2 flex flex-col min-h-0 overflow-hidden';
+const defaultSidebarStyle: CSSProperties = { background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' };
+const defaultContentClass = 'overflow-hidden';
+const defaultContentStyle: CSSProperties = { background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' };
 
 type StatsTableCardProps = {
     expanded?: boolean;
@@ -49,15 +51,17 @@ export const StatsTableCard = ({
     }, [expanded, content]);
 
     const resolvedSidebarClass = sidebarClassName ?? `${defaultSidebarClass} h-full ${expanded ? 'flex-1' : ''}`;
+    const resolvedSidebarStyle = sidebarClassName ? undefined : defaultSidebarStyle;
     const resolvedContentClass = contentClassName ?? `${defaultContentClass} ${expanded ? 'flex flex-col min-h-0' : ''}`;
+    const resolvedContentStyle = contentClassName ? undefined : defaultContentStyle;
     const sidebarStyle: CSSProperties | undefined = !expanded && sidebarCapHeight
         ? { height: `${sidebarCapHeight}px`, maxHeight: `${sidebarCapHeight}px` }
         : undefined;
 
     return (
         <div className={`grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 ${expanded ? 'flex-1 min-h-0 h-full' : ''} ${className}`}>
-            <div className={resolvedSidebarClass} style={sidebarStyle}>{sidebar}</div>
-            <div className={resolvedContentClass}>
+            <div className={resolvedSidebarClass} style={{ ...resolvedSidebarStyle, ...sidebarStyle }}>{sidebar}</div>
+            <div className={resolvedContentClass} style={resolvedContentStyle}>
                 <div ref={contentInnerRef}>
                     {content}
                 </div>
