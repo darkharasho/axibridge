@@ -109,7 +109,7 @@ export const HealingSection = ({
             </div>
         </div>
         {stats.healingPlayers.length === 0 ? (
-            <div className="text-center italic py-8" style={{ color: 'var(--text-muted)' }}>No healing stats available</div>
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No healing stats available</div>
         ) : isExpanded ? (
             <div className="flex flex-col gap-4">
                 <div className="border rounded-[var(--radius-md)] px-4 py-3" style={{ background: 'var(--bg-hover)', borderColor: 'var(--border-subtle)' }}>
@@ -403,7 +403,7 @@ export const HealingSection = ({
                                     rows={
                                         <>
                                             {rows.length === 0 ? (
-                                                <div className="px-4 py-6 text-sm italic" style={{ color: 'var(--text-muted)' }}>No healing data for this view</div>
+                                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No healing data for this view</div>
                                             ) : (
                                                 rows.map((row: any, idx: number) => (
                                                     <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-4 py-3 text-sm border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>

@@ -590,7 +590,7 @@ export const SpikeDamageSection = ({
                         </div>
                     </div>
                     {displayRows.length === 0 ? (
-                        <div className="text-xs text-[color:var(--text-muted)] italic py-4">
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                             No skill-level breakdown available for this fight.
                         </div>
                     ) : (

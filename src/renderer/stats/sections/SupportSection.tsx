@@ -105,7 +105,7 @@ export const SupportSection = ({
             </div>
         </div>
         {stats.supportPlayers.length === 0 ? (
-            <div className="text-center italic py-8" style={{ color: 'var(--text-muted)' }}>No support stats available</div>
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No support stats available</div>
         ) : isExpanded ? (
             <div className="flex flex-col gap-4">
                 <div className="border rounded-[var(--radius-md)] px-4 py-3" style={{ background: 'var(--bg-hover)', borderColor: 'var(--border-subtle)' }}>
@@ -222,7 +222,7 @@ export const SupportSection = ({
                 </div>
                 <div className="overflow-hidden">
                     {filteredSupportMetrics.length === 0 ? (
-                        <div className="px-4 py-10 text-center italic text-sm" style={{ color: 'var(--text-muted)' }}>No support stats match this filter</div>
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No support stats match this filter</div>
                     ) : (
                         (() => {
                             const resolveSupportTotal = (row: any, metricId: string) => {
@@ -326,7 +326,7 @@ export const SupportSection = ({
                         <div className={`${sidebarListClass} ${expandedSection === 'support-detailed' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
                                 if (filteredSupportMetrics.length === 0) {
-                                    return <div className="text-center italic py-6 text-xs" style={{ color: 'var(--text-muted)' }}>No support stats match this filter</div>;
+                                    return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No support stats match this filter</div>;
                                 }
                                 return filteredSupportMetrics.map((metric) => (
                                     <button

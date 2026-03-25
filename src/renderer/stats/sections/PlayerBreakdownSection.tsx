@@ -361,7 +361,7 @@ export const PlayerBreakdownSection = ({
                         <div className={`pl-3 overflow-hidden stats-share-table ${expandedSection === 'player-breakdown' ? 'flex flex-col min-h-0' : ''}`}>
                             {(isExpanded ? 'class' : viewMode) === 'player' ? (
                                 !activePlayerBreakdown || (!isExpanded && !activePlayerSkill) ? (
-                                    <div className="px-4 py-10 text-center text-[color:var(--text-muted)] italic text-sm">
+                                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                         Select a player and skill to view breakdown details
                                     </div>
                                 ) : (
@@ -601,7 +601,7 @@ export const PlayerBreakdownSection = ({
                                 )
                             ) : (
                                 !activeClassBreakdown || (!isExpanded && !activeClassSkill) ? (
-                                    <div className="px-4 py-10 text-center text-[color:var(--text-muted)] italic text-sm">
+                                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                         Select a class and skill to view breakdown details
                                     </div>
                                 ) : (

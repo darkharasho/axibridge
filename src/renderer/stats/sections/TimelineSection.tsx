@@ -43,7 +43,7 @@ export const TimelineSection = ({
             </div>
         </div>
         {timelineData.length === 0 ? (
-            <div className="text-center italic py-10" style={{ color: 'var(--text-muted)' }}>No timeline data available</div>
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No timeline data available</div>
         ) : (
             <div className="h-[260px] w-full">
                 <ResponsiveContainer width="100%" height="100%">

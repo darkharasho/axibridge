@@ -227,7 +227,7 @@ export const FightBreakdownSection = ({
                     </div>
                 </div>
                 {fights.length === 0 ? (
-                    <div className="text-center text-[color:var(--text-muted)] italic py-6">No fight data available</div>
+                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No fight data available</div>
                 ) : isExpanded ? (
                     <DenseStatsTable
                         title="Fight Breakdown (All Columns)"

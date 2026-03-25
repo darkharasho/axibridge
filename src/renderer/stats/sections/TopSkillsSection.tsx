@@ -101,7 +101,7 @@ export const TopSkillsSection = ({
                     </div>
                 ))}
                 {sortedTopSkills.length === 0 && (
-                    <div className="text-center text-[color:var(--text-muted)] italic py-4">No skill data available</div>
+                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No skill data available</div>
                 )}
             </div>
         </div>
@@ -142,7 +142,7 @@ export const TopSkillsSection = ({
                     </div>
                 ))}
                 {stats.topIncomingSkills.length === 0 && (
-                    <div className="text-center text-[color:var(--text-muted)] italic py-4">No incoming damage data available</div>
+                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No incoming damage data available</div>
                 )}
             </div>
         </div>

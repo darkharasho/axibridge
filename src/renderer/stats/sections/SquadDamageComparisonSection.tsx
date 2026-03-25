@@ -65,7 +65,7 @@ export const SquadDamageComparisonSection = () => {
             </div>
 
             {chartData.length === 0 ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">No fight data available</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No fight data available</div>
             ) : (
                 <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-4">
                     <div className="flex items-center justify-between gap-3 mb-3">

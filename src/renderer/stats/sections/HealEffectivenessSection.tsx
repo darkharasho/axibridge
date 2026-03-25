@@ -25,7 +25,7 @@ const SkillTable = ({
             <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{title}</div>
         </div>
         {rows.length === 0 ? (
-            <div className="px-4 py-8 text-center text-xs text-[color:var(--text-muted)] italic">No skill data available for this fight.</div>
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No skill data available for this fight.</div>
         ) : (
             <>
                 <div className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
@@ -114,7 +114,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                 </button>
             </div>
             {fights.length === 0 ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">No heal effectiveness data available</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No heal effectiveness data available</div>
             ) : (
                 <>
                     <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-4">

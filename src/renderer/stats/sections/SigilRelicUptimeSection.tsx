@@ -66,7 +66,7 @@ export const SigilRelicUptimeSection = ({
                 </button>
             </div>
             {!hasSigilRelicTables ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">No sigil/relic uptime data available</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No sigil/relic uptime data available</div>
             ) : (
                 <StatsTableLayout
                     expanded={isExpanded}
@@ -84,7 +84,7 @@ export const SigilRelicUptimeSection = ({
                             />
                             <div className={`${sidebarListClass} ${isExpanded ? 'max-h-none flex-1 min-h-0' : ''}`}>
                                 {filteredSigilRelicTables.length === 0 ? (
-                                    <div className="text-center text-[color:var(--text-muted)] italic py-6 text-xs">No sigil/relic entries match this filter</div>
+                                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No sigil/relic entries match this filter</div>
                                 ) : (
                                     filteredSigilRelicTables.map((buff: any) => (
                                         <button
@@ -112,7 +112,7 @@ export const SigilRelicUptimeSection = ({
                     content={
                         <>
                             {!activeSigilRelicTable ? (
-                                <div className="px-4 py-10 text-center text-[color:var(--text-muted)] italic text-sm">Select a sigil/relic to view uptime</div>
+                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a sigil/relic to view uptime</div>
                             ) : (
                                 <StatsTableShell
                                     expanded={isExpanded}

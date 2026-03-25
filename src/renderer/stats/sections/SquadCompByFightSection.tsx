@@ -87,7 +87,7 @@ export const SquadCompByFightSection = ({
                     />
                 </div>
                 {fights.length === 0 ? (
-                    <div className="text-center text-[color:var(--text-muted)] italic py-6">No squad composition data available.</div>
+                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No squad composition data available.</div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-4">
                         <aside className="squad-comp-fight-nav bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0">
@@ -114,7 +114,7 @@ export const SquadCompByFightSection = ({
                         </aside>
                         <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-gradient-to-b from-slate-950/55 to-slate-900/45 p-3 squad-comp-board">
                             {!activeFight ? (
-                                <div className="text-[color:var(--text-muted)] italic py-6 text-center">Select a fight.</div>
+                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a fight.</div>
                             ) : (
                                 <div className="space-y-2.5">
                                     {activeFight.parties.map((party) => (

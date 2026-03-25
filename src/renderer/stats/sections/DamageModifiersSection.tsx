@@ -209,7 +209,7 @@ export const DamageModifiersSection = ({
             </div>
 
             {modSummaries.length === 0 ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">No {incoming ? 'incoming ' : ''}damage modifier data available</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No {incoming ? 'incoming ' : ''}damage modifier data available</div>
             ) : isExpanded ? (
                 /* ===== EXPANDED / FULLSCREEN VIEW ===== */
                 <ExpandedView
@@ -383,7 +383,7 @@ const CollapsedView = ({
                     />
                     <div className={`${sidebarListClass} ${expandedSection === config.sectionId ? 'max-h-none flex-1 min-h-0' : ''}`}>
                         {filteredMods.length === 0 ? (
-                            <div className="text-center text-[color:var(--text-muted)] italic py-6 text-xs">No modifiers match this filter</div>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No modifiers match this filter</div>
                         ) : (
                             filteredMods.map((mod) => (
                                 <button
@@ -469,7 +469,7 @@ const CollapsedView = ({
                             rows={
                                 <>
                                     {sortedPlayerData.length === 0 ? (
-                                        <div className="px-4 py-8 text-center text-[color:var(--text-muted)] italic text-sm">No player data for this modifier</div>
+                                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No player data for this modifier</div>
                                     ) : (
                                         sortedPlayerData.map((row, idx) => {
                                             const pctOfTotal = row.totalDamage > 0
@@ -522,7 +522,7 @@ const CollapsedView = ({
                             }
                         />
                     ) : (
-                        <div className="px-4 py-8 text-center text-[color:var(--text-muted)] italic text-sm">Select a modifier from the sidebar</div>
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a modifier from the sidebar</div>
                     )}
                 </>
             }
@@ -684,7 +684,7 @@ const ExpandedView = ({
             </div>
             <div className="overflow-hidden">
                 {visibleMods.length === 0 ? (
-                    <div className="px-4 py-10 text-center text-[color:var(--text-muted)] italic text-sm">No modifiers match this filter</div>
+                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No modifiers match this filter</div>
                 ) : (
                     <DenseStatsTable
                         title={`${config.title} - Dense View`}

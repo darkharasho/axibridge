@@ -128,7 +128,7 @@ export const DamageMitigationSection = ({
                 Damage mitigation is an estimate based on enemy skill damage averages and avoidance events (block/evade/miss/invuln/interrupted). Use it for relative comparison rather than exact prevention totals.
             </div>
             {!hasMitigationData ? (
-                <div className="text-center italic py-8" style={{ color: 'var(--text-muted)' }}>No damage mitigation stats available</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No damage mitigation stats available</div>
             ) : isExpanded ? (
                 <div className="flex flex-col gap-4">
                     <div className="border rounded-[var(--radius-md)] px-4 py-3" style={{ background: 'var(--bg-hover)', borderColor: 'var(--border-subtle)' }}>
@@ -280,11 +280,11 @@ export const DamageMitigationSection = ({
                     </div>
                     <div className="overflow-hidden">
                         {mitigationRows.length === 0 ? (
-                            <div className="px-4 py-10 text-center italic text-sm" style={{ color: 'var(--text-muted)' }}>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                 No {damageMitigationScope === 'minions' ? 'minion' : 'player'} mitigation stats available
                             </div>
                         ) : filteredMitigationMetrics.length === 0 ? (
-                            <div className="px-4 py-10 text-center italic text-sm" style={{ color: 'var(--text-muted)' }}>No mitigation stats match this filter</div>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No mitigation stats match this filter</div>
                         ) : (
                             (() => {
                                 const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
@@ -382,7 +382,7 @@ export const DamageMitigationSection = ({
                             <div className={`${sidebarListClass} ${expandedSection === 'defense-mitigation' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                                 {(() => {
                                     if (filteredMitigationMetrics.length === 0) {
-                                        return <div className="text-center italic py-6 text-xs" style={{ color: 'var(--text-muted)' }}>No mitigation stats match this filter</div>;
+                                        return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No mitigation stats match this filter</div>;
                                     }
                                     return filteredMitigationMetrics.map((metric) => (
                                         <button
@@ -461,7 +461,7 @@ export const DamageMitigationSection = ({
                                         }
                                         rows={
                                             rows.length === 0 ? (
-                                                <div className="px-4 py-10 text-center italic text-sm" style={{ color: 'var(--text-muted)' }}>
+                                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                                     No {damageMitigationScope === 'minions' ? 'minion' : 'player'} mitigation stats available
                                                 </div>
                                             ) : (

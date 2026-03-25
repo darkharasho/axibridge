@@ -88,7 +88,7 @@ export const OffenseSection = ({
             </div>
         </div>
         {stats.offensePlayers.length === 0 ? (
-            <div className="text-center italic py-8" style={{ color: 'var(--text-muted)' }}>No offensive stats available</div>
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats available</div>
         ) : isExpanded ? (
             <div className="flex flex-col gap-4">
                 <div className="border rounded-[var(--radius-md)] px-4 py-3" style={{ background: 'var(--bg-hover)', borderColor: 'var(--border-subtle)' }}>
@@ -193,7 +193,7 @@ export const OffenseSection = ({
                 </div>
                 <div className="overflow-hidden">
                     {filteredOffenseMetrics.length === 0 ? (
-                        <div className="px-4 py-10 text-center italic text-sm" style={{ color: 'var(--text-muted)' }}>No offensive stats match this filter</div>
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats match this filter</div>
                     ) : (
                         (() => {
                             const totalSeconds = (row: any) => Math.max(1, (row.totalFightMs || 0) / 1000);
@@ -299,7 +299,7 @@ export const OffenseSection = ({
                         <div className={`${sidebarListClass} ${expandedSection === 'offense-detailed' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
                                 if (filteredOffenseMetrics.length === 0) {
-                                    return <div className="text-center italic py-6 text-xs" style={{ color: 'var(--text-muted)' }}>No offensive stats match this filter</div>;
+                                    return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats match this filter</div>;
                                 }
                                 return filteredOffenseMetrics.map((metric) => (
                                     <button

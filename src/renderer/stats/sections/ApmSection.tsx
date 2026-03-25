@@ -232,7 +232,7 @@ export const ApmSection = ({
                     </div>
                     <div className={`rounded-[var(--radius-md)] overflow-hidden stats-share-table ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`} style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                         {!activeApmSpecTable ? (
-                            <div className="px-4 py-10 text-center italic text-sm" style={{ color: 'var(--text-muted)' }}>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                 Select an elite spec to view APM details
                             </div>
                         ) : (
@@ -381,7 +381,7 @@ export const ApmSection = ({
                                             : (activeApmSpecTable.playerRows || []);
                                         if (skills.length === 0) {
                                             return (
-                                                <div className="px-4 py-10 text-center italic text-sm" style={{ color: 'var(--text-muted)' }}>
+                                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                                     No skills available for this class.
                                                 </div>
                                             );
@@ -534,7 +534,7 @@ export const ApmSection = ({
                                             <>
                                                 <div className={`stats-table-shell__rows ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}`}>
                                                     {((activeApmSkill as any)?.playerRows || []).length === 0 ? (
-                                                        <div className="px-4 py-8 text-center text-sm italic border-b border-[color:var(--border-subtle)]" style={{ color: 'var(--text-muted)' }}>
+                                                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                                             No player rows available for this skill.
                                                         </div>
                                                     ) : (

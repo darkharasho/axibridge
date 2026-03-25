@@ -150,7 +150,7 @@ export const AttendanceSection = ({
                     </div>
                 </div>
                 {attendanceRows.length === 0 ? (
-                    <div className="text-center italic py-6" style={{ color: 'var(--text-muted)' }}>No attendance data available.</div>
+                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No attendance data available.</div>
                 ) : (
                     <div className={`rounded-[var(--radius-md)] overflow-hidden ${shouldScrollLedger ? 'max-h-[30rem] overflow-y-auto' : ''}`} style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                         <table className="w-full text-xs table-auto min-w-full border-separate border-spacing-0">

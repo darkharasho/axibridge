@@ -192,7 +192,7 @@ export const ConditionsSection = ({
                     </div>
                     <div className="overflow-hidden">
                         {filteredConditions.length === 0 ? (
-                            <div className="px-4 py-10 text-center text-[color:var(--text-muted)] italic text-sm">No conditions match this filter</div>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No conditions match this filter</div>
                         ) : (
                             (() => {
                                 const metricKey = effectiveConditionSort.key;
@@ -343,7 +343,7 @@ export const ConditionsSection = ({
                         <div className={`${sidebarListClass} ${expandedSection === 'conditions-outgoing' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
                                 if (filteredConditions.length === 0) {
-                                    return <div className="text-center text-[color:var(--text-muted)] italic py-6 text-xs">No conditions match this filter</div>;
+                                    return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No conditions match this filter</div>;
                                 }
                                 return (
                                     <>
@@ -465,7 +465,7 @@ export const ConditionsSection = ({
                                             return String(a.account || '').localeCompare(String(b.account || ''));
                                         });
                                     if (rows.length === 0) {
-                                        return <div className="text-center text-[color:var(--text-muted)] italic py-6">No condition data available</div>;
+                                        return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No condition data available</div>;
                                     }
                                     return rows.map((entry: any, idx: number) => {
                                         const conditionTotals = entry.conditions || {};
@@ -558,7 +558,7 @@ export const ConditionsSection = ({
                 </>
             )
         ) : (
-            <div className="text-center text-[color:var(--text-muted)] italic py-8">No condition data available</div>
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No condition data available</div>
         )}
     </div>
     );

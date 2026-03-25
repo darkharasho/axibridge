@@ -165,7 +165,7 @@ export const FightDiffModeSection = () => {
                     </div>
                 </div>
             ) : fights.length < 2 ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                     Need at least two fights to compare.
                 </div>
             ) : (
@@ -294,11 +294,9 @@ export const FightDiffModeSection = () => {
                                     </table>
                                 </div>
                             ) : (
-                                <div className="px-4 py-8 text-center text-[color:var(--text-secondary)] text-sm space-y-1">
-                                    <div className="italic">No target focus data for selected fights.</div>
-                                    <div className="text-xs text-[color:var(--text-secondary)]">
-                                        Usually this means the fights were uploaded without Detailed WvW enemy slices, or the report was generated from an older build.
-                                    </div>
+                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)] space-y-1">
+                                    <div>No target focus data for selected fights.</div>
+                                    <div>Usually this means the fights were uploaded without Detailed WvW enemy slices, or the report was generated from an older build.</div>
                                 </div>
                             )}
                         />
@@ -361,7 +359,7 @@ export const FightDiffModeSection = () => {
                                     </table>
                                 </div>
                             ) : (
-                                <div className="px-4 py-8 text-center text-[color:var(--text-muted)] italic text-sm">No squad metric data for selected fights.</div>
+                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No squad metric data for selected fights.</div>
                             )}
                         />
                     </div>

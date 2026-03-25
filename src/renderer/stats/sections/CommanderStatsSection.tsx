@@ -179,7 +179,7 @@ export const CommanderTargetConversionSection = ({
             </div>
 
             {rows.length === 0 ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">No target conversion data available.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No target conversion data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">
@@ -297,7 +297,7 @@ export const CommanderTagMovementSection = ({
             </div>
 
             {rows.length === 0 ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">No tag movement data available.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No tag movement data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasAnyMovementData ? (
@@ -416,7 +416,7 @@ export const CommanderTagDeathResponseSection = ({
             </div>
 
             {rows.length === 0 ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">No commander death response data available.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No commander death response data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasPostDeathEnemyData ? (
@@ -459,7 +459,7 @@ export const CommanderTagDeathResponseSection = ({
 
                     {selectedCommander && (
                         deathFights.length === 0 ? (
-                            <div className="text-center text-[color:var(--text-muted)] italic py-4">This commander has no fights with a recorded tag death.</div>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">This commander has no fights with a recorded tag death.</div>
                         ) : (
                             <div className="overflow-x-auto min-w-0">
                                 <table className="w-full min-w-[700px] text-xs table-auto">
@@ -555,7 +555,7 @@ export const CommanderPushTimingSection = ({
             </div>
 
             {rows.length === 0 ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">No push timing data available.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No push timing data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasAnyTimingData ? (
@@ -746,7 +746,7 @@ export const CommanderStatsSection = ({
             </div>
 
             {rows.length === 0 ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">No commander-tag data available.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No commander-tag data available.</div>
             ) : (
                 <div className="space-y-5 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">

@@ -74,7 +74,7 @@ const LeaderCard = ({ icon: Icon, title, data, color, unit = '', onClick, active
                             ))}
                         </div>
                     ) : (
-                        <div className="text-xs text-[color:var(--text-muted)] italic">No data available</div>
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No data available</div>
                     )}
                 </div>
             )}

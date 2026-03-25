@@ -86,7 +86,7 @@ export const FightCompSection = ({
             </div>
             <div className="fight-comp-shell">
                 {fights.length === 0 ? (
-                    <div className="text-center text-[color:var(--text-muted)] italic py-6">No fight composition data available.</div>
+                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No fight composition data available.</div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-4">
                         <aside className="fight-comp-fight-nav bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] pr-3 flex flex-col min-h-0 overflow-y-auto">
@@ -124,7 +124,7 @@ export const FightCompSection = ({
 
                         <div className="fight-comp-board rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-2.5 overflow-hidden">
                             {!activeFight ? (
-                                <div className="text-[color:var(--text-muted)] italic py-6 text-center">Select a fight.</div>
+                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a fight.</div>
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.78fr)] gap-2.5 min-w-0">
                                     <div className="fight-comp-card rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] overflow-hidden">
@@ -219,7 +219,7 @@ export const FightCompSection = ({
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="py-6 text-center text-[color:var(--text-muted)] italic text-sm">No enemy class data</div>
+                                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No enemy class data</div>
                                             )}
                                         </div>
                                     </div>

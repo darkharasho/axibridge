@@ -80,7 +80,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
             </div>
 
             {!hasAnyData ? (
-                <div className="text-center text-[color:var(--text-muted)] italic py-8">No replay data available — commander tag positions are required for this chart.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No replay data available — commander tag positions are required for this chart.</div>
             ) : (
                 <>
                     {/* Summary stats */}
@@ -267,7 +267,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                 </ResponsiveContainer>
                             </div>
                         ) : selectedFight && scatterData.length === 0 ? (
-                            <div className="text-center text-[color:var(--text-muted)] italic py-6 text-xs">No death events in this fight.</div>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No death events in this fight.</div>
                         ) : null}
                     </div>
                 </>
