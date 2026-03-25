@@ -771,13 +771,33 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     to { opacity: 0; }
 }
 
-.stats-view-slide-up {
-    animation: stats-view-slide-up 350ms ease-out both;
+/* Stats entrance: header slides down, content slides up */
+.stats-view-entering .stats-header-entrance {
+    animation: stats-header-slide-down 300ms ease-out both;
 }
 
-@keyframes stats-view-slide-up {
-    from { transform: translateY(12px); }
-    to { transform: translateY(0); }
+.stats-view-entering .stats-group-container {
+    animation: stats-content-slide-up 350ms ease-out both;
+}
+
+@keyframes stats-header-slide-down {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes stats-content-slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Nav sidebar slide-in from left */
+.stats-nav-slide-in {
+    animation: stats-nav-slide-in 400ms ease-out both;
+}
+
+@keyframes stats-nav-slide-in {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
 /* Group container entrance animation on nav switch */
