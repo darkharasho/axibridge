@@ -301,7 +301,7 @@ export const CommanderTagMovementSection = ({
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasAnyMovementData ? (
-                        <div className="rounded-[var(--radius-md)] border border-emerald-200/10 bg-[var(--bg-card-inner)] px-3 py-2 text-xs text-emerald-100/80">
+                        <div className="rounded-[var(--radius-md)] border border-emerald-200/10 px-3 py-2 text-xs text-emerald-100/80">
                             Tag movement is unavailable for these logs because commander replay positions were not present.
                         </div>
                     ) : null}
@@ -420,7 +420,7 @@ export const CommanderTagDeathResponseSection = ({
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasPostDeathEnemyData ? (
-                        <div className="rounded-[var(--radius-md)] border border-rose-200/10 bg-[var(--bg-card-inner)] px-3 py-2 text-xs text-rose-100/80">
+                        <div className="rounded-[var(--radius-md)] border border-rose-200/10 px-3 py-2 text-xs text-rose-100/80">
                             Post-death enemy kill counts are unavailable for these logs because enemy replay death timestamps were not present.
                         </div>
                     ) : null}
@@ -559,7 +559,7 @@ export const CommanderPushTimingSection = ({
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasAnyTimingData ? (
-                        <div className="rounded-[var(--radius-md)] border border-amber-200/10 bg-[var(--bg-card-inner)] px-3 py-2 text-xs text-amber-100/80">
+                        <div className="rounded-[var(--radius-md)] border border-amber-200/10 px-3 py-2 text-xs text-amber-100/80">
                             Exact push timing is unavailable for these logs because enemy replay down/death timestamps were not present.
                         </div>
                     ) : null}
@@ -836,7 +836,7 @@ export const CommanderStatsSection = ({
                             </div>
 
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 min-w-0">
-                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-3 min-w-0 overflow-x-auto">
+                                <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
                                     <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Damage By Skill</div>
                                     <table className="w-full min-w-[440px] text-xs table-auto">
                                         <thead>
@@ -858,7 +858,7 @@ export const CommanderStatsSection = ({
                                     </table>
                                 </div>
 
-                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-3 min-w-0 overflow-x-auto">
+                                <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
                                     <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Boons (Average Uptime)</div>
                                     <table className="w-full min-w-[440px] text-xs table-auto">
                                         <thead>
@@ -882,7 +882,7 @@ export const CommanderStatsSection = ({
                             </div>
 
                             {selectedFight && (
-                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-3 min-w-0 space-y-3">
+                                <div className="rounded-[var(--radius-md)] p-3 min-w-0 space-y-3">
                                     <div className="flex flex-wrap items-center justify-between gap-3">
                                         <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)]">5s Timeline And Fight Breakdown</div>
                                         <div className="flex flex-wrap items-center gap-2">

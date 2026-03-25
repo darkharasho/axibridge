@@ -161,7 +161,7 @@ export const SkillUsageSection = ({
                     placeholder="Search player or account"
                     className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-cyan-400 focus:outline-none"
                 />
-                <div className="skill-usage-player-list-container flex-1 min-h-0 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)]">
+                <div className="skill-usage-player-list-container flex-1 min-h-0 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)]">
                     {groupedSkillUsagePlayers.length === 0 ? (
                         <div className="px-3 py-4 text-xs text-[color:var(--text-muted)] italic">
                             No squad players match the filter
@@ -267,7 +267,7 @@ export const SkillUsageSection = ({
                     placeholder="Filter skill names"
                     className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-cyan-400 focus:outline-none"
                 />
-                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-0.5 flex-1 min-h-0">
+                <div className="rounded-[var(--radius-md)] p-0.5 flex-1 min-h-0">
                     {selectedPlayers.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-xs text-[color:var(--text-muted)]">
                             Select squad players to see the skills they cast.
@@ -323,7 +323,7 @@ export const SkillUsageSection = ({
         <div className="space-y-3">
             {skillUsageReady ? (
                 <div className="space-y-4">
-                    <div className="space-y-4 rounded-[var(--radius-md)] bg-[var(--bg-card-inner)] p-4 mt-2">
+                    <div className="space-y-4 rounded-[var(--radius-md)] p-4 mt-2">
                         <div className="flex items-center justify-between">
                             <div className="text-sm font-semibold text-[color:var(--text-primary)]">
                                 {selectedSkillName
@@ -407,7 +407,7 @@ export const SkillUsageSection = ({
                         </ResponsiveContainer>
                     </div>
                     {selectedPlayers.length > 0 && (
-                        <div className="rounded-[var(--radius-md)] bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] p-4 space-y-3">
+                        <div className="rounded-[var(--radius-md)] p-4 space-y-3">
                             <div className="flex items-center justify-between">
                                 <div className="text-xs uppercase tracking-[0.4em] text-[color:var(--text-secondary)]">Selected Players</div>
                                 <div className="text-[11px] text-[color:var(--text-secondary)]">

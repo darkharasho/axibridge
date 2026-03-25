@@ -90,7 +90,7 @@ export const SquadCompByFightSection = ({
                     <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No squad composition data available.</div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-4">
-                        <aside className="squad-comp-fight-nav bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0">
+                        <aside className="squad-comp-fight-nav rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0">
                             <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Fight Tabs</div>
                             <div className="space-y-1 pr-1 max-h-[560px] xl:max-h-[720px] overflow-y-auto">
                                 {fights.map((fight) => {
@@ -120,9 +120,9 @@ export const SquadCompByFightSection = ({
                                     {activeFight.parties.map((party) => (
                                         <div
                                             key={`${activeFight.id}-party-${party.party}`}
-                                            className="squad-comp-party-row grid grid-cols-[40px_minmax(0,1fr)] gap-2 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-2"
+                                            className="squad-comp-party-row grid grid-cols-[40px_minmax(0,1fr)] gap-2 rounded-[var(--radius-md)] p-2"
                                         >
-                                            <div className="squad-comp-party-badge rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)]/80 text-center py-2">
+                                            <div className="squad-comp-party-badge rounded-[var(--radius-md)] border border-[color:var(--border-default)] text-center py-2">
                                                 <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-muted)]">P</div>
                                                 <div className="text-base font-bold text-gray-100 leading-none">
                                                     {party.party > 0 ? party.party : '-'}

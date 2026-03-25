@@ -96,7 +96,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                     </div>
 
                     {/* Summary bar chart */}
-                    <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-4">
+                    <div className="rounded-[var(--radius-md)] p-4">
                         <div className="flex items-center justify-between gap-3 mb-3">
                             <div>
                                 <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">Avg Death Distance from Tag</div>
@@ -178,7 +178,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                     </div>
 
                     {/* Drilldown scatter chart */}
-                    <div className={`mt-4 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-4 py-3 transition-all duration-300 ${
+                    <div className={`mt-4 px-4 py-3 transition-all duration-300 ${
                         selectedFight ? 'opacity-100 translate-y-0' : 'opacity-90'
                     }`}>
                         <div className="flex items-center justify-between gap-3 mb-3">

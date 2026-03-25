@@ -397,7 +397,7 @@ export const PlayerBreakdownSection = ({
                                                 ...selectedPlayers.map((id) => `player:${id}`)
                                             ]);
                                             return (
-                                                <div className="bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-4 py-3">
+                                                <div className="px-4 py-3">
                                                     <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Player Breakdown</div>
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <SearchSelectDropdown
@@ -637,7 +637,7 @@ export const PlayerBreakdownSection = ({
                                                 ...selectedPlayers.map((id) => `player:${id}`)
                                             ]);
                                             return (
-                                                <div className="bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-4 py-3">
+                                                <div className="px-4 py-3">
                                                     <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Class Breakdown</div>
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <SearchSelectDropdown

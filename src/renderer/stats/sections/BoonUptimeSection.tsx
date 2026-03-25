@@ -234,7 +234,7 @@ export const BoonUptimeSection = ({
                 </button>
             </div>
 
-            <div className="mb-4 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-3">
+            <div className="mb-4 rounded-[var(--radius-md)] p-3">
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                     <input
                         type="search"
@@ -247,7 +247,7 @@ export const BoonUptimeSection = ({
                         {boons.length} {boons.length === 1 ? 'boon' : 'boons'}
                     </div>
                 </div>
-                <div className="mt-2 max-h-28 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-1.5">
+                <div className="mt-2 max-h-28 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)] p-1.5">
                     {boons.length === 0 ? (
                         <div className="px-3 py-2 text-xs text-[color:var(--text-muted)] italic">No boons match this filter.</div>
                     ) : (
@@ -290,7 +290,7 @@ export const BoonUptimeSection = ({
                         placeholder="Search player, account, or subgroup"
                         className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-amber-400 focus:outline-none"
                     />
-                    <div className="spike-player-list-container flex-1 min-h-0 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)]">
+                    <div className="spike-player-list-container flex-1 min-h-0 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)]">
                         {players.length === 0 ? (
                             <div className="px-3 py-4 text-xs text-[color:var(--text-muted)] italic">
                                 Select a boon to view uptime entries.
@@ -361,7 +361,7 @@ export const BoonUptimeSection = ({
                             {chartData.length} {chartData.length === 1 ? 'fight' : 'fights'}
                         </div>
                     </div>
-                    <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-4 flex-1 min-h-0">
+                    <div className="rounded-[var(--radius-md)] p-4 flex-1 min-h-0">
                         {!selectedPlayer || chartData.length === 0 ? (
                             <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
                                 Select one entry to view boon uptime by fight.
@@ -446,7 +446,7 @@ export const BoonUptimeSection = ({
             </div>
 
             {selectedPlayer && (
-                <div className="mt-4 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-4 py-3 grid gap-3 md:grid-cols-3">
+                <div className="mt-4 px-4 py-3 grid gap-3 md:grid-cols-3">
                     <div>
                         <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Selected Entry</div>
                         <div className="mt-1 text-sm font-semibold text-white flex items-center gap-2 min-w-0">
@@ -486,7 +486,7 @@ export const BoonUptimeSection = ({
             )}
 
             {selectedPlayer && selectedFightIndex !== null && (
-                <div className="mt-4 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-4 py-3">
+                <div className="mt-4 px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                         <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{drilldownTitle}</div>
                         <button

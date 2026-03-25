@@ -213,7 +213,7 @@ export const FightDiffModeSection = () => {
                         </div>
                     </div>
 
-                    <div className="stats-table-layout__content bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden">
+                    <div className="stats-table-layout__content rounded-[var(--radius-md)] overflow-hidden">
                         <StatsTableShell
                             expanded={expandedSection === 'fight-diff-mode'}
                             maxHeightClass="max-h-96"
@@ -302,7 +302,7 @@ export const FightDiffModeSection = () => {
                         />
                     </div>
 
-                    <div className="stats-table-layout__content bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden">
+                    <div className="stats-table-layout__content rounded-[var(--radius-md)] overflow-hidden">
                         <StatsTableShell
                             expanded={expandedSection === 'fight-diff-mode'}
                             maxHeightClass="max-h-none"

@@ -89,7 +89,7 @@ export const FightCompSection = ({
                     <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No fight composition data available.</div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-4">
-                        <aside className="fight-comp-fight-nav bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] pr-3 flex flex-col min-h-0 overflow-y-auto">
+                        <aside className="fight-comp-fight-nav rounded-[var(--radius-md)] pr-3 flex flex-col min-h-0 overflow-y-auto">
                             <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Fight Tabs</div>
                             <div className="space-y-1 pr-1 max-h-[320px] overflow-y-auto">
                                 {fights.map((fight) => {
@@ -122,12 +122,12 @@ export const FightCompSection = ({
                             </div>
                         </aside>
 
-                        <div className="fight-comp-board rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-2.5 overflow-hidden">
+                        <div className="fight-comp-board rounded-[var(--radius-md)] p-2.5 overflow-hidden">
                             {!activeFight ? (
                                 <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a fight.</div>
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.78fr)] gap-2.5 min-w-0">
-                                    <div className="fight-comp-card rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] overflow-hidden">
+                                    <div className="fight-comp-card rounded-[var(--radius-md)] overflow-hidden">
                                         <div className="px-2.5 py-1.5 bg-[var(--bg-hover)] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] flex items-center justify-between gap-2">
                                             <span>Squad Parties</span>
                                             <span className="inline-flex items-center rounded-md border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-1.5 py-0.5 text-[9px] font-semibold tracking-normal text-[color:var(--text-secondary)]">
@@ -161,7 +161,7 @@ export const FightCompSection = ({
                                                         .sort((a, b) => a.profession.localeCompare(b.profession));
                                                 return (
                                                     <div key={`${activeFight.id}-party-${party.party}`} className="fight-comp-row grid grid-cols-[36px_minmax(0,1fr)] gap-1.5 items-center px-1.5 py-1 first:pt-0 last:pb-0">
-                                                        <div className="fight-comp-party-badge text-[10px] font-semibold uppercase tracking-widest text-[color:var(--text-secondary)] text-center rounded-md border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] py-0.5">
+                                                        <div className="fight-comp-party-badge text-[10px] font-semibold uppercase tracking-widest text-[color:var(--text-secondary)] text-center rounded-md border border-[color:var(--border-default)] py-0.5">
                                                             {party.party > 0 ? `P${party.party}` : 'Unk'}
                                                         </div>
                                                         <div className="flex flex-wrap gap-x-1.5 gap-y-1">
@@ -191,7 +191,7 @@ export const FightCompSection = ({
                                         </div>
                                     </div>
 
-                                    <div className="fight-comp-card rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] overflow-hidden">
+                                    <div className="fight-comp-card rounded-[var(--radius-md)] overflow-hidden">
                                         <div className="px-2.5 py-1.5 bg-[var(--bg-hover)] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] flex items-center justify-between gap-2">
                                             <span>Enemy Classes</span>
                                             <span className="inline-flex items-center rounded-md border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-1.5 py-0.5 text-[9px] font-semibold tracking-normal text-[color:var(--text-secondary)]">
@@ -203,7 +203,7 @@ export const FightCompSection = ({
                                                 <div className="flex flex-wrap gap-1">
                                                     {enemyRows.map((entry) => (
                                                         <div key={`${activeFight.id}-enemy-${entry.profession}`} className="fight-comp-row inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-white/[0.03] px-1.5 py-0.5">
-                                                            <span className="fight-comp-class-icon inline-flex items-center justify-center rounded-md border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-1 py-0.5" title={entry.profession}>
+                                                            <span className="fight-comp-class-icon inline-flex items-center justify-center rounded-md px-1 py-0.5" title={entry.profession}>
                                                                 {getProfessionIconPath(entry.profession) ? (
                                                                     <img
                                                                         src={getProfessionIconPath(entry.profession) as string}

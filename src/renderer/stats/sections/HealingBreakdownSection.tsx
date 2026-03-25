@@ -96,7 +96,7 @@ export const HealingBreakdownSection = ({
                     No healing breakdown data available for the current selection.
                 </div>
             ) : isExpanded ? (
-                <div className="bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden">
+                <div className="rounded-[var(--radius-md)] overflow-hidden">
                     {(() => {
                         const modeLabel = metricMode === 'healing' ? 'Healing' : 'Barrier';
                         const denseColumns = [
@@ -164,7 +164,7 @@ export const HealingBreakdownSection = ({
                 </div>
             ) : (
                 <div className="grid gap-4 lg:grid-cols-[280px_1fr] items-stretch">
-                    <div className="bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0 h-[420px]">
+                    <div className="px-3 pt-3 pb-2 flex flex-col min-h-0 h-[420px]">
                         <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
                             Squad Players
                         </div>
@@ -214,7 +214,7 @@ export const HealingBreakdownSection = ({
                     </div>
 
                     <div className="space-y-2 flex flex-col h-[420px]">
-                        <div className="bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden stats-share-table flex-1 min-h-0 flex flex-col">
+                        <div className="overflow-hidden stats-share-table flex-1 min-h-0 flex flex-col">
                             {!selectedPlayer ? (
                                 <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
                                     Select a player to view skill breakdown.

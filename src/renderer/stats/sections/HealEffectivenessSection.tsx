@@ -20,7 +20,7 @@ const SkillTable = ({
     rows: HealEffectivenessSkillRow[];
     colorClass: string;
 }) => (
-    <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] overflow-hidden min-h-[260px]">
+    <div className="rounded-[var(--radius-md)] overflow-hidden min-h-[260px]">
         <div className="px-4 py-3 border-b border-[color:var(--border-default)]">
             <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{title}</div>
         </div>
@@ -117,7 +117,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                 <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No heal effectiveness data available</div>
             ) : (
                 <>
-                    <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-4">
+                    <div className="rounded-[var(--radius-md)] p-4">
                         <div className="flex items-center justify-between gap-3 mb-3">
                             <div>
                                 <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">Per Fight Totals</div>
@@ -206,7 +206,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                         </div>
                     </div>
 
-                    <div className={`mt-4 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-4 py-3 transition-all duration-300 ${
+                    <div className={`mt-4 px-4 py-3 transition-all duration-300 ${
                         selectedFight ? 'opacity-100 translate-y-0' : 'opacity-90'
                     }`}
                     >

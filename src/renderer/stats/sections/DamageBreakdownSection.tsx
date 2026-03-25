@@ -112,7 +112,7 @@ export const DamageBreakdownSection = ({
                 </div>
             ) : (
                 <div className="grid gap-4 lg:grid-cols-[280px_1fr] items-stretch">
-                    <div className="bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0 h-[360px]">
+                    <div className="px-3 pt-3 pb-2 flex flex-col min-h-0 h-[360px]">
                         <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
                             Squad Players
                         </div>
@@ -165,7 +165,7 @@ export const DamageBreakdownSection = ({
                         </div>
 
                     <div className="space-y-2 flex flex-col h-[360px]">
-                        <div className="bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden stats-share-table flex-1 min-h-0 flex flex-col">
+                        <div className="overflow-hidden stats-share-table flex-1 min-h-0 flex flex-col">
                             {!selectedPlayer ? (
                                 <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
                                     Select one player to view skill totals.

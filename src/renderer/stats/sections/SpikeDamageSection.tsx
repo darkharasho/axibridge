@@ -295,7 +295,7 @@ export const SpikeDamageSection = ({
                         placeholder={searchPlaceholder}
                         className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-rose-400 focus:outline-none"
                     />
-                    <div className="spike-player-list-container flex-1 min-h-0 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)]">
+                    <div className="spike-player-list-container flex-1 min-h-0 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)]">
                         {flatSpikePlayers.length === 0 ? (
                             <div className="px-3 py-4 text-xs text-[color:var(--text-muted)] italic">
                                 No players match the filter.
@@ -348,7 +348,7 @@ export const SpikeDamageSection = ({
                             {spikeChartData.length} {spikeChartData.length === 1 ? 'fight' : 'fights'}
                         </div>
                     </div>
-                    <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] p-4 flex-1 min-h-0">
+                    <div className="rounded-[var(--radius-md)] p-4 flex-1 min-h-0">
                         {!selectedSpikePlayer || spikeChartData.length === 0 ? (
                             <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
                                 Select one player to view burst values by fight.
@@ -440,7 +440,7 @@ export const SpikeDamageSection = ({
             </div>
 
             {selectedSpikePlayer && (
-                <div className="mt-4 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-4 py-3 grid gap-3 md:grid-cols-3">
+                <div className="mt-4 px-4 py-3 grid gap-3 md:grid-cols-3">
                     <div>
                         <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Selected Player</div>
                         <div className="mt-1 text-sm font-semibold text-white flex items-center gap-2 min-w-0">
@@ -484,7 +484,7 @@ export const SpikeDamageSection = ({
                 </div>
             )}
             {selectedSpikePlayer && selectedSpikeFightIndex !== null && (
-                <div className="mt-4 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-4 py-3">
+                <div className="mt-4 px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                         <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{spikeDrilldownTitle}</div>
                         <button
@@ -594,7 +594,7 @@ export const SpikeDamageSection = ({
                             No skill-level breakdown available for this fight.
                         </div>
                     ) : (
-                        <div className="incoming-skill-table-container rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] overflow-hidden">
+                        <div className="incoming-skill-table-container rounded-[var(--radius-md)] overflow-hidden">
                             <div className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                                 <div>Skill</div>
                                 <div className="text-right">{isDownContributionMode ? 'Down Contrib' : 'Damage'}</div>
