@@ -8,7 +8,10 @@ import { sanitizeWvwLabel, buildFightLabel } from './stats/utils/labelUtils';
 import { parseTimestamp, resolveFightTimestamp } from './stats/utils/timestampUtils';
 import { NON_DAMAGING_CONDITIONS } from './stats/statsMetrics';
 import { StatsSharedContext } from './stats/StatsViewContext';
-import { useStatsNavigation } from './stats/hooks/useStatsNavigation';
+import { StatsGroupContainer } from './stats/ui/StatsGroupContainer';
+import { SectionPanel } from './stats/ui/SectionPanel';
+import { useStatsNavigation, STATS_TOC_GROUPS } from './stats/hooks/useStatsNavigation';
+import { GROUP_ACCENT_COLORS } from './stats/sectionColors';
 import { useStatsUploads } from './stats/hooks/useStatsUploads';
 import { useStatsScreenshot } from './stats/hooks/useStatsScreenshot';
 import { useStatsAggregationWorker, type AggregationDiagnosticsState, type AggregationProgressState } from './stats/hooks/useStatsAggregationWorker';
@@ -433,6 +436,29 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
             ))}
         </div>
     );
+
+    const renderGroup = (groupId: string, sections: Array<{ id: string; element: React.ReactNode }>) => {
+        const group = STATS_TOC_GROUPS.find(g => g.id === groupId);
+        if (!group) return null;
+        const anyVisible = group.sectionIds.some(id => isSectionVisible(id));
+        if (!anyVisible) return null;
+        return (
+            <StatsGroupContainer
+                key={groupId}
+                groupId={groupId}
+                label={group.label}
+                icon={group.icon as React.ComponentType<{ className?: string }>}
+                accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
+                sectionCount={sections.length}
+            >
+                {sections.map((s, i) => (
+                    <SectionPanel key={s.id} sectionId={s.id} isLast={i === sections.length - 1}>
+                        {renderSectionWrap(s.element)}
+                    </SectionPanel>
+                ))}
+            </StatsGroupContainer>
+        );
+    };
 
     useEffect(() => {
         if (showDissolveLoading) {
@@ -4271,399 +4297,381 @@ type SpikeFight = {
                     </div>
                 ) : (
                     <>
-                        {isSectionVisible('overview') && renderSectionWrap(<OverviewSection
-                        />)}
+                        {renderGroup('overview', [
+                            { id: 'overview', element: <OverviewSection
+                            /> },
+                            { id: 'fight-breakdown', element: <FightBreakdownSection
+                                fightBreakdownTab={fightBreakdownTab}
+                                setFightBreakdownTab={setFightBreakdownTab}
+                            /> },
+                            { id: 'top-players', element: <TopPlayersSection
+                                showTopStats={showTopStats}
+                                showMvp={showMvp}
+                                topStatsMode={topStatsMode}
+                                expandedLeader={expandedLeader}
+                                setExpandedLeader={setExpandedLeader}
+                                formatTopStatValue={formatTopStatValue}
+                                isMvpStatEnabled={isMvpStatEnabled}
+                            /> },
+                            { id: 'top-skills-outgoing', element: <TopSkillsSection
+                                topSkillsMetric={topSkillsMetric}
+                                onTopSkillsMetricChange={updateTopSkillsMetric}
+                            /> },
+                            { id: 'squad-composition', element: <SquadCompositionSection
+                                sortedSquadClassData={sortedSquadClassData}
+                                sortedEnemyClassData={sortedEnemyClassData}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'timeline', element: <TimelineSection
+                                timelineData={safeStats.timelineData}
+                                timelineFriendlyScope={timelineFriendlyScope}
+                                setTimelineFriendlyScope={setTimelineFriendlyScope}
+                            /> },
+                            { id: 'map-distribution', element: <MapDistributionSection
+                                mapData={safeStats.mapData}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('fight-breakdown') && renderSectionWrap(<FightBreakdownSection
-                            fightBreakdownTab={fightBreakdownTab}
-                            setFightBreakdownTab={setFightBreakdownTab}
-                        />)}
+                        {renderGroup('commanders', [
+                            { id: 'commander-stats', element: <CommanderStatsSection
+                                commanderStats={commanderStats}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'commander-push-timing', element: <CommanderPushTimingSection
+                                commanderStats={commanderStats}
+                            /> },
+                            { id: 'commander-target-conversion', element: <CommanderTargetConversionSection
+                                commanderStats={commanderStats}
+                            /> },
+                            { id: 'commander-tag-movement', element: <CommanderTagMovementSection
+                                commanderStats={commanderStats}
+                            /> },
+                            { id: 'commander-tag-death-response', element: <CommanderTagDeathResponseSection
+                                commanderStats={commanderStats}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('top-players') && renderSectionWrap(<TopPlayersSection
-                            showTopStats={showTopStats}
-                            showMvp={showMvp}
-                            topStatsMode={topStatsMode}
-                            expandedLeader={expandedLeader}
-                            setExpandedLeader={setExpandedLeader}
-                            formatTopStatValue={formatTopStatValue}
-                            isMvpStatEnabled={isMvpStatEnabled}
-                        />)}
+                        {renderGroup('squad-stats', [
+                            { id: 'squad-damage-comparison', element: <SquadDamageComparisonSection /> },
+                            { id: 'squad-kill-pressure', element: <SquadKillPressureSection /> },
+                            { id: 'heal-effectiveness', element: <HealEffectivenessSection
+                                fights={healEffectivenessFights}
+                            /> },
+                            { id: 'squad-tag-distance-deaths', element: <SquadTagDistanceDeathsSection
+                                fights={tagDistanceDeathsData}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('top-skills-outgoing') && renderSectionWrap(<TopSkillsSection
-                            topSkillsMetric={topSkillsMetric}
-                            onTopSkillsMetricChange={updateTopSkillsMetric}
-                        />)}
+                        {renderGroup('roster', [
+                            { id: 'attendance-ledger', element: <AttendanceSection
+                                attendanceRows={attendanceData}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'squad-comp-fight', element: <SquadCompByFightSection
+                                fights={squadCompByFight}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'fight-comp', element: <FightCompSection
+                                fights={fightCompByFight}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('squad-composition') && renderSectionWrap(<SquadCompositionSection
-                            sortedSquadClassData={sortedSquadClassData}
-                            sortedEnemyClassData={sortedEnemyClassData}
-                            getProfessionIconPath={getProfessionIconPath}
-                        />)}
+                        {renderGroup('offense', [
+                            { id: 'offense-detailed', element: <OffenseSection
+                                offenseSearch={offenseSearch}
+                                setOffenseSearch={setOffenseSearch}
+                                activeOffenseStat={activeOffenseStat}
+                                setActiveOffenseStat={setActiveOffenseStat}
+                                offenseViewMode={offenseViewMode}
+                                setOffenseViewMode={setOffenseViewMode}
+                            /> },
+                            { id: 'damage-modifiers', element: <DamageModifiersSection
+                                search={damageModSearch}
+                                setSearch={setDamageModSearch}
+                                activeMod={activeDamageMod}
+                                setActiveMod={setActiveDamageMod}
+                                incoming={false}
+                            /> },
+                            { id: 'player-breakdown', element: <PlayerBreakdownSection
+                                viewMode={playerBreakdownViewMode}
+                                setViewMode={setPlayerBreakdownViewMode}
+                                playerSkillBreakdowns={playerSkillBreakdowns}
+                                classSkillBreakdowns={classSkillBreakdowns}
+                                activePlayerKey={activePlayerBreakdownKey}
+                                setActivePlayerKey={setActivePlayerBreakdownKey}
+                                expandedPlayerKey={expandedPlayerBreakdownKey}
+                                setExpandedPlayerKey={setExpandedPlayerBreakdownKey}
+                                activePlayerSkillId={activePlayerBreakdownSkillId}
+                                setActivePlayerSkillId={setActivePlayerBreakdownSkillId}
+                                activeClassKey={activeClassBreakdownKey}
+                                setActiveClassKey={setActiveClassBreakdownKey}
+                                expandedClassKey={expandedClassBreakdownKey}
+                                setExpandedClassKey={setExpandedClassBreakdownKey}
+                                activeClassSkillId={activeClassBreakdownSkillId}
+                                setActiveClassSkillId={setActiveClassBreakdownSkillId}
+                                skillSearch={playerBreakdownSkillSearch}
+                                setSkillSearch={setPlayerBreakdownSkillSearch}
+                                activePlayerBreakdown={activePlayerBreakdown}
+                                activePlayerSkill={activePlayerSkill}
+                                activeClassBreakdown={activeClassBreakdown}
+                                activeClassSkill={activeClassSkill}
+                            /> },
+                            { id: 'damage-breakdown', element: <DamageBreakdownSection
+                                playerSkillBreakdowns={playerSkillBreakdowns}
+                            /> },
+                            { id: 'spike-damage', element: <SpikeDamageSection
+                                spikePlayerFilter={spikePlayerFilter}
+                                setSpikePlayerFilter={setSpikePlayerFilter}
+                                groupedSpikePlayers={groupedSpikePlayers}
+                                spikeMode={spikeMode}
+                                setSpikeMode={setSpikeMode}
+                                damageBasis={spikeDamageBasis}
+                                setDamageBasis={setSpikeDamageBasis}
+                                showDamageBasisToggle
+                                selectedSpikePlayerKey={selectedSpikePlayerKey}
+                                setSelectedSpikePlayerKey={setSelectedSpikePlayerKey}
+                                selectedSpikePlayer={selectedSpikePlayer}
+                                spikeChartData={spikeChartData}
+                                spikeChartMaxY={spikeChartMaxY}
+                                selectedSpikeFightIndex={selectedSpikeFightIndex}
+                                setSelectedSpikeFightIndex={setSelectedSpikeFightIndex}
+                                spikeDrilldownTitle={spikeDrilldown.title}
+                                spikeDrilldownData={spikeDrilldown.data}
+                                spikeDrilldownDownIndices={spikeDrilldown.downIndices}
+                                spikeDrilldownDeathIndices={spikeDrilldown.deathIndices}
+                                spikeFightSkillRows={spikeFightSkillRows}
+                                spikeFightSkillTitle="Outgoing Skill Damage (Selected Fight)"
+                            /> },
+                            { id: 'conditions-outgoing', element: <ConditionsSection
+                                conditionSummary={conditionSummary}
+                                conditionPlayers={conditionPlayers}
+                                conditionSearch={conditionSearch}
+                                setConditionSearch={setConditionSearch}
+                                activeConditionName={activeConditionName}
+                                setActiveConditionName={setActiveConditionName}
+                                conditionDirection={conditionDirection}
+                                setConditionDirection={setConditionDirection}
+                                conditionGridClass={conditionGridClass}
+                                effectiveConditionSort={effectiveConditionSort as any}
+                                setConditionSort={setConditionSort as any}
+                                showConditionDamage={showConditionDamage}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('commander-stats') && renderSectionWrap(<CommanderStatsSection
-                            commanderStats={commanderStats}
-                            getProfessionIconPath={getProfessionIconPath}
-                        />)}
+                        {renderGroup('defense', [
+                            { id: 'defense-detailed', element: <DefenseSection
+                                defenseSearch={defenseSearch}
+                                setDefenseSearch={setDefenseSearch}
+                                activeDefenseStat={activeDefenseStat}
+                                setActiveDefenseStat={setActiveDefenseStat}
+                                defenseViewMode={defenseViewMode}
+                                setDefenseViewMode={setDefenseViewMode}
+                            /> },
+                            { id: 'incoming-damage-modifiers', element: <DamageModifiersSection
+                                search={incomingDamageModSearch}
+                                setSearch={setIncomingDamageModSearch}
+                                activeMod={activeIncomingDamageMod}
+                                setActiveMod={setActiveIncomingDamageMod}
+                                incoming={true}
+                            /> },
+                            { id: 'incoming-strike-damage', element: <SpikeDamageSection
+                                sectionId="incoming-strike-damage"
+                                title="Incoming Strike Damage"
+                                subtitle="Select one enemy class to chart incoming strike pressure per fight."
+                                listTitle="Enemy Classes"
+                                searchPlaceholder="Search enemy class"
+                                titleIcon={ShieldAlert}
+                                titleIconClassName="text-cyan-300"
+                                spikePlayerFilter={incomingStrikePlayerFilter}
+                                setSpikePlayerFilter={setIncomingStrikePlayerFilter}
+                                groupedSpikePlayers={groupedIncomingStrikePlayers}
+                                spikeMode={incomingStrikeMode}
+                                setSpikeMode={setIncomingStrikeMode}
+                                showTotalDamageToggle
+                                useTotalDamage={incomingStrikeUseTotalDamage}
+                                setUseTotalDamage={setIncomingStrikeUseTotalDamage}
+                                selectedSpikePlayerKey={selectedIncomingStrikePlayerKey}
+                                setSelectedSpikePlayerKey={setSelectedIncomingStrikePlayerKey}
+                                selectedSpikePlayer={selectedIncomingStrikePlayer}
+                                spikeChartData={incomingStrikeChartData}
+                                spikeChartMaxY={incomingStrikeChartMaxY}
+                                selectedSpikeFightIndex={selectedIncomingStrikeFightIndex}
+                                setSelectedSpikeFightIndex={setSelectedIncomingStrikeFightIndex}
+                                spikeDrilldownTitle={incomingStrikeDrilldown.title}
+                                spikeDrilldownData={incomingStrikeDrilldown.data}
+                                spikeDrilldownDownIndices={incomingStrikeDrilldown.downIndices}
+                                spikeDrilldownDeathIndices={incomingStrikeDrilldown.deathIndices}
+                                spikeFightSkillRows={incomingStrikeFightSkillRows}
+                                spikeFightSkillTitle="Incoming Skill Damage (Selected Fight)"
+                            /> },
+                            { id: 'defense-mitigation', element: <DamageMitigationSection
+                                damageMitigationSearch={damageMitigationSearch}
+                                setDamageMitigationSearch={setDamageMitigationSearch}
+                                activeDamageMitigationStat={activeDamageMitigationStat}
+                                setActiveDamageMitigationStat={setActiveDamageMitigationStat}
+                                damageMitigationViewMode={damageMitigationViewMode}
+                                setDamageMitigationViewMode={setDamageMitigationViewMode}
+                                damageMitigationScope={damageMitigationScope}
+                                setDamageMitigationScope={setDamageMitigationScope}
+                            /> },
+                            { id: 'boon-output', element: <BoonOutputSection
+                                activeBoonCategory={activeBoonCategory}
+                                setActiveBoonCategory={(val: string) => setActiveBoonCategory(val as BoonCategory)}
+                                activeBoonMetric={activeBoonMetric}
+                                setActiveBoonMetric={setActiveBoonMetric}
+                                activeBoonTab={activeBoonTab}
+                                setActiveBoonTab={setActiveBoonTab}
+                                activeBoonTable={activeBoonTable}
+                                boonSearch={boonSearch}
+                                setBoonSearch={setBoonSearch}
+                                formatBoonMetricDisplay={formatBoonMetricDisplay}
+                                getBoonMetricValue={getBoonMetricValue}
+                            /> },
+                            { id: 'boon-timeline', element: <BoonTimelineSection
+                                boonSearch={boonTimelineSearch}
+                                setBoonSearch={setBoonTimelineSearch}
+                                boons={filteredBoonTimelineBoons}
+                                activeBoonId={activeBoonTimelineId}
+                                setActiveBoonId={setActiveBoonTimelineId}
+                                timelineScope={boonTimelineScope}
+                                setTimelineScope={setBoonTimelineScope}
+                                playerFilter={boonTimelinePlayerFilter}
+                                setPlayerFilter={setBoonTimelinePlayerFilter}
+                                players={filteredBoonTimelinePlayers}
+                                selectedPlayerKey={selectedBoonTimelinePlayerKey}
+                                setSelectedPlayerKey={setSelectedBoonTimelinePlayerKey}
+                                selectedPlayer={selectedBoonTimelinePlayer}
+                                chartData={boonTimelineChartData}
+                                chartMaxY={boonTimelineChartMaxY}
+                                selectedFightIndex={selectedBoonTimelineFightIndex}
+                                setSelectedFightIndex={setSelectedBoonTimelineFightIndex}
+                                drilldownTitle={boonTimelineDrilldown.title}
+                                drilldownData={boonTimelineDrilldown.data}
+                                showIncomingHeatmap={showBoonTimelineIncomingHeatmap}
+                                setShowIncomingHeatmap={setShowBoonTimelineIncomingHeatmap}
+                            /> },
+                            { id: 'boon-uptime', element: <BoonUptimeSection
+                                boonSearch={boonUptimeSearch}
+                                setBoonSearch={setBoonUptimeSearch}
+                                boons={filteredBoonUptimeBoons}
+                                activeBoonId={activeBoonUptimeId}
+                                setActiveBoonId={setActiveBoonUptimeId}
+                                playerFilter={boonUptimePlayerFilter}
+                                setPlayerFilter={setBoonUptimePlayerFilter}
+                                players={filteredBoonUptimePlayers}
+                                selectedPlayerKey={selectedBoonUptimePlayerKey}
+                                setSelectedPlayerKey={setSelectedBoonUptimePlayerKey}
+                                selectedPlayer={selectedBoonUptimePlayer}
+                                chartData={boonUptimeChartData}
+                                chartMaxY={boonUptimeChartMaxY}
+                                selectedFightIndex={selectedBoonUptimeFightIndex}
+                                setSelectedFightIndex={setSelectedBoonUptimeFightIndex}
+                                drilldownTitle={boonUptimeDrilldown.title}
+                                drilldownData={boonUptimeDrilldown.data}
+                                overallUptimePercent={boonUptimeOverallPercent}
+                                showStackCapLine={Boolean(activeBoonUptime?.stacking)}
+                                subgroupMembers={boonUptimeSubgroupMembers}
+                            /> },
+                            { id: 'support-detailed', element: <SupportSection
+                                supportSearch={supportSearch}
+                                setSupportSearch={setSupportSearch}
+                                activeSupportStat={activeSupportStat}
+                                setActiveSupportStat={setActiveSupportStat}
+                                supportViewMode={supportViewMode}
+                                setSupportViewMode={setSupportViewMode}
+                                cleanseScope={cleanseScope}
+                                setCleanseScope={setCleanseScope}
+                            /> },
+                            { id: 'healing-stats', element: <HealingSection
+                                activeHealingMetric={activeHealingMetric}
+                                setActiveHealingMetric={setActiveHealingMetric}
+                                healingCategory={healingCategory}
+                                setHealingCategory={setHealingCategory}
+                                activeResUtilitySkill={activeResUtilitySkill}
+                                setActiveResUtilitySkill={setActiveResUtilitySkill}
+                                skillUsageData={skillUsageData}
+                            /> },
+                            { id: 'healing-breakdown', element: <HealingBreakdownSection
+                                healingBreakdownPlayers={safeStats.healingBreakdownPlayers}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('commander-push-timing') && renderSectionWrap(<CommanderPushTimingSection
-                            commanderStats={commanderStats}
-                        />)}
-
-                        {isSectionVisible('commander-target-conversion') && renderSectionWrap(<CommanderTargetConversionSection
-                            commanderStats={commanderStats}
-                        />)}
-
-                        {isSectionVisible('commander-tag-movement') && renderSectionWrap(<CommanderTagMovementSection
-                            commanderStats={commanderStats}
-                        />)}
-
-                        {isSectionVisible('commander-tag-death-response') && renderSectionWrap(<CommanderTagDeathResponseSection
-                            commanderStats={commanderStats}
-                        />)}
-
-                        {isSectionVisible('squad-damage-comparison') && renderSectionWrap(<SquadDamageComparisonSection />)}
-
-                        {isSectionVisible('squad-kill-pressure') && renderSectionWrap(<SquadKillPressureSection />)}
-
-                        {isSectionVisible('heal-effectiveness') && renderSectionWrap(<HealEffectivenessSection
-                            fights={healEffectivenessFights}
-                        />)}
-
-                        {isSectionVisible('squad-tag-distance-deaths') && renderSectionWrap(<SquadTagDistanceDeathsSection
-                            fights={tagDistanceDeathsData}
-                        />)}
-
-                        {isSectionVisible('attendance-ledger') && renderSectionWrap(<AttendanceSection
-                            attendanceRows={attendanceData}
-                            getProfessionIconPath={getProfessionIconPath}
-                        />)}
-
-                        {isSectionVisible('squad-comp-fight') && renderSectionWrap(<SquadCompByFightSection
-                            fights={squadCompByFight}
-                            getProfessionIconPath={getProfessionIconPath}
-                        />)}
-
-                        {isSectionVisible('fight-comp') && renderSectionWrap(<FightCompSection
-                            fights={fightCompByFight}
-                            getProfessionIconPath={getProfessionIconPath}
-                        />)}
-
-                        {isSectionVisible('timeline') && renderSectionWrap(<TimelineSection
-                            timelineData={safeStats.timelineData}
-                            timelineFriendlyScope={timelineFriendlyScope}
-                            setTimelineFriendlyScope={setTimelineFriendlyScope}
-                        />)}
-
-                        {isSectionVisible('map-distribution') && renderSectionWrap(<MapDistributionSection
-                            mapData={safeStats.mapData}
-                        />)}
-
-                        {isSectionVisible('offense-detailed') && renderSectionWrap(<OffenseSection
-                            offenseSearch={offenseSearch}
-                            setOffenseSearch={setOffenseSearch}
-                            activeOffenseStat={activeOffenseStat}
-                            setActiveOffenseStat={setActiveOffenseStat}
-                            offenseViewMode={offenseViewMode}
-                            setOffenseViewMode={setOffenseViewMode}
-                        />)}
-
-                        {isSectionVisible('damage-modifiers') && renderSectionWrap(<DamageModifiersSection
-                            search={damageModSearch}
-                            setSearch={setDamageModSearch}
-                            activeMod={activeDamageMod}
-                            setActiveMod={setActiveDamageMod}
-                            incoming={false}
-                        />)}
-
-                        {isSectionVisible('player-breakdown') && renderSectionWrap(<PlayerBreakdownSection
-                            viewMode={playerBreakdownViewMode}
-                            setViewMode={setPlayerBreakdownViewMode}
-                            playerSkillBreakdowns={playerSkillBreakdowns}
-                            classSkillBreakdowns={classSkillBreakdowns}
-                            activePlayerKey={activePlayerBreakdownKey}
-                            setActivePlayerKey={setActivePlayerBreakdownKey}
-                            expandedPlayerKey={expandedPlayerBreakdownKey}
-                            setExpandedPlayerKey={setExpandedPlayerBreakdownKey}
-                            activePlayerSkillId={activePlayerBreakdownSkillId}
-                            setActivePlayerSkillId={setActivePlayerBreakdownSkillId}
-                            activeClassKey={activeClassBreakdownKey}
-                            setActiveClassKey={setActiveClassBreakdownKey}
-                            expandedClassKey={expandedClassBreakdownKey}
-                            setExpandedClassKey={setExpandedClassBreakdownKey}
-                            activeClassSkillId={activeClassBreakdownSkillId}
-                            setActiveClassSkillId={setActiveClassBreakdownSkillId}
-                            skillSearch={playerBreakdownSkillSearch}
-                            setSkillSearch={setPlayerBreakdownSkillSearch}
-                            activePlayerBreakdown={activePlayerBreakdown}
-                            activePlayerSkill={activePlayerSkill}
-                            activeClassBreakdown={activeClassBreakdown}
-                            activeClassSkill={activeClassSkill}
-                        />)}
-
-                        {isSectionVisible('damage-breakdown') && renderSectionWrap(<DamageBreakdownSection
-                            playerSkillBreakdowns={playerSkillBreakdowns}
-                        />)}
-
-                        {isSectionVisible('spike-damage') && renderSectionWrap(<SpikeDamageSection
-                            spikePlayerFilter={spikePlayerFilter}
-                            setSpikePlayerFilter={setSpikePlayerFilter}
-                            groupedSpikePlayers={groupedSpikePlayers}
-                            spikeMode={spikeMode}
-                            setSpikeMode={setSpikeMode}
-                            damageBasis={spikeDamageBasis}
-                            setDamageBasis={setSpikeDamageBasis}
-                            showDamageBasisToggle
-                            selectedSpikePlayerKey={selectedSpikePlayerKey}
-                            setSelectedSpikePlayerKey={setSelectedSpikePlayerKey}
-                            selectedSpikePlayer={selectedSpikePlayer}
-                            spikeChartData={spikeChartData}
-                            spikeChartMaxY={spikeChartMaxY}
-                            selectedSpikeFightIndex={selectedSpikeFightIndex}
-                            setSelectedSpikeFightIndex={setSelectedSpikeFightIndex}
-                            spikeDrilldownTitle={spikeDrilldown.title}
-                            spikeDrilldownData={spikeDrilldown.data}
-                            spikeDrilldownDownIndices={spikeDrilldown.downIndices}
-                            spikeDrilldownDeathIndices={spikeDrilldown.deathIndices}
-                            spikeFightSkillRows={spikeFightSkillRows}
-                            spikeFightSkillTitle="Outgoing Skill Damage (Selected Fight)"
-                        />)}
-
-                        {isSectionVisible('conditions-outgoing') && renderSectionWrap(<ConditionsSection
-                            conditionSummary={conditionSummary}
-                            conditionPlayers={conditionPlayers}
-                            conditionSearch={conditionSearch}
-                            setConditionSearch={setConditionSearch}
-                            activeConditionName={activeConditionName}
-                            setActiveConditionName={setActiveConditionName}
-                            conditionDirection={conditionDirection}
-                            setConditionDirection={setConditionDirection}
-                            conditionGridClass={conditionGridClass}
-                            effectiveConditionSort={effectiveConditionSort as any}
-                            setConditionSort={setConditionSort as any}
-                            showConditionDamage={showConditionDamage}
-                        />)}
-
-                        {isSectionVisible('defense-detailed') && renderSectionWrap(<DefenseSection
-                            defenseSearch={defenseSearch}
-                            setDefenseSearch={setDefenseSearch}
-                            activeDefenseStat={activeDefenseStat}
-                            setActiveDefenseStat={setActiveDefenseStat}
-                            defenseViewMode={defenseViewMode}
-                            setDefenseViewMode={setDefenseViewMode}
-                        />)}
-
-                        {isSectionVisible('incoming-damage-modifiers') && renderSectionWrap(<DamageModifiersSection
-                            search={incomingDamageModSearch}
-                            setSearch={setIncomingDamageModSearch}
-                            activeMod={activeIncomingDamageMod}
-                            setActiveMod={setActiveIncomingDamageMod}
-                            incoming={true}
-                        />)}
-
-                        {isSectionVisible('incoming-strike-damage') && renderSectionWrap(<SpikeDamageSection
-                            sectionId="incoming-strike-damage"
-                            title="Incoming Strike Damage"
-                            subtitle="Select one enemy class to chart incoming strike pressure per fight."
-                            listTitle="Enemy Classes"
-                            searchPlaceholder="Search enemy class"
-                            titleIcon={ShieldAlert}
-                            titleIconClassName="text-cyan-300"
-                            spikePlayerFilter={incomingStrikePlayerFilter}
-                            setSpikePlayerFilter={setIncomingStrikePlayerFilter}
-                            groupedSpikePlayers={groupedIncomingStrikePlayers}
-                            spikeMode={incomingStrikeMode}
-                            setSpikeMode={setIncomingStrikeMode}
-                            showTotalDamageToggle
-                            useTotalDamage={incomingStrikeUseTotalDamage}
-                            setUseTotalDamage={setIncomingStrikeUseTotalDamage}
-                            selectedSpikePlayerKey={selectedIncomingStrikePlayerKey}
-                            setSelectedSpikePlayerKey={setSelectedIncomingStrikePlayerKey}
-                            selectedSpikePlayer={selectedIncomingStrikePlayer}
-                            spikeChartData={incomingStrikeChartData}
-                            spikeChartMaxY={incomingStrikeChartMaxY}
-                            selectedSpikeFightIndex={selectedIncomingStrikeFightIndex}
-                            setSelectedSpikeFightIndex={setSelectedIncomingStrikeFightIndex}
-                            spikeDrilldownTitle={incomingStrikeDrilldown.title}
-                            spikeDrilldownData={incomingStrikeDrilldown.data}
-                            spikeDrilldownDownIndices={incomingStrikeDrilldown.downIndices}
-                            spikeDrilldownDeathIndices={incomingStrikeDrilldown.deathIndices}
-                            spikeFightSkillRows={incomingStrikeFightSkillRows}
-                            spikeFightSkillTitle="Incoming Skill Damage (Selected Fight)"
-                        />)}
-
-                        {isSectionVisible('defense-mitigation') && renderSectionWrap(<DamageMitigationSection
-                            damageMitigationSearch={damageMitigationSearch}
-                            setDamageMitigationSearch={setDamageMitigationSearch}
-                            activeDamageMitigationStat={activeDamageMitigationStat}
-                            setActiveDamageMitigationStat={setActiveDamageMitigationStat}
-                            damageMitigationViewMode={damageMitigationViewMode}
-                            setDamageMitigationViewMode={setDamageMitigationViewMode}
-                            damageMitigationScope={damageMitigationScope}
-                            setDamageMitigationScope={setDamageMitigationScope}
-                        />)}
-
-                        {isSectionVisible('boon-output') && renderSectionWrap(<BoonOutputSection
-                            activeBoonCategory={activeBoonCategory}
-                            setActiveBoonCategory={(val: string) => setActiveBoonCategory(val as BoonCategory)}
-                            activeBoonMetric={activeBoonMetric}
-                            setActiveBoonMetric={setActiveBoonMetric}
-                            activeBoonTab={activeBoonTab}
-                            setActiveBoonTab={setActiveBoonTab}
-                            activeBoonTable={activeBoonTable}
-                            boonSearch={boonSearch}
-                            setBoonSearch={setBoonSearch}
-                            formatBoonMetricDisplay={formatBoonMetricDisplay}
-                            getBoonMetricValue={getBoonMetricValue}
-                        />)}
-                        {isSectionVisible('boon-timeline') && renderSectionWrap(<BoonTimelineSection
-                            boonSearch={boonTimelineSearch}
-                            setBoonSearch={setBoonTimelineSearch}
-                            boons={filteredBoonTimelineBoons}
-                            activeBoonId={activeBoonTimelineId}
-                            setActiveBoonId={setActiveBoonTimelineId}
-                            timelineScope={boonTimelineScope}
-                            setTimelineScope={setBoonTimelineScope}
-                            playerFilter={boonTimelinePlayerFilter}
-                            setPlayerFilter={setBoonTimelinePlayerFilter}
-                            players={filteredBoonTimelinePlayers}
-                            selectedPlayerKey={selectedBoonTimelinePlayerKey}
-                            setSelectedPlayerKey={setSelectedBoonTimelinePlayerKey}
-                            selectedPlayer={selectedBoonTimelinePlayer}
-                            chartData={boonTimelineChartData}
-                            chartMaxY={boonTimelineChartMaxY}
-                            selectedFightIndex={selectedBoonTimelineFightIndex}
-                            setSelectedFightIndex={setSelectedBoonTimelineFightIndex}
-                            drilldownTitle={boonTimelineDrilldown.title}
-                            drilldownData={boonTimelineDrilldown.data}
-                            showIncomingHeatmap={showBoonTimelineIncomingHeatmap}
-                            setShowIncomingHeatmap={setShowBoonTimelineIncomingHeatmap}
-                        />)}
-                        {isSectionVisible('boon-uptime') && renderSectionWrap(<BoonUptimeSection
-                            boonSearch={boonUptimeSearch}
-                            setBoonSearch={setBoonUptimeSearch}
-                            boons={filteredBoonUptimeBoons}
-                            activeBoonId={activeBoonUptimeId}
-                            setActiveBoonId={setActiveBoonUptimeId}
-                            playerFilter={boonUptimePlayerFilter}
-                            setPlayerFilter={setBoonUptimePlayerFilter}
-                            players={filteredBoonUptimePlayers}
-                            selectedPlayerKey={selectedBoonUptimePlayerKey}
-                            setSelectedPlayerKey={setSelectedBoonUptimePlayerKey}
-                            selectedPlayer={selectedBoonUptimePlayer}
-                            chartData={boonUptimeChartData}
-                            chartMaxY={boonUptimeChartMaxY}
-                            selectedFightIndex={selectedBoonUptimeFightIndex}
-                            setSelectedFightIndex={setSelectedBoonUptimeFightIndex}
-                            drilldownTitle={boonUptimeDrilldown.title}
-                            drilldownData={boonUptimeDrilldown.data}
-                            overallUptimePercent={boonUptimeOverallPercent}
-                            showStackCapLine={Boolean(activeBoonUptime?.stacking)}
-                            subgroupMembers={boonUptimeSubgroupMembers}
-                        />)}
-
-                        {isSectionVisible('support-detailed') && renderSectionWrap(<SupportSection
-                            supportSearch={supportSearch}
-                            setSupportSearch={setSupportSearch}
-                            activeSupportStat={activeSupportStat}
-                            setActiveSupportStat={setActiveSupportStat}
-                            supportViewMode={supportViewMode}
-                            setSupportViewMode={setSupportViewMode}
-                            cleanseScope={cleanseScope}
-                            setCleanseScope={setCleanseScope}
-                        />)}
-
-                        {isSectionVisible('healing-stats') && renderSectionWrap(<HealingSection
-                            activeHealingMetric={activeHealingMetric}
-                            setActiveHealingMetric={setActiveHealingMetric}
-                            healingCategory={healingCategory}
-                            setHealingCategory={setHealingCategory}
-                            activeResUtilitySkill={activeResUtilitySkill}
-                            setActiveResUtilitySkill={setActiveResUtilitySkill}
-                            skillUsageData={skillUsageData}
-                        />)}
-
-                        {isSectionVisible('healing-breakdown') && renderSectionWrap(<HealingBreakdownSection
-                            healingBreakdownPlayers={safeStats.healingBreakdownPlayers}
-                        />)}
-
-                        {isSectionVisible('fight-diff-mode') && renderSectionWrap(<FightDiffModeSection
-                        />)}
-
-                        {isSectionVisible('special-buffs') && renderSectionWrap(<SpecialBuffsSection
-                            specialSearch={specialSearch}
-                            setSpecialSearch={setSpecialSearch}
-                            activeSpecialTab={activeSpecialTab}
-                            setActiveSpecialTab={setActiveSpecialTab}
-                            activeSpecialTable={activeSpecialTable}
-                        />)}
-
-                        {isSectionVisible('sigil-relic-uptime') && renderSectionWrap(<SigilRelicUptimeSection
-                            hasSigilRelicTables={sigilRelicTables.length > 0}
-                            sigilRelicSearch={sigilRelicSearch}
-                            setSigilRelicSearch={setSigilRelicSearch}
-                            filteredSigilRelicTables={filteredSigilRelicTables}
-                            activeSigilRelicTab={activeSigilRelicTab}
-                            setActiveSigilRelicTab={setActiveSigilRelicTab}
-                            activeSigilRelicTable={activeSigilRelicTable}
-                        />)}
-
-                        {isSectionVisible('skill-usage') && renderSectionWrap(<SkillUsageSection
-                            selectedPlayers={selectedPlayers}
-                            setSelectedPlayers={setSelectedPlayers}
-                            removeSelectedPlayer={removeSelectedPlayer}
-                            playerMapByKey={playerMapByKey}
-                            groupedSkillUsagePlayers={groupedSkillUsagePlayers}
-                            expandedSkillUsageClass={expandedSkillUsageClass}
-                            setExpandedSkillUsageClass={setExpandedSkillUsageClass}
-                            togglePlayerSelection={togglePlayerSelection}
-                            skillUsagePlayerFilter={skillUsagePlayerFilter}
-                            setSkillUsagePlayerFilter={setSkillUsagePlayerFilter}
-                            skillUsageView={skillUsageView}
-                            setSkillUsageView={setSkillUsageView}
-                            skillUsageData={skillUsageData}
-                            skillUsageSkillFilter={skillUsageSkillFilter}
-                            setSkillUsageSkillFilter={setSkillUsageSkillFilter}
-                            selectedSkillId={selectedSkillId}
-                            setSelectedSkillId={setSelectedSkillId}
-                            skillBarData={skillBarData}
-                            selectedSkillName={selectedSkillName}
-                            selectedSkillIcon={selectedSkillIcon}
-                            skillUsageReady={skillUsageReady}
-                            skillUsageAvailable={skillUsageAvailable}
-                            isSkillUsagePerSecond={isSkillUsagePerSecond}
-                            skillChartData={skillChartData}
-                            skillChartMaxY={skillChartMaxY}
-                            playerTotalsForSkill={playerTotalsForSkill}
-                            hoveredSkillPlayer={hoveredSkillPlayer}
-                            setHoveredSkillPlayer={setHoveredSkillPlayer}
-                            getLineStrokeColor={getLineStrokeColor}
-                            getLineDashForPlayer={getLineDashForPlayer}
-                            formatSkillUsageValue={formatSkillUsageValue}
-                        />)}
-
-                        {isSectionVisible('apm-stats') && renderSectionWrap(<ApmSection
-                            apmSpecAvailable={apmSpecAvailable}
-                            skillUsageAvailable={skillUsageAvailable}
-                            apmSpecTables={apmSpecTables}
-                            activeApmSpec={activeApmSpec}
-                            setActiveApmSpec={setActiveApmSpec}
-                            expandedApmSpec={expandedApmSpec}
-                            setExpandedApmSpec={setExpandedApmSpec}
-                            activeApmSkillId={activeApmSkillId}
-                            setActiveApmSkillId={setActiveApmSkillId}
-                            ALL_SKILLS_KEY={ALL_SKILLS_KEY}
-                            apmSkillSearch={apmSkillSearch}
-                            setApmSkillSearch={setApmSkillSearch}
-                            activeApmSpecTable={activeApmSpecTable}
-                            activeApmSkill={activeApmSkill}
-                            isAllApmSkills={isAllApmSkills}
-                            apmView={apmView}
-                            setApmView={setApmView}
-                            formatApmValue={formatApmValue}
-                            formatCastRateValue={formatCastRateValue}
-                            formatCastCountValue={formatCastCountValue}
-                        />)}
-
+                        {renderGroup('other', [
+                            { id: 'fight-diff-mode', element: <FightDiffModeSection
+                            /> },
+                            { id: 'special-buffs', element: <SpecialBuffsSection
+                                specialSearch={specialSearch}
+                                setSpecialSearch={setSpecialSearch}
+                                activeSpecialTab={activeSpecialTab}
+                                setActiveSpecialTab={setActiveSpecialTab}
+                                activeSpecialTable={activeSpecialTable}
+                            /> },
+                            { id: 'sigil-relic-uptime', element: <SigilRelicUptimeSection
+                                hasSigilRelicTables={sigilRelicTables.length > 0}
+                                sigilRelicSearch={sigilRelicSearch}
+                                setSigilRelicSearch={setSigilRelicSearch}
+                                filteredSigilRelicTables={filteredSigilRelicTables}
+                                activeSigilRelicTab={activeSigilRelicTab}
+                                setActiveSigilRelicTab={setActiveSigilRelicTab}
+                                activeSigilRelicTable={activeSigilRelicTable}
+                            /> },
+                            { id: 'skill-usage', element: <SkillUsageSection
+                                selectedPlayers={selectedPlayers}
+                                setSelectedPlayers={setSelectedPlayers}
+                                removeSelectedPlayer={removeSelectedPlayer}
+                                playerMapByKey={playerMapByKey}
+                                groupedSkillUsagePlayers={groupedSkillUsagePlayers}
+                                expandedSkillUsageClass={expandedSkillUsageClass}
+                                setExpandedSkillUsageClass={setExpandedSkillUsageClass}
+                                togglePlayerSelection={togglePlayerSelection}
+                                skillUsagePlayerFilter={skillUsagePlayerFilter}
+                                setSkillUsagePlayerFilter={setSkillUsagePlayerFilter}
+                                skillUsageView={skillUsageView}
+                                setSkillUsageView={setSkillUsageView}
+                                skillUsageData={skillUsageData}
+                                skillUsageSkillFilter={skillUsageSkillFilter}
+                                setSkillUsageSkillFilter={setSkillUsageSkillFilter}
+                                selectedSkillId={selectedSkillId}
+                                setSelectedSkillId={setSelectedSkillId}
+                                skillBarData={skillBarData}
+                                selectedSkillName={selectedSkillName}
+                                selectedSkillIcon={selectedSkillIcon}
+                                skillUsageReady={skillUsageReady}
+                                skillUsageAvailable={skillUsageAvailable}
+                                isSkillUsagePerSecond={isSkillUsagePerSecond}
+                                skillChartData={skillChartData}
+                                skillChartMaxY={skillChartMaxY}
+                                playerTotalsForSkill={playerTotalsForSkill}
+                                hoveredSkillPlayer={hoveredSkillPlayer}
+                                setHoveredSkillPlayer={setHoveredSkillPlayer}
+                                getLineStrokeColor={getLineStrokeColor}
+                                getLineDashForPlayer={getLineDashForPlayer}
+                                formatSkillUsageValue={formatSkillUsageValue}
+                            /> },
+                            { id: 'apm-stats', element: <ApmSection
+                                apmSpecAvailable={apmSpecAvailable}
+                                skillUsageAvailable={skillUsageAvailable}
+                                apmSpecTables={apmSpecTables}
+                                activeApmSpec={activeApmSpec}
+                                setActiveApmSpec={setActiveApmSpec}
+                                expandedApmSpec={expandedApmSpec}
+                                setExpandedApmSpec={setExpandedApmSpec}
+                                activeApmSkillId={activeApmSkillId}
+                                setActiveApmSkillId={setActiveApmSkillId}
+                                ALL_SKILLS_KEY={ALL_SKILLS_KEY}
+                                apmSkillSearch={apmSkillSearch}
+                                setApmSkillSearch={setApmSkillSearch}
+                                activeApmSpecTable={activeApmSpecTable}
+                                activeApmSkill={activeApmSkill}
+                                isAllApmSkills={isAllApmSkills}
+                                apmView={apmView}
+                                setApmView={setApmView}
+                                formatApmValue={formatApmValue}
+                                formatCastRateValue={formatCastRateValue}
+                                formatCastCountValue={formatCastCountValue}
+                            /> },
+                        ])}
                     </>
                 )}
                 </StatsSharedContext.Provider>
