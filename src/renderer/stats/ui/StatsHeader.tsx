@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { ChevronDown, Sparkles, Trophy, UploadCloud } from 'lucide-react';
 
 type StatsHeaderProps = {
@@ -63,8 +64,11 @@ export const StatsHeader = ({
     }, [uploadDisabled, uploadMenuOpen]);
 
     return (
-        <div
-            className="stats-header-entrance flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 shrink-0 px-2">
+        <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 shrink-0 px-2">
         <div className="flex items-start gap-3 sm:items-center sm:gap-4">
             <div className="space-y-0">
                 <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
@@ -143,6 +147,6 @@ export const StatsHeader = ({
                 </div>
             </div>
         )}
-    </div>
+    </motion.div>
     );
 };

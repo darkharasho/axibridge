@@ -757,24 +757,6 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
 
 
 /* Group container entrance animation on nav switch */
-.stats-group-enter {
-    animation: stats-group-enter 250ms ease-out both;
-}
-
-@keyframes stats-group-enter {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Content transition when switching metric tabs (keyed via animationKey) */
-.stats-content-animate {
-    animation: stats-content-enter 350ms ease-out;
-}
-
-@keyframes stats-content-enter {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
 
 .dense-table__cell--active,
 .dense-table__head--active {

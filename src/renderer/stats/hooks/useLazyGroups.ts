@@ -36,6 +36,13 @@ export function useLazyGroups(_groups: GroupDef[]) {
         [groupHeights],
     );
 
+    // Returns only previously-measured heights (0 if never rendered).
+    // Use this for placeholders to avoid empty gaps on first mount.
+    const getMeasuredHeight = useCallback(
+        (groupId: string) => groupHeights[groupId] ?? 0,
+        [groupHeights],
+    );
+
     // Track ResizeObservers per group, disconnect old before creating new
     const observersRef = useRef<Map<string, ResizeObserver>>(new Map());
 
@@ -75,6 +82,7 @@ export function useLazyGroups(_groups: GroupDef[]) {
         activeNavGroup,
         isGroupMounted,
         getPlaceholderHeight,
+        getMeasuredHeight,
         groupResizeRef,
     };
 }

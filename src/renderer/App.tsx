@@ -267,6 +267,10 @@ function App() {
         if (lastComputedAt < lastUploadCompleteAtRef.current) {
             return;
         }
+        // Don't mark logs as success while aggregation is still actively computing
+        if (aggregationProgress?.active && (aggregationProgress.phase === 'streaming' || aggregationProgress.phase === 'computing')) {
+            return;
+        }
         setLogsDeferred((currentLogs) => {
             let changed = false;
             const next = currentLogs.map<ILogData>((log) => {
@@ -283,7 +287,7 @@ function App() {
         });
         bulkStatsAwaitingRef.current = false;
         bulkFlushIdRef.current = null;
-    }, [computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, logsForStats.length, setLogsDeferred]);
+    }, [computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, logsForStats.length, setLogsDeferred, aggregationProgress]);
 
     const { fetchLogDetails, scheduleDetailsHydration } = useDetailsHydration({
         viewRef,

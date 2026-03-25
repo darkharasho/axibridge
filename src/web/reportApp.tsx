@@ -1,11 +1,11 @@
-import { CSSProperties, useEffect, useMemo, useState, useRef } from 'react';
+import { CSSProperties, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
 import type { ColorPalette } from '../shared/webThemes';
 import { readPaletteFromReport } from './paletteReader';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ProofOfWorkModal } from '../renderer/ui/ProofOfWorkModal';
 import { SupportPlusIcon } from '../renderer/ui/SupportPlusIcon';
 import { OffenseSwordIcon } from '../renderer/ui/OffenseSwordIcon';
@@ -50,7 +50,9 @@ import {
     ChevronDown,
     GitCompareArrows,
     Flame,
-    ShieldMinus
+    ShieldMinus,
+    ArrowUpDown,
+    Crosshair
 } from 'lucide-react';
 
 
@@ -588,6 +590,17 @@ export function ReportApp() {
             ]
         },
         {
+            id: 'squad-stats',
+            label: 'Squad Stats',
+            icon: Users,
+            sectionIds: ['squad-damage-comparison', 'squad-kill-pressure', 'squad-tag-distance-deaths'],
+            items: [
+                { id: 'squad-damage-comparison', label: 'Damage Comparison', icon: ArrowUpDown },
+                { id: 'squad-kill-pressure', label: 'Kill Pressure', icon: Target },
+                { id: 'squad-tag-distance-deaths', label: 'Tag Distance Deaths', icon: Crosshair }
+            ]
+        },
+        {
             id: 'roster',
             label: 'Roster Intel',
             icon: FileText,
@@ -660,11 +673,19 @@ export function ReportApp() {
         () => navGroups.find((group) => group.id === activeGroup) || navGroups[0],
         [navGroups, activeGroup]
     );
-    const activeSectionIds = useMemo(() => {
-        const baseIds = (activeGroupDef as any)?.sectionIds || (activeGroupDef?.items || []).map((item) => item.id);
-        const ids = baseIds.map((id: string) => (id === 'kdr' ? 'overview' : id));
-        return new Set(ids);
+    // Stable sectionVisibility — only recreated when activeGroup changes (via startTransition)
+    const activeSectionIdSet = useMemo(() => {
+        const baseIds = (activeGroupDef as any)?.sectionIds || (activeGroupDef?.items || []).map((item: any) => item.id);
+        return new Set(baseIds.map((id: string) => (id === 'kdr' ? 'overview' : id)));
     }, [activeGroupDef]);
+    const sectionVisibilityFn = useCallback(
+        (id: string) => activeSectionIdSet.has(id),
+        [activeSectionIdSet]
+    );
+    const dashboardTitleText = useMemo(
+        () => `Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`,
+        [activeGroupDef]
+    );
     const scrollToSection = (id: string) => {
         if (id === 'report-top') {
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1366,30 +1387,8 @@ export function ReportApp() {
                 node = node.parentElement;
             }
         };
-        const navTimingForCount = (itemCount: number) => {
-            const delta = Math.max(0, 6 - itemCount);
-            return {
-                accordionDuration: 0.5 + (delta * 0.07),
-                itemDuration: 0.34 + (delta * 0.035),
-                stagger: 0.05 + (delta * 0.01),
-                delayChildren: 0.06 + (delta * 0.015)
-            };
-        };
-        const navItemsMotionForCount = (itemCount: number) => {
-            const timing = navTimingForCount(itemCount);
-            return {
-                open: {
-                    transition: { staggerChildren: timing.stagger, delayChildren: timing.delayChildren }
-                },
-                closed: {
-                    transition: { staggerChildren: Math.max(0.02, timing.stagger * 0.7), staggerDirection: -1 as const }
-                }
-            };
-        };
-        const navItemMotion = {
-            open: { opacity: 1, y: 0 },
-            closed: { opacity: 0, y: -2 }
-        };
+        const navSpring = { type: 'spring' as const, stiffness: 200, damping: 28, mass: 0.8 };
+        const navFastSpring = { type: 'spring' as const, stiffness: 300, damping: 30 };
         return (
             <div
                 className="min-h-screen text-white relative overflow-x-hidden"
@@ -1445,15 +1444,8 @@ export function ReportApp() {
                                 const GroupIcon = group.icon;
                                 const isActive = group.id === activeGroup;
                                 const isExpanded = !!expandedGroups[group.id];
-                                const navTiming = navTimingForCount(group.items.length);
-                                const navItemsMotion = navItemsMotionForCount(group.items.length);
                                 return (
-                                    <motion.div
-                                        key={group.id}
-                                        layout="position"
-                                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                                        className="space-y-1"
-                                    >
+                                    <div key={group.id} className="space-y-1">
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
                                             className={`report-nav-group-btn w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${isActive
@@ -1466,50 +1458,45 @@ export function ReportApp() {
                                             <motion.span
                                                 className="report-nav-chevron ml-auto inline-flex shrink-0"
                                                 animate={{ rotate: isExpanded ? 0 : -90 }}
-                                                transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.86 }}
+                                                transition={navFastSpring}
                                             >
                                                 <ChevronDown className="w-4 h-4 text-gray-300" />
                                             </motion.span>
                                         </button>
-                                        <motion.div
-                                            key={`${group.id}-submenu-mobile`}
-                                            initial={false}
-                                            animate={isExpanded ? 'open' : 'closed'}
-                                            variants={{
-                                                open: { height: 'auto', opacity: 1 },
-                                                closed: { height: 0, opacity: 0 }
-                                            }}
-                                            transition={{ duration: navTiming.accordionDuration, ease: [0.2, 0.9, 0.25, 1] }}
-                                            className="overflow-hidden will-change-[height,opacity]"
-                                        >
-                                            <motion.div
-                                                variants={navItemsMotion}
-                                                initial={false}
-                                                animate={isExpanded ? 'open' : 'closed'}
-                                                className="report-nav-submenu space-y-1 pl-2 pt-1"
-                                                data-nav-submenu-content
-                                            >
-                                                {group.items.map((item) => {
-                                                    const ItemIcon = item.icon;
-                                                    return (
-                                                        <motion.button
-                                                            key={item.id}
-                                                            variants={navItemMotion}
-                                                            transition={{ duration: navTiming.itemDuration, ease: [0.2, 0.9, 0.25, 1] }}
-                                                            onClick={() => {
-                                                                handleSubNavClick(group.id, item.id);
-                                                                setTocOpen(false);
-                                                            }}
-                                                            className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] border transition-colors transform-gpu ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
-                                                        >
-                                                            <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                                            {item.label}
-                                                        </motion.button>
-                                                    );
-                                                })}
-                                            </motion.div>
-                                        </motion.div>
-                                    </motion.div>
+                                        <AnimatePresence initial={false}>
+                                            {isExpanded && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={navSpring}
+                                                    className="overflow-hidden"
+                                                >
+                                                    <div className="report-nav-submenu space-y-1 pl-2 pt-1" data-nav-submenu-content>
+                                                        {group.items.map((item, index) => {
+                                                            const ItemIcon = item.icon;
+                                                            return (
+                                                                <motion.button
+                                                                    key={item.id}
+                                                                    initial={{ opacity: 0, x: -8 }}
+                                                                    animate={{ opacity: 1, x: 0 }}
+                                                                    transition={{ ...navFastSpring, delay: index * 0.03 }}
+                                                                    onClick={() => {
+                                                                        handleSubNavClick(group.id, item.id);
+                                                                        setTocOpen(false);
+                                                                    }}
+                                                                    className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] border transition-colors ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
+                                                                >
+                                                                    <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                                                    {item.label}
+                                                                </motion.button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
                                 );
                             })}
                         </nav>
@@ -1546,15 +1533,8 @@ export function ReportApp() {
                                 const GroupIcon = group.icon;
                                 const isActive = group.id === activeGroup;
                                 const isExpanded = !!expandedGroups[group.id];
-                                const navTiming = navTimingForCount(group.items.length);
-                                const navItemsMotion = navItemsMotionForCount(group.items.length);
                                 return (
-                                    <motion.div
-                                        key={group.id}
-                                        layout="position"
-                                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                                        className="space-y-1"
-                                    >
+                                    <div key={group.id} className="space-y-1">
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
                                             className={`report-nav-group-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${isActive
@@ -1567,47 +1547,42 @@ export function ReportApp() {
                                             <motion.span
                                                 className="report-nav-chevron ml-auto inline-flex shrink-0"
                                                 animate={{ rotate: isExpanded ? 0 : -90 }}
-                                                transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.86 }}
+                                                transition={navFastSpring}
                                             >
                                                 <ChevronDown className="w-4 h-4 text-gray-300" />
                                             </motion.span>
                                         </button>
-                                        <motion.div
-                                            key={`${group.id}-submenu-desktop`}
-                                            initial={false}
-                                            animate={isExpanded ? 'open' : 'closed'}
-                                            variants={{
-                                                open: { height: 'auto', opacity: 1 },
-                                                closed: { height: 0, opacity: 0 }
-                                            }}
-                                            transition={{ duration: navTiming.accordionDuration, ease: [0.2, 0.9, 0.25, 1] }}
-                                            className="overflow-hidden will-change-[height,opacity]"
-                                        >
-                                            <motion.div
-                                                variants={navItemsMotion}
-                                                initial={false}
-                                                animate={isExpanded ? 'open' : 'closed'}
-                                                className="report-nav-submenu space-y-1 pl-2 pt-1"
-                                                data-nav-submenu-content
-                                            >
-                                                {group.items.map((item) => {
-                                                    const ItemIcon = item.icon;
-                                                    return (
-                                                        <motion.button
-                                                            key={item.id}
-                                                            variants={navItemMotion}
-                                                            transition={{ duration: navTiming.itemDuration, ease: [0.2, 0.9, 0.25, 1] }}
-                                                            onClick={() => handleSubNavClick(group.id, item.id)}
-                                                            className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] border transition-colors transform-gpu ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
-                                                        >
-                                                            <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                                            {item.label}
-                                                        </motion.button>
-                                                    );
-                                                })}
-                                            </motion.div>
-                                        </motion.div>
-                                    </motion.div>
+                                        <AnimatePresence initial={false}>
+                                            {isExpanded && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={navSpring}
+                                                    className="overflow-hidden"
+                                                >
+                                                    <div className="report-nav-submenu space-y-1 pl-2 pt-1" data-nav-submenu-content>
+                                                        {group.items.map((item, index) => {
+                                                            const ItemIcon = item.icon;
+                                                            return (
+                                                                <motion.button
+                                                                    key={item.id}
+                                                                    initial={{ opacity: 0, x: -8 }}
+                                                                    animate={{ opacity: 1, x: 0 }}
+                                                                    transition={{ ...navFastSpring, delay: index * 0.03 }}
+                                                                    onClick={() => handleSubNavClick(group.id, item.id)}
+                                                                    className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] border transition-colors ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
+                                                                >
+                                                                    <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                                                    {item.label}
+                                                                </motion.button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
                                 );
                             })}
                         </nav>
@@ -1717,8 +1692,8 @@ export function ReportApp() {
                                 precomputedStats={report.stats}
                                 statsViewSettings={report.stats?.statsViewSettings}
                                 embedded
-                                sectionVisibility={(id) => activeSectionIds.has(id)}
-                                dashboardTitle={`Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`}
+                                sectionVisibility={sectionVisibilityFn}
+                                dashboardTitle={dashboardTitleText}
                             />
                         </div>
                     </div>

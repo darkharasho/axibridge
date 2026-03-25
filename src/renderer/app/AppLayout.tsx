@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BarChart3, Clock3, FilePlus2, LayoutDashboard, Minus, RefreshCw, Settings as SettingsIcon, Square, X } from 'lucide-react';
 import { Terminal as TerminalIcon } from 'lucide-react';
@@ -112,6 +112,17 @@ export function AppLayout({ ctx }: { ctx: any }) {
             }
         };
     }, []);
+
+    // Stable setters that skip updates when values haven't changed (prevents unnecessary aggregation recalcs)
+    const stableSetStatsViewSettings = useCallback((next: any) => {
+        setStatsViewSettings((prev: any) => JSON.stringify(prev) === JSON.stringify(next) ? prev : next);
+    }, [setStatsViewSettings]);
+    const stableSetMvpWeights = useCallback((next: any) => {
+        setMvpWeights((prev: any) => JSON.stringify(prev) === JSON.stringify(next) ? prev : next);
+    }, [setMvpWeights]);
+    const stableSetDisruptionMethod = useCallback((next: any) => {
+        setDisruptionMethod((prev: any) => prev === next ? prev : next);
+    }, [setDisruptionMethod]);
 
     const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'history' | 'settings') => {
         setActiveNavView(nextView);
@@ -350,9 +361,9 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             <SettingsView
                                 onBack={() => setView('dashboard')}
                                 onEmbedStatSettingsSaved={setEmbedStatSettings}
-                                onMvpWeightsSaved={setMvpWeights}
-                                onStatsViewSettingsSaved={setStatsViewSettings}
-                                onDisruptionMethodSaved={setDisruptionMethod}
+                                onMvpWeightsSaved={stableSetMvpWeights}
+                                onStatsViewSettingsSaved={stableSetStatsViewSettings}
+                                onDisruptionMethodSaved={stableSetDisruptionMethod}
                                 onColorPaletteSaved={setColorPalette}
                                 onGlassSurfacesSaved={setGlassSurfaces}
                                 developerSettingsTrigger={developerSettingsTrigger}

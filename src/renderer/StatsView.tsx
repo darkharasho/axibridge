@@ -1,4 +1,5 @@
 import { CSSProperties, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { ShieldAlert } from 'lucide-react';
 
 
@@ -149,6 +150,14 @@ const EMPTY_SKILL_USAGE_SUMMARY: SkillUsageSummary = {
 const EMPTY_ANY_ARRAY: any[] = [];
 
 export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
+    // Defer heavy section rendering by one frame so the header + progress bar can paint first.
+    const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
+    useEffect(() => {
+        if (!sectionsDeferred) return;
+        const id = requestAnimationFrame(() => setSectionsDeferred(false));
+        return () => cancelAnimationFrame(id);
+    }, [sectionsDeferred]);
+
     const activeMvpWeights = normalizeMvpWeights(mvpWeights || DEFAULT_MVP_WEIGHTS);
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
     const activeWebUploadState = webUploadState || DEFAULT_WEB_UPLOAD_STATE;
@@ -177,7 +186,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     );
 
     // Lazy group rendering — only used for non-embedded (desktop) path
-    const { activeNavGroup, isGroupMounted, getPlaceholderHeight, groupResizeRef } = useLazyGroups(
+    const { activeNavGroup, groupResizeRef } = useLazyGroups(
         STATS_TOC_GROUPS.map(g => ({ id: g.id, sectionIds: [...g.sectionIds] }))
     );
 
@@ -459,28 +468,54 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         const group = STATS_TOC_GROUPS.find(g => g.id === groupId);
         if (!group) return null;
 
-        // For embedded mode (web report), always render all groups.
-        // For non-embedded, use lazy groups — unmounted groups get a height placeholder.
-        if (!embedded && !isGroupMounted(groupId)) {
+        // For embedded mode (web report), only render the visible group's sections.
+        // Non-visible groups get a lightweight placeholder to preserve scroll targets.
+        if (embedded) {
+            const anyVisible = group.sectionIds.some(id => isSectionVisible(id));
+            if (!anyVisible) {
+                return (
+                    <div key={groupId} id={`group-${groupId}`} style={{ height: 0 }} />
+                );
+            }
+            return (
+                <div key={groupId} ref={groupResizeRef(groupId)}>
+                    <StatsGroupContainer
+                        groupId={groupId}
+                        visible
+                        embedded
+                        label={group.label}
+                        icon={group.icon as React.ComponentType<{ className?: string }>}
+                        accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
+                        sectionCount={sections.length}
+                    >
+                        {sections.map((s, i) => (
+                            <SectionPanel key={s.id} sectionId={s.id} isLast={i === sections.length - 1}>
+                                {renderSectionWrap(s.element)}
+                            </SectionPanel>
+                        ))}
+                    </StatsGroupContainer>
+                </div>
+            );
+        }
+
+        // For non-embedded (desktop), only render the active group.
+        // Inactive groups get a zero-height placeholder (measured heights used after first visit).
+        if (groupId !== activeNavGroup) {
             return (
                 <div
                     key={groupId}
                     id={`group-${groupId}`}
-                    style={{ height: getPlaceholderHeight(groupId) }}
+                    style={{ height: 0 }}
                     className="pointer-events-none"
                 />
             );
         }
 
-        const anyVisible = embedded
-            ? group.sectionIds.some(id => isSectionVisible(id))
-            : groupId === activeNavGroup;
-
         return (
             <div key={groupId} ref={groupResizeRef(groupId)}>
                 <StatsGroupContainer
                     groupId={groupId}
-                    visible={anyVisible}
+                    visible
                     label={group.label}
                     icon={group.icon as React.ComponentType<{ className?: string }>}
                     accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
@@ -3888,7 +3923,12 @@ type SpikeFight = {
                 </div>
             )}
 
-            <div className={`${embedded ? '' : 'flex-1 min-h-0 flex'} relative`}>
+            {!sectionsDeferred && (<motion.div
+                initial={embedded ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                className={`${embedded ? '' : 'flex-1 min-h-0 flex'} relative`}
+            >
                 <div
                     id="stats-dashboard-container"
                     ref={scrollContainerRef}
@@ -4687,7 +4727,7 @@ type SpikeFight = {
                 </StatsSharedContext.Provider>
                 {!embedded && <div className="h-24" aria-hidden="true" />}
             </div>
-            </div>
+            </motion.div>)}
         </div>
     );
 }

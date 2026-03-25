@@ -1125,6 +1125,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1, delay: 0, ease: [0.16, 1, 0.3, 1] }}
                 className="flex items-center justify-between gap-4 mb-6"
             >
                 <div className="flex items-start gap-3 sm:items-center sm:gap-4">
@@ -1175,7 +1176,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4">
                 {(
-                    <aside className="hidden lg:flex flex-col gap-3 min-h-0">
+                    <motion.aside
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                        className="hidden lg:flex flex-col gap-3 min-h-0"
+                        style={{ willChange: 'transform, opacity' }}
+                    >
                         <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
                             <div className="text-[11px] uppercase tracking-[0.25em] text-gray-500 mb-2">Quick Actions</div>
                             <button
@@ -1206,9 +1213,15 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 })}
                             </div>
                         </div>
-                    </aside>
+                    </motion.aside>
                 )}
-                <div ref={settingsScrollRef} className="min-h-0 overflow-y-auto pr-2 space-y-4">
+                <motion.div
+                    ref={settingsScrollRef}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                    className="min-h-0 overflow-y-auto pr-2 space-y-4"
+                >
                     <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance">
                         <p className="text-sm text-gray-400 mb-4">
                             Choose a color palette for the interface accent colors.
@@ -2279,7 +2292,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     <div className="h-[12vh] min-h-10 max-h-28" />
                     {/* Save Button (hidden with auto-save) */}
-                </div>
+                </motion.div>
             </div >
 
             <div className="fixed bottom-4 left-4 right-4 z-40 lg:hidden">
