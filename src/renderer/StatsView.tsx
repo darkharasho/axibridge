@@ -12,6 +12,8 @@ import { StatsGroupContainer } from './stats/ui/StatsGroupContainer';
 import { SectionPanel } from './stats/ui/SectionPanel';
 import { useStatsNavigation, STATS_TOC_GROUPS } from './stats/hooks/useStatsNavigation';
 import { GROUP_ACCENT_COLORS } from './stats/sectionColors';
+import { useStatsStore } from './stats/statsStore';
+import { useLazyGroups } from './stats/hooks/useLazyGroups';
 import { useStatsUploads } from './stats/hooks/useStatsUploads';
 import { useStatsAggregationWorker, type AggregationDiagnosticsState, type AggregationProgressState } from './stats/hooks/useStatsAggregationWorker';
 import { useApmStats } from './stats/hooks/useApmStats';
@@ -163,7 +165,6 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     const webUploadUrl = activeWebUploadState.url;
     const webUploadBuildStatus = activeWebUploadState.buildStatus;
     const devMockAvailable = !embedded && import.meta.env.DEV && !!window.electronAPI?.mockWebReport;
-    const [sectionContentReady, setSectionContentReady] = useState(true);
     const [statsSettlingBannerJoke, setStatsSettlingBannerJoke] = useState(STATS_LOADING_JOKES[0] || '');
     const statsLoadingJokeDeckRef = useRef<string[]>([]);
     const statsLoadingJokeCursorRef = useRef(0);
@@ -173,6 +174,11 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     const isSectionVisibleFast = useCallback(
         (id: string) => (sectionVisibility ? sectionVisibility(id) : true),
         [sectionVisibility]
+    );
+
+    // Lazy group rendering — only used for non-embedded (desktop) path
+    const { activeNavGroup, isGroupMounted, getPlaceholderHeight, groupResizeRef } = useLazyGroups(
+        STATS_TOC_GROUPS.map(g => ({ id: g.id, sectionIds: [...g.sectionIds] }))
     );
 
     const detailsCache = useContext(DetailsCacheContext);
@@ -185,6 +191,13 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     };
 
     // --- Hook Integration ---
+    // Read from zustand store (populated by App.tsx sync in Task 8)
+    const storeResult = useStatsStore((s) => s.result);
+    const storeProgress = useStatsStore((s) => s.progress);
+    const storeDiagnostics = useStatsStore((s) => s.diagnostics);
+
+    // For embedded consumers (web report, FightReportHistoryView), use the prop directly.
+    // For the desktop path (non-embedded), prefer the store and fall back to the prop.
     const useExternalAggregation = !!externalAggregationResult;
     const {
         result: internalAggregationResult,
@@ -196,8 +209,16 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         statsViewSettings,
         disruptionMethod
     });
-    const aggregationResult = externalAggregationResult || internalAggregationResult;
-    const aggregationProgress = externalAggregationResult?.aggregationProgress || internalAggregationProgress;
+    const aggregationSource = embedded
+        ? (externalAggregationResult || internalAggregationResult)
+        : (storeResult ?? externalAggregationResult ?? internalAggregationResult);
+    const aggregationResult = aggregationSource;
+    const aggregationProgress = embedded
+        ? (externalAggregationResult?.aggregationProgress || internalAggregationProgress)
+        : (storeProgress ?? externalAggregationResult?.aggregationProgress ?? internalAggregationProgress);
+    // storeDiagnostics is available via the zustand store for consumers that need it
+    // (e.g. future diagnostic panels). Not consumed in StatsView render directly.
+    void storeDiagnostics;
     const { stats, skillUsageData: computedSkillUsageData } = aggregationResult;
     const aggregationSettling = useMemo(() => {
         // "Syncing" state: statsDataProgress reports logs but logs prop hasn't updated yet
@@ -271,11 +292,6 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         }
         return { active: false, phaseLabel: '', progressText: '', progressPercent: 0 };
     }, [statsDataProgress, logs.length]);
-
-    const logIdentityKey = useMemo(
-        () => `${logs.length}:${logs[0]?.id || ''}:${logs[logs.length - 1]?.id || ''}`,
-        [logs]
-    );
 
     // High-water mark: never let the progress bar go backwards while loading is active.
     // Reset when settling becomes inactive (new cycle).
@@ -355,7 +371,6 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         }
     }, [aggregationSettling.active, settlingProgressPercent, embedded]);
 
-    const [dissolveCompletedForLogKey, setDissolveCompletedForLogKey] = useState<string | null>(null);
     const rawDissolveActive = (showDissolveLoading && settlingProgressPercent < 100) || dissolveCompleting;
 
     // Compare computed fights against expected fights to decide if loading is done.
@@ -366,16 +381,10 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     const expectedFights = Math.max(0, (statsDataProgress?.total ?? 0) - (statsDataProgress?.unavailable ?? 0));
     const allFightsComputed = expectedFights === 0 || computedFights >= expectedFights;
 
-    useEffect(() => {
-        if (dissolveCompletedForLogKey === logIdentityKey) return;
-        if (!rawDissolveActive && !dissolveCompleting && !aggregationSettling.active && allFightsComputed) {
-            setDissolveCompletedForLogKey(logIdentityKey);
-        }
-    }, [rawDissolveActive, dissolveCompleting, aggregationSettling.active, dissolveCompletedForLogKey, logIdentityKey, allFightsComputed]);
-    // dissolveActive: keep loading until all expected fights are computed.
-    const awaitingData = dissolveCompletedForLogKey !== logIdentityKey && !embedded && !allFightsComputed;
-    const dissolveActive = (rawDissolveActive && dissolveCompletedForLogKey !== logIdentityKey) || awaitingData;
-    const statsActionsDisabled = dissolveActive || !sectionContentReady;
+    // dissolveActive: active during aggregation settling or while awaiting all fights
+    const awaitingData = !embedded && !allFightsComputed;
+    const dissolveActive = rawDissolveActive || awaitingData;
+    const statsActionsDisabled = dissolveActive;
 
     // Latch dissolveActive so shimmer doesn't restart on progress ticks.
     // Once active, stay active until dissolve fully completes.
@@ -449,58 +458,45 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     const renderGroup = (groupId: string, sections: Array<{ id: string; element: React.ReactNode }>) => {
         const group = STATS_TOC_GROUPS.find(g => g.id === groupId);
         if (!group) return null;
-        const anyVisible = group.sectionIds.some(id => isSectionVisible(id));
+
+        // For embedded mode (web report), always render all groups.
+        // For non-embedded, use lazy groups — unmounted groups get a height placeholder.
+        if (!embedded && !isGroupMounted(groupId)) {
+            return (
+                <div
+                    key={groupId}
+                    id={`group-${groupId}`}
+                    style={{ height: getPlaceholderHeight(groupId) }}
+                    className="pointer-events-none"
+                />
+            );
+        }
+
+        const anyVisible = embedded
+            ? group.sectionIds.some(id => isSectionVisible(id))
+            : groupId === activeNavGroup;
+
         return (
-            <StatsGroupContainer
-                key={groupId}
-                groupId={groupId}
-                visible={anyVisible}
-                label={group.label}
-                icon={group.icon as React.ComponentType<{ className?: string }>}
-                accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
-                sectionCount={sections.length}
-            >
-                {sections.map((s, i) => (
-                    <SectionPanel key={s.id} sectionId={s.id} isLast={i === sections.length - 1}>
-                        {renderSectionWrap(s.element)}
-                    </SectionPanel>
-                ))}
-            </StatsGroupContainer>
+            <div key={groupId} ref={groupResizeRef(groupId)}>
+                <StatsGroupContainer
+                    groupId={groupId}
+                    visible={anyVisible}
+                    label={group.label}
+                    icon={group.icon as React.ComponentType<{ className?: string }>}
+                    accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
+                    sectionCount={sections.length}
+                >
+                    {sections.map((s, i) => (
+                        <SectionPanel key={s.id} sectionId={s.id} isLast={i === sections.length - 1}>
+                            {renderSectionWrap(s.element)}
+                        </SectionPanel>
+                    ))}
+                </StatsGroupContainer>
+            </div>
         );
     };
 
-    useEffect(() => {
-        if (showDissolveLoading) {
-            setSectionContentReady(false);
-            return;
-        }
-        let cancelled = false;
-        const enableSections = () => {
-            if (!cancelled) {
-                setSectionContentReady(true);
-            }
-        };
-        const requestIdle = (window as any).requestIdleCallback;
-        let handle: number | null = null;
-        if (typeof requestIdle === 'function') {
-            handle = requestIdle(() => enableSections(), { timeout: 220 });
-        } else {
-            handle = window.setTimeout(enableSections, 60);
-        }
-        return () => {
-            cancelled = true;
-            if (handle === null) return;
-            if (typeof requestIdle === 'function') {
-                const cancelIdle = (window as any).cancelIdleCallback;
-                if (typeof cancelIdle === 'function') {
-                    cancelIdle(handle);
-                }
-            } else {
-                window.clearTimeout(handle);
-            }
-        };
-    }, [showDissolveLoading]);
-    const sectionsReady = sectionContentReady && !showDissolveLoading;
+    const sectionsReady = !showDissolveLoading;
     const needsTopSkillsData = sectionsReady && (
         isSectionVisibleFast('top-skills-outgoing')
         || isSectionVisibleFast('player-breakdown')
@@ -2587,16 +2583,30 @@ type SpikeFight = {
         return totals;
     }, [playerTotalsForSkill, playerMapByKey]);
 
-    const isSectionVisible = isSectionVisibleFast;
+    // For non-embedded (desktop), sections in the active nav group are visible.
+    // The lazy group system handles mounting/unmounting entire groups.
+    // For embedded, use the sectionVisibility prop as before.
+    const activeNavGroupSectionIds = useMemo(() => {
+        const group = STATS_TOC_GROUPS.find(g => g.id === activeNavGroup);
+        return new Set(group?.sectionIds ?? []);
+    }, [activeNavGroup]);
+
+    const isSectionVisible = useCallback(
+        (id: string) => {
+            if (embedded) return isSectionVisibleFast(id);
+            return activeNavGroupSectionIds.has(id);
+        },
+        [embedded, isSectionVisibleFast, activeNavGroupSectionIds]
+    );
     const sectionClass = useCallback((id: string, base: string) => {
         const visible = isSectionVisible(id);
-        if (sectionVisibility) {
+        if (embedded && sectionVisibility) {
             return `${base} ${visible ? '' : 'hidden'}`;
         }
         return `${base} transition-[opacity,transform] duration-700 ease-in-out ${visible
             ? 'opacity-100 translate-y-0 max-h-[99999px]'
             : 'opacity-0 -translate-y-2 max-h-0 h-0 min-h-0 overflow-hidden pointer-events-none p-0 !p-0 m-0 !mb-0 !mt-0 border-0 !border-0 border-transparent'}`;
-    }, [isSectionVisible, sectionVisibility]);
+    }, [isSectionVisible, embedded, sectionVisibility]);
     const firstVisibleSectionId = useMemo(
         () => ORDERED_SECTION_IDS.find((id) => isSectionVisible(id)) || null,
         [isSectionVisible]
@@ -3830,7 +3840,7 @@ type SpikeFight = {
                 devMockUploadState={devMockUploadState}
             />
             {/* Dissolve bar: aggregation settling */}
-            {(aggregationSettling.active && dissolveCompletedForLogKey !== logIdentityKey) && (
+            {aggregationSettling.active && (
                 <div className="mb-3 text-xs">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
