@@ -76,7 +76,7 @@ export const DenseStatsTable = ({
                                 >
                                     <span className="truncate">{column.label}</span>
                                     {arrow && (
-                                        <span className="text-[10px] text-slate-200">{arrow}</span>
+                                        <span className="text-[10px]" style={{ color: 'var(--text-primary)' }}>{arrow}</span>
                                     )}
                                 </button>
                             ) : (
