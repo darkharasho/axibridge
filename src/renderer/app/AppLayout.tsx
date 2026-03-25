@@ -305,7 +305,14 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 />
 
                 {statsViewMounted && (
-                    <div className="flex flex-1 min-h-0" style={view !== 'stats' ? { display: 'none' } : undefined}>
+                    <motion.div
+                        className="flex flex-1 min-h-0"
+                        style={view !== 'stats' ? { display: 'none' } : undefined}
+                        key="stats-container"
+                        initial={false}
+                        animate={view === 'stats' ? { opacity: 1 } : { opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                    >
                         <div className="flex-1 min-h-0 flex gap-3">
                             <StatsNavSidebar onSectionVisibilityChange={handleStatsSectionVisibilityChange} />
                             <StatsErrorBoundary>
@@ -329,7 +336,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 />
                             </StatsErrorBoundary>
                         </div>
-                    </div>
+                    </motion.div>
                 )}
                 {view === 'stats' && !statsViewMounted && (
                     <div className="flex-1 min-h-0 flex items-center justify-center">
@@ -342,34 +349,40 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         </div>
                     </div>
                 )}
-                {view === 'settings' ? (
-                    <SettingsView
-                        onBack={() => setView('dashboard')}
-                        onEmbedStatSettingsSaved={setEmbedStatSettings}
-                        onMvpWeightsSaved={setMvpWeights}
-                        onStatsViewSettingsSaved={setStatsViewSettings}
-                        onDisruptionMethodSaved={setDisruptionMethod}
-                        onColorPaletteSaved={setColorPalette}
-                        onGlassSurfacesSaved={setGlassSurfaces}
-                        developerSettingsTrigger={developerSettingsTrigger}
-                        helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}
-                        onHelpUpdatesFocusConsumed={handleHelpUpdatesFocusConsumed}
-                        onOpenWalkthrough={() => setWalkthroughOpen(true)}
-                        onOpenWhatsNew={() => setWhatsNewOpen(true)}
-                        isBulkUploadActive={isBulkUploadActive}
-                    />
-                ) : view === 'history' ? (
-                    <FightReportHistoryView />
-                ) : view === 'stats' ? null : (
-                    <div className="dashboard-view dashboard-modern flex flex-1 min-h-0 overflow-hidden matte-dashboard-shell">
-                        <div className="dashboard-rail flex flex-col gap-3 overflow-y-auto p-3 matte-panel-shell matte-rail-shell" style={{ width: '300px', flexShrink: 0, background: 'var(--bg-elevated)', borderRight: '1px solid var(--border-subtle)' }}>
-                            {configurationPanel}
-                        </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto p-3 matte-activity-shell">
-                            {activityPanel}
-                        </div>
-                    </div>
-                )}
+                <AnimatePresence mode="wait">
+                    {view === 'settings' ? (
+                        <motion.div key="settings" className="flex-1 min-h-0 flex flex-col overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
+                            <SettingsView
+                                onBack={() => setView('dashboard')}
+                                onEmbedStatSettingsSaved={setEmbedStatSettings}
+                                onMvpWeightsSaved={setMvpWeights}
+                                onStatsViewSettingsSaved={setStatsViewSettings}
+                                onDisruptionMethodSaved={setDisruptionMethod}
+                                onColorPaletteSaved={setColorPalette}
+                                onGlassSurfacesSaved={setGlassSurfaces}
+                                developerSettingsTrigger={developerSettingsTrigger}
+                                helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}
+                                onHelpUpdatesFocusConsumed={handleHelpUpdatesFocusConsumed}
+                                onOpenWalkthrough={() => setWalkthroughOpen(true)}
+                                onOpenWhatsNew={() => setWhatsNewOpen(true)}
+                                isBulkUploadActive={isBulkUploadActive}
+                            />
+                        </motion.div>
+                    ) : view === 'history' ? (
+                        <motion.div key="history" className="flex-1 min-h-0 flex flex-col overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
+                            <FightReportHistoryView />
+                        </motion.div>
+                    ) : view === 'stats' ? null : (
+                        <motion.div key="dashboard" className="dashboard-view dashboard-modern flex flex-1 min-h-0 overflow-hidden matte-dashboard-shell" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
+                            <div className="dashboard-rail flex flex-col gap-3 overflow-y-auto p-3 matte-panel-shell matte-rail-shell" style={{ width: '300px', flexShrink: 0, background: 'var(--bg-elevated)', borderRight: '1px solid var(--border-subtle)' }}>
+                                {configurationPanel}
+                            </div>
+                            <div className="flex-1 min-h-0 overflow-y-auto p-3 matte-activity-shell">
+                                {activityPanel}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             <ScreenshotContainer
