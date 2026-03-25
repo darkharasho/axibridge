@@ -230,7 +230,7 @@ export const ApmSection = ({
                             ))}
                         </div>
                     </div>
-                    <div className={`pl-3 overflow-hidden stats-share-table ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`}>
+                    <div className={`pl-3 overflow-hidden ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`}>
                         {!activeApmSpecTable ? (
                             <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                 Select an elite spec to view APM details

@@ -349,7 +349,7 @@ export const PlayerBreakdownSection = ({
                                     ))}
                             </div>
                         </div>
-                        <div className={`pl-3 overflow-hidden stats-share-table ${expandedSection === 'player-breakdown' ? 'flex flex-col min-h-0' : ''}`}>
+                        <div className={`pl-3 overflow-hidden ${expandedSection === 'player-breakdown' ? 'flex flex-col min-h-0' : ''}`}>
                             {(isExpanded ? 'class' : viewMode) === 'player' ? (
                                 !activePlayerBreakdown || (!isExpanded && !activePlayerSkill) ? (
                                     <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">

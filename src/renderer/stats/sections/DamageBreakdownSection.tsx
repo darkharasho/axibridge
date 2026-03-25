@@ -165,7 +165,7 @@ export const DamageBreakdownSection = ({
                         </div>
 
                     <div className="pl-3 flex flex-col min-h-0 overflow-y-auto">
-                        <div className="overflow-hidden stats-share-table flex-1 min-h-0 flex flex-col">
+                        <div className="overflow-hidden flex-1 min-h-0 flex flex-col">
                             {!selectedPlayer ? (
                                 <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
                                     Select one player to view skill totals.
