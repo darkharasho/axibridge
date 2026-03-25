@@ -111,8 +111,8 @@ export const DamageBreakdownSection = ({
                     No player skill damage data available for the current selection.
                 </div>
             ) : (
-                <div className="grid lg:grid-cols-[220px_1fr] gap-0 max-h-[480px] overflow-hidden">
-                    <div className="pr-3 flex flex-col overflow-y-auto min-h-0" style={{ borderRight: '1px solid var(--border-subtle)' }}>
+                <div className="grid lg:grid-cols-[220px_1fr] gap-0 h-[480px]">
+                    <div className="pr-3 flex flex-col overflow-y-auto" style={{ borderRight: '1px solid var(--border-subtle)' }}>
                         <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
                             Squad Players
                         </div>
@@ -164,7 +164,7 @@ export const DamageBreakdownSection = ({
                             </div>
                         </div>
 
-                    <div className="pl-3 flex flex-col min-h-0 overflow-hidden">
+                    <div className="pl-3 flex flex-col min-h-0 overflow-y-auto">
                         <div className="overflow-hidden stats-share-table flex-1 min-h-0 flex flex-col">
                             {!selectedPlayer ? (
                                 <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
