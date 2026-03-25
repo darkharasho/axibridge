@@ -13,7 +13,6 @@ import type { ColorPalette } from '../../../shared/webThemes';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 
 interface UseDevDatasetsOptions {
-    view: 'dashboard' | 'stats' | 'history' | 'settings';
     bulkUploadMode: boolean;
     setView: Dispatch<SetStateAction<'dashboard' | 'stats' | 'history' | 'settings'>>;
     logs: ILogData[];
@@ -30,7 +29,6 @@ interface UseDevDatasetsOptions {
 }
 
 export function useDevDatasets({
-    view,
     bulkUploadMode,
     setView,
     logs,
@@ -69,7 +67,6 @@ export function useDevDatasets({
     const statsObjectIdMapRef = useRef<WeakMap<object, number>>(new WeakMap());
     const nextStatsObjectIdRef = useRef(1);
     const lastPublishedStatsKeyRef = useRef('');
-    const [statsViewMounted, setStatsViewMounted] = useState(false);
     const hasPendingStatsDetails = logs.some((log) => {
         if (detailsCache?.peek(log.id) || log.statsDetailsLoaded) return false;
         if (log.detailsKnownUnavailable) return false;
@@ -236,13 +233,6 @@ export function useDevDatasets({
     }, [buildStatsSnapshotKey, logsForStats]);
 
     useEffect(() => {
-        if (view !== 'stats') {
-            if (statsBatchTimerRef.current) {
-                window.clearTimeout(statsBatchTimerRef.current);
-                statsBatchTimerRef.current = null;
-            }
-            return;
-        }
         if (bulkUploadMode) {
             if (statsBatchTimerRef.current) {
                 window.clearTimeout(statsBatchTimerRef.current);
@@ -255,7 +245,7 @@ export function useDevDatasets({
             statsBatchTimerRef.current = null;
             publishLogsForStats(logsRef.current);
         }, 1200);
-    }, [logs, view, bulkUploadMode, publishLogsForStats]);
+    }, [logs, bulkUploadMode, publishLogsForStats]);
 
     useEffect(() => {
         logsRef.current = logs;
@@ -271,28 +261,17 @@ export function useDevDatasets({
     }, []);
 
     useEffect(() => {
-        if (view === 'stats') {
-            setStatsViewMounted(true);
-            if (!bulkUploadMode) {
-                publishLogsForStats(logsRef.current);
-            }
-        }
-    }, [view, bulkUploadMode, publishLogsForStats]);
-
-    useEffect(() => {
-        if (view !== 'stats') return;
         if (bulkUploadMode) return;
         if (logsForStats.length === logs.length) return;
         publishLogsForStats(logsRef.current);
-    }, [view, bulkUploadMode, logs.length, logsForStats.length, publishLogsForStats]);
+    }, [bulkUploadMode, logs.length, logsForStats.length, publishLogsForStats]);
 
     useEffect(() => {
-        if (view !== 'stats') return;
         if (bulkUploadMode) return;
         if (hasPendingStatsDetails) return;
         // Publish a single full snapshot when pending detail hydration settles.
         publishLogsForStats(logsRef.current);
-    }, [view, bulkUploadMode, hasPendingStatsDetails, publishLogsForStats]);
+    }, [bulkUploadMode, hasPendingStatsDetails, publishLogsForStats]);
 
     useEffect(() => {
         if (!devDatasetsEnabled || !window.electronAPI?.onDevDatasetLogsChunk) return;
@@ -382,7 +361,6 @@ export function useDevDatasets({
         logsForStats,
         setLogsForStats,
         logsRef,
-        statsViewMounted,
         applyDevDatasetSnapshot,
         loadDevDatasets
     };
