@@ -79,6 +79,7 @@ export function useFilePicker({
                 setFilePickerAll(files);
                 setFilePickerMonthWindow(1);
                 setFilePickerAvailable([]);
+                setActivePreset(null);
                 setFilePickerAtBottom(false);
                 setFocusedIndex(null);
             } else {
@@ -276,6 +277,7 @@ export function useFilePicker({
         setFilePickerOpen(false);
         setFilePickerSelected(new Set());
         setFilePickerError(null);
+        setActivePreset(null);
     };
 
     return {
