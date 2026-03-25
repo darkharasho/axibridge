@@ -37,7 +37,7 @@ const LeaderCard = ({ icon: Icon, title, data, color, unit = '', onClick, active
                     onClick?.();
                 }
             }}
-            className={`border border-[color:var(--border-default)] rounded-[var(--radius-md)] p-4 flex flex-col gap-3 group hover:bg-[var(--bg-hover)] transition-colors cursor-pointer ${active ? 'ring-1 ring-white/20' : ''}`}
+            className={`border border-[color:var(--border-default)] rounded-[var(--radius-md)] p-4 flex flex-col gap-3 group cursor-pointer ${active ? 'ring-1 ring-white/20' : ''}`}
         >
             <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-[var(--radius-md)] ${classes.bg} ${classes.text} shrink-0`}>
