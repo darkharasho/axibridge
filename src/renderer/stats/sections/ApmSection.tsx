@@ -113,7 +113,7 @@ export const ApmSection = ({
                 </div>
             ) : (
                 <div className={`grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 h-full' : ''}`}>
-                    <div className={`rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'apm-stats' ? 'h-full' : ''}`} style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)' }}>
+                    <div className={`px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'apm-stats' ? 'h-full' : ''}`}>
                         <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Elite Specs</div>
                         <div className="mb-2">
                             <input
@@ -121,8 +121,8 @@ export const ApmSection = ({
                                 value={apmSkillSearch}
                                 onChange={(event) => setApmSkillSearch(event.target.value)}
                                 placeholder="Search skills..."
-                                className="w-full rounded-[var(--radius-md)] px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1"
-                                style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card-inner)', color: 'var(--text-primary)' }}
+                                className="w-full px-2.5 py-1.5 text-xs focus:outline-none"
+                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
                             />
                         </div>
                         <div className={sidebarBodyClass}>
@@ -143,11 +143,11 @@ export const ApmSection = ({
                                                 setSelectedPlayers([]);
                                             }
                                         }}
-                                        className={`w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${activeApmSpec === spec.profession
-                                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]'
-                                                : ''
+                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeApmSpec === spec.profession
+                                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                             }`}
-                                        style={activeApmSpec !== spec.profession ? { background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' } : undefined}
+                                        style={activeApmSpec !== spec.profession ? { color: 'var(--text-secondary)' } : undefined}
                                     >
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0">
@@ -169,8 +169,8 @@ export const ApmSection = ({
                                                     setSubSkillSearchBySpec((prev) => ({ ...prev, [spec.profession]: value }));
                                                 }}
                                                 placeholder="Filter this spec..."
-                                                className="w-full rounded-md px-2 py-1 text-[11px] focus:outline-none focus:ring-1"
-                                                style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card-inner)', color: 'var(--text-primary)' }}
+                                                className="w-full px-2 py-1 text-[11px] focus:outline-none mb-1"
+                                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
                                             />
                                             <button
                                                 type="button"
@@ -178,12 +178,12 @@ export const ApmSection = ({
                                                     setActiveApmSpec(spec.profession);
                                                     setActiveApmSkillId(ALL_SKILLS_KEY);
                                                 }}
-                                                className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] border transition-colors ${
+                                                className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-colors ${
                                                     activeApmSpec === spec.profession && isAllApmSkills
-                                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]'
-                                                        : ''
+                                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                                 }`}
-                                                style={!(activeApmSpec === spec.profession && isAllApmSkills) ? { background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' } : undefined}
+                                                style={!(activeApmSpec === spec.profession && isAllApmSkills) ? { color: 'var(--text-secondary)' } : undefined}
                                             >
                                                 All Skills
                                             </button>
@@ -201,12 +201,12 @@ export const ApmSection = ({
                                                             setActiveApmSpec(spec.profession);
                                                             setActiveApmSkillId(skill.id);
                                                         }}
-                                                        className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] border transition-colors ${
+                                                        className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-colors ${
                                                             activeApmSpec === spec.profession && activeApmSkillId === skill.id
-                                                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]'
-                                                                : ''
+                                                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                                : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                                         }`}
-                                                        style={!(activeApmSpec === spec.profession && activeApmSkillId === skill.id) ? { background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' } : undefined}
+                                                        style={!(activeApmSpec === spec.profession && activeApmSkillId === skill.id) ? { color: 'var(--text-secondary)' } : undefined}
                                                         title={skill.name}
                                                     >
                                                         <div className="flex items-center gap-2 min-w-0">

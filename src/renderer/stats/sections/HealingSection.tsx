@@ -275,8 +275,8 @@ export const HealingSection = ({
         ) : (
             <StatsTableLayout
                 expanded={expandedSection === 'healing-stats'}
-                sidebarClassName={`border rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'healing-stats' ? 'h-full flex-1' : 'self-start'}`}
-                sidebarStyle={{ background: 'var(--bg-hover)', borderColor: 'var(--border-subtle)' }}
+                sidebarClassName={`px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'healing-stats' ? 'h-full flex-1' : 'self-start'}`}
+                sidebarStyle={undefined}
                 contentClassName={`border rounded-[var(--radius-md)] overflow-hidden ${expandedSection === 'healing-stats' ? 'flex flex-col min-h-0' : ''}`}
                 contentStyle={{ background: 'var(--bg-card-inner)', borderColor: 'var(--border-subtle)' }}
                 sidebar={
@@ -287,11 +287,11 @@ export const HealingSection = ({
                                 <button
                                     key={metric.id}
                                     onClick={() => setActiveHealingMetric(metric.id)}
-                                    className={`w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${activeHealingMetric === metric.id
-                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border-[color:var(--accent-border)]'
-                                        : 'border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
+                                    className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeHealingMetric === metric.id
+                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                         }`}
-                                    style={activeHealingMetric !== metric.id ? { background: 'var(--bg-hover)', color: 'var(--text-secondary)' } : undefined}
+                                    style={activeHealingMetric !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
                                 >
                                     {metric.label}
                                 </button>

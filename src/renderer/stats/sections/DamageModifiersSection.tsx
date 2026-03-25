@@ -369,7 +369,7 @@ const CollapsedView = ({
     return (
         <StatsTableLayout
             expanded={isExpanded}
-            sidebarClassName={`bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === config.sectionId ? 'h-full flex-1' : 'self-start'}`}
+            sidebarClassName={`px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === config.sectionId ? 'h-full flex-1' : 'self-start'}`}
             contentClassName={`bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden ${expandedSection === config.sectionId ? 'flex flex-col min-h-0' : ''}`}
             sidebar={
                 <>
@@ -378,7 +378,8 @@ const CollapsedView = ({
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search modifiers..."
-                        className="w-full bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] rounded-[var(--radius-md)] px-2 py-1 text-xs text-[color:var(--text-primary)] focus:outline-none mb-2"
+                        className="w-full px-2 py-1 text-xs text-[color:var(--text-primary)] focus:outline-none mb-2"
+                        style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
                     />
                     <div className={`${sidebarListClass} ${expandedSection === config.sectionId ? 'max-h-none flex-1 min-h-0' : ''}`}>
                         {filteredMods.length === 0 ? (
@@ -388,10 +389,10 @@ const CollapsedView = ({
                                 <button
                                     key={mod.id}
                                     onClick={() => setActiveMod(mod.id)}
-                                    className={`w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors flex items-center gap-2 ${
+                                    className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors flex items-center gap-2 ${
                                         effectiveActiveMod === mod.id
-                                            ? `${config.accentBg} ${config.accentText} ${config.accentBorder}`
-                                            : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
+                                            ? `${config.accentBg} ${config.accentText} font-semibold`
+                                            : 'hover:bg-[var(--bg-hover)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                                     } ${!mod.isPersonal ? 'opacity-50' : ''}`}
                                 >
                                     {mod.icon && (

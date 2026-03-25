@@ -139,7 +139,7 @@ export const PlayerBreakdownSection = ({
                     </div>
                 ) : (
                     <div className={`grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 ${expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 h-full' : ''}`}>
-                        <div className={`bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'player-breakdown' ? 'h-full' : ''}`}>
+                        <div className={`px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'player-breakdown' ? 'h-full' : ''}`}>
                             <div className="flex items-center justify-between gap-2 mb-3">
                                 <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)]">
                                     {(isExpanded ? 'Squad Classes' : viewMode === 'player' ? 'Squad Players' : 'Squad Classes')}
@@ -173,7 +173,8 @@ export const PlayerBreakdownSection = ({
                                     value={skillSearch}
                                     onChange={(event) => setSkillSearch(event.target.value)}
                                     placeholder="Search skills..."
-                                    className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-2.5 py-1.5 text-xs text-[color:var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sky-500/60"
+                                    className="w-full px-2.5 py-1.5 text-xs text-[color:var(--text-primary)] placeholder-gray-500 focus:outline-none mb-1"
+                                    style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
                                 />
                             </div>
                             <div className={sidebarBodyClass}>
@@ -195,11 +196,12 @@ export const PlayerBreakdownSection = ({
                                                         : (expandedPlayerKey === player.key ? null : player.key)
                                                 );
                                             }}
-                                            className={`w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${
+                                            className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs font-semibold transition-colors ${
                                                 activePlayerKey === player.key
-                                                    ? 'bg-sky-500/20 text-sky-200 border-sky-500/40'
-                                                    : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
+                                                    ? 'bg-sky-500/20 text-sky-200'
+                                                    : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                             }`}
+                                            style={activePlayerKey !== player.key ? { color: 'var(--text-secondary)' } : undefined}
                                             title={player.displayName}
                                         >
                                             <div className="flex items-center justify-between gap-2">
@@ -222,7 +224,8 @@ export const PlayerBreakdownSection = ({
                                                             setSubSkillSearchByPlayer((prev) => ({ ...prev, [player.key]: value }));
                                                         }}
                                                         placeholder="Filter this player's skills..."
-                                                        className="w-full rounded-md border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-2 py-1 text-[11px] text-[color:var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sky-500/60"
+                                                        className="w-full px-2 py-1 text-[11px] text-[color:var(--text-primary)] placeholder-gray-500 focus:outline-none mb-1"
+                                                        style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
                                                     />
                                                     {player.skills
                                                         .filter((skill) => {
@@ -238,11 +241,12 @@ export const PlayerBreakdownSection = ({
                                                                     setActivePlayerKey(player.key);
                                                                     setActivePlayerSkillId(skill.id);
                                                                 }}
-                                                                className={`w-full min-h-[30px] text-left px-2 py-1.5 rounded-md text-[11px] border transition-colors ${
+                                                                className={`w-full min-h-[30px] text-left px-2 py-1.5 rounded-md text-[11px] transition-colors ${
                                                                     activePlayerKey === player.key && activePlayerSkillId === skill.id
-                                                                        ? 'bg-sky-500/20 text-sky-200 border-sky-500/30'
-                                                                        : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
+                                                                        ? 'bg-sky-500/20 text-sky-200 font-semibold'
+                                                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                                                 }`}
+                                                                style={!(activePlayerKey === player.key && activePlayerSkillId === skill.id) ? { color: 'var(--text-secondary)' } : undefined}
                                                                 title={skill.name}
                                                             >
                                                                 <div className="flex items-center gap-2 min-w-0">
@@ -281,11 +285,12 @@ export const PlayerBreakdownSection = ({
                                                             : (expandedClassKey === bucket.profession ? null : bucket.profession)
                                                     );
                                                 }}
-                                                className={`w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${
+                                                className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs font-semibold transition-colors ${
                                                     activeClassKey === bucket.profession
-                                                        ? 'bg-sky-500/20 text-sky-200 border-sky-500/40'
-                                                        : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
+                                                        ? 'bg-sky-500/20 text-sky-200'
+                                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                                 }`}
+                                                style={activeClassKey !== bucket.profession ? { color: 'var(--text-secondary)' } : undefined}
                                             >
                                                 <div className="flex items-center justify-between gap-2">
                                                     <div className="flex items-center gap-2 min-w-0">
@@ -307,7 +312,8 @@ export const PlayerBreakdownSection = ({
                                                             setSubSkillSearchByClass((prev) => ({ ...prev, [bucket.profession]: value }));
                                                         }}
                                                         placeholder="Filter this class's skills..."
-                                                        className="w-full rounded-md border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-2 py-1 text-[11px] text-[color:var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sky-500/60"
+                                                        className="w-full px-2 py-1 text-[11px] text-[color:var(--text-primary)] placeholder-gray-500 focus:outline-none mb-1"
+                                                        style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
                                                     />
                                                     {bucket.skills
                                                         .filter((skill) => {
@@ -323,11 +329,12 @@ export const PlayerBreakdownSection = ({
                                                                     setActiveClassKey(bucket.profession);
                                                                     setActiveClassSkillId(skill.id);
                                                                 }}
-                                                                className={`w-full min-h-[30px] text-left px-2 py-1.5 rounded-md text-[11px] border transition-colors ${
+                                                                className={`w-full min-h-[30px] text-left px-2 py-1.5 rounded-md text-[11px] transition-colors ${
                                                                     activeClassKey === bucket.profession && activeClassSkillId === skill.id
-                                                                        ? 'bg-sky-500/20 text-sky-200 border-sky-500/30'
-                                                                        : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
+                                                                        ? 'bg-sky-500/20 text-sky-200 font-semibold'
+                                                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                                                 }`}
+                                                                style={!(activeClassKey === bucket.profession && activeClassSkillId === skill.id) ? { color: 'var(--text-secondary)' } : undefined}
                                                                 title={skill.name}
                                                             >
                                                                 <div className="flex items-center gap-2 min-w-0">

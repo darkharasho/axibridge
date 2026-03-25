@@ -345,8 +345,8 @@ export const SpecialBuffsSection = ({
         ) : (
             <StatsTableLayout
                 expanded={expandedSection === 'special-buffs'}
-                sidebarClassName={`border rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'special-buffs' ? 'h-full flex-1' : 'self-start'}`}
-                sidebarStyle={{ background: 'var(--bg-hover)', borderColor: 'var(--border-subtle)' }}
+                sidebarClassName={`px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'special-buffs' ? 'h-full flex-1' : 'self-start'}`}
+                sidebarStyle={undefined}
                 contentClassName={`border rounded-[var(--radius-md)] overflow-hidden ${expandedSection === 'special-buffs' ? 'flex flex-col min-h-0' : ''}`}
                 contentStyle={{ background: 'var(--bg-card-inner)', borderColor: 'var(--border-subtle)' }}
                 sidebar={
@@ -356,8 +356,8 @@ export const SpecialBuffsSection = ({
                             value={specialSearch}
                             onChange={(e) => setSpecialSearch(e.target.value)}
                             placeholder="Search..."
-                            className="w-full rounded-[var(--radius-md)] px-2 py-1 text-xs focus:outline-none mb-2"
-                            style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                            className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
+                            style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
                         />
                         <div className={`${sidebarListClass} ${expandedSection === 'special-buffs' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {filteredSpecialTables.length === 0 ? (
@@ -368,11 +368,11 @@ export const SpecialBuffsSection = ({
                                         key={buff.id}
                                         onClick={() => setActiveSpecialTab(buff.id)}
                                         title={buff.name}
-                                        className={`w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${activeSpecialTab === buff.id
-                                            ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border-[color:var(--accent-border)]'
-                                            : 'border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
+                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeSpecialTab === buff.id
+                                            ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                            : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                             }`}
-                                        style={activeSpecialTab !== buff.id ? { background: 'var(--bg-hover)', color: 'var(--text-secondary)' } : undefined}
+                                        style={activeSpecialTab !== buff.id ? { color: 'var(--text-secondary)' } : undefined}
                                     >
                                         <InlineIconLabel
                                             name={truncateSidebarLabel(buff.name)}

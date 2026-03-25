@@ -313,7 +313,7 @@ export const ConditionsSection = ({
             ) : (
                 <StatsTableLayout
                 expanded={expandedSection === 'conditions-outgoing'}
-                sidebarClassName={`bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'conditions-outgoing' ? 'h-full flex-1' : 'self-start'}`}
+                sidebarClassName={`px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'conditions-outgoing' ? 'h-full flex-1' : 'self-start'}`}
                 contentClassName={`bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden ${expandedSection === 'conditions-outgoing' ? 'flex flex-col min-h-0' : ''}`}
                 sidebar={
                     <>
@@ -322,7 +322,8 @@ export const ConditionsSection = ({
                             value={conditionSearch}
                             onChange={(e) => setConditionSearch(e.target.value)}
                             placeholder="Search..."
-                            className="w-full bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] rounded-[var(--radius-md)] px-2 py-1 text-xs text-[color:var(--text-primary)] focus:outline-none mb-2"
+                            className="w-full px-2 py-1 text-xs text-[color:var(--text-primary)] focus:outline-none mb-2"
+                            style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
                         />
                         <div className={`${sidebarListClass} ${expandedSection === 'conditions-outgoing' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
@@ -334,9 +335,9 @@ export const ConditionsSection = ({
                                         <button
                                             type="button"
                                             onClick={() => setActiveConditionName('all')}
-                                            className={`w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${activeConditionName === 'all'
-                                                ? 'bg-amber-500/20 text-amber-200 border-amber-500/40'
-                                                : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
+                                            className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeConditionName === 'all'
+                                                ? 'bg-amber-500/20 text-amber-200 font-semibold'
+                                                : 'hover:bg-[var(--bg-hover)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                                                 }`}
                                         >
                                             All Conditions
@@ -346,9 +347,9 @@ export const ConditionsSection = ({
                                                 key={entry.name}
                                                 type="button"
                                                 onClick={() => setActiveConditionName(entry.name)}
-                                                className={`w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${activeConditionName === entry.name
-                                                    ? 'bg-amber-500/20 text-amber-200 border-amber-500/40'
-                                                    : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
+                                                className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeConditionName === entry.name
+                                                    ? 'bg-amber-500/20 text-amber-200 font-semibold'
+                                                    : 'hover:bg-[var(--bg-hover)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                                                     }`}
                                             >
                                                 <InlineIconLabel name={entry.name} iconUrl={entry.icon} iconClassName="h-5 w-5" />
