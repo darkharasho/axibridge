@@ -114,7 +114,19 @@ CSS variables defined in `index.css` under `:root`:
 --section-boon-bg: rgba(251, 191, 36, 0.08);
 ```
 
-Overview and Commander groups use `var(--brand-primary)` as their accent (no dedicated semantic color — they follow the user's palette).
+**Group-to-color mapping:**
+
+| Nav Group | Left-Edge Accent | Rationale |
+|---|---|---|
+| Overview | `var(--brand-primary)` | General — follows user palette |
+| Commander Stats | `var(--brand-primary)` | General — follows user palette |
+| Squad Stats | `var(--section-offense)` | Damage comparison, kill pressure |
+| Roster Intel | `var(--brand-primary)` | General — follows user palette |
+| Offensive Stats | `var(--section-offense)` | Offense category |
+| Defensive Stats | `var(--section-defense)` | Defense category |
+| Other Metrics | `var(--brand-primary)` | Misc — follows user palette |
+
+Sub-section accent dots within a group use per-section semantic colors (e.g., within Defensive Stats: Defense Detailed uses `--section-defense`, Damage Mitigation uses `--section-mitigation`, Boon Output uses `--section-boon`, Support uses `--section-support`, Healing uses `--section-healing`).
 
 **Where semantic colors appear:**
 - Group container left-edge accent border
@@ -191,7 +203,7 @@ When `body.glass-surfaces` is active:
 ### In scope
 - All 34 section component files in `src/renderer/stats/sections/`
 - StatsView.tsx (group wrapper structure)
-- Stats UI components (`StatsTableLayout`, `StatsTableShell`, `DenseStatsTable`, `PillToggleGroup`, `SearchSelectDropdown`, `ColumnFilterDropdown`)
+- Stats UI components (`StatsTableLayout`, `StatsTableShell`, `StatsTableCard`, `DenseStatsTable`, `PillToggleGroup`, `SearchSelectDropdown`, `ColumnFilterDropdown`, `StatsViewShared` — tooltips/icons)
 - `src/renderer/index.css` (add semantic section color variables)
 - Overview section gradient removal
 
