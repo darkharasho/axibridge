@@ -756,16 +756,15 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-/* Content fade when switching metric tabs */
+/* Content transition when switching metric tabs */
 .stats-table-layout__content,
-.stats-table-layout__sidebar,
 .stats-table-sidebar {
-    animation: stats-content-fade 180ms ease-out;
+    animation: stats-content-enter 280ms ease-out;
 }
 
-@keyframes stats-content-fade {
-    from { opacity: 0.6; }
-    to { opacity: 1; }
+@keyframes stats-content-enter {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .dense-table__cell--active,
