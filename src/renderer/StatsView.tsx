@@ -448,7 +448,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         </div>
     );
 
-    const renderGroup = (groupId: string, sections: Array<{ id: string; element: React.ReactNode }>, index = 0) => {
+    const renderGroup = (groupId: string, sections: Array<{ id: string; element: React.ReactNode }>) => {
         const group = STATS_TOC_GROUPS.find(g => g.id === groupId);
         if (!group) return null;
         const anyVisible = group.sectionIds.some(id => isSectionVisible(id));
@@ -461,7 +461,6 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
                 icon={group.icon as React.ComponentType<{ className?: string }>}
                 accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
                 sectionCount={sections.length}
-                index={index}
             >
                 {sections.map((s, i) => (
                     <SectionPanel key={s.id} sectionId={s.id} isLast={i === sections.length - 1} index={i}>
