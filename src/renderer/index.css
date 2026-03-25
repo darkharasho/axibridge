@@ -147,8 +147,8 @@ body.glass-surfaces .settings-view aside > div {
   backdrop-filter: blur(12px);
 }
 
-/* Stats section cards/tables in glass mode */
-body.glass-surfaces .stats-view .stats-section-wrap > div {
+/* Stats group containers in glass mode */
+body.glass-surfaces .stats-view .stats-group-container {
   backdrop-filter: blur(10px);
 }
 
@@ -178,7 +178,7 @@ body.bulk-uploading.glass-surfaces .app-shell {
   --bg-hover: rgba(255, 255, 255, 0.05);
 }
 body.bulk-uploading.glass-surfaces [data-surface="card"],
-body.bulk-uploading.glass-surfaces .stats-section-wrap > div,
+body.bulk-uploading.glass-surfaces .stats-group-container,
 body.bulk-uploading.glass-surfaces .settings-view aside > div,
 body.bulk-uploading.glass-surfaces .app-modal-card {
   backdrop-filter: none;
