@@ -422,7 +422,7 @@ const CollapsedView = ({
                                     )}
                                     <div className="text-xs font-semibold text-[color:var(--text-primary)]">{activeModInfo.name}</div>
                                     {activeModInfo.description && (
-                                        <div className="text-[10px] text-[color:var(--text-muted)] leading-tight ml-auto text-right">
+                                        <div className="text-[10px] text-[color:var(--text-muted)] leading-tight">
                                             {activeModInfo.description.split(/<br\s*\/?>/).map((part, i, arr) => (
                                                 <span key={i}>{part}{i < arr.length - 1 && <br />}</span>
                                             ))}
