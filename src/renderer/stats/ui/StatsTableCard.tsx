@@ -28,7 +28,7 @@ export const StatsTableCard = ({
     const resolvedContentStyle = contentClassName ? undefined : defaultContentStyle;
 
     return (
-        <div className={`grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-0 ${expanded ? 'flex-1 min-h-0 h-full' : ''} ${className}`}>
+        <div className={`grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-0 ${expanded ? 'flex-1 min-h-0 h-full' : 'max-h-[480px]'} ${className}`}>
             <div className={resolvedSidebarClass} style={resolvedSidebarStyle}>{sidebar}</div>
             <div className={resolvedContentClass} style={resolvedContentStyle}>
                 {content}
