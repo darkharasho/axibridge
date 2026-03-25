@@ -756,6 +756,18 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+/* Content fade when switching metric tabs */
+.stats-table-layout__content,
+.stats-table-layout__sidebar,
+.stats-table-sidebar {
+    animation: stats-content-fade 180ms ease-out;
+}
+
+@keyframes stats-content-fade {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
+}
+
 .dense-table__cell--active,
 .dense-table__head--active {
     background: #111c33;
