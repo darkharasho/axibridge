@@ -319,7 +319,9 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     if (log?.details) continue; // already in state, no need to fetch
                     const logId = log?.id || log?.filePath;
                     if (detailsCache && logId && !detailsCache.peek(logId)) {
-                        try { await detailsCache.get(logId); } catch { /* fallback to log.details */ }
+                        // Use getLocal (LRU + IndexedDB only) — never trigger IPC/network
+                        // fetches here, as they can block the streaming pipeline indefinitely
+                        try { await detailsCache.getLocal(logId); } catch { /* fallback to log.details */ }
                     }
                 }
                 scheduleStep();

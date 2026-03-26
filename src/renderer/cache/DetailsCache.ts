@@ -35,6 +35,27 @@ export class DetailsCache {
         return undefined;
     }
 
+    /** Async — checks LRU → IndexedDB only (no IPC fallback).
+     *  Use for pre-warming during worker streaming where network fetches would block. */
+    async getLocal(logId: string): Promise<any | null> {
+        const memHit = this.lru.get(logId);
+        if (memHit !== undefined) {
+            this.lru.delete(logId);
+            this.lru.set(logId, memHit);
+            return memHit;
+        }
+        try {
+            const entry = await idbGet<IdbEntry>(IDB_PREFIX + logId);
+            if (entry && entry.schemaVersion === SCHEMA_VERSION && entry.details) {
+                this.lruSet(logId, entry.details);
+                return entry.details;
+            }
+        } catch {
+            // IndexedDB unavailable
+        }
+        return null;
+    }
+
     /** Async — checks LRU → IndexedDB → IPC fallback. */
     async get(logId: string): Promise<any | null> {
         // Tier 1: memory LRU

@@ -132,7 +132,7 @@ export function registerAppHandlers(opts: AppHandlerOptions) {
         let releaseNotes: string | null = null;
         releaseNotes = await fetchGithubReleaseNotesRange(version, lastSeenVersion);
         if (!releaseNotes) {
-            const basePath = app.isPackaged ? process.resourcesPath : process.cwd();
+            const basePath = app.isPackaged ? app.getAppPath() : process.cwd();
             const notesPath = path.join(basePath, 'RELEASE_NOTES.md');
             try {
                 const rawNotes = fs.readFileSync(notesPath, 'utf8');
