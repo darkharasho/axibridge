@@ -179,6 +179,20 @@ if (fs.existsSync(oldCacheDir) && !fs.existsSync(newCacheDir)) {
     }
 }
 
+// Clean up stale arcbridge-updater cache (from pre-rename installs).
+// If left behind, electron-updater can pick up the old cache and try to
+// unlink a non-existent AppImage path, blocking updates.
+const cacheHome = process.env.XDG_CACHE_HOME || path.join(app.getPath('home'), '.cache');
+const oldUpdaterCache = path.join(cacheHome, 'arcbridge-updater');
+if (fs.existsSync(oldUpdaterCache)) {
+    try {
+        fs.rmSync(oldUpdaterCache, { recursive: true });
+        log.info('[Migration] Removed stale arcbridge-updater cache');
+    } catch (err: any) {
+        log.warn('[Migration] Failed to remove old updater cache:', err?.message || err);
+    }
+}
+
 const { setForwarding: setConsoleLogForwarding, getHistory: getConsoleLogHistory } = setupConsoleLogger(() => win);
 
 const Store = require('electron-store');
