@@ -388,50 +388,47 @@ export const PlayerBreakdownSection = ({
                                                 ...selectedPlayers.map((id) => `player:${id}`)
                                             ]);
                                             return (
-                                                <div className="px-4 py-3">
-                                                    <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Player Breakdown</div>
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <SearchSelectDropdown
-                                                            options={searchOptions}
-                                                            selectedIds={selectedIds}
-                                                            onSelect={(option: SearchSelectOption) => {
-                                                                if (option.type === 'column') {
-                                                                    setSelectedSkillIds((prev) =>
-                                                                        prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
-                                                                    );
-                                                                } else {
-                                                                    setSelectedPlayers((prev) =>
-                                                                        prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
-                                                                    );
-                                                                }
-                                                            }}
-                                                            className="w-full sm:w-64"
-                                                        />
-                                                        <ColumnFilterDropdown
-                                                            options={skillOptions}
-                                                            selectedIds={selectedSkillIds}
-                                                            onToggle={(id) => {
+                                                <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                                    <SearchSelectDropdown
+                                                        options={searchOptions}
+                                                        selectedIds={selectedIds}
+                                                        onSelect={(option: SearchSelectOption) => {
+                                                            if (option.type === 'column') {
                                                                 setSelectedSkillIds((prev) =>
-                                                                    prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                                    prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
                                                                 );
-                                                            }}
-                                                            onClear={() => setSelectedSkillIds([])}
-                                                            buttonLabel="Columns"
-                                                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
-                                                        />
-                                                        <ColumnFilterDropdown
-                                                            options={playerOptions}
-                                                            selectedIds={selectedPlayers}
-                                                            onToggle={(id) => {
+                                                            } else {
                                                                 setSelectedPlayers((prev) =>
-                                                                    prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                                    prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
                                                                 );
-                                                            }}
-                                                            onClear={() => setSelectedPlayers([])}
-                                                            buttonLabel="Players"
-                                                            buttonIcon={<Users className="h-3.5 w-3.5" />}
-                                                        />
-                                                    </div>
+                                                            }
+                                                        }}
+                                                        className="w-full sm:w-64"
+                                                    />
+                                                    <ColumnFilterDropdown
+                                                        options={skillOptions}
+                                                        selectedIds={selectedSkillIds}
+                                                        onToggle={(id) => {
+                                                            setSelectedSkillIds((prev) =>
+                                                                prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                            );
+                                                        }}
+                                                        onClear={() => setSelectedSkillIds([])}
+                                                        buttonLabel="Columns"
+                                                        buttonIcon={<Columns className="h-3.5 w-3.5" />}
+                                                    />
+                                                    <ColumnFilterDropdown
+                                                        options={playerOptions}
+                                                        selectedIds={selectedPlayers}
+                                                        onToggle={(id) => {
+                                                            setSelectedPlayers((prev) =>
+                                                                prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                            );
+                                                        }}
+                                                        onClear={() => setSelectedPlayers([])}
+                                                        buttonLabel="Players"
+                                                        buttonIcon={<Users className="h-3.5 w-3.5" />}
+                                                    />
                                                     {(selectedSkillIds.length > 0 || selectedPlayers.length > 0) && (
                                                         <div className="mt-2 flex flex-wrap items-center gap-2">
                                                             <button
@@ -451,7 +448,8 @@ export const PlayerBreakdownSection = ({
                                                                         key={id}
                                                                         type="button"
                                                                         onClick={() => setSelectedSkillIds((prev) => prev.filter((entry) => entry !== id))}
-                                                                        className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-2 py-1 text-[11px] text-[color:var(--text-primary)] hover:text-[color:var(--text-primary)]"
+                                                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                                                     >
                                                                         <span>{label}</span>
                                                                         <span className="text-[color:var(--text-secondary)]">×</span>
@@ -465,7 +463,8 @@ export const PlayerBreakdownSection = ({
                                                                         key={id}
                                                                         type="button"
                                                                         onClick={() => setSelectedPlayers((prev) => prev.filter((entry) => entry !== id))}
-                                                                        className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-2 py-1 text-[11px] text-[color:var(--text-primary)] hover:text-[color:var(--text-primary)]"
+                                                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                                                     >
                                                                         <span>{label}</span>
                                                                         <span className="text-[color:var(--text-secondary)]">×</span>
@@ -628,50 +627,47 @@ export const PlayerBreakdownSection = ({
                                                 ...selectedPlayers.map((id) => `player:${id}`)
                                             ]);
                                             return (
-                                                <div className="px-4 py-3">
-                                                    <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Class Breakdown</div>
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <SearchSelectDropdown
-                                                            options={searchOptions}
-                                                            selectedIds={selectedIds}
-                                                            onSelect={(option: SearchSelectOption) => {
-                                                                if (option.type === 'column') {
-                                                                    setSelectedSkillIds((prev) =>
-                                                                        prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
-                                                                    );
-                                                                } else {
-                                                                    setSelectedPlayers((prev) =>
-                                                                        prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
-                                                                    );
-                                                                }
-                                                            }}
-                                                            className="w-full sm:w-64"
-                                                        />
-                                                        <ColumnFilterDropdown
-                                                            options={skillOptions}
-                                                            selectedIds={selectedSkillIds}
-                                                            onToggle={(id) => {
+                                                <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                                    <SearchSelectDropdown
+                                                        options={searchOptions}
+                                                        selectedIds={selectedIds}
+                                                        onSelect={(option: SearchSelectOption) => {
+                                                            if (option.type === 'column') {
                                                                 setSelectedSkillIds((prev) =>
-                                                                    prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                                    prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
                                                                 );
-                                                            }}
-                                                            onClear={() => setSelectedSkillIds([])}
-                                                            buttonLabel="Columns"
-                                                            buttonIcon={<Columns className="h-3.5 w-3.5" />}
-                                                        />
-                                                        <ColumnFilterDropdown
-                                                            options={playerOptions}
-                                                            selectedIds={selectedPlayers}
-                                                            onToggle={(id) => {
+                                                            } else {
                                                                 setSelectedPlayers((prev) =>
-                                                                    prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                                    prev.includes(option.id) ? prev.filter((entry) => entry !== option.id) : [...prev, option.id]
                                                                 );
-                                                            }}
-                                                            onClear={() => setSelectedPlayers([])}
-                                                            buttonLabel="Players"
-                                                            buttonIcon={<Users className="h-3.5 w-3.5" />}
-                                                        />
-                                                    </div>
+                                                            }
+                                                        }}
+                                                        className="w-full sm:w-64"
+                                                    />
+                                                    <ColumnFilterDropdown
+                                                        options={skillOptions}
+                                                        selectedIds={selectedSkillIds}
+                                                        onToggle={(id) => {
+                                                            setSelectedSkillIds((prev) =>
+                                                                prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                            );
+                                                        }}
+                                                        onClear={() => setSelectedSkillIds([])}
+                                                        buttonLabel="Columns"
+                                                        buttonIcon={<Columns className="h-3.5 w-3.5" />}
+                                                    />
+                                                    <ColumnFilterDropdown
+                                                        options={playerOptions}
+                                                        selectedIds={selectedPlayers}
+                                                        onToggle={(id) => {
+                                                            setSelectedPlayers((prev) =>
+                                                                prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+                                                            );
+                                                        }}
+                                                        onClear={() => setSelectedPlayers([])}
+                                                        buttonLabel="Players"
+                                                        buttonIcon={<Users className="h-3.5 w-3.5" />}
+                                                    />
                                                     {(selectedSkillIds.length > 0 || selectedPlayers.length > 0) && (
                                                         <div className="mt-2 flex flex-wrap items-center gap-2">
                                                             <button
@@ -691,7 +687,8 @@ export const PlayerBreakdownSection = ({
                                                                         key={id}
                                                                         type="button"
                                                                         onClick={() => setSelectedSkillIds((prev) => prev.filter((entry) => entry !== id))}
-                                                                        className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-2 py-1 text-[11px] text-[color:var(--text-primary)] hover:text-[color:var(--text-primary)]"
+                                                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                                                     >
                                                                         <span>{label}</span>
                                                                         <span className="text-[color:var(--text-secondary)]">×</span>
@@ -705,7 +702,8 @@ export const PlayerBreakdownSection = ({
                                                                         key={id}
                                                                         type="button"
                                                                         onClick={() => setSelectedPlayers((prev) => prev.filter((entry) => entry !== id))}
-                                                                        className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-2 py-1 text-[11px] text-[color:var(--text-primary)] hover:text-[color:var(--text-primary)]"
+                                                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                                                     >
                                                                         <span>{label}</span>
                                                                         <span className="text-[color:var(--text-secondary)]">×</span>

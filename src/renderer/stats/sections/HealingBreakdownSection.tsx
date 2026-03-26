@@ -96,9 +96,8 @@ export const HealingBreakdownSection = ({
                     No healing breakdown data available for the current selection.
                 </div>
             ) : isExpanded ? (
-                <div className="rounded-[var(--radius-md)] overflow-hidden">
-                    {(() => {
-                        const modeLabel = metricMode === 'healing' ? 'Healing' : 'Barrier';
+                (() => {
+                    const modeLabel = metricMode === 'healing' ? 'Healing' : 'Barrier';
                         const denseColumns = [
                             { id: 'total', label: 'Total', align: 'right' as const, minWidth: 90 },
                             { id: 'hits', label: 'Hits', align: 'right' as const, minWidth: 70 },
@@ -160,11 +159,10 @@ export const HealingBreakdownSection = ({
                                 }))}
                             />
                         );
-                    })()}
-                </div>
+                    })()
             ) : (
-                <div className="grid lg:grid-cols-[220px_1fr] gap-0">
-                    <div className="pr-3 flex flex-col overflow-y-auto" style={{ borderRight: '1px solid var(--border-subtle)' }}>
+                <div className="grid lg:grid-cols-[220px_1fr] gap-0 h-[500px]">
+                    <div className="pr-3 flex flex-col min-h-0" style={{ borderRight: '1px solid var(--border-subtle)' }}>
                         <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
                             Squad Players
                         </div>
@@ -213,7 +211,7 @@ export const HealingBreakdownSection = ({
                         </div>
                     </div>
 
-                    <div className="pl-3 flex flex-col">
+                    <div className="pl-3 flex flex-col min-h-0">
                         <div className="overflow-hidden flex-1 min-h-0 flex flex-col">
                             {!selectedPlayer ? (
                                 <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
