@@ -4,10 +4,16 @@ import path from 'path';
 
 const fixturePath = path.resolve(process.cwd(), 'web/report.json');
 
+const LEGACY_THEMES = ['crt', 'matte', 'kinetic'];
+
 function loadReportWithPalette(palette: string) {
     const report = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
     report.stats = report.stats || {};
-    report.stats.uiTheme = palette;
+    if (LEGACY_THEMES.includes(palette)) {
+        report.stats.uiTheme = palette;
+    } else {
+        report.stats.colorPalette = palette;
+    }
     return report;
 }
 

@@ -64,6 +64,6 @@ test.describe('Web Report Loading (WRPT-001–004)', () => {
             page.getByRole('heading', { name: /Statistics Dashboard/i })
         ).toBeVisible({ timeout: 15_000 });
         // Verify actual content from fixture (commander name)
-        await expect(page.getByText('Guardian Kamoidra')).toBeVisible();
+        await expect(page.getByText('Guardian Kamoidra').first()).toBeVisible();
     });
 });
