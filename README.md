@@ -12,20 +12,19 @@ AxiBridge automatically uploads arcdps logs, summarizes WvW fights, and sends cl
 - **🖱️ Manual control when you want it**: Drag & drop a single log to upload or re-run a report.
 
 ## 🖼️ Screenshots
-<img width="1082" height="794" alt="image" src="https://github.com/user-attachments/assets/085c5938-23df-427a-be71-10707d6ee571" />
+<img width="1082" height="794" alt="image" src="https://github.com/user-attachments/assets/f1f2fe87-8111-474c-9e24-f9a1368801fb" />
 
 ### Highly Configurable
-<img width="1082" height="794" alt="image" src="https://github.com/user-attachments/assets/05b70735-5b95-4055-be14-9fe1a00acaaa" />
+<img width="1082" height="794" alt="image" src="https://github.com/user-attachments/assets/8b759afe-d792-486e-a6d9-9a6367678460" />
 
 ### Aggregated live stat dashboard
-<img width="1082" height="794" alt="image" src="https://github.com/user-attachments/assets/bbd2fc5e-0dff-4a75-93d8-a88426cd5b1f" />
+<img width="1082" height="794" alt="image" src="https://github.com/user-attachments/assets/e40da800-b78e-461c-891b-a0f2d15d6d5a" />
 
-### Choose whether to post a native discord embed or a generated image
-<img width="537" height="1259" alt="image" src="https://github.com/user-attachments/assets/4feba70b-1d05-4796-a452-a68aaa700c6b" /> <img width="1800" height="2444" alt="image" src="https://github.com/user-attachments/assets/ba52192d-8b9b-4473-bfb9-55de9a9e79be" />
+### Native discord embed
+<img width="537" height="1259" alt="image" src="https://github.com/user-attachments/assets/4feba70b-1d05-4796-a452-a68aaa700c6b" />
 
 ### Persistent Stat Report via Github Pages
-<img width="2034" height="1299" alt="image" src="https://github.com/user-attachments/assets/f700c0b9-26ec-4ac1-8ac1-f0c2d927fdc0" />
-
+<img width="2134" height="1264" alt="image" src="https://github.com/user-attachments/assets/e073ce2d-24ba-438b-ae0c-12d6e1608997" />
 
 
 
