@@ -17,11 +17,6 @@ import { FilePickerModal } from './FilePickerModal';
 import { WebUploadOverlay } from './WebUploadOverlay';
 import { FightReportHistoryView } from '../FightReportHistoryView';
 
-const pageTransition = {
-    initial: { opacity: 0, y: 10 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] } },
-    exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
-};
 
 export function AppLayout({ ctx }: { ctx: any }) {
     const {
@@ -311,71 +306,69 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     setWebUploadState={setWebUploadState}
                 />
 
-                <AnimatePresence mode="wait">
-                    {view === 'dashboard' && (
-                        <motion.div key="dashboard" {...pageTransition} className="flex flex-1 min-h-0 relative flex-col">
-                            <div className="dashboard-view dashboard-modern flex flex-1 min-h-0 overflow-hidden matte-dashboard-shell">
-                                <div className="dashboard-rail flex flex-col gap-3 overflow-y-auto p-3 matte-panel-shell matte-rail-shell" style={{ width: '300px', flexShrink: 0, background: 'var(--bg-elevated)', borderRight: '1px solid var(--border-subtle)' }}>
-                                    {configurationPanel}
-                                </div>
-                                <div className="flex-1 min-h-0 overflow-y-auto p-3 matte-activity-shell">
-                                    {activityPanel}
-                                </div>
+                {view === 'dashboard' && (
+                    <div className="flex flex-1 min-h-0 relative flex-col">
+                        <div className="dashboard-view dashboard-modern flex flex-1 min-h-0 overflow-hidden matte-dashboard-shell">
+                            <div className="dashboard-rail flex flex-col gap-3 overflow-y-auto p-3 matte-panel-shell matte-rail-shell" style={{ width: '300px', flexShrink: 0, background: 'var(--bg-elevated)', borderRight: '1px solid var(--border-subtle)' }}>
+                                {configurationPanel}
                             </div>
-                        </motion.div>
-                    )}
-                    {view === 'stats' && (
-                        <motion.div key="stats" {...pageTransition} className="flex flex-1 min-h-0 relative">
-                            <div className="flex-1 min-h-0 flex gap-3">
-                                <StatsNavSidebar />
-                                <div className="flex-1 min-h-0 flex flex-col">
-                                    <StatsErrorBoundary>
-                                        <StatsView
-                                            logs={logsForStats}
-                                            onBack={() => setView('dashboard')}
-                                            mvpWeights={mvpWeights}
-                                            disruptionMethod={disruptionMethod}
-                                            statsViewSettings={statsViewSettings}
-                                            precomputedStats={precomputedStats || undefined}
-                                            aggregationResult={{ stats: computedStats, skillUsageData: computedSkillUsageData, aggregationProgress, aggregationDiagnostics }}
-                                            statsDataProgress={statsDataProgress}
-                                            onStatsViewSettingsChange={(next) => {
-                                                setStatsViewSettings(next);
-                                                window.electronAPI?.saveSettings?.({ statsViewSettings: next });
-                                            }}
-                                            webUploadState={webUploadState}
-                                            onWebUpload={handleWebUpload}
-                                        />
-                                    </StatsErrorBoundary>
-                                </div>
+                            <div className="flex-1 min-h-0 overflow-y-auto p-3 matte-activity-shell">
+                                {activityPanel}
                             </div>
-                        </motion.div>
-                    )}
-                    {view === 'history' && (
-                        <motion.div key="history" {...pageTransition} className="flex flex-1 min-h-0 relative flex-col">
-                            <FightReportHistoryView />
-                        </motion.div>
-                    )}
-                    {view === 'settings' && (
-                        <motion.div key="settings" {...pageTransition} className="flex flex-1 min-h-0 relative flex-col">
-                            <SettingsView
-                                onBack={() => setView('dashboard')}
-                                onEmbedStatSettingsSaved={setEmbedStatSettings}
-                                onMvpWeightsSaved={stableSetMvpWeights}
-                                onStatsViewSettingsSaved={stableSetStatsViewSettings}
-                                onDisruptionMethodSaved={stableSetDisruptionMethod}
-                                onColorPaletteSaved={setColorPalette}
-                                onGlassSurfacesSaved={setGlassSurfaces}
-                                developerSettingsTrigger={developerSettingsTrigger}
-                                helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}
-                                onHelpUpdatesFocusConsumed={handleHelpUpdatesFocusConsumed}
-                                onOpenWalkthrough={() => setWalkthroughOpen(true)}
-                                onOpenWhatsNew={() => setWhatsNewOpen(true)}
-                                isBulkUploadActive={isBulkUploadActive}
-                            />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                        </div>
+                    </div>
+                )}
+                {view === 'stats' && (
+                    <div className="flex flex-1 min-h-0 relative">
+                        <div className="flex-1 min-h-0 flex gap-3">
+                            <StatsNavSidebar />
+                            <div className="flex-1 min-h-0 flex flex-col">
+                                <StatsErrorBoundary>
+                                    <StatsView
+                                        logs={logsForStats}
+                                        onBack={() => setView('dashboard')}
+                                        mvpWeights={mvpWeights}
+                                        disruptionMethod={disruptionMethod}
+                                        statsViewSettings={statsViewSettings}
+                                        precomputedStats={precomputedStats || undefined}
+                                        aggregationResult={{ stats: computedStats, skillUsageData: computedSkillUsageData, aggregationProgress, aggregationDiagnostics }}
+                                        statsDataProgress={statsDataProgress}
+                                        onStatsViewSettingsChange={(next) => {
+                                            setStatsViewSettings(next);
+                                            window.electronAPI?.saveSettings?.({ statsViewSettings: next });
+                                        }}
+                                        webUploadState={webUploadState}
+                                        onWebUpload={handleWebUpload}
+                                    />
+                                </StatsErrorBoundary>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {view === 'history' && (
+                    <div className="flex flex-1 min-h-0 relative flex-col">
+                        <FightReportHistoryView />
+                    </div>
+                )}
+                {view === 'settings' && (
+                    <div className="flex flex-1 min-h-0 relative flex-col">
+                        <SettingsView
+                            onBack={() => setView('dashboard')}
+                            onEmbedStatSettingsSaved={setEmbedStatSettings}
+                            onMvpWeightsSaved={stableSetMvpWeights}
+                            onStatsViewSettingsSaved={stableSetStatsViewSettings}
+                            onDisruptionMethodSaved={stableSetDisruptionMethod}
+                            onColorPaletteSaved={setColorPalette}
+                            onGlassSurfacesSaved={setGlassSurfaces}
+                            developerSettingsTrigger={developerSettingsTrigger}
+                            helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}
+                            onHelpUpdatesFocusConsumed={handleHelpUpdatesFocusConsumed}
+                            onOpenWalkthrough={() => setWalkthroughOpen(true)}
+                            onOpenWhatsNew={() => setWhatsNewOpen(true)}
+                            isBulkUploadActive={isBulkUploadActive}
+                        />
+                    </div>
+                )}
             </div>
 
             <DevDatasetsModal ctx={devDatasetsCtx} isBulkUploadActive={isBulkUploadActive} />
