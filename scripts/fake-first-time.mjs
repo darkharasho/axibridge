@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const inputPath = process.argv[2] || 'arcbridge-settings.json';
+const inputPath = process.argv[2] || 'axibridge-settings.json';
 const settingsPath = path.resolve(process.cwd(), inputPath);
 
 const readSettings = () => {
