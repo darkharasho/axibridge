@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, Shield, X, Columns, Users } from 'lucide-react';
+import { Maximize2, X, Columns, Users, Shield } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -27,7 +27,7 @@ export const DefenseSection = ({
     defenseViewMode,
     setDefenseViewMode
 }: DefenseSectionProps) => {
-    const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, sidebarListClass } = useStatsSharedContext();
+    const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const {
         sortState, updateSort,
         denseSort, setDenseSort,
@@ -72,39 +72,64 @@ export const DefenseSection = ({
     };
     return (
     <div
-        id="defense-detailed"
-        data-section-visible={isSectionVisible('defense-detailed')}
-        data-section-first={isFirstVisibleSection('defense-detailed')}
-        className={sectionClass('defense-detailed', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+        className={`${
             expandedSection === 'defense-detailed'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
+                ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${
                     expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                 }`
                 : ''
-        }`)}
+        }`}
+        style={expandedSection === 'defense-detailed' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
     >
-        <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-sky-300" />
-                Defenses - Detailed
+        <div className="flex items-center gap-2 mb-3.5">
+            <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                Defense Detailed
             </h3>
-            <button
-                type="button"
-                onClick={() => (expandedSection === 'defense-detailed' ? closeExpandedSection() : openExpandedSection('defense-detailed'))}
-                className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
-                aria-label={expandedSection === 'defense-detailed' ? 'Close Defense Detailed' : 'Expand Defense Detailed'}
-                title={expandedSection === 'defense-detailed' ? 'Close' : 'Expand'}
-            >
-                {expandedSection === 'defense-detailed' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+                {!isExpanded && isMinionDamageMetric(activeDefenseStat) && (
+                    <PillToggleGroup
+                        value={minionDamageMode}
+                        onChange={(value) => setMinionDamageMode(value as 'combined' | 'separate')}
+                        options={[
+                            { value: 'combined', label: 'Combined' },
+                            { value: 'separate', label: 'Separate' }
+                        ]}
+                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                        inactiveClassName="text-[color:var(--text-secondary)]"
+                    />
+                )}
+                {!isExpanded && (
+                    <PillToggleGroup
+                        value={defenseViewMode}
+                        onChange={setDefenseViewMode}
+                        options={[
+                            { value: 'total', label: 'Total' },
+                            { value: 'per1s', label: 'Stat/1s' },
+                            { value: 'per60s', label: 'Stat/60s' }
+                        ]}
+                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                        inactiveClassName="text-[color:var(--text-secondary)]"
+                    />
+                )}
+                <button
+                    type="button"
+                    onClick={() => (expandedSection === 'defense-detailed' ? closeExpandedSection() : openExpandedSection('defense-detailed'))}
+                    className="flex items-center justify-center w-[26px] h-[26px]"
+                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
+                    aria-label={expandedSection === 'defense-detailed' ? 'Close Defense Detailed' : 'Expand Defense Detailed'}
+                    title={expandedSection === 'defense-detailed' ? 'Close' : 'Expand'}
+                >
+                    {expandedSection === 'defense-detailed' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
+                </button>
+            </div>
         </div>
         {stats.defensePlayers.length === 0 ? (
-            <div className="text-center text-gray-500 italic py-8">No defensive stats available</div>
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No defensive stats available</div>
         ) : isExpanded ? (
             <div className="flex flex-col gap-4">
-                <div className="bg-black/20 border border-white/5 rounded-xl px-4 py-3">
-                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Defensive Tabs</div>
-                    <div className="flex flex-wrap items-center gap-2">
+                <div>
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                         <SearchSelectDropdown
                             options={[
                                 ...defenseColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
@@ -147,6 +172,7 @@ export const DefenseSection = ({
                             buttonLabel="Players"
                             buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
+                        <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
                         <PillToggleGroup
                             value={defenseViewMode}
                             onChange={setDefenseViewMode}
@@ -155,8 +181,8 @@ export const DefenseSection = ({
                                 { value: 'per1s', label: 'Stat/1s' },
                                 { value: 'per60s', label: 'Stat/60s' }
                             ]}
-                            activeClassName="bg-sky-500/20 text-sky-200 border border-sky-500/40"
-                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                         {visibleDefenseMetrics.some((metric) => isMinionDamageMetric(metric.id)) && (
                             <PillToggleGroup
@@ -166,8 +192,8 @@ export const DefenseSection = ({
                                     { value: 'combined', label: 'Combined' },
                                     { value: 'separate', label: 'Separate' }
                                 ]}
-                                activeClassName="bg-indigo-500/20 text-indigo-200 border border-indigo-500/40"
-                                inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                inactiveClassName="text-[color:var(--text-secondary)]"
                             />
                         )}
                     </div>
@@ -179,7 +205,8 @@ export const DefenseSection = ({
                                     setSelectedDefenseColumnIds([]);
                                     setSelectedDefensePlayers([]);
                                 }}
-                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
                             >
                                 Clear All
                             </button>
@@ -190,10 +217,11 @@ export const DefenseSection = ({
                                         key={id}
                                         type="button"
                                         onClick={() => setSelectedDefenseColumnIds((prev) => prev.filter((entry) => entry !== id))}
-                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                     >
                                         <span>{label}</span>
-                                        <span className="text-gray-400">×</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                     </button>
                                 );
                             })}
@@ -202,18 +230,19 @@ export const DefenseSection = ({
                                     key={id}
                                     type="button"
                                     onClick={() => setSelectedDefensePlayers((prev) => prev.filter((entry) => entry !== id))}
-                                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                 >
                                     <span>{id}</span>
-                                    <span className="text-gray-400">×</span>
+                                    <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                 </button>
                             ))}
                         </div>
                     )}
                 </div>
-                <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                <div className="overflow-hidden">
                     {filteredDefenseMetrics.length === 0 ? (
-                        <div className="px-4 py-10 text-center text-gray-500 italic text-sm">No defensive stats match this filter</div>
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No defensive stats match this filter</div>
                     ) : (
                         (() => {
                             const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
@@ -278,17 +307,17 @@ export const DefenseSection = ({
                                         id: `${entry.row.account}-${idx}`,
                                         label: (
                                             <>
-                                                <span className="text-gray-500 font-mono">{idx + 1}</span>
+                                                <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
                                                 {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                 <span className="min-w-0 flex flex-col">
                                                     <span className="truncate">{entry.row.account}</span>
                                                     {minionDamageMode === 'combined' && Array.isArray(entry.row.minionList) && entry.row.minionList.length > 0 && (
-                                                        <span className="truncate text-[10px] text-gray-500">
+                                                        <span className="truncate text-[10px]" style={{ color: 'var(--text-secondary)' }}>
                                                             {entry.row.minionList.join(', ')}
                                                         </span>
                                                     )}
                                                     {minionDamageMode === 'separate' && entry.row.minionName && (
-                                                        <span className="truncate text-[10px] text-gray-400">
+                                                        <span className="truncate text-[10px]" style={{ color: 'var(--text-secondary)' }}>
                                                             {entry.row.minionName}
                                                         </span>
                                                     )}
@@ -304,32 +333,37 @@ export const DefenseSection = ({
                 </div>
             </div>
         ) : (
+            <>
             <StatsTableLayout
                 expanded={expandedSection === 'defense-detailed'}
-                sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'defense-detailed' ? 'h-full flex-1' : 'self-start'}`}
-                contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'defense-detailed' ? 'flex flex-col min-h-0' : ''}`}
+                sidebarClassName={`pr-3 flex flex-col overflow-y-auto ${expandedSection === 'defense-detailed' ? 'h-full flex-1 min-h-0' : ''}`}
+                sidebarStyle={undefined}
+                contentClassName={`overflow-hidden ${expandedSection === 'defense-detailed' ? 'flex flex-col min-h-0' : ''}`}
+                contentStyle={undefined}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Defensive Tabs</div>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Defensive Tabs</div>
                         <input
                             value={defenseSearch}
                             onChange={(e) => setDefenseSearch(e.target.value)}
                             placeholder="Search..."
-                            className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                            className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
+                            style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
                         />
                         <div className={`${sidebarListClass} ${expandedSection === 'defense-detailed' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
                                 if (filteredDefenseMetrics.length === 0) {
-                                    return <div className="text-center text-gray-500 italic py-6 text-xs">No defensive stats match this filter</div>;
+                                    return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No defensive stats match this filter</div>;
                                 }
                                 return filteredDefenseMetrics.map((metric) => (
                                     <button
                                         key={metric.id}
                                         onClick={() => setActiveDefenseStat(metric.id)}
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeDefenseStat === metric.id
-                                            ? 'bg-sky-500/20 text-sky-200 border-sky-500/40'
-                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeDefenseStat === metric.id
+                                            ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                            : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                             }`}
+                                        style={activeDefenseStat !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
                                     >
                                         {metric.label}
                                     </button>
@@ -368,48 +402,18 @@ export const DefenseSection = ({
                             return (
                                 <StatsTableShell
                                     expanded={expandedSection === 'defense-detailed'}
-                                    header={
-                                        <div className="flex items-center justify-between px-4 py-3 bg-white/5">
-                                            <div className="text-sm font-semibold text-gray-200">{metric.label}</div>
-                                            <div className="text-xs uppercase tracking-widest text-gray-500">Defensive</div>
-                                        </div>
-                                    }
+                                    animationKey={`${activeDefenseStat}-${defenseViewMode}`}
+                                    header={null}
                                     columns={
                                         <>
-                                            <div className={`flex items-center px-4 py-2 bg-white/5 ${isMinionDamageMetric(metric.id) ? 'justify-between' : 'justify-end'}`}>
-                                                {isMinionDamageMetric(metric.id) && (
-                                                    <PillToggleGroup
-                                                        value={minionDamageMode}
-                                                        onChange={(value) => setMinionDamageMode(value as 'combined' | 'separate')}
-                                                        options={[
-                                                            { value: 'combined', label: 'Combined' },
-                                                            { value: 'separate', label: 'Separate' }
-                                                        ]}
-                                                        activeClassName="bg-indigo-500/20 text-indigo-200 border border-indigo-500/40"
-                                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                                                    />
-                                                )}
-                                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                                    <PillToggleGroup
-                                                        value={defenseViewMode}
-                                                        onChange={setDefenseViewMode}
-                                                        options={[
-                                                            { value: 'total', label: 'Total' },
-                                                            { value: 'per1s', label: 'Stat/1s' },
-                                                            { value: 'per60s', label: 'Stat/60s' }
-                                                        ]}
-                                                        activeClassName="bg-sky-500/20 text-sky-200 border border-sky-500/40"
-                                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                            <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
                                                 <div className="text-center">#</div>
                                                 <div>Player</div>
                                                 <button
                                                     type="button"
                                                     onClick={() => updateSort('value')}
-                                                    className={`text-right transition-colors ${sortState.key === 'value' ? 'text-sky-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                    className="text-right transition-colors"
+                                                    style={{ color: sortState.key === 'value' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                                 >
                                                     {defenseViewMode === 'total' ? 'Total' : defenseViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
                                                     {sortState.key === 'value' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
@@ -417,7 +421,8 @@ export const DefenseSection = ({
                                                 <button
                                                     type="button"
                                                     onClick={() => updateSort('fightTime')}
-                                                    className={`text-right transition-colors ${sortState.key === 'fightTime' ? 'text-sky-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                    className="text-right transition-colors"
+                                                    style={{ color: sortState.key === 'fightTime' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                                 >
                                                     Fight Time{sortState.key === 'fightTime' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                 </button>
@@ -427,21 +432,21 @@ export const DefenseSection = ({
                                     rows={
                                         <>
                                             {rows.map((row: any, idx: number) => (
-                                                <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
-                                                    <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
+                                                <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
+                                                    <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                         <span className="min-w-0 flex flex-col">
                                                             <span className="truncate">{row.account}</span>
                                                             {isMinionDamageMetric(metric.id) && minionDamageMode === 'combined' && Array.isArray(row.minionList) && row.minionList.length > 0 && (
-                                                                <span className="truncate text-[10px] text-gray-500">{row.minionList.join(', ')}</span>
+                                                                <span className="truncate text-[10px]" style={{ color: 'var(--text-secondary)' }}>{row.minionList.join(', ')}</span>
                                                             )}
                                                             {isMinionDamageMetric(metric.id) && minionDamageMode === 'separate' && row.minionName && (
-                                                                <span className="truncate text-[10px] text-gray-400">{row.minionName}</span>
+                                                                <span className="truncate text-[10px]" style={{ color: 'var(--text-secondary)' }}>{row.minionName}</span>
                                                             )}
                                                         </span>
                                                     </div>
-                                                    <div className="text-right font-mono text-gray-300">
+                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                         {(() => {
                                                             const value = defenseViewMode === 'total'
                                                                 ? row.total
@@ -452,7 +457,7 @@ export const DefenseSection = ({
                                                             return formatWithCommas(value, decimals);
                                                         })()}
                                                     </div>
-                                                    <div className="text-right font-mono text-gray-400">
+                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                         {row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}
                                                     </div>
                                                 </div>
@@ -465,6 +470,7 @@ export const DefenseSection = ({
                     </>
                 }
             />
+            </>
         )}
     </div>
     );

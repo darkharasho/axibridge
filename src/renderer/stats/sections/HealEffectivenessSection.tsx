@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Waves, Maximize2, X } from 'lucide-react';
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
+import { Maximize2, X, Waves } from 'lucide-react';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import type { HealEffectivenessFight, HealEffectivenessSkillRow } from '../computeHealEffectivenessData';
 import { useStatsSharedContext } from '../StatsViewContext';
@@ -20,24 +21,25 @@ const SkillTable = ({
     rows: HealEffectivenessSkillRow[];
     colorClass: string;
 }) => (
-    <div className="rounded-2xl border border-white/10 bg-black/25 overflow-hidden min-h-[260px]">
-        <div className="px-4 py-3 border-b border-white/10">
-            <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">{title}</div>
+    <div className="rounded-[var(--radius-md)] overflow-hidden border border-[color:var(--border-default)] flex flex-col">
+        <div className="px-4 py-3 border-b border-[color:var(--border-default)] flex items-center justify-between flex-shrink-0">
+            <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{title}</div>
+            <div className="text-[10px] text-[color:var(--text-muted)]">{rows.length} {rows.length === 1 ? 'skill' : 'skills'}</div>
         </div>
         {rows.length === 0 ? (
-            <div className="px-4 py-8 text-center text-xs text-gray-500 italic">No skill data available for this fight.</div>
+            <div className="px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No skill data available for this fight.</div>
         ) : (
             <>
-                <div className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-gray-400 border-b border-white/10">
+                <div className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                     <div>Skill</div>
                     <div className="text-right">{metricLabel}</div>
                     <div className="text-right">Hits</div>
                 </div>
-                <div className="max-h-[320px] overflow-y-auto">
+                <div className="flex-1 min-h-0 overflow-y-auto">
                     {rows.map((row, index) => (
                         <div
                             key={`${row.skillName}-${index}`}
-                            className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2.5 text-sm text-gray-200 border-b border-white/[0.05] last:border-b-0"
+                            className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2.5 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)] last:border-b-0"
                         >
                             <div className="min-w-0">
                                 <InlineIconLabel
@@ -49,7 +51,7 @@ const SkillTable = ({
                                 />
                             </div>
                             <div className={`text-right font-mono ${colorClass}`}>{Math.round(row.amount).toLocaleString()}</div>
-                            <div className="text-right font-mono text-gray-300">{Math.round(row.hits || 0).toLocaleString()}</div>
+                            <div className="text-right font-mono text-[color:var(--text-secondary)]">{Math.round(row.hits || 0).toLocaleString()}</div>
                         </div>
                     ))}
                 </div>
@@ -64,10 +66,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
         expandedSection,
         expandedSectionClosing,
         openExpandedSection,
-        closeExpandedSection,
-        isSectionVisible,
-        isFirstVisibleSection,
-        sectionClass
+        closeExpandedSection
     } = useStatsSharedContext();
     const sectionId = 'heal-effectiveness';
     const isExpanded = expandedSection === sectionId;
@@ -99,50 +98,41 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
 
     return (
         <div
-            id={sectionId}
-            data-section-visible={isSectionVisible(sectionId)}
-            data-section-first={isFirstVisibleSection(sectionId)}
-            className={sectionClass(sectionId, `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
-                isExpanded
-                    ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
-                        expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                    }`
-                    : ''
-            }`)}
+            className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
+            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
         >
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                    <Waves className="w-5 h-5 text-cyan-300" />
-                    Heal Effectiveness
-                </h3>
+            <div className="flex items-center gap-2 mb-3.5">
+                <Waves className="w-4 h-4 shrink-0" style={{ color: 'var(--section-healing)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Heal Effectiveness</h3>
                 <button
                     type="button"
                     onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                    className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
+                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
                     aria-label={isExpanded ? 'Close Heal Effectiveness' : 'Expand Heal Effectiveness'}
                     title={isExpanded ? 'Close' : 'Expand'}
                 >
-                    {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
                 </button>
             </div>
             {fights.length === 0 ? (
-                <div className="text-center text-gray-500 italic py-8">No heal effectiveness data available</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No heal effectiveness data available</div>
             ) : (
                 <>
-                    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <div className="rounded-[var(--radius-md)] p-4">
                         <div className="flex items-center justify-between gap-3 mb-3">
                             <div>
-                                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">Per Fight Totals</div>
-                                <div className="text-[11px] text-gray-500 mt-1">
-                                    Red is incoming damage, green is healing, white is healing plus barrier. Click a point to show that fight&apos;s skill tables.
+                                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">Per Fight Totals</div>
+                                <div className="text-[11px] text-[color:var(--text-secondary)] mt-1">
+                                    Click a point to view skill breakdown
                                 </div>
                             </div>
-                            <div className="text-[11px] text-gray-500 shrink-0">
+                            <div className="text-[11px] text-[color:var(--text-secondary)] shrink-0">
                                 {fights.length} {fights.length === 1 ? 'fight' : 'fights'}
                             </div>
                         </div>
                         <div className={`${isExpanded ? 'h-[360px]' : 'h-[300px]'}`}>
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <LineChart
                                     data={chartData}
                                     onClick={(state: any) => {
@@ -169,6 +159,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                                         name="Incoming Damage"
                                         stroke="#fb7185"
                                         strokeWidth={2.5}
+
                                         dot={(props: any) => {
                                             const idx = Number(props?.payload?.index);
                                             if (!Number.isFinite(idx)) return null;
@@ -201,6 +192,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                                         name="Healing"
                                         stroke="#86efac"
                                         strokeWidth={2.5}
+
                                         dot={false}
                                         activeDot={{ r: 4 }}
                                     />
@@ -210,52 +202,64 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                                         name="Healing + Barrier"
                                         stroke="#ffffff"
                                         strokeWidth={2.5}
+
                                         dot={false}
                                         activeDot={{ r: 4 }}
                                     />
                                 </LineChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         </div>
                     </div>
 
-                    <div className={`mt-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 transition-all duration-300 ${
-                        selectedFight ? 'opacity-100 translate-y-0' : 'opacity-90'
-                    }`}
+                    <div className={`mt-4 px-4 py-3 ${isExpanded ? 'flex-1 min-h-0 flex flex-col' : ''}`}
                     >
-                        <div className="flex items-center justify-between gap-3 mb-3">
+                        <div className="grid gap-3 md:grid-cols-4 mb-3">
                             <div>
-                                <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
-                                    {selectedFight ? `${selectedFight.fullLabel} - Fight Details` : 'Fight Details'}
+                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Incoming</div>
+                                <div className="mt-1 text-lg font-black font-mono text-rose-200">
+                                    {selectedFight ? formatWithCommas(selectedFight.incomingDamage, 0) : '—'}
                                 </div>
-                                {selectedFight ? (
-                                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-400">
-                                        <span>Incoming: {formatWithCommas(selectedFight.incomingDamage, 0)}</span>
-                                        <span>Healing: {formatWithCommas(selectedFight.healing, 0)}</span>
-                                        <span>Barrier: {formatWithCommas(selectedFight.barrier, 0)}</span>
-                                        <span>Healing + Barrier: {formatWithCommas(selectedFight.healing + selectedFight.barrier, 0)}</span>
+                            </div>
+                            <div>
+                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Healing</div>
+                                <div className="mt-1 text-lg font-black font-mono" style={{ color: '#86efac' }}>
+                                    {selectedFight ? formatWithCommas(selectedFight.healing, 0) : '—'}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Barrier</div>
+                                <div className="mt-1 text-lg font-black font-mono text-[color:var(--text-primary)]">
+                                    {selectedFight ? formatWithCommas(selectedFight.barrier, 0) : '—'}
+                                </div>
+                            </div>
+                            <div className="flex items-start justify-between gap-2">
+                                <div>
+                                    <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">
+                                        {selectedFight ? 'Selected Fight' : 'Fight Details'}
                                     </div>
-                                ) : (
-                                    <div className="text-xs text-gray-500 mt-1">Select one fight to view the per-fight skill tables.</div>
+                                    <div className="mt-1 text-sm text-[color:var(--text-primary)] truncate">
+                                        {selectedFight ? selectedFight.fullLabel : 'Select a fight to view details'}
+                                    </div>
+                                </div>
+                                {selectedFight && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedFightIndex(null)}
+                                        className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] shrink-0"
+                                    >
+                                        Clear
+                                    </button>
                                 )}
                             </div>
-                            {selectedFight && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedFightIndex(null)}
-                                    className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-gray-200"
-                                >
-                                    Clear
-                                </button>
-                            )}
                         </div>
 
                         {selectedFight ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${isExpanded ? 'flex-1 min-h-0' : 'items-start'}`}>
                                 <SkillTable
                                     title="Outgoing Healing Skills"
                                     metricLabel="Healing"
                                     rows={selectedFight.healingSkills}
-                                    colorClass="text-gray-200"
+                                    colorClass="text-[color:var(--text-primary)]"
                                 />
                                 <SkillTable
                                     title="Incoming Damage Skills"

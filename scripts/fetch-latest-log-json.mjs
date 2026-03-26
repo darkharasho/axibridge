@@ -39,15 +39,19 @@ if (!outPath && positionals.length > 1) {
     outPath = positionals[1];
 }
 
-if (!watchDir && process.env.ARCBRIDGE_LOG_DIR) {
-    watchDir = process.env.ARCBRIDGE_LOG_DIR;
+if (!watchDir && process.env.AXIBRIDGE_LOG_DIR) {
+    watchDir = process.env.AXIBRIDGE_LOG_DIR;
 }
 
 const readConfigLogDir = async () => {
     const xdgConfigHome = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
     const candidates = [
+        path.join(xdgConfigHome, 'AxiBridge', 'config.json'),
+        path.join(xdgConfigHome, 'axibridge', 'config.json'),
         path.join(xdgConfigHome, 'ArcBridge', 'config.json'),
         path.join(xdgConfigHome, 'arcbridge', 'config.json'),
+        path.join(os.homedir(), '.config', 'AxiBridge', 'config.json'),
+        path.join(os.homedir(), '.config', 'axibridge', 'config.json'),
         path.join(os.homedir(), '.config', 'ArcBridge', 'config.json'),
         path.join(os.homedir(), '.config', 'arcbridge', 'config.json')
     ];
@@ -73,7 +77,7 @@ if (!watchDir) {
 
 if (!watchDir) {
     console.error('Usage: node scripts/fetch-latest-log-json.mjs <watch-dir> [output-json]');
-    console.error('  Or set ARCBRIDGE_LOG_DIR, or configure the app log directory so it can be detected.');
+    console.error('  Or set AXIBRIDGE_LOG_DIR, or configure the app log directory so it can be detected.');
     process.exit(1);
 }
 

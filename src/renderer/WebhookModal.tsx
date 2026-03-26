@@ -81,7 +81,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60"
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
@@ -89,17 +89,18 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="app-modal-card bg-gradient-to-br from-gray-900 to-gray-950 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+                    className="app-modal-card rounded-[4px] w-full max-w-lg mx-4 overflow-hidden"
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+                    <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
                         <h2 className="text-lg font-bold text-white flex items-center gap-2">
                             <Link className="w-5 h-5 text-purple-400" />
                             Manage Webhooks
                         </h2>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                            className="p-1.5 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -120,7 +121,8 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                             {localWebhooks.map(webhook => (
                                 <div
                                     key={webhook.id}
-                                    className="bg-white/5 border border-white/10 rounded-xl p-4 group hover:bg-white/10 transition-colors"
+                                    className="rounded-[4px] p-4 group transition-colors"
+                                    style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}
                                 >
                                     {editingId === webhook.id ? (
                                         <div className="space-y-3">
@@ -129,26 +131,26 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                                                 value={editName}
                                                 onChange={(e) => setEditName(e.target.value)}
                                                 placeholder="Webhook name"
-                                                className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
+                                                className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
                                             />
                                             <input
                                                 type="text"
                                                 value={editUrl}
                                                 onChange={(e) => setEditUrl(e.target.value)}
                                                 placeholder="https://discord.com/api/webhooks/..."
-                                                className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 font-mono text-xs"
+                                                className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
                                             />
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={handleSaveEdit}
-                                                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors text-sm font-medium"
+                                                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/20 text-green-400 rounded-[4px] hover:bg-green-500/30 transition-colors text-sm font-medium"
                                                 >
                                                     <Check className="w-4 h-4" />
                                                     Save
                                                 </button>
                                                 <button
                                                     onClick={() => setEditingId(null)}
-                                                    className="flex-1 py-2 bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 transition-colors text-sm"
+                                                    className="flex-1 py-2 bg-white/5 text-gray-400 rounded-[4px] hover:bg-white/10 transition-colors text-sm"
                                                 >
                                                     Cancel
                                                 </button>
@@ -163,14 +165,14 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                                             <div className="flex items-center gap-1 ml-3">
                                                 <button
                                                     onClick={() => handleEdit(webhook)}
-                                                    className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-blue-400 transition-colors"
+                                                    className="p-2 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-blue-400 transition-colors"
                                                     title="Edit"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(webhook.id)}
-                                                    className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors"
+                                                    className="p-2 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors"
                                                     title="Delete"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -184,14 +186,14 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
 
                         {/* Add New Webhook Form */}
                         {isAdding ? (
-                            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 space-y-3">
+                            <div className="rounded-[4px] p-4 space-y-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
                                 <div className="text-sm font-medium text-purple-300 mb-2">New Webhook</div>
                                 <input
                                     type="text"
                                     value={newName}
                                     onChange={(e) => setNewName(e.target.value)}
                                     placeholder="Webhook name (e.g., My Guild)"
-                                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
+                                    className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
                                     autoFocus
                                 />
                                 <input
@@ -199,20 +201,20 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                                     value={newUrl}
                                     onChange={(e) => setNewUrl(e.target.value)}
                                     placeholder="https://discord.com/api/webhooks/..."
-                                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 font-mono text-xs"
+                                    className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
                                 />
                                 <div className="flex gap-2">
                                     <button
                                         onClick={handleAdd}
                                         disabled={!newName.trim() || !newUrl.trim()}
-                                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-500/20 text-blue-300 rounded-[4px] hover:bg-blue-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Plus className="w-4 h-4" />
                                         Add Webhook
                                     </button>
                                     <button
                                         onClick={() => { setIsAdding(false); setNewName(''); setNewUrl(''); }}
-                                        className="flex-1 py-2 bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 transition-colors text-sm"
+                                        className="flex-1 py-2 bg-white/5 text-gray-400 rounded-[4px] hover:bg-white/10 transition-colors text-sm"
                                     >
                                         Cancel
                                     </button>
@@ -221,7 +223,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                         ) : (
                             <button
                                 onClick={() => setIsAdding(true)}
-                                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-white/10 rounded-xl text-gray-400 hover:border-purple-500/50 hover:text-purple-400 transition-colors"
+                                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-[4px] text-gray-400 hover:text-blue-300 transition-colors" style={{ borderColor: 'var(--border-default)' }}
                             >
                                 <Plus className="w-5 h-5" />
                                 Add New Webhook
@@ -230,7 +232,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                     </div>
 
                     {/* Footer */}
-                    <div className="flex justify-end gap-3 px-6 py-4 border-t border-white/10 bg-black/20">
+                    <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border-default)' }}>
                         <button
                             onClick={onClose}
                             className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
@@ -239,7 +241,8 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                         </button>
                         <button
                             onClick={handleSaveAll}
-                            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-medium hover:from-purple-500 hover:to-blue-500 transition-all shadow-lg shadow-purple-500/20"
+                            className="px-4 py-2 text-white rounded-[4px] text-sm font-medium transition-all"
+                            style={{ background: 'var(--brand-primary)' }}
                         >
                             Save Changes
                         </button>

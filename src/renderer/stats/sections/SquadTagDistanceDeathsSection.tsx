@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts';
-import { Crosshair, Maximize2, X } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
+import { Maximize2, X, Crosshair } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 import type { TagDistanceDeathFightSummary } from '../computeTagDistanceDeaths';
 
@@ -14,10 +15,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
         expandedSection,
         expandedSectionClosing,
         openExpandedSection,
-        closeExpandedSection,
-        isSectionVisible,
-        isFirstVisibleSection,
-        sectionClass
+        closeExpandedSection
     } = useStatsSharedContext();
     const sectionId = 'squad-tag-distance-deaths';
     const isExpanded = expandedSection === sectionId;
@@ -64,61 +62,52 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
 
     return (
         <div
-            id={sectionId}
-            data-section-visible={isSectionVisible(sectionId)}
-            data-section-first={isFirstVisibleSection(sectionId)}
-            className={sectionClass(sectionId, `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
-                isExpanded
-                    ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
-                        expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                    }`
-                    : ''
-            }`)}
+            className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
+            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
         >
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                    <Crosshair className="w-5 h-5 text-orange-300" />
-                    Tag Distance Deaths
-                </h3>
+            <div className="flex items-center gap-2 mb-3.5">
+                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Tag Distance Deaths</h3>
                 <button
                     type="button"
                     onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                    className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
+                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
                     aria-label={isExpanded ? 'Close Tag Distance Deaths' : 'Expand Tag Distance Deaths'}
                     title={isExpanded ? 'Close' : 'Expand'}
                 >
-                    {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
                 </button>
             </div>
 
             {!hasAnyData ? (
-                <div className="text-center text-gray-500 italic py-8">No replay data available — commander tag positions are required for this chart.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No replay data available — commander tag positions are required for this chart.</div>
             ) : (
                 <>
                     {/* Summary stats */}
                     <div className="flex gap-4 mb-4">
-                        <div className="px-3 py-2 rounded-lg bg-black/20 border border-white/5">
-                            <div className="text-[10px] uppercase tracking-[0.25em] text-gray-500">Avg Distance</div>
-                            <div className="text-sm font-mono text-gray-200 mt-0.5">{formatWithCommas(overallAvg, 0)}</div>
+                        <div className="px-3 py-2 rounded-[var(--radius-md)] bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)]">
+                            <div className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)]">Avg Distance</div>
+                            <div className="text-sm font-mono text-[color:var(--text-primary)] mt-0.5">{formatWithCommas(overallAvg, 0)}</div>
                         </div>
-                        <div className="px-3 py-2 rounded-lg bg-black/20 border border-white/5">
-                            <div className="text-[10px] uppercase tracking-[0.25em] text-gray-500">Total Deaths</div>
-                            <div className="text-sm font-mono text-gray-200 mt-0.5">{totalDeaths}</div>
+                        <div className="px-3 py-2 rounded-[var(--radius-md)] bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)]">
+                            <div className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)]">Total Deaths</div>
+                            <div className="text-sm font-mono text-[color:var(--text-primary)] mt-0.5">{totalDeaths}</div>
                         </div>
                     </div>
 
                     {/* Summary bar chart */}
-                    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <div className="rounded-[var(--radius-md)] p-4">
                         <div className="flex items-center justify-between gap-3 mb-3">
                             <div>
-                                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">Avg Death Distance from Tag</div>
-                                <div className="text-[11px] text-gray-500 mt-1">
+                                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">Avg Death Distance from Tag</div>
+                                <div className="text-[11px] text-[color:var(--text-secondary)] mt-1">
                                     Average distance from commander tag at moment of death. Click a bar to see individual deaths.
                                 </div>
                             </div>
                         </div>
                         <div className={isExpanded ? 'h-[300px]' : 'h-[220px]'}>
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <BarChart
                                     data={summaryData}
                                     onClick={(state: any) => {
@@ -171,47 +160,47 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                         ))}
                                     </Bar>
                                 </BarChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         </div>
                         <div className="flex justify-center gap-4 mt-2">
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
-                                <span className="text-[9px] text-gray-400">Win</span>
+                                <span className="text-[9px] text-[color:var(--text-secondary)]">Win</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2.5 h-2.5 rounded-sm bg-red-400" />
-                                <span className="text-[9px] text-gray-400">Loss</span>
+                                <span className="text-[9px] text-[color:var(--text-secondary)]">Loss</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2.5 h-2.5 rounded-sm bg-gray-600" />
-                                <span className="text-[9px] text-gray-400">No data</span>
+                                <span className="text-[9px] text-[color:var(--text-secondary)]">No data</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Drilldown scatter chart */}
-                    <div className={`mt-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 transition-all duration-300 ${
+                    <div className={`mt-4 px-4 py-3 transition-all duration-300 ${
                         selectedFight ? 'opacity-100 translate-y-0' : 'opacity-90'
                     }`}>
                         <div className="flex items-center justify-between gap-3 mb-3">
                             <div>
-                                <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
+                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">
                                     {selectedFight ? `${selectedFight.fullLabel} — Death Positions` : 'Fight Details'}
                                 </div>
                                 {selectedFight ? (
-                                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-400">
+                                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[color:var(--text-secondary)]">
                                         <span>{selectedFight.eventCount} death{selectedFight.eventCount !== 1 ? 's' : ''}</span>
                                         <span>Avg: {formatWithCommas(selectedFight.avgDistance, 0)} from tag</span>
                                     </div>
                                 ) : (
-                                    <div className="text-xs text-gray-500 mt-1">Click a bar above to see individual death events for that fight.</div>
+                                    <div className="text-xs text-[color:var(--text-secondary)] mt-1">Click a bar above to see individual death events for that fight.</div>
                                 )}
                             </div>
                             {selectedFight && (
                                 <button
                                     type="button"
                                     onClick={() => setSelectedFightIndex(null)}
-                                    className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-gray-200"
+                                    className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                                 >
                                     Clear
                                 </button>
@@ -220,7 +209,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
 
                         {selectedFight && scatterData.length > 0 ? (
                             <div className={isExpanded ? 'h-[300px]' : 'h-[220px]'}>
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ChartContainer width="100%" height="100%">
                                     <ScatterChart>
                                         <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                         <XAxis
@@ -276,10 +265,10 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                             ))}
                                         </Scatter>
                                     </ScatterChart>
-                                </ResponsiveContainer>
+                                </ChartContainer>
                             </div>
                         ) : selectedFight && scatterData.length === 0 ? (
-                            <div className="text-center text-gray-500 italic py-6 text-xs">No death events in this fight.</div>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No death events in this fight.</div>
                         ) : null}
                     </div>
                 </>

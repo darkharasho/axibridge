@@ -33,6 +33,7 @@ export function useFilePicker({
     const [selectSinceOpen, setSelectSinceOpen] = useState(false);
     const [selectDayOpen, setSelectDayOpen] = useState(false);
     const [selectBetweenOpen, setSelectBetweenOpen] = useState(false);
+    const [activePreset, setActivePreset] = useState<string | null>(null);
 
     // Date states (Custom UI states)
     const [selectDayDate, setSelectDayDate] = useState<Date | null>(null);
@@ -78,6 +79,7 @@ export function useFilePicker({
                 setFilePickerAll(files);
                 setFilePickerMonthWindow(1);
                 setFilePickerAvailable([]);
+                setActivePreset(null);
                 setFilePickerAtBottom(false);
                 setFocusedIndex(null);
             } else {
@@ -122,6 +124,62 @@ export function useFilePicker({
         return filePickerAll.some((entry) => Number.isFinite(entry.mtimeMs) && entry.mtimeMs < cutoffMs);
     }, [filePickerAll, filePickerMonthWindow]);
 
+    const dateFilteredCount = useMemo(() => {
+        if (activePreset) {
+            const now = new Date();
+            let startMs: number;
+            let endMs = Infinity;
+
+            switch (activePreset) {
+                case 'Today':
+                    startMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                    break;
+                case 'Yesterday': {
+                    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                    startMs = yesterday.getTime();
+                    endMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - 1;
+                    break;
+                }
+                case 'Last 3 days':
+                    startMs = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2).getTime();
+                    break;
+                case 'This week': {
+                    const dayOfWeek = now.getDay();
+                    startMs = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek).getTime();
+                    break;
+                }
+                default:
+                    return 0;
+            }
+            return filePickerAll.filter((entry) => Number.isFinite(entry.mtimeMs) && entry.mtimeMs >= startMs && entry.mtimeMs <= endMs).length;
+        }
+
+        if (selectDayOpen && selectDayDate) {
+            const dayStart = new Date(selectDayDate.getFullYear(), selectDayDate.getMonth(), selectDayDate.getDate(), 0, 0, 0, 0).getTime();
+            const dayEnd = new Date(selectDayDate.getFullYear(), selectDayDate.getMonth(), selectDayDate.getDate(), 23, 59, 59, 999).getTime();
+            return filePickerAll.filter((entry) => Number.isFinite(entry.mtimeMs) && entry.mtimeMs >= dayStart && entry.mtimeMs <= dayEnd).length;
+        }
+
+        if (selectSinceOpen && selectSinceDate) {
+            const base = new Date(selectSinceDate.getFullYear(), selectSinceDate.getMonth(), selectSinceDate.getDate());
+            let hour24 = selectSinceHour % 12;
+            if (selectSinceMeridiem === 'PM') hour24 += 12;
+            base.setHours(hour24, selectSinceMinute, 0, 0);
+            const sinceMs = base.getTime();
+            return filePickerAll.filter((entry) => Number.isFinite(entry.mtimeMs) && entry.mtimeMs >= sinceMs).length;
+        }
+
+        if (selectBetweenOpen && selectBetweenStart && selectBetweenEnd) {
+            const rawStartMs = new Date(selectBetweenStart).getTime();
+            const rawEndMs = new Date(selectBetweenEnd).getTime();
+            const startMs = Math.min(rawStartMs, rawEndMs);
+            const endMs = Math.max(rawStartMs, rawEndMs);
+            return filePickerAll.filter((entry) => Number.isFinite(entry.mtimeMs) && entry.mtimeMs >= startMs && entry.mtimeMs <= endMs).length;
+        }
+
+        return 0;
+    }, [activePreset, selectDayOpen, selectDayDate, selectSinceOpen, selectSinceDate, selectSinceHour, selectSinceMinute, selectSinceMeridiem, selectBetweenOpen, selectBetweenStart, selectBetweenEnd, filePickerAll]);
+
     const ensureMonthWindowForSince = (sinceMs: number) => {
         if (!Number.isFinite(sinceMs)) return;
         let monthsBack = Math.max(1, filePickerMonthWindow);
@@ -132,6 +190,53 @@ export function useFilePicker({
         if (monthsBack !== filePickerMonthWindow) {
             setFilePickerMonthWindow(monthsBack);
         }
+    };
+
+    const handleApplyPreset = (preset: string | null) => {
+        if (!preset || preset === activePreset) {
+            // Deactivate
+            setActivePreset(null);
+            setFilePickerSelected(new Set());
+            return;
+        }
+        // Clear any active calendar filter
+        setSelectDayOpen(false);
+        setSelectSinceOpen(false);
+        setSelectBetweenOpen(false);
+        setActivePreset(preset);
+
+        const now = new Date();
+        let startMs: number;
+
+        switch (preset) {
+            case 'Today':
+                startMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                break;
+            case 'Yesterday': {
+                const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                startMs = yesterday.getTime();
+                // For Yesterday, also set an end time (end of yesterday)
+                const endMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - 1;
+                ensureMonthWindowForSince(startMs);
+                const matching = filePickerAll.filter((entry) => Number.isFinite(entry.mtimeMs) && entry.mtimeMs >= startMs && entry.mtimeMs <= endMs);
+                setFilePickerSelected(new Set(matching.map((entry) => entry.path)));
+                return;
+            }
+            case 'Last 3 days':
+                startMs = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2).getTime();
+                break;
+            case 'This week': {
+                const dayOfWeek = now.getDay(); // Sunday = 0
+                startMs = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek).getTime();
+                break;
+            }
+            default:
+                return;
+        }
+
+        ensureMonthWindowForSince(startMs);
+        const matching = filePickerAll.filter((entry) => Number.isFinite(entry.mtimeMs) && entry.mtimeMs >= startMs);
+        setFilePickerSelected(new Set(matching.map((entry) => entry.path)));
     };
 
     const handleAddSelectedFiles = () => {
@@ -172,6 +277,7 @@ export function useFilePicker({
         setFilePickerOpen(false);
         setFilePickerSelected(new Set());
         setFilePickerError(null);
+        setActivePreset(null);
     };
 
     return {
@@ -220,6 +326,10 @@ export function useFilePicker({
         ensureMonthWindowForSince,
         handleAddSelectedFiles,
         focusedIndex,
-        setFocusedIndex
+        setFocusedIndex,
+        activePreset,
+        setActivePreset,
+        handleApplyPreset,
+        dateFilteredCount
     };
 }

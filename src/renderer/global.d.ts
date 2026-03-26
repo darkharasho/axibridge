@@ -1,3 +1,5 @@
+import type { ColorPalette } from '../shared/webThemes';
+
 export interface IWebhook {
     id: string;
     name: string;
@@ -110,12 +112,12 @@ export interface IDevDatasetSnapshot {
     state: {
         view?: 'dashboard' | 'stats' | 'history' | 'settings';
         expandedLogId?: string | null;
-        notificationType?: 'image' | 'image-beta' | 'embed';
+        notificationType?: 'embed';
         embedStatSettings?: Partial<IEmbedStatSettings>;
         mvpWeights?: Partial<IMvpWeights>;
         statsViewSettings?: Partial<IStatsViewSettings>;
         disruptionMethod?: DisruptionMethod;
-        uiTheme?: UiTheme;
+        colorPalette?: ColorPalette;
         selectedWebhookId?: string | null;
         bulkUploadMode?: boolean;
         datasetLogOrder?: string[];
@@ -149,11 +151,6 @@ export interface IUploadRetryQueueState {
     pausedAt: string | null;
     entries: IUploadRetryQueueEntry[];
 }
-
-export type UiTheme = 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass';
-export type KineticFontStyle = 'default' | 'original';
-export type KineticThemeVariant = 'light' | 'midnight' | 'slate';
-export type DashboardLayout = 'top' | 'side';
 
 export type DisruptionMethod = 'count' | 'duration' | 'tiered';
 
@@ -256,10 +253,7 @@ export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS: IDiscordEnemySplitSettings = 
     tiled: false
 };
 
-export const DEFAULT_UI_THEME: UiTheme = 'classic';
-export const DEFAULT_KINETIC_FONT_STYLE: KineticFontStyle = 'default';
-export const DEFAULT_KINETIC_THEME_VARIANT: KineticThemeVariant = 'light';
-export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = 'side';
+export const DEFAULT_GLASS_SURFACES = false;
 
 export interface IElectronAPI {
     selectDirectory: () => Promise<string | null>;
@@ -273,7 +267,7 @@ export interface IElectronAPI {
     getSettings: () => Promise<{
         logDirectory: string | null;
         discordWebhookUrl: string | null;
-        discordNotificationType: 'image' | 'image-beta' | 'embed';
+        discordNotificationType: 'embed';
         discordEnemySplitSettings: IDiscordEnemySplitSettings;
         discordSplitEnemiesByTeam?: boolean;
         webhooks: IWebhook[];
@@ -284,10 +278,8 @@ export interface IElectronAPI {
         mvpWeights: IMvpWeights;
         statsViewSettings: IStatsViewSettings;
         disruptionMethod: DisruptionMethod;
-        uiTheme?: UiTheme;
-        kineticFontStyle?: KineticFontStyle;
-        kineticThemeVariant?: KineticThemeVariant;
-        dashboardLayout?: DashboardLayout;
+        colorPalette?: ColorPalette;
+        glassSurfaces?: boolean;
         autoUpdateSupported?: boolean;
         autoUpdateDisabledReason?: string | null;
         githubRepoOwner?: string | null;
@@ -295,7 +287,6 @@ export interface IElectronAPI {
         githubBranch?: string | null;
         githubPagesBaseUrl?: string | null;
         githubToken?: string | null;
-        githubWebTheme?: string | null;
         githubLogoPath?: string | null;
         githubFavoriteRepos?: string[] | null;
         walkthroughSeen?: boolean;
@@ -311,7 +302,7 @@ export interface IElectronAPI {
     saveSettings: (settings: {
         logDirectory?: string | null;
         discordWebhookUrl?: string | null;
-        discordNotificationType?: 'image' | 'image-beta' | 'embed';
+        discordNotificationType?: 'embed';
         discordEnemySplitSettings?: IDiscordEnemySplitSettings;
         discordSplitEnemiesByTeam?: boolean;
         webhooks?: IWebhook[];
@@ -322,26 +313,19 @@ export interface IElectronAPI {
         mvpWeights?: IMvpWeights;
         statsViewSettings?: IStatsViewSettings;
         disruptionMethod?: DisruptionMethod;
-        uiTheme?: UiTheme;
-        kineticFontStyle?: KineticFontStyle;
-        kineticThemeVariant?: KineticThemeVariant;
-        dashboardLayout?: DashboardLayout;
+        colorPalette?: ColorPalette;
+        glassSurfaces?: boolean;
         githubRepoOwner?: string | null;
         githubRepoName?: string | null;
         githubBranch?: string | null;
         githubPagesBaseUrl?: string | null;
         githubToken?: string | null;
-        githubWebTheme?: string | null;
         githubLogoPath?: string | null;
         githubFavoriteRepos?: string[] | null;
         walkthroughSeen?: boolean;
     }) => void;
-    onRequestScreenshot: (callback: (data: any) => void) => () => void;
     openExternal: (url: string) => Promise<{ success: boolean, error?: string }>;
     fetchImageAsDataUrl: (url: string) => Promise<{ success: boolean; dataUrl?: string; error?: string }>;
-    sendScreenshot: (id: string, buffer: Uint8Array) => void;
-    sendScreenshots: (id: string, buffers: Uint8Array[]) => void;
-    sendScreenshotsGroups: (id: string, groups: Uint8Array[][]) => void;
     onConsoleLog: (callback: (log: { type: 'info' | 'error', message: string, timestamp: string }) => void) => () => void;
     onConsoleLogHistory: (callback: (logs: Array<{ type: 'info' | 'error', message: string, timestamp: string }>) => void) => () => void;
     setConsoleLogForwarding: (enabled: boolean) => void;
@@ -358,7 +342,6 @@ export interface IElectronAPI {
     onUpdateError: (callback: (err: any) => void) => () => void;
     onDownloadProgress: (callback: (progress: any) => void) => () => void;
     onUpdateDownloaded: (callback: (info: any) => void) => () => void;
-    sendStatsScreenshot: (buffer: Uint8Array) => void;
     getAppVersion: () => Promise<string>;
     getWhatsNew: () => Promise<{
         version: string;
@@ -370,19 +353,18 @@ export interface IElectronAPI {
     onGithubAuthComplete: (callback: (data: { success: boolean; token?: string; error?: string }) => void) => () => void;
     getGithubRepos: () => Promise<{ success: boolean; repos?: Array<{ full_name: string; name: string; owner: string }>; error?: string }>;
     getGithubOrgs: () => Promise<{ success: boolean; orgs?: Array<{ login: string }>; error?: string }>;
-    getGithubReports: () => Promise<{ success: boolean; reports?: any[]; error?: string }>;
-    deleteGithubReports: (payload: { ids: string[] }) => Promise<{ success: boolean; removed?: string[]; error?: string }>;
+    getGithubReports: (payload?: { owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; reports?: any[]; error?: string }>;
+    deleteGithubReports: (payload: { ids: string[]; owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; removed?: string[]; error?: string }>;
+    getGithubReportDetail: (payload: { reportId: string; owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; report?: any; error?: string }>;
     listLogFiles: (payload: { dir: string }) => Promise<{ success: boolean; files?: Array<{ path: string; name: string; mtimeMs: number; size: number }>; error?: string }>;
     createGithubRepo: (params: { name: string; branch?: string; owner?: string }) => Promise<{ success: boolean; repo?: { full_name: string; owner: string; name: string; pagesUrl?: string }; error?: string }>;
     ensureGithubTemplate: () => Promise<{ success: boolean; updated?: boolean; error?: string }>;
     selectGithubLogo: () => Promise<string | null>;
     applyGithubLogo: (payload?: { logoPath?: string }) => Promise<{ success: boolean; updated?: boolean; error?: string }>;
-    applyGithubTheme: (payload?: { themeId?: string }) => Promise<{ success: boolean; error?: string }>;
     uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; url?: string; error?: string; errorDetail?: string }>;
     mockWebReport: (payload: { meta: any; stats: any }) => Promise<{ success: boolean; url?: string; error?: string }>;
     getGithubPagesBuildStatus: (payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; status?: string; updatedAt?: string; errorMessage?: string; error?: string }>;
     onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number }) => void) => () => void;
-    onGithubThemeStatus: (callback: (data: { stage?: string; message?: string; progress?: number }) => void) => () => void;
     exportSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     importSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     selectSettingsFile: () => Promise<{ success: boolean; canceled?: boolean; error?: string; settings?: any; filePath?: string }>;

@@ -1,5 +1,7 @@
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Users } from 'lucide-react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
 
 type TimelineSectionProps = {
@@ -13,47 +15,31 @@ export const TimelineSection = ({
     timelineFriendlyScope,
     setTimelineFriendlyScope
 }: TimelineSectionProps) => {
-    const { isSectionVisible, isFirstVisibleSection, sectionClass } = useStatsSharedContext();
+    useStatsSharedContext();
     return (
-    <div
-        id="timeline"
-        data-section-visible={isSectionVisible('timeline')}
-        data-section-first={isFirstVisibleSection('timeline')}
-        className={sectionClass('timeline', 'bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24')}
-    >
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                <Users className="w-5 h-5 text-green-400" />
-                Squad vs Enemy Size
-            </h3>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-gray-500">
-                <span className="text-gray-400">Friendly Count</span>
-                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1">
-                    {([
+    <div>
+        <div className="flex items-center gap-2 mb-3.5 flex-wrap">
+            <Users className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Squad vs Enemy Size</h3>
+            <div className="ml-auto flex items-center gap-2">
+                <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Friendly Count</span>
+                <PillToggleGroup
+                    value={timelineFriendlyScope}
+                    onChange={(value) => setTimelineFriendlyScope(value as 'squad' | 'squadAllies')}
+                    options={[
                         { value: 'squad', label: 'Squad' },
                         { value: 'squadAllies', label: 'Squad + Allies' }
-                    ] as const).map((option) => (
-                        <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => setTimelineFriendlyScope(option.value)}
-                            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                                timelineFriendlyScope === option.value
-                                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
-                                    : 'border border-transparent text-gray-400 hover:text-gray-200'
-                            }`}
-                        >
-                            {option.label}
-                        </button>
-                    ))}
-                </div>
+                    ]}
+                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                    inactiveClassName="border border-transparent text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                />
             </div>
         </div>
         {timelineData.length === 0 ? (
-            <div className="text-center text-gray-500 italic py-10">No timeline data available</div>
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No timeline data available</div>
         ) : (
             <div className="h-[260px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer width="100%" height="100%">
                     <LineChart data={timelineData} margin={{ top: 10, right: 24, left: 0, bottom: 0 }}>
                         <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                         <XAxis
@@ -107,7 +93,7 @@ export const TimelineSection = ({
                             activeDot={{ r: 5 }}
                         />
                     </LineChart>
-                </ResponsiveContainer>
+                </ChartContainer>
             </div>
         )}
     </div>

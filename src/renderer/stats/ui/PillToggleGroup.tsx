@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { motion } from 'framer-motion';
 
 type PillToggleOption<T extends string> = {
     value: T;
@@ -21,17 +22,50 @@ export const PillToggleGroup = <T extends string>({
     className = '',
     activeClassName,
     inactiveClassName
-}: PillToggleGroupProps<T>) => (
-    <div className={`pill-toggle-group flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-[10px] uppercase tracking-[0.25em] text-gray-400 ${className}`}>
-        {options.map((option) => (
-            <button
-                key={option.value}
-                type="button"
-                onClick={() => onChange(option.value)}
-                className={`pill-toggle-option px-2.5 py-1 rounded-full transition-colors ${value === option.value ? `pill-toggle-option--active ${activeClassName}` : inactiveClassName}`}
-            >
-                {option.label}
-            </button>
-        ))}
-    </div>
-);
+}: PillToggleGroupProps<T>) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const activeIndex = options.findIndex(o => o.value === value);
+        if (activeIndex < 0) { setIndicator(null); return; }
+        const buttons = containerRef.current.querySelectorAll<HTMLButtonElement>('button');
+        const btn = buttons[activeIndex];
+        if (!btn) return;
+        setIndicator({ left: btn.offsetLeft, width: btn.offsetWidth });
+    }, [value, options]);
+
+    return (
+        <div
+            ref={containerRef}
+            className={`pill-toggle-group relative flex items-center gap-1 p-[1px] text-[10px] uppercase tracking-[0.25em] ${className}`}
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: '3px', color: 'var(--text-secondary)' }}
+        >
+            {indicator && (
+                <motion.span
+                    className="absolute top-[1px] bottom-[1px] rounded-sm pointer-events-none"
+                    animate={{ left: indicator.left, width: indicator.width }}
+                    transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    style={{
+                        background: 'var(--accent-bg-strong)',
+                        border: '1px solid var(--accent-border)',
+                    }}
+                />
+            )}
+            {options.map((option) => {
+                const isActive = value === option.value;
+                return (
+                    <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => onChange(option.value)}
+                        className={`pill-toggle-option relative px-2.5 py-1 rounded-sm z-[1] ${isActive ? `pill-toggle-option--active ${activeClassName}` : inactiveClassName}`}
+                    >
+                        {option.label}
+                    </button>
+                );
+            })}
+        </div>
+    );
+};

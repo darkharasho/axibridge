@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal as TerminalIcon, Trash2, ChevronDown } from 'lucide-react';
 
@@ -12,6 +12,60 @@ interface TerminalProps {
     isOpen: boolean;
     onClose: () => void;
 }
+
+/* ── Syntax highlighting ──────────────────────────────────────────────── */
+
+/** Matches tokens in log messages and wraps them in colored spans. */
+const TOKEN_RULES: { pattern: RegExp; className: string }[] = [
+    // Bracketed tags like [UPLOAD], [WATCHER], [IPC], [CACHE] etc.
+    { pattern: /\[([A-Z][A-Z0-9_-]+)\]/g, className: 'term-tag' },
+    // Quoted strings (single or double)
+    { pattern: /"[^"]*"|'[^']*'/g, className: 'term-string' },
+    // URLs
+    { pattern: /https?:\/\/[^\s,)]+/g, className: 'term-url' },
+    // File paths (unix-style with extension, or windows-style)
+    { pattern: /(?:\/[\w.-]+){2,}(?:\.\w+)?|[A-Z]:\\[\w\\.-]+/g, className: 'term-path' },
+    // Numbers (integers, decimals, percentages, durations like 1.5s or 200ms)
+    { pattern: /\b\d+(?:\.\d+)?(?:%|ms|s|m|MB|KB|GB)?\b/g, className: 'term-number' },
+    // Key=value or key: value tokens (the key part only)
+    { pattern: /\b[\w-]+(?==)/g, className: 'term-key' },
+];
+
+interface Segment { text: string; className?: string; start: number; end: number }
+
+function highlightMessage(message: string): ReactNode[] {
+    // Collect all matches across all rules
+    const segments: Segment[] = [];
+    for (const rule of TOKEN_RULES) {
+        rule.pattern.lastIndex = 0;
+        let match: RegExpExecArray | null;
+        while ((match = rule.pattern.exec(message)) !== null) {
+            segments.push({ text: match[0], className: rule.className, start: match.index, end: match.index + match[0].length });
+        }
+    }
+    // Sort by start position, dedupe overlapping (first match wins)
+    segments.sort((a, b) => a.start - b.start);
+    const merged: Segment[] = [];
+    let cursor = 0;
+    for (const seg of segments) {
+        if (seg.start < cursor) continue; // overlap — skip
+        merged.push(seg);
+        cursor = seg.end;
+    }
+    // Build output nodes
+    const nodes: ReactNode[] = [];
+    let pos = 0;
+    for (let i = 0; i < merged.length; i++) {
+        const seg = merged[i];
+        if (seg.start > pos) nodes.push(message.slice(pos, seg.start));
+        nodes.push(<span key={i} className={seg.className}>{seg.text}</span>);
+        pos = seg.end;
+    }
+    if (pos < message.length) nodes.push(message.slice(pos));
+    return nodes;
+}
+
+/* ── Component ────────────────────────────────────────────────────────── */
 
 export function Terminal({ isOpen, onClose }: TerminalProps) {
     const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -62,6 +116,22 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
         setLogs([]);
     };
 
+    // Memoize highlighted log output so we only re-highlight when logs change
+    const renderedLogs = useMemo(() => logs.map((log, index) => (
+        <div
+            key={`${log.timestamp}-${index}`}
+            className={`term-row flex gap-3 text-xs group rounded-[2px] px-2 py-0.5 -mx-1 ${log.type === 'error' ? 'term-row-error' : ''}`}
+        >
+            <span className="term-timestamp shrink-0 select-none w-[4.5rem] whitespace-nowrap tabular-nums">
+                {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+            <div className={`flex-1 break-all whitespace-pre-wrap ${log.type === 'error' ? 'term-error' : 'term-info'}`}>
+                {log.type === 'error' && <span className="term-error-badge">[ERROR]</span>}
+                {highlightMessage(log.message)}
+            </div>
+        </div>
+    )), [logs]);
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -70,31 +140,31 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                     animate={{ y: 0 }}
                     exit={{ y: "100%" }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="terminal-window fixed bottom-0 left-0 right-0 h-[50vh] bg-[#161c24] border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-[100] flex flex-col font-mono"
+                    className="terminal-window"
                 >
                     {/* Header */}
-                    <div className="terminal-header flex items-center justify-between px-4 py-2 bg-black/40 border-b border-white/10 shrink-0">
-                        <div className="flex items-center gap-2 text-gray-400">
-                            <TerminalIcon className="w-4 h-4" />
-                            <span className="text-xs font-bold uppercase tracking-wider">System Terminal</span>
-                            <span className="text-xs text-gray-600">|</span>
-                            <span className="text-xs text-gray-500">{logs.length} events (capped at 500)</span>
-                        </div>
+                    <div className="terminal-header">
                         <div className="flex items-center gap-2">
+                            <TerminalIcon className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary)' }} />
+                            <span className="terminal-title">Terminal</span>
+                            <span className="terminal-divider" />
+                            <span className="terminal-meta">{logs.length} events</span>
+                        </div>
+                        <div className="flex items-center gap-1">
                             <button
                                 onClick={clearLogs}
-                                className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                                className="terminal-btn"
                                 title="Clear Terminal"
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                             </button>
-                            <div className="w-px h-4 bg-white/10 mx-1" />
+                            <span className="terminal-divider" />
                             <button
                                 onClick={onClose}
-                                className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                                className="terminal-btn"
                                 title="Close Terminal"
                             >
-                                <ChevronDown className="w-4 h-4" />
+                                <ChevronDown className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     </div>
@@ -102,7 +172,7 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                     {/* Content */}
                     <div
                         ref={scrollContainerRef}
-                        className="flex-1 overflow-y-auto p-4 pb-6 space-y-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+                        className="terminal-content"
                         onWheel={(event) => event.stopPropagation()}
                         onScroll={(event) => {
                             event.stopPropagation();
@@ -112,24 +182,11 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                         }}
                     >
                         {logs.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-600 opacity-50">
-                                <TerminalIcon className="w-12 h-12 mb-2" />
-                                <span className="text-sm">No logs recorded</span>
+                            <div className="terminal-empty">
+                                <TerminalIcon className="w-10 h-10 mb-2" style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                                <span>No logs recorded</span>
                             </div>
-                        ) : (
-                            logs.map((log, index) => (
-                                <div key={`${log.timestamp}-${index}`} className="flex gap-3 text-xs md:text-sm group hover:bg-white/5 p-1 -mx-1 rounded px-2">
-                                    <span className="text-gray-600 shrink-0 select-none w-28 whitespace-nowrap">
-                                        {new Date(log.timestamp).toLocaleTimeString()}
-                                    </span>
-                                    <div className={`flex-1 break-all whitespace-pre-wrap font-mono ${log.type === 'error' ? 'text-red-400' : 'text-gray-300'
-                                        }`}>
-                                        {log.type === 'error' && <span className="text-red-500 font-bold mr-2">[ERROR]</span>}
-                                        {log.message}
-                                    </div>
-                                </div>
-                            ))
-                        )}
+                        ) : renderedLogs}
                         <div ref={messagesEndRef} />
                     </div>
                 </motion.div>

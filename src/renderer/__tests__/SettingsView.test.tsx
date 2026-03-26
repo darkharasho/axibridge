@@ -5,14 +5,9 @@ import {
     slugifyHeading,
     validateRepoName,
     formatWeight,
-    normalizeKineticThemeVariant,
-    getKineticThemeIdForVariant,
-    inferKineticThemeVariantFromThemeId,
-    isKineticWebThemeId,
     extractHeadingText,
 } from '../SettingsView';
 import { DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS } from '../global.d';
-import { KINETIC_WEB_THEME_ID, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME_ID } from '../../shared/webThemes';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -24,7 +19,6 @@ function makeElectronApiMock(settingsOverrides: Record<string, unknown> = {}) {
         saveSettings: vi.fn(),
         onClearDpsReportCacheProgress: vi.fn(() => () => {}),
         onGithubAuthComplete: vi.fn(() => () => {}),
-        onGithubThemeStatus: vi.fn(() => () => {}),
         openExternal: vi.fn(),
         exportSettings: vi.fn().mockResolvedValue({ success: true }),
         selectSettingsFile: vi.fn().mockResolvedValue({ canceled: true }),
@@ -49,11 +43,8 @@ function renderSettings(
         onMvpWeightsSaved: vi.fn(),
         onStatsViewSettingsSaved: vi.fn(),
         onDisruptionMethodSaved: vi.fn(),
-        onUiThemeSaved: vi.fn(),
-        onKineticFontStyleSaved: vi.fn(),
-        onKineticThemeVariantSaved: vi.fn(),
-        onDashboardLayoutSaved: vi.fn(),
-        onGithubWebThemeSaved: vi.fn(),
+        onColorPaletteSaved: vi.fn(),
+        onGlassSurfacesSaved: vi.fn(),
         onOpenWhatsNew: vi.fn(),
         onOpenWalkthrough: vi.fn(),
     };
@@ -147,65 +138,6 @@ describe('formatWeight', () => {
     });
 });
 
-describe('normalizeKineticThemeVariant', () => {
-    it('returns "midnight" for "midnight"', () => {
-        expect(normalizeKineticThemeVariant('midnight')).toBe('midnight');
-    });
-
-    it('returns "slate" for "slate"', () => {
-        expect(normalizeKineticThemeVariant('slate')).toBe('slate');
-    });
-
-    it('returns the default (light) for unknown values', () => {
-        expect(normalizeKineticThemeVariant('dark')).toBe('light');
-        expect(normalizeKineticThemeVariant(null)).toBe('light');
-        expect(normalizeKineticThemeVariant(undefined)).toBe('light');
-    });
-});
-
-describe('getKineticThemeIdForVariant', () => {
-    it('maps midnight to the dark theme id', () => {
-        expect(getKineticThemeIdForVariant('midnight')).toBe(KINETIC_DARK_WEB_THEME_ID);
-    });
-
-    it('maps slate to the slate theme id', () => {
-        expect(getKineticThemeIdForVariant('slate')).toBe(KINETIC_SLATE_WEB_THEME_ID);
-    });
-
-    it('maps light to the base kinetic theme id', () => {
-        expect(getKineticThemeIdForVariant('light')).toBe(KINETIC_WEB_THEME_ID);
-    });
-});
-
-describe('inferKineticThemeVariantFromThemeId', () => {
-    it('maps dark theme id to midnight', () => {
-        expect(inferKineticThemeVariantFromThemeId(KINETIC_DARK_WEB_THEME_ID)).toBe('midnight');
-    });
-
-    it('maps slate theme id to slate', () => {
-        expect(inferKineticThemeVariantFromThemeId(KINETIC_SLATE_WEB_THEME_ID)).toBe('slate');
-    });
-
-    it('maps unknown ids to light', () => {
-        expect(inferKineticThemeVariantFromThemeId(KINETIC_WEB_THEME_ID)).toBe('light');
-        expect(inferKineticThemeVariantFromThemeId('classic')).toBe('light');
-    });
-});
-
-describe('isKineticWebThemeId', () => {
-    it('returns true for all three kinetic theme ids', () => {
-        expect(isKineticWebThemeId(KINETIC_WEB_THEME_ID)).toBe(true);
-        expect(isKineticWebThemeId(KINETIC_DARK_WEB_THEME_ID)).toBe(true);
-        expect(isKineticWebThemeId(KINETIC_SLATE_WEB_THEME_ID)).toBe(true);
-    });
-
-    it('returns false for non-kinetic ids', () => {
-        expect(isKineticWebThemeId('classic')).toBe(false);
-        expect(isKineticWebThemeId('arcane')).toBe(false);
-        expect(isKineticWebThemeId(null)).toBe(false);
-    });
-});
-
 describe('extractHeadingText', () => {
     it('extracts a plain string', () => {
         expect(extractHeadingText('hello')).toBe('hello');
@@ -283,12 +215,12 @@ describe('SettingsView', () => {
             });
         });
 
-        it('applies saved uiTheme=modern to the UI', async () => {
-            const { mock } = renderSettings({}, { uiTheme: 'modern' });
+        it('applies saved colorPalette to the UI', async () => {
+            const { mock } = renderSettings({}, { colorPalette: 'amber-warm' });
             await waitForLoad(mock);
             await waitFor(() => {
-                const modernButton = screen.getByRole('button', { name: 'Modern Slate' });
-                expect(modernButton.className).toMatch(/purple/);
+                const amberButton = screen.getByRole('button', { name: 'Amber Warm' });
+                expect(amberButton.className).toMatch(/white\/40/);
             });
         });
     });
@@ -328,15 +260,15 @@ describe('SettingsView', () => {
             }, { timeout: 1000 });
         });
 
-        it('fires onUiThemeSaved with the new theme', async () => {
+        it('fires onColorPaletteSaved with the new palette', async () => {
             const { mock, callbacks } = renderSettings();
             await waitForLoad(mock);
-            callbacks.onUiThemeSaved.mockClear();
+            callbacks.onColorPaletteSaved.mockClear();
 
-            fireEvent.click(screen.getByRole('button', { name: 'CRT Hacker' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Emerald Mint' }));
 
             await waitFor(() => {
-                expect(callbacks.onUiThemeSaved).toHaveBeenCalledWith('crt');
+                expect(callbacks.onColorPaletteSaved).toHaveBeenCalledWith('emerald-mint');
             }, { timeout: 1000 });
         });
 
@@ -359,41 +291,33 @@ describe('SettingsView', () => {
     // -----------------------------------------------------------------------
 
     describe('Appearance section', () => {
-        it('activates the Matte Slate button when clicked', async () => {
+        it('activates the Amber Warm palette button when clicked', async () => {
             renderSettings();
             await screen.findByRole('heading', { name: 'Appearance' });
 
-            // Two "Matte Slate" buttons exist: the UI theme pill and the web theme card.
-            // The UI theme pill is rendered first in the DOM.
-            const [uiThemeBtn] = screen.getAllByRole('button', { name: 'Matte Slate' });
-            fireEvent.click(uiThemeBtn);
+            const amberBtn = screen.getByRole('button', { name: 'Amber Warm' });
+            fireEvent.click(amberBtn);
 
-            expect(screen.getAllByRole('button', { name: 'Matte Slate' })[0].className).toMatch(/cyan/);
+            expect(amberBtn.className).toMatch(/white\/40/);
         });
 
-        it('shows Kinetic variant sub-options after selecting Kinetic Paper', async () => {
+        it('shows the Glass Surfaces toggle', async () => {
             renderSettings();
             await screen.findByRole('heading', { name: 'Appearance' });
 
-            expect(screen.queryByText('Kinetic Variant')).not.toBeInTheDocument();
-            fireEvent.click(screen.getByRole('button', { name: 'Kinetic Paper' }));
-
-            await screen.findByText('Kinetic Variant');
+            expect(screen.getByText('Glass Surfaces')).toBeInTheDocument();
         });
 
-        it('saves dashboard layout immediately (not debounced)', async () => {
+        it('fires onGlassSurfacesSaved after toggling glass surfaces', async () => {
             const { mock, callbacks } = renderSettings();
             await waitForLoad(mock);
-            // Flush the initial auto-save before asserting on synchronous call counts
-            await waitForSave(mock.saveSettings);
-            mock.saveSettings.mockClear();
-            callbacks.onDashboardLayoutSaved.mockClear();
+            callbacks.onGlassSurfacesSaved.mockClear();
 
-            fireEvent.click(screen.getByRole('button', { name: /Upload Stats: Top/i }));
+            fireEvent.click(screen.getByText('Glass Surfaces'));
 
-            // updateDashboardLayout calls saveSettings directly, no debounce
-            expect(mock.saveSettings).toHaveBeenCalledWith({ dashboardLayout: 'top' });
-            expect(callbacks.onDashboardLayoutSaved).toHaveBeenCalledWith('top');
+            await waitFor(() => {
+                expect(callbacks.onGlassSurfacesSaved).toHaveBeenCalledWith(true);
+            }, { timeout: 1000 });
         });
     });
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Is
 
-ArcBridge is an Electron desktop app for Guild Wars 2 players that watches the arcdps log folder, uploads logs to dps.report, computes WvW fight statistics, and sends formatted summaries to Discord webhooks or publishes persistent web reports to GitHub Pages.
+AxiBridge is an Electron desktop app for Guild Wars 2 players that watches the arcdps log folder, uploads logs to dps.report, computes WvW fight statistics, and sends formatted summaries to Discord webhooks or publishes persistent web reports to GitHub Pages.
 
 ## Commands
 
@@ -57,7 +57,7 @@ npm run sync:metrics-spec
 | Web report viewer | `vite.web.config.ts` | `dist-web/` | `web/index.html` |
 | Electron main process | `electron/tsconfig.json` + `tsc` | `dist-electron/` | `src/main/index.ts` |
 
-Electron main uses `electron-builder` for packaging. Dev userData is isolated to `ArcBridge-Dev` when not packaged.
+Electron main uses `electron-builder` for packaging. Dev userData is isolated to `AxiBridge-Dev` when not packaged.
 
 ### Process Communication (IPC)
 
@@ -141,6 +141,6 @@ Themes (`WebTheme`) are defined in `src/shared/webThemes.ts` and used by both th
 ### Dev Tooling Notes
 
 - `NODE_OPTIONS=--max-old-space-size=6144` is set on all build/dev scripts because large log datasets can exhaust the default V8 heap.
-- Dev mode separates userData to `ArcBridge-Dev` to avoid corrupting production settings.
+- Dev mode separates userData to `AxiBridge-Dev` to avoid corrupting production settings.
 - `npm run dev:fake-first-time` resets the dev first-time-experience flow.
 - `scripts/obfuscate-accounts.mjs` can anonymize account names in test fixtures before committing.

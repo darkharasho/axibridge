@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Maximize2, X, Columns, Users } from 'lucide-react';
+import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { InlineIconLabel } from '../ui/StatsViewShared';
-import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
 import type { ApmPlayerRow, ApmSkillEntry } from '../statsTypes';
 import { useStatsSharedContext } from '../StatsViewContext';
 
@@ -54,7 +54,7 @@ export const ApmSection = ({
     formatCastRateValue,
     formatCastCountValue
 }: ApmSectionProps) => {
-    const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, sidebarListClass, renderProfessionIcon } = useStatsSharedContext();
+    const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass, renderProfessionIcon } = useStatsSharedContext();
     const [allSkillsSort, setAllSkillsSort] = useState<{ key: 'apm' | 'apmNoAuto' | 'apmNoProcs'; dir: 'asc' | 'desc' }>({ key: 'apm', dir: 'desc' });
     const isExpanded = expandedSection === 'apm-stats';
     const [denseSort, setDenseSort] = useState<{ columnId: string; dir: 'asc' | 'desc' }>({ columnId: '', dir: 'desc' });
@@ -87,54 +87,42 @@ export const ApmSection = ({
 
     return (
     <div
-        id="apm-stats"
-        data-section-visible={isSectionVisible('apm-stats')}
-        data-section-first={isFirstVisibleSection('apm-stats')}
-        className={sectionClass('apm-stats', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24 flex flex-col ${expandedSection === 'apm-stats'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                }`
-                : 'overflow-hidden'
-            }`)}
+        className={`${expandedSection === 'apm-stats' ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
+        style={expandedSection === 'apm-stats' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
     >
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                <Gw2ApmIcon className="w-5 h-5 text-emerald-300" />
-                APM Breakdown
-            </h3>
-            <div className="flex items-center gap-3 relative">
-                <div className="text-xs uppercase tracking-[0.3em] text-gray-500">
-        {apmSpecTables.length} {apmSpecTables.length === 1 ? 'spec' : 'specs'}
-                </div>
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'apm-stats' ? closeExpandedSection() : openExpandedSection('apm-stats'))}
-                    className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${expandedSection === 'apm-stats' ? 'absolute -top-1 -right-1 md:static' : ''
-                        }`}
-                    aria-label={expandedSection === 'apm-stats' ? 'Close APM Breakdown' : 'Expand APM Breakdown'}
-                    title={expandedSection === 'apm-stats' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'apm-stats' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </button>
-            </div>
+        <div className="flex items-center gap-2 mb-3.5">
+            <span className="flex shrink-0" style={{ color: 'var(--brand-primary)' }}><Gw2ApmIcon className="w-4 h-4" /></span>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>APM Breakdown</h3>
+            <button
+                type="button"
+                onClick={() => (expandedSection === 'apm-stats' ? closeExpandedSection() : openExpandedSection('apm-stats'))}
+                className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
+                style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
+                aria-label={expandedSection === 'apm-stats' ? 'Close APM Breakdown' : 'Expand APM Breakdown'}
+                title={expandedSection === 'apm-stats' ? 'Close' : 'Expand'}
+            >
+                {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
+            </button>
         </div>
         <div className={expandedSection === 'apm-stats' ? 'flex-1 min-h-0 flex flex-col' : ''}>
             {!apmSpecAvailable ? (
-                <div className="rounded-2xl border border-dashed border-white/20 px-4 py-6 text-center text-xs text-gray-400">
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                     {skillUsageAvailable
                         ? 'No APM data available for the current selection.'
                         : 'Upload or highlight logs with rotation data to enable the APM table.'}
                 </div>
             ) : (
-                <div className={`grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 h-full' : ''}`}>
-                    <div className={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'apm-stats' ? 'h-full' : ''}`}>
-                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Elite Specs</div>
+                <div className={`grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-0 ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 h-full' : ''}`}>
+                    <div className={`pr-3 flex flex-col min-h-0 ${expandedSection === 'apm-stats' ? 'h-full' : ''}`} style={{ borderRight: '1px solid var(--border-subtle)' }}>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Elite Specs</div>
                         <div className="mb-2">
                             <input
                                 type="text"
                                 value={apmSkillSearch}
                                 onChange={(event) => setApmSkillSearch(event.target.value)}
                                 placeholder="Search skills..."
-                                className="w-full rounded-lg border border-white/10 bg-black/30 px-2.5 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
+                                className="w-full px-2.5 py-1.5 text-xs focus:outline-none"
+                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
                             />
                         </div>
                         <div className={sidebarBodyClass}>
@@ -155,23 +143,24 @@ export const ApmSection = ({
                                                 setSelectedPlayers([]);
                                             }
                                         }}
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeApmSpec === spec.profession
-                                                ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
-                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeApmSpec === spec.profession
+                                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                             }`}
+                                        style={activeApmSpec !== spec.profession ? { color: 'var(--text-secondary)' } : undefined}
                                     >
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0">
                                                 {renderProfessionIcon(spec.profession, undefined, 'w-4 h-4')}
                                                 <span className="truncate">{spec.profession}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-gray-400">
+                                            <div className="flex items-center gap-2 text-[color:var(--text-secondary)]">
                                                 <span className="text-[10px]">{spec.players.length}p</span>
                                             </div>
                                         </div>
                                     </button>
                                     {!isExpanded && expandedApmSpec === spec.profession && (
-                                        <div className="ml-2 space-y-1 border-l border-white/10 pl-2">
+                                        <div className="ml-2 space-y-1 pl-2" style={{ borderLeft: '1px solid var(--border-subtle)' }}>
                                             <input
                                                 type="text"
                                                 value={subSkillSearchBySpec[spec.profession] || ''}
@@ -180,7 +169,8 @@ export const ApmSection = ({
                                                     setSubSkillSearchBySpec((prev) => ({ ...prev, [spec.profession]: value }));
                                                 }}
                                                 placeholder="Filter this spec..."
-                                                className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
+                                                className="w-full px-2 py-1 text-[11px] focus:outline-none mb-1"
+                                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
                                             />
                                             <button
                                                 type="button"
@@ -188,11 +178,12 @@ export const ApmSection = ({
                                                     setActiveApmSpec(spec.profession);
                                                     setActiveApmSkillId(ALL_SKILLS_KEY);
                                                 }}
-                                                className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] border transition-colors ${
+                                                className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-colors ${
                                                     activeApmSpec === spec.profession && isAllApmSkills
-                                                        ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30'
-                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                                 }`}
+                                                style={!(activeApmSpec === spec.profession && isAllApmSkills) ? { color: 'var(--text-secondary)' } : undefined}
                                             >
                                                 All Skills
                                             </button>
@@ -210,11 +201,12 @@ export const ApmSection = ({
                                                             setActiveApmSpec(spec.profession);
                                                             setActiveApmSkillId(skill.id);
                                                         }}
-                                                        className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] border transition-colors ${
+                                                        className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-colors ${
                                                             activeApmSpec === spec.profession && activeApmSkillId === skill.id
-                                                                ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30'
-                                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                                : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                                         }`}
+                                                        style={!(activeApmSpec === spec.profession && activeApmSkillId === skill.id) ? { color: 'var(--text-secondary)' } : undefined}
                                                         title={skill.name}
                                                     >
                                                         <div className="flex items-center gap-2 min-w-0">
@@ -230,7 +222,7 @@ export const ApmSection = ({
                                                 if (!query) return true;
                                                 return String(skill.name || '').toLowerCase().includes(query);
                                             }).length === 0 && (
-                                                <div className="px-2 py-1 text-[10px] text-gray-500">No matching skills</div>
+                                                <div className="px-2 py-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>No matching skills</div>
                                             )}
                                         </div>
                                     )}
@@ -238,9 +230,9 @@ export const ApmSection = ({
                             ))}
                         </div>
                     </div>
-                    <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden stats-share-table ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`}>
+                    <div className={`pl-3 overflow-hidden ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`}>
                         {!activeApmSpecTable ? (
-                            <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                 Select an elite spec to view APM details
                             </div>
                         ) : (
@@ -276,9 +268,8 @@ export const ApmSection = ({
                                         ...selectedPlayers.map((id) => `player:${id}`)
                                     ]);
                                     return (
-                                        <div className="bg-black/20 border border-white/5 rounded-xl px-4 py-3">
-                                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">APM</div>
-                                            <div className="flex flex-wrap items-center gap-2">
+                                        <>
+                                        <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                                                 <SearchSelectDropdown
                                                     options={searchOptions}
                                                     selectedIds={selectedIds}
@@ -319,6 +310,7 @@ export const ApmSection = ({
                                                     buttonLabel="Players"
                                                     buttonIcon={<Users className="h-3.5 w-3.5" />}
                                                 />
+                                                <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
                                                 <PillToggleGroup
                                                     value={apmView}
                                                     onChange={setApmView}
@@ -326,10 +318,10 @@ export const ApmSection = ({
                                                         { value: 'total', label: 'Total' },
                                                         { value: 'perSecond', label: 'Per Sec' }
                                                     ]}
-                                                    activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-400/40"
-                                                    inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                                    inactiveClassName="text-[color:var(--text-secondary)]"
                                                 />
-                                            </div>
+                                        </div>
                                             {(selectedSkillIds.length > 0 || selectedPlayers.length > 0) && (
                                                 <div className="mt-2 flex flex-wrap items-center gap-2">
                                                     <button
@@ -338,7 +330,8 @@ export const ApmSection = ({
                                                             setSelectedSkillIds([]);
                                                             setSelectedPlayers([]);
                                                         }}
-                                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                                        style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
                                                     >
                                                         Clear All
                                                     </button>
@@ -349,10 +342,11 @@ export const ApmSection = ({
                                                                 key={id}
                                                                 type="button"
                                                                 onClick={() => setSelectedSkillIds((prev) => prev.filter((entry) => entry !== id))}
-                                                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                                                style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                                             >
                                                                 <span>{label}</span>
-                                                                <span className="text-gray-400">×</span>
+                                                                <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                                             </button>
                                                         );
                                                     })}
@@ -363,16 +357,17 @@ export const ApmSection = ({
                                                                 key={id}
                                                                 type="button"
                                                                 onClick={() => setSelectedPlayers((prev) => prev.filter((entry) => entry !== id))}
-                                                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                                                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                                                style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                                             >
                                                                 <span>{label}</span>
-                                                                <span className="text-gray-400">×</span>
+                                                                <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                                             </button>
                                                         );
                                                     })}
                                                 </div>
                                             )}
-                                        </div>
+                                        </>
                                     );
                                 })()}
                                 {isExpanded ? (
@@ -386,7 +381,7 @@ export const ApmSection = ({
                                             : (activeApmSpecTable.playerRows || []);
                                         if (skills.length === 0) {
                                             return (
-                                                <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
+                                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                                     No skills available for this class.
                                                 </div>
                                             );
@@ -438,7 +433,7 @@ export const ApmSection = ({
                                                     id: `${activeApmSpecTable.profession}-${entry.row.key}`,
                                                     label: (
                                                         <>
-                                                            <span className="text-gray-500 font-mono">{index + 1}</span>
+                                                            <span className="text-[color:var(--text-muted)] font-mono">{index + 1}</span>
                                                             {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                             <span className="truncate">{entry.row.displayName}</span>
                                                         </>
@@ -451,12 +446,12 @@ export const ApmSection = ({
                                 ) : (
                                     <>
                                         <div className="stats-table-shell__head-stack">
-                                            <div className="flex items-center justify-between gap-2 px-4 py-3 bg-white/5">
-                                                <div className="min-w-0 text-sm font-semibold text-gray-200">
+                                            <div className="flex items-center justify-between gap-2 px-4 py-3">
+                                                <div className="min-w-0 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         {renderProfessionIcon(activeApmSpecTable.profession, undefined, 'w-4 h-4')}
                                                         <span className="truncate">{activeApmSpecTable.profession}</span>
-                                                        <span className="text-[11px] uppercase tracking-widest text-gray-500">/</span>
+                                                        <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>/</span>
                                                         {isAllApmSkills || !activeApmSkill ? (
                                                             <span className="truncate">All Skills</span>
                                                         ) : (
@@ -464,39 +459,42 @@ export const ApmSection = ({
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="text-[11px] text-gray-500">
+                                                <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                                                     {isAllApmSkills || !activeApmSkill
                                                         ? `${activeApmSpecTable.playerRows?.length || 0} players`
                                                         : `${(activeApmSkill as any)?.totalCasts ?? 0} casts`}
                                                 </div>
                                             </div>
                                             {isAllApmSkills || !activeApmSkill ? (
-                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
                                                     <div>Player</div>
                                                     <button
                                                         type="button"
                                                         onClick={() => toggleAllSkillsSort('apm')}
-                                                        className={`text-right transition-colors ${allSkillsSort.key === 'apm' ? 'text-emerald-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                        className="text-right transition-colors"
+                                                        style={{ color: allSkillsSort.key === 'apm' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                                     >
                                                         {apmView === 'perSecond' ? 'APS' : 'APM'}{allSkillsSort.key === 'apm' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => toggleAllSkillsSort('apmNoAuto')}
-                                                        className={`text-right transition-colors ${allSkillsSort.key === 'apmNoAuto' ? 'text-emerald-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                        className="text-right transition-colors"
+                                                        style={{ color: allSkillsSort.key === 'apmNoAuto' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                                     >
                                                         {apmView === 'perSecond' ? 'APS' : 'APM'} (No Auto){allSkillsSort.key === 'apmNoAuto' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => toggleAllSkillsSort('apmNoProcs')}
-                                                        className={`text-right transition-colors ${allSkillsSort.key === 'apmNoProcs' ? 'text-emerald-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                        className="text-right transition-colors"
+                                                        style={{ color: allSkillsSort.key === 'apmNoProcs' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                                     >
                                                         {apmView === 'perSecond' ? 'APS' : 'APM'} (No Procs){allSkillsSort.key === 'apmNoProcs' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.8fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
                                                     <div>Player</div>
                                                     <div className="text-right">Casts</div>
                                                     <div className="text-right">{apmView === 'perSecond' ? 'APS' : 'APM'}</div>
@@ -509,22 +507,23 @@ export const ApmSection = ({
                                                     {sortedAllSkillsRows.map((row: ApmPlayerRow, index: number) => (
                                                         <div
                                                             key={`${activeApmSpecTable.profession}-all-${row.key}`}
-                                                            className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5"
+                                                            className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
+                                                            style={{ color: 'var(--text-primary)' }}
                                                         >
                                                             <div className="flex items-center gap-2 min-w-0">
-                                                                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">{`#${index + 1}`}</span>
+                                                                <span className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>{`#${index + 1}`}</span>
                                                                 {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                                 <div className="min-w-0">
-                                                                    <div className="font-semibold text-white truncate">{row.displayName}</div>
+                                                                    <div className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{row.displayName}</div>
                                                                 </div>
                                                             </div>
-                                                            <div className="text-right font-mono text-gray-300">
+                                                            <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                                 {formatApmValue(apmView === 'perSecond' ? row.aps : row.apm)}
                                                             </div>
-                                                            <div className="text-right font-mono text-gray-300">
+                                                            <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                                 {formatApmValue(apmView === 'perSecond' ? row.apsNoAuto : row.apmNoAuto)}
                                                             </div>
-                                                            <div className="text-right font-mono text-gray-300">
+                                                            <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                                 {formatApmValue(apmView === 'perSecond' ? row.apsNoProcs : row.apmNoProcs)}
                                                             </div>
                                                         </div>
@@ -535,24 +534,25 @@ export const ApmSection = ({
                                             <>
                                                 <div className={`stats-table-shell__rows ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}`}>
                                                     {((activeApmSkill as any)?.playerRows || []).length === 0 ? (
-                                                        <div className="px-4 py-8 text-center text-sm text-gray-500 italic border-t border-white/5">
+                                                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                                             No player rows available for this skill.
                                                         </div>
                                                     ) : (
                                                         ((activeApmSkill as any)?.playerRows || []).map((row: any, index: number) => (
                                                             <div
                                                                 key={`${activeApmSpecTable.profession}-${activeApmSkill.id}-${row.key}`}
-                                                                className="grid grid-cols-[1.4fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5"
+                                                                className="grid grid-cols-[1.4fr_0.8fr_0.8fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
+                                                                style={{ color: 'var(--text-primary)' }}
                                                             >
                                                                 <div className="flex items-center gap-2 min-w-0">
-                                                                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">{`#${index + 1}`}</span>
+                                                                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>{`#${index + 1}`}</span>
                                                                     {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                                     <div className="min-w-0">
-                                                                        <div className="font-semibold text-white truncate">{row.displayName}</div>
+                                                                        <div className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{row.displayName}</div>
                                                                     </div>
                                                                 </div>
-                                                                <div className="text-right font-mono text-gray-300">{formatCastCountValue(Number(row.count || 0))}</div>
-                                                                <div className="text-right font-mono text-gray-300">
+                                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{formatCastCountValue(Number(row.count || 0))}</div>
+                                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                                     {formatApmValue(apmView === 'perSecond' ? Number(row.aps || 0) : Number(row.apm || 0))}
                                                                 </div>
                                                             </div>

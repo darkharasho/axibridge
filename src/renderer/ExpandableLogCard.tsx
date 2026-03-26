@@ -18,29 +18,18 @@ interface ExpandableLogCardProps {
     onRemove?: () => void;
     layoutEnabled?: boolean;
     motionEnabled?: boolean;
-    screenshotMode?: boolean;
     embedStatSettings?: IEmbedStatSettings;
     disruptionMethod?: DisruptionMethod;
     useClassIcons?: boolean;
-    screenshotSection?: {
-        type: 'summary' | 'toplists' | 'tile';
-        start?: number;
-        count?: number;
-        showHeader?: boolean;
-        tileKind?: 'summary' | 'incoming' | 'toplist';
-        tileId?: 'squad' | 'enemy' | 'squad-classes' | 'enemy-classes' | 'enemy-team' | 'enemy-team-classes' | 'incoming-attacks' | 'incoming-cc' | 'incoming-strips' | 'incoming-blank';
-        teamId?: number;
-        tileIndex?: number;
-    };
 }
 
 const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>(
-    ({ log, isExpanded, onToggle, onCancel, onRemove, layoutEnabled = true, motionEnabled = true, screenshotMode, embedStatSettings, disruptionMethod, screenshotSection, useClassIcons }, ref) => {
+    ({ log, isExpanded, onToggle, onCancel, onRemove, layoutEnabled = true, motionEnabled = true, embedStatSettings, disruptionMethod, useClassIcons }, ref) => {
     const { details: cachedDetails } = useLogDetails(
-        (isExpanded || screenshotMode || Boolean(screenshotSection)) ? log.id : undefined
+        isExpanded ? log.id : undefined
     );
     const details = cachedDetails || {};
-    const shouldComputeDetails = isExpanded || screenshotMode || Boolean(screenshotSection);
+    const shouldComputeDetails = isExpanded;
     const allPlayers: Player[] = Array.isArray(details.players) ? details.players : [];
     const allTargets = Array.isArray(details.targets) ? details.targets : [];
     let squadPlayerCount = 0;
@@ -213,13 +202,24 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     };
     const resolveEncounterDuration = () => {
-        const direct = [details.encounterDuration, log.encounterDuration]
+        // Check all available sources: useLogDetails cache, log.details (nested), and log top-level
+        const direct = [details.encounterDuration, log.details?.encounterDuration, log.encounterDuration]
             .find((value) => typeof value === 'string' && value.trim().length > 0);
         if (direct) {
-            return String(direct).trim();
+            const text = String(direct).trim();
+            // Normalize "Xm Ys" → "MM:SS"
+            const minuteSecondMatch = text.match(/(\d+)\s*m(?:in)?\s*(\d+)\s*s/i);
+            if (minuteSecondMatch) {
+                const minutes = Number(minuteSecondMatch[1]);
+                const seconds = Number(minuteSecondMatch[2]);
+                if (Number.isFinite(minutes) && Number.isFinite(seconds)) {
+                    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+            }
+            return text;
         }
 
-        const rawDuration = [details.duration, log.duration]
+        const rawDuration = [details.duration, log.details?.duration, log.duration]
             .find((value) => typeof value === 'string' && value.trim().length > 0);
         if (rawDuration) {
             const text = String(rawDuration).trim();
@@ -234,12 +234,12 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             return text;
         }
 
-        const durationMs = Number(details.durationMS ?? log.durationMS);
+        const durationMs = Number(details.durationMS ?? log.details?.durationMS ?? log.durationMS);
         if (Number.isFinite(durationMs) && durationMs > 0) {
             return formatDurationFromMs(durationMs);
         }
 
-        return '--:--';
+        return null;
     };
     const encounterDurationLabel = resolveEncounterDuration();
 
@@ -542,13 +542,9 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const maxTopRows = clampTopRows(settings.maxTopListRows ?? 5);
     const classDisplay = settings.classDisplay ?? 'off';
     const showClassIcons = classDisplay === 'emoji' && useClassIcons;
-    const alwaysShowDetailedClassInfo = !screenshotMode;
-    const useCompactClassNamesInDetails = typeof document !== 'undefined'
-        && (
-            document.body.classList.contains('theme-classic')
-            || document.body.classList.contains('theme-matte')
-            || document.body.classList.contains('theme-crt')
-        );
+    const alwaysShowDetailedClassInfo = true;
+    // Unified theme always uses the top dashboard layout; compact class names are not needed.
+    const useCompactClassNamesInDetails = false;
     const getClassToken = (p: any) => {
         if (classDisplay === 'short') {
             return getProfessionAbbrev(p.profession || 'Unknown');
@@ -595,7 +591,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             ? `font-semibold ${colorClass} mb-2 uppercase tracking-wider text-[10px]`
             : `font-black ${colorClass} mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'}`;
         return (
-            <div className={`bg-white/5 rounded-xl ${compact ? 'p-3' : 'p-4'} border border-white/10 shadow-lg ${fullHeight ? 'h-full' : ''}`}>
+            <div className={`rounded-[4px] ${compact ? 'p-3' : 'p-4'} shadow-lg ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
                 <h5 className={`${headerClass} border-b border-white/10 pb-2`}>{title}</h5>
                 {limitedCounts.length > 0 ? (
                     <div className={`grid grid-flow-col auto-cols-fr gap-2 font-mono text-gray-200 ${fullHeight ? 'text-base' : compact ? 'text-[11px]' : 'text-sm'}`}>
@@ -656,7 +652,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         });
 
         return (
-            <div className={`bg-white/5 rounded-lg p-3 border border-white/5 shadow-inner ${fullHeight ? 'h-full' : ''}`}>
+            <div className={`rounded-[4px] p-3 shadow-inner ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                 <h5 className={`font-semibold text-gray-200 mb-2 border-b border-white/10 pb-1 uppercase tracking-tighter ${fullHeight ? 'text-sm' : 'text-[11px]'}`}>{title}</h5>
                 {hasData ? (
                     <div className={`font-mono space-y-1 text-gray-300 ${fullHeight ? 'text-base' : 'text-[10px]'}`}>
@@ -816,16 +812,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     ];
 
     const visibleTopLists = topListItems.filter(item => item.enabled);
-    const showSummarySection = settings.showSquadSummary || settings.showEnemySummary;
-    const showIncomingSection = settings.showIncomingStats;
     const showClassSummary = settings.showClassSummary;
-    const showHeader = screenshotSection?.showHeader ?? true;
-    const topListSliceStart = screenshotSection?.start || 0;
-    const topListSliceCount = screenshotSection?.count || visibleTopLists.length;
-    const topListSlice = visibleTopLists.slice(topListSliceStart, topListSliceStart + topListSliceCount);
-    const tileTopList = screenshotSection?.tileKind === 'toplist' && screenshotSection.tileIndex !== undefined
-        ? visibleTopLists[screenshotSection.tileIndex]
-        : undefined;
     const enemySummaryColumnCount = splitEnemiesByTeam && enemyTeamSummaryStats.length > 0
         ? enemyTeamSummaryStats.length
         : (settings.showEnemySummary ? 1 : 0);
@@ -834,253 +821,6 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         ? enemyTeamClassSummaries.length
         : (settings.showEnemySummary ? 1 : 0);
     const classColumnCount = Math.max(1, (settings.showSquadSummary ? 1 : 0) + enemyClassColumnCount);
-
-    const renderSquadSummary = (compact?: boolean, fullHeight?: boolean) => (
-        <div className={`bg-white/5 rounded-xl ${compact ? 'p-3' : 'p-4'} border border-white/10 shadow-lg ${fullHeight ? 'h-full' : ''}`}>
-            <h5 className={`font-black text-green-400 mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'} border-b border-green-400/20 pb-2`}>Squad Summary</h5>
-            <div className={`font-mono text-gray-200 space-y-2 text-left ${fullHeight ? 'text-lg' : 'text-sm'}`}>
-                <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{squadDisplayCount} {nonSquadDisplayCount > 0 ? `(+${nonSquadDisplayCount})` : ''}</span></div>
-                <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{squadDmg.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{Math.round(squadDps).toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{squadDowns}</span></div>
-                <div className="flex justify-between"><span>Deaths:</span> <span className="text-white font-bold">{squadDeaths}</span></div>
-            </div>
-        </div>
-    );
-
-    const renderEnemySummary = (compact?: boolean, fullHeight?: boolean) => (
-        <div className={`bg-white/5 rounded-xl ${compact ? 'p-3' : 'p-4'} border border-white/10 shadow-lg ${fullHeight ? 'h-full' : ''}`}>
-            <h5 className={`font-black text-red-400 mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'} border-b border-red-400/20 pb-2`}>Enemy Summary</h5>
-            <div className={`font-mono text-gray-200 space-y-2 text-left ${fullHeight ? 'text-lg' : 'text-sm'}`}>
-                <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{enemyCount}</span></div>
-                <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{totalDmgTaken.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{enemyDps.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{enemyDowns}</span></div>
-                <div className="flex justify-between"><span>Kills:</span> <span className="text-white font-bold">{enemyDeaths}</span></div>
-            </div>
-        </div>
-    );
-
-    const renderTeamSummary = (team: TeamSummaryStats, compact?: boolean, fullHeight?: boolean) => (
-        <div className={`bg-white/5 rounded-xl ${compact ? 'p-3' : 'p-4'} border border-white/10 shadow-lg ${fullHeight ? 'h-full' : ''}`}>
-            <h5 className={`font-black text-red-400 mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'} border-b border-red-400/20 pb-2`}>{`Team ${team.teamId}`}</h5>
-            <div className={`font-mono text-gray-200 space-y-2 text-left ${fullHeight ? 'text-lg' : 'text-sm'}`}>
-                <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{team.count}</span></div>
-                <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{team.dmg.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{team.dps.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{team.downs}</span></div>
-                <div className="flex justify-between"><span>Kills:</span> <span className="text-white font-bold">{team.kills}</span></div>
-            </div>
-        </div>
-    );
-
-    const renderIncoming = (type: 'attacks' | 'cc' | 'strips', fullHeight?: boolean) => {
-        const label = type === 'attacks' ? 'Incoming Attack' : type === 'cc' ? 'Incoming CC' : 'Incoming Strips';
-        const miss = type === 'attacks' ? totalMiss : type === 'cc' ? totalCCMissed : totalStripsMissed;
-        const block = type === 'attacks' ? totalBlock : type === 'cc' ? totalCCBlocked : totalStripsBlocked;
-        const total = type === 'attacks' ? totalMiss + totalBlock + totalEvade + totalDodge : type === 'cc' ? totalCCTaken : totalStripsTaken;
-        const color = type === 'attacks' ? 'text-blue-400' : type === 'cc' ? 'text-purple-400' : 'text-orange-400';
-        return (
-            <div className={`bg-white/5 rounded-lg p-4 border border-white/10 ${fullHeight ? 'h-full overflow-hidden' : ''}`}>
-                <h5 className={`font-bold ${color} mb-1 uppercase tracking-tight leading-none ${fullHeight ? 'text-[9px]' : 'text-[10px]'}`}>{label}</h5>
-                <div className={`font-mono text-gray-300 text-left space-y-0.5 ${fullHeight ? 'text-[9px]' : 'text-xs'}`}>
-                    <div className="flex justify-between text-gray-500"><span>Miss:</span> <span>{miss}</span></div>
-                    <div className="flex justify-between text-gray-500"><span>Block:</span> <span>{block}</span></div>
-                    <div className="flex justify-between text-white font-bold pt-0.5 border-t border-white/5"><span>Total:</span> <span>{total}</span></div>
-                </div>
-            </div>
-        );
-    };
-
-    if (screenshotMode) {
-        if (screenshotSection?.type === 'tile') {
-            if (screenshotSection.tileKind === 'toplist' && !tileTopList) {
-                return null;
-            }
-            const tileContent = (() => {
-                if (screenshotSection.tileKind === 'summary') {
-                    if (screenshotSection.tileId === 'squad') return renderSquadSummary(true, true);
-                    if (screenshotSection.tileId === 'enemy') return renderEnemySummary(true, true);
-                    if (screenshotSection.tileId === 'enemy-team' && typeof screenshotSection.teamId === 'number') {
-                        const team = enemyTeamSummaryStats.find((entry) => entry.teamId === screenshotSection.teamId);
-                        return team ? renderTeamSummary(team, true, true) : null;
-                    }
-                    if (screenshotSection.tileId === 'squad-classes' && showClassSummary) return renderClassSummary('Squad Classes', squadClassCounts, 'text-green-400', true, true);
-                    if (screenshotSection.tileId === 'enemy-classes' && showClassSummary) return renderClassSummary('Enemy Classes', enemyClassCounts, 'text-red-400', true, true);
-                    if (screenshotSection.tileId === 'enemy-team-classes' && showClassSummary && typeof screenshotSection.teamId === 'number') {
-                        const team = enemyTeamClassSummaries.find((entry) => entry.teamId === screenshotSection.teamId);
-                        return team ? renderClassSummary(`Team ${team.teamId} Classes`, team.classes, 'text-red-400', true, true) : null;
-                    }
-                }
-                if (screenshotSection.tileKind === 'incoming') {
-                    if (screenshotSection.tileId === 'incoming-attacks') return renderIncoming('attacks', true);
-                    if (screenshotSection.tileId === 'incoming-cc') return renderIncoming('cc', true);
-                    if (screenshotSection.tileId === 'incoming-strips') return renderIncoming('strips', true);
-                    if (screenshotSection.tileId === 'incoming-blank') {
-                        return (
-                            <div
-                                className="w-full h-full bg-transparent flex items-center justify-center p-0 m-0"
-                            >
-                                &nbsp;
-                            </div>
-                        );
-                    }
-                }
-                if (screenshotSection.tileKind === 'toplist' && tileTopList) {
-                    return (
-                        <TopList
-                            title={tileTopList.title}
-                            sortFn={tileTopList.sortFn}
-                            valFn={tileTopList.valFn}
-                            fmtVal={tileTopList.fmtVal}
-                            fullHeight={true}
-                        />
-                    );
-                }
-                return null;
-            })();
-            if (!tileContent) return null;
-            const tileSizeClass = screenshotSection.tileKind === 'incoming'
-                ? 'w-[180px] h-[140px]'
-                : 'w-[360px] h-[360px]';
-            return (
-                <div
-                    data-screenshot-id={log.id || log.filePath}
-                    data-screenshot-group={screenshotSection.tileKind === 'incoming' ? 'incoming' : 'default'}
-                    data-screenshot-transparent={screenshotSection.tileId === 'incoming-blank' ? 'true' : undefined}
-                    className={`bg-transparent ${tileSizeClass} p-0 m-0`}
-                    style={{
-                        width: screenshotSection.tileKind === 'incoming' ? '180px' : '360px',
-                        height: screenshotSection.tileKind === 'incoming' ? '140px' : '360px',
-                        minWidth: screenshotSection.tileKind === 'incoming' ? '180px' : '360px',
-                        minHeight: screenshotSection.tileKind === 'incoming' ? '140px' : '360px'
-                    }}
-                >
-                    <div className="w-full h-full">
-                        {tileContent}
-                    </div>
-                </div>
-            );
-        }
-        if (screenshotSection?.type === 'summary' && !showSummarySection && !showIncomingSection) {
-            return null;
-        }
-        if (screenshotSection?.type === 'toplists' && topListSlice.length === 0) {
-            return null;
-        }
-        return (
-            <div
-                id={!screenshotSection ? `log-screenshot-${log.id || log.filePath}` : undefined}
-                data-screenshot-id={screenshotSection ? (log.id || log.filePath) : undefined}
-                className="bg-slate-900 border border-white/20 rounded-2xl overflow-hidden w-[1200px] shadow-2xl p-0 m-0"
-            >
-                {showHeader && (
-                    <div className="p-6 flex items-center gap-6 bg-white/5 border-b border-white/10">
-                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center border-2 ${hasError ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'}`}>
-                            <span className="font-bold text-lg uppercase">{hasError ? 'ERR' : 'LOG'}</span>
-                        </div>
-                        <div className="flex-1 min-w-0 text-left">
-                            <div className="flex justify-between items-start">
-                                <h4 className="text-2xl font-black text-white truncate leading-tight">{details.fightName || log.fightName || log.filePath.split(/[\\\/]/).pop()}</h4>
-                                <span className="text-lg text-blue-400 font-mono font-bold">{encounterDurationLabel}</span>
-                            </div>
-                            <div className="flex items-center gap-4 mt-2 text-sm font-medium text-gray-400">
-                                <span className="bg-white/5 px-2 py-0.5 rounded-md border border-white/10">{playerCount} Players {nonSquadDisplayCount > 0 ? `(${squadDisplayCount} Squad + ${nonSquadDisplayCount} Others)` : ''}</span>
-                                <span className="text-gray-600">•</span>
-                                <span>{formattedTime()}</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                <div className="p-6 space-y-6 bg-black/40">
-                    {(screenshotSection?.type !== 'toplists' && showSummarySection) && (
-                        <div
-                            className="grid gap-4 text-base items-start"
-                            style={{ gridTemplateColumns: `repeat(${summaryColumnCount}, minmax(0, 1fr))` }}
-                        >
-                            {settings.showSquadSummary && (
-                                <div className="bg-white/5 rounded-xl p-4 border border-white/10 shadow-lg">
-                                    <h5 className="font-black text-green-400 mb-3 uppercase tracking-widest text-xs border-b border-green-400/20 pb-2">Squad Summary</h5>
-                                    <div className="font-mono text-gray-200 space-y-2 text-left text-sm">
-                                        <div className="flex justify-between"><span>Count:</span> <span className="text-white font-bold">{squadDisplayCount} {nonSquadDisplayCount > 0 ? `(+${nonSquadDisplayCount})` : ''}</span></div>
-                                        <div className="flex justify-between"><span>DMG:</span> <span className="text-white font-bold">{squadDmg.toLocaleString()}</span></div>
-                                        <div className="flex justify-between"><span>DPS:</span> <span className="text-white font-bold">{Math.round(squadDps).toLocaleString()}</span></div>
-                                        <div className="flex justify-between"><span>Downs:</span> <span className="text-white font-bold">{squadDowns}</span></div>
-                                        <div className="flex justify-between"><span>Deaths:</span> <span className="text-white font-bold">{squadDeaths}</span></div>
-                                    </div>
-                                </div>
-                            )}
-                            {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamSummaryStats.length === 0) && renderEnemySummary()}
-                            {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamSummaryStats.map((team) => (
-                                <div key={`team-summary-${team.teamId}`}>
-                                    {renderTeamSummary(team)}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    {(screenshotSection?.type !== 'toplists' && showSummarySection && showClassSummary) && (
-                        <div
-                            className="grid gap-4 text-base items-start"
-                            style={{ gridTemplateColumns: `repeat(${classColumnCount}, minmax(0, 1fr))` }}
-                        >
-                            {settings.showSquadSummary && (
-                                renderClassSummary('Squad Classes', squadClassCounts, 'text-green-400')
-                            )}
-                            {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamClassSummaries.length === 0) && (
-                                renderClassSummary('Enemy Classes', enemyClassCounts, 'text-red-400')
-                            )}
-                            {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamClassSummaries.map((team) => (
-                                <div key={`team-classes-${team.teamId}`}>
-                                    {renderClassSummary(`Team ${team.teamId} Classes`, team.classes, 'text-red-400')}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    {(screenshotSection?.type !== 'toplists' && showIncomingSection) && (
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                                <h5 className="font-bold text-blue-400 mb-2 uppercase tracking-tight text-[10px]">Incoming Attack</h5>
-                                <div className="font-mono text-xs text-gray-300 text-left space-y-1">
-                                    <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-blue-200">{totalMiss}</span></div>
-                                    <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-blue-200">{totalBlock}</span></div>
-                                    <div className="flex justify-between text-white font-bold pt-1 border-t border-white/5"><span>Total:</span> <span>{totalMiss + totalBlock + totalEvade + totalDodge}</span></div>
-                                </div>
-                            </div>
-                            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                                <h5 className="font-bold text-purple-400 mb-2 uppercase tracking-tight text-[10px]">Incoming CC</h5>
-                                <div className="font-mono text-xs text-gray-300 text-left space-y-1">
-                                    <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-purple-200">{totalCCMissed}</span></div>
-                                    <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-purple-200">{totalCCBlocked}</span></div>
-                                    <div className="flex justify-between text-white font-bold pt-1 border-t border-white/5"><span>Total:</span> <span>{totalCCTaken}</span></div>
-                                </div>
-                            </div>
-                            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                                <h5 className="font-bold text-orange-400 mb-2 uppercase tracking-tight text-[10px]">Incoming Strips</h5>
-                                <div className="font-mono text-xs text-gray-300 text-left space-y-1">
-                                    <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-orange-200">{totalStripsMissed}</span></div>
-                                    <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-orange-200">{totalStripsBlocked}</span></div>
-                                    <div className="flex justify-between text-white font-bold pt-1 border-t border-white/5"><span>Total:</span> <span>{totalStripsTaken}</span></div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {(screenshotSection?.type !== 'summary' && topListSlice.length > 0) && (
-                        <div className="grid grid-cols-2 gap-4">
-                            {topListSlice.map(item => (
-                                <TopList
-                                    key={item.title}
-                                    title={item.title}
-                                    sortFn={item.sortFn}
-                                    valFn={item.valFn}
-                                    fmtVal={item.fmtVal}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
 
     const Container: any = motionEnabled ? motion.div : 'div';
     const motionProps = motionEnabled
@@ -1096,14 +836,15 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         <Container
             ref={ref}
             {...motionProps}
-            className="bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all mb-3 group shadow-xl matte-log-card"
+            className="rounded-[4px] transition-all mb-3 group matte-log-card"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
         >
-            <div className="rounded-xl overflow-hidden">
+            <div className="rounded-[4px] overflow-hidden">
             {/* Collapsed View */}
             <div className="p-4 flex items-center gap-4">
                 <div
                     data-status={statusKey}
-                    className={`recent-activity-status-badge w-10 h-10 rounded-lg flex items-center justify-center border transition-all shrink-0 ${isQueued ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
+                    className={`recent-activity-status-badge w-10 h-10 rounded-[4px] flex items-center justify-center border transition-all shrink-0 ${isQueued ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
                     isPending ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
                         isUploading ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 animate-pulse' :
                             isCalculating ? 'bg-amber-500/20 border-amber-400/30 text-amber-300 animate-pulse' :
@@ -1117,9 +858,11 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                     </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start gap-3">
                         <h4 className="text-sm font-bold text-gray-200 truncate">{cardTitle}</h4>
-                        <span className="text-xs text-gray-500 font-mono">{encounterDurationLabel}</span>
+                        {encounterDurationLabel && (
+                            <span className="text-xs font-mono font-semibold shrink-0 tabular-nums" style={{ color: 'var(--brand-primary)' }}>{encounterDurationLabel}</span>
+                        )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                         <span>{statusLabel ? statusLabel : `${playerCount || '0'} Players${nonSquadDisplayCount > 0 ? ` (${squadDisplayCount} +${nonSquadDisplayCount})` : ''}`}</span>
@@ -1134,7 +877,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                 e.stopPropagation();
                                 onRemove?.();
                             }}
-                            className="p-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all"
+                            className="p-2 rounded-[4px] border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all"
                             title="Remove log from recent activity"
                             aria-label="Remove log from recent activity"
                         >
@@ -1151,7 +894,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                             onToggle();
                         }}
                         disabled={Boolean(log.detailsLoading) || (!log.detailsAvailable && !isExpanded && !onCancel)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 border ${isCancellable
+                        className={`px-3 py-1.5 rounded-[4px] text-xs font-medium transition-all flex items-center gap-1 border ${isCancellable
                             ? 'bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20'
                             : log.detailsLoading
                                 ? 'bg-white/5 text-gray-500 border-white/10 cursor-not-allowed'
@@ -1180,7 +923,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="border-t border-white/10 bg-black/40 shadow-inner"
+                        className="shadow-inner" style={{ borderTop: '1px solid var(--border-default)', background: 'var(--bg-card-inner)' }}
                     >
                         <div className="p-4 space-y-4">
                             {(settings.showSquadSummary || settings.showEnemySummary) && (
@@ -1189,7 +932,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     style={{ gridTemplateColumns: `repeat(${summaryColumnCount}, minmax(0, 1fr))` }}
                                 >
                                     {settings.showSquadSummary && (
-                                        <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                                        <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                                             <h5 className="font-semibold text-green-400 mb-2 uppercase tracking-wider text-[10px]">Squad Summary</h5>
                                             <div className="font-mono text-gray-300 space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{squadDisplayCount} {nonSquadDisplayCount > 0 ? `(+${nonSquadDisplayCount})` : ''}</span></div>
@@ -1201,7 +944,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     )}
                                     {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamSummaryStats.length === 0) && (
-                                        <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                                        <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                                             <h5 className="font-semibold text-red-400 mb-2 uppercase tracking-wider text-[10px]">Enemy Summary</h5>
                                             <div className="font-mono text-gray-300 space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{enemyCount}</span></div>
@@ -1213,7 +956,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     )}
                                     {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamSummaryStats.map((team) => (
-                                        <div key={`expanded-team-summary-${team.teamId}`} className="bg-white/5 rounded-lg p-3 border border-white/5">
+                                        <div key={`expanded-team-summary-${team.teamId}`} className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                                             <h5 className="font-semibold text-red-400 mb-2 uppercase tracking-wider text-[10px]">{`Team ${team.teamId}`}</h5>
                                             <div className="font-mono text-gray-300 space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{team.count}</span></div>
@@ -1247,7 +990,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
 
                             {settings.showIncomingStats && (
                                 <div className="grid grid-cols-3 gap-2">
-                                    <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                                    <div className="rounded-[4px] p-2" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                                         <h5 className="font-semibold text-blue-400 mb-1 uppercase tracking-wider text-[9px]">Incoming Attack</h5>
                                         <div className="font-mono text-[10px] text-gray-300">
                                             <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalMiss}</span></div>
@@ -1255,7 +998,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                             <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalMiss + totalBlock + totalEvade + totalDodge}</span></div>
                                         </div>
                                     </div>
-                                    <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                                    <div className="rounded-[4px] p-2" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                                         <h5 className="font-semibold text-purple-400 mb-1 uppercase tracking-wider text-[9px]">Incoming CC</h5>
                                         <div className="font-mono text-[10px] text-gray-300">
                                             <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalCCMissed}</span></div>
@@ -1264,7 +1007,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     </div>
 
-                                    <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                                    <div className="rounded-[4px] p-2" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                                         <h5 className="font-semibold text-orange-400 mb-1 uppercase tracking-wider text-[9px]">Incoming Strips</h5>
                                         <div className="font-mono text-[10px] text-gray-300">
                                             <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalStripsMissed}</span></div>
@@ -1310,10 +1053,18 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     }
                                 }}
                                 disabled={!log.permalink}
-                                className={`log-card-dps-link-btn w-full py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg border active:scale-[0.98] ${!log.permalink
-                                    ? 'bg-blue-600/50 text-white/50 border-blue-400/10 cursor-not-allowed'
-                                    : 'bg-blue-600/90 text-white hover:bg-blue-600 border-blue-400/20'
+                                className={`log-card-dps-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] ${!log.permalink
+                                    ? 'text-white/50 cursor-not-allowed'
+                                    : 'text-white hover:brightness-110'
                                     }`}
+                                style={{
+                                    background: !log.permalink
+                                        ? 'color-mix(in srgb, var(--brand-primary) 30%, transparent)'
+                                        : 'color-mix(in srgb, var(--brand-primary) 70%, transparent)',
+                                    border: `1px solid ${!log.permalink
+                                        ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)'
+                                        : 'color-mix(in srgb, var(--brand-primary) 25%, transparent)'}`,
+                                }}
                             >
                                 <ExternalLink className="w-4 h-4" />
                                 <span>{log.permalink ? 'Open dps.report Report' : 'Link Pending...'}</span>
@@ -1333,10 +1084,8 @@ const areEqual = (prev: ExpandableLogCardProps, next: ExpandableLogCardProps) =>
         && prev.isExpanded === next.isExpanded
         && prev.layoutEnabled === next.layoutEnabled
         && prev.motionEnabled === next.motionEnabled
-        && prev.screenshotMode === next.screenshotMode
         && prev.embedStatSettings === next.embedStatSettings
         && prev.disruptionMethod === next.disruptionMethod
-        && prev.screenshotSection === next.screenshotSection
         && prev.useClassIcons === next.useClassIcons;
 };
 

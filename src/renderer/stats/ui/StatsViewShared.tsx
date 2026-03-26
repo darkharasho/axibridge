@@ -250,8 +250,15 @@ const ProfessionIcon = ({
                     </span>
                     <div
                         ref={tooltipRef}
-                        style={tooltipStyle}
-                        className={`profession-multi-tooltip absolute left-1/2 z-50 w-max rounded-md border border-white/10 bg-black/70 px-2 py-1 text-[10px] text-gray-200 shadow-lg pointer-events-none ${placementClass} ${open ? 'block' : 'hidden'}`}
+                        style={{
+                            ...tooltipStyle,
+                            background: 'var(--bg-elevated)',
+                            border: '1px solid var(--border-default)',
+                            borderRadius: 'var(--radius-md)',
+                            boxShadow: 'var(--shadow-dropdown)',
+                            color: 'var(--text-primary)'
+                        }}
+                        className={`profession-multi-tooltip absolute left-1/2 z-50 w-max px-2 py-1 text-[10px] pointer-events-none ${placementClass} ${open ? 'block' : 'hidden'}`}
                     >
                         <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">Multi</div>
                         <div className="space-y-1">
@@ -262,7 +269,7 @@ const ProfessionIcon = ({
                                         {itemIcon ? (
                                             <img src={itemIcon} alt={prof || 'Unknown'} className="h-3.5 w-3.5 object-contain" />
                                         ) : null}
-                                        <span className="text-gray-100">{prof || 'Unknown'}</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{prof || 'Unknown'}</span>
                                     </div>
                                 );
                             })}
@@ -316,8 +323,15 @@ export const CountClassTooltip = ({
             {hasTooltip && typeof document !== 'undefined' && createPortal(
                 <div
                     ref={tooltipRef}
-                    style={tooltipStyle}
-                    className={`count-class-tooltip z-[9999] w-max rounded-md border border-white/10 bg-black/70 px-2 py-1 text-[10px] text-gray-200 shadow-lg pointer-events-none ${open ? 'block' : 'hidden'}`}
+                    style={{
+                        ...tooltipStyle,
+                        background: 'var(--bg-elevated)',
+                        border: '1px solid var(--border-default)',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: 'var(--shadow-dropdown)',
+                        color: 'var(--text-primary)'
+                    }}
+                    className={`count-class-tooltip z-[9999] w-max px-2 py-1 text-[10px] pointer-events-none ${open ? 'block' : 'hidden'}`}
                 >
                     <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">
                         {label}
@@ -333,9 +347,9 @@ export const CountClassTooltip = ({
                                                 {iconPath ? (
                                                     <img src={iconPath} alt={profession || 'Unknown'} className="h-3.5 w-3.5 object-contain" />
                                                 ) : null}
-                                                <span className="text-gray-100">{profession || 'Unknown'}</span>
-                                                <span className="text-gray-400">·</span>
-                                                <span className="text-gray-200">{profCount}</span>
+                                                <span style={{ color: 'var(--text-primary)' }}>{profession || 'Unknown'}</span>
+                                                <span style={{ color: 'var(--text-secondary)' }}>·</span>
+                                                <span style={{ color: 'var(--text-primary)' }}>{profCount}</span>
                                             </div>
                                         );
                                     })}
@@ -343,7 +357,7 @@ export const CountClassTooltip = ({
                             ))}
                         </div>
                     ) : (
-                        <div className="text-[10px] text-gray-500 italic">No class data available</div>
+                        <div className="text-[10px] italic" style={{ color: 'var(--text-secondary)' }}>No class data available</div>
                     )}
                 </div>,
                 document.body
@@ -442,10 +456,17 @@ export const SkillBreakdownTooltip = ({
             {hasTooltip && typeof document !== 'undefined' && createPortal(
                 <div
                     ref={tooltipRef}
-                    style={tooltipStyle}
+                    style={{
+                        ...tooltipStyle,
+                        background: 'var(--bg-elevated)',
+                        border: '1px solid var(--border-default)',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: 'var(--shadow-dropdown)',
+                        color: 'var(--text-primary)'
+                    }}
                     onMouseEnter={cancelClose}
                     onMouseLeave={scheduleClose}
-                    className={`skill-breakdown-tooltip z-[9999] w-64 rounded-md border border-white/10 bg-black/70 px-3 py-2 text-[10px] text-gray-100 shadow-lg pointer-events-auto ${open ? 'block' : 'hidden'}`}
+                    className={`skill-breakdown-tooltip z-[9999] w-64 px-3 py-2 text-[10px] pointer-events-auto ${open ? 'block' : 'hidden'}`}
                 >
                     <div className="text-[9px] uppercase tracking-wider text-amber-200 mb-1">{label}</div>
                     <div
@@ -455,10 +476,10 @@ export const SkillBreakdownTooltip = ({
                     >
                         {items.map((item) => (
                             <div key={item.name} className="flex items-center justify-between gap-2">
-                                <span className="truncate text-white">
+                                <span className="truncate" style={{ color: 'var(--text-primary)' }}>
                                     <InlineIconLabel name={item.name} iconUrl={item.iconUrl} iconClassName="h-6 w-6" />
                                 </span>
-                                <span className="text-gray-100 font-mono">{item.value}</span>
+                                <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{item.value}</span>
                             </div>
                         ))}
                     </div>

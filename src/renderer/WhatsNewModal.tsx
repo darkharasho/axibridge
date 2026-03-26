@@ -19,7 +19,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="app-modal-overlay fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md"
+                className="app-modal-overlay fixed inset-0 z-[70] flex items-center justify-center bg-black/60"
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
@@ -27,11 +27,12 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.96, y: 18 }}
                     transition={{ duration: 0.2 }}
-                    className="app-modal-card whats-new-modal w-full max-w-4xl mx-4 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent shadow-[0_20px_80px_rgba(0,0,0,0.6)]"
+                    className="app-modal-card whats-new-modal w-full max-w-4xl mx-4 overflow-hidden rounded-[4px]"
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                 >
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
+                    <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-blue-500/20 border border-blue-500/30">
+                            <div className="p-2 rounded-[4px] bg-blue-500/20 border border-blue-500/30">
                                 <Sparkles className="w-5 h-5 text-blue-300" />
                             </div>
                             <div>
@@ -41,7 +42,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                            className="p-1.5 rounded-[4px] hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -73,7 +74,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                                             </button>
                                         ),
                                         table: ({ children }) => (
-                                            <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30">
+                                            <div className="overflow-x-auto rounded-[4px]" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card-inner)' }}>
                                                 <table className="w-full border-collapse text-left text-sm">
                                                     {children}
                                                 </table>
@@ -90,7 +91,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                                             </td>
                                         ),
                                         pre: ({ children }) => (
-                                            <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs text-blue-100">
+                                            <pre className="overflow-x-auto rounded-[4px] p-4 text-xs text-blue-100" style={{ background: 'var(--bg-card-inner)' }}>
                                                 {children}
                                             </pre>
                                         ),
@@ -114,10 +115,10 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                             </div>
                         </div>
                     </div>
-                    <div className="flex justify-end px-6 py-4 border-t border-white/10 bg-white/5">
+                    <div className="flex justify-end px-6 py-4" style={{ borderTop: '1px solid var(--border-default)' }}>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-200 border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-sm font-medium"
+                            className="px-4 py-2 rounded-[4px] bg-blue-500/20 text-blue-200 border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-sm font-medium"
                         >
                             Continue
                         </button>

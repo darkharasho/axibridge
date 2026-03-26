@@ -23,7 +23,7 @@ const fetchGithubReleaseNotesRange = async (
             url,
             {
                 headers: {
-                    'User-Agent': 'ArcBridge',
+                    'User-Agent': 'AxiBridge',
                     'Accept': 'application/vnd.github+json'
                 }
             },

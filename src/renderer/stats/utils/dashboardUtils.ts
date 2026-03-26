@@ -1,5 +1,33 @@
 import { RES_UTILITY_IDS, RES_UTILITY_NAME_MATCHES } from '../statsMetrics';
 
+/** Fast comma-separated number formatting (avoids toLocaleString overhead). */
+function insertCommas(intPart: string): string {
+    const len = intPart.length;
+    if (len <= 3) return intPart;
+    let result = '';
+    for (let i = 0; i < len; i++) {
+        if (i > 0 && (len - i) % 3 === 0) result += ',';
+        result += intPart[i];
+    }
+    return result;
+}
+
+function fastFormat(value: number, decimals: number): string {
+    const sign = value < 0 ? '-' : '';
+    const abs = Math.abs(value);
+    const fixed = abs.toFixed(decimals);
+    const dotIdx = fixed.indexOf('.');
+    const intPart = dotIdx >= 0 ? fixed.slice(0, dotIdx) : fixed;
+    const fracPart = dotIdx >= 0 ? fixed.slice(dotIdx) : '';
+    return `${sign}${insertCommas(intPart)}${fracPart}`;
+}
+
+function fastFormatInt(value: number): string {
+    const sign = value < 0 ? '-' : '';
+    const abs = Math.abs(Math.round(value));
+    return `${sign}${insertCommas(String(abs))}`;
+}
+
 export const isResUtilitySkill = (id: number, skillMap: Record<string, { name?: string }> | undefined) => {
     if (RES_UTILITY_IDS.has(id)) {
         return true;
@@ -124,7 +152,7 @@ const formatCompactNumber = (value: number) => {
         const formatted = compact.toFixed(0);
         return `${sign}${formatted}k`;
     }
-    return `${value.toLocaleString()}`;
+    return fastFormatInt(value);
 };
 
 export const formatWithCommas = (value: number, decimals = 2) => {
@@ -132,10 +160,7 @@ export const formatWithCommas = (value: number, decimals = 2) => {
     if (isMobileViewport() && Math.abs(value) >= 10_000) {
         return formatCompactNumber(value);
     }
-    return value.toLocaleString(undefined, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
-    });
+    return fastFormat(value, decimals);
 };
 
 export const formatTopStatValue = (value: number) => {
@@ -149,5 +174,5 @@ export const formatTopStatValue = (value: number) => {
         const formatted = compact.toFixed(2).replace(/\.?0+$/, '');
         return `${formatted}m`;
     }
-    return Math.round(value).toLocaleString();
+    return fastFormatInt(value);
 };

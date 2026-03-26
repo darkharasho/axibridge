@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Maximize2, X } from 'lucide-react';
+import { Gw2SigilIcon } from '../../ui/Gw2SigilIcon';
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { InlineIconLabel } from '../ui/StatsViewShared';
-import { Gw2SigilIcon } from '../../ui/Gw2SigilIcon';
 import { useStatsSharedContext } from '../StatsViewContext';
 
 type SigilRelicUptimeSectionProps = {
@@ -30,7 +30,7 @@ export const SigilRelicUptimeSection = ({
     setActiveSigilRelicTab,
     activeSigilRelicTable
 }: SigilRelicUptimeSectionProps) => {
-    const { formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, sidebarListClass } = useStatsSharedContext();
+    const { formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const isExpanded = expandedSection === 'sigil-relic-uptime';
     const sortedRows = useMemo(() => {
@@ -48,58 +48,52 @@ export const SigilRelicUptimeSection = ({
 
     return (
         <div
-            id="sigil-relic-uptime"
-            data-section-visible={isSectionVisible('sigil-relic-uptime')}
-            data-section-first={isFirstVisibleSection('sigil-relic-uptime')}
-            className={sectionClass('sigil-relic-uptime', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${expandedSection === 'sigil-relic-uptime'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                }`
-                : ''
-                }`)}
+            className={`${expandedSection === 'sigil-relic-uptime' ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
+            style={expandedSection === 'sigil-relic-uptime' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
         >
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                    <Gw2SigilIcon className="w-5 h-5 text-fuchsia-300" />
-                    Sigil/Relic Uptime
-                </h3>
+            <div className="flex items-center gap-2 mb-3.5">
+                <span className="flex shrink-0" style={{ color: 'var(--section-support)' }}><Gw2SigilIcon className="w-4 h-4" /></span>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Sigil/Relic Uptime</h3>
                 <button
                     type="button"
                     onClick={() => (expandedSection === 'sigil-relic-uptime' ? closeExpandedSection() : openExpandedSection('sigil-relic-uptime'))}
-                    className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
+                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
                     aria-label={expandedSection === 'sigil-relic-uptime' ? 'Close Sigil/Relic Uptime' : 'Expand Sigil/Relic Uptime'}
                     title={expandedSection === 'sigil-relic-uptime' ? 'Close' : 'Expand'}
                 >
-                    {expandedSection === 'sigil-relic-uptime' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                    {expandedSection === 'sigil-relic-uptime' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
                 </button>
             </div>
             {!hasSigilRelicTables ? (
-                <div className="text-center text-gray-500 italic py-8">No sigil/relic uptime data available</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No sigil/relic uptime data available</div>
             ) : (
                 <StatsTableLayout
                     expanded={isExpanded}
-                    sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${isExpanded ? 'h-full flex-1' : 'self-start'}`}
-                    contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${isExpanded ? 'flex flex-col min-h-0' : ''}`}
+                    sidebarClassName={`pr-3 flex flex-col min-h-0 overflow-y-auto ${isExpanded ? 'h-full flex-1' : ''}`}
+                    contentClassName={`overflow-hidden ${isExpanded ? 'flex flex-col min-h-0' : ''}`}
                     sidebar={
                         <>
-                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Sigil/Relic</div>
+                            <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Sigil/Relic</div>
                             <input
                                 value={sigilRelicSearch}
                                 onChange={(e) => setSigilRelicSearch(e.target.value)}
                                 placeholder="Search..."
-                                className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                                className="w-full px-2 py-1 text-xs text-[color:var(--text-primary)] focus:outline-none mb-2"
+                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
                             />
                             <div className={`${sidebarListClass} ${isExpanded ? 'max-h-none flex-1 min-h-0' : ''}`}>
                                 {filteredSigilRelicTables.length === 0 ? (
-                                    <div className="text-center text-gray-500 italic py-6 text-xs">No sigil/relic entries match this filter</div>
+                                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No sigil/relic entries match this filter</div>
                                 ) : (
                                     filteredSigilRelicTables.map((buff: any) => (
                                         <button
                                             key={buff.id}
                                             onClick={() => setActiveSigilRelicTab(buff.id)}
                                             title={buff.name}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeSigilRelicTab === buff.id
-                                                ? 'bg-fuchsia-500/20 text-fuchsia-200 border-fuchsia-500/40'
-                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                            className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeSigilRelicTab === buff.id
+                                                ? 'bg-fuchsia-500/20 text-fuchsia-200 font-semibold'
+                                                : 'hover:bg-[var(--bg-hover)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                                                 }`}
                                         >
                                             <InlineIconLabel
@@ -118,27 +112,21 @@ export const SigilRelicUptimeSection = ({
                     content={
                         <>
                             {!activeSigilRelicTable ? (
-                                <div className="px-4 py-10 text-center text-gray-500 italic text-sm">Select a sigil/relic to view uptime</div>
+                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a sigil/relic to view uptime</div>
                             ) : (
                                 <StatsTableShell
                                     expanded={isExpanded}
+                                    animationKey={activeSigilRelicTab ?? undefined}
                                     maxHeightClass="max-h-72"
-                                    header={
-                                        <div className="flex items-center justify-between px-4 py-3 bg-white/5">
-                                            <div className="text-sm font-semibold text-gray-200">
-                                                <InlineIconLabel name={activeSigilRelicTable.name} iconUrl={activeSigilRelicTable.icon} iconClassName="h-4 w-4" />
-                                            </div>
-                                            <div className="text-xs uppercase tracking-widest text-gray-500">Uptime</div>
-                                        </div>
-                                    }
+                                    header={null}
                                     columns={
-                                        <div className="grid grid-cols-[0.4fr_1.6fr_1fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                        <div className="grid grid-cols-[0.4fr_1.6fr_1fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
                                             <div className="text-center">#</div>
                                             <div>Player</div>
                                             <button
                                                 type="button"
                                                 onClick={() => setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
-                                                className="text-right transition-colors text-gray-400 hover:text-gray-200"
+                                                className="text-right transition-colors text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                                             >
                                                 Uptime {sortDirection === 'desc' ? '↓' : '↑'}
                                             </button>
@@ -149,13 +137,13 @@ export const SigilRelicUptimeSection = ({
                                             {sortedRows.map((row: any, idx: number) => {
                                                 const uptimePct = Number(row.uptimePerSecond ?? row.perSecond ?? 0) * 100;
                                                 return (
-                                                    <div key={`${activeSigilRelicTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
-                                                        <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
+                                                    <div key={`${activeSigilRelicTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr] px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                                        <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
                                                         <div className="flex items-center gap-2 min-w-0">
                                                             {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                             <span className="truncate">{row.account}</span>
                                                         </div>
-                                                        <div className="text-right font-mono text-gray-300">
+                                                        <div className="text-right font-mono text-[color:var(--text-secondary)]">
                                                             {formatWithCommas(uptimePct, 1)}%
                                                         </div>
                                                     </div>

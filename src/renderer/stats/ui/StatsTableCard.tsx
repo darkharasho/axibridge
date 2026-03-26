@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
-const defaultSidebarClass = 'stats-table-sidebar bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 overflow-hidden';
-const defaultContentClass = 'bg-black/30 border border-white/5 rounded-xl overflow-hidden';
+const defaultSidebarClass = 'stats-table-sidebar pr-3 flex flex-col min-h-0 overflow-y-auto';
+const defaultSidebarStyle: CSSProperties = { borderRight: '1px solid var(--border-subtle)' };
+const defaultContentClass = 'overflow-hidden pl-3 min-w-0';
+const defaultContentStyle: CSSProperties = {};
 
 type StatsTableCardProps = {
     expanded?: boolean;
@@ -21,46 +22,16 @@ export const StatsTableCard = ({
     sidebar,
     content
 }: StatsTableCardProps) => {
-    const contentInnerRef = useRef<HTMLDivElement | null>(null);
-    const [sidebarCapHeight, setSidebarCapHeight] = useState<number | null>(null);
-
-    useEffect(() => {
-        if (expanded) {
-            setSidebarCapHeight(null);
-            return;
-        }
-
-        const node = contentInnerRef.current;
-        if (!node) return;
-
-        const update = () => {
-            const height = Math.round(node.getBoundingClientRect().height);
-            setSidebarCapHeight(height > 0 ? height : null);
-        };
-
-        update();
-        const observer = new ResizeObserver(update);
-        observer.observe(node);
-        window.addEventListener('resize', update);
-        return () => {
-            observer.disconnect();
-            window.removeEventListener('resize', update);
-        };
-    }, [expanded, content]);
-
-    const resolvedSidebarClass = sidebarClassName ?? `${defaultSidebarClass} h-full ${expanded ? 'flex-1' : ''}`;
+    const resolvedSidebarClass = sidebarClassName ?? `${defaultSidebarClass} ${expanded ? 'flex-1' : ''}`;
+    const resolvedSidebarStyle = sidebarClassName ? undefined : defaultSidebarStyle;
     const resolvedContentClass = contentClassName ?? `${defaultContentClass} ${expanded ? 'flex flex-col min-h-0' : ''}`;
-    const sidebarStyle: CSSProperties | undefined = !expanded && sidebarCapHeight
-        ? { height: `${sidebarCapHeight}px`, maxHeight: `${sidebarCapHeight}px` }
-        : undefined;
+    const resolvedContentStyle = contentClassName ? undefined : defaultContentStyle;
 
     return (
-        <div className={`grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 ${expanded ? 'flex-1 min-h-0 h-full' : ''} ${className}`}>
-            <div className={resolvedSidebarClass} style={sidebarStyle}>{sidebar}</div>
-            <div className={resolvedContentClass}>
-                <div ref={contentInnerRef}>
-                    {content}
-                </div>
+        <div className={`grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-0 ${expanded ? 'flex-1 min-h-0 h-full' : ''} ${className}`}>
+            <div className={resolvedSidebarClass} style={resolvedSidebarStyle}>{sidebar}</div>
+            <div className={resolvedContentClass} style={resolvedContentStyle}>
+                {content}
             </div>
         </div>
     );

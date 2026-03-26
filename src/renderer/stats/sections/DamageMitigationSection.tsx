@@ -32,7 +32,7 @@ export const DamageMitigationSection = ({
     damageMitigationScope,
     setDamageMitigationScope
 }: DamageMitigationSectionProps) => {
-    const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, sidebarListClass } = useStatsSharedContext();
+    const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const mitigationPlayers = stats.damageMitigationPlayers || [];
     const mitigationMinions = stats.damageMitigationMinions || [];
     const mitigationRows = damageMitigationScope === 'minions' ? mitigationMinions : mitigationPlayers;
@@ -72,42 +72,66 @@ export const DamageMitigationSection = ({
 
     return (
         <div
-            id="defense-mitigation"
-            data-section-visible={isSectionVisible('defense-mitigation')}
-            data-section-first={isFirstVisibleSection('defense-mitigation')}
-            className={sectionClass('defense-mitigation', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+            className={`${
                 expandedSection === 'defense-mitigation'
-                    ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
+                    ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${
                         expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                     }`
                     : ''
-            }`)}
+            }`}
+            style={expandedSection === 'defense-mitigation' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
         >
-            <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                    <Gw2DamMitIcon className="w-5 h-5 text-emerald-300" />
-                    Defenses - Damage Mitigation
+            <div className="flex items-center gap-2 mb-3.5">
+                <span className="flex shrink-0" style={{ color: 'var(--section-mitigation)' }}><Gw2DamMitIcon className="w-4 h-4" /></span>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                    Defense Mitigation
                 </h3>
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'defense-mitigation' ? closeExpandedSection() : openExpandedSection('defense-mitigation'))}
-                    className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
-                    aria-label={expandedSection === 'defense-mitigation' ? 'Close Damage Mitigation' : 'Expand Damage Mitigation'}
-                    title={expandedSection === 'defense-mitigation' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'defense-mitigation' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </button>
+                <div className="ml-auto flex items-center gap-2">
+                    {!isExpanded && (
+                        <PillToggleGroup
+                            value={damageMitigationScope}
+                            onChange={setDamageMitigationScope}
+                            options={[
+                                { value: 'player', label: 'Player' },
+                                { value: 'minions', label: 'Minions' }
+                            ]}
+                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                            inactiveClassName="text-[color:var(--text-secondary)]"
+                        />
+                    )}
+                    {!isExpanded && (
+                        <PillToggleGroup
+                            value={damageMitigationViewMode}
+                            onChange={setDamageMitigationViewMode}
+                            options={[
+                                { value: 'total', label: 'Total' },
+                                { value: 'per1s', label: 'Stat/1s' },
+                                { value: 'per60s', label: 'Stat/60s' }
+                            ]}
+                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                            inactiveClassName="text-[color:var(--text-secondary)]"
+                        />
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => (expandedSection === 'defense-mitigation' ? closeExpandedSection() : openExpandedSection('defense-mitigation'))}
+                        className="flex items-center justify-center w-[26px] h-[26px]"
+                        style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
+                        aria-label={expandedSection === 'defense-mitigation' ? 'Close Damage Mitigation' : 'Expand Damage Mitigation'}
+                        title={expandedSection === 'defense-mitigation' ? 'Close' : 'Expand'}
+                    >
+                        {expandedSection === 'defense-mitigation' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
+                    </button>
+                </div>
             </div>
             <div className="text-xs text-amber-200/80 italic mb-3">
                 Damage mitigation is an estimate based on enemy skill damage averages and avoidance events (block/evade/miss/invuln/interrupted). Use it for relative comparison rather than exact prevention totals.
             </div>
             {!hasMitigationData ? (
-                <div className="text-center text-gray-500 italic py-8">No damage mitigation stats available</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No damage mitigation stats available</div>
             ) : isExpanded ? (
                 <div className="flex flex-col gap-4">
-                    <div className="bg-black/20 border border-white/5 rounded-xl px-4 py-3">
-                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Mitigation Tabs</div>
-                        <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                             <SearchSelectDropdown
                                 options={[
                                     ...mitigationColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
@@ -163,6 +187,7 @@ export const DamageMitigationSection = ({
                                     buttonLabel="Minions"
                                 />
                             )}
+                            <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
                             <PillToggleGroup
                                 value={damageMitigationScope}
                                 onChange={setDamageMitigationScope}
@@ -170,8 +195,8 @@ export const DamageMitigationSection = ({
                                     { value: 'player', label: 'Player' },
                                     { value: 'minions', label: 'Minions' }
                                 ]}
-                                activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-500/40"
-                                inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                inactiveClassName="text-[color:var(--text-secondary)]"
                             />
                             <PillToggleGroup
                                 value={damageMitigationViewMode}
@@ -181,8 +206,8 @@ export const DamageMitigationSection = ({
                                     { value: 'per1s', label: 'Stat/1s' },
                                     { value: 'per60s', label: 'Stat/60s' }
                                 ]}
-                                activeClassName="bg-sky-500/20 text-sky-200 border border-sky-500/40"
-                                inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                inactiveClassName="text-[color:var(--text-secondary)]"
                             />
                         </div>
                         {(selectedMitigationColumnIds.length > 0 || selectedMitigationPlayers.length > 0) && (
@@ -193,7 +218,8 @@ export const DamageMitigationSection = ({
                                         setSelectedMitigationColumnIds([]);
                                         setSelectedMitigationPlayers([]);
                                     }}
-                                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                    style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
                                 >
                                     Clear All
                                 </button>
@@ -204,10 +230,11 @@ export const DamageMitigationSection = ({
                                             key={id}
                                             type="button"
                                             onClick={() => setSelectedMitigationColumnIds((prev) => prev.filter((entry) => entry !== id))}
-                                            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                            style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                         >
                                             <span>{label}</span>
-                                            <span className="text-gray-400">×</span>
+                                            <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                         </button>
                                     );
                                 })}
@@ -216,10 +243,11 @@ export const DamageMitigationSection = ({
                                         key={id}
                                         type="button"
                                         onClick={() => setSelectedMitigationPlayers((prev) => prev.filter((entry) => entry !== id))}
-                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                     >
                                         <span>{id}</span>
-                                        <span className="text-gray-400">×</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                     </button>
                                 ))}
                             </div>
@@ -229,7 +257,8 @@ export const DamageMitigationSection = ({
                                 <button
                                     type="button"
                                     onClick={() => setSelectedMinionTypes([])}
-                                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                    style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
                                 >
                                     Clear Minions
                                 </button>
@@ -238,22 +267,22 @@ export const DamageMitigationSection = ({
                                         key={id}
                                         type="button"
                                         onClick={() => setSelectedMinionTypes((prev) => prev.filter((entry) => entry !== id))}
-                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                     >
                                         <span>{id}</span>
-                                        <span className="text-gray-400">×</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                     </button>
                                 ))}
                             </div>
                         )}
-                    </div>
-                    <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                    <div className="overflow-hidden">
                         {mitigationRows.length === 0 ? (
-                            <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                 No {damageMitigationScope === 'minions' ? 'minion' : 'player'} mitigation stats available
                             </div>
                         ) : filteredMitigationMetrics.length === 0 ? (
-                            <div className="px-4 py-10 text-center text-gray-500 italic text-sm">No mitigation stats match this filter</div>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No mitigation stats match this filter</div>
                         ) : (
                             (() => {
                                 const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
@@ -311,12 +340,12 @@ export const DamageMitigationSection = ({
                                                 id: `${entry.row.account}-${entry.row.minion || 'player'}-${idx}`,
                                                 label: (
                                                     <>
-                                                        <span className="text-gray-500 font-mono">{idx + 1}</span>
+                                                        <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
                                                         {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                         <div className="min-w-0">
                                                             <div className="truncate">{entry.row.account}</div>
                                                             {entry.row.minion && (
-                                                                <div className="text-[10px] text-gray-500 truncate">{entry.row.minion}</div>
+                                                                <div className="text-[10px] truncate" style={{ color: 'var(--text-secondary)' }}>{entry.row.minion}</div>
                                                             )}
                                                         </div>
                                                     </>
@@ -331,32 +360,37 @@ export const DamageMitigationSection = ({
                     </div>
                 </div>
             ) : (
+                <>
                 <StatsTableLayout
                     expanded={expandedSection === 'defense-mitigation'}
-                    sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'defense-mitigation' ? 'h-full flex-1' : 'self-start'}`}
-                    contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'defense-mitigation' ? 'flex flex-col min-h-0' : ''}`}
+                    sidebarClassName={`pr-3 flex flex-col overflow-y-auto ${expandedSection === 'defense-mitigation' ? 'h-full flex-1 min-h-0' : ''}`}
+                    sidebarStyle={undefined}
+                    contentClassName={`overflow-hidden ${expandedSection === 'defense-mitigation' ? 'flex flex-col min-h-0' : ''}`}
+                    contentStyle={undefined}
                     sidebar={
                         <>
-                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Mitigation Tabs</div>
+                            <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Mitigation Tabs</div>
                             <input
                                 value={damageMitigationSearch}
                                 onChange={(e) => setDamageMitigationSearch(e.target.value)}
                                 placeholder="Search..."
-                                className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2 mt-2"
+                                className="w-full px-2 py-1 text-xs focus:outline-none mb-2 mt-2"
+                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
                             />
                             <div className={`${sidebarListClass} ${expandedSection === 'defense-mitigation' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                                 {(() => {
                                     if (filteredMitigationMetrics.length === 0) {
-                                        return <div className="text-center text-gray-500 italic py-6 text-xs">No mitigation stats match this filter</div>;
+                                        return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No mitigation stats match this filter</div>;
                                     }
                                     return filteredMitigationMetrics.map((metric) => (
                                         <button
                                             key={metric.id}
                                             onClick={() => setActiveDamageMitigationStat(metric.id)}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeDamageMitigationStat === metric.id
-                                                ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
-                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                            className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeDamageMitigationStat === metric.id
+                                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                                 }`}
+                                            style={activeDamageMitigationStat !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
                                         >
                                             {metric.label}
                                         </button>
@@ -397,48 +431,18 @@ export const DamageMitigationSection = ({
                                 return (
                                     <StatsTableShell
                                         expanded={expandedSection === 'defense-mitigation'}
-                                        header={
-                                            <div className="flex items-center justify-between px-4 py-3 bg-white/5">
-                                                <div className="text-sm font-semibold text-gray-200">{metric.label}</div>
-                                                <div className="text-xs uppercase tracking-widest text-gray-500">Mitigation</div>
-                                            </div>
-                                        }
+                                        animationKey={`${activeDamageMitigationStat}-${damageMitigationViewMode}-${damageMitigationScope}`}
+                                        header={null}
                                         columns={
                                             <>
-                                                <div className="px-4 py-2 bg-white/5">
-                                                    <div className="flex items-center gap-2">
-                                                        <PillToggleGroup
-                                                            value={damageMitigationScope}
-                                                            onChange={setDamageMitigationScope}
-                                                            options={[
-                                                                { value: 'player', label: 'Player' },
-                                                                { value: 'minions', label: 'Minions' }
-                                                            ]}
-                                                            activeClassName="bg-emerald-500/20 text-emerald-200 border border-emerald-500/40"
-                                                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                                                        />
-                                                        <div className="ml-auto">
-                                                            <PillToggleGroup
-                                                                value={damageMitigationViewMode}
-                                                                onChange={setDamageMitigationViewMode}
-                                                                options={[
-                                                                    { value: 'total', label: 'Total' },
-                                                                    { value: 'per1s', label: 'Stat/1s' },
-                                                                    { value: 'per60s', label: 'Stat/60s' }
-                                                                ]}
-                                                                activeClassName="bg-sky-500/20 text-sky-200 border border-sky-500/40"
-                                                                inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-[0.4fr_1.6fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                                <div className="grid grid-cols-[0.4fr_1.6fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
                                                     <div className="text-center">#</div>
                                                     <div>Player</div>
                                                     <button
                                                         type="button"
                                                         onClick={() => updateSort('value')}
-                                                        className={`text-right transition-colors ${sortState.key === 'value' ? 'text-emerald-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                        className="text-right transition-colors"
+                                                        style={{ color: sortState.key === 'value' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                                     >
                                                         {damageMitigationViewMode === 'total' ? 'Total' : damageMitigationViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
                                                         {sortState.key === 'value' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
@@ -446,7 +450,8 @@ export const DamageMitigationSection = ({
                                                     <button
                                                         type="button"
                                                         onClick={() => updateSort('fightTime')}
-                                                        className={`text-right transition-colors ${sortState.key === 'fightTime' ? 'text-emerald-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                        className="text-right transition-colors"
+                                                        style={{ color: sortState.key === 'fightTime' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                                     >
                                                         Fight Time{sortState.key === 'fightTime' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                     </button>
@@ -455,22 +460,22 @@ export const DamageMitigationSection = ({
                                         }
                                         rows={
                                             rows.length === 0 ? (
-                                                <div className="px-4 py-10 text-center text-gray-500 italic text-sm">
+                                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                                     No {damageMitigationScope === 'minions' ? 'minion' : 'player'} mitigation stats available
                                                 </div>
                                             ) : (
                                                 <>
                                                     {rows.map((row: any, idx: number) => (
-                                                        <div key={`${metric.id}-${row.account}-${row.minion || 'player'}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
-                                                            <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
+                                                        <div key={`${metric.id}-${row.account}-${row.minion || 'player'}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
+                                                            <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
                                                             <div className="flex items-center gap-2 min-w-0">
                                                                 {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                                 <div className="min-w-0">
                                                                     <div className="truncate">{row.account}</div>
-                                                                    {row.minion && <div className="text-[10px] text-gray-500 truncate">{row.minion}</div>}
+                                                                    {row.minion && <div className="text-[10px] truncate" style={{ color: 'var(--text-secondary)' }}>{row.minion}</div>}
                                                                 </div>
                                                             </div>
-                                                            <div className="text-right font-mono text-gray-300">
+                                                            <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                                 {(() => {
                                                                     const value = damageMitigationViewMode === 'total'
                                                                         ? row.total
@@ -480,7 +485,7 @@ export const DamageMitigationSection = ({
                                                                     return formatValue(value);
                                                                 })()}
                                                             </div>
-                                                            <div className="text-right font-mono text-gray-400">
+                                                            <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                                 {row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}
                                                             </div>
                                                         </div>
@@ -494,6 +499,7 @@ export const DamageMitigationSection = ({
                         </>
                     }
                 />
+                </>
             )}
         </div>
     );

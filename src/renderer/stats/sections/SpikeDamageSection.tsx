@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Maximize2, Zap, X } from 'lucide-react';
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
+import { Maximize2, X, Zap } from 'lucide-react';
 import { getProfessionColor } from '../../../shared/professionUtils';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
@@ -86,11 +87,8 @@ type SpikeDamageSectionProps = {
 export const SpikeDamageSection = ({
     sectionId = 'spike-damage',
     title = 'Spike Damage',
-    subtitle = 'Select one player to chart their highest damage burst per fight.',
     listTitle = 'Squad Players',
     searchPlaceholder = 'Search player or account',
-    titleIcon: TitleIcon = Zap,
-    titleIconClassName = 'text-rose-300',
     spikePlayerFilter,
     setSpikePlayerFilter,
     groupedSpikePlayers,
@@ -116,7 +114,7 @@ export const SpikeDamageSection = ({
     spikeFightSkillRows = [],
     spikeFightSkillTitle = 'Skill Damage (Selected Fight)'
 }: SpikeDamageSectionProps) => {
-    const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
+    const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
     const [hoveredMarkerKey, setHoveredMarkerKey] = useState<string | null>(null);
     const [hoveredMarkerInfo, setHoveredMarkerInfo] = useState<null | {
         x: number;
@@ -228,25 +226,13 @@ export const SpikeDamageSection = ({
 
     return (
         <div
-            id={sectionId}
-            data-section-visible={isSectionVisible(sectionId)}
-            data-section-first={isFirstVisibleSection(sectionId)}
-            className={sectionClass(sectionId, `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${isExpanded
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}`
-                : 'overflow-hidden'
-                }`)}
+            className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
+            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
         >
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4 relative">
-                <div className={isExpanded ? 'pr-10 md:pr-0' : ''}>
-                    <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                        <TitleIcon className={`w-5 h-5 ${titleIconClassName}`} />
-                        {title}
-                    </h3>
-                    <p className="text-xs text-gray-400">
-                        {subtitle}
-                    </p>
-                </div>
-                <div className={`flex items-center gap-3 ${isExpanded ? 'pr-10 md:pr-0' : ''}`}>
+            <div className="flex items-center gap-2 mb-3.5 flex-wrap">
+                <Zap className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+                <div className="ml-auto flex items-center gap-2 flex-wrap">
                     {showTotalDamageToggle && setUseTotalDamage && (
                         <PillToggleGroup
                             value={useTotalDamage ? 'allDamage' : 'peak'}
@@ -255,8 +241,8 @@ export const SpikeDamageSection = ({
                                 { value: 'peak', label: 'Peak' },
                                 { value: 'allDamage', label: 'All Damage' }
                             ]}
-                            activeClassName="bg-cyan-500/20 text-cyan-200 border border-cyan-500/40"
-                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     )}
                     {showDamageBasisToggle && setDamageBasis && (
@@ -267,8 +253,8 @@ export const SpikeDamageSection = ({
                                 { value: 'all', label: 'Damage' },
                                 { value: 'downContribution', label: 'Down Contrib' }
                             ]}
-                            activeClassName="bg-rose-500/20 text-rose-200 border border-rose-500/40"
-                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     )}
                     {!useTotalDamage && (
@@ -281,25 +267,26 @@ export const SpikeDamageSection = ({
                                 { value: '5s', label: '5s' },
                                 { value: '30s', label: '30s' }
                             ]}
-                            activeClassName="bg-rose-500/20 text-rose-200 border border-rose-500/40"
-                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     )}
                     <button
                         type="button"
                         onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                        className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${isExpanded ? 'absolute top-2 right-2 md:static' : ''}`}
+                        className="flex items-center justify-center w-[26px] h-[26px]"
+                        style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
                         aria-label={isExpanded ? `Close ${title}` : `Expand ${title}`}
                         title={isExpanded ? 'Close' : 'Expand'}
                     >
-                        {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                        {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
                     </button>
                 </div>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2 items-stretch">
                 <div className="space-y-2 flex flex-col h-[320px]">
-                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">
+                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">
                         {listTitle}
                     </div>
                     <input
@@ -307,11 +294,11 @@ export const SpikeDamageSection = ({
                         value={spikePlayerFilter}
                         onChange={(event) => setSpikePlayerFilter(event.target.value)}
                         placeholder={searchPlaceholder}
-                        className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-gray-200 focus:border-rose-400 focus:outline-none"
+                        className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-rose-400 focus:outline-none"
                     />
-                    <div className="spike-player-list-container flex-1 min-h-0 overflow-y-auto rounded-2xl border border-white/10 bg-black/20">
+                    <div className="spike-player-list-container flex-1 min-h-0 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)]">
                         {flatSpikePlayers.length === 0 ? (
-                            <div className="px-3 py-4 text-xs text-gray-500 italic">
+                            <div className="px-3 py-4 text-xs text-[color:var(--text-muted)] italic">
                                 No players match the filter.
                             </div>
                         ) : (
@@ -325,7 +312,7 @@ export const SpikeDamageSection = ({
                                             onClick={() => setSelectedSpikePlayerKey(player.key)}
                                             className={`spike-player-list-item w-full rounded-md border px-2.5 py-1.5 text-left transition-colors ${isSelected
                                                 ? 'border-rose-300/60 bg-rose-400/10 text-white'
-                                                : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]'
+                                                : 'border-[color:var(--border-default)] bg-white/[0.02] hover:border-[color:var(--border-hover)] hover:bg-white/[0.05]'
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between gap-2">
@@ -333,11 +320,11 @@ export const SpikeDamageSection = ({
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         {renderProfessionIcon(player.profession, undefined, 'w-3.5 h-3.5')}
                                                         <div className="text-sm font-semibold truncate text-white">{player.displayName}</div>
-                                                        <span className="text-[9px] uppercase tracking-[0.14em] text-gray-400 shrink-0">
+                                                        <span className="text-[9px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)] shrink-0">
                                                             {player.groupProfession}
                                                         </span>
                                                     </div>
-                                                    <div className="text-[10px] text-gray-400 truncate">
+                                                    <div className="text-[10px] text-[color:var(--text-secondary)] truncate">
                                                         {player.characterName || player.displayName} · {player.logs} {player.logs === 1 ? 'fight' : 'fights'}
                                                     </div>
                                                 </div>
@@ -355,20 +342,20 @@ export const SpikeDamageSection = ({
 
                 <div className="space-y-2 flex flex-col h-[320px]">
                     <div className="flex items-center justify-between">
-                        <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">
+                        <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">
                             Per Fight {modeLabel}
                         </div>
-                        <div className="text-[11px] text-gray-500">
+                        <div className="text-[11px] text-[color:var(--text-secondary)]">
                             {spikeChartData.length} {spikeChartData.length === 1 ? 'fight' : 'fights'}
                         </div>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-black/30 p-4 flex-1 min-h-0">
+                    <div className="rounded-[var(--radius-md)] p-4 flex-1 min-h-0">
                         {!selectedSpikePlayer || spikeChartData.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                            <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
                                 Select one player to view burst values by fight.
                             </div>
                         ) : (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <LineChart
                                     data={spikeChartData}
                                     onClick={(state: any) => {
@@ -447,23 +434,23 @@ export const SpikeDamageSection = ({
                                         activeDot={false}
                                     />
                                 </LineChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </div>
                 </div>
             </div>
 
             {selectedSpikePlayer && (
-                <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 grid gap-3 md:grid-cols-3">
+                <div className="mt-4 px-4 py-3 grid gap-3 md:grid-cols-3">
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">Selected Player</div>
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Selected Player</div>
                         <div className="mt-1 text-sm font-semibold text-white flex items-center gap-2 min-w-0">
                             {renderProfessionIcon(selectedSpikePlayer.profession, selectedSpikePlayer.professionList, 'w-4 h-4')}
                             <span className="truncate">{selectedSpikePlayer.displayName}</span>
                         </div>
                     </div>
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">
                             {selectedFight
                                 ? (spikeMode === 'hit'
                                     ? (isDownContributionMode ? 'Selected Skill Down Contribution' : 'Selected Skill Damage')
@@ -477,12 +464,12 @@ export const SpikeDamageSection = ({
                         </div>
                     </div>
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">
                             {selectedFight
                                 ? (spikeMode === 'hit' ? 'Selected Skill / Fight' : 'Selected Fight')
                                 : (spikeMode === 'hit' ? 'Peak Skill / Fight' : 'Peak Fight')}
                         </div>
-                        <div className="mt-1 text-sm text-gray-200 truncate">
+                        <div className="mt-1 text-sm text-[color:var(--text-primary)] truncate">
                             {(() => {
                                 const bestLabel = sanitizeWvwLabel(infoFight?.fullLabel || selectedSpikePlayer.peakFightLabel || 'N/A');
                                 const timeLabel = formatFightTimestamp(Number(infoFight?.timestamp || 0));
@@ -498,25 +485,25 @@ export const SpikeDamageSection = ({
                 </div>
             )}
             {selectedSpikePlayer && selectedSpikeFightIndex !== null && (
-                <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
+                <div className="mt-4 px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">{spikeDrilldownTitle}</div>
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{spikeDrilldownTitle}</div>
                         <button
                             type="button"
                             onClick={() => setSelectedSpikeFightIndex(null)}
-                            className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-gray-200"
+                            className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                         >
                             Clear
                         </button>
                     </div>
                     <div className="h-[220px] relative">
                         {spikeDrilldownData.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                            <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
                                 No detailed data available for this fight.
                             </div>
                         ) : (
                             <>
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ChartContainer width="100%" height="100%">
                                     <LineChart data={drilldownSeries}>
                                     <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                     <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
@@ -564,10 +551,10 @@ export const SpikeDamageSection = ({
                                         dot={makeMarkerDot('death')}
                                     />
                                     </LineChart>
-                                </ResponsiveContainer>
+                                </ChartContainer>
                                 {hoveredMarkerInfo && (
                                     <div
-                                        className="pointer-events-none absolute z-20 rounded-md border border-white/15 bg-[#101722] px-2 py-1 text-xs shadow-xl"
+                                        className="pointer-events-none absolute z-20 rounded-md border border-[color:var(--border-default)] bg-[#101722] px-2 py-1 text-xs"
                                         style={{
                                             left: `${Math.max(8, hoveredMarkerInfo.x)}px`,
                                             top: `${Math.max(8, hoveredMarkerInfo.y - 38)}px`,
@@ -577,7 +564,7 @@ export const SpikeDamageSection = ({
                                         <div className={`${hoveredMarkerInfo.kind === 'down' ? 'text-yellow-300' : 'text-red-300'} font-semibold`}>
                                             {hoveredMarkerInfo.kind === 'down' ? 'Down' : 'Death'}
                                         </div>
-                                        <div className="text-gray-300">{hoveredMarkerInfo.label}</div>
+                                        <div className="text-[color:var(--text-secondary)]">{hoveredMarkerInfo.label}</div>
                                     </div>
                                 )}
                             </>
@@ -598,18 +585,18 @@ export const SpikeDamageSection = ({
                         return (
                             <>
                     <div className="flex items-center justify-between mb-2">
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">{spikeFightSkillTitle}</div>
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500">
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{spikeFightSkillTitle}</div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-secondary)]">
                             {displayRows.length} {displayRows.length === 1 ? 'skill' : 'skills'}
                         </div>
                     </div>
                     {displayRows.length === 0 ? (
-                        <div className="text-xs text-gray-500 italic py-4">
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                             No skill-level breakdown available for this fight.
                         </div>
                     ) : (
-                        <div className="incoming-skill-table-container rounded-lg border border-white/10 bg-black/35 overflow-hidden">
-                            <div className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2 text-[10px] uppercase tracking-[0.25em] text-gray-400 border-b border-white/10">
+                        <div className="incoming-skill-table-container rounded-[var(--radius-md)] overflow-hidden">
+                            <div className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                                 <div>Skill</div>
                                 <div className="text-right">{isDownContributionMode ? 'Down Contrib' : 'Damage'}</div>
                                 <div className="text-right">Hits</div>
@@ -618,7 +605,7 @@ export const SpikeDamageSection = ({
                                 {displayRows.map((row, idx) => (
                                     <div
                                         key={`${row.skillName}-${idx}`}
-                                        className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2.5 text-sm text-gray-200 border-b border-white/[0.05] last:border-b-0"
+                                        className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2.5 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)] last:border-b-0"
                                     >
                                         <div className="min-w-0 flex items-center gap-2">
                                             {row.icon ? (
@@ -626,7 +613,7 @@ export const SpikeDamageSection = ({
                                                     src={row.icon}
                                                     alt=""
                                                     loading="lazy"
-                                                    className="w-4 h-4 rounded-sm border border-white/[0.16] bg-black/40 flex-shrink-0"
+                                                    className="w-4 h-4 rounded-sm border border-white/[0.16] bg-[var(--bg-card-inner)] flex-shrink-0"
                                                 />
                                             ) : (
                                                 <div className="w-4 h-4 rounded-sm border border-white/[0.14] bg-white/[0.06] flex-shrink-0" />
@@ -634,7 +621,7 @@ export const SpikeDamageSection = ({
                                             <div className="truncate leading-[1.45] pt-[1px] pb-[2px]" title={row.skillName}>{row.skillName}</div>
                                         </div>
                                         <div className="text-right font-mono text-rose-200">{formatWithCommas(isDownContributionMode ? Number(row.downContribution || 0) : Number(row.damage || 0), 0)}</div>
-                                        <div className="text-right font-mono text-gray-300">{formatWithCommas(Number(row.hits || 0), 0)}</div>
+                                        <div className="text-right font-mono text-[color:var(--text-secondary)]">{formatWithCommas(Number(row.hits || 0), 0)}</div>
                                     </div>
                                 ))}
                             </div>

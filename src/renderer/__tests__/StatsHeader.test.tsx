@@ -14,9 +14,6 @@ describe('StatsHeader', () => {
                 onDevMockUpload={() => {}}
                 uploadingWeb={false}
                 onWebUpload={() => {}}
-                sharing={false}
-                canShareDiscord
-                onShare={() => {}}
             />
         );
 

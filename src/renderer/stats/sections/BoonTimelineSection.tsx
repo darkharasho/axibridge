@@ -1,7 +1,8 @@
-import { Bar, CartesianGrid, Cell, ComposedChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, CartesianGrid, Cell, ComposedChart, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Maximize2, X } from 'lucide-react';
-import { Gw2AegisIcon } from '../../ui/Gw2AegisIcon';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
+import { Gw2AegisIcon } from '../../ui/Gw2AegisIcon';
 import { getProfessionColor } from '../../../shared/professionUtils';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
@@ -85,7 +86,7 @@ export const BoonTimelineSection = ({
     showIncomingHeatmap,
     setShowIncomingHeatmap
 }: BoonTimelineSectionProps) => {
-    const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
+    const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
     const sectionId = 'boon-timeline';
     const isExpanded = expandedSection === sectionId;
     const selectedLineColor = selectedPlayer?.profession && selectedPlayer.profession !== 'All'
@@ -132,45 +133,34 @@ export const BoonTimelineSection = ({
 
     return (
         <div
-            id={sectionId}
-            data-section-visible={isSectionVisible(sectionId)}
-            data-section-first={isFirstVisibleSection(sectionId)}
-            className={sectionClass(sectionId, `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${isExpanded
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}`
-                : 'overflow-hidden'
-                }`)}
+            className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
+            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
         >
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4 relative">
-                <div className={isExpanded ? 'pr-10 md:pr-0' : ''}>
-                    <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                        <Gw2AegisIcon className="w-5 h-5 text-cyan-300" />
-                        Boon Timeline
-                    </h3>
-                    <p className="text-xs text-gray-400">
-                        Select a boon, then a player (or All) to chart generation totals by fight and 5-second buckets.
-                    </p>
-                </div>
+            <div className="flex items-center gap-2 mb-3.5">
+                <span className="flex shrink-0" style={{ color: 'var(--section-boon)' }}><Gw2AegisIcon className="w-4 h-4" /></span>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Boon Timeline</h3>
                 <button
                     type="button"
                     onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                    className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${isExpanded ? 'absolute top-2 right-2 md:static' : ''}`}
+                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
+                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
                     aria-label={isExpanded ? 'Close Boon Timeline' : 'Expand Boon Timeline'}
                     title={isExpanded ? 'Close' : 'Expand'}
                 >
-                    {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
                 </button>
             </div>
 
-            <div className="mb-4 rounded-2xl border border-white/10 bg-black/30 p-3">
+            <div className="mb-4 rounded-[var(--radius-md)] p-3">
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                     <input
                         type="search"
                         value={boonSearch}
                         onChange={(event) => setBoonSearch(event.target.value)}
                         placeholder="Search boon"
-                        className="w-full lg:w-72 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-gray-200 focus:border-cyan-400 focus:outline-none"
+                        className="w-full lg:w-72 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-cyan-400 focus:outline-none"
                     />
-                    <div className="text-[11px] text-gray-500">
+                    <div className="text-[11px] text-[color:var(--text-secondary)]">
                         {boons.length} {boons.length === 1 ? 'boon' : 'boons'}
                     </div>
                 </div>
@@ -184,13 +174,13 @@ export const BoonTimelineSection = ({
                             { value: 'groupBuffs', label: 'Group' },
                             { value: 'totalBuffs', label: 'All' }
                         ]}
-                        activeClassName="bg-cyan-500/20 text-cyan-200 border border-cyan-500/40"
-                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                        inactiveClassName="border border-transparent text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                     />
                 </div>
-                <div className="mt-2 max-h-28 overflow-y-auto rounded-xl border border-white/10 bg-black/20 p-1.5">
+                <div className="mt-2 max-h-28 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)] p-1.5">
                     {boons.length === 0 ? (
-                        <div className="px-3 py-2 text-xs text-gray-500 italic">No boons match this filter.</div>
+                        <div className="px-3 py-2 text-xs text-[color:var(--text-muted)] italic">No boons match this filter.</div>
                     ) : (
                         <div className="flex flex-wrap gap-1.5">
                             {boons.map((boon) => {
@@ -201,8 +191,8 @@ export const BoonTimelineSection = ({
                                         type="button"
                                         onClick={() => setActiveBoonId(boon.id)}
                                         className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${isActive
-                                            ? 'border-cyan-300/60 bg-cyan-500/15 text-cyan-100'
-                                            : 'border-white/10 bg-white/[0.03] text-gray-300 hover:border-white/20 hover:text-white'
+                                            ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)]'
+                                            : 'border-[color:var(--border-default)] bg-white/[0.03] text-[color:var(--text-secondary)] hover:border-[color:var(--border-hover)] hover:text-[color:var(--text-primary)]'
                                             }`}
                                     >
                                         {boon.icon ? (
@@ -221,7 +211,7 @@ export const BoonTimelineSection = ({
 
             <div className="grid gap-4 lg:grid-cols-2 items-stretch">
                 <div className="space-y-2 flex flex-col h-[320px]">
-                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">
+                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">
                         Boon Sources
                     </div>
                     <input
@@ -229,11 +219,11 @@ export const BoonTimelineSection = ({
                         value={playerFilter}
                         onChange={(event) => setPlayerFilter(event.target.value)}
                         placeholder="Search player or account"
-                        className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-gray-200 focus:border-cyan-400 focus:outline-none"
+                        className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-cyan-400 focus:outline-none"
                     />
-                    <div className="spike-player-list-container flex-1 min-h-0 overflow-y-auto rounded-2xl border border-white/10 bg-black/20">
+                    <div className="spike-player-list-container flex-1 min-h-0 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)]">
                         {players.length === 0 ? (
-                            <div className="px-3 py-4 text-xs text-gray-500 italic">
+                            <div className="px-3 py-4 text-xs text-[color:var(--text-muted)] italic">
                                 Select a boon to view player generation.
                             </div>
                         ) : (
@@ -246,8 +236,8 @@ export const BoonTimelineSection = ({
                                             type="button"
                                             onClick={() => setSelectedPlayerKey(player.key)}
                                             className={`spike-player-list-item w-full rounded-md border px-2.5 py-1.5 text-left transition-colors ${isSelected
-                                                ? 'border-cyan-300/60 bg-cyan-400/10 text-white'
-                                                : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]'
+                                                ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg-strong)] text-[color:var(--text-primary)]'
+                                                : 'border-[color:var(--border-default)] bg-white/[0.02] hover:border-[color:var(--border-hover)] hover:bg-white/[0.05]'
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between gap-2">
@@ -258,12 +248,12 @@ export const BoonTimelineSection = ({
                                                             : renderProfessionIcon(player.profession, player.professionList, 'w-3.5 h-3.5')}
                                                         <div className="text-sm font-semibold truncate text-white">{player.displayName}</div>
                                                         {player.profession !== 'All' && (
-                                                            <span className="text-[9px] uppercase tracking-[0.14em] text-gray-400 shrink-0">
+                                                            <span className="text-[9px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)] shrink-0">
                                                                 {player.profession}
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-400 truncate">
+                                                    <div className="text-[10px] text-[color:var(--text-secondary)] truncate">
                                                         {player.logs} {player.logs === 1 ? 'fight' : 'fights'}
                                                     </div>
                                                 </div>
@@ -281,20 +271,20 @@ export const BoonTimelineSection = ({
 
                 <div className="space-y-2 flex flex-col h-[320px]">
                     <div className="flex items-center justify-between">
-                        <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">
+                        <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">
                             Per Fight {scopeLabel} Generation
                         </div>
-                        <div className="text-[11px] text-gray-500">
+                        <div className="text-[11px] text-[color:var(--text-secondary)]">
                             {chartData.length} {chartData.length === 1 ? 'fight' : 'fights'}
                         </div>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-black/30 p-4 flex-1 min-h-0">
+                    <div className="rounded-[var(--radius-md)] p-4 flex-1 min-h-0">
                         {!selectedPlayer || chartData.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                            <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
                                 Select one player to view boon generation by fight.
                             </div>
                         ) : (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <LineChart
                                     data={chartData}
                                     onClick={(state: any) => {
@@ -362,16 +352,16 @@ export const BoonTimelineSection = ({
                                         activeDot={false}
                                     />
                                 </LineChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </div>
                 </div>
             </div>
 
             {selectedPlayer && (
-                <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 grid gap-3 md:grid-cols-3">
+                <div className="mt-4 px-4 py-3 grid gap-3 md:grid-cols-3">
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">Selected Source</div>
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Selected Source</div>
                         <div className="mt-1 text-sm font-semibold text-white flex items-center gap-2 min-w-0">
                             {selectedPlayer.key === '__all__'
                                 ? <Gw2BoonIcon className="w-4 h-4 text-cyan-300" />
@@ -380,7 +370,7 @@ export const BoonTimelineSection = ({
                         </div>
                     </div>
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">
                             {selectedFight ? 'Selected Fight Generation' : 'Peak Fight Generation'}
                         </div>
                         <div className="mt-1 text-lg font-black text-cyan-200 font-mono">
@@ -388,10 +378,10 @@ export const BoonTimelineSection = ({
                         </div>
                     </div>
                     <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">
                             {selectedFight ? 'Selected Fight' : 'Peak Fight'}
                         </div>
-                        <div className="mt-1 text-sm text-gray-200 truncate">
+                        <div className="mt-1 text-sm text-[color:var(--text-primary)] truncate">
                             {(() => {
                                 const bestLabel = sanitizeWvwLabel(infoFight?.fullLabel || 'N/A');
                                 const timeLabel = formatFightTimestamp(Number(infoFight?.timestamp || 0));
@@ -403,9 +393,9 @@ export const BoonTimelineSection = ({
             )}
 
             {selectedPlayer && selectedFightIndex !== null && (
-                <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
+                <div className="mt-4 px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-gray-500">{drilldownTitle}</div>
+                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{drilldownTitle}</div>
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
@@ -413,7 +403,7 @@ export const BoonTimelineSection = ({
                                 className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
                                     showIncomingHeatmap
                                         ? 'text-red-200 hover:text-red-100'
-                                        : 'text-gray-400 hover:text-gray-200'
+                                        : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                                 }`}
                                 title="Toggle squad incoming damage intensity heatmap overlay"
                             >
@@ -422,7 +412,7 @@ export const BoonTimelineSection = ({
                             <button
                                 type="button"
                                 onClick={() => setSelectedFightIndex(null)}
-                                className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-gray-200"
+                                className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                             >
                                 Clear
                             </button>
@@ -430,11 +420,11 @@ export const BoonTimelineSection = ({
                     </div>
                     <div className="h-[220px] relative">
                         {drilldownData.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                            <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
                                 No detailed data available for this fight.
                             </div>
                         ) : (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <ComposedChart data={drilldownHeatData}>
                                     <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                     <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
@@ -478,7 +468,7 @@ export const BoonTimelineSection = ({
                                         activeDot={{ r: 4 }}
                                     />
                                 </ComposedChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </div>
                 </div>

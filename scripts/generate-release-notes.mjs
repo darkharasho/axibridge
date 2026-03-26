@@ -114,7 +114,7 @@ const trimmedPatch = filteredDiffPatch.length > maxPatchChars
     : filteredDiffPatch;
 
 const prompt = [
-    `Write release notes for this ArcBridge update (v${version}) in a direct, human, product-focused style.`,
+    `Write release notes for this AxiBridge update (v${version}) in a direct, human, product-focused style.`,
     ``,
     `You are writing like the developer of the app, not like a marketing team and not like a git changelog.`,
     ``,

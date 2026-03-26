@@ -8,9 +8,13 @@ import { sanitizeWvwLabel, buildFightLabel } from './stats/utils/labelUtils';
 import { parseTimestamp, resolveFightTimestamp } from './stats/utils/timestampUtils';
 import { NON_DAMAGING_CONDITIONS } from './stats/statsMetrics';
 import { StatsSharedContext } from './stats/StatsViewContext';
-import { useStatsNavigation } from './stats/hooks/useStatsNavigation';
+import { StatsGroupContainer } from './stats/ui/StatsGroupContainer';
+import { SectionPanel } from './stats/ui/SectionPanel';
+import { useStatsNavigation, STATS_TOC_GROUPS } from './stats/hooks/useStatsNavigation';
+import { GROUP_ACCENT_COLORS } from './stats/sectionColors';
+import { useStatsStore } from './stats/statsStore';
+import { useLazyGroups } from './stats/hooks/useLazyGroups';
 import { useStatsUploads } from './stats/hooks/useStatsUploads';
-import { useStatsScreenshot } from './stats/hooks/useStatsScreenshot';
 import { useStatsAggregationWorker, type AggregationDiagnosticsState, type AggregationProgressState } from './stats/hooks/useStatsAggregationWorker';
 import { useApmStats } from './stats/hooks/useApmStats';
 import { useSkillCharts } from './stats/hooks/useSkillCharts';
@@ -77,8 +81,6 @@ interface StatsViewProps {
     embedded?: boolean;
     sectionVisibility?: (id: string) => boolean;
     dashboardTitle?: string;
-    uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass';
-    canShareDiscord?: boolean;
     statsDataProgress?: {
         active: boolean;
         total: number;
@@ -94,7 +96,7 @@ interface StatsViewProps {
     };
 }
 
-const sidebarListClass = 'space-y-1 pr-1 max-h-72 overflow-y-auto';
+const sidebarListClass = 'space-y-0.5 max-h-72 overflow-y-auto';
 const ORDERED_SECTION_IDS = [
     'overview',
     'fight-breakdown',
@@ -146,7 +148,15 @@ const EMPTY_SKILL_USAGE_SUMMARY: SkillUsageSummary = {
 
 const EMPTY_ANY_ARRAY: any[] = [];
 
-export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, uiTheme, canShareDiscord = true, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
+export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
+    // Defer heavy section rendering by one frame so the header + progress bar can paint first.
+    const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
+    useEffect(() => {
+        if (!sectionsDeferred) return;
+        const id = requestAnimationFrame(() => setSectionsDeferred(false));
+        return () => cancelAnimationFrame(id);
+    }, [sectionsDeferred]);
+
     const activeMvpWeights = normalizeMvpWeights(mvpWeights || DEFAULT_MVP_WEIGHTS);
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
     const activeWebUploadState = webUploadState || DEFAULT_WEB_UPLOAD_STATE;
@@ -163,15 +173,20 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     const webUploadUrl = activeWebUploadState.url;
     const webUploadBuildStatus = activeWebUploadState.buildStatus;
     const devMockAvailable = !embedded && import.meta.env.DEV && !!window.electronAPI?.mockWebReport;
-    const [sectionContentReady, setSectionContentReady] = useState(true);
     const [statsSettlingBannerJoke, setStatsSettlingBannerJoke] = useState(STATS_LOADING_JOKES[0] || '');
     const statsLoadingJokeDeckRef = useRef<string[]>([]);
     const statsLoadingJokeCursorRef = useRef(0);
     const statsLoadingJokeTimerRef = useRef<number | null>(null);
     const statsLoadingJokeLastChangeRef = useRef(0);
+    const progressHighWaterRef = useRef(0);
     const isSectionVisibleFast = useCallback(
         (id: string) => (sectionVisibility ? sectionVisibility(id) : true),
         [sectionVisibility]
+    );
+
+    // Lazy group rendering — only used for non-embedded (desktop) path
+    const { activeNavGroup, groupResizeRef } = useLazyGroups(
+        STATS_TOC_GROUPS.map(g => ({ id: g.id, sectionIds: [...g.sectionIds] }))
     );
 
     const detailsCache = useContext(DetailsCacheContext);
@@ -184,6 +199,13 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     };
 
     // --- Hook Integration ---
+    // Read from zustand store (populated by App.tsx sync in Task 8)
+    const storeResult = useStatsStore((s) => s.result);
+    const storeProgress = useStatsStore((s) => s.progress);
+    const storeDiagnostics = useStatsStore((s) => s.diagnostics);
+
+    // For embedded consumers (web report, FightReportHistoryView), use the prop directly.
+    // For the desktop path (non-embedded), prefer the store and fall back to the prop.
     const useExternalAggregation = !!externalAggregationResult;
     const {
         result: internalAggregationResult,
@@ -195,25 +217,77 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         statsViewSettings,
         disruptionMethod
     });
-    const aggregationResult = externalAggregationResult || internalAggregationResult;
-    const aggregationProgress = externalAggregationResult?.aggregationProgress || internalAggregationProgress;
+    const aggregationSource = embedded
+        ? (externalAggregationResult || internalAggregationResult)
+        : (storeResult ?? externalAggregationResult ?? internalAggregationResult);
+    const aggregationResult = aggregationSource;
+    const aggregationProgress = embedded
+        ? (externalAggregationResult?.aggregationProgress || internalAggregationProgress)
+        : (storeProgress ?? externalAggregationResult?.aggregationProgress ?? internalAggregationProgress);
+    // storeDiagnostics is available via the zustand store for consumers that need it
+    // (e.g. future diagnostic panels). Not consumed in StatsView render directly.
+    void storeDiagnostics;
     const { stats, skillUsageData: computedSkillUsageData } = aggregationResult;
-    const statsSettling = useMemo(() => {
+    const aggregationSettling = useMemo(() => {
+        // "Syncing" state: statsDataProgress reports logs but logs prop hasn't updated yet
+        // Skip syncing state if all fights are unavailable — let detailsProgress show that instead
+        const detailsTotal = Math.max(0, Number(statsDataProgress?.total || logs.length || 0));
+        const detailsUnavailableForSync = Math.max(0, Number(statsDataProgress?.unavailable || 0));
+        const allUnavailable = detailsTotal > 0 && detailsUnavailableForSync >= detailsTotal;
+        if (detailsTotal > 0 && logs.length === 0 && !allUnavailable) {
+            return {
+                active: true,
+                phaseLabel: 'Preparing fights for stats',
+                progressText: 'Syncing uploaded fights into the stats dashboard',
+                progressPercent: 5
+            };
+        }
+        const total = Math.max(0, Number(aggregationProgress?.total || logs.length || 0));
+        const phase = aggregationProgress?.phase;
+        const active = Boolean(aggregationProgress?.active)
+            && (phase === 'streaming' || phase === 'computing')
+            && total > 0;
+        if (!active) {
+            return {
+                active: false,
+                phaseLabel: '',
+                progressText: '',
+                progressPercent: 0
+            };
+        }
+        const streamed = Math.min(Math.max(Number(aggregationProgress?.streamed || 0), 0), total);
+        const phaseLabel = phase === 'streaming'
+            ? 'Loading fight data'
+            : 'Finalizing squad stats';
+        const progressText = phase === 'streaming'
+            ? `${streamed} of ${total} fights loaded`
+            : 'All fights loaded • calculating final totals';
+        const progressPercent = phase === 'streaming'
+            ? Math.max(1, Math.min(99, Math.round((streamed / total) * 100)))
+            : 99;
+        return {
+            active: true,
+            phaseLabel,
+            progressText,
+            progressPercent
+        };
+    }, [aggregationProgress, statsDataProgress, logs.length]);
+
+    const detailsProgress = useMemo(() => {
         const detailsTotal = Math.max(0, Number(statsDataProgress?.total || logs.length || 0));
         const detailsPending = Math.min(detailsTotal, Math.max(0, Number(statsDataProgress?.pending || 0)));
         const detailsProcessed = Math.min(detailsTotal, Math.max(0, Number(statsDataProgress?.processed || (detailsTotal - detailsPending))));
         const detailsUnavailable = Math.max(0, Number(statsDataProgress?.unavailable || 0));
         const detailsActive = Boolean(statsDataProgress?.active) && detailsTotal > 0 && detailsPending > 0;
         if (detailsActive) {
-            const progressPercent = detailsTotal > 0
-                ? Math.max(1, Math.min(99, Math.round((detailsProcessed / detailsTotal) * 100)))
-                : 0;
             const unavailableText = detailsUnavailable > 0 ? ` • ${detailsUnavailable} unavailable` : '';
             return {
                 active: true,
                 phaseLabel: 'Loading fight details',
                 progressText: `${detailsProcessed} of ${detailsTotal} fights prepared${unavailableText}`,
-                progressPercent
+                progressPercent: detailsTotal > 0
+                    ? Math.max(1, Math.min(99, Math.round((detailsProcessed / detailsTotal) * 100)))
+                    : 0
             };
         }
         if (detailsTotal > 0 && detailsUnavailable >= detailsTotal) {
@@ -224,52 +298,32 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
                 progressPercent: 100
             };
         }
-        if (detailsTotal > 0 && logs.length === 0) {
-            return {
-                active: true,
-                phaseLabel: 'Preparing fights for stats',
-                progressText: 'Syncing uploaded fights into the stats dashboard',
-                progressPercent: 5
-            };
-        }
-        const total = Math.max(0, Number(aggregationProgress?.total || logs.length || 0));
-        const active = Boolean(aggregationProgress?.active) && aggregationProgress?.phase !== 'idle' && aggregationProgress?.phase !== 'settled' && total > 0;
-        if (!active) {
-            return {
-                active: false,
-                phaseLabel: '',
-                progressText: '',
-                progressPercent: 0
-            };
-        }
-        const streamed = Math.min(Math.max(Number(aggregationProgress?.streamed || 0), 0), total);
-        const phaseLabel = aggregationProgress?.phase === 'streaming'
-            ? 'Loading fight data'
-            : 'Finalizing squad stats';
-        const progressText = aggregationProgress?.phase === 'streaming'
-            ? `${streamed} of ${total} fights loaded`
-            : 'All fights loaded • calculating final totals';
-        const progressPercent = aggregationProgress?.phase === 'streaming'
-            ? Math.max(1, Math.min(99, Math.round((streamed / total) * 100)))
-            : 99;
-        return {
-            active: true,
-            phaseLabel,
-            progressText,
-            progressPercent
-        };
-    }, [statsDataProgress, aggregationProgress, logs.length]);
-    const showStatsSettlingBanner = statsSettling.active;
-    const statsSettlingBannerTitle = statsSettling.phaseLabel;
-    const statsSettlingBannerMeta = statsSettling.progressText;
-    const blurStatsDashboard = showStatsSettlingBanner && statsSettling.progressPercent < 100;
-    const statsActionsDisabled = showStatsSettlingBanner || !sectionContentReady;
+        return { active: false, phaseLabel: '', progressText: '', progressPercent: 0 };
+    }, [statsDataProgress, logs.length]);
+
+    // High-water mark: never let the progress bar go backwards while loading is active.
+    // Reset when settling becomes inactive (new cycle).
+    if (!aggregationSettling.active) {
+        progressHighWaterRef.current = 0;
+    } else {
+        progressHighWaterRef.current = Math.max(progressHighWaterRef.current, aggregationSettling.progressPercent);
+    }
+    const settlingProgressPercent = aggregationSettling.active
+        ? progressHighWaterRef.current
+        : aggregationSettling.progressPercent;
+
+    const showDissolveLoading = aggregationSettling.active && !embedded;
+    const dissolveBarTitle = aggregationSettling.phaseLabel;
+    const dissolveBarMeta = aggregationSettling.progressText;
+
+    const [dissolveCompleting, setDissolveCompleting] = useState(false);
+    // statsActionsDisabled is computed after dissolveActive is defined (below)
     useEffect(() => {
         if (statsLoadingJokeTimerRef.current !== null) {
             window.clearTimeout(statsLoadingJokeTimerRef.current);
             statsLoadingJokeTimerRef.current = null;
         }
-        if (!showStatsSettlingBanner) return;
+        if (!showDissolveLoading) return;
         const nextJoke = () => {
             if (statsLoadingJokeDeckRef.current.length === 0 || statsLoadingJokeCursorRef.current >= statsLoadingJokeDeckRef.current.length) {
                 statsLoadingJokeDeckRef.current = shuffled(STATS_LOADING_JOKES);
@@ -308,46 +362,175 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
                 statsLoadingJokeTimerRef.current = null;
             }
         };
-    }, [showStatsSettlingBanner]);
+    }, [showDissolveLoading]);
+    // Trigger 500ms completion animation when progress reaches 100%
     useEffect(() => {
-        if (embedded || typeof document === 'undefined') return;
-        document.body.classList.toggle('stats-dashboard-loading', blurStatsDashboard);
-        return () => {
-            document.body.classList.remove('stats-dashboard-loading');
-        };
-    }, [embedded, blurStatsDashboard]);
+        if (settlingProgressPercent >= 100 && aggregationSettling.active && !embedded) {
+            setDissolveCompleting(true);
+            const timer = setTimeout(() => setDissolveCompleting(false), 1600);
+            return () => clearTimeout(timer);
+        }
+    }, [settlingProgressPercent, aggregationSettling.active, embedded]);
+
+    // Only clear dissolveCompleting early if settling never reached 100% or embedded flips
     useEffect(() => {
-        if (showStatsSettlingBanner) {
-            setSectionContentReady(false);
-            return;
+        if ((!aggregationSettling.active && settlingProgressPercent < 100) || embedded) {
+            setDissolveCompleting(false);
         }
-        let cancelled = false;
-        const enableSections = () => {
-            if (!cancelled) {
-                setSectionContentReady(true);
-            }
-        };
-        const requestIdle = (window as any).requestIdleCallback;
-        let handle: number | null = null;
-        if (typeof requestIdle === 'function') {
-            handle = requestIdle(() => enableSections(), { timeout: 220 });
-        } else {
-            handle = window.setTimeout(enableSections, 60);
+    }, [aggregationSettling.active, settlingProgressPercent, embedded]);
+
+    const rawDissolveActive = (showDissolveLoading && settlingProgressPercent < 100) || dissolveCompleting;
+
+    // Compare computed fights against expected fights to decide if loading is done.
+    // Expected = total uploaded logs minus errored/unavailable ones.
+    // Computed = fights the aggregation actually produced (stats.total).
+    // Loading stays active until computed >= expected (or expected is 0).
+    const computedFights = Number((stats as any)?.total || 0);
+    const expectedFights = Math.max(0, (statsDataProgress?.total ?? 0) - (statsDataProgress?.unavailable ?? 0));
+    const allFightsComputed = expectedFights === 0 || computedFights >= expectedFights;
+
+    // dissolveActive: active during aggregation settling or while awaiting all fights
+    const awaitingData = !embedded && !allFightsComputed;
+    const dissolveActive = rawDissolveActive || awaitingData;
+    const statsActionsDisabled = dissolveActive;
+
+    // Latch dissolveActive so shimmer doesn't restart on progress ticks.
+    // Once active, stay active until dissolve fully completes.
+    const [stableDissolveActive, setStableDissolveActive] = useState(false);
+    useEffect(() => {
+        if (dissolveActive && !stableDissolveActive) {
+            setStableDissolveActive(true);
+        } else if (!dissolveActive && !dissolveCompleting && stableDissolveActive) {
+            setStableDissolveActive(false);
         }
-        return () => {
-            cancelled = true;
-            if (handle === null) return;
-            if (typeof requestIdle === 'function') {
-                const cancelIdle = (window as any).cancelIdleCallback;
-                if (typeof cancelIdle === 'function') {
-                    cancelIdle(handle);
-                }
-            } else {
-                window.clearTimeout(handle);
-            }
+    }, [dissolveActive, dissolveCompleting, stableDissolveActive]);
+
+    const sectionWrapClass = stableDissolveActive
+        ? (dissolveCompleting ? 'stats-section-wrap stats-section-wrap--materializing' : 'stats-section-wrap stats-section-wrap--unloaded')
+        : 'stats-section-wrap';
+
+    type DissolveParticle = { top: string; left: string; size: number; dur: string; delay: string; color: string; dx: string; dy: string; ex: string; ey: string };
+    const dissolveParticlesRef = useRef<DissolveParticle[]>([]);
+    const ambientParticlesRef = useRef<DissolveParticle[]>([]);
+
+    const makeParticle = (topRange: [number, number], leftRange: [number, number], colors: string[]): DissolveParticle => {
+        const drift = () => `${-160 + Math.floor(Math.random() * 320)}px`;
+        return {
+            top: `${topRange[0] + Math.random() * (topRange[1] - topRange[0])}%`,
+            left: `${leftRange[0] + Math.random() * (leftRange[1] - leftRange[0])}%`,
+            size: 4 + Math.floor(Math.random() * 10),
+            dur: `${8 + Math.random() * 8}s`,
+            delay: `${Math.random() * 6}s`,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            dx: drift(), dy: drift(), ex: drift(), ey: drift(),
         };
-    }, [showStatsSettlingBanner]);
-    const sectionsReady = sectionContentReady && !showStatsSettlingBanner;
+    };
+    if (dissolveParticlesRef.current.length === 0) {
+        const colors = ['var(--brand-primary)', 'var(--brand-secondary)'];
+        for (let i = 0; i < 14; i++) {
+            dissolveParticlesRef.current.push(makeParticle([5, 90], [3, 95], colors));
+        }
+    }
+    if (ambientParticlesRef.current.length === 0) {
+        const colors = ['var(--brand-primary)', 'var(--brand-secondary)'];
+        for (let i = 0; i < 28; i++) {
+            ambientParticlesRef.current.push(makeParticle([2, 98], [1, 99], colors));
+        }
+    }
+
+    const renderSectionWrap = (children: React.ReactNode) => (
+        <div className={sectionWrapClass}>
+            {children}
+            {dissolveActive && !dissolveCompleting && dissolveParticlesRef.current.map((p, i) => (
+                <span
+                    key={i}
+                    className="stats-dissolve-particle"
+                    style={{
+                        top: p.top,
+                        left: p.left,
+                        width: p.size,
+                        height: p.size,
+                        background: `color-mix(in srgb, ${p.color} 50%, transparent)`,
+                        ['--p-dur' as any]: p.dur,
+                        ['--p-delay' as any]: p.delay,
+                        ['--p-dx' as any]: p.dx,
+                        ['--p-dy' as any]: p.dy,
+                        ['--p-ex' as any]: p.ex,
+                        ['--p-ey' as any]: p.ey,
+                    }}
+                />
+            ))}
+        </div>
+    );
+
+    const renderGroup = (groupId: string, sections: Array<{ id: string; element: React.ReactNode }>) => {
+        const group = STATS_TOC_GROUPS.find(g => g.id === groupId);
+        if (!group) return null;
+
+        // For embedded mode (web report), only render the visible group's sections.
+        // Non-visible groups get a lightweight placeholder to preserve scroll targets.
+        if (embedded) {
+            const anyVisible = group.sectionIds.some(id => isSectionVisible(id));
+            if (!anyVisible) {
+                return (
+                    <div key={groupId} id={`group-${groupId}`} style={{ height: 0 }} />
+                );
+            }
+            return (
+                <div key={groupId} ref={groupResizeRef(groupId)}>
+                    <StatsGroupContainer
+                        groupId={groupId}
+                        visible
+                        embedded
+                        label={group.label}
+                        icon={group.icon as React.ComponentType<{ className?: string }>}
+                        accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
+                        sectionCount={sections.length}
+                    >
+                        {sections.map((s, i) => (
+                            <SectionPanel key={s.id} sectionId={s.id} isLast={i === sections.length - 1}>
+                                {renderSectionWrap(s.element)}
+                            </SectionPanel>
+                        ))}
+                    </StatsGroupContainer>
+                </div>
+            );
+        }
+
+        // For non-embedded (desktop), only render the active group.
+        // Inactive groups get a zero-height placeholder (measured heights used after first visit).
+        if (groupId !== activeNavGroup) {
+            return (
+                <div
+                    key={groupId}
+                    id={`group-${groupId}`}
+                    style={{ height: 0 }}
+                    className="pointer-events-none"
+                />
+            );
+        }
+
+        return (
+            <div key={groupId} ref={groupResizeRef(groupId)}>
+                <StatsGroupContainer
+                    groupId={groupId}
+                    visible
+                    label={group.label}
+                    icon={group.icon as React.ComponentType<{ className?: string }>}
+                    accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
+                    sectionCount={sections.length}
+                >
+                    {sections.map((s, i) => (
+                        <SectionPanel key={s.id} sectionId={s.id} isLast={i === sections.length - 1}>
+                            {renderSectionWrap(s.element)}
+                        </SectionPanel>
+                    ))}
+                </StatsGroupContainer>
+            </div>
+        );
+    };
+
+    const sectionsReady = !showDissolveLoading;
     const needsTopSkillsData = sectionsReady && (
         isSectionVisibleFast('top-skills-outgoing')
         || isSectionVisibleFast('player-breakdown')
@@ -443,7 +626,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
 
     useEffect(() => {
         if (!window?.electronAPI?.fetchImageAsDataUrl) return;
-        if (showStatsSettlingBanner) return;
+        if (showDissolveLoading) return;
         let cancelled = false;
         const run = () => {
             if (cancelled) return;
@@ -503,7 +686,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
                 window.clearTimeout(handle);
             }
         };
-    }, [safeStats, showStatsSettlingBanner, needsTopSkillsData]);
+    }, [safeStats, showDissolveLoading, needsTopSkillsData]);
 
     const skillUsageData = useMemo(() => {
         const source = (precomputedStats?.skillUsageData ?? computedSkillUsageData) as Partial<SkillUsageSummary> | undefined;
@@ -544,7 +727,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
 
     const {
         scrollContainerRef,
-    } = useStatsNavigation(embedded, true, blurStatsDashboard);
+    } = useStatsNavigation(embedded, true, dissolveActive);
 
     const {
         devMockUploadState,
@@ -559,16 +742,10 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
         stats: safeStats,
         skillUsageData,
         activeStatsViewSettings: statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS,
-        uiTheme: uiTheme || 'classic',
         embedded,
         onWebUpload
     });
 
-    const {
-        sharing,
-        shareStage,
-        handleShare
-    } = useStatsScreenshot(embedded);
     const mvpStatWeightKeys: Record<string, keyof IMvpWeights> = {
         'Down Contribution': 'offensiveDownContribution',
         'Strips': 'offensiveStrips',
@@ -671,6 +848,7 @@ export function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
     const [expandedSectionClosing, setExpandedSectionClosing] = useState(false);
     const expandedCloseTimerRef = useRef<number | null>(null);
+    const expandedPortalRef = useRef<HTMLDivElement | null>(null);
     const [fightBreakdownTab, setFightBreakdownTab] = useState<'sizes' | 'outcomes' | 'damage' | 'barrier'>('sizes');
     const [skillUsageView, setSkillUsageView] = useState<'total' | 'perSecond'>('total');
     const isSkillUsagePerSecond = skillUsageView === 'perSecond';
@@ -2440,16 +2618,30 @@ type SpikeFight = {
         return totals;
     }, [playerTotalsForSkill, playerMapByKey]);
 
-    const isSectionVisible = isSectionVisibleFast;
+    // For non-embedded (desktop), sections in the active nav group are visible.
+    // The lazy group system handles mounting/unmounting entire groups.
+    // For embedded, use the sectionVisibility prop as before.
+    const activeNavGroupSectionIds = useMemo(() => {
+        const group = STATS_TOC_GROUPS.find(g => g.id === activeNavGroup);
+        return new Set(group?.sectionIds ?? []);
+    }, [activeNavGroup]);
+
+    const isSectionVisible = useCallback(
+        (id: string) => {
+            if (embedded) return isSectionVisibleFast(id);
+            return activeNavGroupSectionIds.has(id);
+        },
+        [embedded, isSectionVisibleFast, activeNavGroupSectionIds]
+    );
     const sectionClass = useCallback((id: string, base: string) => {
         const visible = isSectionVisible(id);
-        if (sectionVisibility) {
+        if (embedded && sectionVisibility) {
             return `${base} ${visible ? '' : 'hidden'}`;
         }
         return `${base} transition-[opacity,transform] duration-700 ease-in-out ${visible
             ? 'opacity-100 translate-y-0 max-h-[99999px]'
             : 'opacity-0 -translate-y-2 max-h-0 h-0 min-h-0 overflow-hidden pointer-events-none p-0 !p-0 m-0 !mb-0 !mt-0 border-0 !border-0 border-transparent'}`;
-    }, [isSectionVisible, sectionVisibility]);
+    }, [isSectionVisible, embedded, sectionVisibility]);
     const firstVisibleSectionId = useMemo(
         () => ORDERED_SECTION_IDS.find((id) => isSectionVisible(id)) || null,
         [isSectionVisible]
@@ -3569,26 +3761,15 @@ type SpikeFight = {
     const scrollContainerClass = embedded
         ? `stats-sections space-y-0 min-h-0 px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4 rounded-xl border border-white/5 ${expandedSection ? '' : 'backdrop-blur-xl'
         }`
-        : `flex-1 overflow-y-auto pr-2 space-y-6 min-h-0 border border-white/5 p-4 rounded-xl ${expandedSection ? '' : 'backdrop-blur-2xl'
+        : `flex-1 overflow-y-auto pr-2 space-y-6 min-h-0 ${expandedSection ? '' : 'backdrop-blur-2xl'
         }`;
-    const scrollContainerStyle: CSSProperties | undefined = (embedded && uiTheme === 'dark-glass')
-        ? {
-            // Match app dark-glass main surface (neutral charcoal, no accent tint).
-            backgroundColor: 'rgba(13, 15, 20, 0.92)',
-            backgroundImage: 'none'
-        }
-        : (embedded && uiTheme !== 'matte' && uiTheme !== 'kinetic')
+    const scrollContainerStyle: CSSProperties | undefined = embedded
         ? {
             backgroundColor: 'rgba(3, 7, 18, 0.75)',
             backgroundImage: 'linear-gradient(160deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.04) 70%)'
         }
-        : (embedded && uiTheme === 'kinetic')
-            ? {
-                backgroundColor: 'var(--bg-elevated)',
-                backgroundImage: 'none'
-            }
-            : undefined;
-    const resolvedScrollContainerStyle: CSSProperties | undefined = blurStatsDashboard
+        : undefined;
+    const resolvedScrollContainerStyle: CSSProperties | undefined = dissolveActive
         ? {
             ...(scrollContainerStyle || {}),
             overflowY: 'hidden'
@@ -3628,6 +3809,7 @@ type SpikeFight = {
         formatWithCommas,
         renderProfessionIcon,
         roundCountStats,
+        expandedPortalRef,
     }), [safeStats, expandedSection, expandedSectionClosing, openExpandedSection,
         closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass,
         formatWithCommas, renderProfessionIcon, roundCountStats]);
@@ -3664,6 +3846,9 @@ type SpikeFight = {
                     onClick={closeExpandedSection}
                 />
             )}
+            {/* Portal target for expanded sections — lives at the StatsView root so
+                position:fixed escapes ancestor transforms/filters/backdrop-filters. */}
+            <div ref={expandedPortalRef} />
             <StatsHeader
                 embedded={embedded}
                 dashboardTitle={dashboardTitle}
@@ -3676,10 +3861,6 @@ type SpikeFight = {
                 uploadTargets={webUploadTargets}
                 onWebUploadToTarget={handleWebUploadToTarget}
                 canUploadWeb={canUploadWeb}
-                sharing={sharing}
-                shareStage={shareStage}
-                canShareDiscord={canShareDiscord}
-                onShare={handleShare}
                 actionsDisabled={statsActionsDisabled}
             />
 
@@ -3697,45 +3878,102 @@ type SpikeFight = {
                 devMockAvailable={devMockAvailable}
                 devMockUploadState={devMockUploadState}
             />
-            {showStatsSettlingBanner && (
-                <div className="stats-settling-banner mb-3 rounded-xl border px-4 py-3 text-xs">
+            {/* Dissolve bar: aggregation settling */}
+            {aggregationSettling.active && (
+                <div className="mb-3 text-xs">
                     <div className="flex items-center justify-between gap-3">
-                        <div className="stats-settling-banner__title font-semibold">{statsSettlingBannerTitle}</div>
-                        <div className="stats-settling-banner__meta text-[11px]">{statsSettlingBannerMeta}</div>
+                        <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                            {!embedded && <span className="stats-dissolve-heartbeat" />}
+                            <span className="font-medium">{dissolveBarTitle}</span>
+                            <span style={{ opacity: 0.7 }}>{dissolveBarMeta}</span>
+                        </div>
                     </div>
-                    {statsSettling.active && (
-                        <div className="stats-settling-banner__track mt-2 h-1.5 overflow-hidden rounded-full">
+                    {!embedded && aggregationSettling.active && (
+                        <div className="stats-dissolve-bar">
                             <div
-                                className="stats-settling-banner__bar h-full rounded-full transition-all duration-300"
-                                style={{ width: `${statsSettling.progressPercent}%` }}
+                                className="stats-dissolve-bar__fill"
+                                style={{ width: `${settlingProgressPercent}%` }}
+                            />
+                            <div style={{ position: 'absolute', left: `${settlingProgressPercent}%`, top: '50%', transform: 'translateY(-50%)', transition: 'left 0.6s ease' }}>
+                                <span className="stats-dissolve-bar__particle" />
+                                <span className="stats-dissolve-bar__particle" />
+                                <span className="stats-dissolve-bar__particle" />
+                                <span className="stats-dissolve-bar__particle" />
+                                <span className="stats-dissolve-bar__particle" />
+                            </div>
+                        </div>
+                    )}
+                    {!embedded && dissolveActive && statsSettlingBannerJoke && (
+                        <div className="stats-dissolve-joke mt-2">{statsSettlingBannerJoke}</div>
+                    )}
+                </div>
+            )}
+            {/* Details progress: non-blocking indicator shown after dissolve completes */}
+            {!aggregationSettling.active && detailsProgress.active && (
+                <div className="mb-3 text-xs">
+                    <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                        {!embedded && <span className="stats-dissolve-heartbeat" />}
+                        <span className="font-medium">{detailsProgress.phaseLabel}</span>
+                        <span style={{ opacity: 0.7 }}>{detailsProgress.progressText}</span>
+                    </div>
+                    {!embedded && (
+                        <div className="stats-dissolve-bar">
+                            <div
+                                className="stats-dissolve-bar__fill"
+                                style={{ width: `${detailsProgress.progressPercent}%` }}
                             />
                         </div>
                     )}
-                    <div className="stats-settling-banner__meta stats-settling-banner__joke mt-2 text-xs opacity-90">{statsSettlingBannerJoke}</div>
                 </div>
             )}
 
-            <div className={`${embedded ? '' : 'flex-1 min-h-0 flex'} relative ${blurStatsDashboard ? 'stats-dashboard-loading-shell' : ''}`}>
+            {!sectionsDeferred && (<div
+                className={`${embedded ? '' : 'flex-1 min-h-0 flex'} relative`}
+            >
                 <div
                     id="stats-dashboard-container"
                     ref={scrollContainerRef}
-                    className={`${scrollContainerClass} ${embedded ? '' : 'flex-1'} ${blurStatsDashboard ? 'stats-dashboard-scroll-lock' : ''}`}
+                    className={`${scrollContainerClass} ${embedded ? '' : 'flex-1'} ${dissolveActive ? 'stats-dashboard-scroll-lock' : ''}`}
                     style={resolvedScrollContainerStyle}
                 >
+                {/* Ambient dissolve particles that float across the entire dashboard (fills gaps between sections) */}
+                {dissolveActive && !dissolveCompleting && (
+                    <div className="stats-dissolve-ambient" aria-hidden>
+                        {ambientParticlesRef.current.map((p, i) => (
+                            <span
+                                key={i}
+                                className="stats-dissolve-particle"
+                                style={{
+                                    top: p.top,
+                                    left: p.left,
+                                    width: p.size,
+                                    height: p.size,
+                                    background: `color-mix(in srgb, ${p.color} 40%, transparent)`,
+                                    ['--p-dur' as any]: p.dur,
+                                    ['--p-delay' as any]: p.delay,
+                                    ['--p-dx' as any]: p.dx,
+                                    ['--p-dy' as any]: p.dy,
+                                    ['--p-ex' as any]: p.ex,
+                                    ['--p-ey' as any]: p.ey,
+                                }}
+                            />
+                        ))}
+                    </div>
+                )}
                 <StatsSharedContext.Provider value={sharedCtxValue}>
                 {useModernLayout ? (
                     <div className="stats-layout stats-layout-modern grid gap-4 grid-cols-1">
                         <div className="space-y-4 min-w-0">
                             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                                <OverviewSection
-                                />
+                                {renderSectionWrap(<OverviewSection
+                                />)}
 
-                                <FightBreakdownSection
+                                {renderSectionWrap(<FightBreakdownSection
                                     fightBreakdownTab={fightBreakdownTab}
                                     setFightBreakdownTab={setFightBreakdownTab}
-                                />
+                                />)}
 
-                                <TopPlayersSection
+                                {renderSectionWrap(<TopPlayersSection
                                     showTopStats={showTopStats}
                                     showMvp={showMvp}
                                     topStatsMode={topStatsMode}
@@ -3743,15 +3981,15 @@ type SpikeFight = {
                                     setExpandedLeader={setExpandedLeader}
                                     formatTopStatValue={formatTopStatValue}
                                     isMvpStatEnabled={isMvpStatEnabled}
-                                />
+                                />)}
                             </div>
 
-                            <TopSkillsSection
+                            {renderSectionWrap(<TopSkillsSection
                                 topSkillsMetric={topSkillsMetric}
                                 onTopSkillsMetricChange={updateTopSkillsMetric}
-                            />
+                            />)}
 
-                            <BoonOutputSection
+                            {renderSectionWrap(<BoonOutputSection
                                 activeBoonCategory={activeBoonCategory}
                                 setActiveBoonCategory={(val: string) => setActiveBoonCategory(val as BoonCategory)}
                                 activeBoonMetric={activeBoonMetric}
@@ -3763,8 +4001,8 @@ type SpikeFight = {
                                 setBoonSearch={setBoonSearch}
                                 formatBoonMetricDisplay={formatBoonMetricDisplay}
                                 getBoonMetricValue={getBoonMetricValue}
-                            />
-                            <BoonTimelineSection
+                            />)}
+                            {renderSectionWrap(<BoonTimelineSection
                                 boonSearch={boonTimelineSearch}
                                 setBoonSearch={setBoonTimelineSearch}
                                 boons={filteredBoonTimelineBoons}
@@ -3786,8 +4024,8 @@ type SpikeFight = {
                                 drilldownData={boonTimelineDrilldown.data}
                                 showIncomingHeatmap={showBoonTimelineIncomingHeatmap}
                                 setShowIncomingHeatmap={setShowBoonTimelineIncomingHeatmap}
-                            />
-                            <BoonUptimeSection
+                            />)}
+                            {renderSectionWrap(<BoonUptimeSection
                                 boonSearch={boonUptimeSearch}
                                 setBoonSearch={setBoonUptimeSearch}
                                 boons={filteredBoonUptimeBoons}
@@ -3808,26 +4046,26 @@ type SpikeFight = {
                                 overallUptimePercent={boonUptimeOverallPercent}
                                 showStackCapLine={Boolean(activeBoonUptime?.stacking)}
                                 subgroupMembers={boonUptimeSubgroupMembers}
-                            />
+                            />)}
 
-                            <OffenseSection
+                            {renderSectionWrap(<OffenseSection
                                 offenseSearch={offenseSearch}
                                 setOffenseSearch={setOffenseSearch}
                                 activeOffenseStat={activeOffenseStat}
                                 setActiveOffenseStat={setActiveOffenseStat}
                                 offenseViewMode={offenseViewMode}
                                 setOffenseViewMode={setOffenseViewMode}
-                            />
+                            />)}
 
-                            <DamageModifiersSection
+                            {renderSectionWrap(<DamageModifiersSection
                                 search={damageModSearch}
                                 setSearch={setDamageModSearch}
                                 activeMod={activeDamageMod}
                                 setActiveMod={setActiveDamageMod}
                                 incoming={false}
-                            />
+                            />)}
 
-                            <PlayerBreakdownSection
+                            {renderSectionWrap(<PlayerBreakdownSection
                                 viewMode={playerBreakdownViewMode}
                                 setViewMode={setPlayerBreakdownViewMode}
                                 playerSkillBreakdowns={playerSkillBreakdowns}
@@ -3850,13 +4088,13 @@ type SpikeFight = {
                                 activePlayerSkill={activePlayerSkill}
                                 activeClassBreakdown={activeClassBreakdown}
                                 activeClassSkill={activeClassSkill}
-                            />
+                            />)}
 
-                            <DamageBreakdownSection
+                            {renderSectionWrap(<DamageBreakdownSection
                                 playerSkillBreakdowns={playerSkillBreakdowns}
-                            />
+                            />)}
 
-                            <SpikeDamageSection
+                            {renderSectionWrap(<SpikeDamageSection
                                 spikePlayerFilter={spikePlayerFilter}
                                 setSpikePlayerFilter={setSpikePlayerFilter}
                                 groupedSpikePlayers={groupedSpikePlayers}
@@ -3878,9 +4116,9 @@ type SpikeFight = {
                                 spikeDrilldownDeathIndices={spikeDrilldown.deathIndices}
                                 spikeFightSkillRows={spikeFightSkillRows}
                                 spikeFightSkillTitle="Outgoing Skill Damage (Selected Fight)"
-                            />
+                            />)}
 
-                            <ConditionsSection
+                            {renderSectionWrap(<ConditionsSection
                                 conditionSummary={conditionSummary}
                                 conditionPlayers={conditionPlayers}
                                 conditionSearch={conditionSearch}
@@ -3893,26 +4131,26 @@ type SpikeFight = {
                                 effectiveConditionSort={effectiveConditionSort as any}
                                 setConditionSort={setConditionSort as any}
                                 showConditionDamage={showConditionDamage}
-                            />
+                            />)}
 
-                            <DefenseSection
+                            {renderSectionWrap(<DefenseSection
                                 defenseSearch={defenseSearch}
                                 setDefenseSearch={setDefenseSearch}
                                 activeDefenseStat={activeDefenseStat}
                                 setActiveDefenseStat={setActiveDefenseStat}
                                 defenseViewMode={defenseViewMode}
                                 setDefenseViewMode={setDefenseViewMode}
-                            />
+                            />)}
 
-                            <DamageModifiersSection
+                            {renderSectionWrap(<DamageModifiersSection
                                 search={incomingDamageModSearch}
                                 setSearch={setIncomingDamageModSearch}
                                 activeMod={activeIncomingDamageMod}
                                 setActiveMod={setActiveIncomingDamageMod}
                                 incoming={true}
-                            />
+                            />)}
 
-                            <SpikeDamageSection
+                            {renderSectionWrap(<SpikeDamageSection
                                 sectionId="incoming-strike-damage"
                                 title="Incoming Strike Damage"
                                 subtitle="Select one enemy class to chart incoming strike pressure per fight."
@@ -3941,9 +4179,9 @@ type SpikeFight = {
                                 spikeDrilldownDeathIndices={incomingStrikeDrilldown.deathIndices}
                                 spikeFightSkillRows={incomingStrikeFightSkillRows}
                                 spikeFightSkillTitle="Incoming Skill Damage (Selected Fight)"
-                            />
+                            />)}
 
-                            <DamageMitigationSection
+                            {renderSectionWrap(<DamageMitigationSection
                                 damageMitigationSearch={damageMitigationSearch}
                                 setDamageMitigationSearch={setDamageMitigationSearch}
                                 activeDamageMitigationStat={activeDamageMitigationStat}
@@ -3952,9 +4190,9 @@ type SpikeFight = {
                                 setDamageMitigationViewMode={setDamageMitigationViewMode}
                                 damageMitigationScope={damageMitigationScope}
                                 setDamageMitigationScope={setDamageMitigationScope}
-                            />
+                            />)}
 
-                            <SupportSection
+                            {renderSectionWrap(<SupportSection
                                 supportSearch={supportSearch}
                                 setSupportSearch={setSupportSearch}
                                 activeSupportStat={activeSupportStat}
@@ -3963,9 +4201,9 @@ type SpikeFight = {
                                 setSupportViewMode={setSupportViewMode}
                                 cleanseScope={cleanseScope}
                                 setCleanseScope={setCleanseScope}
-                            />
+                            />)}
 
-                            <HealingSection
+                            {renderSectionWrap(<HealingSection
                                 activeHealingMetric={activeHealingMetric}
                                 setActiveHealingMetric={setActiveHealingMetric}
                                 healingCategory={healingCategory}
@@ -3973,24 +4211,24 @@ type SpikeFight = {
                                 activeResUtilitySkill={activeResUtilitySkill}
                                 setActiveResUtilitySkill={setActiveResUtilitySkill}
                                 skillUsageData={skillUsageData}
-                            />
+                            />)}
 
-                            <HealingBreakdownSection
+                            {renderSectionWrap(<HealingBreakdownSection
                                 healingBreakdownPlayers={safeStats.healingBreakdownPlayers}
-                            />
+                            />)}
 
-                            <FightDiffModeSection
-                            />
+                            {renderSectionWrap(<FightDiffModeSection
+                            />)}
 
-                            <SpecialBuffsSection
+                            {renderSectionWrap(<SpecialBuffsSection
                                 specialSearch={specialSearch}
                                 setSpecialSearch={setSpecialSearch}
                                 activeSpecialTab={activeSpecialTab}
                                 setActiveSpecialTab={setActiveSpecialTab}
                                 activeSpecialTable={activeSpecialTable}
-                            />
+                            />)}
 
-                            <SigilRelicUptimeSection
+                            {renderSectionWrap(<SigilRelicUptimeSection
                                 hasSigilRelicTables={sigilRelicTables.length > 0}
                                 sigilRelicSearch={sigilRelicSearch}
                                 setSigilRelicSearch={setSigilRelicSearch}
@@ -3998,9 +4236,9 @@ type SpikeFight = {
                                 activeSigilRelicTab={activeSigilRelicTab}
                                 setActiveSigilRelicTab={setActiveSigilRelicTab}
                                 activeSigilRelicTable={activeSigilRelicTable}
-                            />
+                            />)}
 
-                            <SkillUsageSection
+                            {renderSectionWrap(<SkillUsageSection
                                 selectedPlayers={selectedPlayers}
                                 setSelectedPlayers={setSelectedPlayers}
                                 removeSelectedPlayer={removeSelectedPlayer}
@@ -4032,9 +4270,9 @@ type SpikeFight = {
                                 getLineStrokeColor={getLineStrokeColor}
                                 getLineDashForPlayer={getLineDashForPlayer}
                                 formatSkillUsageValue={formatSkillUsageValue}
-                            />
+                            />)}
 
-                            <ApmSection
+                            {renderSectionWrap(<ApmSection
                                 apmSpecAvailable={apmSpecAvailable}
                                 skillUsageAvailable={skillUsageAvailable}
                                 apmSpecTables={apmSpecTables}
@@ -4055,463 +4293,442 @@ type SpikeFight = {
                                 formatApmValue={formatApmValue}
                                 formatCastRateValue={formatCastRateValue}
                                 formatCastCountValue={formatCastCountValue}
-                            />
+                            />)}
 
                         </div>
                         <div className="space-y-4 min-w-0">
-                            <SquadCompositionSection
+                            {renderSectionWrap(<SquadCompositionSection
                                 sortedSquadClassData={sortedSquadClassData}
                                 sortedEnemyClassData={sortedEnemyClassData}
                                 getProfessionIconPath={getProfessionIconPath}
-                            />
+                            />)}
 
-                            <CommanderStatsSection
+                            {renderSectionWrap(<CommanderStatsSection
                                 commanderStats={commanderStats}
                                 getProfessionIconPath={getProfessionIconPath}
-                            />
+                            />)}
 
-                            <SquadDamageComparisonSection />
+                            {renderSectionWrap(<SquadDamageComparisonSection />)}
 
-                            <SquadKillPressureSection />
+                            {renderSectionWrap(<SquadKillPressureSection />)}
 
-                            <HealEffectivenessSection
+                            {renderSectionWrap(<HealEffectivenessSection
                                 fights={healEffectivenessFights}
-                            />
+                            />)}
 
-                            <SquadTagDistanceDeathsSection
+                            {renderSectionWrap(<SquadTagDistanceDeathsSection
                                 fights={tagDistanceDeathsData}
-                            />
+                            />)}
 
-                            <AttendanceSection
+                            {renderSectionWrap(<AttendanceSection
                                 attendanceRows={attendanceData}
                                 getProfessionIconPath={getProfessionIconPath}
-                            />
+                            />)}
 
-                            <SquadCompByFightSection
+                            {renderSectionWrap(<SquadCompByFightSection
                                 fights={squadCompByFight}
                                 getProfessionIconPath={getProfessionIconPath}
-                            />
+                            />)}
 
-                            <FightCompSection
+                            {renderSectionWrap(<FightCompSection
                                 fights={fightCompByFight}
                                 getProfessionIconPath={getProfessionIconPath}
-                            />
+                            />)}
 
-                            <MapDistributionSection
+                            {renderSectionWrap(<MapDistributionSection
                                 mapData={safeStats.mapData}
-                            />
+                            />)}
 
-                            <TimelineSection
+                            {renderSectionWrap(<TimelineSection
                                 timelineData={safeStats.timelineData}
                                 timelineFriendlyScope={timelineFriendlyScope}
                                 setTimelineFriendlyScope={setTimelineFriendlyScope}
-                            />
+                            />)}
                         </div>
                     </div>
                 ) : (
                     <>
-                        {isSectionVisible('overview') && <OverviewSection
-                        />}
+                        {renderGroup('overview', [
+                            { id: 'overview', element: <OverviewSection
+                            /> },
+                            { id: 'fight-breakdown', element: <FightBreakdownSection
+                                fightBreakdownTab={fightBreakdownTab}
+                                setFightBreakdownTab={setFightBreakdownTab}
+                            /> },
+                            { id: 'top-players', element: <TopPlayersSection
+                                showTopStats={showTopStats}
+                                showMvp={showMvp}
+                                topStatsMode={topStatsMode}
+                                expandedLeader={expandedLeader}
+                                setExpandedLeader={setExpandedLeader}
+                                formatTopStatValue={formatTopStatValue}
+                                isMvpStatEnabled={isMvpStatEnabled}
+                            /> },
+                            { id: 'top-skills-outgoing', element: <TopSkillsSection
+                                topSkillsMetric={topSkillsMetric}
+                                onTopSkillsMetricChange={updateTopSkillsMetric}
+                            /> },
+                            { id: 'squad-composition', element: <SquadCompositionSection
+                                sortedSquadClassData={sortedSquadClassData}
+                                sortedEnemyClassData={sortedEnemyClassData}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'timeline', element: <TimelineSection
+                                timelineData={safeStats.timelineData}
+                                timelineFriendlyScope={timelineFriendlyScope}
+                                setTimelineFriendlyScope={setTimelineFriendlyScope}
+                            /> },
+                            { id: 'map-distribution', element: <MapDistributionSection
+                                mapData={safeStats.mapData}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('fight-breakdown') && <FightBreakdownSection
-                            fightBreakdownTab={fightBreakdownTab}
-                            setFightBreakdownTab={setFightBreakdownTab}
-                        />}
+                        {renderGroup('commanders', [
+                            { id: 'commander-stats', element: <CommanderStatsSection
+                                commanderStats={commanderStats}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'commander-push-timing', element: <CommanderPushTimingSection
+                                commanderStats={commanderStats}
+                            /> },
+                            { id: 'commander-target-conversion', element: <CommanderTargetConversionSection
+                                commanderStats={commanderStats}
+                            /> },
+                            { id: 'commander-tag-movement', element: <CommanderTagMovementSection
+                                commanderStats={commanderStats}
+                            /> },
+                            { id: 'commander-tag-death-response', element: <CommanderTagDeathResponseSection
+                                commanderStats={commanderStats}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('top-players') && <TopPlayersSection
-                            showTopStats={showTopStats}
-                            showMvp={showMvp}
-                            topStatsMode={topStatsMode}
-                            expandedLeader={expandedLeader}
-                            setExpandedLeader={setExpandedLeader}
-                            formatTopStatValue={formatTopStatValue}
-                            isMvpStatEnabled={isMvpStatEnabled}
-                        />}
+                        {renderGroup('squad-stats', [
+                            { id: 'squad-damage-comparison', element: <SquadDamageComparisonSection /> },
+                            { id: 'squad-kill-pressure', element: <SquadKillPressureSection /> },
+                            { id: 'heal-effectiveness', element: <HealEffectivenessSection
+                                fights={healEffectivenessFights}
+                            /> },
+                            { id: 'squad-tag-distance-deaths', element: <SquadTagDistanceDeathsSection
+                                fights={tagDistanceDeathsData}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('top-skills-outgoing') && <TopSkillsSection
-                            topSkillsMetric={topSkillsMetric}
-                            onTopSkillsMetricChange={updateTopSkillsMetric}
-                        />}
+                        {renderGroup('roster', [
+                            { id: 'attendance-ledger', element: <AttendanceSection
+                                attendanceRows={attendanceData}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'squad-comp-fight', element: <SquadCompByFightSection
+                                fights={squadCompByFight}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'fight-comp', element: <FightCompSection
+                                fights={fightCompByFight}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('squad-composition') && <SquadCompositionSection
-                            sortedSquadClassData={sortedSquadClassData}
-                            sortedEnemyClassData={sortedEnemyClassData}
-                            getProfessionIconPath={getProfessionIconPath}
-                        />}
+                        {renderGroup('offense', [
+                            { id: 'offense-detailed', element: <OffenseSection
+                                offenseSearch={offenseSearch}
+                                setOffenseSearch={setOffenseSearch}
+                                activeOffenseStat={activeOffenseStat}
+                                setActiveOffenseStat={setActiveOffenseStat}
+                                offenseViewMode={offenseViewMode}
+                                setOffenseViewMode={setOffenseViewMode}
+                            /> },
+                            { id: 'damage-modifiers', element: <DamageModifiersSection
+                                search={damageModSearch}
+                                setSearch={setDamageModSearch}
+                                activeMod={activeDamageMod}
+                                setActiveMod={setActiveDamageMod}
+                                incoming={false}
+                            /> },
+                            { id: 'player-breakdown', element: <PlayerBreakdownSection
+                                viewMode={playerBreakdownViewMode}
+                                setViewMode={setPlayerBreakdownViewMode}
+                                playerSkillBreakdowns={playerSkillBreakdowns}
+                                classSkillBreakdowns={classSkillBreakdowns}
+                                activePlayerKey={activePlayerBreakdownKey}
+                                setActivePlayerKey={setActivePlayerBreakdownKey}
+                                expandedPlayerKey={expandedPlayerBreakdownKey}
+                                setExpandedPlayerKey={setExpandedPlayerBreakdownKey}
+                                activePlayerSkillId={activePlayerBreakdownSkillId}
+                                setActivePlayerSkillId={setActivePlayerBreakdownSkillId}
+                                activeClassKey={activeClassBreakdownKey}
+                                setActiveClassKey={setActiveClassBreakdownKey}
+                                expandedClassKey={expandedClassBreakdownKey}
+                                setExpandedClassKey={setExpandedClassBreakdownKey}
+                                activeClassSkillId={activeClassBreakdownSkillId}
+                                setActiveClassSkillId={setActiveClassBreakdownSkillId}
+                                skillSearch={playerBreakdownSkillSearch}
+                                setSkillSearch={setPlayerBreakdownSkillSearch}
+                                activePlayerBreakdown={activePlayerBreakdown}
+                                activePlayerSkill={activePlayerSkill}
+                                activeClassBreakdown={activeClassBreakdown}
+                                activeClassSkill={activeClassSkill}
+                            /> },
+                            { id: 'damage-breakdown', element: <DamageBreakdownSection
+                                playerSkillBreakdowns={playerSkillBreakdowns}
+                            /> },
+                            { id: 'spike-damage', element: <SpikeDamageSection
+                                spikePlayerFilter={spikePlayerFilter}
+                                setSpikePlayerFilter={setSpikePlayerFilter}
+                                groupedSpikePlayers={groupedSpikePlayers}
+                                spikeMode={spikeMode}
+                                setSpikeMode={setSpikeMode}
+                                damageBasis={spikeDamageBasis}
+                                setDamageBasis={setSpikeDamageBasis}
+                                showDamageBasisToggle
+                                selectedSpikePlayerKey={selectedSpikePlayerKey}
+                                setSelectedSpikePlayerKey={setSelectedSpikePlayerKey}
+                                selectedSpikePlayer={selectedSpikePlayer}
+                                spikeChartData={spikeChartData}
+                                spikeChartMaxY={spikeChartMaxY}
+                                selectedSpikeFightIndex={selectedSpikeFightIndex}
+                                setSelectedSpikeFightIndex={setSelectedSpikeFightIndex}
+                                spikeDrilldownTitle={spikeDrilldown.title}
+                                spikeDrilldownData={spikeDrilldown.data}
+                                spikeDrilldownDownIndices={spikeDrilldown.downIndices}
+                                spikeDrilldownDeathIndices={spikeDrilldown.deathIndices}
+                                spikeFightSkillRows={spikeFightSkillRows}
+                                spikeFightSkillTitle="Outgoing Skill Damage (Selected Fight)"
+                            /> },
+                            { id: 'conditions-outgoing', element: <ConditionsSection
+                                conditionSummary={conditionSummary}
+                                conditionPlayers={conditionPlayers}
+                                conditionSearch={conditionSearch}
+                                setConditionSearch={setConditionSearch}
+                                activeConditionName={activeConditionName}
+                                setActiveConditionName={setActiveConditionName}
+                                conditionDirection={conditionDirection}
+                                setConditionDirection={setConditionDirection}
+                                conditionGridClass={conditionGridClass}
+                                effectiveConditionSort={effectiveConditionSort as any}
+                                setConditionSort={setConditionSort as any}
+                                showConditionDamage={showConditionDamage}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('commander-stats') && <CommanderStatsSection
-                            commanderStats={commanderStats}
-                            getProfessionIconPath={getProfessionIconPath}
-                        />}
+                        {renderGroup('defense', [
+                            { id: 'defense-detailed', element: <DefenseSection
+                                defenseSearch={defenseSearch}
+                                setDefenseSearch={setDefenseSearch}
+                                activeDefenseStat={activeDefenseStat}
+                                setActiveDefenseStat={setActiveDefenseStat}
+                                defenseViewMode={defenseViewMode}
+                                setDefenseViewMode={setDefenseViewMode}
+                            /> },
+                            { id: 'incoming-damage-modifiers', element: <DamageModifiersSection
+                                search={incomingDamageModSearch}
+                                setSearch={setIncomingDamageModSearch}
+                                activeMod={activeIncomingDamageMod}
+                                setActiveMod={setActiveIncomingDamageMod}
+                                incoming={true}
+                            /> },
+                            { id: 'incoming-strike-damage', element: <SpikeDamageSection
+                                sectionId="incoming-strike-damage"
+                                title="Incoming Strike Damage"
+                                subtitle="Select one enemy class to chart incoming strike pressure per fight."
+                                listTitle="Enemy Classes"
+                                searchPlaceholder="Search enemy class"
+                                titleIcon={ShieldAlert}
+                                titleIconClassName="text-cyan-300"
+                                spikePlayerFilter={incomingStrikePlayerFilter}
+                                setSpikePlayerFilter={setIncomingStrikePlayerFilter}
+                                groupedSpikePlayers={groupedIncomingStrikePlayers}
+                                spikeMode={incomingStrikeMode}
+                                setSpikeMode={setIncomingStrikeMode}
+                                showTotalDamageToggle
+                                useTotalDamage={incomingStrikeUseTotalDamage}
+                                setUseTotalDamage={setIncomingStrikeUseTotalDamage}
+                                selectedSpikePlayerKey={selectedIncomingStrikePlayerKey}
+                                setSelectedSpikePlayerKey={setSelectedIncomingStrikePlayerKey}
+                                selectedSpikePlayer={selectedIncomingStrikePlayer}
+                                spikeChartData={incomingStrikeChartData}
+                                spikeChartMaxY={incomingStrikeChartMaxY}
+                                selectedSpikeFightIndex={selectedIncomingStrikeFightIndex}
+                                setSelectedSpikeFightIndex={setSelectedIncomingStrikeFightIndex}
+                                spikeDrilldownTitle={incomingStrikeDrilldown.title}
+                                spikeDrilldownData={incomingStrikeDrilldown.data}
+                                spikeDrilldownDownIndices={incomingStrikeDrilldown.downIndices}
+                                spikeDrilldownDeathIndices={incomingStrikeDrilldown.deathIndices}
+                                spikeFightSkillRows={incomingStrikeFightSkillRows}
+                                spikeFightSkillTitle="Incoming Skill Damage (Selected Fight)"
+                            /> },
+                            { id: 'defense-mitigation', element: <DamageMitigationSection
+                                damageMitigationSearch={damageMitigationSearch}
+                                setDamageMitigationSearch={setDamageMitigationSearch}
+                                activeDamageMitigationStat={activeDamageMitigationStat}
+                                setActiveDamageMitigationStat={setActiveDamageMitigationStat}
+                                damageMitigationViewMode={damageMitigationViewMode}
+                                setDamageMitigationViewMode={setDamageMitigationViewMode}
+                                damageMitigationScope={damageMitigationScope}
+                                setDamageMitigationScope={setDamageMitigationScope}
+                            /> },
+                            { id: 'boon-output', element: <BoonOutputSection
+                                activeBoonCategory={activeBoonCategory}
+                                setActiveBoonCategory={(val: string) => setActiveBoonCategory(val as BoonCategory)}
+                                activeBoonMetric={activeBoonMetric}
+                                setActiveBoonMetric={setActiveBoonMetric}
+                                activeBoonTab={activeBoonTab}
+                                setActiveBoonTab={setActiveBoonTab}
+                                activeBoonTable={activeBoonTable}
+                                boonSearch={boonSearch}
+                                setBoonSearch={setBoonSearch}
+                                formatBoonMetricDisplay={formatBoonMetricDisplay}
+                                getBoonMetricValue={getBoonMetricValue}
+                            /> },
+                            { id: 'boon-timeline', element: <BoonTimelineSection
+                                boonSearch={boonTimelineSearch}
+                                setBoonSearch={setBoonTimelineSearch}
+                                boons={filteredBoonTimelineBoons}
+                                activeBoonId={activeBoonTimelineId}
+                                setActiveBoonId={setActiveBoonTimelineId}
+                                timelineScope={boonTimelineScope}
+                                setTimelineScope={setBoonTimelineScope}
+                                playerFilter={boonTimelinePlayerFilter}
+                                setPlayerFilter={setBoonTimelinePlayerFilter}
+                                players={filteredBoonTimelinePlayers}
+                                selectedPlayerKey={selectedBoonTimelinePlayerKey}
+                                setSelectedPlayerKey={setSelectedBoonTimelinePlayerKey}
+                                selectedPlayer={selectedBoonTimelinePlayer}
+                                chartData={boonTimelineChartData}
+                                chartMaxY={boonTimelineChartMaxY}
+                                selectedFightIndex={selectedBoonTimelineFightIndex}
+                                setSelectedFightIndex={setSelectedBoonTimelineFightIndex}
+                                drilldownTitle={boonTimelineDrilldown.title}
+                                drilldownData={boonTimelineDrilldown.data}
+                                showIncomingHeatmap={showBoonTimelineIncomingHeatmap}
+                                setShowIncomingHeatmap={setShowBoonTimelineIncomingHeatmap}
+                            /> },
+                            { id: 'boon-uptime', element: <BoonUptimeSection
+                                boonSearch={boonUptimeSearch}
+                                setBoonSearch={setBoonUptimeSearch}
+                                boons={filteredBoonUptimeBoons}
+                                activeBoonId={activeBoonUptimeId}
+                                setActiveBoonId={setActiveBoonUptimeId}
+                                playerFilter={boonUptimePlayerFilter}
+                                setPlayerFilter={setBoonUptimePlayerFilter}
+                                players={filteredBoonUptimePlayers}
+                                selectedPlayerKey={selectedBoonUptimePlayerKey}
+                                setSelectedPlayerKey={setSelectedBoonUptimePlayerKey}
+                                selectedPlayer={selectedBoonUptimePlayer}
+                                chartData={boonUptimeChartData}
+                                chartMaxY={boonUptimeChartMaxY}
+                                selectedFightIndex={selectedBoonUptimeFightIndex}
+                                setSelectedFightIndex={setSelectedBoonUptimeFightIndex}
+                                drilldownTitle={boonUptimeDrilldown.title}
+                                drilldownData={boonUptimeDrilldown.data}
+                                overallUptimePercent={boonUptimeOverallPercent}
+                                showStackCapLine={Boolean(activeBoonUptime?.stacking)}
+                                subgroupMembers={boonUptimeSubgroupMembers}
+                            /> },
+                            { id: 'support-detailed', element: <SupportSection
+                                supportSearch={supportSearch}
+                                setSupportSearch={setSupportSearch}
+                                activeSupportStat={activeSupportStat}
+                                setActiveSupportStat={setActiveSupportStat}
+                                supportViewMode={supportViewMode}
+                                setSupportViewMode={setSupportViewMode}
+                                cleanseScope={cleanseScope}
+                                setCleanseScope={setCleanseScope}
+                            /> },
+                            { id: 'healing-stats', element: <HealingSection
+                                activeHealingMetric={activeHealingMetric}
+                                setActiveHealingMetric={setActiveHealingMetric}
+                                healingCategory={healingCategory}
+                                setHealingCategory={setHealingCategory}
+                                activeResUtilitySkill={activeResUtilitySkill}
+                                setActiveResUtilitySkill={setActiveResUtilitySkill}
+                                skillUsageData={skillUsageData}
+                            /> },
+                            { id: 'healing-breakdown', element: <HealingBreakdownSection
+                                healingBreakdownPlayers={safeStats.healingBreakdownPlayers}
+                            /> },
+                        ])}
 
-                        {isSectionVisible('commander-push-timing') && <CommanderPushTimingSection
-                            commanderStats={commanderStats}
-                        />}
-
-                        {isSectionVisible('commander-target-conversion') && <CommanderTargetConversionSection
-                            commanderStats={commanderStats}
-                        />}
-
-                        {isSectionVisible('commander-tag-movement') && <CommanderTagMovementSection
-                            commanderStats={commanderStats}
-                        />}
-
-                        {isSectionVisible('commander-tag-death-response') && <CommanderTagDeathResponseSection
-                            commanderStats={commanderStats}
-                        />}
-
-                        {isSectionVisible('squad-damage-comparison') && <SquadDamageComparisonSection />}
-
-                        {isSectionVisible('squad-kill-pressure') && <SquadKillPressureSection />}
-
-                        {isSectionVisible('heal-effectiveness') && <HealEffectivenessSection
-                            fights={healEffectivenessFights}
-                        />}
-
-                        {isSectionVisible('squad-tag-distance-deaths') && <SquadTagDistanceDeathsSection
-                            fights={tagDistanceDeathsData}
-                        />}
-
-                        {isSectionVisible('attendance-ledger') && <AttendanceSection
-                            attendanceRows={attendanceData}
-                            getProfessionIconPath={getProfessionIconPath}
-                        />}
-
-                        {isSectionVisible('squad-comp-fight') && <SquadCompByFightSection
-                            fights={squadCompByFight}
-                            getProfessionIconPath={getProfessionIconPath}
-                        />}
-
-                        {isSectionVisible('fight-comp') && <FightCompSection
-                            fights={fightCompByFight}
-                            getProfessionIconPath={getProfessionIconPath}
-                        />}
-
-                        {isSectionVisible('timeline') && <TimelineSection
-                            timelineData={safeStats.timelineData}
-                            timelineFriendlyScope={timelineFriendlyScope}
-                            setTimelineFriendlyScope={setTimelineFriendlyScope}
-                        />}
-
-                        {isSectionVisible('map-distribution') && <MapDistributionSection
-                            mapData={safeStats.mapData}
-                        />}
-
-                        {isSectionVisible('offense-detailed') && <OffenseSection
-                            offenseSearch={offenseSearch}
-                            setOffenseSearch={setOffenseSearch}
-                            activeOffenseStat={activeOffenseStat}
-                            setActiveOffenseStat={setActiveOffenseStat}
-                            offenseViewMode={offenseViewMode}
-                            setOffenseViewMode={setOffenseViewMode}
-                        />}
-
-                        {isSectionVisible('damage-modifiers') && <DamageModifiersSection
-                            search={damageModSearch}
-                            setSearch={setDamageModSearch}
-                            activeMod={activeDamageMod}
-                            setActiveMod={setActiveDamageMod}
-                            incoming={false}
-                        />}
-
-                        {isSectionVisible('player-breakdown') && <PlayerBreakdownSection
-                            viewMode={playerBreakdownViewMode}
-                            setViewMode={setPlayerBreakdownViewMode}
-                            playerSkillBreakdowns={playerSkillBreakdowns}
-                            classSkillBreakdowns={classSkillBreakdowns}
-                            activePlayerKey={activePlayerBreakdownKey}
-                            setActivePlayerKey={setActivePlayerBreakdownKey}
-                            expandedPlayerKey={expandedPlayerBreakdownKey}
-                            setExpandedPlayerKey={setExpandedPlayerBreakdownKey}
-                            activePlayerSkillId={activePlayerBreakdownSkillId}
-                            setActivePlayerSkillId={setActivePlayerBreakdownSkillId}
-                            activeClassKey={activeClassBreakdownKey}
-                            setActiveClassKey={setActiveClassBreakdownKey}
-                            expandedClassKey={expandedClassBreakdownKey}
-                            setExpandedClassKey={setExpandedClassBreakdownKey}
-                            activeClassSkillId={activeClassBreakdownSkillId}
-                            setActiveClassSkillId={setActiveClassBreakdownSkillId}
-                            skillSearch={playerBreakdownSkillSearch}
-                            setSkillSearch={setPlayerBreakdownSkillSearch}
-                            activePlayerBreakdown={activePlayerBreakdown}
-                            activePlayerSkill={activePlayerSkill}
-                            activeClassBreakdown={activeClassBreakdown}
-                            activeClassSkill={activeClassSkill}
-                        />}
-
-                        {isSectionVisible('damage-breakdown') && <DamageBreakdownSection
-                            playerSkillBreakdowns={playerSkillBreakdowns}
-                        />}
-
-                        {isSectionVisible('spike-damage') && <SpikeDamageSection
-                            spikePlayerFilter={spikePlayerFilter}
-                            setSpikePlayerFilter={setSpikePlayerFilter}
-                            groupedSpikePlayers={groupedSpikePlayers}
-                            spikeMode={spikeMode}
-                            setSpikeMode={setSpikeMode}
-                            damageBasis={spikeDamageBasis}
-                            setDamageBasis={setSpikeDamageBasis}
-                            showDamageBasisToggle
-                            selectedSpikePlayerKey={selectedSpikePlayerKey}
-                            setSelectedSpikePlayerKey={setSelectedSpikePlayerKey}
-                            selectedSpikePlayer={selectedSpikePlayer}
-                            spikeChartData={spikeChartData}
-                            spikeChartMaxY={spikeChartMaxY}
-                            selectedSpikeFightIndex={selectedSpikeFightIndex}
-                            setSelectedSpikeFightIndex={setSelectedSpikeFightIndex}
-                            spikeDrilldownTitle={spikeDrilldown.title}
-                            spikeDrilldownData={spikeDrilldown.data}
-                            spikeDrilldownDownIndices={spikeDrilldown.downIndices}
-                            spikeDrilldownDeathIndices={spikeDrilldown.deathIndices}
-                            spikeFightSkillRows={spikeFightSkillRows}
-                            spikeFightSkillTitle="Outgoing Skill Damage (Selected Fight)"
-                        />}
-
-                        {isSectionVisible('conditions-outgoing') && <ConditionsSection
-                            conditionSummary={conditionSummary}
-                            conditionPlayers={conditionPlayers}
-                            conditionSearch={conditionSearch}
-                            setConditionSearch={setConditionSearch}
-                            activeConditionName={activeConditionName}
-                            setActiveConditionName={setActiveConditionName}
-                            conditionDirection={conditionDirection}
-                            setConditionDirection={setConditionDirection}
-                            conditionGridClass={conditionGridClass}
-                            effectiveConditionSort={effectiveConditionSort as any}
-                            setConditionSort={setConditionSort as any}
-                            showConditionDamage={showConditionDamage}
-                        />}
-
-                        {isSectionVisible('defense-detailed') && <DefenseSection
-                            defenseSearch={defenseSearch}
-                            setDefenseSearch={setDefenseSearch}
-                            activeDefenseStat={activeDefenseStat}
-                            setActiveDefenseStat={setActiveDefenseStat}
-                            defenseViewMode={defenseViewMode}
-                            setDefenseViewMode={setDefenseViewMode}
-                        />}
-
-                        {isSectionVisible('incoming-damage-modifiers') && <DamageModifiersSection
-                            search={incomingDamageModSearch}
-                            setSearch={setIncomingDamageModSearch}
-                            activeMod={activeIncomingDamageMod}
-                            setActiveMod={setActiveIncomingDamageMod}
-                            incoming={true}
-                        />}
-
-                        {isSectionVisible('incoming-strike-damage') && <SpikeDamageSection
-                            sectionId="incoming-strike-damage"
-                            title="Incoming Strike Damage"
-                            subtitle="Select one enemy class to chart incoming strike pressure per fight."
-                            listTitle="Enemy Classes"
-                            searchPlaceholder="Search enemy class"
-                            titleIcon={ShieldAlert}
-                            titleIconClassName="text-cyan-300"
-                            spikePlayerFilter={incomingStrikePlayerFilter}
-                            setSpikePlayerFilter={setIncomingStrikePlayerFilter}
-                            groupedSpikePlayers={groupedIncomingStrikePlayers}
-                            spikeMode={incomingStrikeMode}
-                            setSpikeMode={setIncomingStrikeMode}
-                            showTotalDamageToggle
-                            useTotalDamage={incomingStrikeUseTotalDamage}
-                            setUseTotalDamage={setIncomingStrikeUseTotalDamage}
-                            selectedSpikePlayerKey={selectedIncomingStrikePlayerKey}
-                            setSelectedSpikePlayerKey={setSelectedIncomingStrikePlayerKey}
-                            selectedSpikePlayer={selectedIncomingStrikePlayer}
-                            spikeChartData={incomingStrikeChartData}
-                            spikeChartMaxY={incomingStrikeChartMaxY}
-                            selectedSpikeFightIndex={selectedIncomingStrikeFightIndex}
-                            setSelectedSpikeFightIndex={setSelectedIncomingStrikeFightIndex}
-                            spikeDrilldownTitle={incomingStrikeDrilldown.title}
-                            spikeDrilldownData={incomingStrikeDrilldown.data}
-                            spikeDrilldownDownIndices={incomingStrikeDrilldown.downIndices}
-                            spikeDrilldownDeathIndices={incomingStrikeDrilldown.deathIndices}
-                            spikeFightSkillRows={incomingStrikeFightSkillRows}
-                            spikeFightSkillTitle="Incoming Skill Damage (Selected Fight)"
-                        />}
-
-                        {isSectionVisible('defense-mitigation') && <DamageMitigationSection
-                            damageMitigationSearch={damageMitigationSearch}
-                            setDamageMitigationSearch={setDamageMitigationSearch}
-                            activeDamageMitigationStat={activeDamageMitigationStat}
-                            setActiveDamageMitigationStat={setActiveDamageMitigationStat}
-                            damageMitigationViewMode={damageMitigationViewMode}
-                            setDamageMitigationViewMode={setDamageMitigationViewMode}
-                            damageMitigationScope={damageMitigationScope}
-                            setDamageMitigationScope={setDamageMitigationScope}
-                        />}
-
-                        {isSectionVisible('boon-output') && <BoonOutputSection
-                            activeBoonCategory={activeBoonCategory}
-                            setActiveBoonCategory={(val: string) => setActiveBoonCategory(val as BoonCategory)}
-                            activeBoonMetric={activeBoonMetric}
-                            setActiveBoonMetric={setActiveBoonMetric}
-                            activeBoonTab={activeBoonTab}
-                            setActiveBoonTab={setActiveBoonTab}
-                            activeBoonTable={activeBoonTable}
-                            boonSearch={boonSearch}
-                            setBoonSearch={setBoonSearch}
-                            formatBoonMetricDisplay={formatBoonMetricDisplay}
-                            getBoonMetricValue={getBoonMetricValue}
-                        />}
-                        {isSectionVisible('boon-timeline') && <BoonTimelineSection
-                            boonSearch={boonTimelineSearch}
-                            setBoonSearch={setBoonTimelineSearch}
-                            boons={filteredBoonTimelineBoons}
-                            activeBoonId={activeBoonTimelineId}
-                            setActiveBoonId={setActiveBoonTimelineId}
-                            timelineScope={boonTimelineScope}
-                            setTimelineScope={setBoonTimelineScope}
-                            playerFilter={boonTimelinePlayerFilter}
-                            setPlayerFilter={setBoonTimelinePlayerFilter}
-                            players={filteredBoonTimelinePlayers}
-                            selectedPlayerKey={selectedBoonTimelinePlayerKey}
-                            setSelectedPlayerKey={setSelectedBoonTimelinePlayerKey}
-                            selectedPlayer={selectedBoonTimelinePlayer}
-                            chartData={boonTimelineChartData}
-                            chartMaxY={boonTimelineChartMaxY}
-                            selectedFightIndex={selectedBoonTimelineFightIndex}
-                            setSelectedFightIndex={setSelectedBoonTimelineFightIndex}
-                            drilldownTitle={boonTimelineDrilldown.title}
-                            drilldownData={boonTimelineDrilldown.data}
-                            showIncomingHeatmap={showBoonTimelineIncomingHeatmap}
-                            setShowIncomingHeatmap={setShowBoonTimelineIncomingHeatmap}
-                        />}
-                        {isSectionVisible('boon-uptime') && <BoonUptimeSection
-                            boonSearch={boonUptimeSearch}
-                            setBoonSearch={setBoonUptimeSearch}
-                            boons={filteredBoonUptimeBoons}
-                            activeBoonId={activeBoonUptimeId}
-                            setActiveBoonId={setActiveBoonUptimeId}
-                            playerFilter={boonUptimePlayerFilter}
-                            setPlayerFilter={setBoonUptimePlayerFilter}
-                            players={filteredBoonUptimePlayers}
-                            selectedPlayerKey={selectedBoonUptimePlayerKey}
-                            setSelectedPlayerKey={setSelectedBoonUptimePlayerKey}
-                            selectedPlayer={selectedBoonUptimePlayer}
-                            chartData={boonUptimeChartData}
-                            chartMaxY={boonUptimeChartMaxY}
-                            selectedFightIndex={selectedBoonUptimeFightIndex}
-                            setSelectedFightIndex={setSelectedBoonUptimeFightIndex}
-                            drilldownTitle={boonUptimeDrilldown.title}
-                            drilldownData={boonUptimeDrilldown.data}
-                            overallUptimePercent={boonUptimeOverallPercent}
-                            showStackCapLine={Boolean(activeBoonUptime?.stacking)}
-                            subgroupMembers={boonUptimeSubgroupMembers}
-                        />}
-
-                        {isSectionVisible('support-detailed') && <SupportSection
-                            supportSearch={supportSearch}
-                            setSupportSearch={setSupportSearch}
-                            activeSupportStat={activeSupportStat}
-                            setActiveSupportStat={setActiveSupportStat}
-                            supportViewMode={supportViewMode}
-                            setSupportViewMode={setSupportViewMode}
-                            cleanseScope={cleanseScope}
-                            setCleanseScope={setCleanseScope}
-                        />}
-
-                        {isSectionVisible('healing-stats') && <HealingSection
-                            activeHealingMetric={activeHealingMetric}
-                            setActiveHealingMetric={setActiveHealingMetric}
-                            healingCategory={healingCategory}
-                            setHealingCategory={setHealingCategory}
-                            activeResUtilitySkill={activeResUtilitySkill}
-                            setActiveResUtilitySkill={setActiveResUtilitySkill}
-                            skillUsageData={skillUsageData}
-                        />}
-
-                        {isSectionVisible('healing-breakdown') && <HealingBreakdownSection
-                            healingBreakdownPlayers={safeStats.healingBreakdownPlayers}
-                        />}
-
-                        {isSectionVisible('fight-diff-mode') && <FightDiffModeSection
-                        />}
-
-                        {isSectionVisible('special-buffs') && <SpecialBuffsSection
-                            specialSearch={specialSearch}
-                            setSpecialSearch={setSpecialSearch}
-                            activeSpecialTab={activeSpecialTab}
-                            setActiveSpecialTab={setActiveSpecialTab}
-                            activeSpecialTable={activeSpecialTable}
-                        />}
-
-                        {isSectionVisible('sigil-relic-uptime') && <SigilRelicUptimeSection
-                            hasSigilRelicTables={sigilRelicTables.length > 0}
-                            sigilRelicSearch={sigilRelicSearch}
-                            setSigilRelicSearch={setSigilRelicSearch}
-                            filteredSigilRelicTables={filteredSigilRelicTables}
-                            activeSigilRelicTab={activeSigilRelicTab}
-                            setActiveSigilRelicTab={setActiveSigilRelicTab}
-                            activeSigilRelicTable={activeSigilRelicTable}
-                        />}
-
-                        {isSectionVisible('skill-usage') && <SkillUsageSection
-                            selectedPlayers={selectedPlayers}
-                            setSelectedPlayers={setSelectedPlayers}
-                            removeSelectedPlayer={removeSelectedPlayer}
-                            playerMapByKey={playerMapByKey}
-                            groupedSkillUsagePlayers={groupedSkillUsagePlayers}
-                            expandedSkillUsageClass={expandedSkillUsageClass}
-                            setExpandedSkillUsageClass={setExpandedSkillUsageClass}
-                            togglePlayerSelection={togglePlayerSelection}
-                            skillUsagePlayerFilter={skillUsagePlayerFilter}
-                            setSkillUsagePlayerFilter={setSkillUsagePlayerFilter}
-                            skillUsageView={skillUsageView}
-                            setSkillUsageView={setSkillUsageView}
-                            skillUsageData={skillUsageData}
-                            skillUsageSkillFilter={skillUsageSkillFilter}
-                            setSkillUsageSkillFilter={setSkillUsageSkillFilter}
-                            selectedSkillId={selectedSkillId}
-                            setSelectedSkillId={setSelectedSkillId}
-                            skillBarData={skillBarData}
-                            selectedSkillName={selectedSkillName}
-                            selectedSkillIcon={selectedSkillIcon}
-                            skillUsageReady={skillUsageReady}
-                            skillUsageAvailable={skillUsageAvailable}
-                            isSkillUsagePerSecond={isSkillUsagePerSecond}
-                            skillChartData={skillChartData}
-                            skillChartMaxY={skillChartMaxY}
-                            playerTotalsForSkill={playerTotalsForSkill}
-                            hoveredSkillPlayer={hoveredSkillPlayer}
-                            setHoveredSkillPlayer={setHoveredSkillPlayer}
-                            getLineStrokeColor={getLineStrokeColor}
-                            getLineDashForPlayer={getLineDashForPlayer}
-                            formatSkillUsageValue={formatSkillUsageValue}
-                        />}
-
-                        {isSectionVisible('apm-stats') && <ApmSection
-                            apmSpecAvailable={apmSpecAvailable}
-                            skillUsageAvailable={skillUsageAvailable}
-                            apmSpecTables={apmSpecTables}
-                            activeApmSpec={activeApmSpec}
-                            setActiveApmSpec={setActiveApmSpec}
-                            expandedApmSpec={expandedApmSpec}
-                            setExpandedApmSpec={setExpandedApmSpec}
-                            activeApmSkillId={activeApmSkillId}
-                            setActiveApmSkillId={setActiveApmSkillId}
-                            ALL_SKILLS_KEY={ALL_SKILLS_KEY}
-                            apmSkillSearch={apmSkillSearch}
-                            setApmSkillSearch={setApmSkillSearch}
-                            activeApmSpecTable={activeApmSpecTable}
-                            activeApmSkill={activeApmSkill}
-                            isAllApmSkills={isAllApmSkills}
-                            apmView={apmView}
-                            setApmView={setApmView}
-                            formatApmValue={formatApmValue}
-                            formatCastRateValue={formatCastRateValue}
-                            formatCastCountValue={formatCastCountValue}
-                        />}
-
+                        {renderGroup('other', [
+                            { id: 'fight-diff-mode', element: <FightDiffModeSection
+                            /> },
+                            { id: 'special-buffs', element: <SpecialBuffsSection
+                                specialSearch={specialSearch}
+                                setSpecialSearch={setSpecialSearch}
+                                activeSpecialTab={activeSpecialTab}
+                                setActiveSpecialTab={setActiveSpecialTab}
+                                activeSpecialTable={activeSpecialTable}
+                            /> },
+                            { id: 'sigil-relic-uptime', element: <SigilRelicUptimeSection
+                                hasSigilRelicTables={sigilRelicTables.length > 0}
+                                sigilRelicSearch={sigilRelicSearch}
+                                setSigilRelicSearch={setSigilRelicSearch}
+                                filteredSigilRelicTables={filteredSigilRelicTables}
+                                activeSigilRelicTab={activeSigilRelicTab}
+                                setActiveSigilRelicTab={setActiveSigilRelicTab}
+                                activeSigilRelicTable={activeSigilRelicTable}
+                            /> },
+                            { id: 'skill-usage', element: <SkillUsageSection
+                                selectedPlayers={selectedPlayers}
+                                setSelectedPlayers={setSelectedPlayers}
+                                removeSelectedPlayer={removeSelectedPlayer}
+                                playerMapByKey={playerMapByKey}
+                                groupedSkillUsagePlayers={groupedSkillUsagePlayers}
+                                expandedSkillUsageClass={expandedSkillUsageClass}
+                                setExpandedSkillUsageClass={setExpandedSkillUsageClass}
+                                togglePlayerSelection={togglePlayerSelection}
+                                skillUsagePlayerFilter={skillUsagePlayerFilter}
+                                setSkillUsagePlayerFilter={setSkillUsagePlayerFilter}
+                                skillUsageView={skillUsageView}
+                                setSkillUsageView={setSkillUsageView}
+                                skillUsageData={skillUsageData}
+                                skillUsageSkillFilter={skillUsageSkillFilter}
+                                setSkillUsageSkillFilter={setSkillUsageSkillFilter}
+                                selectedSkillId={selectedSkillId}
+                                setSelectedSkillId={setSelectedSkillId}
+                                skillBarData={skillBarData}
+                                selectedSkillName={selectedSkillName}
+                                selectedSkillIcon={selectedSkillIcon}
+                                skillUsageReady={skillUsageReady}
+                                skillUsageAvailable={skillUsageAvailable}
+                                isSkillUsagePerSecond={isSkillUsagePerSecond}
+                                skillChartData={skillChartData}
+                                skillChartMaxY={skillChartMaxY}
+                                playerTotalsForSkill={playerTotalsForSkill}
+                                hoveredSkillPlayer={hoveredSkillPlayer}
+                                setHoveredSkillPlayer={setHoveredSkillPlayer}
+                                getLineStrokeColor={getLineStrokeColor}
+                                getLineDashForPlayer={getLineDashForPlayer}
+                                formatSkillUsageValue={formatSkillUsageValue}
+                            /> },
+                            { id: 'apm-stats', element: <ApmSection
+                                apmSpecAvailable={apmSpecAvailable}
+                                skillUsageAvailable={skillUsageAvailable}
+                                apmSpecTables={apmSpecTables}
+                                activeApmSpec={activeApmSpec}
+                                setActiveApmSpec={setActiveApmSpec}
+                                expandedApmSpec={expandedApmSpec}
+                                setExpandedApmSpec={setExpandedApmSpec}
+                                activeApmSkillId={activeApmSkillId}
+                                setActiveApmSkillId={setActiveApmSkillId}
+                                ALL_SKILLS_KEY={ALL_SKILLS_KEY}
+                                apmSkillSearch={apmSkillSearch}
+                                setApmSkillSearch={setApmSkillSearch}
+                                activeApmSpecTable={activeApmSpecTable}
+                                activeApmSkill={activeApmSkill}
+                                isAllApmSkills={isAllApmSkills}
+                                apmView={apmView}
+                                setApmView={setApmView}
+                                formatApmValue={formatApmValue}
+                                formatCastRateValue={formatCastRateValue}
+                                formatCastCountValue={formatCastCountValue}
+                            /> },
+                        ])}
                     </>
                 )}
                 </StatsSharedContext.Provider>
                 {!embedded && <div className="h-24" aria-hidden="true" />}
             </div>
-                {blurStatsDashboard && (
-                    <div className="stats-dashboard-loading-overlay" aria-hidden="true" />
-                )}
-            </div>
+            </div>)}
         </div>
     );
 }

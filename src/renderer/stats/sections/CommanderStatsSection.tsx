@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Clock3, Route, Skull, Target } from 'lucide-react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
+import { Clock3, Target, Route, Skull } from 'lucide-react';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
+import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
 
 type CommanderFightRow = {
@@ -146,7 +148,7 @@ const pushTimingStatus = (fight: CommanderFightRow) => {
 export const CommanderTargetConversionSection = ({
     commanderStats
 }: Omit<CommanderStatsSectionProps, 'getProfessionIconPath'>) => {
-    const { isSectionVisible, isFirstVisibleSection, sectionClass } = useStatsSharedContext();
+    useStatsSharedContext();
     const rows = useMemo(
         () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
         [commanderStats]
@@ -169,37 +171,30 @@ export const CommanderTargetConversionSection = ({
     );
 
     return (
-        <section
-            id="commander-target-conversion"
-            data-section-visible={isSectionVisible('commander-target-conversion')}
-            data-section-first={isFirstVisibleSection('commander-target-conversion')}
-            className={sectionClass('commander-target-conversion', 'bg-white/5 border border-cyan-300/20 rounded-2xl p-6 page-break-avoid scroll-mt-24')}
-        >
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                <h3 className="text-lg font-bold text-cyan-100 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-cyan-300" />
-                    Target Conversion
-                </h3>
-                <span className="text-[10px] uppercase tracking-widest text-cyan-200/70">
+        <div>
+            <div className="flex items-center gap-2 mb-3.5">
+                <Target className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Target Conversion</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
                     {rows.length} Commanders
                 </span>
             </div>
 
             {rows.length === 0 ? (
-                <div className="text-center text-gray-500 italic py-8">No target conversion data available.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No target conversion data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">
                         <table className="w-full min-w-[700px] text-xs table-auto">
                             <thead>
-                                <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                    <th className="text-left py-2 px-2">Commander</th>
-                                    <th className="text-right py-2 px-2">Down To Kill %</th>
-                                    <th className="text-right py-2 px-2">Avg Downs / Fight</th>
-                                    <th className="text-right py-2 px-2">Avg Kills / Fight</th>
-                                    <th className="text-right py-2 px-2">Failed Downs</th>
-                                    <th className="text-right py-2 px-2">Enemy Downs</th>
-                                    <th className="text-right py-2 px-2">Enemy Kills</th>
+                                <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                    <th className="text-left py-2 px-3">Commander</th>
+                                    <th className="text-right py-2 px-3">Down To Kill %</th>
+                                    <th className="text-right py-2 px-3">Avg Downs / Fight</th>
+                                    <th className="text-right py-2 px-3">Avg Kills / Fight</th>
+                                    <th className="text-right py-2 px-3">Failed Downs</th>
+                                    <th className="text-right py-2 px-3">Enemy Downs</th>
+                                    <th className="text-right py-2 px-3">Enemy Kills</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -207,17 +202,17 @@ export const CommanderTargetConversionSection = ({
                                     <tr
                                         key={`${row.key}-target-conversion`}
                                         onClick={() => setSelectedCommanderKey(row.key)}
-                                        className={`border-b border-white/5 cursor-pointer transition-colors ${
-                                            selectedCommander?.key === row.key ? 'bg-cyan-500/10' : 'hover:bg-white/5'
+                                        className={`border-b border-[color:var(--border-subtle)] cursor-pointer transition-colors ${
+                                            selectedCommander?.key === row.key ? 'bg-cyan-500/10' : 'hover:bg-[var(--bg-hover)]'
                                         }`}
                                     >
-                                        <td className="py-2 px-2 text-gray-100 font-semibold truncate">{row.account}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullablePct(row.downToKillConversionPct)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgDownsPerFight, 1)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgKillsPerFight, 1)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.failedDownEstimate)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.downs)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.kills)}</td>
+                                        <td className="py-2 px-3 text-gray-100 font-semibold truncate">{row.account}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.downToKillConversionPct)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgDownsPerFight, 1)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgKillsPerFight, 1)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.failedDownEstimate)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.downs)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.kills)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -228,24 +223,24 @@ export const CommanderTargetConversionSection = ({
                         <div className="overflow-x-auto min-w-0">
                             <table className="w-full min-w-[620px] text-xs table-auto">
                                 <thead>
-                                    <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                        <th className="text-left py-2 px-2">Fight</th>
-                                        <th className="text-right py-2 px-2">Enemy Downs</th>
-                                        <th className="text-right py-2 px-2">Enemy Kills</th>
-                                        <th className="text-right py-2 px-2">Conversion %</th>
-                                        <th className="text-right py-2 px-2">Failed Downs</th>
-                                        <th className="text-right py-2 px-2">Result</th>
+                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                        <th className="text-left py-2 px-3">Fight</th>
+                                        <th className="text-right py-2 px-3">Enemy Downs</th>
+                                        <th className="text-right py-2 px-3">Enemy Kills</th>
+                                        <th className="text-right py-2 px-3">Conversion %</th>
+                                        <th className="text-right py-2 px-3">Failed Downs</th>
+                                        <th className="text-right py-2 px-3">Result</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {(selectedCommander.fightsData || []).map((fight) => (
-                                        <tr key={`${fight.id}-target-conversion`} className="border-b border-white/5">
-                                            <td className="py-1.5 px-2 text-gray-200">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(fight.downs)}</td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(fight.kills)}</td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullablePct(fight.downToKillConversionPct)}</td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(fight.failedDownEstimate)}</td>
-                                            <td className={`py-1.5 px-2 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                        <tr key={`${fight.id}-target-conversion`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.downs)}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.kills)}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(fight.downToKillConversionPct)}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.failedDownEstimate)}</td>
+                                            <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
                                         </tr>
@@ -256,14 +251,14 @@ export const CommanderTargetConversionSection = ({
                     )}
                 </div>
             )}
-        </section>
+        </div>
     );
 };
 
 export const CommanderTagMovementSection = ({
     commanderStats
 }: Omit<CommanderStatsSectionProps, 'getProfessionIconPath'>) => {
-    const { isSectionVisible, isFirstVisibleSection, sectionClass } = useStatsSharedContext();
+
     const rows = useMemo(
         () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
         [commanderStats]
@@ -294,40 +289,33 @@ export const CommanderTagMovementSection = ({
     );
 
     return (
-        <section
-            id="commander-tag-movement"
-            data-section-visible={isSectionVisible('commander-tag-movement')}
-            data-section-first={isFirstVisibleSection('commander-tag-movement')}
-            className={sectionClass('commander-tag-movement', 'bg-white/5 border border-emerald-300/20 rounded-2xl p-6 page-break-avoid scroll-mt-24')}
-        >
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                <h3 className="text-lg font-bold text-emerald-100 flex items-center gap-2">
-                    <Route className="w-5 h-5 text-emerald-300" />
-                    Tag Movement
-                </h3>
-                <span className="text-[10px] uppercase tracking-widest text-emerald-200/70">
+        <div>
+            <div className="flex items-center gap-2 mb-3.5">
+                <Route className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Tag Movement</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
                     {rows.length} Commanders
                 </span>
             </div>
 
             {rows.length === 0 ? (
-                <div className="text-center text-gray-500 italic py-8">No tag movement data available.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No tag movement data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasAnyMovementData ? (
-                        <div className="rounded-lg border border-emerald-200/10 bg-black/25 px-3 py-2 text-xs text-emerald-100/80">
+                        <div className="rounded-[var(--radius-md)] border border-emerald-200/10 px-3 py-2 text-xs text-emerald-100/80">
                             Tag movement is unavailable for these logs because commander replay positions were not present.
                         </div>
                     ) : null}
                     <div className="w-full max-w-full overflow-x-auto pb-1">
                         <table className="w-full min-w-[700px] text-xs table-auto">
                             <thead>
-                                <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                    <th className="text-left py-2 px-2">Commander</th>
-                                    <th className="text-right py-2 px-2">Avg Distance</th>
-                                    <th className="text-right py-2 px-2">Move / Min</th>
-                                    <th className="text-right py-2 px-2">Stationary %</th>
-                                    <th className="text-right py-2 px-2">Move Bursts</th>
+                                <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                    <th className="text-left py-2 px-3">Commander</th>
+                                    <th className="text-right py-2 px-3">Avg Distance</th>
+                                    <th className="text-right py-2 px-3">Move / Min</th>
+                                    <th className="text-right py-2 px-3">Stationary %</th>
+                                    <th className="text-right py-2 px-3">Move Bursts</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -335,15 +323,15 @@ export const CommanderTagMovementSection = ({
                                     <tr
                                         key={`${row.key}-tag-movement`}
                                         onClick={() => setSelectedCommanderKey(row.key)}
-                                        className={`border-b border-white/5 cursor-pointer transition-colors ${
-                                            selectedCommander?.key === row.key ? 'bg-emerald-500/10' : 'hover:bg-white/5'
+                                        className={`border-b border-[color:var(--border-subtle)] cursor-pointer transition-colors ${
+                                            selectedCommander?.key === row.key ? 'bg-emerald-500/10' : 'hover:bg-[var(--bg-hover)]'
                                         }`}
                                     >
-                                        <td className="py-2 px-2 text-gray-100 font-semibold truncate">{row.account}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgCommanderDistanceTraveled, 0)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgCommanderMovementPerMinute, 1)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullablePct(row.avgTagStationaryPct)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgTagMovementBurstCount, 1)}</td>
+                                        <td className="py-2 px-3 text-gray-100 font-semibold truncate">{row.account}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgCommanderDistanceTraveled, 0)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgCommanderMovementPerMinute, 1)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.avgTagStationaryPct)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgTagMovementBurstCount, 1)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -354,24 +342,24 @@ export const CommanderTagMovementSection = ({
                         <div className="overflow-x-auto min-w-0">
                             <table className="w-full min-w-[620px] text-xs table-auto">
                                 <thead>
-                                    <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                        <th className="text-left py-2 px-2">Fight</th>
-                                        <th className="text-right py-2 px-2">Distance</th>
-                                        <th className="text-right py-2 px-2">Move / Min</th>
-                                        <th className="text-right py-2 px-2">Stationary %</th>
-                                        <th className="text-right py-2 px-2">Bursts</th>
-                                        <th className="text-right py-2 px-2">Result</th>
+                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                        <th className="text-left py-2 px-3">Fight</th>
+                                        <th className="text-right py-2 px-3">Distance</th>
+                                        <th className="text-right py-2 px-3">Move / Min</th>
+                                        <th className="text-right py-2 px-3">Stationary %</th>
+                                        <th className="text-right py-2 px-3">Bursts</th>
+                                        <th className="text-right py-2 px-3">Result</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {(selectedCommander.fightsData || []).map((fight) => (
-                                        <tr key={`${fight.id}-tag-movement`} className="border-b border-white/5">
-                                            <td className="py-1.5 px-2 text-gray-200">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableNumber(fight.distanceTraveled, 0)}</td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableNumber(fight.movementPerMinute, 1)}</td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullablePct(fight.stationaryPct)}</td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableNumber(fight.movementBurstCount, 0)}</td>
-                                            <td className={`py-1.5 px-2 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                        <tr key={`${fight.id}-tag-movement`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.distanceTraveled, 0)}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.movementPerMinute, 1)}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(fight.stationaryPct)}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.movementBurstCount, 0)}</td>
+                                            <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
                                         </tr>
@@ -382,14 +370,14 @@ export const CommanderTagMovementSection = ({
                     )}
                 </div>
             )}
-        </section>
+        </div>
     );
 };
 
 export const CommanderTagDeathResponseSection = ({
     commanderStats
 }: Omit<CommanderStatsSectionProps, 'getProfessionIconPath'>) => {
-    const { isSectionVisible, isFirstVisibleSection, sectionClass } = useStatsSharedContext();
+
     const rows = useMemo(
         () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
         [commanderStats]
@@ -420,41 +408,34 @@ export const CommanderTagDeathResponseSection = ({
     );
 
     return (
-        <section
-            id="commander-tag-death-response"
-            data-section-visible={isSectionVisible('commander-tag-death-response')}
-            data-section-first={isFirstVisibleSection('commander-tag-death-response')}
-            className={sectionClass('commander-tag-death-response', 'bg-white/5 border border-rose-300/20 rounded-2xl p-6 page-break-avoid scroll-mt-24')}
-        >
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                <h3 className="text-lg font-bold text-rose-100 flex items-center gap-2">
-                    <Skull className="w-5 h-5 text-rose-300" />
-                    Squad Response To Tag Death
-                </h3>
-                <span className="text-[10px] uppercase tracking-widest text-rose-200/70">
+        <div>
+            <div className="flex items-center gap-2 mb-3.5">
+                <Skull className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Squad Response To Tag Death</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
                     {rows.length} Commanders
                 </span>
             </div>
 
             {rows.length === 0 ? (
-                <div className="text-center text-gray-500 italic py-8">No commander death response data available.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No commander death response data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasPostDeathEnemyData ? (
-                        <div className="rounded-lg border border-rose-200/10 bg-black/25 px-3 py-2 text-xs text-rose-100/80">
+                        <div className="rounded-[var(--radius-md)] border border-rose-200/10 px-3 py-2 text-xs text-rose-100/80">
                             Post-death enemy kill counts are unavailable for these logs because enemy replay death timestamps were not present.
                         </div>
                     ) : null}
                     <div className="w-full max-w-full overflow-x-auto pb-1">
                         <table className="w-full min-w-[760px] text-xs table-auto">
                             <thead>
-                                <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                    <th className="text-left py-2 px-2">Commander</th>
-                                    <th className="text-right py-2 px-2">Fights With Tag Death</th>
-                                    <th className="text-right py-2 px-2">Collapse Rate</th>
-                                    <th className="text-right py-2 px-2">Avg Squad Deaths After</th>
-                                    <th className="text-right py-2 px-2">Avg Enemy Kills After</th>
-                                    <th className="text-right py-2 px-2">Recovery Rate</th>
+                                <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                    <th className="text-left py-2 px-3">Commander</th>
+                                    <th className="text-right py-2 px-3">Fights With Tag Death</th>
+                                    <th className="text-right py-2 px-3">Collapse Rate</th>
+                                    <th className="text-right py-2 px-3">Avg Squad Deaths After</th>
+                                    <th className="text-right py-2 px-3">Avg Enemy Kills After</th>
+                                    <th className="text-right py-2 px-3">Recovery Rate</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -462,16 +443,16 @@ export const CommanderTagDeathResponseSection = ({
                                     <tr
                                         key={`${row.key}-tag-death-response`}
                                         onClick={() => setSelectedCommanderKey(row.key)}
-                                        className={`border-b border-white/5 cursor-pointer transition-colors ${
-                                            selectedCommander?.key === row.key ? 'bg-rose-500/10' : 'hover:bg-white/5'
+                                        className={`border-b border-[color:var(--border-subtle)] cursor-pointer transition-colors ${
+                                            selectedCommander?.key === row.key ? 'bg-rose-500/10' : 'hover:bg-[var(--bg-hover)]'
                                         }`}
                                     >
-                                        <td className="py-2 px-2 text-gray-100 font-semibold truncate">{row.account}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.fightsWithCommanderDeath)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullablePct(row.squadCollapseAfterTagDeathPct)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgSquadDeathsAfterTagDeath, 1)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableNumber(row.avgEnemyKillsAfterTagDeath, 1)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullablePct(row.recoveryAfterTagDeathPct)}</td>
+                                        <td className="py-2 px-3 text-gray-100 font-semibold truncate">{row.account}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.fightsWithCommanderDeath)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.squadCollapseAfterTagDeathPct)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgSquadDeathsAfterTagDeath, 1)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgEnemyKillsAfterTagDeath, 1)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.recoveryAfterTagDeathPct)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -480,40 +461,40 @@ export const CommanderTagDeathResponseSection = ({
 
                     {selectedCommander && (
                         deathFights.length === 0 ? (
-                            <div className="text-center text-gray-500 italic py-4">This commander has no fights with a recorded tag death.</div>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">This commander has no fights with a recorded tag death.</div>
                         ) : (
                             <div className="overflow-x-auto min-w-0">
                                 <table className="w-full min-w-[700px] text-xs table-auto">
                                     <thead>
-                                        <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                            <th className="text-left py-2 px-2">Fight</th>
-                                            <th className="text-right py-2 px-2">Commander Died At</th>
-                                            <th className="text-right py-2 px-2">Squad Deaths After</th>
-                                            <th className="text-right py-2 px-2">Enemy Kills After</th>
-                                            <th className="text-right py-2 px-2">Collapse</th>
-                                            <th className="text-right py-2 px-2">Recovery</th>
+                                        <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                            <th className="text-left py-2 px-3">Fight</th>
+                                            <th className="text-right py-2 px-3">Commander Died At</th>
+                                            <th className="text-right py-2 px-3">Squad Deaths After</th>
+                                            <th className="text-right py-2 px-3">Enemy Kills After</th>
+                                            <th className="text-right py-2 px-3">Collapse</th>
+                                            <th className="text-right py-2 px-3">Recovery</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {deathFights.map((fight) => (
-                                            <tr key={`${fight.id}-tag-death-response`} className="border-b border-white/5">
-                                                <td className="py-1.5 px-2 text-gray-200">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
-                                                <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableDuration(fight.commanderDiedAtMs)}</td>
-                                                <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableNumber(fight.squadDeathsAfterTagDeath, 0)}</td>
-                                                <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableNumber(fight.enemyKillsAfterTagDeath, 0)}</td>
+                                            <tr key={`${fight.id}-tag-death-response`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                                <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
+                                                <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(fight.commanderDiedAtMs)}</td>
+                                                <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.squadDeathsAfterTagDeath, 0)}</td>
+                                                <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.enemyKillsAfterTagDeath, 0)}</td>
                                                 <td
-                                                    className={`py-1.5 px-2 text-right font-semibold ${
+                                                    className={`py-2 px-3 text-right font-semibold ${
                                                         fight.collapsedAfterTagDeath === null
-                                                            ? 'text-gray-400'
+                                                            ? 'text-[color:var(--text-secondary)]'
                                                             : (fight.collapsedAfterTagDeath ? 'text-rose-300' : 'text-emerald-300')
                                                     }`}
                                                 >
                                                     {fight.collapsedAfterTagDeath === null ? 'N/A' : (fight.collapsedAfterTagDeath ? 'Yes' : 'No')}
                                                 </td>
                                                 <td
-                                                    className={`py-1.5 px-2 text-right font-semibold ${
+                                                    className={`py-2 px-3 text-right font-semibold ${
                                                         fight.recoveredAfterTagDeath === null
-                                                            ? 'text-gray-400'
+                                                            ? 'text-[color:var(--text-secondary)]'
                                                             : (fight.recoveredAfterTagDeath ? 'text-emerald-300' : 'text-rose-300')
                                                     }`}
                                                 >
@@ -528,14 +509,14 @@ export const CommanderTagDeathResponseSection = ({
                     )}
                 </div>
             )}
-        </section>
+        </div>
     );
 };
 
 export const CommanderPushTimingSection = ({
     commanderStats
 }: Omit<CommanderStatsSectionProps, 'getProfessionIconPath'>) => {
-    const { isSectionVisible, isFirstVisibleSection, sectionClass } = useStatsSharedContext();
+
     const rows = useMemo(
         () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
         [commanderStats]
@@ -566,41 +547,34 @@ export const CommanderPushTimingSection = ({
     );
 
     return (
-        <section
-            id="commander-push-timing"
-            data-section-visible={isSectionVisible('commander-push-timing')}
-            data-section-first={isFirstVisibleSection('commander-push-timing')}
-            className={sectionClass('commander-push-timing', 'bg-white/5 border border-amber-300/20 rounded-2xl p-6 page-break-avoid scroll-mt-24')}
-        >
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                <h3 className="text-lg font-bold text-amber-100 flex items-center gap-2">
-                    <Clock3 className="w-5 h-5 text-amber-300" />
-                    Push Timing
-                </h3>
-                <span className="text-[10px] uppercase tracking-widest text-amber-200/70">
+        <div>
+            <div className="flex items-center gap-2 mb-3.5">
+                <Clock3 className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Push Timing</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
                     {rows.length} Commanders
                 </span>
             </div>
 
             {rows.length === 0 ? (
-                <div className="text-center text-gray-500 italic py-8">No push timing data available.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No push timing data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasAnyTimingData ? (
-                        <div className="rounded-lg border border-amber-200/10 bg-black/25 px-3 py-2 text-xs text-amber-100/80">
+                        <div className="rounded-[var(--radius-md)] border border-amber-200/10 px-3 py-2 text-xs text-amber-100/80">
                             Exact push timing is unavailable for these logs because enemy replay down/death timestamps were not present.
                         </div>
                     ) : null}
                     <div className="w-full max-w-full overflow-x-auto pb-1">
                         <table className="w-full min-w-[640px] text-xs table-auto">
                             <thead>
-                                <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                    <th className="text-left py-2 px-2">Commander</th>
-                                    <th className="text-right py-2 px-2">Avg To First Down</th>
-                                    <th className="text-right py-2 px-2">Avg To First Kill</th>
-                                    <th className="text-right py-2 px-2">Avg Down To Kill</th>
-                                    <th className="text-right py-2 px-2">Early Push %</th>
-                                    <th className="text-right py-2 px-2">Stalled %</th>
+                                <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                    <th className="text-left py-2 px-3">Commander</th>
+                                    <th className="text-right py-2 px-3">Avg To First Down</th>
+                                    <th className="text-right py-2 px-3">Avg To First Kill</th>
+                                    <th className="text-right py-2 px-3">Avg Down To Kill</th>
+                                    <th className="text-right py-2 px-3">Early Push %</th>
+                                    <th className="text-right py-2 px-3">Stalled %</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -608,16 +582,16 @@ export const CommanderPushTimingSection = ({
                                     <tr
                                         key={`${row.key}-push-summary`}
                                         onClick={() => setSelectedCommanderKey(row.key)}
-                                        className={`border-b border-white/5 cursor-pointer transition-colors ${
-                                            selectedCommander?.key === row.key ? 'bg-amber-500/10' : 'hover:bg-white/5'
+                                        className={`border-b border-[color:var(--border-subtle)] cursor-pointer transition-colors ${
+                                            selectedCommander?.key === row.key ? 'bg-amber-500/10' : 'hover:bg-[var(--bg-hover)]'
                                         }`}
                                     >
-                                        <td className="py-2 px-2 text-gray-100 font-semibold truncate">{row.account}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableDuration(row.avgTimeToFirstEnemyDownMs)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableDuration(row.avgTimeToFirstEnemyDeathMs)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullableDuration(row.avgDownToKillConversionMs)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullablePct(row.pushesWithEarlyDownPct)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatNullablePct(row.stalledPushPct)}</td>
+                                        <td className="py-2 px-3 text-gray-100 font-semibold truncate">{row.account}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(row.avgTimeToFirstEnemyDownMs)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(row.avgTimeToFirstEnemyDeathMs)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(row.avgDownToKillConversionMs)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.pushesWithEarlyDownPct)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.stalledPushPct)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -628,26 +602,26 @@ export const CommanderPushTimingSection = ({
                         <div className="overflow-x-auto min-w-0">
                             <table className="w-full min-w-[560px] text-xs table-auto">
                                 <thead>
-                                    <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                        <th className="text-left py-2 px-2">Fight</th>
-                                        <th className="text-right py-2 px-2">Result</th>
-                                        <th className="text-right py-2 px-2">To First Down</th>
-                                        <th className="text-right py-2 px-2">To First Kill</th>
-                                        <th className="text-right py-2 px-2">Down To Kill</th>
-                                        <th className="text-right py-2 px-2">Status</th>
+                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                        <th className="text-left py-2 px-3">Fight</th>
+                                        <th className="text-right py-2 px-3">Result</th>
+                                        <th className="text-right py-2 px-3">To First Down</th>
+                                        <th className="text-right py-2 px-3">To First Kill</th>
+                                        <th className="text-right py-2 px-3">Down To Kill</th>
+                                        <th className="text-right py-2 px-3">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {(selectedCommander.fightsData || []).map((fight) => (
-                                        <tr key={`${fight.id}-push-timing`} className="border-b border-white/5">
-                                            <td className="py-1.5 px-2 text-gray-200">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
-                                            <td className={`py-1.5 px-2 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                        <tr key={`${fight.id}-push-timing`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
+                                            <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableDuration(fight.timeToFirstEnemyDownMs)}</td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableDuration(fight.timeToFirstEnemyDeathMs)}</td>
-                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatNullableDuration(fight.downToKillConversionMs)}</td>
-                                            <td className="py-1.5 px-2 text-right font-semibold text-gray-200">{pushTimingStatus(fight)}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(fight.timeToFirstEnemyDownMs)}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(fight.timeToFirstEnemyDeathMs)}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(fight.downToKillConversionMs)}</td>
+                                            <td className="py-2 px-3 text-right font-semibold text-[color:var(--text-primary)]">{pushTimingStatus(fight)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -656,7 +630,7 @@ export const CommanderPushTimingSection = ({
                     )}
                 </div>
             )}
-        </section>
+        </div>
     );
 };
 
@@ -664,7 +638,7 @@ export const CommanderStatsSection = ({
     commanderStats,
     getProfessionIconPath
 }: CommanderStatsSectionProps) => {
-    const { isSectionVisible, isFirstVisibleSection, sectionClass } = useStatsSharedContext();
+
     const rows = useMemo(
         () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
         [commanderStats]
@@ -766,38 +740,31 @@ export const CommanderStatsSection = ({
     }, [selectedFight, selectedBucketIndex]);
 
     return (
-        <section
-            id="commander-stats"
-            data-section-visible={isSectionVisible('commander-stats')}
-            data-section-first={isFirstVisibleSection('commander-stats')}
-            className={sectionClass('commander-stats', 'bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid scroll-mt-24')}
-        >
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                    <CommanderTagIcon className="w-5 h-5 text-amber-300" />
-                    Commander Stats
-                </h3>
-                <span className="text-[10px] uppercase tracking-widest text-gray-500">{rows.length} Commanders</span>
+        <div>
+            <div className="flex items-center gap-2 mb-3.5">
+                <span className="flex shrink-0" style={{ color: 'var(--brand-primary)' }}><CommanderTagIcon className="w-4 h-4" /></span>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Commander Stats</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{rows.length} Commanders</span>
             </div>
 
             {rows.length === 0 ? (
-                <div className="text-center text-gray-500 italic py-8">No commander-tag data available.</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No commander-tag data available.</div>
             ) : (
                 <div className="space-y-5 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">
                         <table className="w-full min-w-[900px] text-xs table-auto">
                             <thead>
-                                <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                    <th className="text-left py-2 px-2">Commander</th>
-                                    <th className="text-right py-2 px-2">Fights</th>
-                                    <th className="text-right py-2 px-2">W/L</th>
-                                    <th className="text-right py-2 px-2">Win %</th>
-                                    <th className="text-right py-2 px-2">Squad KDR</th>
-                                    <th className="text-right py-2 px-2">Avg Squad</th>
-                                    <th className="text-right py-2 px-2">Avg Enemy</th>
-                                    <th className="text-right py-2 px-2">Kills</th>
-                                    <th className="text-right py-2 px-2">Downs</th>
-                                    <th className="text-right py-2 px-2">Time Tagged</th>
+                                <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                    <th className="text-left py-2 px-3">Commander</th>
+                                    <th className="text-right py-2 px-3">Fights</th>
+                                    <th className="text-right py-2 px-3">W/L</th>
+                                    <th className="text-right py-2 px-3">Win %</th>
+                                    <th className="text-right py-2 px-3">Squad KDR</th>
+                                    <th className="text-right py-2 px-3">Avg Squad</th>
+                                    <th className="text-right py-2 px-3">Avg Enemy</th>
+                                    <th className="text-right py-2 px-3">Kills</th>
+                                    <th className="text-right py-2 px-3">Downs</th>
+                                    <th className="text-right py-2 px-3">Time Tagged</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -805,11 +772,11 @@ export const CommanderStatsSection = ({
                                     <tr
                                         key={row.key}
                                         onClick={() => setSelectedCommanderKey(row.key)}
-                                        className={`border-b border-white/5 cursor-pointer transition-colors ${
-                                            selectedCommander?.key === row.key ? 'bg-amber-500/10' : 'hover:bg-white/5'
+                                        className={`border-b border-[color:var(--border-subtle)] cursor-pointer transition-colors ${
+                                            selectedCommander?.key === row.key ? 'bg-amber-500/10' : 'hover:bg-[var(--bg-hover)]'
                                         }`}
                                     >
-                                        <td className="py-2 px-2">
+                                        <td className="py-2 px-3">
                                             <div className="flex items-center gap-2">
                                                 {getProfessionIconPath(row.profession) ? (
                                                     <img
@@ -820,21 +787,21 @@ export const CommanderStatsSection = ({
                                                 ) : null}
                                                 <div className="min-w-0">
                                                     <div className="text-gray-100 font-semibold truncate">{row.account}</div>
-                                                    <div className="text-[10px] text-gray-400 truncate">
+                                                    <div className="text-[10px] text-[color:var(--text-secondary)] truncate">
                                                         {(row.characterNames || []).join(', ') || 'Unknown'}
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.fights)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.wins)}-{formatInt(row.losses)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.winRatePct, 1)}%</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.kdr, 2)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.avgSquadSize, 1)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatRate(row.avgEnemySize, 1)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.kills)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatInt(row.downs)}</td>
-                                        <td className="py-2 px-2 text-right font-mono text-gray-200">{formatDuration(row.totalDurationMs)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.fights)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.wins)}-{formatInt(row.losses)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.winRatePct, 1)}%</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.kdr, 2)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.avgSquadSize, 1)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.avgEnemySize, 1)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.kills)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.downs)}</td>
+                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatDuration(row.totalDurationMs)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -844,71 +811,71 @@ export const CommanderStatsSection = ({
                     {selectedCommander && (
                         <div className="space-y-4 min-w-0">
                             <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2">
-                                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-                                    <div className="text-[10px] uppercase tracking-widest text-gray-500">Time Tagged</div>
+                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Time Tagged</div>
                                     <div className="text-sm font-semibold text-gray-100">{formatDuration(selectedCommander.totalDurationMs)}</div>
                                 </div>
-                                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-                                    <div className="text-[10px] uppercase tracking-widest text-gray-500">Inc. Strips</div>
+                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Inc. Strips</div>
                                     <div className="text-sm font-semibold text-gray-100">{formatInt(selectedCommander.incomingStrips)}</div>
                                 </div>
-                                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-                                    <div className="text-[10px] uppercase tracking-widest text-gray-500">Inc. CC</div>
+                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Inc. CC</div>
                                     <div className="text-sm font-semibold text-gray-100">{formatInt(selectedCommander.incomingCC)}</div>
                                 </div>
-                                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-                                    <div className="text-[10px] uppercase tracking-widest text-gray-500">Damage Taken</div>
+                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Damage Taken</div>
                                     <div className="text-sm font-semibold text-gray-100">{formatInt(selectedCommander.damageTaken)}</div>
                                 </div>
-                                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-                                    <div className="text-[10px] uppercase tracking-widest text-gray-500">Barrier Absorbed</div>
+                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Barrier Absorbed</div>
                                     <div className="text-sm font-semibold text-gray-100">{formatInt(selectedCommander.incomingBarrierAbsorbed)}</div>
                                 </div>
-                                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-                                    <div className="text-[10px] uppercase tracking-widest text-gray-500">Boon Uptime</div>
+                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Boon Uptime</div>
                                     <div className="text-sm font-semibold text-gray-100">{formatRate(selectedCommander.boonUptimePct, 1)}%</div>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 min-w-0">
-                                <div className="rounded-xl border border-white/10 bg-black/20 p-3 min-w-0 overflow-x-auto">
-                                    <div className="text-xs uppercase tracking-widest text-gray-400 mb-2">Incoming Damage By Skill</div>
+                                <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
+                                    <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Damage By Skill</div>
                                     <table className="w-full min-w-[440px] text-xs table-auto">
                                         <thead>
-                                            <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                                <th className="text-left py-2 px-2">Skill</th>
-                                                <th className="text-right py-2 px-2">Hits</th>
-                                                <th className="text-right py-2 px-2">Damage</th>
+                                            <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                                <th className="text-left py-2 px-3">Skill</th>
+                                                <th className="text-right py-2 px-3">Hits</th>
+                                                <th className="text-right py-2 px-3">Damage</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {(selectedCommander.incomingSkillBreakdown || []).slice(0, 20).map((row) => (
-                                                <tr key={row.id} className="border-b border-white/5">
-                                                    <td className="py-1.5 px-2 text-gray-200">{row.name}</td>
-                                                    <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(row.hits)}</td>
-                                                    <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(row.damage)}</td>
+                                                <tr key={row.id} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                                    <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.name}</td>
+                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.hits)}</td>
+                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.damage)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
 
-                                <div className="rounded-xl border border-white/10 bg-black/20 p-3 min-w-0 overflow-x-auto">
-                                    <div className="text-xs uppercase tracking-widest text-gray-400 mb-2">Incoming Boons (Average Uptime)</div>
+                                <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
+                                    <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Boons (Average Uptime)</div>
                                     <table className="w-full min-w-[440px] text-xs table-auto">
                                         <thead>
-                                            <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                                <th className="text-left py-2 px-2">Boon</th>
-                                                <th className="text-right py-2 px-2">Uptime %</th>
-                                                <th className="text-right py-2 px-2">Stacking</th>
+                                            <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                                <th className="text-left py-2 px-3">Boon</th>
+                                                <th className="text-right py-2 px-3">Uptime %</th>
+                                                <th className="text-right py-2 px-3">Stacking</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {(selectedCommander.incomingBoonBreakdown || []).slice(0, 20).map((row) => (
-                                                <tr key={row.id} className="border-b border-white/5">
-                                                    <td className="py-1.5 px-2 text-gray-200">{row.name}</td>
-                                                    <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatRate(row.uptimePct, 1)}%</td>
-                                                    <td className="py-1.5 px-2 text-right font-mono text-gray-200">{row.stacking ? 'Yes' : 'No'}</td>
+                                                <tr key={row.id} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                                    <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.name}</td>
+                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.uptimePct, 1)}%</td>
+                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{row.stacking ? 'Yes' : 'No'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -917,44 +884,34 @@ export const CommanderStatsSection = ({
                             </div>
 
                             {selectedFight && (
-                                <div className="rounded-xl border border-white/10 bg-black/20 p-3 min-w-0 space-y-3">
+                                <div className="rounded-[var(--radius-md)] p-3 min-w-0 space-y-3">
                                     <div className="flex flex-wrap items-center justify-between gap-3">
-                                        <div className="text-xs uppercase tracking-widest text-gray-400">5s Timeline And Fight Breakdown</div>
+                                        <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)]">5s Timeline And Fight Breakdown</div>
                                         <div className="flex flex-wrap items-center gap-2">
                                             <select
                                                 value={selectedFight.id}
                                                 onChange={(event) => setSelectedFightId(event.target.value)}
-                                                className="bg-black/40 border border-white/10 rounded-md px-2 py-1 text-xs text-gray-200"
+                                                className="bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] rounded-md px-2 py-1 text-xs text-[color:var(--text-primary)]"
                                             >
                                                 {(selectedCommander.fightsData || []).map((fight) => (
                                                     <option key={fight.id} value={fight.id}>{fight.shortLabel} • {fight.mapName || 'Unknown'}</option>
                                                 ))}
                                             </select>
-                                            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setTimelineMode('incomingDamage')}
-                                                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${timelineMode === 'incomingDamage'
-                                                        ? 'bg-red-500/20 text-red-200 border border-red-500/40'
-                                                        : 'border border-transparent text-gray-400 hover:text-gray-200'}`}
-                                                >
-                                                    Incoming Damage
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setTimelineMode('incomingBoons')}
-                                                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${timelineMode === 'incomingBoons'
-                                                        ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-500/40'
-                                                        : 'border border-transparent text-gray-400 hover:text-gray-200'}`}
-                                                >
-                                                    Incoming Boons
-                                                </button>
-                                            </div>
+                                            <PillToggleGroup
+                                                value={timelineMode}
+                                                onChange={setTimelineMode}
+                                                options={[
+                                                    { value: 'incomingDamage' as const, label: 'Incoming Damage' },
+                                                    { value: 'incomingBoons' as const, label: 'Incoming Boons' },
+                                                ]}
+                                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                                inactiveClassName="text-[color:var(--text-secondary)]"
+                                            />
                                         </div>
                                     </div>
 
                                     <div ref={chartContainerRef} className="h-[220px] w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ChartContainer width="100%" height="100%">
                                             <LineChart
                                                 data={timelineData}
                                                 margin={{ top: 8, right: 14, left: 0, bottom: 0 }}
@@ -989,29 +946,29 @@ export const CommanderStatsSection = ({
                                                     activeDot={{ r: 5 }}
                                                 />
                                             </LineChart>
-                                        </ResponsiveContainer>
+                                        </ChartContainer>
                                     </div>
 
                                     <div className="overflow-x-auto min-w-0">
-                                        <div className="text-[11px] uppercase tracking-widest text-gray-400 mb-1">
+                                        <div className="text-[11px] uppercase tracking-widest text-[color:var(--text-secondary)] mb-1">
                                             {timelineMode === 'incomingDamage' ? 'Fight Incoming Damage By Skill' : 'Fight Incoming Boons'}
                                             {selectedBucketIndex !== null ? ` • ${selectedBucketIndex * 5}-${selectedBucketIndex * 5 + 5}s` : ' • Full Fight'}
                                         </div>
                                         {timelineMode === 'incomingDamage' ? (
                                             <table className="w-full min-w-[420px] text-xs table-auto">
                                                 <thead>
-                                                    <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                                        <th className="text-left py-1.5 px-2">Skill</th>
-                                                        <th className="text-right py-1.5 px-2">Hits</th>
-                                                        <th className="text-right py-1.5 px-2">Damage</th>
+                                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                                        <th className="text-left py-2 px-3">Skill</th>
+                                                        <th className="text-right py-2 px-3">Hits</th>
+                                                        <th className="text-right py-2 px-3">Damage</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {filteredIncomingDamageRows.map((row) => (
-                                                        <tr key={row.id} className="border-b border-white/5">
-                                                            <td className="py-1.5 px-2 text-gray-200">{row.name}</td>
-                                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(row.hits)}</td>
-                                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatInt(row.damage)}</td>
+                                                        <tr key={row.id} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.name}</td>
+                                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.hits)}</td>
+                                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.damage)}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -1019,18 +976,18 @@ export const CommanderStatsSection = ({
                                         ) : (
                                             <table className="w-full min-w-[420px] text-xs table-auto">
                                                 <thead>
-                                                    <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
-                                                        <th className="text-left py-1.5 px-2">Boon</th>
-                                                        <th className="text-right py-1.5 px-2">Uptime %</th>
-                                                        <th className="text-right py-1.5 px-2">Uptime Time</th>
+                                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
+                                                        <th className="text-left py-2 px-3">Boon</th>
+                                                        <th className="text-right py-2 px-3">Uptime %</th>
+                                                        <th className="text-right py-2 px-3">Uptime Time</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {filteredIncomingBoonRows.map((row) => (
-                                                        <tr key={row.id} className="border-b border-white/5">
-                                                            <td className="py-1.5 px-2 text-gray-200">{row.name}</td>
-                                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatRate(row.uptimePct, 1)}%</td>
-                                                            <td className="py-1.5 px-2 text-right font-mono text-gray-200">{formatDuration(row.uptimeMs)}</td>
+                                                        <tr key={row.id} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.name}</td>
+                                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.uptimePct, 1)}%</td>
+                                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatDuration(row.uptimeMs)}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -1043,6 +1000,6 @@ export const CommanderStatsSection = ({
                     )}
                 </div>
             )}
-        </section>
+        </div>
     );
 };

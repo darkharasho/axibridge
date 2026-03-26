@@ -117,19 +117,36 @@ export const SearchSelectDropdown = ({
                 }}
                 onFocus={() => setOpen(true)}
                 placeholder={placeholder}
-                className="w-full sm:w-64 bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none"
+                className="w-full sm:w-64 rounded-lg border px-2 py-1 text-xs focus:outline-none"
+                style={{
+                    background: 'var(--bg-elevated)',
+                    borderColor: 'var(--border-default)',
+                    color: 'var(--text-primary)',
+                }}
             />
             {open && (
-                <div className="absolute z-30 mt-2 w-64 rounded-xl border border-white/10 bg-slate-950 p-2 text-xs shadow-2xl">
+                <div
+                    className="absolute z-30 mt-2 w-64 border p-2 text-xs"
+                    style={{
+                        borderRadius: 'var(--radius-md)',
+                        borderColor: 'var(--border-default)',
+                        background: 'var(--bg-elevated)',
+                        boxShadow: 'var(--shadow-dropdown)',
+                    }}
+                >
                     {filteredOptions.length === 0 ? (
-                        <div className="px-2 py-2 text-gray-500 italic">No matches</div>
+                        <div className="px-2 py-2 italic" style={{ color: 'var(--text-muted)' }}>No matches</div>
                     ) : (
                         <div ref={listRef} className="max-h-60 overflow-y-auto space-y-2 pr-1">
                             {grouped.columns.length > 0 && (
                                 <div>
-                                    <div className="px-2 pb-1 text-[10px] uppercase tracking-widest text-gray-500">Columns</div>
+                                    <div
+                                        className="px-2 pb-1 text-[10px] uppercase tracking-widest"
+                                        style={{ color: 'var(--text-secondary)' }}
+                                    >Columns</div>
                                     {grouped.columns.map((option) => {
                                         const selected = selectedIds?.has(`${option.type}:${option.id}`) ?? false;
+                                        const isActive = activeIndex === optionIndexMap.get(`${option.type}-${option.id}`);
                                         return (
                                         <button
                                             key={`${option.type}-${option.id}`}
@@ -146,7 +163,20 @@ export const SearchSelectDropdown = ({
                                                 const idx = optionIndexMap.get(`${option.type}-${option.id}`);
                                                 if (typeof idx === 'number') setActiveIndex(idx);
                                             }}
-                                            className={`w-full text-left px-2 py-1.5 rounded-lg border border-transparent text-gray-200 hover:bg-white/5 hover:border-white/10 ${activeIndex === optionIndexMap.get(`${option.type}-${option.id}`) ? 'bg-white/10 border-white/10' : ''} ${selected ? 'bg-white/15 border-white/20' : ''}`}
+                                            className="w-full text-left px-2 py-1.5 rounded-lg border"
+                                            style={{
+                                                color: 'var(--text-primary)',
+                                                background: selected
+                                                    ? 'var(--accent-bg-strong)'
+                                                    : isActive
+                                                    ? 'var(--bg-hover)'
+                                                    : 'transparent',
+                                                borderColor: selected
+                                                    ? 'var(--border-hover)'
+                                                    : isActive
+                                                    ? 'var(--border-default)'
+                                                    : 'transparent',
+                                            }}
                                         >
                                             <div className="flex items-center gap-2">
                                                 {option.icon ? <span className="flex h-4 w-4 items-center justify-center">{option.icon}</span> : null}
@@ -158,9 +188,13 @@ export const SearchSelectDropdown = ({
                             )}
                             {grouped.players.length > 0 && (
                                 <div>
-                                    <div className="px-2 pb-1 text-[10px] uppercase tracking-widest text-gray-500">Players</div>
+                                    <div
+                                        className="px-2 pb-1 text-[10px] uppercase tracking-widest"
+                                        style={{ color: 'var(--text-secondary)' }}
+                                    >Players</div>
                                     {grouped.players.map((option) => {
                                         const selected = selectedIds?.has(`${option.type}:${option.id}`) ?? false;
+                                        const isActive = activeIndex === optionIndexMap.get(`${option.type}-${option.id}`);
                                         return (
                                         <button
                                             key={`${option.type}-${option.id}`}
@@ -177,7 +211,20 @@ export const SearchSelectDropdown = ({
                                                 const idx = optionIndexMap.get(`${option.type}-${option.id}`);
                                                 if (typeof idx === 'number') setActiveIndex(idx);
                                             }}
-                                            className={`w-full text-left px-2 py-1.5 rounded-lg border border-transparent text-gray-200 hover:bg-white/5 hover:border-white/10 ${activeIndex === optionIndexMap.get(`${option.type}-${option.id}`) ? 'bg-white/10 border-white/10' : ''} ${selected ? 'bg-white/15 border-white/20' : ''}`}
+                                            className="w-full text-left px-2 py-1.5 rounded-lg border"
+                                            style={{
+                                                color: 'var(--text-primary)',
+                                                background: selected
+                                                    ? 'var(--accent-bg-strong)'
+                                                    : isActive
+                                                    ? 'var(--bg-hover)'
+                                                    : 'transparent',
+                                                borderColor: selected
+                                                    ? 'var(--border-hover)'
+                                                    : isActive
+                                                    ? 'var(--border-default)'
+                                                    : 'transparent',
+                                            }}
                                         >
                                             <div className="flex items-center gap-2">
                                                 {option.icon ? <span className="flex h-4 w-4 items-center justify-center">{option.icon}</span> : null}

@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
-import { Maximize2, X } from 'lucide-react';
+import { Maximize2, X, Swords } from 'lucide-react';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { CountClassTooltip } from '../ui/StatsViewShared';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -15,7 +15,7 @@ export const FightBreakdownSection = ({
     fightBreakdownTab,
     setFightBreakdownTab
 }: FightBreakdownSectionProps) => {
-    const { stats, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass } = useStatsSharedContext();
+    const { stats, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection } = useStatsSharedContext();
     const sectionId = 'fight-breakdown';
     const isExpanded = expandedSection === sectionId;
     const fights = Array.isArray(stats?.fightBreakdown) ? stats.fightBreakdown : [];
@@ -62,7 +62,7 @@ export const FightBreakdownSection = ({
 
     const renderReportCell = (fight: any): ReactNode => {
         const label = formatReportLabel(fight);
-        if (!fight?.permalink) return <span className="text-gray-500">Pending</span>;
+        if (!fight?.permalink) return <span className="text-[color:var(--text-muted)]">Pending</span>;
         return (
             <button
                 onClick={() => {
@@ -127,7 +127,7 @@ export const FightBreakdownSection = ({
                         count={fight.squadCount ?? 0}
                         classCounts={fight.squadClassCountsFight}
                         label="Squad Classes"
-                        className="text-gray-200"
+                        className="text-[color:var(--text-primary)]"
                     />
                 ),
                 allies: (
@@ -135,7 +135,7 @@ export const FightBreakdownSection = ({
                         count={fight.allyCount ?? 0}
                         classCounts={fight.allyClassCountsFight}
                         label="Ally Classes"
-                        className="text-gray-200"
+                        className="text-[color:var(--text-primary)]"
                     />
                 ),
                 enemies: (
@@ -143,7 +143,7 @@ export const FightBreakdownSection = ({
                         count={fight.enemyCount ?? 0}
                         classCounts={fight.enemyClassCounts}
                         label="Enemy Classes"
-                        className="text-gray-200"
+                        className="text-[color:var(--text-primary)]"
                     />
                 ),
                 alliesDown: Number(fight.alliesDown ?? 0),
@@ -178,7 +178,7 @@ export const FightBreakdownSection = ({
                 id: String(fight.id || `${fight.label}-${idx}`),
                 label: (
                     <div className="min-w-0">
-                        <div className="text-[10px] uppercase tracking-widest text-gray-500">{idx + 1}</div>
+                        <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-muted)]">{idx + 1}</div>
                         {renderReportCell(fight)}
                     </div>
                 ),
@@ -189,19 +189,14 @@ export const FightBreakdownSection = ({
 
     return (
         <div
-            id={sectionId}
-            data-section-visible={isSectionVisible(sectionId)}
-            data-section-first={isFirstVisibleSection(sectionId)}
-            className={sectionClass(sectionId, `mt-6 stats-share-exclude ${
-                isExpanded
-                    ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}`
-                    : ''
-            }`)}
+            className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
+            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
         >
-            <div className={`bg-white/5 border border-white/10 rounded-2xl p-6 ${isExpanded ? 'rounded-none border-0 min-h-full' : ''}`}>
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between mb-4 relative">
-                    <h3 className={`text-lg font-bold text-gray-200 ${isExpanded ? 'pr-10 sm:pr-0' : ''}`}>Fight Breakdown</h3>
-                    <div className={`flex flex-wrap items-center gap-2 ${isExpanded ? 'pr-10 sm:pr-0' : ''}`}>
+            <div>
+                <div className="flex items-center gap-2 mb-3.5">
+                    <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Fight Breakdown</h3>
+                    <div className="ml-auto flex items-center gap-2">
                         {!isExpanded && (
                             <PillToggleGroup
                                 value={fightBreakdownTab}
@@ -212,26 +207,27 @@ export const FightBreakdownSection = ({
                                     { value: 'damage', label: 'Damage' },
                                     { value: 'barrier', label: 'Barrier' }
                                 ]}
-                                activeClassName="bg-cyan-500/20 text-cyan-200 border border-cyan-500/40"
-                                inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                inactiveClassName="text-[color:var(--text-secondary)]"
                             />
                         )}
-                        <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:ml-1 w-full sm:w-auto">
+                        <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
                             {fights.length} Fights
                         </span>
                         <button
                             type="button"
                             onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                            className={`p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors ${isExpanded ? 'absolute top-0 right-0 sm:static' : ''}`}
+                            className="flex items-center justify-center w-[26px] h-[26px]"
+                            style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
                             aria-label={isExpanded ? 'Close Fight Breakdown' : 'Expand Fight Breakdown'}
                             title={isExpanded ? 'Close' : 'Expand'}
                         >
-                            {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                            {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
                         </button>
                     </div>
                 </div>
                 {fights.length === 0 ? (
-                    <div className="text-center text-gray-500 italic py-6">No fight data available</div>
+                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No fight data available</div>
                 ) : isExpanded ? (
                     <DenseStatsTable
                         title="Fight Breakdown (All Columns)"
@@ -245,7 +241,7 @@ export const FightBreakdownSection = ({
                         <div className="max-h-[360px] overflow-y-auto">
                             <table className="w-full text-xs table-auto min-w-[720px]">
                                 <thead>
-                                    <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
+                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                         <th className="text-right py-2 px-2 w-8">#</th>
                                         <th className="text-left py-2 px-3 w-[240px]">Report</th>
                                         <th className="text-left py-2 px-3 w-20">Duration</th>
@@ -302,10 +298,10 @@ export const FightBreakdownSection = ({
                                 </thead>
                                 <tbody>
                                     {fights.map((fight: any, idx: number) => (
-                                        <tr key={fight.id || `${fight.label}-${idx}`} className="border-b border-white/5 hover:bg-white/5">
-                                            <td className="py-2 px-2 text-right font-mono text-gray-500 w-8">{idx + 1}</td>
+                                        <tr key={fight.id || `${fight.label}-${idx}`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                            <td className="py-2 px-2 text-right font-mono text-[color:var(--text-muted)] w-8">{idx + 1}</td>
                                             <td className="py-2 px-3 w-[240px]">{renderReportCell(fight)}</td>
-                                            <td className="py-2 px-3 text-gray-200 w-20">{fight.duration || '--:--'}</td>
+                                            <td className="py-2 px-3 text-[color:var(--text-primary)] w-20">{fight.duration || '--:--'}</td>
                                             <td
                                                 className={`py-2 px-3 font-semibold ${
                                                     fight.isWin === true
@@ -324,7 +320,7 @@ export const FightBreakdownSection = ({
                                                             count={fight.squadCount ?? 0}
                                                             classCounts={fight.squadClassCountsFight}
                                                             label="Squad Classes"
-                                                            className="text-gray-200"
+                                                            className="text-[color:var(--text-primary)]"
                                                         />
                                                     </td>
                                                     <td className="py-2 px-3 text-right font-mono">
@@ -332,7 +328,7 @@ export const FightBreakdownSection = ({
                                                             count={fight.allyCount ?? 0}
                                                             classCounts={fight.allyClassCountsFight}
                                                             label="Ally Classes"
-                                                            className="text-gray-200"
+                                                            className="text-[color:var(--text-primary)]"
                                                         />
                                                     </td>
                                                     <td className="py-2 px-3 text-right font-mono">
@@ -340,17 +336,17 @@ export const FightBreakdownSection = ({
                                                             count={fight.enemyCount ?? 0}
                                                             classCounts={fight.enemyClassCounts}
                                                             label="Enemy Classes"
-                                                            className="text-gray-200"
+                                                            className="text-[color:var(--text-primary)]"
                                                         />
                                                     </td>
                                                     {teamColumnIds.length === 0 ? (
-                                                        <td className="py-2 px-3 text-right font-mono text-gray-200">0</td>
+                                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">0</td>
                                                     ) : (
                                                         teamColumnIds.map((teamId) => {
                                                             const rows = Array.isArray(fight.teamBreakdown) ? fight.teamBreakdown : [];
                                                             const entry = rows.find((row: any) => String(row?.teamId ?? '') === teamId);
                                                             return (
-                                                                <td key={teamId} className="py-2 px-3 text-right font-mono text-gray-200">
+                                                                <td key={teamId} className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">
                                                                     {Number(entry?.count || 0)}
                                                                 </td>
                                                             );

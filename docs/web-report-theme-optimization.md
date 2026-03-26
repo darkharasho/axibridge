@@ -169,7 +169,7 @@ That coupling is one reason the system feels finicky.
 A hosted report can derive its theme from several sources:
 
 1. Query param override: `?themeId=...`
-2. Cookie override: `arcbridge_web_theme_override`
+2. Cookie override: `axibridge_web_theme_override`
 3. `report.json` fields:
    - `stats.uiTheme`
    - `stats.webThemeId`

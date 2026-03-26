@@ -29,7 +29,6 @@ const makeElectronApiMock = (overrides?: {
         startWatching: vi.fn(),
         onUploadStatus: vi.fn(() => () => {}),
         onUploadComplete: vi.fn(() => () => {}),
-        onRequestScreenshot: vi.fn(() => () => {}),
         onWebUploadStatus: vi.fn(() => () => {}),
         onUpdateMessage: vi.fn(() => () => {}),
         onUpdateAvailable: vi.fn(() => () => {}),
@@ -56,7 +55,7 @@ describe('App first-time walkthrough', () => {
 
         render(<App />);
 
-        expect(await screen.findByText('Welcome to ArcBridge')).toBeInTheDocument();
+        expect(await screen.findByText('Welcome to AxiBridge')).toBeInTheDocument();
         await waitFor(() => {
             expect(electronApi.saveSettings).toHaveBeenCalledWith({ walkthroughSeen: true });
         });
@@ -71,7 +70,7 @@ describe('App first-time walkthrough', () => {
 
         render(<App />);
 
-        expect(await screen.findByText('Welcome to ArcBridge')).toBeInTheDocument();
+        expect(await screen.findByText('Welcome to AxiBridge')).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: 'Get Started' }));
 
@@ -79,7 +78,7 @@ describe('App first-time walkthrough', () => {
             expect(electronApi.saveSettings).toHaveBeenCalledWith({ walkthroughSeen: true });
         });
         await waitFor(() => {
-            expect(screen.queryByText('Welcome to ArcBridge')).not.toBeInTheDocument();
+            expect(screen.queryByText('Welcome to AxiBridge')).not.toBeInTheDocument();
         });
     });
 
@@ -97,7 +96,7 @@ describe('App first-time walkthrough', () => {
         render(<App />);
 
         await waitFor(() => {
-            expect(screen.queryByText('Welcome to ArcBridge')).not.toBeInTheDocument();
+            expect(screen.queryByText('Welcome to AxiBridge')).not.toBeInTheDocument();
         });
         expect(await screen.findByText('What’s New')).toBeInTheDocument();
     });
@@ -111,17 +110,17 @@ describe('App first-time walkthrough', () => {
 
         render(<App />);
 
-        expect(await screen.findByText('Welcome to ArcBridge')).toBeInTheDocument();
+        expect(await screen.findByText('Welcome to AxiBridge')).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: 'Learn More' }));
 
         await waitFor(() => {
-            expect(screen.queryByText('Welcome to ArcBridge')).not.toBeInTheDocument();
+            expect(screen.queryByText('Welcome to AxiBridge')).not.toBeInTheDocument();
         });
         expect(await screen.findByRole('heading', { name: 'Help & Updates' })).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: 'How To' }));
         expect(await screen.findByText('Feature and workflow reference')).toBeInTheDocument();
-        expect(screen.getAllByRole('button', { name: 'ArcBridge How-To' }).length).toBeGreaterThan(0);
+        expect(screen.getAllByRole('button', { name: 'AxiBridge How-To' }).length).toBeGreaterThan(0);
     });
 
     it('does not re-scroll to Help & Updates after leaving and returning to Settings', async () => {
@@ -140,12 +139,16 @@ describe('App first-time walkthrough', () => {
 
         render(<App />);
 
-        expect(await screen.findByText('Welcome to ArcBridge')).toBeInTheDocument();
+        expect(await screen.findByText('Welcome to AxiBridge')).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: 'Learn More' }));
         expect(await screen.findByRole('heading', { name: 'Help & Updates' })).toBeInTheDocument();
         expect(scrollToSpy).toHaveBeenCalledTimes(1);
 
         await user.click(screen.getByTitle('Dashboard'));
+        // Wait for Dashboard to mount after AnimatePresence exit/enter transition
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Help & Updates' })).not.toBeInTheDocument();
+        });
         await user.click(screen.getByTitle('Settings'));
         expect(await screen.findByRole('heading', { name: 'Help & Updates' })).toBeInTheDocument();
         expect(scrollToSpy).toHaveBeenCalledTimes(1);

@@ -15,7 +15,8 @@ const makeContextValue = (stats: any) => ({
     sidebarListClass: '',
     formatWithCommas: (value: number) => String(value),
     renderProfessionIcon: () => null,
-    roundCountStats: false
+    roundCountStats: false,
+    expandedPortalRef: { current: null },
 });
 
 describe('OverviewSection', () => {

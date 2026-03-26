@@ -1,5 +1,5 @@
 
-# ArcBridge Feature Roadmap
+# AxiBridge Feature Roadmap
 
 ## Planning assumptions
 - Keep each feature shippable in increments (MVP -> expansion).

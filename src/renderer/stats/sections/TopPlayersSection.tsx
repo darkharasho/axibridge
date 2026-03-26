@@ -1,4 +1,4 @@
-import { Activity, Crown, Crosshair, Flame, Hammer, HelpingHand, Shield, ShieldCheck, Sparkles, Star, Trophy, Wind, Zap } from 'lucide-react';
+import { Activity, Crown, Crosshair, Flame, Hammer, HelpingHand, Shield, ShieldCheck, Sparkles, Star, Wind, Zap, Trophy } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 
 type TopPlayersSectionProps = {
@@ -37,44 +37,44 @@ const LeaderCard = ({ icon: Icon, title, data, color, unit = '', onClick, active
                     onClick?.();
                 }
             }}
-            className={`bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3 group hover:bg-white/10 transition-colors cursor-pointer ${active ? 'ring-1 ring-white/20' : ''}`}
+            className={`border border-[color:var(--border-default)] rounded-[var(--radius-md)] p-4 flex flex-col gap-3 group cursor-pointer ${active ? 'ring-1 ring-white/20' : ''}`}
         >
             <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-lg ${classes.bg} ${classes.text} shrink-0`}>
+                <div className={`p-3 rounded-[var(--radius-md)] ${classes.bg} ${classes.text} shrink-0`}>
                     <Icon className="w-6 h-6" />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <div className="text-gray-400 text-xs font-bold uppercase tracking-wider truncate">{title}</div>
+                    <div className="text-[color:var(--text-secondary)] text-xs font-bold uppercase tracking-wider truncate">{title}</div>
                     <div className="text-2xl font-bold text-white mt-0.5 break-words">
-                        {displayValue} <span className="text-sm font-normal text-gray-500">{unit}</span>
+                        {displayValue} <span className="text-sm font-normal text-[color:var(--text-secondary)]">{unit}</span>
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col border-t border-white/5 pt-2">
+            <div className="flex flex-col border-t border-[color:var(--border-subtle)] pt-2">
                 <div className="flex items-center gap-2 min-w-0">
                     {renderProfessionIcon(data?.profession || 'Unknown', data?.professionList, 'w-4 h-4')}
-                    <div className="text-sm font-medium text-blue-300 truncate">{data?.player || '-'}</div>
+                    <div className="text-sm font-medium text-[color:var(--brand-primary)] truncate">{data?.player || '-'}</div>
                 </div>
-                <div className="text-xs text-gray-500 truncate">{data?.count ? `${data.count} logs` : '-'}</div>
+                <div className="text-xs text-[color:var(--text-secondary)] truncate">{data?.count ? `${data.count} logs` : '-'}</div>
             </div>
             {active && (
-                <div className="mt-3 stats-share-exclude">
-                    <div className="text-xs font-semibold text-gray-200 mb-2">{title}</div>
+                <div className="mt-3">
+                    <div className="text-xs font-semibold text-[color:var(--text-primary)] mb-2">{title}</div>
                     {rows?.length ? (
                         <div className="max-h-56 overflow-y-auto pr-1 space-y-1">
                             {rows.map((row: any) => (
-                                <div key={`${title}-${row.rank}-${row.account}`} className="flex items-center gap-2 min-w-0 text-xs text-gray-300">
-                                    <div className="w-6 shrink-0 text-right text-gray-500">{row.rank}</div>
+                                <div key={`${title}-${row.rank}-${row.account}`} className="flex items-center gap-2 min-w-0 text-xs text-[color:var(--text-secondary)]">
+                                    <div className="w-6 shrink-0 text-right text-[color:var(--text-muted)]">{row.rank}</div>
                                     <div className="shrink-0">
                                         {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                     </div>
                                     <div className="flex-1 min-w-0 truncate">{row.account}</div>
-                                    <div className="shrink-0 text-gray-400 font-mono">{formatValue ? formatValue(row.value) : row.value}</div>
+                                    <div className="shrink-0 text-[color:var(--text-secondary)] font-mono">{formatValue ? formatValue(row.value) : row.value}</div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="text-xs text-gray-500 italic">No data available</div>
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No data available</div>
                     )}
                 </div>
             )}
@@ -126,7 +126,7 @@ export const TopPlayersSection = ({
     formatTopStatValue,
     isMvpStatEnabled
 }: TopPlayersSectionProps) => {
-    const { stats, formatWithCommas, renderProfessionIcon, isSectionVisible, isFirstVisibleSection, sectionClass } = useStatsSharedContext();
+    const { stats, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
     if (!showTopStats) return null;
     const offenseMvp = stats.offensiveMvp || stats.mvp;
     const offenseSilver = stats.offensiveSilver || stats.silver;
@@ -137,16 +137,11 @@ export const TopPlayersSection = ({
     const offenseAvg = Number.isFinite(stats.offensiveAvgMvpScore) ? stats.offensiveAvgMvpScore : (stats.avgMvpScore || 0);
     const defenseAvg = Number.isFinite(stats.defensiveAvgMvpScore) ? stats.defensiveAvgMvpScore : (stats.avgMvpScore || 0);
     return (
-        <div
-            id="top-players"
-            data-section-visible={isSectionVisible('top-players')}
-            data-section-first={isFirstVisibleSection('top-players')}
-            className={sectionClass('top-players', 'scroll-mt-24')}
-        >
-            <h3 className="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-400" />
-                Top Players
-            </h3>
+        <div>
+            <div className="flex items-center gap-2 mb-3.5">
+                <Trophy className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Top Players</h3>
+            </div>
             {showMvp && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                     {[
@@ -197,12 +192,12 @@ export const TopPlayersSection = ({
                             avg: defenseAvg
                         }
                     ].map((group) => (
-                        <div key={group.title} className={`mvp-group mvp-group--${group.key} relative grid grid-cols-1 gap-3 rounded-2xl p-2 pt-4 border ${group.accentBorder} ${group.accentBg}`}>
-                            <div className={`mvp-group-label absolute -top-[9px] left-3 inline-flex items-center gap-2 px-2 rounded-sm bg-slate-950 border ${group.accentLabelBorder}`}>
+                        <div key={group.title} className={`mvp-group mvp-group--${group.key} relative grid grid-cols-1 gap-3 rounded-[var(--radius-md)] p-2 pt-4 border ${group.accentBorder} ${group.accentBg}`}>
+                            <div className={`mvp-group-label absolute -top-[9px] left-3 inline-flex items-center gap-2 px-2 rounded-sm bg-[var(--bg-elevated)] border ${group.accentLabelBorder}`}>
                                 <Sparkles className={`mvp-group-label-icon w-4 h-4 ${group.accent}`} />
-                                <span className="mvp-group-label-title font-bold uppercase tracking-widest text-xs text-gray-200">{group.title}</span>
+                                <span className="mvp-group-label-title font-bold uppercase tracking-widest text-xs text-[color:var(--text-primary)]">{group.title}</span>
                             </div>
-                            <div className={`mvp-card mvp-card--gold border rounded-2xl p-3 min-h-[182px] relative overflow-visible z-0 group hover:z-20 flex items-center ${group.goldCardBorder}`}>
+                            <div className={`mvp-card mvp-card--gold border rounded-[var(--radius-md)] p-3 min-h-[182px] relative overflow-visible z-0 group hover:z-20 flex items-center ${group.goldCardBorder}`}>
                                 <div className={`absolute top-0 right-0 w-64 h-64 blur-[80px] rounded-full pointer-events-none transition-all ${group.accentBlob}`} />
                                 <div className="flex items-center gap-5 relative z-10 w-full">
                                     <div className={`mvp-gold-icon-ring flex shrink-0 aspect-square items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full border relative ${group.goldIconWrap}`}>
@@ -219,7 +214,7 @@ export const TopPlayersSection = ({
                                                 <div className="text-2xl sm:text-3xl font-black text-white flex flex-wrap items-center gap-2 sm:gap-3">
                                                     <span className="min-w-0 max-w-full truncate">{group.gold?.account || 'None'}</span>
                                                     {renderProfessionIcon(group.gold?.profession || 'Unknown', group.gold?.professionList, 'w-6 h-6')}
-                                                    <span className="text-xs sm:text-sm font-medium text-yellow-200/70 bg-white/5 px-2 py-0.5 sm:px-1.5 sm:py-0 rounded border border-yellow-500/20 max-w-full truncate">
+                                                    <span className="text-xs sm:text-sm font-medium text-yellow-200/70 bg-[var(--bg-hover)] px-2 py-0.5 sm:px-1.5 sm:py-0 rounded border border-yellow-500/20 max-w-full truncate">
                                                         {group.gold?.profession || 'Unknown'}
                                                     </span>
                                                 </div>
@@ -265,7 +260,7 @@ export const TopPlayersSection = ({
                                 ].map((entry) => (
                                     <div
                                         key={`${group.title}-${entry.label}`}
-                                        className={`mvp-card mvp-card--${entry.label.toLowerCase()} border border-white/10 rounded-2xl p-3 min-h-[126px] relative overflow-visible z-0 group hover:z-20 flex flex-col`}
+                                        className={`mvp-card mvp-card--${entry.label.toLowerCase()} border border-[color:var(--border-default)] rounded-[var(--radius-md)] p-3 min-h-[126px] relative overflow-visible z-0 group hover:z-20 flex flex-col`}
                                     >
                                         <div className={`absolute top-0 right-0 w-48 h-48 rounded-full blur-[70px] pointer-events-none transition-all ${entry.label === 'Silver'
                                             ? 'bg-slate-300/15 group-hover:bg-slate-300/25'
@@ -275,7 +270,7 @@ export const TopPlayersSection = ({
                                             <div className={`text-xs uppercase tracking-widest font-semibold ${entry.label === 'Silver' ? 'text-slate-200' : 'text-orange-200'}`}>
                                                 {entry.label}
                                             </div>
-                                            <div className="text-xs text-gray-500 font-mono">
+                                            <div className="text-xs text-[color:var(--text-secondary)] font-mono">
                                                 {entry.data?.score ? entry.data.score.toFixed(1) : '-'}
                                             </div>
                                         </div>

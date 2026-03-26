@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Maximize2, Skull, X, Columns, Users } from 'lucide-react';
+import { Maximize2, X, Columns, Users, Skull } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
@@ -38,7 +38,7 @@ export const ConditionsSection = ({
     setConditionSort,
     showConditionDamage
 }: ConditionsSectionProps) => {
-    const { renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, sidebarListClass } = useStatsSharedContext();
+    const { renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const isExpanded = expandedSection === 'conditions-outgoing';
     const [selectedConditionColumns, setSelectedConditionColumns] = useState<string[]>([]);
     const [selectedConditionPlayers, setSelectedConditionPlayers] = useState<string[]>([]);
@@ -88,38 +88,41 @@ export const ConditionsSection = ({
 
     return (
     <div
-        id="conditions-outgoing"
-        data-section-visible={isSectionVisible('conditions-outgoing')}
-        data-section-first={isFirstVisibleSection('conditions-outgoing')}
-        className={sectionClass('conditions-outgoing', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
-            expandedSection === 'conditions-outgoing'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
-                    expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                }`
-                : ''
-        }`)}
+        className={`${expandedSection === 'conditions-outgoing' ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
+        style={expandedSection === 'conditions-outgoing' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
     >
-        <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                <Skull className="w-5 h-5 text-amber-300" />
-                Conditions
-            </h3>
-            <button
-                type="button"
-                onClick={() => (expandedSection === 'conditions-outgoing' ? closeExpandedSection() : openExpandedSection('conditions-outgoing'))}
-                className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
-                aria-label={expandedSection === 'conditions-outgoing' ? 'Close Outgoing Conditions' : 'Expand Outgoing Conditions'}
-                title={expandedSection === 'conditions-outgoing' ? 'Close' : 'Expand'}
-            >
-                {expandedSection === 'conditions-outgoing' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </button>
+        <div className="flex items-center gap-2 mb-3.5">
+            <Skull className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Conditions</h3>
+            <div className="ml-auto flex items-center gap-2">
+                {!isExpanded && (
+                    <PillToggleGroup
+                        value={conditionDirection}
+                        onChange={setConditionDirection}
+                        options={[
+                            { value: 'outgoing', label: 'Outgoing' },
+                            { value: 'incoming', label: 'Incoming' }
+                        ]}
+                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                        inactiveClassName="border border-transparent text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                    />
+                )}
+                <button
+                    type="button"
+                    onClick={() => (expandedSection === 'conditions-outgoing' ? closeExpandedSection() : openExpandedSection('conditions-outgoing'))}
+                    className="flex items-center justify-center w-[26px] h-[26px]"
+                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
+                    aria-label={expandedSection === 'conditions-outgoing' ? 'Close Outgoing Conditions' : 'Expand Outgoing Conditions'}
+                    title={expandedSection === 'conditions-outgoing' ? 'Close' : 'Expand'}
+                >
+                    {expandedSection === 'conditions-outgoing' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
+                </button>
+            </div>
         </div>
         {conditionSummary && conditionSummary.length > 0 ? (
             isExpanded ? (
                 <div className="flex flex-col gap-4">
-                    <div className="bg-black/20 border border-white/5 rounded-xl px-4 py-3">
-                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Conditions</div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                         <SearchSelectDropdown
                             options={[
                                 ...allConditions.map((entry: any) => ({ id: entry.name, label: entry.name, type: 'column' as const })),
@@ -162,6 +165,7 @@ export const ConditionsSection = ({
                             buttonLabel="Players"
                             buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
+                        <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
                         <PillToggleGroup
                                 value={conditionDirection}
                                 onChange={setConditionDirection}
@@ -169,8 +173,8 @@ export const ConditionsSection = ({
                                     { value: 'outgoing', label: 'Outgoing' },
                                     { value: 'incoming', label: 'Incoming' }
                                 ]}
-                                activeClassName="bg-amber-500/20 text-amber-200 border border-amber-500/40"
-                                inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                inactiveClassName="border border-transparent text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                             />
                             <PillToggleGroup
                                     value={effectiveConditionSort.key}
@@ -180,14 +184,13 @@ export const ConditionsSection = ({
                                         ...(conditionDirection === 'outgoing' ? [{ value: 'uptime', label: 'Uptime' }] : []),
                                         ...(showConditionDamage ? [{ value: 'damage', label: 'Damage' }] : [])
                                     ]}
-                                    activeClassName="bg-amber-500/20 text-amber-200 border border-amber-500/40"
-                                    inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                                    inactiveClassName="border border-transparent text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                                 />
-                        </div>
                     </div>
-                    <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                    <div className="overflow-hidden">
                         {filteredConditions.length === 0 ? (
-                            <div className="px-4 py-10 text-center text-gray-500 italic text-sm">No conditions match this filter</div>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No conditions match this filter</div>
                         ) : (
                             (() => {
                                 const metricKey = effectiveConditionSort.key;
@@ -270,7 +273,7 @@ export const ConditionsSection = ({
                                             id: `${entry.player.account}-${idx}`,
                                             label: (
                                                 <>
-                                                    <span className="text-gray-500 font-mono">{idx + 1}</span>
+                                                    <span className="text-[color:var(--text-muted)] font-mono">{idx + 1}</span>
                                                     {renderProfessionIcon(entry.player.profession, entry.player.professionList, 'w-4 h-4')}
                                                     <span className="truncate">{entry.player.account}</span>
                                                 </>
@@ -290,7 +293,7 @@ export const ConditionsSection = ({
                                     setSelectedConditionColumns([]);
                                     setSelectedConditionPlayers([]);
                                 }}
-                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-2 py-1 text-[11px] text-[color:var(--text-primary)] hover:text-[color:var(--text-primary)]"
                             >
                                 Clear All
                             </button>
@@ -299,10 +302,11 @@ export const ConditionsSection = ({
                                     key={id}
                                     type="button"
                                     onClick={() => setSelectedConditionColumns((prev) => prev.filter((entry) => entry !== id))}
-                                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                 >
                                     <span>{id}</span>
-                                    <span className="text-gray-400">×</span>
+                                    <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                 </button>
                             ))}
                             {selectedConditionPlayers.map((id) => (
@@ -310,42 +314,45 @@ export const ConditionsSection = ({
                                     key={id}
                                     type="button"
                                     onClick={() => setSelectedConditionPlayers((prev) => prev.filter((entry) => entry !== id))}
-                                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                 >
                                     <span>{id}</span>
-                                    <span className="text-gray-400">×</span>
+                                    <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                 </button>
                             ))}
                         </div>
                     )}
                 </div>
             ) : (
+                <>
                 <StatsTableLayout
                 expanded={expandedSection === 'conditions-outgoing'}
-                sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'conditions-outgoing' ? 'h-full flex-1' : 'self-start'}`}
-                contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'conditions-outgoing' ? 'flex flex-col min-h-0' : ''}`}
+                sidebarClassName={`pr-3 flex flex-col overflow-y-auto ${expandedSection === 'conditions-outgoing' ? 'h-full flex-1 min-h-0' : ''}`}
+                contentClassName={`overflow-hidden ${expandedSection === 'conditions-outgoing' ? 'flex flex-col min-h-0' : ''}`}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Conditions</div>
+                        <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Conditions</div>
                         <input
                             value={conditionSearch}
                             onChange={(e) => setConditionSearch(e.target.value)}
                             placeholder="Search..."
-                            className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                            className="w-full px-2 py-1 text-xs text-[color:var(--text-primary)] focus:outline-none mb-2"
+                            style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
                         />
                         <div className={`${sidebarListClass} ${expandedSection === 'conditions-outgoing' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
                                 if (filteredConditions.length === 0) {
-                                    return <div className="text-center text-gray-500 italic py-6 text-xs">No conditions match this filter</div>;
+                                    return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No conditions match this filter</div>;
                                 }
                                 return (
                                     <>
                                         <button
                                             type="button"
                                             onClick={() => setActiveConditionName('all')}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeConditionName === 'all'
-                                                ? 'bg-amber-500/20 text-amber-200 border-amber-500/40'
-                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                            className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeConditionName === 'all'
+                                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                : 'hover:bg-[var(--bg-hover)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                                                 }`}
                                         >
                                             All Conditions
@@ -355,9 +362,9 @@ export const ConditionsSection = ({
                                                 key={entry.name}
                                                 type="button"
                                                 onClick={() => setActiveConditionName(entry.name)}
-                                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeConditionName === entry.name
-                                                    ? 'bg-amber-500/20 text-amber-200 border-amber-500/40'
-                                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeConditionName === entry.name
+                                                    ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                    : 'hover:bg-[var(--bg-hover)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                                                     }`}
                                             >
                                                 <InlineIconLabel name={entry.name} iconUrl={entry.icon} iconClassName="h-5 w-5" />
@@ -372,36 +379,11 @@ export const ConditionsSection = ({
                 content={
                     <StatsTableShell
                         expanded={expandedSection === 'conditions-outgoing'}
-                        header={
-                            <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 bg-white/5">
-                                <div className="text-sm font-semibold text-gray-200">
-                                    {activeConditionName === 'all'
-                                        ? 'All Conditions'
-                                        : (
-                                                <InlineIconLabel
-                                                    name={activeConditionName}
-                                                    iconUrl={conditionSummary.find((entry: any) => entry.name === activeConditionName)?.icon}
-                                                    iconClassName="h-5 w-5"
-                                                />
-                                        )}
-                                </div>
-                                <div className="flex flex-col items-end gap-2 text-right ml-auto mt-2">
-                                    <div className="text-xs uppercase tracking-widest text-gray-500">Squad Totals</div>
-                                    <PillToggleGroup
-                                        value={conditionDirection}
-                                        onChange={setConditionDirection}
-                                        options={[
-                                            { value: 'outgoing', label: 'Outgoing' },
-                                            { value: 'incoming', label: 'Incoming' }
-                                        ]}
-                                        activeClassName="bg-amber-500/20 text-amber-200 border border-amber-500/40"
-                                        inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                                    />
-                                </div>
-                            </div>
-                        }
+                        animationKey={`${activeConditionName}-${conditionDirection}`}
+                        header={null}
                         columns={
-                            <div className={`grid ${conditionGridClass} text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2`}>
+                            <>
+                            <div className={`grid ${conditionGridClass} text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]`}>
                                 <div className="text-center">#</div>
                                 <div>Player</div>
                                 <button
@@ -412,7 +394,7 @@ export const ConditionsSection = ({
                                             dir: effectiveConditionSort.key === 'applications' ? (effectiveConditionSort.dir === 'desc' ? 'asc' : 'desc') : 'desc'
                                         });
                                     }}
-                                    className={`text-right transition-colors ${effectiveConditionSort.key === 'applications' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                    className={`text-right transition-colors ${effectiveConditionSort.key === 'applications' ? 'text-[color:var(--brand-primary)]' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                 >
                                     Applications {effectiveConditionSort.key === 'applications' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
                                 </button>
@@ -425,7 +407,7 @@ export const ConditionsSection = ({
                                                 dir: effectiveConditionSort.key === 'uptime' ? (effectiveConditionSort.dir === 'desc' ? 'asc' : 'desc') : 'desc'
                                             });
                                         }}
-                                        className={`text-right transition-colors ${effectiveConditionSort.key === 'uptime' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                        className={`text-right transition-colors ${effectiveConditionSort.key === 'uptime' ? 'text-[color:var(--brand-primary)]' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Uptime {effectiveConditionSort.key === 'uptime' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
                                     </button>
@@ -439,12 +421,13 @@ export const ConditionsSection = ({
                                                 dir: effectiveConditionSort.key === 'damage' ? (effectiveConditionSort.dir === 'desc' ? 'asc' : 'desc') : 'desc'
                                             });
                                         }}
-                                        className={`text-right transition-colors ${effectiveConditionSort.key === 'damage' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                        className={`text-right transition-colors ${effectiveConditionSort.key === 'damage' ? 'text-[color:var(--brand-primary)]' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Damage {effectiveConditionSort.key === 'damage' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
                                     </button>
                                 ) : null}
                             </div>
+                            </>
                         }
                         rows={
                             <>
@@ -483,7 +466,7 @@ export const ConditionsSection = ({
                                             return String(a.account || '').localeCompare(String(b.account || ''));
                                         });
                                     if (rows.length === 0) {
-                                        return <div className="text-center text-gray-500 italic py-6">No condition data available</div>;
+                                        return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No condition data available</div>;
                                     }
                                     return rows.map((entry: any, idx: number) => {
                                         const conditionTotals = entry.conditions || {};
@@ -519,13 +502,13 @@ export const ConditionsSection = ({
                                         const applicationsValue = Math.round(entry.applications || 0).toLocaleString();
                                         const damageValue = Math.round(entry.damage || 0).toLocaleString();
                                         return (
-                                            <div key={`${entry.account}-${idx}`} className={`grid ${conditionGridClass} px-4 py-2 text-sm text-gray-200 border-t border-white/5`}>
-                                                <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
+                                            <div key={`${entry.account}-${idx}`} className={`grid ${conditionGridClass} px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]`}>
+                                                <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {renderProfessionIcon(entry.profession, entry.professionList, 'w-4 h-4')}
                                                     <span className="truncate">{entry.account}</span>
                                                 </div>
-                                                <div className="text-right font-mono text-gray-300">
+                                                <div className="text-right font-mono text-[color:var(--text-secondary)]">
                                                     {showTooltip ? (
                                                         <SkillBreakdownTooltip
                                                             value={applicationsValue}
@@ -542,12 +525,12 @@ export const ConditionsSection = ({
                                                     )}
                                                 </div>
                                                 {conditionDirection === 'outgoing' ? (
-                                                    <div className="text-right font-mono text-gray-300">
+                                                    <div className="text-right font-mono text-[color:var(--text-secondary)]">
                                                         {Math.round((entry.uptimeMs || 0) / 1000).toLocaleString()}s
                                                     </div>
                                                 ) : null}
                                                 {showConditionDamage ? (
-                                                    <div className="text-right font-mono text-gray-300">
+                                                    <div className="text-right font-mono text-[color:var(--text-secondary)]">
                                                         {showDamageTooltip ? (
                                                             <SkillBreakdownTooltip
                                                                 value={damageValue}
@@ -573,9 +556,10 @@ export const ConditionsSection = ({
                     />
                 }
             />
+                </>
             )
         ) : (
-            <div className="text-center text-gray-500 italic py-8">No condition data available</div>
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No condition data available</div>
         )}
     </div>
     );

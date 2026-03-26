@@ -1,4 +1,4 @@
-# ArcBridge UI Theme Design Spec
+# AxiBridge UI Theme Design Spec
 
 Spec version: `v1`  
 Applies to: Electron app UI (`src/renderer`) and web report UI (`src/web` + `body.web-report` rules)
@@ -37,7 +37,7 @@ Define each supported UI theme as a stable design system contract so future chan
 ### 1) Classic (`theme-classic`)
 
 Ideology:
-- Familiar ArcBridge identity with neon-glass atmosphere.
+- Familiar AxiBridge identity with neon-glass atmosphere.
 - Cinematic depth through glow and gradient accents.
 - Default “brand” presentation that feels energetic but readable.
 

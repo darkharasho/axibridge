@@ -1,7 +1,7 @@
 import { ipcMain, shell, dialog, BrowserWindow, app } from 'electron';
 import fs from 'fs';
 import path from 'node:path';
-import { KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME_ID, DEFAULT_WEB_THEME_ID } from '../../shared/webThemes';
+import { LEGACY_THEME_TO_PALETTE } from '../../shared/webThemes';
 import { DEFAULT_DISRUPTION_METHOD, type DisruptionMethod } from '../../shared/metricsSettings';
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -91,19 +91,6 @@ export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS = {
     tiled: false
 };
 
-// ─── Theme helpers ─────────────────────────────────────────────────────────────
-
-export const normalizeKineticThemeVariant = (value: unknown): 'light' | 'midnight' | 'slate' => {
-    if (value === 'midnight' || value === 'slate') return value;
-    return 'light';
-};
-
-export const inferKineticThemeVariantFromThemeId = (themeId: unknown): 'light' | 'midnight' | 'slate' => {
-    if (themeId === KINETIC_DARK_WEB_THEME_ID) return 'midnight';
-    if (themeId === KINETIC_SLATE_WEB_THEME_ID) return 'slate';
-    return 'light';
-};
-
 // ─── Private helpers ───────────────────────────────────────────────────────────
 
 const bringDialogParentToFront = (parent: BrowserWindow | null) => {
@@ -150,7 +137,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         return {
             logDirectory: store.get('logDirectory', null),
             discordWebhookUrl: store.get('discordWebhookUrl', null),
-            discordNotificationType: store.get('discordNotificationType', 'image'),
+            discordNotificationType: 'embed' as const,
             discordEnemySplitSettings: { ...DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, ...(store.get('discordEnemySplitSettings') as any || {}) },
             discordSplitEnemiesByTeam: store.get('discordSplitEnemiesByTeam', (() => {
                 const perType = { ...DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, ...(store.get('discordEnemySplitSettings') as any || {}) };
@@ -164,10 +151,8 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             mvpWeights: normalizeMvpWeights(store.get('mvpWeights')),
             statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, ...(store.get('statsViewSettings') as any || {}) },
             disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
-            uiTheme: store.get('uiTheme', 'classic'),
-            kineticFontStyle: store.get('kineticFontStyle', 'default'),
-            kineticThemeVariant: normalizeKineticThemeVariant(store.get('kineticThemeVariant', inferKineticThemeVariantFromThemeId(store.get('githubWebTheme', DEFAULT_WEB_THEME_ID)))),
-            dashboardLayout: store.get('dashboardLayout', 'side'),
+            colorPalette: store.get('colorPalette', 'electric-blue'),
+            glassSurfaces: store.get('glassSurfaces', false),
             autoUpdateSupported: updateSupported,
             autoUpdateDisabledReason: updateDisabledReason,
             githubRepoOwner: store.get('githubRepoOwner', null),
@@ -175,7 +160,6 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             githubBranch: store.get('githubBranch', 'main'),
             githubPagesBaseUrl: store.get('githubPagesBaseUrl', null),
             githubToken: store.get('githubToken', null),
-            githubWebTheme: store.get('githubWebTheme', DEFAULT_WEB_THEME_ID),
             githubLogoPath: store.get('githubLogoPath', null),
             githubFavoriteRepos: store.get('githubFavoriteRepos', []),
             walkthroughSeen: store.get('walkthroughSeen', false)
@@ -197,8 +181,8 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         bringDialogParentToFront(parent);
         if (!parent) return { success: false, error: 'Window unavailable.' };
         const result = await dialog.showSaveDialog(parent, {
-            title: 'Export ArcBridge Settings',
-            defaultPath: 'arcbridge-settings.json',
+            title: 'Export AxiBridge Settings',
+            defaultPath: 'axibridge-settings.json',
             filters: [{ name: 'JSON', extensions: ['json'] }]
         });
         if (result.canceled || !result.filePath) return { success: false, canceled: true };
@@ -206,7 +190,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         const settings = {
             logDirectory: store.get('logDirectory', null),
             discordWebhookUrl: store.get('discordWebhookUrl', null),
-            discordNotificationType: store.get('discordNotificationType', 'image'),
+            discordNotificationType: 'embed' as const,
             discordEnemySplitSettings: { ...DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, ...(store.get('discordEnemySplitSettings') as any || {}) },
             discordSplitEnemiesByTeam: store.get('discordSplitEnemiesByTeam', (() => {
                 const perType = { ...DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, ...(store.get('discordEnemySplitSettings') as any || {}) };
@@ -220,16 +204,13 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             mvpWeights: normalizeMvpWeights(store.get('mvpWeights')),
             statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, ...(store.get('statsViewSettings') as any || {}) },
             disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
-            uiTheme: store.get('uiTheme', 'classic'),
-            kineticFontStyle: store.get('kineticFontStyle', 'default'),
-            kineticThemeVariant: normalizeKineticThemeVariant(store.get('kineticThemeVariant', inferKineticThemeVariantFromThemeId(store.get('githubWebTheme', DEFAULT_WEB_THEME_ID)))),
-            dashboardLayout: store.get('dashboardLayout', 'side'),
+            colorPalette: store.get('colorPalette', 'electric-blue'),
+            glassSurfaces: store.get('glassSurfaces', false),
             githubRepoOwner: store.get('githubRepoOwner', null),
             githubRepoName: store.get('githubRepoName', null),
             githubBranch: store.get('githubBranch', 'main'),
             githubPagesBaseUrl: store.get('githubPagesBaseUrl', null),
             githubToken: store.get('githubToken', null),
-            githubWebTheme: store.get('githubWebTheme', DEFAULT_WEB_THEME_ID),
             githubLogoPath: store.get('githubLogoPath', null),
             githubFavoriteRepos: store.get('githubFavoriteRepos', []),
             walkthroughSeen: store.get('walkthroughSeen', false)
@@ -248,7 +229,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         bringDialogParentToFront(parent);
         if (!parent) return { success: false, error: 'Window unavailable.' };
         const result = await dialog.showOpenDialog(parent, {
-            title: 'Import ArcBridge Settings',
+            title: 'Import AxiBridge Settings',
             properties: ['openFile'],
             filters: [{ name: 'JSON', extensions: ['json'] }]
         });
@@ -260,7 +241,18 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             if (!parsed || typeof parsed !== 'object') {
                 return { success: false, error: 'Invalid settings file.' };
             }
-            onApplySettings(parsed);
+            const importedSettings = parsed as Record<string, any>;
+            if (importedSettings.uiTheme && !importedSettings.colorPalette) {
+                const mapping = LEGACY_THEME_TO_PALETTE[importedSettings.uiTheme] ?? { palette: 'electric-blue', glass: false };
+                importedSettings.colorPalette = mapping.palette;
+                importedSettings.glassSurfaces = mapping.glass;
+                delete importedSettings.uiTheme;
+                delete importedSettings.githubWebTheme;
+                delete importedSettings.kineticFontStyle;
+                delete importedSettings.kineticThemeVariant;
+                delete importedSettings.dashboardLayout;
+            }
+            onApplySettings(importedSettings);
             return { success: true };
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to import settings.' };

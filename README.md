@@ -1,6 +1,6 @@
-# <img width="36" height="36" alt="ArcBridge logo" src="public/img/ArcBridge.png" /> ArcBridge
+# <img width="36" height="36" alt="AxiBridge logo" src="public/img/AxiBridge-white.png" /> AxiBridge
 
-ArcBridge automatically uploads arcdps logs, summarizes WvW fights, and sends clean, readable reports to Discord or the web so your squad can review quickly.
+AxiBridge automatically uploads arcdps logs, summarizes WvW fights, and sends clean, readable reports to Discord or the web so your squad can review quickly.
 
 ## ✨ What it does for you
 
@@ -33,7 +33,7 @@ ArcBridge automatically uploads arcdps logs, summarizes WvW fights, and sends cl
 
 1. **Configure Log Directory**: Set your `arcdps.cbtlogs` folder in the Configuration panel.
 2. **Discord Notification**: Paste your Discord Webhook URL to receive summaries in your channel.
-3. **Automatic Uploads**: ArcBridge watches the folder and processes new logs automatically.
+3. **Automatic Uploads**: AxiBridge watches the folder and processes new logs automatically.
 4. **Share Reports**: Open the full web report or post to Discord for your squad.
 
 ## 📄 License

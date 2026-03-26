@@ -41,6 +41,6 @@ test('electron app launches', async () => {
         env
     });
     const window = await app.firstWindow();
-    await expect(window).toHaveTitle(/ArcBridge/i);
+    await expect(window).toHaveTitle(/AxiBridge/i);
     await app.close();
 });

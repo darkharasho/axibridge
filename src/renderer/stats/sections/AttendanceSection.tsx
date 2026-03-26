@@ -47,7 +47,7 @@ export const AttendanceSection = ({
     attendanceRows,
     getProfessionIconPath
 }: AttendanceSectionProps) => {
-    const { isSectionVisible, isFirstVisibleSection, sectionClass } = useStatsSharedContext();
+    useStatsSharedContext();
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState<'fight' | 'squad'>('squad');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -118,20 +118,15 @@ export const AttendanceSection = ({
     };
 
     return (
-        <section
-            id="attendance-ledger"
-            data-section-visible={isSectionVisible('attendance-ledger')}
-            data-section-first={isFirstVisibleSection('attendance-ledger')}
-            className={sectionClass('attendance-ledger', 'mb-8 page-break-avoid')}
-        >
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+        <div>
+            <div className="flex items-center gap-2 mb-3.5">
+                <FileText className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Attendance Ledger</h3>
+            </div>
+            <div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-amber-300" />
-                            Attendance Ledger
-                        </h3>
-                        <span className="inline-flex items-center rounded-full border border-white/10 bg-black/30 px-2 py-1 text-[10px] uppercase tracking-widest text-gray-300">
+                        <span className="inline-flex items-center rounded-full px-2 py-1 text-[10px] uppercase tracking-widest" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card-inner)', color: 'var(--text-secondary)' }}>
                             {attendanceRows.length} Joined
                         </span>
                     </div>
@@ -140,12 +135,14 @@ export const AttendanceSection = ({
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search account, character, or class..."
-                            className="w-full sm:w-[320px] bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none"
+                            className="w-full sm:w-[320px] rounded-[var(--radius-md)] px-3 py-2 text-xs focus:outline-none"
+                            style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
                         />
                         <button
                             type="button"
                             onClick={exportVisibleRowsAsCsv}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:text-white hover:border-white/30 transition-colors whitespace-nowrap"
+                            className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] px-3 py-2 text-xs transition-colors whitespace-nowrap"
+                            style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
                         >
                             <Download className="w-3.5 h-3.5" />
                             Export CSV
@@ -153,12 +150,12 @@ export const AttendanceSection = ({
                     </div>
                 </div>
                 {attendanceRows.length === 0 ? (
-                    <div className="text-center text-gray-500 italic py-6">No attendance data available.</div>
+                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No attendance data available.</div>
                 ) : (
-                    <div className={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${shouldScrollLedger ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
+                    <div className={`rounded-[var(--radius-md)] overflow-hidden ${shouldScrollLedger ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
                         <table className="w-full text-xs table-auto min-w-full border-separate border-spacing-0">
                             <thead>
-                                <tr className="text-gray-400 uppercase tracking-widest text-[10px] border-b border-white/10">
+                                <tr className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Account</th>
                                     <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Character(s)</th>
                                     <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Classes Played</th>
@@ -166,7 +163,8 @@ export const AttendanceSection = ({
                                         <button
                                             type="button"
                                             onClick={() => updateSort('fight')}
-                                            className={`transition-colors whitespace-nowrap ${sortKey === 'fight' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                            className="transition-colors whitespace-nowrap"
+                                            style={{ color: sortKey === 'fight' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                         >
                                             Total Fight Time{sortKey === 'fight' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
                                         </button>
@@ -175,7 +173,8 @@ export const AttendanceSection = ({
                                         <button
                                             type="button"
                                             onClick={() => updateSort('squad')}
-                                            className={`transition-colors whitespace-nowrap ${sortKey === 'squad' ? 'text-amber-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                            className="transition-colors whitespace-nowrap"
+                                            style={{ color: sortKey === 'squad' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                         >
                                             Total Squad Time{sortKey === 'squad' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
                                         </button>
@@ -184,9 +183,9 @@ export const AttendanceSection = ({
                             </thead>
                             <tbody>
                                 {visibleRows.map((row) => (
-                                    <tr key={row.account} className="border-t border-white/5 align-top hover:bg-white/5">
-                                        <td className="py-2 px-4 text-gray-100 font-medium whitespace-nowrap">{row.account}</td>
-                                        <td className="py-2 px-4 text-gray-300">
+                                    <tr key={row.account} className="align-top border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                        <td className="py-2 px-4 font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>{row.account}</td>
+                                        <td className="py-2 px-4" style={{ color: 'var(--text-secondary)' }}>
                                             {row.characterNames.length > 0 ? row.characterNames.join(', ') : '-'}
                                         </td>
                                         <td className="py-2 px-4">
@@ -194,7 +193,8 @@ export const AttendanceSection = ({
                                                 {row.classTimes.length > 0 ? row.classTimes.map((entry) => (
                                                     <span
                                                         key={`${row.account}-${entry.profession}`}
-                                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/30 px-2 py-1 text-[10px] text-gray-200"
+                                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px]"
+                                                        style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card-inner)', color: 'var(--text-primary)' }}
                                                     >
                                                         {getProfessionIconPath(entry.profession) ? (
                                                             <img
@@ -204,22 +204,22 @@ export const AttendanceSection = ({
                                                             />
                                                         ) : null}
                                                         <span>{entry.profession}</span>
-                                                        <span className="text-gray-400">{formatDuration(entry.timeMs)}</span>
+                                                        <span style={{ color: 'var(--text-secondary)' }}>{formatDuration(entry.timeMs)}</span>
                                                     </span>
-                                                )) : <span className="text-gray-500">-</span>}
+                                                )) : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                                             </div>
                                         </td>
-                                        <td className="py-2 px-4 text-right text-gray-200 font-mono whitespace-nowrap">
+                                        <td className="py-2 px-4 text-right font-mono whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
                                             {formatDuration(Number(row.combatTimeMs ?? row.squadTimeMs ?? 0))}
                                         </td>
-                                        <td className="py-2 px-4 text-right text-gray-200 font-mono whitespace-nowrap">
+                                        <td className="py-2 px-4 text-right font-mono whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
                                             {formatDuration(row.squadTimeMs)}
                                         </td>
                                     </tr>
                                 ))}
                                 {visibleRows.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="py-6 text-center text-gray-500 italic">No attendance rows match your search.</td>
+                                        <td colSpan={5} className="py-6 text-center italic" style={{ color: 'var(--text-muted)' }}>No attendance rows match your search.</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -227,6 +227,6 @@ export const AttendanceSection = ({
                     </div>
                 )}
             </div>
-        </section>
+        </div>
     );
 };

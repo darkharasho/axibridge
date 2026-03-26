@@ -76,11 +76,11 @@ const ICON_MAP: Record<string, ReactNode> = {
     'help-circle': <HelpCircle className="w-4 h-4 text-indigo-300 inline-block mx-1" />,
     'mouse-pointer': <MousePointer className="w-4 h-4 text-slate-300 inline-block mx-1" />,
     'list-tree': <ListTree className="w-4 h-4 text-blue-300 inline-block mx-1" />,
-    arcbridge: (
+    axibridge: (
         <span
-            className="arcbridge-logo w-5 h-5 inline-block mb-1 mx-1"
-            style={{ WebkitMaskImage: 'url(/svg/ArcBridge.svg)', maskImage: 'url(/svg/ArcBridge.svg)' }}
-            aria-label="ArcBridge logo"
+            className="axibridge-logo w-5 h-5 inline-block mb-1 mx-1"
+            style={{ WebkitMaskImage: 'url(/svg/AxiBridge.svg)', maskImage: 'url(/svg/AxiBridge.svg)' }}
+            aria-label="AxiBridge logo"
         />
     )
 };
@@ -119,10 +119,11 @@ const renderTree = (node: HelpNode, selectedId: string, onSelect: (id: string) =
             <button
                 type="button"
                 onClick={() => onSelect(node.id)}
-                className={`w-full rounded-lg border px-2 py-2 text-left text-xs transition-colors ${active
+                className={`w-full rounded-[4px] px-2 py-2 text-left text-xs transition-colors ${active
                     ? 'border-blue-500/40 bg-blue-500/15 text-blue-100'
-                    : 'border-white/10 bg-white/[0.03] text-gray-300 hover:border-white/30 hover:text-white'
+                    : 'text-gray-300 hover:text-white'
                     }`}
+                style={{ border: active ? undefined : '1px solid var(--border-subtle)', background: active ? undefined : 'var(--bg-card-inner)' }}
             >
                 <div className="font-semibold">{node.title}</div>
                 {node.summary && depth < 2 && (
@@ -160,7 +161,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                 initial={isBulkUploadActive ? undefined : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={isBulkUploadActive ? undefined : { opacity: 0 }}
-                className="app-modal-overlay fixed inset-0 z-[74] flex items-center justify-center bg-black/70 backdrop-blur-md"
+                className="app-modal-overlay fixed inset-0 z-[74] flex items-center justify-center bg-black/70"
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
@@ -168,11 +169,12 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={isBulkUploadActive ? undefined : { opacity: 0, scale: 0.96, y: 18 }}
                     transition={{ duration: 0.2 }}
-                    className="app-modal-card w-full max-w-6xl mx-4 h-[min(82vh,860px)] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/95 to-blue-950/40 shadow-[0_20px_80px_rgba(0,0,0,0.6)] flex flex-col"
+                    className="app-modal-card w-full max-w-6xl mx-4 h-[min(82vh,860px)] overflow-hidden rounded-[4px] flex flex-col"
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                 >
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
+                    <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
                         <div className="flex items-center gap-3">
-                            <div className="rounded-xl border border-blue-500/30 bg-blue-500/20 p-2">
+                            <div className="rounded-[4px] border border-blue-500/30 bg-blue-500/20 p-2">
                                 <ListTree className="h-5 w-5 text-blue-200" />
                             </div>
                             <div>
@@ -182,14 +184,14 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                            className="p-1.5 rounded-[4px] hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] flex-1 min-h-0">
-                        <aside className="min-h-0 border-r border-white/10 bg-black/20 p-3 overflow-y-auto overscroll-contain">
+                        <aside className="min-h-0 p-3 overflow-y-auto overscroll-contain" style={{ borderRight: '1px solid var(--border-default)', background: 'var(--bg-elevated)' }}>
                             <div className="mb-3 px-1 py-1">
                                 <div className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Guide Map</div>
                                 <div className="mt-1 text-xs text-gray-400">Browse by feature area</div>
@@ -216,11 +218,11 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                             </div>
 
                             <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                                {selectedNode.id === 'arcbridge' && (
+                                {selectedNode.id === 'axibridge' && (
                                     <span
-                                        className="arcbridge-logo h-6 w-6"
-                                        style={{ WebkitMaskImage: 'url(/svg/ArcBridge.svg)', maskImage: 'url(/svg/ArcBridge.svg)' }}
-                                        aria-label="ArcBridge logo"
+                                        className="axibridge-logo h-6 w-6"
+                                        style={{ WebkitMaskImage: 'url(/svg/AxiBridge.svg)', maskImage: 'url(/svg/AxiBridge.svg)' }}
+                                        aria-label="AxiBridge logo"
                                     />
                                 )}
                                 {selectedNode.title}
@@ -283,7 +285,8 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                                 key={child.id}
                                                 type="button"
                                                 onClick={() => setSelectedId(child.id)}
-                                                className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-left hover:bg-white/[0.08] transition-colors"
+                                                className="w-full rounded-[4px] px-3 py-3 text-left transition-colors"
+                                                style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}
                                             >
                                                 <div className="text-sm font-medium text-white">{child.title}</div>
                                                 {child.summary && <div className="text-xs text-gray-400 mt-1">{child.summary}</div>}

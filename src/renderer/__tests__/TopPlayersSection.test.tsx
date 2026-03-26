@@ -16,6 +16,7 @@ const makeContextValue = (stats: any, formatWithCommas: (value: number, decimals
     formatWithCommas,
     renderProfessionIcon,
     roundCountStats: false,
+    expandedPortalRef: { current: null },
 });
 
 describe('TopPlayersSection', () => {

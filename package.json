@@ -1,8 +1,8 @@
 {
-    "name": "arcbridge",
+    "name": "axibridge",
     "private": true,
-    "version": "1.43.3",
-    "description": "ArcBridge - Guild Wars 2 arcDPS Log Uploader",
+    "version": "1.43.2",
+    "description": "AxiBridge - Guild Wars 2 arcDPS Log Uploader",
     "author": {
         "name": "darkharasho",
         "email": "mstephens@example.com"
@@ -59,7 +59,6 @@
         "form-data": "^4.0.5",
         "framer-motion": "^10.16.4",
         "gw2-class-icons": "^0.1.0",
-        "html-to-image": "^1.11.13",
         "idb-keyval": "^6.2.2",
         "lucide-react": "^0.292.0",
         "react": "^18.2.0",
@@ -71,7 +70,8 @@
         "remark-parse": "^11.0.0",
         "tailwind-merge": "^2.0.0",
         "unified": "^11.0.5",
-        "unist-util-visit": "^5.1.0"
+        "unist-util-visit": "^5.1.0",
+        "zustand": "^5.0.12"
     },
     "devDependencies": {
         "@playwright/test": "^1.52.0",
@@ -101,12 +101,12 @@
         "wait-on": "^7.2.0"
     },
     "build": {
-        "appId": "com.arcbridge.app",
-        "productName": "ArcBridge",
+        "appId": "com.axibridge.app",
+        "productName": "AxiBridge",
         "directories": {
             "output": "dist_out"
         },
-        "artifactName": "ArcBridge-${version}.${ext}",
+        "artifactName": "AxiBridge-${version}.${ext}",
         "publish": {
             "provider": "github",
             "owner": "darkharasho",
@@ -120,30 +120,29 @@
             "COPYRIGHT",
             "LICENSE",
             "package.json",
+            "RELEASE_NOTES.md",
             "THIRD_PARTY_NOTICES.md"
         ],
-        "extraResources": [
-            "RELEASE_NOTES.md"
-        ],
         "linux": {
-            "artifactName": "ArcBridge-${version}.${ext}",
+            "artifactName": "AxiBridge-${version}.${ext}",
             "target": [
                 "AppImage"
             ],
             "category": "Utility",
-            "icon": "public/img/ArcBridgeAppIcon.png"
+            "icon": "public/img/AxiBridge-white.png"
         },
         "win": {
-            "artifactName": "ArcBridge-${version}-Setup.${ext}",
+            "artifactName": "AxiBridge-${version}-Setup.${ext}",
             "target": [
                 "nsis"
             ],
-            "icon": "public/img/ArcBridgeAppIcon.png"
+            "icon": "public/img/AxiBridge-white.png"
         },
         "nsis": {
             "oneClick": true,
             "allowToChangeInstallationDirectory": false,
-            "differentialPackage": true
+            "differentialPackage": true,
+            "include": "build/installer.nsh"
         }
     }
 }

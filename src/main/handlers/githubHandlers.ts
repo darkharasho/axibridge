@@ -4,20 +4,6 @@ import path from 'node:path';
 import https from 'node:https';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import {
-    BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID,
-    DARK_GLASS_WEB_THEME_ID,
-    DEFAULT_WEB_THEME_ID,
-    KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID,
-    KINETIC_SLATE_WEB_THEME, KINETIC_SLATE_WEB_THEME_ID,
-    KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID,
-    MATTE_WEB_THEME, MATTE_WEB_THEME_ID,
-    type WebTheme,
-} from '../../shared/webThemes';
-import {
-    normalizeKineticThemeVariant,
-    inferKineticThemeVariantFromThemeId,
-} from './settingsHandlers';
 import { MAX_GITHUB_BLOB_BYTES, MAX_GITHUB_REPORT_JSON_BYTES } from '../devDatasets';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -43,7 +29,7 @@ const requestGithubDeviceCode = (scope: string): Promise<{ deviceCode?: string; 
                 hostname: 'github.com',
                 path: '/login/device/code',
                 headers: {
-                    'User-Agent': 'ArcBridge',
+                    'User-Agent': 'AxiBridge',
                     'Accept': 'application/json',
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Content-Length': Buffer.byteLength(postData)
@@ -96,7 +82,7 @@ const pollGithubDeviceToken = async (deviceCode: string, intervalSeconds: number
                     hostname: 'github.com',
                     path: '/login/oauth/access_token',
                     headers: {
-                        'User-Agent': 'ArcBridge',
+                        'User-Agent': 'AxiBridge',
                         'Accept': 'application/json',
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'Content-Length': Buffer.byteLength(postData)
@@ -159,7 +145,7 @@ const githubApiRequest = (method: string, apiPath: string, token: string, body?:
                 hostname: 'api.github.com',
                 path: apiPath,
                 headers: {
-                    'User-Agent': 'ArcBridge',
+                    'User-Agent': 'AxiBridge',
                     'Accept': 'application/vnd.github+json',
                     'Authorization': `Bearer ${token}`,
                     ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {})
@@ -355,7 +341,7 @@ const createGithubRepo = async (owner: string, repo: string, token: string, auth
         name: repo,
         private: false,
         auto_init: true,
-        description: 'ArcBridge Reports'
+        description: 'AxiBridge Reports'
     });
     if (resp.status >= 300) {
         const detail = resp.data?.message || 'Unknown error';
@@ -397,36 +383,6 @@ const withPagesPath = (pagesPath: string, repoPath: string) => {
     return `${pagesPath}/${repoPath}`.replace(/\/{2,}/g, '/');
 };
 
-// ─── Theme helpers ─────────────────────────────────────────────────────────────
-
-const normalizeUiThemeChoice = (value: unknown): 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass' => {
-    if (value === 'modern' || value === 'crt' || value === 'matte' || value === 'kinetic' || value === 'dark-glass') return value;
-    return 'classic';
-};
-
-const resolveWebUiThemeChoice = (appUiTheme: unknown, selectedThemeId: unknown): 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass' => {
-    if (selectedThemeId === MATTE_WEB_THEME_ID) return 'matte';
-    if (selectedThemeId === KINETIC_WEB_THEME_ID || selectedThemeId === KINETIC_DARK_WEB_THEME_ID || selectedThemeId === KINETIC_SLATE_WEB_THEME_ID) return 'kinetic';
-    if (selectedThemeId === CRT_WEB_THEME_ID) return 'crt';
-    return normalizeUiThemeChoice(appUiTheme);
-};
-
-const resolveWebPublishTheme = (uiTheme: string, requestedThemeId: string): { selectedTheme: WebTheme; uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass' } => {
-    const availableThemes = uiTheme === 'crt'
-        ? [CRT_WEB_THEME]
-        : [...BASE_WEB_THEMES, MATTE_WEB_THEME, KINETIC_WEB_THEME, KINETIC_DARK_WEB_THEME, KINETIC_SLATE_WEB_THEME];
-    const themeId = uiTheme === 'crt'
-        ? CRT_WEB_THEME_ID
-        : uiTheme === 'matte'
-            ? MATTE_WEB_THEME_ID
-            : uiTheme === 'dark-glass'
-                ? (requestedThemeId === DEFAULT_WEB_THEME_ID ? DARK_GLASS_WEB_THEME_ID : requestedThemeId)
-                : requestedThemeId;
-    const selectedTheme = availableThemes.find((theme) => theme.id === themeId) || availableThemes[0];
-    const uiThemeValue = resolveWebUiThemeChoice(uiTheme, selectedTheme?.id);
-    return { selectedTheme, uiThemeValue };
-};
-
 // ─── Report payload builder ────────────────────────────────────────────────────
 
 const formatBytes = (value: number) => {
@@ -446,21 +402,15 @@ const formatBytes = (value: number) => {
 const buildWebReportPayload = (
     reportMeta: any,
     sourceStats: any,
-    uiThemeValue: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic' | 'dark-glass',
-    webThemeId: string,
-    kineticThemeVariant?: 'light' | 'midnight' | 'slate'
+    colorPalette: string,
+    glassSurfaces: boolean
 ) => {
     const payload = {
         meta: { ...(reportMeta || {}) },
         stats: {
             ...(sourceStats || {}),
-            reportTheme: {
-                ui: uiThemeValue,
-                paletteId: webThemeId,
-                ...(uiThemeValue === 'kinetic' ? { variant: normalizeKineticThemeVariant(kineticThemeVariant) } : {})
-            },
-            uiTheme: uiThemeValue,
-            webThemeId
+            colorPalette,
+            glassSurfaces
         } as Record<string, any>
     };
 
@@ -628,9 +578,9 @@ const ensureDevWebIndex = (webRoot: string) => {
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/img/ArcBridgeGradient.png" />
+    <link rel="icon" type="image/png" href="/img/AxiBridge-white.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ArcBridge</title>
+    <title>AxiBridge</title>
   </head>
   <body>
     <div id="root"></div>
@@ -772,13 +722,6 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         }
     };
 
-    const sendGithubThemeStatus = (stage: string, message?: string, progress?: number) => {
-        const win = getWindow();
-        if (win && !win.isDestroyed()) {
-            win.webContents.send('github-theme-status', { stage, message, progress });
-        }
-    };
-
     const getStoredPagesPath = () => normalizePagesPath(store.get('githubPagesSourcePath', '') as string);
 
     const resolvePagesSource = async (owner: string, repo: string, branch: string, token: string) => {
@@ -786,6 +729,31 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         const pagesPath = normalizePagesPath(pagesInfo?.source?.path);
         store.set('githubPagesSourcePath', pagesPath);
         return { pagesInfo, pagesPath };
+    };
+
+    const resolveEffectivePagesPath = async (
+        effectiveOwner: string,
+        effectiveRepo: string,
+        effectiveBranch: string,
+        token: string,
+        isOverride: boolean
+    ): Promise<string> => {
+        if (!isOverride) {
+            const stored = getStoredPagesPath();
+            if (stored) return stored;
+            try {
+                const resolved = await resolvePagesSource(effectiveOwner, effectiveRepo, effectiveBranch, token);
+                return resolved.pagesPath;
+            } catch {
+                return '';
+            }
+        }
+        try {
+            const pagesInfo = await ensureGithubPages(effectiveOwner, effectiveRepo, effectiveBranch, token);
+            return normalizePagesPath(pagesInfo?.source?.path);
+        } catch {
+            return '';
+        }
     };
 
     ipcMain.handle('get-github-repos', async () => {
@@ -814,27 +782,20 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         }
     });
 
-    ipcMain.handle('get-github-reports', async () => {
+    ipcMain.handle('get-github-reports', async (_event, payload?: { owner?: string; repo?: string; branch?: string }) => {
         try {
             const token = store.get('githubToken') as string | undefined;
-            const owner = store.get('githubRepoOwner') as string | undefined;
-            const repo = store.get('githubRepoName') as string | undefined;
-            const branch = (store.get('githubBranch') as string | undefined) || 'main';
+            const isOverride = !!(payload?.owner && payload?.repo);
+            const owner = (isOverride ? payload!.owner! : store.get('githubRepoOwner') as string | undefined);
+            const repo = (isOverride ? payload!.repo! : store.get('githubRepoName') as string | undefined);
+            const branch = payload?.branch || (store.get('githubBranch') as string | undefined) || 'main';
             if (!token) {
                 return { success: false, error: 'GitHub not connected.' };
             }
             if (!owner || !repo) {
                 return { success: false, error: 'Repository not configured.' };
             }
-            let pagesPath = getStoredPagesPath();
-            if (!pagesPath) {
-                try {
-                    const resolved = await resolvePagesSource(owner, repo, branch, token);
-                    pagesPath = resolved.pagesPath;
-                } catch {
-                    pagesPath = '';
-                }
-            }
+            const pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, isOverride);
             const indexPath = withPagesPath(pagesPath, 'reports/index.json');
             const existing = await getGithubFile(owner, repo, indexPath, branch, token);
             if (!existing?.content) {
@@ -849,12 +810,85 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         }
     });
 
-    ipcMain.handle('delete-github-reports', async (_event, payload: { ids: string[] }) => {
+    ipcMain.handle('get-github-report-detail', async (_event, payload: {
+        reportId: string;
+        owner?: string;
+        repo?: string;
+        branch?: string;
+    }) => {
         try {
             const token = store.get('githubToken') as string | undefined;
-            const owner = store.get('githubRepoOwner') as string | undefined;
-            const repo = store.get('githubRepoName') as string | undefined;
-            const branch = (store.get('githubBranch') as string | undefined) || 'main';
+            const reportId = payload?.reportId;
+            if (!token) {
+                return { success: false, error: 'GitHub not connected.' };
+            }
+            if (!reportId) {
+                return { success: false, error: 'No report ID provided.' };
+            }
+            const isOverride = !!(payload?.owner && payload?.repo);
+            const owner = isOverride ? payload.owner! : (store.get('githubRepoOwner') as string | undefined);
+            const repo = isOverride ? payload.repo! : (store.get('githubRepoName') as string | undefined);
+            const branch = payload?.branch || (store.get('githubBranch') as string | undefined) || 'main';
+            if (!owner || !repo) {
+                return { success: false, error: 'Repository not configured.' };
+            }
+            const pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, isOverride);
+            const filePath = withPagesPath(pagesPath, `reports/${reportId}/report.json`);
+            const file = await getGithubFile(owner, repo, filePath, branch, token);
+            if (!file) {
+                return { success: false, error: 'Report not found.' };
+            }
+            let reportJson: string;
+            if (file.content) {
+                // File within 1MB Contents API limit — base64 encoded
+                reportJson = Buffer.from(file.content, 'base64').toString('utf8');
+            } else if (file.download_url) {
+                // File exceeds 1MB — fetch raw content via download_url
+                const rawResp = await new Promise<string>((resolve, reject) => {
+                    const url = new URL(file.download_url);
+                    https.get(
+                        { hostname: url.hostname, path: url.pathname + url.search, headers: { 'User-Agent': 'AxiBridge' } },
+                        (res) => {
+                            if (res.statusCode === 301 || res.statusCode === 302) {
+                                const redirect = res.headers.location;
+                                if (!redirect) return reject(new Error('Redirect with no location'));
+                                const rUrl = new URL(redirect);
+                                https.get(
+                                    { hostname: rUrl.hostname, path: rUrl.pathname + rUrl.search, headers: { 'User-Agent': 'AxiBridge' } },
+                                    (rRes) => {
+                                        let d = '';
+                                        rRes.setEncoding('utf8');
+                                        rRes.on('data', (c) => (d += c));
+                                        rRes.on('end', () => resolve(d));
+                                    }
+                                ).on('error', reject);
+                                return;
+                            }
+                            let d = '';
+                            res.setEncoding('utf8');
+                            res.on('data', (c) => (d += c));
+                            res.on('end', () => resolve(d));
+                        }
+                    ).on('error', reject);
+                });
+                reportJson = rawResp;
+            } else {
+                return { success: false, error: 'Report not found.' };
+            }
+            const report = JSON.parse(reportJson);
+            return { success: true, report };
+        } catch (err: any) {
+            return { success: false, error: err?.message || 'Failed to load report.' };
+        }
+    });
+
+    ipcMain.handle('delete-github-reports', async (_event, payload: { ids: string[]; owner?: string; repo?: string; branch?: string }) => {
+        try {
+            const token = store.get('githubToken') as string | undefined;
+            const isOverride = !!(payload?.owner && payload?.repo);
+            const owner = (isOverride ? payload.owner! : store.get('githubRepoOwner') as string | undefined);
+            const repo = (isOverride ? payload.repo! : store.get('githubRepoName') as string | undefined);
+            const branch = payload?.branch || (store.get('githubBranch') as string | undefined) || 'main';
             const ids = payload?.ids?.filter(Boolean) || [];
             if (!token) {
                 return { success: false, error: 'GitHub not connected.' };
@@ -865,15 +899,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             if (ids.length === 0) {
                 return { success: false, error: 'No reports selected.' };
             }
-            let pagesPath = getStoredPagesPath();
-            if (!pagesPath) {
-                try {
-                    const resolved = await resolvePagesSource(owner, repo, branch, token);
-                    pagesPath = resolved.pagesPath;
-                } catch {
-                    pagesPath = '';
-                }
-            }
+            const pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, isOverride);
             const pagesPrefix = pagesPath ? `${pagesPath}/` : '';
 
             const headRef = await getGithubRef(owner, repo, branch, token);
@@ -1209,107 +1235,6 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         }
     });
 
-    ipcMain.handle('apply-github-theme', async (_event, _payload?: { themeId?: string }) => {
-        try {
-            sendGithubThemeStatus('Preparing', 'Updating site theme. This can take a minute...', 5);
-            const token = store.get('githubToken') as string | undefined;
-            const owner = store.get('githubRepoOwner') as string | undefined;
-            const repo = store.get('githubRepoName') as string | undefined;
-            const branch = (store.get('githubBranch') as string | undefined) || 'main';
-            if (!token) {
-                return { success: false, error: 'Missing GitHub token. Connect GitHub first.' };
-            }
-            if (!owner || !repo) {
-                return { success: false, error: 'Select or create a repository in Settings first.' };
-            }
-            let pagesPath = getStoredPagesPath();
-            try {
-                const resolved = await resolvePagesSource(owner, repo, branch, token);
-                pagesPath = resolved.pagesPath;
-            } catch {
-                pagesPath = getStoredPagesPath();
-            }
-
-            sendGithubThemeStatus('Preparing', 'Removing legacy site theme files...', 25);
-            const headRef = await getGithubRef(owner, repo, branch, token);
-            const headSha = headRef?.object?.sha;
-            if (!headSha) {
-                throw new Error('Unable to resolve repository branch head.');
-            }
-            const headCommit = await getGithubCommit(owner, repo, headSha, token);
-            const baseTreeSha = headCommit?.tree?.sha;
-            if (!baseTreeSha) {
-                throw new Error('Unable to resolve repository tree.');
-            }
-            const treeData = await getGithubTree(owner, repo, baseTreeSha, token);
-            const treeEntries = Array.isArray(treeData?.tree) ? treeData.tree : [];
-            const treeMap = new Map<string, string>();
-            treeEntries.forEach((entry: any) => {
-                if (entry?.path && entry?.sha && entry?.type === 'blob') {
-                    treeMap.set(entry.path, entry.sha);
-                }
-            });
-
-            const deleteEntries: Array<{ path: string; sha: null }> = [];
-            ['theme.json', 'ui-theme.json'].forEach((legacyFile) => {
-                const repoPath = withPagesPath(pagesPath, legacyFile);
-                if (treeMap.has(repoPath)) {
-                    deleteEntries.push({ path: repoPath, sha: null });
-                }
-            });
-
-            // Push the stable per-theme CSS files so all reports (including old ones)
-            // get the latest styling without requiring a new report to be published.
-            const THEME_CSS_FILES = ['classic.css', 'modern.css', 'crt.css', 'matte.css', 'kinetic.css'];
-            const themeDir = path.join(getWebRoot(), 'dist-web', 'web-report-themes');
-            const cssUploadEntries: Array<{ path: string; contentBase64: string }> = [];
-            if (fs.existsSync(themeDir)) {
-                for (const cssFile of THEME_CSS_FILES) {
-                    const absPath = path.join(themeDir, cssFile);
-                    if (!fs.existsSync(absPath)) continue;
-                    const content = fs.readFileSync(absPath);
-                    const blobSha = computeGitBlobSha(content);
-                    const repoPath = withPagesPath(pagesPath, `web-report-themes/${cssFile}`);
-                    if (treeMap.get(repoPath) !== blobSha) {
-                        cssUploadEntries.push({ path: repoPath, contentBase64: content.toString('base64') });
-                    }
-                }
-            }
-
-            if (deleteEntries.length === 0 && cssUploadEntries.length === 0) {
-                sendGithubThemeStatus('Complete', 'Site is up to date. Legacy files removed, theme stylesheets are current.', 100);
-                return { success: true };
-            }
-
-            sendGithubThemeStatus('Uploading', `Updating ${cssUploadEntries.length > 0 ? 'theme stylesheets' : 'legacy file cleanup'}...`, 55);
-            const cssBlobEntries: Array<{ path: string; sha: string }> = [];
-            for (const entry of cssUploadEntries) {
-                const blob = await createGithubBlob(owner, repo, token, entry.contentBase64, entry.path);
-                cssBlobEntries.push({ path: entry.path, sha: blob.sha });
-            }
-
-            const allTreeEntries: Array<{ path: string; sha: string | null }> = [
-                ...deleteEntries,
-                ...cssBlobEntries
-            ];
-            const commitParts: string[] = [];
-            if (deleteEntries.length > 0) commitParts.push('remove legacy web theme defaults');
-            if (cssBlobEntries.length > 0) commitParts.push('update web report theme stylesheets');
-            const commitMessage = commitParts.join(', ');
-
-            sendGithubThemeStatus('Finalizing', 'Publishing theme commit...', 90);
-            const newTree = await createGithubTree(owner, repo, token, baseTreeSha, allTreeEntries);
-            const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, headSha);
-            await updateGithubRef(owner, repo, branch, token, newCommit.sha);
-
-            sendGithubThemeStatus('Committed', 'Theme update committed. Waiting for Pages build...', 100);
-            return { success: true };
-        } catch (err: any) {
-            sendGithubThemeStatus('Error', err?.message || 'Theme update failed.', 100);
-            return { success: false, error: err?.message || 'Theme update failed.' };
-        }
-    });
-
     ipcMain.handle('start-github-oauth', async () => {
         const result = await requestGithubDeviceCode('repo');
         if (!result.deviceCode) {
@@ -1401,16 +1326,13 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 ...payload.meta,
                 appVersion: app.getVersion()
             };
-            const uiTheme = store.get('uiTheme', 'classic') as string;
-            const requestedThemeId = (store.get('githubWebTheme', DEFAULT_WEB_THEME_ID) as string) || DEFAULT_WEB_THEME_ID;
-            const { selectedTheme, uiThemeValue } = resolveWebPublishTheme(uiTheme, requestedThemeId);
-            const kineticThemeVariant = normalizeKineticThemeVariant(store.get('kineticThemeVariant', inferKineticThemeVariantFromThemeId(selectedTheme?.id || DEFAULT_WEB_THEME_ID)));
+            const paletteValue = (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue';
+            const glassValue = !!store.get('glassSurfaces', false);
             const builtReport = buildWebReportPayload(
                 reportMeta,
                 payload.stats || {},
-                uiThemeValue,
-                selectedTheme?.id || DEFAULT_WEB_THEME_ID,
-                kineticThemeVariant
+                paletteValue,
+                glassValue
             );
 
             sendWebUploadStatus('Packaging', 'Preparing report bundle...', 40);
@@ -1491,10 +1413,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             }
 
             const mergedEntries = [indexEntry, ...existingEntries.filter((entry) => entry?.id !== reportMeta.id)];
-            const kineticFont = (store.get('kineticFontStyle', 'default') as string) === 'original' ? 'original' : 'default';
-            const kineticVariant = normalizeKineticThemeVariant(store.get('kineticThemeVariant', inferKineticThemeVariantFromThemeId(selectedTheme?.id || DEFAULT_WEB_THEME_ID)));
             const indexPayload = {
-                siteTheme: { ui: uiThemeValue, paletteId: selectedTheme?.id || DEFAULT_WEB_THEME_ID, kineticFont, ...(uiThemeValue === 'kinetic' ? { kineticVariant } : {}) },
+                colorPalette: paletteValue,
+                glassSurfaces: glassValue,
                 entries: mergedEntries
             };
 
@@ -1653,16 +1574,13 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 ...payload.meta,
                 appVersion: app.getVersion()
             };
-            const uiTheme = store.get('uiTheme', 'classic') as string;
-            const requestedThemeId = (store.get('githubWebTheme', DEFAULT_WEB_THEME_ID) as string) || DEFAULT_WEB_THEME_ID;
-            const { selectedTheme, uiThemeValue } = resolveWebPublishTheme(uiTheme, requestedThemeId);
-            const localKineticVariant = normalizeKineticThemeVariant(store.get('kineticThemeVariant', inferKineticThemeVariantFromThemeId(selectedTheme?.id || DEFAULT_WEB_THEME_ID)));
+            const localPalette = (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue';
+            const localGlass = !!store.get('glassSurfaces', false);
             const builtReport = buildWebReportPayload(
                 reportMeta,
                 payload.stats || {},
-                uiThemeValue,
-                selectedTheme?.id || DEFAULT_WEB_THEME_ID,
-                localKineticVariant
+                localPalette,
+                localGlass
             );
             const reportsRoot = path.join(webRoot, 'reports');
             const reportDir = path.join(reportsRoot, reportMeta.id);
@@ -1743,9 +1661,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 return normalizedUrl === currentUrl ? entry : { ...entry, url: normalizedUrl };
             });
             const mergedLocalEntries = [indexEntry, ...normalizedExistingEntries.filter((entry) => entry?.id !== reportMeta.id)];
-            const localKineticFont = (store.get('kineticFontStyle', 'default') as string) === 'original' ? 'original' : 'default';
             const localIndexPayload = {
-                siteTheme: { ui: uiThemeValue, paletteId: selectedTheme?.id || DEFAULT_WEB_THEME_ID, kineticFont: localKineticFont, ...(uiThemeValue === 'kinetic' ? { kineticVariant: localKineticVariant } : {}) },
+                colorPalette: localPalette,
+                glassSurfaces: localGlass,
                 entries: mergedLocalEntries
             };
             fs.writeFileSync(indexPath, JSON.stringify(localIndexPayload, null, 2));

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Target, Maximize2, X } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
+import { Maximize2, X, Target } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 
 type KillPressurePoint = {
@@ -21,10 +22,7 @@ export const SquadKillPressureSection = () => {
         expandedSection,
         expandedSectionClosing,
         openExpandedSection,
-        closeExpandedSection,
-        isSectionVisible,
-        isFirstVisibleSection,
-        sectionClass
+        closeExpandedSection
     } = useStatsSharedContext();
     const sectionId = 'squad-kill-pressure';
     const isExpanded = expandedSection === sectionId;
@@ -68,50 +66,41 @@ export const SquadKillPressureSection = () => {
 
     return (
         <div
-            id={sectionId}
-            data-section-visible={isSectionVisible(sectionId)}
-            data-section-first={isFirstVisibleSection(sectionId)}
-            className={sectionClass(sectionId, `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
-                isExpanded
-                    ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
-                        expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                    }`
-                    : ''
-            }`)}
+            className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
+            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
         >
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-violet-400" />
-                    Kill Pressure
-                </h3>
+            <div className="flex items-center gap-2 mb-3.5">
+                <Target className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Kill Pressure</h3>
                 <button
                     type="button"
                     onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                    className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
+                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
                     aria-label={isExpanded ? 'Close Kill Pressure' : 'Expand Kill Pressure'}
                     title={isExpanded ? 'Close' : 'Expand'}
                 >
-                    {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
                 </button>
             </div>
 
             {chartData.length === 0 ? (
-                <div className="text-center text-gray-500 italic py-8">No fight data available</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No fight data available</div>
             ) : (
-                <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                <div className="rounded-[var(--radius-md)] p-4">
                     <div className="flex items-center justify-between gap-3 mb-3">
                         <div>
-                            <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">Kill/Death Ratio per Fight</div>
-                            <div className="text-[11px] text-gray-500 mt-1">
+                            <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">Kill/Death Ratio per Fight</div>
+                            <div className="text-[11px] text-[color:var(--text-secondary)] mt-1">
                                 Baseline is KDR 1.0. Green above = winning attrition. Red below = losing attrition. Scale is logarithmic.
                             </div>
                         </div>
-                        <div className="text-[11px] text-gray-500 shrink-0">
+                        <div className="text-[11px] text-[color:var(--text-secondary)] shrink-0">
                             {chartData.length} {chartData.length === 1 ? 'fight' : 'fights'}
                         </div>
                     </div>
                     <div className={isExpanded ? 'h-[400px]' : 'h-[280px]'}>
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ChartContainer width="100%" height="100%">
                             <BarChart data={chartData}>
                                 <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                 <XAxis
@@ -161,20 +150,20 @@ export const SquadKillPressureSection = () => {
                                     ))}
                                 </Bar>
                             </BarChart>
-                        </ResponsiveContainer>
+                        </ChartContainer>
                     </div>
                     <div className="flex justify-center gap-4 mt-2">
                         <div className="flex items-center gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
-                            <span className="text-[9px] text-gray-400">KDR &gt; 1.0</span>
+                            <span className="text-[9px] text-[color:var(--text-secondary)]">KDR &gt; 1.0</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-sm bg-red-400" />
-                            <span className="text-[9px] text-gray-400">KDR &lt; 1.0</span>
+                            <span className="text-[9px] text-[color:var(--text-secondary)]">KDR &lt; 1.0</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <div className="w-3 h-0 border-t border-dashed border-amber-400" />
-                            <span className="text-[9px] text-gray-400">Break-even</span>
+                            <span className="text-[9px] text-[color:var(--text-secondary)]">Break-even</span>
                         </div>
                     </div>
                 </div>

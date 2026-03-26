@@ -1,6 +1,5 @@
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, X, Columns, Users } from 'lucide-react';
-import { OffenseSwordIcon } from '../../ui/OffenseSwordIcon';
+import { Maximize2, X, Columns, Users, Swords } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -27,7 +26,7 @@ export const OffenseSection = ({
     offenseViewMode,
     setOffenseViewMode
 }: OffenseSectionProps) => {
-    const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass, sidebarListClass } = useStatsSharedContext();
+    const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const {
         sortState, updateSort,
         denseSort, setDenseSort,
@@ -48,39 +47,52 @@ export const OffenseSection = ({
     const isExpanded = expandedSection === 'offense-detailed';
     return (
     <div
-        id="offense-detailed"
-        data-section-visible={isSectionVisible('offense-detailed')}
-        data-section-first={isFirstVisibleSection('offense-detailed')}
-        className={sectionClass('offense-detailed', `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
+        className={`${
             expandedSection === 'offense-detailed'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
+                ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${
                     expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
                 }`
                 : ''
-        }`)}
+        }`}
+        style={expandedSection === 'offense-detailed' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
     >
-        <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                <OffenseSwordIcon className="w-5 h-5 text-rose-300" />
-                Offenses - Detailed
+        <div className={`flex items-center gap-2 mb-3.5 ${isExpanded ? 'px-5 pt-4' : ''}`}>
+            <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                Offense Detailed
             </h3>
-            <button
-                type="button"
-                onClick={() => (expandedSection === 'offense-detailed' ? closeExpandedSection() : openExpandedSection('offense-detailed'))}
-                className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
-                aria-label={expandedSection === 'offense-detailed' ? 'Close Offense Detailed' : 'Expand Offense Detailed'}
-                title={expandedSection === 'offense-detailed' ? 'Close' : 'Expand'}
-            >
-                {expandedSection === 'offense-detailed' ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+                {!isExpanded && (
+                    <PillToggleGroup
+                        value={offenseViewMode}
+                        onChange={setOffenseViewMode}
+                        options={[
+                            { value: 'total', label: 'Total' },
+                            { value: 'per1s', label: 'Stat/1s' },
+                            { value: 'per60s', label: 'Stat/60s' }
+                        ]}
+                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                        inactiveClassName="text-[color:var(--text-secondary)]"
+                    />
+                )}
+                <button
+                    type="button"
+                    onClick={() => (expandedSection === 'offense-detailed' ? closeExpandedSection() : openExpandedSection('offense-detailed'))}
+                    className="flex items-center justify-center w-[26px] h-[26px]"
+                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
+                    aria-label={expandedSection === 'offense-detailed' ? 'Close Offense Detailed' : 'Expand Offense Detailed'}
+                    title={expandedSection === 'offense-detailed' ? 'Close' : 'Expand'}
+                >
+                    {expandedSection === 'offense-detailed' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
+                </button>
+            </div>
         </div>
         {stats.offensePlayers.length === 0 ? (
-            <div className="text-center text-gray-500 italic py-8">No offensive stats available</div>
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats available</div>
         ) : isExpanded ? (
-            <div className="flex flex-col gap-4">
-                <div className="bg-black/20 border border-white/5 rounded-xl px-4 py-3">
-                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Offensive Tabs</div>
-                    <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-4 px-5 pt-1 flex-1 min-h-0">
+                <div>
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                         <SearchSelectDropdown
                             options={[
                                 ...offenseColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
@@ -123,6 +135,7 @@ export const OffenseSection = ({
                             buttonLabel="Players"
                             buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
+                        <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
                         <PillToggleGroup
                             value={offenseViewMode}
                             onChange={setOffenseViewMode}
@@ -131,8 +144,8 @@ export const OffenseSection = ({
                                 { value: 'per1s', label: 'Stat/1s' },
                                 { value: 'per60s', label: 'Stat/60s' }
                             ]}
-                            activeClassName="bg-rose-500/20 text-rose-200 border border-rose-500/40"
-                            inactiveClassName="border border-transparent text-gray-400 hover:text-white"
+                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     </div>
                     {(selectedOffenseColumnIds.length > 0 || selectedOffensePlayers.length > 0) && (
@@ -143,7 +156,8 @@ export const OffenseSection = ({
                                     setSelectedOffenseColumnIds([]);
                                     setSelectedOffensePlayers([]);
                                 }}
-                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
                             >
                                 Clear All
                             </button>
@@ -154,10 +168,11 @@ export const OffenseSection = ({
                                         key={id}
                                         type="button"
                                         onClick={() => setSelectedOffenseColumnIds((prev) => prev.filter((entry) => entry !== id))}
-                                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                     >
                                         <span>{label}</span>
-                                        <span className="text-gray-400">×</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                     </button>
                                 );
                             })}
@@ -166,18 +181,19 @@ export const OffenseSection = ({
                                     key={id}
                                     type="button"
                                     onClick={() => setSelectedOffensePlayers((prev) => prev.filter((entry) => entry !== id))}
-                                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                 >
                                     <span>{id}</span>
-                                    <span className="text-gray-400">×</span>
+                                    <span style={{ color: 'var(--text-secondary)' }}>×</span>
                                 </button>
                             ))}
                         </div>
                     )}
                 </div>
-                <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+                <div className="flex-1 min-h-0 flex flex-col">
                     {filteredOffenseMetrics.length === 0 ? (
-                        <div className="px-4 py-10 text-center text-gray-500 italic text-sm">No offensive stats match this filter</div>
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats match this filter</div>
                     ) : (
                         (() => {
                             const totalSeconds = (row: any) => Math.max(1, (row.totalFightMs || 0) / 1000);
@@ -229,8 +245,6 @@ export const OffenseSection = ({
                                 });
                             return (
                                 <DenseStatsTable
-                                    title="Offense - Dense View"
-                                    subtitle="Offensive"
                                     sortColumnId={resolvedSortColumnId}
                                     sortDirection={denseSort.dir}
                                     onSortColumn={(columnId) => {
@@ -249,7 +263,7 @@ export const OffenseSection = ({
                                         id: `${entry.row.account}-${idx}`,
                                         label: (
                                             <>
-                                                <span className="text-gray-500 font-mono">{idx + 1}</span>
+                                                <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
                                                 {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                 <span className="truncate">{entry.row.account}</span>
                                             </>
@@ -263,32 +277,37 @@ export const OffenseSection = ({
                 </div>
             </div>
         ) : (
+            <>
             <StatsTableLayout
                 expanded={expandedSection === 'offense-detailed'}
-                sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === 'offense-detailed' ? 'h-full flex-1' : 'self-start'}`}
-                contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === 'offense-detailed' ? 'flex flex-col min-h-0' : ''}`}
+                sidebarClassName={`pr-3 flex flex-col overflow-y-auto ${expandedSection === 'offense-detailed' ? 'h-full flex-1 min-h-0' : ''}`}
+                sidebarStyle={undefined}
+                contentClassName={`overflow-hidden ${expandedSection === 'offense-detailed' ? 'flex flex-col min-h-0' : ''}`}
+                contentStyle={undefined}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Offensive Tabs</div>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Offensive Tabs</div>
                         <input
                             value={offenseSearch}
                             onChange={(e) => setOffenseSearch(e.target.value)}
                             placeholder="Search..."
-                            className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                            className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
+                            style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
                         />
                         <div className={`${sidebarListClass} ${expandedSection === 'offense-detailed' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
                                 if (filteredOffenseMetrics.length === 0) {
-                                    return <div className="text-center text-gray-500 italic py-6 text-xs">No offensive stats match this filter</div>;
+                                    return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats match this filter</div>;
                                 }
                                 return filteredOffenseMetrics.map((metric) => (
                                     <button
                                         key={metric.id}
                                         onClick={() => setActiveOffenseStat(metric.id)}
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${activeOffenseStat === metric.id
-                                            ? 'bg-rose-500/20 text-rose-200 border-rose-500/40'
-                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeOffenseStat === metric.id
+                                            ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                            : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
                                             }`}
+                                        style={activeOffenseStat !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
                                     >
                                         {metric.label}
                                     </button>
@@ -341,34 +360,18 @@ export const OffenseSection = ({
                             return (
                                 <StatsTableShell
                                     expanded={expandedSection === 'offense-detailed'}
-                                    header={
-                                        <div className="flex items-center justify-between px-4 py-3 bg-white/5">
-                                            <div className="text-sm font-semibold text-gray-200">{metric.label}</div>
-                                            <div className="text-xs uppercase tracking-widest text-gray-500">Offensive</div>
-                                        </div>
-                                    }
+                                    animationKey={`${activeOffenseStat}-${offenseViewMode}`}
+                                    header={null}
                                     columns={
                                         <>
-                                            <div className="flex items-center justify-end gap-2 px-4 py-2 bg-white/5">
-                                                <PillToggleGroup
-                                                    value={offenseViewMode}
-                                                    onChange={setOffenseViewMode}
-                                                    options={[
-                                                        { value: 'total', label: 'Total' },
-                                                        { value: 'per1s', label: 'Stat/1s' },
-                                                        { value: 'per60s', label: 'Stat/60s' }
-                                                    ]}
-                                                    activeClassName="bg-rose-500/20 text-rose-200 border border-rose-500/40"
-                                                    inactiveClassName="border border-transparent text-gray-400 hover:text-white"
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                            <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
                                                 <div className="text-center">#</div>
                                                 <div>Player</div>
                                                 <button
                                                     type="button"
                                                     onClick={() => updateSort('value')}
-                                                    className={`text-right transition-colors ${sortState.key === 'value' ? 'text-rose-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                    className="text-right transition-colors"
+                                                    style={{ color: sortState.key === 'value' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                                 >
                                                     {offenseViewMode === 'total' ? 'Total' : offenseViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
                                                     {sortState.key === 'value' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
@@ -376,7 +379,8 @@ export const OffenseSection = ({
                                                 <button
                                                     type="button"
                                                     onClick={() => updateSort('fightTime')}
-                                                    className={`text-right transition-colors ${sortState.key === 'fightTime' ? 'text-rose-200' : 'text-gray-400 hover:text-gray-200'}`}
+                                                    className="text-right transition-colors"
+                                                    style={{ color: sortState.key === 'fightTime' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                                 >
                                                     Fight Time{sortState.key === 'fightTime' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                 </button>
@@ -386,13 +390,13 @@ export const OffenseSection = ({
                                     rows={
                                         <>
                                             {rows.map((row: any, idx: number) => (
-                                                <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-4 py-2 text-sm text-gray-200 border-t border-white/5">
-                                                    <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
+                                                <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
+                                                    <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                         <span className="truncate">{row.account}</span>
                                                     </div>
-                                                    <div className="text-right font-mono text-gray-300">
+                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                         {(() => {
                                                             const value = offenseViewMode === 'total'
                                                                 ? row.total
@@ -402,7 +406,7 @@ export const OffenseSection = ({
                                                             return formatValue(value);
                                                         })()}
                                                     </div>
-                                                    <div className="text-right font-mono text-gray-400">
+                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                         {row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '-'}
                                                     </div>
                                                 </div>
@@ -415,6 +419,7 @@ export const OffenseSection = ({
                     </>
                 }
             />
+            </>
         )}
     </div>
     );

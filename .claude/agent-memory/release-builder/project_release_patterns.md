@@ -9,8 +9,8 @@ Release notes are stored in `RELEASE_NOTES.md` at the repo root. Style guide is 
 The full release pipeline is `node scripts/build-github.mjs <bump> --skip-release-notes`. This script handles everything after release notes are written: validate, ci:local, version bump + commit + push, full build, commit-web-dist, electron-builder (linux + win), git tag + push, and GitHub Release upload.
 
 Artifact output directory: `dist_out/`
-- Linux AppImage: `dist_out/ArcBridge-{version}.AppImage`
-- Windows NSIS installer: `dist_out/ArcBridge-{version}-Setup.exe`
+- Linux AppImage: `dist_out/AxiBridge-{version}.AppImage`
+- Windows NSIS installer: `dist_out/AxiBridge-{version}-Setup.exe`
 
 Version tag pattern: `v{semver}` (e.g. `v1.41.0`). Tags are created by `build-github.mjs` via `generate-release-notes.mjs`.
 

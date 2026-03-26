@@ -3,7 +3,6 @@ import type { DisruptionMethod, IMvpWeights, IStatsViewSettings } from '../../gl
 import { computeStatsAggregation } from '../computeStatsAggregation';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import type { DetailsCache } from '../../cache/DetailsCache';
-import { getAggregationCache, hashAggregationSettings } from '../aggregationCache';
 
 interface UseStatsAggregationProps {
     logs: any[];
@@ -417,21 +416,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             return log;
         });
 
-        // Check aggregation cache — include details count so cache invalidates when details arrive
-        const detailsCount = logsWithDetails.reduce((n: number, log: any) => n + (log.details ? 1 : 0), 0);
-        const settingsHash = hashAggregationSettings(mvpWeights, aggregationStatsViewSettings, disruptionMethod) + ':d' + detailsCount;
-        const cache = getAggregationCache();
-        const cachedResult = cache.get(logs.length, settingsHash);
-        if (cachedResult) {
-            const computeMs = 0; // Cache hit is instant
-            const completedAt = Date.now();
-            return { result: cachedResult, computeMs, startedAt, completedAt };
-        }
-
         const result = computeStatsAggregation({ logs: logsWithDetails, precomputedStats, mvpWeights, statsViewSettings: aggregationStatsViewSettings, disruptionMethod });
-
-        // Store in cache for future calls with same log count + details + settings
-        cache.set(logs.length, settingsHash, result);
 
         const computeMs = Math.max(0, performance.now() - computeStartedAt);
         const completedAt = Date.now();
@@ -481,8 +466,8 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const resolvedAggregationProgress = (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker)
         ? aggregationProgress
         : {
-            active: false,
-            phase: 'idle' as const,
+            active: logs.length > 0,
+            phase: logs.length > 0 ? 'settled' as const : 'idle' as const,
             streamed: logs.length,
             total: logs.length,
             startedAt: 0,

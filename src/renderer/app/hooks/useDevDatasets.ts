@@ -8,29 +8,27 @@ import {
     type IEmbedStatSettings,
     type IMvpWeights,
     type IStatsViewSettings,
-    type UiTheme
 } from '../../global.d';
+import type { ColorPalette } from '../../../shared/webThemes';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 
 interface UseDevDatasetsOptions {
-    view: 'dashboard' | 'stats' | 'history' | 'settings';
     bulkUploadMode: boolean;
     setView: Dispatch<SetStateAction<'dashboard' | 'stats' | 'history' | 'settings'>>;
     logs: ILogData[];
     setLogs: Dispatch<SetStateAction<ILogData[]>>;
     setExpandedLogId: Dispatch<SetStateAction<string | null>>;
-    setNotificationType: Dispatch<SetStateAction<'image' | 'image-beta' | 'embed'>>;
+    setNotificationType: Dispatch<SetStateAction<'embed'>>;
     setEmbedStatSettings: Dispatch<SetStateAction<IEmbedStatSettings>>;
     setMvpWeights: Dispatch<SetStateAction<IMvpWeights>>;
     setStatsViewSettings: Dispatch<SetStateAction<IStatsViewSettings>>;
     setDisruptionMethod: Dispatch<SetStateAction<DisruptionMethod>>;
-    setUiTheme: Dispatch<SetStateAction<UiTheme>>;
+    setColorPalette: Dispatch<SetStateAction<ColorPalette>>;
     setSelectedWebhookId: Dispatch<SetStateAction<string | null>>;
     setBulkUploadMode: Dispatch<SetStateAction<boolean>>;
 }
 
 export function useDevDatasets({
-    view,
     bulkUploadMode,
     setView,
     logs,
@@ -41,7 +39,7 @@ export function useDevDatasets({
     setMvpWeights,
     setStatsViewSettings,
     setDisruptionMethod,
-    setUiTheme,
+    setColorPalette,
     setSelectedWebhookId,
     setBulkUploadMode
 }: UseDevDatasetsOptions) {
@@ -69,7 +67,6 @@ export function useDevDatasets({
     const statsObjectIdMapRef = useRef<WeakMap<object, number>>(new WeakMap());
     const nextStatsObjectIdRef = useRef(1);
     const lastPublishedStatsKeyRef = useRef('');
-    const [statsViewMounted, setStatsViewMounted] = useState(false);
     const hasPendingStatsDetails = logs.some((log) => {
         if (detailsCache?.peek(log.id) || log.statsDetailsLoaded) return false;
         if (log.detailsKnownUnavailable) return false;
@@ -165,7 +162,7 @@ export function useDevDatasets({
         if (state.expandedLogId === null || typeof state.expandedLogId === 'string') {
             setExpandedLogId(state.expandedLogId ?? null);
         }
-        if (state.notificationType === 'image' || state.notificationType === 'image-beta' || state.notificationType === 'embed') {
+        if (state.notificationType === 'embed') {
             setNotificationType(state.notificationType);
         }
         if (state.embedStatSettings && typeof state.embedStatSettings === 'object') {
@@ -180,8 +177,8 @@ export function useDevDatasets({
         if (state.disruptionMethod === 'count' || state.disruptionMethod === 'duration' || state.disruptionMethod === 'tiered') {
             setDisruptionMethod(state.disruptionMethod);
         }
-        if (state.uiTheme === 'classic' || state.uiTheme === 'modern' || state.uiTheme === 'crt' || state.uiTheme === 'matte') {
-            setUiTheme(state.uiTheme);
+        if (state.colorPalette) {
+            setColorPalette(state.colorPalette);
         }
         if (state.selectedWebhookId === null || typeof state.selectedWebhookId === 'string') {
             setSelectedWebhookId(state.selectedWebhookId ?? null);
@@ -189,7 +186,7 @@ export function useDevDatasets({
         if (typeof state.bulkUploadMode === 'boolean') {
             setBulkUploadMode(state.bulkUploadMode);
         }
-    }, [setView, setExpandedLogId, setNotificationType, setEmbedStatSettings, setMvpWeights, setStatsViewSettings, setDisruptionMethod, setUiTheme, setSelectedWebhookId, setBulkUploadMode]);
+    }, [setView, setExpandedLogId, setNotificationType, setEmbedStatSettings, setMvpWeights, setStatsViewSettings, setDisruptionMethod, setColorPalette, setSelectedWebhookId, setBulkUploadMode]);
 
     const loadDevDatasets = useCallback(async () => {
         if (!window.electronAPI?.listDevDatasets) return;
@@ -236,13 +233,6 @@ export function useDevDatasets({
     }, [buildStatsSnapshotKey, logsForStats]);
 
     useEffect(() => {
-        if (view !== 'stats') {
-            if (statsBatchTimerRef.current) {
-                window.clearTimeout(statsBatchTimerRef.current);
-                statsBatchTimerRef.current = null;
-            }
-            return;
-        }
         if (bulkUploadMode) {
             if (statsBatchTimerRef.current) {
                 window.clearTimeout(statsBatchTimerRef.current);
@@ -255,7 +245,7 @@ export function useDevDatasets({
             statsBatchTimerRef.current = null;
             publishLogsForStats(logsRef.current);
         }, 1200);
-    }, [logs, view, bulkUploadMode, publishLogsForStats]);
+    }, [logs, bulkUploadMode, publishLogsForStats]);
 
     useEffect(() => {
         logsRef.current = logs;
@@ -271,28 +261,17 @@ export function useDevDatasets({
     }, []);
 
     useEffect(() => {
-        if (view === 'stats') {
-            setStatsViewMounted(true);
-            if (!bulkUploadMode) {
-                publishLogsForStats(logsRef.current);
-            }
-        }
-    }, [view, bulkUploadMode, publishLogsForStats]);
-
-    useEffect(() => {
-        if (view !== 'stats') return;
         if (bulkUploadMode) return;
         if (logsForStats.length === logs.length) return;
         publishLogsForStats(logsRef.current);
-    }, [view, bulkUploadMode, logs.length, logsForStats.length, publishLogsForStats]);
+    }, [bulkUploadMode, logs.length, logsForStats.length, publishLogsForStats]);
 
     useEffect(() => {
-        if (view !== 'stats') return;
         if (bulkUploadMode) return;
         if (hasPendingStatsDetails) return;
         // Publish a single full snapshot when pending detail hydration settles.
         publishLogsForStats(logsRef.current);
-    }, [view, bulkUploadMode, hasPendingStatsDetails, publishLogsForStats]);
+    }, [bulkUploadMode, hasPendingStatsDetails, publishLogsForStats]);
 
     useEffect(() => {
         if (!devDatasetsEnabled || !window.electronAPI?.onDevDatasetLogsChunk) return;
@@ -382,7 +361,6 @@ export function useDevDatasets({
         logsForStats,
         setLogsForStats,
         logsRef,
-        statsViewMounted,
         applyDevDatasetSnapshot,
         loadDevDatasets
     };

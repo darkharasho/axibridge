@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X, Columns, Users } from 'lucide-react';
+import { Maximize2, X, Columns, Users, Flame, ShieldOff } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
@@ -19,17 +19,17 @@ const SECTION_CONFIG = {
     outgoing: {
         sectionId: 'damage-modifiers',
         title: 'Damage Modifiers',
-        accentBg: 'bg-rose-500/20',
-        accentText: 'text-rose-200',
-        accentBorder: 'border-rose-500/40',
+        accentBg: 'bg-[var(--accent-bg-strong)]',
+        accentText: 'text-[color:var(--brand-primary)]',
+        accentBorder: 'border-[color:var(--accent-border)]',
         barGradientStyle: 'linear-gradient(to right, rgba(244,63,94,0.4), rgba(244,63,94,0.15))',
     },
     incoming: {
         sectionId: 'incoming-damage-modifiers',
         title: 'Incoming Damage Modifiers',
-        accentBg: 'bg-blue-500/20',
-        accentText: 'text-blue-200',
-        accentBorder: 'border-blue-500/40',
+        accentBg: 'bg-[var(--accent-bg-strong)]',
+        accentText: 'text-[color:var(--brand-primary)]',
+        accentBorder: 'border-[color:var(--accent-border)]',
         barGradientStyle: 'linear-gradient(to right, rgba(59,130,246,0.4), rgba(59,130,246,0.15))',
     },
 };
@@ -57,8 +57,7 @@ export const DamageModifiersSection = ({
         stats, formatWithCommas, renderProfessionIcon,
         expandedSection, expandedSectionClosing,
         openExpandedSection, closeExpandedSection,
-        isSectionVisible, isFirstVisibleSection,
-        sectionClass, sidebarListClass,
+        sidebarListClass,
     } = useStatsSharedContext();
 
     const config = incoming ? SECTION_CONFIG.incoming : SECTION_CONFIG.outgoing;
@@ -173,40 +172,25 @@ export const DamageModifiersSection = ({
 
     return (
         <div
-            id={config.sectionId}
-            data-section-visible={isSectionVisible(config.sectionId)}
-            data-section-first={isFirstVisibleSection(config.sectionId)}
-            className={sectionClass(config.sectionId, `bg-white/5 border border-white/10 rounded-2xl p-6 page-break-avoid stats-share-exclude scroll-mt-24 ${
-                isExpanded
-                    ? `fixed inset-0 z-50 overflow-y-auto h-screen shadow-2xl rounded-none modal-pane flex flex-col pb-10 ${
-                        expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                    }`
-                    : ''
-            }`)}
+            className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
+            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
         >
-            {/* Section header */}
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-                    {incoming ? (
-                        <svg className="w-5 h-5 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
-                    ) : (
-                        <svg className="w-5 h-5 text-rose-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                        </svg>
-                    )}
-                    {config.title}
-                </h3>
-                <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-3.5">
+                {incoming
+                    ? <ShieldOff className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
+                    : <Flame className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
+                }
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>{config.title}</h3>
+                <div className="ml-auto flex items-center gap-2">
                     <button
                         type="button"
                         onClick={() => setShowHypothetical((v) => !v)}
-                        className={`px-2.5 py-1.5 rounded-lg border text-[10px] uppercase tracking-widest transition-colors ${
+                        className={`px-2.5 py-1 rounded-[var(--radius-md)] border text-[10px] uppercase tracking-widest transition-colors ${
                             showHypothetical
-                                ? `${config.accentBg} ${config.accentText} ${config.accentBorder}`
-                                : 'border-white/10 bg-white/5 text-gray-400 hover:text-white hover:border-white/30'
+                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border-[color:var(--accent-border)]'
+                                : 'text-[color:var(--text-secondary)]'
                         }`}
+                        style={{ borderColor: showHypothetical ? undefined : 'var(--border-default)' }}
                         title={showHypothetical ? 'Showing all modifiers including shared squad buffs (banners, spirits, etc.) that are attributed to every benefiting player — not just the provider' : 'Show hypothetical shared modifiers — squad-wide buffs where damage gain is attributed to all benefiting players, not the buff source'}
                     >
                         Hypothetical
@@ -214,17 +198,18 @@ export const DamageModifiersSection = ({
                     <button
                         type="button"
                         onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(config.sectionId))}
-                        className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                        className="flex items-center justify-center w-[26px] h-[26px]"
+                        style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
                         aria-label={isExpanded ? `Close ${config.title}` : `Expand ${config.title}`}
                         title={isExpanded ? 'Close' : 'Expand'}
                     >
-                        {isExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                        {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
                     </button>
                 </div>
             </div>
 
             {modSummaries.length === 0 ? (
-                <div className="text-center text-gray-500 italic py-8">No {incoming ? 'incoming ' : ''}damage modifier data available</div>
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No {incoming ? 'incoming ' : ''}damage modifier data available</div>
             ) : isExpanded ? (
                 /* ===== EXPANDED / FULLSCREEN VIEW ===== */
                 <ExpandedView
@@ -384,29 +369,30 @@ const CollapsedView = ({
     return (
         <StatsTableLayout
             expanded={isExpanded}
-            sidebarClassName={`bg-black/20 border border-white/5 rounded-xl px-3 pt-3 pb-2 flex flex-col min-h-0 ${expandedSection === config.sectionId ? 'h-full flex-1' : 'self-start'}`}
-            contentClassName={`bg-black/30 border border-white/5 rounded-xl overflow-hidden ${expandedSection === config.sectionId ? 'flex flex-col min-h-0' : ''}`}
+            sidebarClassName={`pr-3 flex flex-col overflow-y-auto ${expandedSection === config.sectionId ? 'h-full flex-1 min-h-0' : ''}`}
+            contentClassName={`overflow-hidden ${expandedSection === config.sectionId ? 'flex flex-col min-h-0' : ''}`}
             sidebar={
                 <>
-                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Modifiers</div>
+                    <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Modifiers</div>
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search modifiers..."
-                        className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none mb-2"
+                        className="w-full px-2 py-1 text-xs text-[color:var(--text-primary)] focus:outline-none mb-2"
+                        style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
                     />
                     <div className={`${sidebarListClass} ${expandedSection === config.sectionId ? 'max-h-none flex-1 min-h-0' : ''}`}>
                         {filteredMods.length === 0 ? (
-                            <div className="text-center text-gray-500 italic py-6 text-xs">No modifiers match this filter</div>
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No modifiers match this filter</div>
                         ) : (
                             filteredMods.map((mod) => (
                                 <button
                                     key={mod.id}
                                     onClick={() => setActiveMod(mod.id)}
-                                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors flex items-center gap-2 ${
+                                    className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors flex items-center gap-2 ${
                                         effectiveActiveMod === mod.id
-                                            ? `${config.accentBg} ${config.accentText} ${config.accentBorder}`
-                                            : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                            ? `${config.accentBg} ${config.accentText} font-semibold`
+                                            : 'hover:bg-[var(--bg-hover)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                                     } ${!mod.isPersonal ? 'opacity-50' : ''}`}
                                 >
                                     {mod.icon && (
@@ -414,7 +400,7 @@ const CollapsedView = ({
                                     )}
                                     <span className="flex flex-col min-w-0">
                                         <span className="truncate">{mod.name}</span>
-                                        <span className={`text-[10px] font-normal ${mod.squadDamageGain < 0 ? 'text-teal-500' : 'text-gray-500'}`}>
+                                        <span className={`text-[10px] font-normal ${mod.squadDamageGain < 0 ? 'text-teal-500' : 'text-[color:var(--text-muted)]'}`}>
                                             {mod.squadDamageGain >= 0 ? '+' : ''}{formatWithCommas(mod.squadDamageGain, 0)} squad total
                                         </span>
                                     </span>
@@ -429,52 +415,51 @@ const CollapsedView = ({
                     {effectiveActiveMod && activeModInfo ? (
                         <StatsTableShell
                             expanded={isExpanded}
+                            animationKey={effectiveActiveMod}
                             header={
-                                <div className="flex items-center gap-3 px-4 py-3 bg-white/5">
+                                <div className="flex items-center gap-3 px-3 py-2">
                                     {activeModInfo.icon && (
-                                        <img src={activeModInfo.icon} alt="" className="w-6 h-6 object-contain flex-shrink-0" />
+                                        <img src={activeModInfo.icon} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
                                     )}
-                                    <div className="flex flex-col min-w-0 flex-1">
-                                        <div className="text-sm font-semibold text-gray-200">{activeModInfo.name}</div>
-                                        {activeModInfo.description && (
-                                            <div className="text-[11px] text-gray-400 leading-tight mt-0.5">
-                                                {activeModInfo.description.split(/<br\s*\/?>/).map((part, i, arr) => (
-                                                    <span key={i}>{part}{i < arr.length - 1 && <br />}</span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <div className="text-xs font-semibold text-[color:var(--text-primary)]">{activeModInfo.name}</div>
+                                    {activeModInfo.description && (
+                                        <div className="text-[10px] text-[color:var(--text-muted)] leading-tight">
+                                            {activeModInfo.description.split(/<br\s*\/?>/).map((part, i, arr) => (
+                                                <span key={i}>{part}{i < arr.length - 1 && <br />}</span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             }
                             columns={
-                                <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-xs uppercase tracking-wider text-gray-400 bg-white/5 px-4 py-2">
+                                <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
                                     <div className="text-center">#</div>
                                     <div>Player</div>
                                     <button
                                         type="button"
                                         onClick={() => updateCollapsedSort('damageGain')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'damageGain' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'damageGain' ? config.accentText : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Dmg Gain{collapsedSort.key === 'damageGain' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => updateCollapsedSort('pctTotal')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'pctTotal' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'pctTotal' ? config.accentText : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         % Total{collapsedSort.key === 'pctTotal' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => updateCollapsedSort('hitCoverage')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'hitCoverage' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'hitCoverage' ? config.accentText : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Hits{collapsedSort.key === 'hitCoverage' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => updateCollapsedSort('fightTime')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'fightTime' ? config.accentText : 'text-gray-400 hover:text-gray-200'}`}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'fightTime' ? config.accentText : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Fight Time{collapsedSort.key === 'fightTime' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button>
@@ -483,7 +468,7 @@ const CollapsedView = ({
                             rows={
                                 <>
                                     {sortedPlayerData.length === 0 ? (
-                                        <div className="px-4 py-8 text-center text-gray-500 italic text-sm">No player data for this modifier</div>
+                                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No player data for this modifier</div>
                                     ) : (
                                         sortedPlayerData.map((row, idx) => {
                                             const pctOfTotal = row.totalDamage > 0
@@ -502,15 +487,15 @@ const CollapsedView = ({
                                                     ? 'linear-gradient(to right, rgba(239,68,68,0.2), rgba(239,68,68,0.05))'
                                                     : config.barGradientStyle;
                                             return (
-                                                <div key={`${row.account}-${idx}`} className={`relative border-t border-white/5 ${activeModIsHypothetical ? 'opacity-50' : ''}`}>
+                                                <div key={`${row.account}-${idx}`} className={`relative border-b border-[color:var(--border-subtle)] ${activeModIsHypothetical ? 'opacity-50' : ''}`}>
                                                     {/* Bar overlay — negative grows from right, positive from left */}
                                                     <div
                                                         className={`absolute inset-y-0 pointer-events-none ${isNegative ? 'right-0' : 'left-0'}`}
                                                         style={{ width: `${barWidthPct}%`, background: barStyle }}
                                                     />
                                                     {/* Row content */}
-                                                    <div className="relative grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] px-4 py-2 text-sm text-gray-200">
-                                                        <div className="text-center text-gray-500 font-mono">{idx + 1}</div>
+                                                    <div className="relative grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] px-3 py-2 text-xs text-[color:var(--text-primary)]">
+                                                        <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
                                                         <div className="flex items-center gap-2 min-w-0">
                                                             {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                             <span className="truncate">{row.account}</span>
@@ -518,13 +503,13 @@ const CollapsedView = ({
                                                         <div className={`text-right font-mono ${isNegative ? 'text-teal-400' : incoming ? 'text-red-400' : config.accentText}`}>
                                                             {row.damageGain >= 0 ? '+' : ''}{formatWithCommas(row.damageGain, 0)}
                                                         </div>
-                                                        <div className="text-right font-mono text-gray-400">
+                                                        <div className="text-right font-mono text-[color:var(--text-secondary)]">
                                                             {pctOfTotal}%
                                                         </div>
-                                                        <div className="text-right font-mono text-gray-400">
+                                                        <div className="text-right font-mono text-[color:var(--text-secondary)]">
                                                             {hitCoverage}
                                                         </div>
-                                                        <div className="text-right font-mono text-gray-400">
+                                                        <div className="text-right font-mono text-[color:var(--text-secondary)]">
                                                             {row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '—'}
                                                         </div>
                                                     </div>
@@ -536,7 +521,7 @@ const CollapsedView = ({
                             }
                         />
                     ) : (
-                        <div className="px-4 py-8 text-center text-gray-500 italic text-sm">Select a modifier from the sidebar</div>
+                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a modifier from the sidebar</div>
                     )}
                 </>
             }
@@ -610,9 +595,7 @@ const ExpandedView = ({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="bg-black/20 border border-white/5 rounded-xl px-4 py-3">
-                <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Modifier Columns</div>
-                <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     <SearchSelectDropdown
                         options={[
                             ...allColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
@@ -655,7 +638,7 @@ const ExpandedView = ({
                         buttonLabel="Players"
                         buttonIcon={<Users className="h-3.5 w-3.5" />}
                     />
-                </div>
+            </div>
                 {(selectedColumnIds.length > 0 || selectedPlayers.length > 0) && (
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                         <button
@@ -664,7 +647,7 @@ const ExpandedView = ({
                                 setSelectedColumnIds([]);
                                 setSelectedPlayers([]);
                             }}
-                            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                            className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-2 py-1 text-[11px] text-[color:var(--text-primary)] hover:text-[color:var(--text-primary)]"
                         >
                             Clear All
                         </button>
@@ -675,10 +658,11 @@ const ExpandedView = ({
                                     key={id}
                                     type="button"
                                     onClick={() => setSelectedColumnIds((prev) => prev.filter((e) => e !== id))}
-                                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                                 >
                                     <span>{label}</span>
-                                    <span className="text-gray-400">&times;</span>
+                                    <span style={{ color: 'var(--text-secondary)' }}>&times;</span>
                                 </button>
                             );
                         })}
@@ -687,18 +671,18 @@ const ExpandedView = ({
                                 key={id}
                                 type="button"
                                 onClick={() => setSelectedPlayers((prev) => prev.filter((e) => e !== id))}
-                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:text-white"
+                                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
+                                style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
                             >
                                 <span>{id}</span>
-                                <span className="text-gray-400">&times;</span>
+                                <span style={{ color: 'var(--text-secondary)' }}>&times;</span>
                             </button>
                         ))}
                     </div>
                 )}
-            </div>
-            <div className="bg-black/30 border border-white/5 rounded-xl overflow-hidden">
+            <div className="overflow-hidden">
                 {visibleMods.length === 0 ? (
-                    <div className="px-4 py-10 text-center text-gray-500 italic text-sm">No modifiers match this filter</div>
+                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No modifiers match this filter</div>
                 ) : (
                     <DenseStatsTable
                         title={`${config.title} - Dense View`}
@@ -726,7 +710,7 @@ const ExpandedView = ({
                             id: `${entry.row.account}-${idx}`,
                             label: (
                                 <>
-                                    <span className="text-gray-500 font-mono">{idx + 1}</span>
+                                    <span className="text-[color:var(--text-muted)] font-mono">{idx + 1}</span>
                                     {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                     <span className="truncate">{entry.row.account}</span>
                                 </>

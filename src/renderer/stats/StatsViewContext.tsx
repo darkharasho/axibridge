@@ -1,4 +1,4 @@
-import { createContext, useContext, type JSX } from 'react';
+import { createContext, useContext, type JSX, type RefObject } from 'react';
 
 export interface StatsSharedContextValue {
     stats: any;
@@ -13,6 +13,9 @@ export interface StatsSharedContextValue {
     formatWithCommas: (value: number, decimals: number) => string;
     renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => JSX.Element | null;
     roundCountStats: boolean;
+    /** Portal target at the StatsView root level — sections portal their expanded
+     *  content here so `position: fixed` escapes ancestor transforms/filters. */
+    expandedPortalRef: RefObject<HTMLDivElement | null>;
 }
 
 export const StatsSharedContext = createContext<StatsSharedContextValue | null>(null);

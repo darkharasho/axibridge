@@ -53,17 +53,9 @@ Show the notes to the user. **Wait for explicit approval before proceeding to Jo
 
 ## Job 2: Run the Build Pipeline
 
-Once notes are approved, **first commit the release notes**, then run the build:
+Once notes are approved, run **exactly one command**:
 
 ```bash
-# Step 1: Commit release notes BEFORE the build
-git add RELEASE_NOTES.md
-git commit -m "docs: update release notes for v<VERSION>"
-git push
-```
-
-```bash
-# Step 2: Run the build pipeline
 # If bump type is none:
 node scripts/build-github.mjs --skip-release-notes
 
@@ -71,7 +63,7 @@ node scripts/build-github.mjs --skip-release-notes
 node scripts/build-github.mjs <BUMP_TYPE> --skip-release-notes
 ```
 
-The build script handles: validate → ci:local → version bump + commit + push → build → commit-web-dist → electron-builder (linux + win) → git tag + push → GitHub Release upload.
+This single script handles: validate → ci:local → version bump + commit + push → build → commit-web-dist → electron-builder (linux + win) → git tag + push → GitHub Release upload.
 
 Report the script's output. If it fails, show the error and suggest fixes. Do not attempt to manually run the steps it would have run.
 

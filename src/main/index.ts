@@ -5,7 +5,7 @@ import https from 'node:https'
 import { createHash } from 'node:crypto'
 
 import { spawn } from 'node:child_process'
-import { BASE_WEB_THEMES, CRT_WEB_THEME, CRT_WEB_THEME_ID, DEFAULT_WEB_THEME_ID, KINETIC_DARK_WEB_THEME, KINETIC_DARK_WEB_THEME_ID, KINETIC_SLATE_WEB_THEME, KINETIC_SLATE_WEB_THEME_ID, KINETIC_WEB_THEME, KINETIC_WEB_THEME_ID, MATTE_WEB_THEME, MATTE_WEB_THEME_ID, type WebTheme } from '../shared/webThemes';
+import { LEGACY_THEME_TO_PALETTE } from '../shared/webThemes';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'
 import { Uploader, UploadResult } from './uploader'
@@ -103,7 +103,6 @@ import {
     DEFAULT_EMBED_STATS,
     DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS,
     normalizeMvpWeights,
-    normalizeKineticThemeVariant,
 } from './handlers/settingsHandlers';
 import { registerDatasetHandlers } from './handlers/datasetHandlers';
 import { registerUploadHandlers } from './handlers/uploadHandlers';
@@ -136,9 +135,48 @@ process.on('unhandledRejection', (reason) => {
     log.error('[Crash] Unhandled promise rejection:', reason instanceof Error ? reason.stack : reason);
 });
 
+// ─── User data migration: ArcBridge → AxiBridge ─────────────────────────────
+// Must run before `new Store()` — electron-store derives its path from
+// app.getPath('userData'), which changed when productName became "AxiBridge".
 if (!app.isPackaged) {
-    const devUserDataDir = path.join(app.getPath('appData'), 'ArcBridge-Dev');
+    // Dev mode: migrate ArcBridge-Dev → AxiBridge-Dev
+    const appData = app.getPath('appData');
+    const oldDevDir = path.join(appData, 'ArcBridge-Dev');
+    const newDevDir = path.join(appData, 'AxiBridge-Dev');
+    if (fs.existsSync(oldDevDir) && !fs.existsSync(newDevDir)) {
+        try {
+            fs.cpSync(oldDevDir, newDevDir, { recursive: true });
+            log.info('[Migration] Copied dev userData from ArcBridge-Dev to AxiBridge-Dev');
+        } catch (err: any) {
+            log.warn('[Migration] Failed to copy dev userData:', err?.message || err);
+        }
+    }
+    const devUserDataDir = path.join(app.getPath('appData'), 'AxiBridge-Dev');
     app.setPath('userData', devUserDataDir);
+} else {
+    const appData = app.getPath('appData');
+    const oldDir = path.join(appData, 'ArcBridge');
+    const newDir = path.join(appData, 'AxiBridge');
+    if (fs.existsSync(oldDir) && !fs.existsSync(newDir)) {
+        try {
+            fs.cpSync(oldDir, newDir, { recursive: true });
+            log.info('[Migration] Copied userData from ArcBridge to AxiBridge');
+        } catch (err: any) {
+            log.warn('[Migration] Failed to copy userData:', err?.message || err);
+        }
+    }
+}
+
+// Migrate DPS report cache directory
+const oldCacheDir = path.join(app.getPath('temp'), 'arcbridge-dps-report-cache');
+const newCacheDir = path.join(app.getPath('temp'), 'axibridge-dps-report-cache');
+if (fs.existsSync(oldCacheDir) && !fs.existsSync(newCacheDir)) {
+    try {
+        fs.renameSync(oldCacheDir, newCacheDir);
+        log.info('[Migration] Renamed DPS report cache directory');
+    } catch (err: any) {
+        log.warn('[Migration] Failed to rename cache dir:', err?.message || err);
+    }
 }
 
 const { setForwarding: setConsoleLogForwarding, getHistory: getConsoleLogHistory } = setupConsoleLogger(() => win);
@@ -146,6 +184,20 @@ const { setForwarding: setConsoleLogForwarding, getHistory: getConsoleLogHistory
 const Store = require('electron-store');
 const store = new Store();
 
+// ─── Settings migration: legacy UiTheme → colorPalette + glassSurfaces ────────
+{
+    const legacyUiTheme = store.get('uiTheme') as string | undefined;
+    if (legacyUiTheme) {
+        const mapping = LEGACY_THEME_TO_PALETTE[legacyUiTheme] ?? { palette: 'electric-blue', glass: false };
+        store.set('colorPalette', mapping.palette);
+        store.set('glassSurfaces', mapping.glass);
+        store.delete('uiTheme');
+        store.delete('githubWebTheme');
+        store.delete('kineticFontStyle');
+        store.delete('kineticThemeVariant');
+        store.delete('dashboardLayout');
+    }
+}
 
 // Local wrappers bind the store-injected functions from uploadRetryQueue.ts to
 // the module-level electron-store instance, preserving all existing call sites.
@@ -155,7 +207,7 @@ const loadUploadRetryState = (): UploadRetryRuntimeState => loadUploadRetryState
 const saveUploadRetryState = (state: UploadRetryRuntimeState) => saveUploadRetryStateToStore(store, state);
 
 const getLegacyDpsReportCacheDir = () => path.join(app.getPath('userData'), 'dps-report-cache');
-const getDpsReportCacheDir = () => path.join(app.getPath('temp'), 'arcbridge-dps-report-cache');
+const getDpsReportCacheDir = () => path.join(app.getPath('temp'), 'axibridge-dps-report-cache');
 
 // Local wrappers bind the store- and dir-injected cache functions to this process context.
 const loadDpsReportCacheIndex = () => loadDpsReportCacheIndexFn(store);
@@ -182,7 +234,6 @@ let autoUpdateRetryAttempts = 0;
 let autoUpdateRetryTimer: NodeJS.Timeout | null = null;
 let resolvedRetryCount = 0;
 const activeUploads = new Set<string>();
-const pendingDiscordLogs = new Map<string, { result: any, jsonDetails: any }>();
 const recentDiscordSends = new Map<string, number>();
 const DISCORD_DEDUPE_TTL_MS = 2 * 60 * 1000;
 let discordNoWebhookLogAt = 0;
@@ -295,7 +346,7 @@ const updateGlobalManifest = async (details: any, filePath: string) => {
         console.warn('[Main] Failed to update global manifest:', err?.message || err);
     }
 };
-const GITHUB_PROTOCOL = 'arcbridge';
+const GITHUB_PROTOCOL = 'axibridge';
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
 
 const getUploadRetryQueuePayload = (): UploadRetryQueuePayload =>
@@ -461,7 +512,6 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 fightName: result.fightName
             });
 
-            const notificationType = store.get('discordNotificationType', 'image');
             const enemySplitSettings = {
                 image: false,
                 embed: false,
@@ -469,16 +519,12 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 ...(store.get('discordEnemySplitSettings') as any || {})
             };
             const globalSplitEnemiesByTeam = Boolean(store.get('discordSplitEnemiesByTeam', false));
-            const splitEnemiesByTeam = globalSplitEnemiesByTeam || (notificationType === 'image-beta'
-                ? Boolean(enemySplitSettings.tiled)
-                : notificationType === 'embed'
-                    ? Boolean(enemySplitSettings.embed)
-                    : Boolean(enemySplitSettings.image));
+            const splitEnemiesByTeam = globalSplitEnemiesByTeam || Boolean(enemySplitSettings.embed);
             const selectedWebhookId = store.get('selectedWebhookId', null);
             const webhookUrl = store.get('discordWebhookUrl', null);
             const shouldSendDiscord = Boolean(selectedWebhookId) && typeof webhookUrl === 'string' && webhookUrl.length > 0;
             if (shouldSendDiscord) {
-                console.log(`[Main] Preparing Discord delivery. Configured type: ${notificationType}`);
+                console.log('[Main] Preparing Discord embed delivery.');
             }
 
             if (shouldSendDiscord) {
@@ -497,17 +543,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                                 }
                             }
                         }
-                        if (notificationType === 'image' || notificationType === 'image-beta') {
-                            const logKey = result.id || filePath;
-                            if (!logKey) {
-                                console.error('[Main] Discord notification skipped: missing log identifier.');
-                            } else {
-                                pendingDiscordLogs.set(logKey, { result: { ...result, filePath, id: logKey }, jsonDetails });
-                                win?.webContents.send('request-screenshot', { ...result, id: logKey, filePath, details: jsonDetails, mode: notificationType, splitEnemiesByTeam });
-                            }
-                        } else {
-                            await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam }, jsonDetails);
-                        }
+                        await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam }, jsonDetails);
                     }
                 } catch (discordError: any) {
                     console.error('[Main] Discord notification failed:', discordError?.message || discordError);
@@ -685,9 +721,52 @@ const migrateLegacyInstallName = () => {
     }
 };
 
+const migrateArcBridgeInstallName = () => {
+    if (!app.isPackaged) return;
+    const legacyPrefix = 'ArcBridge';
+    const newPrefix = 'AxiBridge';
+
+    if (process.platform === 'linux') {
+        const appImagePath = process.env.APPIMAGE;
+        if (!appImagePath) return;
+        const baseName = path.basename(appImagePath);
+        if (!baseName.startsWith(legacyPrefix)) return;
+        // Don't rename if already AxiBridge
+        if (baseName.startsWith(newPrefix)) return;
+        const newName = baseName.replace(legacyPrefix, newPrefix);
+        const targetPath = path.join(path.dirname(appImagePath), newName);
+        if (fs.existsSync(targetPath)) return;
+        try {
+            fs.copyFileSync(appImagePath, targetPath);
+            fs.chmodSync(targetPath, 0o755);
+            log.info(`[Bridge] Created new AppImage name: ${targetPath}`);
+        } catch (err: any) {
+            log.warn(`[Bridge] Failed to copy AppImage to new name: ${err?.message || err}`);
+        }
+        return;
+    }
+
+    if (process.platform === 'win32') {
+        const portablePath = process.env.PORTABLE_EXECUTABLE;
+        if (!portablePath) return;
+        const baseName = path.basename(portablePath);
+        if (!baseName.startsWith(legacyPrefix)) return;
+        if (baseName.startsWith(newPrefix)) return;
+        const newName = baseName.replace(legacyPrefix, newPrefix);
+        const targetPath = path.join(path.dirname(portablePath), newName);
+        if (fs.existsSync(targetPath)) return;
+        try {
+            fs.copyFileSync(portablePath, targetPath);
+            log.info(`[Bridge] Created new portable name: ${targetPath}`);
+        } catch (err: any) {
+            log.warn(`[Bridge] Failed to copy portable exe to new name: ${err?.message || err}`);
+        }
+    }
+};
+
 
 function createTray() {
-    const iconPath = path.join(process.env.VITE_PUBLIC || '', 'img/ArcBridge.png');
+    const iconPath = path.join(process.env.VITE_PUBLIC || '', 'img/AxiBridge-white.png');
     const icon = nativeImage.createFromPath(iconPath);
     tray = new Tray(icon.resize({ width: 16, height: 16 }));
 
@@ -718,7 +797,7 @@ function createTray() {
         }
     ]);
 
-    tray.setToolTip('ArcBridge');
+    tray.setToolTip('AxiBridge');
     tray.setContextMenu(contextMenu);
 
     tray.on('click', () => {
@@ -734,7 +813,7 @@ function createTray() {
 function createWindow() {
     const bounds = store.get('windowBounds') as { width: number, height: number } | undefined;
 
-    const iconPath = path.join(process.env.VITE_PUBLIC || '', 'img/ArcBridgeAppIcon.png');
+    const iconPath = path.join(process.env.VITE_PUBLIC || '', 'img/AxiBridge-white.png');
     console.log(`[Main] Loading icon from: ${iconPath}`);
     const appIcon = nativeImage.createFromPath(iconPath);
 
@@ -930,6 +1009,7 @@ if (!gotTheLock) {
         }
         migrateLegacySettings();
         migrateLegacyInstallName();
+        migrateArcBridgeInstallName();
         createWindow();
         createTray();
 
@@ -1016,7 +1096,7 @@ if (!gotTheLock) {
 
         // Removed get-logs and save-logs handlers
 
-        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'image' | 'image-beta' | 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, uiTheme?: 'classic' | 'modern' | 'crt' | 'matte' | 'kinetic', kineticFontStyle?: 'default' | 'original', kineticThemeVariant?: 'light' | 'midnight' | 'slate', dashboardLayout?: 'top' | 'side', githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubWebTheme?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, colorPalette?: string, glassSurfaces?: boolean, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -1083,17 +1163,11 @@ if (!gotTheLock) {
                 store.set('disruptionMethod', settings.disruptionMethod);
                 discord?.setDisruptionMethod(settings.disruptionMethod);
             }
-            if (settings.uiTheme !== undefined) {
-                store.set('uiTheme', settings.uiTheme);
+            if (settings.colorPalette !== undefined) {
+                store.set('colorPalette', settings.colorPalette);
             }
-            if (settings.kineticFontStyle !== undefined) {
-                store.set('kineticFontStyle', settings.kineticFontStyle);
-            }
-            if (settings.kineticThemeVariant !== undefined) {
-                store.set('kineticThemeVariant', normalizeKineticThemeVariant(settings.kineticThemeVariant));
-            }
-            if (settings.dashboardLayout !== undefined) {
-                store.set('dashboardLayout', settings.dashboardLayout);
+            if (settings.glassSurfaces !== undefined) {
+                store.set('glassSurfaces', settings.glassSurfaces);
             }
             if (settings.githubRepoOwner !== undefined) {
                 store.set('githubRepoOwner', settings.githubRepoOwner);
@@ -1109,9 +1183,6 @@ if (!gotTheLock) {
             }
             if (settings.githubToken !== undefined) {
                 store.set('githubToken', settings.githubToken);
-            }
-            if (settings.githubWebTheme !== undefined) {
-                store.set('githubWebTheme', settings.githubWebTheme);
             }
             if (settings.githubLogoPath !== undefined) {
                 store.set('githubLogoPath', settings.githubLogoPath);
@@ -1130,7 +1201,6 @@ if (!gotTheLock) {
         registerDiscordHandlers({
             store,
             getDiscord: () => discord,
-            pendingDiscordLogs,
             setConsoleLogForwarding,
             getConsoleLogHistory,
         });
