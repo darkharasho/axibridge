@@ -948,15 +948,15 @@ export function ReportApp() {
         if (report) {
             const dateLabel = report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd);
             document.title = dateLabel
-                ? `ArcBridge — ${report.meta.title} — ${dateLabel}`
-                : `ArcBridge — ${report.meta.title}`;
+                ? `AxiBridge — ${report.meta.title} — ${dateLabel}`
+                : `AxiBridge — ${report.meta.title}`;
             return;
         }
         if (isRollupView) {
-            document.title = 'ArcBridge — All Reports';
+            document.title = 'AxiBridge — All Reports';
             return;
         }
-        document.title = 'ArcBridge Reports';
+        document.title = 'AxiBridge Reports';
     }, [isRollupView, report]);
 
     useEffect(() => {
@@ -1098,7 +1098,7 @@ export function ReportApp() {
                 </div>
             </div>
             <p>
-                ArcBridge is free software by harasho: you can redistribute it and/or modify it under the terms
+                AxiBridge is free software by harasho: you can redistribute it and/or modify it under the terms
                 of the GNU General Public License v3.0 only. This program comes with ABSOLUTELY NO WARRANTY.
             </p>
             <p className="mt-2">
@@ -1278,7 +1278,7 @@ export function ReportApp() {
     );
 
     if (report) {
-        const arcbridgeLogoUrl = joinAssetPath(assetBasePath, 'svg/AxiBridge.svg');
+        const axibridgeLogoUrl = joinAssetPath(assetBasePath, 'svg/AxiBridge.svg');
         const animateGroupScrollToTop = () => {
             if (groupTopScrollRafRef.current !== null) {
                 cancelAnimationFrame(groupTopScrollRafRef.current);
@@ -1510,8 +1510,8 @@ export function ReportApp() {
                                     className="h-10 w-10 rounded-2xl border border-white/20"
                                     style={{
                                         backgroundColor: defaultLogoColor,
-                                        maskImage: `url("${arcbridgeLogoUrl}")`,
-                                        WebkitMaskImage: `url("${arcbridgeLogoUrl}")`,
+                                        maskImage: `url("${axibridgeLogoUrl}")`,
+                                        WebkitMaskImage: `url("${axibridgeLogoUrl}")`,
                                         maskRepeat: 'no-repeat',
                                         WebkitMaskRepeat: 'no-repeat',
                                         maskPosition: 'center',
@@ -1520,7 +1520,7 @@ export function ReportApp() {
                                         WebkitMaskSize: '65%',
                                         maskMode: 'alpha'
                                     }}
-                                    aria-label="ArcBridge logo"
+                                    aria-label="AxiBridge logo"
                                 />
                                 <div>
                                     <div><div className="text-[11px] tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Arc</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Reports</div></div>
@@ -1622,7 +1622,7 @@ export function ReportApp() {
                                                 WebkitMaskSize: 'contain',
                                                 maskMode: 'alpha'
                                             }}
-                                            aria-label="ArcBridge logo"
+                                            aria-label="AxiBridge logo"
                                         />
                                     ) : (
                                         <img
@@ -1773,7 +1773,7 @@ export function ReportApp() {
                                                 WebkitMaskSize: 'contain',
                                                 maskMode: 'alpha'
                                             }}
-                                            aria-label="ArcBridge logo"
+                                            aria-label="AxiBridge logo"
                                         />
                                     ) : (
                                         <img
@@ -2094,7 +2094,7 @@ export function ReportApp() {
                             ) : (
                                 <img
                                     src={joinAssetPath(assetBasePath, 'img/AxiBridge-white.png')}
-                                    alt="ArcBridge logo"
+                                    alt="AxiBridge logo"
                                     className="w-20 h-20 sm:w-28 sm:h-28 mx-auto sm:mx-0 shrink-0 object-contain"
                                 />
                             )}
