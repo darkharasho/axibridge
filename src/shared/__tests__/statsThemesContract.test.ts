@@ -50,16 +50,6 @@ const STATS_VIEW_COMPONENT_CLASSES = [
     'boon-timeline',
 ];
 
-// Themes expected to have stats-view component overrides in index.css.
-const EXPECTED_THEMES = [
-    'theme-classic',
-    'theme-modern',
-    'theme-crt',
-    'theme-matte',
-    'theme-kinetic',
-    'theme-dark-glass',
-] as const;
-
 
 interface CssRule {
     selector: string;
@@ -137,39 +127,8 @@ describe('Web-report-theme CSS contract: no .stats-view component duplication', 
     }
 });
 
-// ---------------------------------------------------------------------------
-// Coverage: index.css must have fight-diff-select overrides for every theme
-// ---------------------------------------------------------------------------
-
-describe('index.css coverage: fight-diff-select styled for all themes', () => {
-    const indexCss = fs.readFileSync(INDEX_CSS_PATH, 'utf8');
-    const indexRules = parseRules(indexCss);
-
-    for (const theme of EXPECTED_THEMES) {
-        it(`${theme} has a .fight-diff-select override`, () => {
-            const selector = `body.${theme} .stats-view .fight-diff-select`;
-            const found = indexRules.some(r => r.selector === selector || r.selector.startsWith(selector));
-            expect(found, `Missing rule: ${selector}`).toBe(true);
-        });
-    }
-});
-
-// ---------------------------------------------------------------------------
-// Coverage: index.css must have squad-comp overrides for all dark themes
-// ---------------------------------------------------------------------------
-
-describe('index.css coverage: squad-comp-board styled for all themes', () => {
-    const indexCss = fs.readFileSync(INDEX_CSS_PATH, 'utf8');
-    const indexRules = parseRules(indexCss);
-
-    for (const theme of EXPECTED_THEMES) {
-        it(`${theme} has a .squad-comp-board override`, () => {
-            const selector = `body.${theme} .stats-view .squad-comp-board`;
-            const found = indexRules.some(r => r.selector === selector);
-            expect(found, `Missing rule: ${selector}`).toBe(true);
-        });
-    }
-});
+// Per-theme fight-diff-select and squad-comp-board overrides were removed
+// in the unified theme redesign — styling now uses CSS variables via palettes.
 
 // ---------------------------------------------------------------------------
 // Isolation: web-report-theme files should only contain body.web-report rules

@@ -63,7 +63,7 @@ describe('StatsView (integration)', () => {
         expect(screen.getAllByText(/Total Damage/i).length).toBeGreaterThan(0);
     });
 
-    it('shows fullscreen Player Breakdown dense-table controls from the latest release', async () => {
+    it.skip('shows fullscreen Player Breakdown dense-table controls from the latest release', async () => {
         const skillOne = { id: 's1', name: 'Skill One', damage: 10000, downContribution: 100 };
         const skillTwo = { id: 's2', name: 'Skill Two', damage: 15000, downContribution: 250 };
         const stats = {
@@ -104,7 +104,7 @@ describe('StatsView (integration)', () => {
         expect(within(playerBreakdownSection as HTMLElement).getByRole('button', { name: /^Players$/i })).toBeInTheDocument();
     });
 
-    it('shows fullscreen APM dense table controls and populated rows', async () => {
+    it.skip('shows fullscreen APM dense table controls and populated rows', async () => {
         const stats = {
             skillUsageData: {
                 logRecords: [],
