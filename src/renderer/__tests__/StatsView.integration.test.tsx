@@ -63,7 +63,7 @@ describe('StatsView (integration)', () => {
         expect(screen.getAllByText(/Total Damage/i).length).toBeGreaterThan(0);
     });
 
-    it.skip('shows fullscreen Player Breakdown dense-table controls from the latest release', async () => {
+    it('shows fullscreen Player Breakdown dense-table controls from the latest release', async () => {
         const skillOne = { id: 's1', name: 'Skill One', damage: 10000, downContribution: 100 };
         const skillTwo = { id: 's2', name: 'Skill Two', damage: 15000, downContribution: 250 };
         const stats = {
@@ -92,19 +92,28 @@ describe('StatsView (integration)', () => {
             />
         );
 
+        // Click expand before content is portalled out of the section
         const playerBreakdownSection = document.getElementById('player-breakdown');
         expect(playerBreakdownSection).not.toBeNull();
         fireEvent.click(within(playerBreakdownSection as HTMLElement).getByRole('button', { name: /Expand Player Breakdown/i }));
 
+        // Expanding forces class mode — click the Guardian class in the sidebar
+        // (content is now portalled to StatsView root, so query via the modal pane)
         await waitFor(() => {
-            expect(within(playerBreakdownSection as HTMLElement).getByText(/Class Breakdown - Dense View/i)).toBeInTheDocument();
+            expect(screen.getByText(/Squad Classes/i)).toBeInTheDocument();
         });
-        expect(within(playerBreakdownSection as HTMLElement).getByPlaceholderText(/Search\.\.\./i)).toBeInTheDocument();
-        expect(within(playerBreakdownSection as HTMLElement).getByRole('button', { name: /^Columns$/i })).toBeInTheDocument();
-        expect(within(playerBreakdownSection as HTMLElement).getByRole('button', { name: /^Players$/i })).toBeInTheDocument();
+        const modalPane = document.querySelector('.modal-pane') as HTMLElement;
+        fireEvent.click(within(modalPane).getByRole('button', { name: /Guardian/i }));
+
+        await waitFor(() => {
+            expect(screen.getByText(/Class Breakdown - Dense View/i)).toBeInTheDocument();
+        });
+        expect(screen.getByPlaceholderText(/Search skills\.\.\./i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Columns$/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Players$/i })).toBeInTheDocument();
     });
 
-    it.skip('shows fullscreen APM dense table controls and populated rows', async () => {
+    it('shows fullscreen APM dense table controls and populated rows', async () => {
         const stats = {
             skillUsageData: {
                 logRecords: [],
@@ -138,18 +147,20 @@ describe('StatsView (integration)', () => {
             />
         );
 
+        // Click expand before content is portalled out of the section
         const apmSection = document.getElementById('apm-stats');
         expect(apmSection).not.toBeNull();
         fireEvent.click(within(apmSection as HTMLElement).getByRole('button', { name: /Expand APM Breakdown/i }));
-        fireEvent.click(within(apmSection as HTMLElement).getByRole('button', { name: /Guardian/i }));
 
+        // Content is now portalled to StatsView root; useEffect auto-selects Guardian spec
+        // so the dense view should appear without needing to click Guardian manually
         await waitFor(() => {
-            expect(within(apmSection as HTMLElement).getByText(/APM - Dense View/i)).toBeInTheDocument();
+            expect(screen.getByText(/APM - Dense View/i)).toBeInTheDocument();
         });
-        expect(within(apmSection as HTMLElement).getByPlaceholderText(/Search\.\.\./i)).toBeInTheDocument();
-        expect(within(apmSection as HTMLElement).getByRole('button', { name: /^Columns$/i })).toBeInTheDocument();
-        expect(within(apmSection as HTMLElement).getByRole('button', { name: /^Players$/i })).toBeInTheDocument();
-        expect(within(apmSection as HTMLElement).getByText(/acct\.3456/i)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/Search skills\.\.\./i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Columns$/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Players$/i })).toBeInTheDocument();
+        expect(screen.getByText(/acct\.3456/i)).toBeInTheDocument();
     });
 
     it('shows a syncing banner when fights exist but stats logs are not yet synchronized', () => {
