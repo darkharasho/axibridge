@@ -77,7 +77,7 @@ test.describe('Settings — dps.report Token (SET-020–022)', () => {
     test('SET-020: set token triggers save', async ({ page }) => {
         await setupAppPage(page);
         await navigateTo(page, 'Settings');
-        const tokenSection = page.locator('[data-settings-label="dps.report Token"]');
+        const tokenSection = page.locator('[data-settings-label="dps.report User Token"]');
         await tokenSection.scrollIntoViewIfNeeded();
         const tokenInput = tokenSection.locator('input').first();
         if (await tokenInput.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -90,7 +90,7 @@ test.describe('Settings — dps.report Token (SET-020–022)', () => {
     test('SET-021: clear token', async ({ page }) => {
         await setupAppPage(page, { settings: { dpsReportToken: 'existing-token' } });
         await navigateTo(page, 'Settings');
-        const tokenSection = page.locator('[data-settings-label="dps.report Token"]');
+        const tokenSection = page.locator('[data-settings-label="dps.report User Token"]');
         await tokenSection.scrollIntoViewIfNeeded();
         const clearBtn = tokenSection.getByRole('button').first();
         if (await clearBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -102,7 +102,7 @@ test.describe('Settings — dps.report Token (SET-020–022)', () => {
     test('SET-022: token section renders', async ({ page }) => {
         await setupAppPage(page, { settings: { dpsReportToken: 'secret-token' } });
         await navigateTo(page, 'Settings');
-        const tokenSection = page.locator('[data-settings-label="dps.report Token"]');
+        const tokenSection = page.locator('[data-settings-label="dps.report User Token"]');
         await tokenSection.scrollIntoViewIfNeeded();
         await expect(tokenSection).toBeVisible();
     });

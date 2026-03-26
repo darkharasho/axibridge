@@ -294,7 +294,11 @@ export function createElectronAPIMock(overrides?: ElectronAPIMockOverrides): voi
         },
         getWhatsNew: (...args: any[]) => {
             log('getWhatsNew', args)
-            return Promise.resolve(o.whatsNew ?? null)
+            return Promise.resolve(o.whatsNew ?? {
+                version: o.appVersion ?? '2.0.3',
+                lastSeenVersion: o.appVersion ?? '2.0.3',
+                releaseNotes: null,
+            })
         },
         setLastSeenVersion: (...args: any[]) => {
             log('setLastSeenVersion', args)

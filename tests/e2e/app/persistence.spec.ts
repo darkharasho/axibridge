@@ -4,12 +4,15 @@ import { setupAppPage, navigateTo, expectAPICalled } from './helpers/appTestHelp
 test.describe('Data Persistence (PERS-001–008)', () => {
     test('PERS-001: persisted logs loaded on startup', async ({ page }) => {
         const mockLogs = [{
-            id: 'persisted-1', filePath: '/fake/logs/old.zevtc', fileName: 'old.zevtc',
+            id: 'persisted-1', filePath: '/fake/logs/old.zevtc',
             fightName: 'Persisted Fight', permalink: 'https://dps.report/xyz',
-            uploadTime: '2026-03-20T18:00:00Z', status: 'success',
-            squadDisplayCount: 20, nonSquadDisplayCount: 25,
-            summary: { damage: 100000, downs: 5, healing: 50000, barrier: 20000, cleanses: 10, strips: 5, cc: 200, stability: 100 },
-            error: null, details: null,
+            uploadTime: Date.now(), encounterDuration: '180', status: 'success',
+            dashboardSummary: {
+                hasPlayers: true, hasTargets: true,
+                squadCount: 20, enemyCount: 25,
+                isWin: true, squadDeaths: 1, enemyDeaths: 5,
+            },
+            error: undefined, details: null,
         }];
         await setupAppPage(page, { logs: mockLogs });
         await expectAPICalled(page, 'getLogs');

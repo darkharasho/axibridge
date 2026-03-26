@@ -5,20 +5,22 @@ function makeMockLog(overrides: Record<string, unknown> = {}) {
     return {
         id: overrides.id ?? 'log-1',
         filePath: overrides.filePath ?? '/fake/logs/20260320-180000.zevtc',
-        fileName: overrides.fileName ?? '20260320-180000.zevtc',
         fightName: overrides.fightName ?? 'Alpine Borderlands',
         permalink: overrides.permalink ?? 'https://dps.report/abc123',
-        uploadTime: overrides.uploadTime ?? new Date().toISOString(),
-        encounterDuration: overrides.encounterDuration ?? 180,
+        uploadTime: overrides.uploadTime ?? Date.now(),
+        encounterDuration: overrides.encounterDuration ?? '180',
         status: overrides.status ?? 'success',
-        error: overrides.error ?? null,
-        squadDisplayCount: overrides.squadDisplayCount ?? 25,
-        nonSquadDisplayCount: overrides.nonSquadDisplayCount ?? 30,
-        details: overrides.details ?? null,
-        summary: overrides.summary ?? {
-            damage: 1500000, downs: 12, healing: 500000, barrier: 200000,
-            cleanses: 150, strips: 80, cc: 4500, stability: 3200,
+        error: overrides.error ?? undefined,
+        dashboardSummary: overrides.dashboardSummary ?? {
+            hasPlayers: true,
+            hasTargets: true,
+            squadCount: (overrides as any).squadCount ?? 25,
+            enemyCount: (overrides as any).enemyCount ?? 30,
+            isWin: true,
+            squadDeaths: 2,
+            enemyDeaths: 10,
         },
+        details: overrides.details ?? null,
         ...overrides,
     };
 }
@@ -36,12 +38,12 @@ test.describe('Dashboard — Log Card Display (DASH-001–011)', () => {
     });
 
     test('DASH-003: log card shows squad count', async ({ page }) => {
-        await setupAppPage(page, { logs: [makeMockLog({ squadDisplayCount: 25 })] });
+        await setupAppPage(page, { logs: [makeMockLog({ squadCount: 25 })] });
         await expect(page.getByText(/25/)).toBeVisible({ timeout: 5000 });
     });
 
     test('DASH-004: log card shows relative time', async ({ page }) => {
-        await setupAppPage(page, { logs: [makeMockLog({ uploadTime: new Date().toISOString() })] });
+        await setupAppPage(page, { logs: [makeMockLog({ uploadTime: Date.now() })] });
         await expect(page.getByText(/just now|ago|sec/i)).toBeVisible({ timeout: 5000 });
     });
 
