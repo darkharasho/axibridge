@@ -1,0 +1,2 @@
+- [ ] Revisit the display: none hide to swallow recalculations of the stats view. its preventing a ton of consistency like the framer motion stuff. we gotta harden this
+- [ ] rename to axibridge and come up with the full resolution path for changing the name/icon
