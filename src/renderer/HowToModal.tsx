@@ -76,11 +76,11 @@ const ICON_MAP: Record<string, ReactNode> = {
     'help-circle': <HelpCircle className="w-4 h-4 text-indigo-300 inline-block mx-1" />,
     'mouse-pointer': <MousePointer className="w-4 h-4 text-slate-300 inline-block mx-1" />,
     'list-tree': <ListTree className="w-4 h-4 text-blue-300 inline-block mx-1" />,
-    arcbridge: (
+    axibridge: (
         <span
-            className="arcbridge-logo w-5 h-5 inline-block mb-1 mx-1"
+            className="axibridge-logo w-5 h-5 inline-block mb-1 mx-1"
             style={{ WebkitMaskImage: 'url(/svg/AxiBridge.svg)', maskImage: 'url(/svg/AxiBridge.svg)' }}
-            aria-label="ArcBridge logo"
+            aria-label="AxiBridge logo"
         />
     )
 };
@@ -218,11 +218,11 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                             </div>
 
                             <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                                {selectedNode.id === 'arcbridge' && (
+                                {selectedNode.id === 'axibridge' && (
                                     <span
-                                        className="arcbridge-logo h-6 w-6"
+                                        className="axibridge-logo h-6 w-6"
                                         style={{ WebkitMaskImage: 'url(/svg/AxiBridge.svg)', maskImage: 'url(/svg/AxiBridge.svg)' }}
-                                        aria-label="ArcBridge logo"
+                                        aria-label="AxiBridge logo"
                                     />
                                 )}
                                 {selectedNode.title}

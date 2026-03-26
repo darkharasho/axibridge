@@ -181,8 +181,8 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         bringDialogParentToFront(parent);
         if (!parent) return { success: false, error: 'Window unavailable.' };
         const result = await dialog.showSaveDialog(parent, {
-            title: 'Export ArcBridge Settings',
-            defaultPath: 'arcbridge-settings.json',
+            title: 'Export AxiBridge Settings',
+            defaultPath: 'axibridge-settings.json',
             filters: [{ name: 'JSON', extensions: ['json'] }]
         });
         if (result.canceled || !result.filePath) return { success: false, canceled: true };
@@ -229,7 +229,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         bringDialogParentToFront(parent);
         if (!parent) return { success: false, error: 'Window unavailable.' };
         const result = await dialog.showOpenDialog(parent, {
-            title: 'Import ArcBridge Settings',
+            title: 'Import AxiBridge Settings',
             properties: ['openFile'],
             filters: [{ name: 'JSON', extensions: ['json'] }]
         });

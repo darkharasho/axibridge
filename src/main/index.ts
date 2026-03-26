@@ -346,7 +346,7 @@ const updateGlobalManifest = async (details: any, filePath: string) => {
         console.warn('[Main] Failed to update global manifest:', err?.message || err);
     }
 };
-const GITHUB_PROTOCOL = 'arcbridge';
+const GITHUB_PROTOCOL = 'axibridge';
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
 
 const getUploadRetryQueuePayload = (): UploadRetryQueuePayload =>
@@ -797,7 +797,7 @@ function createTray() {
         }
     ]);
 
-    tray.setToolTip('ArcBridge');
+    tray.setToolTip('AxiBridge');
     tray.setContextMenu(contextMenu);
 
     tray.on('click', () => {

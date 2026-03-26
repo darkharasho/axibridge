@@ -30,7 +30,7 @@ import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../s
 import { Player } from '../shared/dpsReportTypes';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 
-const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/ArcBridge/main/public/img/ArcBridgeDiscord.png';
+const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/ArcBridge/main/public/img/AxiBridgeDiscord.png';
 
 // Embed stat settings interface
 export interface IEmbedStatSettings {
@@ -292,7 +292,7 @@ export class DiscordNotifier {
                 }
 
                 const payload: any = {
-                    username: "ArcBridge",
+                    username: "AxiBridge",
                     avatar_url: DISCORD_WEBHOOK_AVATAR_URL
                 };
 
@@ -939,7 +939,7 @@ export class DiscordNotifier {
                         color: getEmbedColor(jsonDetails.fightName),
                         timestamp: new Date().toISOString(),
                         footer: {
-                            text: `ArcBridge • ${new Date().toLocaleTimeString()}`
+                            text: `AxiBridge • ${new Date().toLocaleTimeString()}`
                         }
                     };
 
@@ -1004,7 +1004,7 @@ export class DiscordNotifier {
                     const embeds = buildEmbeds(embedFields);
 
                     await axios.post(this.webhookUrl, {
-                        username: "ArcBridge",
+                        username: "AxiBridge",
                         avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
                         embeds
                     });
@@ -1012,7 +1012,7 @@ export class DiscordNotifier {
                 } else {
                     // Fallback Simple Embed
                     await axios.post(this.webhookUrl, {
-                        username: "ArcBridge",
+                        username: "AxiBridge",
                         avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
                         embeds: [{
                             title: "Log Uploaded",

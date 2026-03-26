@@ -11,7 +11,7 @@ const STEPS = [
     {
         icon: FileText,
         title: 'Collect your logs',
-        description: 'ArcBridge watches your arcdps logs folder and pulls in each fight so you can review and share it quickly.'
+        description: 'AxiBridge watches your arcdps logs folder and pulls in each fight so you can review and share it quickly.'
     },
     {
         icon: LineChart,
@@ -28,7 +28,7 @@ const STEPS = [
 export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughModalProps) {
     if (!isOpen) return null;
     const appIconPath = `${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg`;
-    const arcbridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;
+    const axibridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;
 
     return (
         <AnimatePresence>
@@ -50,10 +50,10 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
                         <div className="flex items-center gap-3">
                             <div className="rounded-[4px] border border-blue-500/30 bg-blue-500/20 p-1.5">
-                                <span className="arcbridge-logo h-7 w-7 rounded-lg" style={arcbridgeLogoStyle} aria-label="ArcBridge logo" />
+                                <span className="axibridge-logo h-7 w-7 rounded-lg" style={axibridgeLogoStyle} aria-label="AxiBridge logo" />
                             </div>
                             <div>
-                                <div className="text-lg font-bold text-white">Welcome to ArcBridge</div>
+                                <div className="text-lg font-bold text-white">Welcome to AxiBridge</div>
                                 <div className="text-xs text-gray-400">A quick overview of what this app does</div>
                             </div>
                         </div>

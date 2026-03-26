@@ -5,7 +5,7 @@ export class DesktopIntegrator {
     private appImage: string | undefined;
 
     constructor() {
-        this.appName = app.name || 'ArcBridge';
+        this.appName = app.name || 'AxiBridge';
         this.appImage = process.env.APPIMAGE;
     }
 

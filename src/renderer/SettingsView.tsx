@@ -2251,7 +2251,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
                         </div>
                         <p>
-                            ArcBridge is free software by harasho: you can redistribute it and/or modify it under the terms
+                            AxiBridge is free software by harasho: you can redistribute it and/or modify it under the terms
                             of the GNU General Public License v3.0 only. This program comes with ABSOLUTELY NO WARRANTY.
                         </p>
                         <p className="mt-2">

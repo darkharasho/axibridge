@@ -248,11 +248,11 @@ body.web-report .stats-view .max-h-80 {
 }
 
 :root {
-    --arcbridge-gradient: linear-gradient(90deg, #3b82f6, #6366f1);
+    --axibridge-gradient: linear-gradient(90deg, #3b82f6, #6366f1);
 }
 
-.arcbridge-gradient-text {
-    background-image: var(--arcbridge-gradient);
+.axibridge-gradient-text {
+    background-image: var(--axibridge-gradient);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
@@ -837,7 +837,7 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     pointer-events: none;
 }
 
-.arcbridge-logo {
+.axibridge-logo {
     display: inline-block;
     background-color: #ffffff;
     -webkit-mask-size: contain;

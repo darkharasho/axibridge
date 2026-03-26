@@ -29,7 +29,7 @@ const requestGithubDeviceCode = (scope: string): Promise<{ deviceCode?: string; 
                 hostname: 'github.com',
                 path: '/login/device/code',
                 headers: {
-                    'User-Agent': 'ArcBridge',
+                    'User-Agent': 'AxiBridge',
                     'Accept': 'application/json',
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Content-Length': Buffer.byteLength(postData)
@@ -82,7 +82,7 @@ const pollGithubDeviceToken = async (deviceCode: string, intervalSeconds: number
                     hostname: 'github.com',
                     path: '/login/oauth/access_token',
                     headers: {
-                        'User-Agent': 'ArcBridge',
+                        'User-Agent': 'AxiBridge',
                         'Accept': 'application/json',
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'Content-Length': Buffer.byteLength(postData)
@@ -145,7 +145,7 @@ const githubApiRequest = (method: string, apiPath: string, token: string, body?:
                 hostname: 'api.github.com',
                 path: apiPath,
                 headers: {
-                    'User-Agent': 'ArcBridge',
+                    'User-Agent': 'AxiBridge',
                     'Accept': 'application/vnd.github+json',
                     'Authorization': `Bearer ${token}`,
                     ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {})
@@ -341,7 +341,7 @@ const createGithubRepo = async (owner: string, repo: string, token: string, auth
         name: repo,
         private: false,
         auto_init: true,
-        description: 'ArcBridge Reports'
+        description: 'AxiBridge Reports'
     });
     if (resp.status >= 300) {
         const detail = resp.data?.message || 'Unknown error';
@@ -580,7 +580,7 @@ const ensureDevWebIndex = (webRoot: string) => {
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/img/AxiBridge-white.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ArcBridge</title>
+    <title>AxiBridge</title>
   </head>
   <body>
     <div id="root"></div>
@@ -847,14 +847,14 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 const rawResp = await new Promise<string>((resolve, reject) => {
                     const url = new URL(file.download_url);
                     https.get(
-                        { hostname: url.hostname, path: url.pathname + url.search, headers: { 'User-Agent': 'ArcBridge' } },
+                        { hostname: url.hostname, path: url.pathname + url.search, headers: { 'User-Agent': 'AxiBridge' } },
                         (res) => {
                             if (res.statusCode === 301 || res.statusCode === 302) {
                                 const redirect = res.headers.location;
                                 if (!redirect) return reject(new Error('Redirect with no location'));
                                 const rUrl = new URL(redirect);
                                 https.get(
-                                    { hostname: rUrl.hostname, path: rUrl.pathname + rUrl.search, headers: { 'User-Agent': 'ArcBridge' } },
+                                    { hostname: rUrl.hostname, path: rUrl.pathname + rUrl.search, headers: { 'User-Agent': 'AxiBridge' } },
                                     (rRes) => {
                                         let d = '';
                                         rRes.setEncoding('utf8');
