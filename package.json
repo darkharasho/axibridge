@@ -1,7 +1,7 @@
 {
     "name": "axibridge",
     "private": true,
-    "version": "2.0.1",
+    "version": "2.0.2",
     "description": "AxiBridge - Guild Wars 2 arcDPS Log Uploader",
     "author": {
         "name": "darkharasho",
