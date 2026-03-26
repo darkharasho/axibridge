@@ -569,6 +569,16 @@ body:not(.web-report) .modal-pane button[aria-label^="Close "] {
     gap: 0.75rem;
 }
 
+.dense-table__container {
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
 .dense-table__header {
     display: flex;
     align-items: baseline;
@@ -599,6 +609,8 @@ body:not(.web-report) .modal-pane button[aria-label^="Close "] {
 .dense-table__scroll {
     overflow: auto;
     max-height: 70vh;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 /* In app fullscreen panes, dense tables should consume remaining height

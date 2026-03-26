@@ -53,53 +53,55 @@ export const DenseStatsTable = ({
                 </div>
             )}
             {controls && <div className="dense-table__controls">{controls}</div>}
-            <div ref={scrollRef} className="dense-table__scroll">
-                <div className="dense-table__grid" style={{ gridTemplateColumns: templateColumns }}>
-                    <div className="dense-table__head dense-table__head--sticky dense-table__head--pinned">
-                        <div className="dense-table__head-inner">Player</div>
+            <div className="dense-table__container">
+                <div ref={scrollRef} className="dense-table__scroll">
+                    <div className="dense-table__grid" style={{ gridTemplateColumns: templateColumns }}>
+                        <div className="dense-table__head dense-table__head--sticky dense-table__head--pinned">
+                            <div className="dense-table__head-inner">Player</div>
+                        </div>
+                        {columns.map((column) => {
+                            const isSortable = !!onSortColumn;
+                            const isActive = sortColumnId === column.id;
+                            const arrow = isActive ? (sortDirection === 'desc' ? '↓' : '↑') : null;
+                            return (
+                            <div
+                                key={column.id}
+                                className={`dense-table__head ${column.align === 'right' ? 'dense-table__cell--right' : ''} ${sortColumnId === column.id ? 'dense-table__head--active' : ''}`}
+                                style={column.minWidth ? { minWidth: column.minWidth } : undefined}
+                            >
+                                {isSortable ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => onSortColumn?.(column.id)}
+                                        className="dense-table__head-inner"
+                                    >
+                                        <span className="truncate">{column.label}</span>
+                                        {arrow && (
+                                            <span className="text-[10px]" style={{ color: 'var(--text-primary)' }}>{arrow}</span>
+                                        )}
+                                    </button>
+                                ) : (
+                                    <div className="dense-table__head-inner">{column.label}</div>
+                                )}
+                            </div>
+                        )})}
+                        {rows.map((row) => (
+                            <div key={row.id} className="dense-table__row">
+                                <div className="dense-table__cell dense-table__cell--label dense-table__cell--pinned">{row.label}</div>
+                                {columns.map((column) => (
+                                    <div
+                                        key={`${row.id}-${column.id}`}
+                                        className={`dense-table__cell ${column.align === 'right' ? 'dense-table__cell--right' : ''} ${sortColumnId === column.id ? 'dense-table__cell--active' : ''}`}
+                                    >
+                                        {row.values[column.id] ?? '-'}
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
                     </div>
-                    {columns.map((column) => {
-                        const isSortable = !!onSortColumn;
-                        const isActive = sortColumnId === column.id;
-                        const arrow = isActive ? (sortDirection === 'desc' ? '↓' : '↑') : null;
-                        return (
-                        <div
-                            key={column.id}
-                            className={`dense-table__head ${column.align === 'right' ? 'dense-table__cell--right' : ''} ${sortColumnId === column.id ? 'dense-table__head--active' : ''}`}
-                            style={column.minWidth ? { minWidth: column.minWidth } : undefined}
-                        >
-                            {isSortable ? (
-                                <button
-                                    type="button"
-                                    onClick={() => onSortColumn?.(column.id)}
-                                    className="dense-table__head-inner"
-                                >
-                                    <span className="truncate">{column.label}</span>
-                                    {arrow && (
-                                        <span className="text-[10px]" style={{ color: 'var(--text-primary)' }}>{arrow}</span>
-                                    )}
-                                </button>
-                            ) : (
-                                <div className="dense-table__head-inner">{column.label}</div>
-                            )}
-                        </div>
-                    )})}
-                    {rows.map((row) => (
-                        <div key={row.id} className="dense-table__row">
-                            <div className="dense-table__cell dense-table__cell--label dense-table__cell--pinned">{row.label}</div>
-                            {columns.map((column) => (
-                                <div
-                                    key={`${row.id}-${column.id}`}
-                                    className={`dense-table__cell ${column.align === 'right' ? 'dense-table__cell--right' : ''} ${sortColumnId === column.id ? 'dense-table__cell--active' : ''}`}
-                                >
-                                    {row.values[column.id] ?? '-'}
-                                </div>
-                            ))}
-                        </div>
-                    ))}
                 </div>
+                <HorizontalScrollScrubber containerRef={scrollRef} />
             </div>
-            <HorizontalScrollScrubber containerRef={scrollRef} />
         </div>
     );
 };
