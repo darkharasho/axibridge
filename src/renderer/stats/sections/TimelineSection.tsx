@@ -1,4 +1,5 @@
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Users } from 'lucide-react';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
@@ -38,7 +39,7 @@ export const TimelineSection = ({
             <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No timeline data available</div>
         ) : (
             <div className="h-[260px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer width="100%" height="100%">
                     <LineChart data={timelineData} margin={{ top: 10, right: 24, left: 0, bottom: 0 }}>
                         <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                         <XAxis
@@ -92,7 +93,7 @@ export const TimelineSection = ({
                             activeDot={{ r: 5 }}
                         />
                     </LineChart>
-                </ResponsiveContainer>
+                </ChartContainer>
             </div>
         )}
     </div>

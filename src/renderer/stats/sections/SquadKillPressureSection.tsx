@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Maximize2, X, Target } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 
@@ -99,7 +100,7 @@ export const SquadKillPressureSection = () => {
                         </div>
                     </div>
                     <div className={isExpanded ? 'h-[400px]' : 'h-[280px]'}>
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ChartContainer width="100%" height="100%">
                             <BarChart data={chartData}>
                                 <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                 <XAxis
@@ -149,7 +150,7 @@ export const SquadKillPressureSection = () => {
                                     ))}
                                 </Bar>
                             </BarChart>
-                        </ResponsiveContainer>
+                        </ChartContainer>
                     </div>
                     <div className="flex justify-center gap-4 mt-2">
                         <div className="flex items-center gap-1.5">

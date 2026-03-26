@@ -593,10 +593,11 @@ export function ReportApp() {
             id: 'squad-stats',
             label: 'Squad Stats',
             icon: Users,
-            sectionIds: ['squad-damage-comparison', 'squad-kill-pressure', 'squad-tag-distance-deaths'],
+            sectionIds: ['squad-damage-comparison', 'squad-kill-pressure', 'heal-effectiveness', 'squad-tag-distance-deaths'],
             items: [
                 { id: 'squad-damage-comparison', label: 'Damage Comparison', icon: ArrowUpDown },
                 { id: 'squad-kill-pressure', label: 'Kill Pressure', icon: Target },
+                { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves },
                 { id: 'squad-tag-distance-deaths', label: 'Tag Distance Deaths', icon: Crosshair }
             ]
         },
@@ -629,7 +630,7 @@ export function ReportApp() {
             id: 'defense',
             label: 'Defensive Stats',
             icon: Shield,
-            sectionIds: ['defense-detailed', 'incoming-damage-modifiers', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats', 'heal-effectiveness'],
+            sectionIds: ['defense-detailed', 'incoming-damage-modifiers', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'boon-timeline', 'boon-uptime', 'support-detailed', 'healing-stats'],
             items: [
                 { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
                 { id: 'incoming-damage-modifiers', label: 'Incoming Damage Modifiers', icon: ShieldMinus },
@@ -639,8 +640,7 @@ export function ReportApp() {
                 { id: 'boon-timeline', label: 'Boon Timeline', icon: Gw2AegisIcon },
                 { id: 'boon-uptime', label: 'Boon Uptime', icon: Gw2FuryIcon },
                 { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
-                { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
-                { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves }
+                { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse }
             ]
         },
         {

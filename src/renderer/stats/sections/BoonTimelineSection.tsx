@@ -1,4 +1,5 @@
-import { Bar, CartesianGrid, Cell, ComposedChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, CartesianGrid, Cell, ComposedChart, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Maximize2, X } from 'lucide-react';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { Gw2AegisIcon } from '../../ui/Gw2AegisIcon';
@@ -283,7 +284,7 @@ export const BoonTimelineSection = ({
                                 Select one player to view boon generation by fight.
                             </div>
                         ) : (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <LineChart
                                     data={chartData}
                                     onClick={(state: any) => {
@@ -351,7 +352,7 @@ export const BoonTimelineSection = ({
                                         activeDot={false}
                                     />
                                 </LineChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </div>
                 </div>
@@ -423,7 +424,7 @@ export const BoonTimelineSection = ({
                                 No detailed data available for this fight.
                             </div>
                         ) : (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <ComposedChart data={drilldownHeatData}>
                                     <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                     <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
@@ -467,7 +468,7 @@ export const BoonTimelineSection = ({
                                         activeDot={{ r: 4 }}
                                     />
                                 </ComposedChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </div>
                 </div>

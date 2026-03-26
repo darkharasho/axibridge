@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Maximize2, X, Crosshair } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 import type { TagDistanceDeathFightSummary } from '../computeTagDistanceDeaths';
@@ -106,7 +107,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                             </div>
                         </div>
                         <div className={isExpanded ? 'h-[300px]' : 'h-[220px]'}>
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <BarChart
                                     data={summaryData}
                                     onClick={(state: any) => {
@@ -159,7 +160,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                         ))}
                                     </Bar>
                                 </BarChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         </div>
                         <div className="flex justify-center gap-4 mt-2">
                             <div className="flex items-center gap-1.5">
@@ -208,7 +209,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
 
                         {selectedFight && scatterData.length > 0 ? (
                             <div className={isExpanded ? 'h-[300px]' : 'h-[220px]'}>
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ChartContainer width="100%" height="100%">
                                     <ScatterChart>
                                         <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                         <XAxis
@@ -264,7 +265,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                             ))}
                                         </Scatter>
                                     </ScatterChart>
-                                </ResponsiveContainer>
+                                </ChartContainer>
                             </div>
                         ) : selectedFight && scatterData.length === 0 ? (
                             <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No death events in this fight.</div>

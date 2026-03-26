@@ -1,4 +1,5 @@
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { Cell, Pie, PieChart, Tooltip } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Users } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 
@@ -25,7 +26,7 @@ export const SquadCompositionSection = ({
                 <div className="text-xs font-semibold uppercase tracking-[0.25em] mb-3" style={{ color: 'var(--text-secondary)' }}>Classes</div>
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_150px] sm:h-[300px] gap-4">
                     <div className="h-[240px] sm:h-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ChartContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={sortedSquadClassData}
@@ -45,7 +46,7 @@ export const SquadCompositionSection = ({
                                     itemStyle={{ color: '#fff' }}
                                 />
                             </PieChart>
-                        </ResponsiveContainer>
+                        </ChartContainer>
                     </div>
                     <div className="w-full sm:h-full overflow-y-auto pr-1">
                         <div className="w-full min-w-0 space-y-1.5 text-[11px] pb-2">
@@ -74,7 +75,7 @@ export const SquadCompositionSection = ({
                 <div className="text-xs font-semibold uppercase tracking-[0.25em] mb-3" style={{ color: 'var(--text-secondary)' }}>Enemy Composition</div>
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_150px] sm:h-[300px] gap-4">
                     <div className="h-[240px] sm:h-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ChartContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={sortedEnemyClassData}
@@ -94,7 +95,7 @@ export const SquadCompositionSection = ({
                                     itemStyle={{ color: '#fff' }}
                                 />
                             </PieChart>
-                        </ResponsiveContainer>
+                        </ChartContainer>
                     </div>
                     <div className="w-full sm:h-full overflow-y-auto pr-1">
                         <div className="w-full min-w-0 space-y-1.5 text-[11px] pb-2">

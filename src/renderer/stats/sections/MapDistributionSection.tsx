@@ -1,4 +1,5 @@
-import { Cell, Legend as ChartLegend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { Cell, Legend as ChartLegend, Pie, PieChart, Tooltip } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Map as MapIcon } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 
@@ -17,7 +18,7 @@ export const MapDistributionSection = ({
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Map Distribution</h3>
         </div>
         <div className="h-[260px] sm:h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer width="100%" height="100%">
                 <PieChart>
                     <Pie
                         data={mapData}
@@ -54,7 +55,7 @@ export const MapDistributionSection = ({
                         )}
                     />
                 </PieChart>
-            </ResponsiveContainer>
+            </ChartContainer>
         </div>
     </div>
     );

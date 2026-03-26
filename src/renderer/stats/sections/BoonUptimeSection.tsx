@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Maximize2, X } from 'lucide-react';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { Gw2FuryIcon } from '../../ui/Gw2FuryIcon';
@@ -367,7 +368,7 @@ export const BoonUptimeSection = ({
                                 Select one entry to view boon uptime by fight.
                             </div>
                         ) : (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <LineChart
                                     data={chartData}
                                     onClick={(state: any) => {
@@ -439,7 +440,7 @@ export const BoonUptimeSection = ({
                                         />
                                     )}
                                 </LineChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </div>
                 </div>
@@ -503,7 +504,7 @@ export const BoonUptimeSection = ({
                                 No detailed data available for this fight.
                             </div>
                         ) : (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <LineChart data={drilldownData}>
                                     <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                     <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
@@ -532,7 +533,7 @@ export const BoonUptimeSection = ({
                                         />
                                     )}
                                 </LineChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </div>
                 </div>

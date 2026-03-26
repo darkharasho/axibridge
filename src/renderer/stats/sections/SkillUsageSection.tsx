@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { CheckCircle2, ChevronDown, ChevronRight, Maximize2, X, XCircle, Keyboard } from 'lucide-react';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { InlineIconLabel } from '../ui/StatsViewShared';
@@ -334,7 +335,7 @@ export const SkillUsageSection = ({
                                 ({isSkillUsagePerSecond ? 'casts per second' : 'casts per log'})
                             </div>
                         </div>
-                        <ResponsiveContainer width="100%" height={250}>
+                        <ChartContainer width="100%" height={250}>
                             <LineChart data={skillChartData}>
                                 <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                 <XAxis
@@ -404,7 +405,7 @@ export const SkillUsageSection = ({
                                     );
                                 })}
                             </LineChart>
-                        </ResponsiveContainer>
+                        </ChartContainer>
                     </div>
                     {selectedPlayers.length > 0 && (
                         <div className="rounded-[var(--radius-md)] p-4 space-y-3">

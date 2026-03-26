@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Clock3, Target, Route, Skull } from 'lucide-react';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
@@ -910,7 +911,7 @@ export const CommanderStatsSection = ({
                                     </div>
 
                                     <div ref={chartContainerRef} className="h-[220px] w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ChartContainer width="100%" height="100%">
                                             <LineChart
                                                 data={timelineData}
                                                 margin={{ top: 8, right: 14, left: 0, bottom: 0 }}
@@ -945,7 +946,7 @@ export const CommanderStatsSection = ({
                                                     activeDot={{ r: 5 }}
                                                 />
                                             </LineChart>
-                                        </ResponsiveContainer>
+                                        </ChartContainer>
                                     </div>
 
                                     <div className="overflow-x-auto min-w-0">

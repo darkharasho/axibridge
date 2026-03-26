@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartContainer } from '../ui/ChartContainer';
 import { Maximize2, X, Zap } from 'lucide-react';
 import { getProfessionColor } from '../../../shared/professionUtils';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
@@ -354,7 +355,7 @@ export const SpikeDamageSection = ({
                                 Select one player to view burst values by fight.
                             </div>
                         ) : (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ChartContainer width="100%" height="100%">
                                 <LineChart
                                     data={spikeChartData}
                                     onClick={(state: any) => {
@@ -433,7 +434,7 @@ export const SpikeDamageSection = ({
                                         activeDot={false}
                                     />
                                 </LineChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </div>
                 </div>
@@ -502,7 +503,7 @@ export const SpikeDamageSection = ({
                             </div>
                         ) : (
                             <>
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ChartContainer width="100%" height="100%">
                                     <LineChart data={drilldownSeries}>
                                     <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                     <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
@@ -550,7 +551,7 @@ export const SpikeDamageSection = ({
                                         dot={makeMarkerDot('death')}
                                     />
                                     </LineChart>
-                                </ResponsiveContainer>
+                                </ChartContainer>
                                 {hoveredMarkerInfo && (
                                     <div
                                         className="pointer-events-none absolute z-20 rounded-md border border-[color:var(--border-default)] bg-[#101722] px-2 py-1 text-xs"
