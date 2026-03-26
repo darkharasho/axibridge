@@ -1,4 +1,4 @@
-# <img width="36" height="36" alt="AxiBridge logo" src="public/img/AxiBridge.png" /> AxiBridge
+# <img width="36" height="36" alt="AxiBridge logo" src="public/img/AxiBridge-white.png" /> AxiBridge
 
 AxiBridge automatically uploads arcdps logs, summarizes WvW fights, and sends clean, readable reports to Discord or the web so your squad can review quickly.
 

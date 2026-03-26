@@ -30,7 +30,7 @@ import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../s
 import { Player } from '../shared/dpsReportTypes';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 
-const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/ArcBridge/main/public/img/AxiBridgeDiscord.png';
+const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/ArcBridge/main/public/img/AxiBridge-white.png';
 
 // Embed stat settings interface
 export interface IEmbedStatSettings {
