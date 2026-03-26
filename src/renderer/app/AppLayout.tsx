@@ -140,7 +140,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 <div className="flex items-center gap-2.5">
                     <span className="axibridge-logo h-5 w-5" style={axibridgeLogoStyle} aria-label="AxiBridge logo" />
                     <span style={{ fontFamily: '"Cinzel", serif', fontSize: '0.95rem', letterSpacing: '0.06em', fontWeight: 500 }}>
-                        <span style={{ color: '#ffffff' }}>Arc</span>
+                        <span style={{ color: '#ffffff' }}>Axi</span>
                         <span style={{ color: 'var(--brand-primary)' }}>Bridge</span>
                     </span>
                     {isDev ? (

@@ -1523,7 +1523,7 @@ export function ReportApp() {
                                     aria-label="AxiBridge logo"
                                 />
                                 <div>
-                                    <div><div className="text-[11px] tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Arc</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Reports</div></div>
+                                    <div><div className="text-[11px] tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Reports</div></div>
                                     <div className="text-sm font-semibold text-white">Navigation</div>
                                 </div>
                             </div>
@@ -1633,7 +1633,7 @@ export function ReportApp() {
                                     )
                                 )}
                                 <div className="min-w-0">
-                                    <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Arc</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Log Report</div></div>
+                                    <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Log Report</div></div>
                                     <h1 className="text-2xl sm:text-3xl font-bold mt-1">{report.meta.title}</h1>
                                     <div className="text-xs sm:text-sm text-gray-400 mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
                                 </div>
@@ -1784,7 +1784,7 @@ export function ReportApp() {
                                     )
                                 )}
                                 <div>
-                                    <div className="text-sm tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Arc</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div>
+                                    <div className="text-sm tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div>
                                     <h1 className="text-2xl sm:text-3xl font-bold mt-2">All Reports</h1>
                                     <p className="text-xs sm:text-sm text-gray-400 mt-1">Combined commander and player stats across every hosted report.</p>
                                 </div>
@@ -2099,7 +2099,7 @@ export function ReportApp() {
                                 />
                             )}
                             <div>
-                                <div className="text-2xl sm:text-3xl tracking-[0.06em] font-medium" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Arc</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div>
+                                <div className="text-2xl sm:text-3xl tracking-[0.06em] font-medium" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div>
                                 <div className="text-xs sm:text-sm uppercase tracking-[0.3em] text-gray-400 mt-1">Reports</div>
                                 <p className="text-xs text-gray-500 mt-1">Select a report to view the full stats dashboard.</p>
                             </div>
