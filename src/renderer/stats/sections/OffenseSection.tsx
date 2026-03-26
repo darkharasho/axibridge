@@ -56,7 +56,7 @@ export const OffenseSection = ({
         }`}
         style={expandedSection === 'offense-detailed' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
     >
-        <div className="flex items-center gap-2 mb-3.5">
+        <div className={`flex items-center gap-2 mb-3.5 ${isExpanded ? 'px-5 pt-4' : ''}`}>
             <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
                 Offense Detailed
@@ -90,7 +90,7 @@ export const OffenseSection = ({
         {stats.offensePlayers.length === 0 ? (
             <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats available</div>
         ) : isExpanded ? (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 px-5 pt-1 flex-1 min-h-0">
                 <div>
                     <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                         <SearchSelectDropdown
@@ -191,7 +191,7 @@ export const OffenseSection = ({
                         </div>
                     )}
                 </div>
-                <div className="overflow-hidden">
+                <div className="flex-1 min-h-0 flex flex-col">
                     {filteredOffenseMetrics.length === 0 ? (
                         <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats match this filter</div>
                     ) : (
@@ -245,8 +245,6 @@ export const OffenseSection = ({
                                 });
                             return (
                                 <DenseStatsTable
-                                    title="Offense - Dense View"
-                                    subtitle="Offensive"
                                     sortColumnId={resolvedSortColumnId}
                                     sortDirection={denseSort.dir}
                                     onSortColumn={(columnId) => {

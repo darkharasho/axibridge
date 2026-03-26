@@ -570,9 +570,6 @@ body:not(.web-report) .modal-pane button[aria-label^="Close "] {
 }
 
 .dense-table__container {
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-md);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
@@ -618,12 +615,15 @@ body:not(.web-report) .modal-pane button[aria-label^="Close "] {
 body:not(.web-report) .modal-pane .dense-table {
     min-height: 0;
     height: 100%;
+    flex: 1 1 auto;
+    overflow: hidden;
 }
 
 body:not(.web-report) .modal-pane .dense-table__scroll {
     flex: 1 1 auto;
     min-height: 0;
     max-height: none;
+    overflow-y: auto;
 }
 
 /* Web report fullscreen dense tables: hide native horizontal scrollbar
@@ -680,6 +680,7 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     display: grid;
     align-items: stretch;
     min-width: max-content;
+    font-size: 0.625rem;
 }
 
 .dense-table__row {
@@ -688,14 +689,14 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
 
 .dense-table__head,
 .dense-table__cell {
-    padding: 0.35rem 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    color: #e5e7eb;
-    background: rgba(255, 255, 255, 0.02);
+    padding: 0.45rem 0.6rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.015);
 }
 
 .dense-table__row:nth-of-type(odd)>.dense-table__cell {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.015);
 }
 
 .dense-table__row:hover>.dense-table__cell {
@@ -703,20 +704,20 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
 }
 
 .dense-table__row:nth-of-type(odd)>.dense-table__cell--pinned {
-    background: #0c1424;
+    background: var(--bg-elevated, #0d1117);
 }
 
 .dense-table__row:hover>.dense-table__cell--pinned {
-    background: #101a30;
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .dense-table__head {
-    font-size: 0.65rem;
+    font-size: 0.56rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #9ca3af;
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    background: #161b22;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.12);
     position: sticky;
     top: 0;
     z-index: 3;
@@ -751,7 +752,7 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     position: sticky;
     left: 0;
     z-index: 3;
-    background: #0b1220;
+    background: var(--bg-elevated, #0d1117);
     background-clip: padding-box;
     box-shadow: 6px 0 12px rgba(0, 0, 0, 0.25);
 }
@@ -764,9 +765,9 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.76rem;
+    font-size: 0.625rem;
     color: #f3f4f6;
-    background: #0b1220;
+    background: var(--bg-elevated, #0d1117);
 }
 
 .dense-table__cell--right {
@@ -778,16 +779,24 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
 
 /* Group container entrance animation on nav switch */
 
-.dense-table__head--active {
-    background: rgba(56, 189, 248, 0.06);
+.dense-table__head.dense-table__head--active {
+    background: #0c1a2e;
     color: var(--brand-primary);
-    border-bottom-color: rgba(56, 189, 248, 0.3);
+    border-bottom-color: rgba(56, 189, 248, 0.5);
 }
 
-.dense-table__cell--active {
-    background: rgba(56, 189, 248, 0.03);
-    color: var(--text-primary);
+.dense-table__cell.dense-table__cell--active {
+    background: rgba(56, 189, 248, 0.07);
+    color: #f1f5f9;
     font-weight: 500;
+}
+
+.dense-table__row:nth-of-type(odd)>.dense-table__cell.dense-table__cell--active {
+    background: rgba(56, 189, 248, 0.09);
+}
+
+.dense-table__row:hover>.dense-table__cell.dense-table__cell--active {
+    background: rgba(56, 189, 248, 0.14);
 }
 
 .stats-table-sidebar> :last-child {

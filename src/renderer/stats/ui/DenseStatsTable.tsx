@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useRef } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { HorizontalScrollScrubber } from './HorizontalScrollScrubber';
 
 type DenseStatsColumn = {
@@ -62,7 +63,7 @@ export const DenseStatsTable = ({
                         {columns.map((column) => {
                             const isSortable = !!onSortColumn;
                             const isActive = sortColumnId === column.id;
-                            const arrow = isActive ? (sortDirection === 'desc' ? '↓' : '↑') : null;
+                            const ArrowIcon = isActive ? (sortDirection === 'desc' ? ChevronDown : ChevronUp) : null;
                             return (
                             <div
                                 key={column.id}
@@ -76,8 +77,8 @@ export const DenseStatsTable = ({
                                         className="dense-table__head-inner"
                                     >
                                         <span className="truncate">{column.label}</span>
-                                        {arrow && (
-                                            <span className="text-[10px]" style={{ color: 'var(--text-primary)' }}>{arrow}</span>
+                                        {ArrowIcon && (
+                                            <ArrowIcon className="w-3 h-3 shrink-0" style={{ color: 'var(--text-primary)' }} />
                                         )}
                                     </button>
                                 ) : (
