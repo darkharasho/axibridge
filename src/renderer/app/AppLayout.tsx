@@ -122,9 +122,9 @@ export function AppLayout({ ctx }: { ctx: any }) {
     const stableOnBack = useCallback(() => setView('dashboard'), [setView]);
 
     const stableOnStatsViewSettingsChange = useCallback((next: any) => {
-        setStatsViewSettings(next);
+        stableSetStatsViewSettings(next);
         window.electronAPI?.saveSettings?.({ statsViewSettings: next });
-    }, [setStatsViewSettings]);
+    }, [stableSetStatsViewSettings]);
 
     const stableAggregationResult = useMemo(() => ({
         stats: computedStats,
