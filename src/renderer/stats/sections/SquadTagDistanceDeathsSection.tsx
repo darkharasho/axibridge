@@ -22,18 +22,24 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
     const [selectedFightIndex, setSelectedFightIndex] = useState<number | null>(null);
 
     const DISTANCE_CAP = 1200;
+    const ZERO_DEATHS_MIN_HEIGHT = 30;
 
     const summaryData = useMemo(() => {
-        return fights.map((fight, idx) => ({
-            index: idx,
-            shortLabel: fight.shortLabel,
-            fullLabel: fight.fullLabel,
-            isWin: fight.isWin,
-            avgDistance: fight.avgDistance,
-            clampedAvgDistance: Math.min(fight.avgDistance, DISTANCE_CAP),
-            eventCount: fight.eventCount,
-            hasReplayData: fight.hasReplayData,
-        }));
+        return fights.map((fight, idx) => {
+            const clamped = Math.min(fight.avgDistance, DISTANCE_CAP);
+            const isZeroDeaths = fight.hasReplayData && fight.eventCount === 0;
+            return {
+                index: idx,
+                shortLabel: fight.shortLabel,
+                fullLabel: fight.fullLabel,
+                isWin: fight.isWin,
+                avgDistance: fight.avgDistance,
+                clampedAvgDistance: isZeroDeaths ? ZERO_DEATHS_MIN_HEIGHT : clamped,
+                eventCount: fight.eventCount,
+                hasReplayData: fight.hasReplayData,
+                isZeroDeaths,
+            };
+        });
     }, [fights]);
 
     const totalDeaths = useMemo(() => fights.reduce((sum, f) => sum + f.eventCount, 0), [fights]);
@@ -102,7 +108,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                             <div>
                                 <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">Avg Death Distance from Tag</div>
                                 <div className="text-[11px] text-[color:var(--text-secondary)] mt-1">
-                                    Average distance from commander tag at moment of death. Click a bar to see individual deaths.
+                                    Average squad death distance from commander tag. Click a bar to see individual deaths.
                                 </div>
                             </div>
                         </div>
@@ -134,7 +140,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                         content={({ payload }: any) => {
                                             const point = payload?.[0]?.payload;
                                             if (!point) return null;
-                                            const extra = !point.hasReplayData ? ' (no data)' : ` (${point.eventCount} deaths)`;
+                                            const extra = !point.hasReplayData ? ' (no data)' : point.eventCount === 0 ? ' (0 deaths)' : ` (${point.eventCount} deaths)`;
                                             return (
                                                 <div style={{ backgroundColor: '#161c24', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', padding: '10px 12px', fontSize: '12px' }}>
                                                     <p style={{ margin: 0, color: '#94a3b8' }}>
@@ -153,7 +159,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                         {summaryData.map((entry, idx) => (
                                             <Cell
                                                 key={`bar-${idx}`}
-                                                fill={!entry.hasReplayData ? '#374151' : entry.isWin === false ? '#f87171' : '#22c55e'}
+                                                fill={!entry.hasReplayData ? '#374151' : entry.isZeroDeaths ? '#4b5563' : entry.isWin === false ? '#f87171' : '#22c55e'}
                                                 stroke={selectedFightIndex === idx ? 'rgba(251,191,36,0.8)' : 'none'}
                                                 strokeWidth={selectedFightIndex === idx ? 2 : 0}
                                             />
@@ -170,6 +176,10 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2.5 h-2.5 rounded-sm bg-red-400" />
                                 <span className="text-[9px] text-[color:var(--text-secondary)]">Loss</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#4b5563' }} />
+                                <span className="text-[9px] text-[color:var(--text-secondary)]">0 deaths</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2.5 h-2.5 rounded-sm bg-gray-600" />
@@ -207,7 +217,9 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                             )}
                         </div>
 
-                        {selectedFight && scatterData.length > 0 ? (
+                        {selectedFight && selectedFight.eventCount === 0 ? (
+                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No squad deaths in this fight.</div>
+                        ) : selectedFight && scatterData.length > 0 ? (
                             <div className={isExpanded ? 'h-[300px]' : 'h-[220px]'}>
                                 <ChartContainer width="100%" height="100%">
                                     <ScatterChart>
