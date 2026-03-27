@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BarChart3, Clock3, FilePlus2, LayoutDashboard, Minus, RefreshCw, Settings as SettingsIcon, Square, X } from 'lucide-react';
 import { Terminal as TerminalIcon } from 'lucide-react';
@@ -118,6 +118,20 @@ export function AppLayout({ ctx }: { ctx: any }) {
     const stableSetDisruptionMethod = useCallback((next: any) => {
         setDisruptionMethod((prev: any) => prev === next ? prev : next);
     }, [setDisruptionMethod]);
+
+    const stableOnBack = useCallback(() => setView('dashboard'), [setView]);
+
+    const stableOnStatsViewSettingsChange = useCallback((next: any) => {
+        setStatsViewSettings(next);
+        window.electronAPI?.saveSettings?.({ statsViewSettings: next });
+    }, [setStatsViewSettings]);
+
+    const stableAggregationResult = useMemo(() => ({
+        stats: computedStats,
+        skillUsageData: computedSkillUsageData,
+        aggregationProgress,
+        aggregationDiagnostics,
+    }), [computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics]);
 
     const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'history' | 'settings') => {
         setActiveNavView(nextView);
@@ -326,17 +340,14 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 <StatsErrorBoundary>
                                     <StatsView
                                         logs={logsForStats}
-                                        onBack={() => setView('dashboard')}
+                                        onBack={stableOnBack}
                                         mvpWeights={mvpWeights}
                                         disruptionMethod={disruptionMethod}
                                         statsViewSettings={statsViewSettings}
                                         precomputedStats={precomputedStats || undefined}
-                                        aggregationResult={{ stats: computedStats, skillUsageData: computedSkillUsageData, aggregationProgress, aggregationDiagnostics }}
+                                        aggregationResult={stableAggregationResult}
                                         statsDataProgress={statsDataProgress}
-                                        onStatsViewSettingsChange={(next) => {
-                                            setStatsViewSettings(next);
-                                            window.electronAPI?.saveSettings?.({ statsViewSettings: next });
-                                        }}
+                                        onStatsViewSettingsChange={stableOnStatsViewSettingsChange}
                                         webUploadState={webUploadState}
                                         onWebUpload={handleWebUpload}
                                     />
