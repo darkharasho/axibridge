@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS,
     DEFAULT_GLASS_SURFACES, DEFAULT_MVP_WEIGHTS,
@@ -113,7 +113,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         body.classList.toggle('glass-surfaces', glassSurfaces);
     }, [colorPalette, glassSurfaces]);
 
-    return {
+    return useMemo(() => ({
         logDirectory, setLogDirectory,
         notificationType, setNotificationType,
         embedStatSettings, setEmbedStatSettings,
@@ -131,5 +131,11 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         whatsNewNotes,
         walkthroughSeen,
         shouldOpenWhatsNew,
-    };
+    }), [
+        logDirectory, notificationType, embedStatSettings, mvpWeights,
+        statsViewSettings, disruptionMethod, colorPalette, glassSurfaces,
+        webhooks, selectedWebhookId, handleUpdateSettings, handleSelectDirectory,
+        settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
+        shouldOpenWhatsNew,
+    ]);
 }
