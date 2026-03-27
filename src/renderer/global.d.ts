@@ -99,39 +99,6 @@ export interface IWebUploadState {
     buildStatusRepo: string | null;
 }
 
-export interface IDevDatasetMeta {
-    id: string;
-    name: string;
-    createdAt: string;
-}
-
-export interface IDevDatasetSnapshot {
-    schemaVersion: number;
-    capturedAt: string;
-    appVersion: string;
-    state: {
-        view?: 'dashboard' | 'stats' | 'history' | 'settings';
-        expandedLogId?: string | null;
-        notificationType?: 'embed';
-        embedStatSettings?: Partial<IEmbedStatSettings>;
-        mvpWeights?: Partial<IMvpWeights>;
-        statsViewSettings?: Partial<IStatsViewSettings>;
-        disruptionMethod?: DisruptionMethod;
-        colorPalette?: ColorPalette;
-        selectedWebhookId?: string | null;
-        bulkUploadMode?: boolean;
-        datasetLogOrder?: string[];
-        datasetLogIds?: string[];
-    };
-}
-
-export interface IDevDatasetIntegrityResult {
-    ok: boolean;
-    issues: string[];
-    hasIntegrityFile: boolean;
-    snapshotSchemaVersion: number | null;
-}
-
 export interface IUploadRetryQueueEntry {
     filePath: string;
     error: string;
@@ -368,16 +335,6 @@ export interface IElectronAPI {
     exportSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     importSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     selectSettingsFile: () => Promise<{ success: boolean; canceled?: boolean; error?: string; settings?: any; filePath?: string }>;
-    listDevDatasets: () => Promise<{ success: boolean; datasets?: IDevDatasetMeta[]; error?: string }>;
-    saveDevDataset: (payload: { id?: string; name: string; logs: any[]; report?: any; snapshot?: IDevDatasetSnapshot }) => Promise<{ success: boolean; dataset?: IDevDatasetMeta; error?: string }>;
-    beginDevDatasetSave: (payload: { id?: string; name: string; report?: any; snapshot?: IDevDatasetSnapshot }) => Promise<{ success: boolean; dataset?: IDevDatasetMeta; error?: string }>;
-    appendDevDatasetLogs: (payload: { id: string; logs: any[]; startIndex: number; total?: number }) => Promise<{ success: boolean; error?: string }>;
-    finishDevDatasetSave: (payload: { id: string; total: number }) => Promise<{ success: boolean; error?: string }>;
-    loadDevDataset: (payload: { id: string; allowLogsOnlyOnIntegrityFailure?: boolean }) => Promise<{ success: boolean; dataset?: any; error?: string; canLoadLogsOnly?: boolean; integrity?: IDevDatasetIntegrityResult; logsOnlyFallback?: boolean }>;
-    loadDevDatasetChunked: (payload: { id: string; chunkSize?: number; allowLogsOnlyOnIntegrityFailure?: boolean }) => Promise<{ success: boolean; dataset?: any; totalLogs?: number; error?: string; canLoadLogsOnly?: boolean; integrity?: IDevDatasetIntegrityResult; logsOnlyFallback?: boolean }>;
-    onDevDatasetLogsChunk: (callback: (data: any) => void) => () => void;
-    onDevDatasetSaveProgress: (callback: (data: any) => void) => () => void;
-    deleteDevDataset: (payload: { id: string }) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

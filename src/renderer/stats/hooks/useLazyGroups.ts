@@ -56,11 +56,15 @@ export function useLazyGroups(_groups: GroupDef[]) {
                 observersRef.current.delete(groupId);
             }
             if (!el) return;
+            let lastHeight = 0;
             const observer = new ResizeObserver((entries) => {
                 for (const entry of entries) {
-                    const height = entry.contentRect.height;
-                    if (height > 0) {
-                        setGroupHeight(groupId, Math.round(height));
+                    const height = Math.round(entry.contentRect.height);
+                    // Skip updates when height hasn't meaningfully changed (avoids
+                    // store churn during animations that trigger ResizeObserver)
+                    if (height > 0 && height !== lastHeight) {
+                        lastHeight = height;
+                        setGroupHeight(groupId, height);
                     }
                 }
             });

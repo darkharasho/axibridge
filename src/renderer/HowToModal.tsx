@@ -79,7 +79,7 @@ const ICON_MAP: Record<string, ReactNode> = {
     axibridge: (
         <span
             className="axibridge-logo w-5 h-5 inline-block mb-1 mx-1"
-            style={{ WebkitMaskImage: 'url(/svg/AxiBridge.svg)', maskImage: 'url(/svg/AxiBridge.svg)' }}
+            style={{ WebkitMaskImage: `url(${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg)`, maskImage: `url(${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg)` }}
             aria-label="AxiBridge logo"
         />
     )
@@ -221,7 +221,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                 {selectedNode.id === 'axibridge' && (
                                     <span
                                         className="axibridge-logo h-6 w-6"
-                                        style={{ WebkitMaskImage: 'url(/svg/AxiBridge.svg)', maskImage: 'url(/svg/AxiBridge.svg)' }}
+                                        style={{ WebkitMaskImage: `url(${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg)`, maskImage: `url(${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg)` }}
                                         aria-label="AxiBridge logo"
                                     />
                                 )}

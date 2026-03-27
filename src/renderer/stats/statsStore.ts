@@ -51,9 +51,10 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
     setProgress: (progress) => set({ progress }),
     setDiagnostics: (diagnostics) => set({ diagnostics }),
     setGroupHeight: (groupId, height) =>
-        set((state) => ({
-            groupHeights: { ...state.groupHeights, [groupId]: height },
-        })),
+        set((state) => {
+            if (state.groupHeights[groupId] === height) return state;
+            return { groupHeights: { ...state.groupHeights, [groupId]: height } };
+        }),
     setActiveNavGroup: (groupId) => set({ activeNavGroup: groupId }),
     clearResult: () => set({ result: null, inputsHash: null }),
     getInitialState: () => initialState,

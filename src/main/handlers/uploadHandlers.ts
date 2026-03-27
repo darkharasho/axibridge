@@ -4,7 +4,6 @@ import fs from 'fs';
 import { AUTH_RETRY_PAUSE_THRESHOLD, type UploadRetryQueueEntry, type UploadRetryRuntimeState, type UploadRetryQueuePayload } from '../uploadRetryQueue';
 import { BULK_PROCESS_CONCURRENCY } from '../../shared/constants';
 import { pruneDetailsForStats, hasUsableFightDetails, attachConditionMetrics } from '../detailsProcessing';
-import { getDevDatasetsDir } from '../devDatasets';
 
 // ─── Module-level state ─────────────────────────────────────────────────────
 
@@ -192,18 +191,6 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
             if (refreshed?.terminal) {
                 return { success: false, terminal: true, error: 'Fight has no usable details.' };
             }
-        }
-        try {
-            const devDir = getDevDatasetsDir();
-            if (filePath.startsWith(devDir) && filePath.endsWith('.json')) {
-                const raw = await fs.promises.readFile(filePath, 'utf-8');
-                const parsed = JSON.parse(raw);
-                const resolved = pruneDetailsForStats(parsed?.details ?? parsed);
-                console.log(`[Main] get-log-details dev-dataset: ${filePath}`);
-                return { success: true, details: resolved };
-            }
-        } catch (err: any) {
-            console.warn('[Main] get-log-details failed:', err?.message || err);
         }
         const now = Date.now();
         const lastLoggedAt = missingDetailsLogByPath.get(filePath) || 0;

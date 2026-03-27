@@ -4,10 +4,10 @@ import path from 'node:path';
 import https from 'node:https';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { MAX_GITHUB_BLOB_BYTES, MAX_GITHUB_REPORT_JSON_BYTES } from '../devDatasets';
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
+const MAX_GITHUB_REPORT_JSON_BYTES = 32 * 1024 * 1024;
 const GITHUB_DEVICE_CLIENT_ID = process.env.GITHUB_DEVICE_CLIENT_ID || 'Ov23liFh1ih9LAcnLACw';
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
 

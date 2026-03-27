@@ -117,8 +117,8 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                 <BarChart
                                     data={summaryData}
                                     onClick={(state: any) => {
-                                        const idx = state?.activePayload?.[0]?.payload?.index;
-                                        if (typeof idx !== 'number') return;
+                                        const idx = Number(state?.activeTooltipIndex);
+                                        if (!Number.isFinite(idx)) return;
                                         setSelectedFightIndex(selectedFightIndex === idx ? null : idx);
                                     }}
                                 >
@@ -265,17 +265,25 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                                 );
                                             }}
                                         />
-                                        <Scatter data={scatterData} fill={selectedFight.isWin === false ? '#f87171' : '#22c55e'}>
-                                            {scatterData.map((entry) => (
-                                                <Cell
-                                                    key={`scatter-${entry.index}`}
-                                                    fill={entry.isCommander ? '#fbbf24' : (selectedFight.isWin === false ? '#f87171' : '#22c55e')}
-                                                    stroke={entry.isCommander ? '#ffffff' : 'none'}
-                                                    strokeWidth={entry.isCommander ? 2 : 0}
-                                                    r={entry.isCommander ? 6 : undefined}
-                                                />
-                                            ))}
-                                        </Scatter>
+                                        <Scatter
+                                            data={scatterData}
+                                            fill={selectedFight.isWin === false ? '#f87171' : '#22c55e'}
+                                            shape={(props: any) => {
+                                                const d = props.payload;
+                                                const isCmd = d?.isCommander;
+                                                const r = isCmd ? 8 : 6;
+                                                return (
+                                                    <circle
+                                                        cx={props.cx}
+                                                        cy={props.cy}
+                                                        r={r}
+                                                        fill={isCmd ? '#fbbf24' : (selectedFight.isWin === false ? '#f87171' : '#22c55e')}
+                                                        stroke={isCmd ? '#ffffff' : 'none'}
+                                                        strokeWidth={isCmd ? 2 : 0}
+                                                    />
+                                                );
+                                            }}
+                                        />
                                     </ScatterChart>
                                 </ChartContainer>
                             </div>

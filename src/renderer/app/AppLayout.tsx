@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BarChart3, Clock3, FilePlus2, LayoutDashboard, Minus, RefreshCw, Settings as SettingsIcon, Square, X } from 'lucide-react';
+import { BarChart3, Clock3, LayoutDashboard, Minus, RefreshCw, Settings as SettingsIcon, Square, X } from 'lucide-react';
 import { Terminal as TerminalIcon } from 'lucide-react';
 import { SettingsView } from '../SettingsView';
 import { StatsView } from '../StatsView';
@@ -12,7 +12,6 @@ import { UpdateErrorModal } from '../UpdateErrorModal';
 import { WalkthroughModal } from '../WalkthroughModal';
 import { WebhookModal } from '../WebhookModal';
 import { WhatsNewModal } from '../WhatsNewModal';
-import { DevDatasetsModal } from './DevDatasetsModal';
 import { FilePickerModal } from './FilePickerModal';
 import { WebUploadOverlay } from './WebUploadOverlay';
 import { FightReportHistoryView } from '../FightReportHistoryView';
@@ -38,15 +37,12 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setView,
         showTerminal,
         setShowTerminal,
-        devDatasetsEnabled,
-        setDevDatasetsOpen,
         webUploadState,
         setWebUploadState,
         logsForStats,
         mvpWeights,
         disruptionMethod,
         statsViewSettings,
-        precomputedStats,
         computedStats,
         computedSkillUsageData,
         aggregationProgress,
@@ -67,7 +63,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setWhatsNewOpen,
         activityPanel,
         configurationPanel,
-        devDatasetsCtx,
         filePickerCtx,
         webhookDropdownOpen,
         webhookDropdownStyle,
@@ -259,25 +254,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             Auto-updates disabled
                         </div>
                     )}
-                    <button
-                        onClick={() => setShowTerminal(!showTerminal)}
-                        className={`p-1 rounded-[4px] transition-colors ${showTerminal ? 'text-[color:var(--text-primary)]' : 'text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]'}`}
-                        style={showTerminal ? { background: 'var(--accent-bg)' } : {}}
-                        title="Toggle Terminal"
-                    >
-                        <TerminalIcon className="w-3.5 h-3.5" />
-                    </button>
-                    {devDatasetsEnabled && (
-                        <button
-                            type="button"
-                            onClick={() => setDevDatasetsOpen(true)}
-                            className="p-1 rounded-[4px] transition-colors"
-                            style={{ background: 'rgba(245,158,11,0.12)', color: '#fbbf24', borderColor: 'rgba(245,158,11,0.3)' }}
-                            title="Dev Datasets"
-                        >
-                            <FilePlus2 className="w-3.5 h-3.5" />
-                        </button>
-                    )}
                     <span
                         className="app-version-pill text-[10px] px-2 py-0.5 rounded-[4px] border cursor-pointer select-none transition-colors"
                         style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
@@ -309,6 +285,14 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     >
                         v{appVersion}
                     </span>
+                    <button
+                        onClick={() => setShowTerminal(!showTerminal)}
+                        className={`p-1 rounded-[4px] transition-colors ${showTerminal ? 'text-[color:var(--text-primary)]' : 'text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]'}`}
+                        style={showTerminal ? { background: 'var(--accent-bg)' } : {}}
+                        title="Toggle Terminal"
+                    >
+                        <TerminalIcon className="w-3.5 h-3.5" />
+                    </button>
                 </div>
             </div>
 
@@ -344,7 +328,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                         mvpWeights={mvpWeights}
                                         disruptionMethod={disruptionMethod}
                                         statsViewSettings={statsViewSettings}
-                                        precomputedStats={precomputedStats || undefined}
                                         aggregationResult={stableAggregationResult}
                                         statsDataProgress={statsDataProgress}
                                         onStatsViewSettingsChange={stableOnStatsViewSettingsChange}
@@ -381,8 +364,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     </div>
                 )}
             </div>
-
-            <DevDatasetsModal ctx={devDatasetsCtx} isBulkUploadActive={isBulkUploadActive} />
 
             <FilePickerModal ctx={filePickerCtx} isBulkUploadActive={isBulkUploadActive} />
 

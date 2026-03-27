@@ -5,7 +5,7 @@ import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FileP
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { AppLayout } from './app/AppLayout';
-import { useDevDatasets } from './app/hooks/useDevDatasets';
+import { useLogsForStats } from './app/hooks/useLogsForStats';
 import { useFilePicker } from './app/hooks/useFilePicker';
 import { useWebUpload } from './app/hooks/useWebUpload';
 import { useAppUpdater } from './app/hooks/useAppUpdater';
@@ -53,7 +53,6 @@ function App() {
     // Settings
     const {
         logDirectory, setLogDirectory,
-        notificationType, setNotificationType,
         embedStatSettings, setEmbedStatSettings,
         mvpWeights, setMvpWeights,
         statsViewSettings, setStatsViewSettings,
@@ -123,55 +122,13 @@ function App() {
     });
 
     const { webUploadState, setWebUploadState, handleWebUpload } = useWebUpload();
-    const devDatasetsState = useDevDatasets({
-        bulkUploadMode,
-        setView,
-        logs,
-        setLogs,
-        setExpandedLogId,
-        setNotificationType,
-        setEmbedStatSettings,
-        setMvpWeights,
-        setStatsViewSettings,
-        setDisruptionMethod,
-        setColorPalette,
-        setSelectedWebhookId,
-        setBulkUploadMode
-    });
     const {
-        devDatasetsEnabled,
-        devDatasetName,
-        setDevDatasetName,
-        devDatasets,
-        setDevDatasets,
-        devDatasetsOpen,
-        setDevDatasetsOpen,
-        precomputedStats,
-        setPrecomputedStats,
-        datasetLoadRef,
-        devDatasetSaving,
-        setDevDatasetSaving,
-        devDatasetLoadingId,
-        setDevDatasetLoadingId,
-        devDatasetRefreshing,
-        devDatasetLoadModes,
-        setDevDatasetLoadModes,
-        devDatasetDeleteConfirmId,
-        setDevDatasetDeleteConfirmId,
-        devDatasetStreamingIdRef,
-        devDatasetSaveProgress,
-        setDevDatasetSaveProgress,
-        devDatasetSavingIdRef,
-        bulkCalculatingActive,
-        setBulkCalculatingActive,
-        devDatasetLoadProgress,
-        setDevDatasetLoadProgress,
         logsForStats,
         setLogsForStats,
         logsRef,
-        applyDevDatasetSnapshot,
-        loadDevDatasets
-    } = devDatasetsState;
+        bulkCalculatingActive,
+        setBulkCalculatingActive,
+    } = useLogsForStats({ logs, bulkUploadMode });
     const detailsCacheRef = useRef<DetailsCache | null>(null);
     if (!detailsCacheRef.current) {
         detailsCacheRef.current = new DetailsCache({
@@ -224,7 +181,6 @@ function App() {
         mvpWeights,
         statsViewSettings,
         disruptionMethod,
-        precomputedStats: precomputedStats || undefined,
         detailsCache: detailsCacheRef.current
     });
     const { stats: computedStats, skillUsageData: computedSkillUsageData } = aggregationResult;
@@ -820,22 +776,6 @@ function App() {
                     )}
                 </div>
             )}
-            {devDatasetLoadProgress && (
-                <div className="mb-3 rounded-[4px] border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-                    <div className="flex flex-col items-center text-center gap-1">
-                        <FilePlus2 className="w-5 h-5 text-amber-300" />
-                        <div className="text-[11px] text-amber-100">
-                            Loading dev dataset: <span className="font-semibold">{devDatasetLoadProgress.name}</span>
-                        </div>
-                        <div className="text-[10px] text-amber-200/80">
-                            {devDatasetLoadProgress.total !== null
-                                ? `${Math.min(devDatasetLoadProgress.loaded, devDatasetLoadProgress.total)} / ${devDatasetLoadProgress.total}`
-                                : `${devDatasetLoadProgress.loaded} loaded`}
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <div
                 className="flex-1 overflow-y-auto pr-2 matte-log-list"
                 ref={logsListRef}
@@ -911,31 +851,20 @@ function App() {
         </motion.div>
     );
 
-    const devDatasetsCtx = useMemo(() => ({
-        devDatasetsEnabled, devDatasetsOpen, loadDevDatasets, devDatasetRefreshing, setDevDatasetsOpen, devDatasetName, setDevDatasetName, devDatasetSaving, setDevDatasetSaving, devDatasetSavingIdRef, setDevDatasetSaveProgress, computedStats, computedSkillUsageData, appVersion, view, expandedLogId, notificationType, embedStatSettings, mvpWeights, statsViewSettings, disruptionMethod, colorPalette, selectedWebhookId, bulkUploadMode, logs, setDevDatasets, setDevDatasetLoadModes, devDatasetSaveProgress, devDatasets, devDatasetLoadModes, setDevDatasetLoadingId, setDevDatasetLoadProgress, setLogs, setLogsForStats, logsRef, setPrecomputedStats, canceledLogsRef, datasetLoadRef, devDatasetStreamingIdRef, applyDevDatasetSnapshot, setDevDatasetDeleteConfirmId, devDatasetDeleteConfirmId, devDatasetLoadingId
-    }), [
-        devDatasetsEnabled, devDatasetsOpen, loadDevDatasets, devDatasetRefreshing,
-        devDatasetName, devDatasetSaving, computedStats, computedSkillUsageData,
-        appVersion, view, expandedLogId, notificationType, embedStatSettings,
-        mvpWeights, statsViewSettings, disruptionMethod, colorPalette,
-        selectedWebhookId, bulkUploadMode, logs, devDatasetSaveProgress,
-        devDatasets, devDatasetLoadModes, devDatasetDeleteConfirmId, devDatasetLoadingId,
-        applyDevDatasetSnapshot,
-    ]);
     const filePickerCtx = useMemo(() => ({
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, devDatasetsEnabled, setDevDatasetsOpen, webUploadState, setWebUploadState, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, precomputedStats, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, devDatasetsCtx, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, isBulkUploadActive
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, isBulkUploadActive
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,
-        view, appVersion, showTerminal, devDatasetsEnabled, webUploadState,
+        view, appVersion, showTerminal, webUploadState,
         logsForStats, mvpWeights, disruptionMethod, statsViewSettings,
-        precomputedStats, computedStats, computedSkillUsageData, aggregationProgress,
+        computedStats, computedSkillUsageData, aggregationProgress,
         aggregationDiagnostics, statsDataProgress, colorPalette, glassSurfaces,
         selectedWebhookId, developerSettingsTrigger, helpUpdatesFocusTrigger,
-        activityPanel, configurationPanel, devDatasetsCtx, filePickerCtx,
+        activityPanel, configurationPanel, filePickerCtx,
         webhookDropdownOpen, webhookDropdownStyle, webhooks, handleUpdateSettings,
         webhookModalOpen, showUpdateErrorModal, updateError, whatsNewOpen,
         whatsNewVersion, whatsNewNotes, walkthroughOpen, isBulkUploadActive,

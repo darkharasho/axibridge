@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { motion } from 'framer-motion';
 
 type PillToggleOption<T extends string> = {
     value: T;
@@ -43,11 +42,13 @@ export const PillToggleGroup = <T extends string>({
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: '3px', color: 'var(--text-secondary)' }}
         >
             {indicator && (
-                <motion.span
+                <span
                     className="absolute top-[1px] bottom-[1px] rounded-sm pointer-events-none"
-                    animate={{ left: indicator.left, width: indicator.width }}
-                    transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
                     style={{
+                        left: 0,
+                        transform: `translateX(${indicator.left}px)`,
+                        width: indicator.width,
+                        transition: 'transform 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), width 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                         background: 'var(--accent-bg-strong)',
                         border: '1px solid var(--accent-border)',
                     }}

@@ -51,37 +51,6 @@ import {
 import { fetchImageBuffer } from './imageFetcher';
 import { setupConsoleLogger } from './consoleLogger';
 import {
-    getDevDatasetsDir,
-    ensureDevDatasetsDir,
-    sanitizeDevDatasetId,
-    sanitizeDevDatasetName,
-    devDatasetFolderCache,
-    devDatasetFinalFolderCache,
-    devDatasetManifestCache,
-    MAX_DEV_DATASET_REPORT_BYTES,
-    DEV_DATASET_SNAPSHOT_SCHEMA_VERSION,
-    DEV_DATASET_TEMP_PREFIX,
-    DEV_DATASET_STATUS_FILE,
-    DEV_DATASET_INTEGRITY_FILE,
-    DEV_DATASET_INTEGRITY_SCHEMA_VERSION,
-    MAX_GITHUB_BLOB_BYTES,
-    MAX_GITHUB_REPORT_JSON_BYTES,
-    getDevDatasetFolderName,
-    getDevDatasetTempFolderName,
-    isDevDatasetTempFolder,
-    normalizeDevDatasetSnapshot,
-    writeDevDatasetStatus,
-    readDevDatasetStatus,
-    getDatasetRelativeLogPath,
-    normalizeDatasetRelativePath,
-    resolveDatasetLogPath,
-    resolveOrderedDatasetLogPaths,
-    buildDatasetIntegrity,
-    validateDatasetIntegrity,
-    readJsonFilesWithLimit,
-    writeJsonFilesWithLimit,
-} from './devDatasets';
-import {
     computeFileHash,
     pruneDpsReportCacheIndex,
     removeDpsReportCacheEntry,
@@ -104,7 +73,6 @@ import {
     DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS,
     normalizeMvpWeights,
 } from './handlers/settingsHandlers';
-import { registerDatasetHandlers } from './handlers/datasetHandlers';
 import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers } from './handlers/githubHandlers';
 
@@ -1225,7 +1193,6 @@ if (!gotTheLock) {
             fetchImageBuffer,
             onApplySettings: (settings) => applySettings(settings),
         });
-        registerDatasetHandlers();
         registerUploadHandlers({
             store,
             getWindow: () => win,

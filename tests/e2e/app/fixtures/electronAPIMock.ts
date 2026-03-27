@@ -24,8 +24,6 @@ export interface ElectronAPIMockOverrides {
     walkthroughSeen?: boolean
     /** Full or partial settings overrides merged into defaults */
     settings?: Record<string, any>
-    /** Dev datasets list returned by listDevDatasets() */
-    devDatasets?: any[]
     /** GitHub repos returned by getGithubRepos() */
     githubRepos?: any[]
     /** GitHub orgs returned by getGithubOrgs() */
@@ -394,48 +392,6 @@ export function createElectronAPIMock(overrides?: ElectronAPIMockOverrides): voi
         onWebUploadStatus: (callback: any) => {
             log('onWebUploadStatus', [callback])
             return noop
-        },
-
-        // ── Dev Datasets ─────────────────────────────────────────
-        listDevDatasets: (...args: any[]) => {
-            log('listDevDatasets', args)
-            return Promise.resolve(o.devDatasets ?? [])
-        },
-        saveDevDataset: (...args: any[]) => {
-            log('saveDevDataset', args)
-            return Promise.resolve({ id: 'mock-dataset-id' })
-        },
-        beginDevDatasetSave: (...args: any[]) => {
-            log('beginDevDatasetSave', args)
-            return Promise.resolve({ id: 'mock-dataset-id' })
-        },
-        appendDevDatasetLogs: (...args: any[]) => {
-            log('appendDevDatasetLogs', args)
-            return Promise.resolve()
-        },
-        finishDevDatasetSave: (...args: any[]) => {
-            log('finishDevDatasetSave', args)
-            return Promise.resolve()
-        },
-        loadDevDataset: (...args: any[]) => {
-            log('loadDevDataset', args)
-            return Promise.resolve(null)
-        },
-        loadDevDatasetChunked: (...args: any[]) => {
-            log('loadDevDatasetChunked', args)
-            return Promise.resolve(null)
-        },
-        onDevDatasetLogsChunk: (callback: any) => {
-            log('onDevDatasetLogsChunk', [callback])
-            return noop
-        },
-        onDevDatasetSaveProgress: (callback: any) => {
-            log('onDevDatasetSaveProgress', [callback])
-            return noop
-        },
-        deleteDevDataset: (...args: any[]) => {
-            log('deleteDevDataset', args)
-            return Promise.resolve()
         },
 
         // ── Misc (synchronous) ───────────────────────────────────
