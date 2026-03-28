@@ -1,19 +1,31 @@
 # Release Notes
 
-Version v2.0.4 — March 27, 2026
+Version v2.0.5 — March 28, 2026
 
-## Stats View Performance
+## Strip Spikes
 
-Eliminated a re-render cascade that caused the stats dashboard to feel sluggish, especially with larger log sets. Context objects, callbacks, and inline styles are now properly memoized so React doesn't re-render the entire tree on every state change. The old workaround that disabled chart animations is gone — charts animate normally again without the jank.
+New stats section that tracks boon strip spikes per player across fights. Shows peak strip counts and down contribution, with the same per-fight chart and player drilldown as spike damage. Profession groups are sorted by total value so the biggest strippers float to the top.
 
-## Details Hydration Fix
+## Boon Uptime Incoming Damage Heatmap
 
-Fixed a race condition where some fights would stay stuck in a shimmer/loading state and never show stats, even though the data had already been fetched. The details cache now stores entries under both the log ID and file path, so logs that were added before their permanent ID was assigned can still find their cached details.
+The boon uptime drilldown now has an incoming damage heatmap overlay. When you expand a player's fight breakdown, you can toggle the heatmap to see where incoming damage was heaviest relative to boon uptime — useful for spotting whether boons dropped right when they were needed most.
 
-## Zero Deaths in Death Distance Chart
+## Player Breakdown: Min/Avg/Max Hit
 
-Fights where nobody in the squad died now display correctly in the death distance chart instead of showing an empty bar. They get a distinct gray color and a "0 deaths" label in the legend, and clicking one shows a "No squad deaths in this fight" message instead of a blank scatter plot.
+The player breakdown detail pane now shows Min Hit, Avg Hit, and Max Hit rows per skill. These aggregate correctly across multiple logs, taking the true minimum and maximum across all fights rather than averaging them.
 
-## Fixes
+## Boon Selector Moved to Header
 
-- Stats deduplication settings no longer get silently reset when switching views.
+The boon selector dropdown moved out of the boon section body and into the section header, right-aligned. Saves vertical space and makes it easier to switch boons without scrolling.
+
+## Stats Sections Refactored to FightMetricSection
+
+Boon Uptime, Boon Timeline, and Spike Damage sections now use a shared FightMetricSection component under the hood. This doesn't change how they look or behave, but it means future metric sections (like Strip Spikes) can be added with much less code.
+
+## Skill Usage Visual Refresh
+
+Skill Usage section got a flat design pass — cleaner layout, less visual noise.
+
+## Crash Diagnostics
+
+Added diagnostic logging for a reported issue where the app black screens and loses recent activity on Windows. The app now logs memory stats every 5 minutes and captures detailed crash information (reason, exit code, heap state) when the renderer process dies. All of this shows up in the in-app terminal and the log file on disk, so next time it happens there'll be something to go on.
