@@ -205,7 +205,7 @@ export const BoonTimelineSection = ({
                         <ChevronDown className={`w-3 h-3 transition-transform ${boonDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {boonDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-2 z-50 w-80 rounded-lg border border-white/10 glass-surface backdrop-blur-sm shadow-xl p-3 space-y-2">
+                        <div className="absolute top-full left-0 mt-2 z-50 w-96 rounded-lg border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-xl p-3 space-y-2">
                             <PillToggleGroup
                                 value={timelineScope}
                                 onChange={(value) => setTimelineScope(value as 'selfBuffs' | 'groupBuffs' | 'squadBuffs' | 'totalBuffs')}
