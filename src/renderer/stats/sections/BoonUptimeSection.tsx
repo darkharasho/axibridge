@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bar, CartesianGrid, Cell, ComposedChart, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '../ui/ChartContainer';
-import { Maximize2, X } from 'lucide-react';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { Gw2FuryIcon } from '../../ui/Gw2FuryIcon';
 import { getProfessionColor } from '../../../shared/professionUtils';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { useFixedTooltipPosition } from '../ui/StatsViewShared';
+import { FightMetricSection } from './FightMetricSection';
+import type { FightMetricPlayer, FightMetricPoint } from './FightMetricSection';
 
 type BoonUptimeBoon = {
     id: string;
@@ -156,39 +157,25 @@ export const BoonUptimeSection = ({
     setSelectedFightIndex,
     drilldownTitle,
     drilldownData,
-    overallUptimePercent,
+    overallUptimePercent: _overallUptimePercent,
     showStackCapLine = false,
     subgroupMembers,
     showIncomingHeatmap,
     setShowIncomingHeatmap
 }: BoonUptimeSectionProps) => {
-    const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
-    const sectionId = 'boon-uptime';
-    const isExpanded = expandedSection === sectionId;
+    const { formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
+
     const selectedLineColor = selectedPlayer?.profession && selectedPlayer.profession !== 'All'
         ? (getProfessionColor(selectedPlayer.profession) || '#f59e0b')
         : '#f59e0b';
-    const sanitizeWvwLabel = (value: string) => String(value || '')
-        .replace(/^Detailed\s*WvW\s*-\s*/i, '')
-        .replace(/^World\s*vs\s*World\s*-\s*/i, '')
-        .replace(/^WvW\s*-\s*/i, '')
-        .trim();
-    const topFight = chartData.reduce((best, entry) => {
-        if (!best || entry.peak > best.peak) return entry;
-        return best;
-    }, null as BoonUptimeFightPoint | null);
-    const selectedFight = selectedFightIndex === null
-        ? null
-        : chartData.find((entry) => entry.index === selectedFightIndex) || null;
-    const infoFight = selectedFight || topFight;
+
     const hasIncomingHeatData = drilldownData.some((entry) => Number(entry?.incomingDamage || 0) > 0);
+
     const drilldownHeatData = drilldownData.map((entry) => ({
         ...entry,
         incomingHeatBand: 1
     }));
-    const mainChartMaxY = showStackCapLine
-        ? Math.ceil(Math.max(1, chartMaxY) + 3)
-        : Math.max(1, chartMaxY);
+
     const drilldownMaxY = Math.max(
         1,
         ...drilldownData.map((entry) => Math.max(0, Number(entry?.value || 0))),
@@ -197,163 +184,130 @@ export const BoonUptimeSection = ({
     const drilldownChartMaxY = showStackCapLine
         ? Math.ceil(Math.max(1, drilldownMaxY) + 3)
         : Math.max(1, drilldownMaxY);
-    const mainSeriesKey = showStackCapLine ? 'average' : 'uptimePercent';
-    const mainSeriesLabel = showStackCapLine ? 'Per Fight Average Stacks' : 'Per Fight Uptime %';
-    const formatFightTimestamp = (timestampMs: number) => {
-        if (!Number.isFinite(timestampMs) || timestampMs <= 0) return '';
-        try {
-            return new Intl.DateTimeFormat(undefined, {
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit'
-            }).format(new Date(timestampMs));
-        } catch {
-            return '';
-        }
-    };
-    const renderEntryIcon = (player: BoonUptimePlayer, sizeClass: string) => {
-        if (player.entryType === 'subgroup') {
-            const textClass = sizeClass.includes('w-4') ? 'text-[8px]' : 'text-[7px]';
-            return (
-                <span className={`${sizeClass} inline-flex shrink-0 items-center justify-center rounded-full border border-cyan-300/50 bg-cyan-400/15 font-bold tracking-[0.08em] text-cyan-100 shadow-[0_0_12px_rgba(34,211,238,0.16)] ${textClass}`}>
-                    SG
-                </span>
-            );
-        }
-        return renderProfessionIcon(player.profession, player.professionList, sizeClass);
-    };
+
+    // Build a lookup map from player key to original BoonUptimePlayer for subgroup detection
+    const rawPlayerMap = new Map(players.map((p) => [p.key, p]));
+
+    const formatValue = (v: number) =>
+        showStackCapLine
+            ? formatWithCommas(v, 1)
+            : `${formatWithCommas(v, 1)}%`;
+
+    // Map BoonUptimePlayer[] -> FightMetricPlayer[]
+    const mappedGroups = [{
+        profession: '',
+        players: players.map((p): FightMetricPlayer => ({
+            key: p.key,
+            account: p.account,
+            displayName: p.displayName,
+            characterName: p.displayName,
+            profession: p.profession,
+            professionList: p.professionList,
+            logs: p.logs,
+            value: showStackCapLine
+                ? Number(p.total / Math.max(1, p.logs))
+                : Number(p.uptimePercent || 0),
+            peakFightLabel: '',
+        })),
+    }];
+
+    // Map BoonUptimeFightPoint[] -> FightMetricPoint[]
+    const mappedChartData: FightMetricPoint[] = chartData.map((p) => ({
+        index: p.index,
+        fightId: p.fightId,
+        shortLabel: p.shortLabel,
+        fullLabel: p.fullLabel,
+        timestamp: p.timestamp,
+        value: showStackCapLine ? Number(p.average || 0) : p.uptimePercent,
+        maxValue: showStackCapLine ? Number(p.maxTotal || 0) : p.maxUptimePercent,
+    }));
+
+    // Map selected player
+    const mappedPlayer: FightMetricPlayer | null = selectedPlayer ? {
+        key: selectedPlayer.key,
+        account: selectedPlayer.account,
+        displayName: selectedPlayer.displayName,
+        characterName: selectedPlayer.displayName,
+        profession: selectedPlayer.profession,
+        professionList: selectedPlayer.professionList,
+        logs: selectedPlayer.logs,
+        value: showStackCapLine
+            ? Number(selectedPlayer.total / Math.max(1, selectedPlayer.logs))
+            : Number(selectedPlayer.uptimePercent || 0),
+        peakFightLabel: '',
+    } : null;
 
     return (
-        <div
-            className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
-        >
-            <div className="flex items-center gap-2 mb-3.5">
-                <span className="flex shrink-0" style={{ color: 'var(--section-boon)' }}><Gw2FuryIcon className="w-4 h-4" /></span>
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Boon Uptime</h3>
+        <FightMetricSection
+            sectionId="boon-uptime"
+            title="Boon Uptime"
+            titleIcon={Gw2FuryIcon}
+            titleIconClassName="text-amber-300"
+            listTitle="Entries"
+            searchPlaceholder="Search player, account, or subgroup"
+            modes={[]}
+            activeMode=""
+            setActiveMode={() => {}}
+            playerFilter={playerFilter}
+            setPlayerFilter={setPlayerFilter}
+            groupedPlayers={mappedGroups}
+            selectedPlayerKey={selectedPlayerKey}
+            setSelectedPlayerKey={setSelectedPlayerKey}
+            selectedPlayer={mappedPlayer}
+            chartData={mappedChartData}
+            chartMaxY={showStackCapLine ? Math.ceil(Math.max(1, chartMaxY) + 3) : chartMaxY}
+            formatValue={formatValue}
+            referenceLineY={showStackCapLine ? 25 : undefined}
+            referenceLineLabel={showStackCapLine ? '25' : undefined}
+            selectedFightIndex={selectedFightIndex}
+            setSelectedFightIndex={setSelectedFightIndex}
+            headerExtras={selectedFightIndex !== null ? (
                 <button
-                    type="button"
-                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={isExpanded ? 'Close Boon Uptime' : 'Expand Boon Uptime'}
-                    title={isExpanded ? 'Close' : 'Expand'}
+                    onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
+                    className={`text-[10px] uppercase tracking-wider transition-colors ${
+                        showIncomingHeatmap ? 'text-red-300 hover:text-red-200' : 'text-slate-500 hover:text-slate-300'
+                    }`}
                 >
-                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
+                    Squad Damage Heatmap
                 </button>
-            </div>
-
-            <div className="mb-4 rounded-[var(--radius-md)] p-3">
-                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                    <input
-                        type="search"
-                        value={boonSearch}
-                        onChange={(event) => setBoonSearch(event.target.value)}
-                        placeholder="Search boon"
-                        className="w-full lg:w-72 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-amber-400 focus:outline-none"
-                    />
-                    <div className="text-[11px] text-[color:var(--text-secondary)]">
-                        {boons.length} {boons.length === 1 ? 'boon' : 'boons'}
+            ) : undefined}
+            renderAbovePlayerList={() => (
+                <div className="px-3 py-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={boonSearch}
+                            onChange={(event) => setBoonSearch(event.target.value)}
+                            placeholder="Search boon"
+                            className="flex-1 bg-white/5 rounded px-2 py-1 text-xs text-slate-300 placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
+                        />
+                        <span className="text-[10px] text-slate-500 shrink-0">
+                            {boons.length} {boons.length === 1 ? 'boon' : 'boons'}
+                        </span>
                     </div>
-                </div>
-                <div className="mt-2 max-h-28 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)] p-1.5">
-                    {boons.length === 0 ? (
-                        <div className="px-3 py-2 text-xs text-[color:var(--text-muted)] italic">No boons match this filter.</div>
-                    ) : (
-                        <div className="flex flex-wrap gap-1.5">
-                            {boons.map((boon) => {
-                                const isActive = activeBoonId === boon.id;
-                                return (
-                                    <button
-                                        key={boon.id}
-                                        type="button"
-                                        onClick={() => setActiveBoonId(boon.id)}
-                                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${isActive
-                                            ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)]'
-                                            : 'border-[color:var(--border-default)] bg-white/[0.03] text-[color:var(--text-secondary)] hover:border-[color:var(--border-hover)] hover:text-[color:var(--text-primary)]'
-                                            }`}
-                                    >
-                                        {boon.icon ? (
-                                            <img src={boon.icon} alt="" className="h-3.5 w-3.5 object-contain" loading="lazy" />
-                                        ) : (
-                                            <Gw2BoonIcon className="h-3.5 w-3.5 text-amber-300" />
-                                        )}
-                                        <span>{boon.name}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-2 items-stretch">
-                <div className="space-y-2 flex flex-col h-[320px]">
-                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">
-                        Entries
-                    </div>
-                    <input
-                        type="search"
-                        value={playerFilter}
-                        onChange={(event) => setPlayerFilter(event.target.value)}
-                        placeholder="Search player, account, or subgroup"
-                        className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-amber-400 focus:outline-none"
-                    />
-                    <div className="spike-player-list-container flex-1 min-h-0 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)]">
-                        {players.length === 0 ? (
-                            <div className="px-3 py-4 text-xs text-[color:var(--text-muted)] italic">
-                                Select a boon to view uptime entries.
-                            </div>
+                    <div className="max-h-28 overflow-y-auto">
+                        {boons.length === 0 ? (
+                            <div className="px-2 py-2 text-xs text-slate-500 italic">No boons match this filter.</div>
                         ) : (
-                            <div className="p-1.5 space-y-1">
-                                {players.map((player) => {
-                                    const isSelected = selectedPlayerKey === player.key;
-                                    const isSubgroup = player.entryType === 'subgroup';
+                            <div className="flex flex-wrap gap-1.5">
+                                {boons.map((boon) => {
+                                    const isActive = activeBoonId === boon.id;
                                     return (
                                         <button
-                                            key={player.key}
+                                            key={boon.id}
                                             type="button"
-                                            onClick={() => setSelectedPlayerKey(player.key)}
-                                            className={`spike-player-list-item w-full rounded-md border px-2.5 py-1.5 text-left transition-colors ${isSubgroup
-                                                ? (isSelected
-                                                    ? 'border-cyan-300/70 bg-cyan-400/12 text-white shadow-[inset_0_0_0_1px_rgba(34,211,238,0.18)]'
-                                                    : 'border-cyan-400/25 bg-cyan-400/[0.06] hover:border-cyan-300/45 hover:bg-cyan-400/[0.10]')
-                                                : (isSelected
-                                                    ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg-strong)] text-[color:var(--text-primary)]'
-                                                    : 'border-[color:var(--border-default)] bg-white/[0.02] hover:border-[color:var(--border-hover)] hover:bg-white/[0.05]')
-                                                }`}
+                                            onClick={() => setActiveBoonId(boon.id)}
+                                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${isActive
+                                                ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 border-transparent text-slate-200'
+                                                : 'bg-white/5 border-transparent text-slate-400 hover:text-slate-300'
+                                            }`}
                                         >
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="min-w-0">
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        {renderEntryIcon(player, 'w-3.5 h-3.5')}
-                                                        <div className="text-sm font-semibold truncate text-white">{player.displayName}</div>
-                                                        {isSubgroup && (
-                                                            <span className="rounded-full border border-cyan-300/30 bg-cyan-400/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-cyan-200 shrink-0">
-                                                                Aggregate
-                                                            </span>
-                                                        )}
-                                                        {!isSubgroup && player.profession !== 'All' && (
-                                                            <span className="text-[9px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)] shrink-0">
-                                                                {player.profession}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className={`text-[10px] truncate ${isSubgroup ? 'text-cyan-200/80' : 'text-[color:var(--text-secondary)]'}`}>
-                                                        {player.logs} {player.logs === 1 ? 'fight' : 'fights'}
-                                                        {isSubgroup && player.subgroupId != null && subgroupMembers?.has(player.subgroupId) ? (
-                                                            <SubgroupMembersTooltip
-                                                                members={subgroupMembers.get(player.subgroupId)!}
-                                                                renderProfessionIcon={renderProfessionIcon}
-                                                            />
-                                                        ) : isSubgroup ? ' averaged across subgroup members' : ''}
-                                                    </div>
-                                                </div>
-                                                <div className={`text-xs font-mono shrink-0 ${isSubgroup ? 'text-cyan-100' : 'text-amber-200'}`}>
-                                                    {formatWithCommas(Number(player.uptimePercent || 0), 1)}%
-                                                </div>
-                                            </div>
+                                            {boon.icon ? (
+                                                <img src={boon.icon} alt="" className="h-3.5 w-3.5 object-contain" loading="lazy" />
+                                            ) : (
+                                                <Gw2BoonIcon className="h-3.5 w-3.5 text-amber-300" />
+                                            )}
+                                            <span>{boon.name}</span>
                                         </button>
                                     );
                                 })}
@@ -361,230 +315,132 @@ export const BoonUptimeSection = ({
                         )}
                     </div>
                 </div>
+            )}
+            renderPlayerItem={(player, isSelected) => {
+                const rawPlayer = rawPlayerMap.get(player.key);
+                const isSubgroup = rawPlayer?.entryType === 'subgroup';
 
-                <div className="space-y-2 flex flex-col h-[320px]">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">
-                            {mainSeriesLabel}
-                        </div>
-                        <div className="text-[11px] text-[color:var(--text-secondary)]">
-                            {chartData.length} {chartData.length === 1 ? 'fight' : 'fights'}
-                        </div>
-                    </div>
-                    <div className="rounded-[var(--radius-md)] p-4 flex-1 min-h-0">
-                        {!selectedPlayer || chartData.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
-                                Select one entry to view boon uptime by fight.
+                if (isSubgroup) {
+                    return (
+                        <div className="flex flex-col gap-0.5 w-full min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-4 h-4 inline-flex shrink-0 items-center justify-center rounded-full border border-cyan-300/50 bg-cyan-400/15 font-bold tracking-[0.08em] text-cyan-100 shadow-[0_0_12px_rgba(34,211,238,0.16)] text-[8px]">
+                                    SG
+                                </span>
+                                <span className={`text-xs truncate flex-1 ${isSelected ? 'text-slate-200' : 'text-slate-400'}`}>
+                                    {player.displayName}
+                                </span>
+                                <span className="rounded-full border border-cyan-300/30 bg-cyan-400/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-cyan-200 shrink-0">
+                                    Aggregate
+                                </span>
+                                <span className={`text-xs tabular-nums shrink-0 ${isSelected ? 'text-cyan-200 font-semibold' : 'text-cyan-300/60'}`}>
+                                    {formatValue(player.value)}
+                                </span>
                             </div>
-                        ) : (
-                            <ChartContainer width="100%" height="100%">
-                                <LineChart
-                                    data={chartData}
-                                    onClick={(state: any) => {
-                                        const idx = Number(state?.activeTooltipIndex);
-                                        if (!Number.isFinite(idx)) return;
-                                        setSelectedFightIndex(selectedFightIndex === idx ? null : idx);
+                            <div className="text-[10px] text-cyan-200/80 pl-6">
+                                {rawPlayer.logs} {rawPlayer.logs === 1 ? 'fight' : 'fights'}
+                                {rawPlayer.subgroupId != null && subgroupMembers?.has(rawPlayer.subgroupId) ? (
+                                    <SubgroupMembersTooltip
+                                        members={subgroupMembers.get(rawPlayer.subgroupId)!}
+                                        renderProfessionIcon={renderProfessionIcon}
+                                    />
+                                ) : ' averaged across subgroup members'}
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <>
+                        {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4 flex-shrink-0')}
+                        <span className={`text-xs truncate flex-1 ${isSelected ? 'text-slate-200' : 'text-slate-400'}`}>
+                            {player.displayName}
+                        </span>
+                        <span className={`text-xs tabular-nums ${isSelected ? 'text-amber-200 font-semibold' : 'text-slate-500'}`}>
+                            {formatValue(player.value)}
+                        </span>
+                    </>
+                );
+            }}
+            drilldownTitle={drilldownTitle}
+            renderDrilldown={() => (
+                <div className="h-[220px] relative">
+                    {drilldownData.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-xs text-slate-500">
+                            No detailed data available for this fight.
+                        </div>
+                    ) : (
+                        <ChartContainer width="100%" height="100%">
+                            <ComposedChart data={drilldownHeatData}>
+                                <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
+                                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
+                                <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false}
+                                    domain={[0, drilldownChartMaxY]}
+                                    tickFormatter={(value: number) => showStackCapLine ? formatWithCommas(value, 0) : `${formatWithCommas(value, 0)}%`}
+                                    width={50} />
+                                <YAxis yAxisId="incomingHeat" hide domain={[0, 1]} />
+                                <Tooltip
+                                    content={({ active, payload }) => {
+                                        if (!active || !payload?.length) return null;
+                                        const d = payload[0]?.payload;
+                                        if (!d) return null;
+                                        return (
+                                            <div className="bg-slate-900/95 border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                <div className="text-slate-200 font-medium mb-1">{d.label}</div>
+                                                <div className="text-indigo-300">
+                                                    {showStackCapLine ? 'Stacks' : 'Uptime'}: <strong>
+                                                        {showStackCapLine
+                                                            ? formatWithCommas(Number(d.value || 0), 1)
+                                                            : `${formatWithCommas(Number(d.value || 0), 1)}%`}
+                                                    </strong>
+                                                </div>
+                                                {showIncomingHeatmap && hasIncomingHeatData && Number(d.incomingDamage || 0) > 0 && (
+                                                    <div className="text-red-300">Squad Incoming Damage: <strong>{formatWithCommas(Number(d.incomingDamage || 0), 0)}</strong></div>
+                                                )}
+                                            </div>
+                                        );
                                     }}
-                                >
-                                    <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
-                                    <XAxis dataKey="shortLabel" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
-                                    <YAxis
-                                        tick={{ fill: '#e2e8f0', fontSize: 10 }}
-                                        domain={[0, mainChartMaxY]}
-                                        tickFormatter={(value: number) => showStackCapLine ? formatWithCommas(value, 0) : `${formatWithCommas(value, 0)}%`}
+                                />
+                                {showIncomingHeatmap && hasIncomingHeatData && (
+                                    <Bar
+                                        yAxisId="incomingHeat"
+                                        dataKey="incomingHeatBand"
+                                        name="Incoming Damage Heat"
+                                        barSize={24}
+                                        fill="rgba(239,68,68,0.35)"
+                                        stroke="none"
+                                        isAnimationActive={false}
+                                    >
+                                        {drilldownData.map((entry, index) => {
+                                            const intensity = Math.max(0, Math.min(1, Number(entry?.incomingIntensity || 0)));
+                                            const alpha = 0.06 + (0.52 * intensity);
+                                            return <Cell key={`incoming-heat-${index}`} fill={`rgba(239, 68, 68, ${alpha.toFixed(3)})`} />;
+                                        })}
+                                    </Bar>
+                                )}
+                                <Line
+                                    type="monotone"
+                                    dataKey="value"
+                                    name="Selected"
+                                    stroke={selectedLineColor}
+                                    strokeWidth={2.5}
+                                    dot={{ r: 2 }}
+                                    activeDot={{ r: 4 }}
+                                />
+                                {showStackCapLine && (
+                                    <ReferenceLine
+                                        y={25}
+                                        stroke="rgba(251,191,36,0.9)"
+                                        strokeDasharray="6 4"
+                                        ifOverflow="extendDomain"
+                                        label={{ value: '25', position: 'right', fill: '#fbbf24', fontSize: 10 }}
                                     />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
-                                        formatter={(value: any, name: any) => [
-                                            showStackCapLine
-                                                ? formatWithCommas(Number(value || 0), 1)
-                                                : `${formatWithCommas(Number(value || 0), 1)}%`,
-                                            String(name || '')
-                                        ]}
-                                        labelFormatter={(_, payload?: readonly any[]) => {
-                                            const point = payload?.[0]?.payload;
-                                            return sanitizeWvwLabel(String(point?.fullLabel || ''));
-                                        }}
-                                    />
-                                    <Line
-                                        type="monotone"
-                                        dataKey={mainSeriesKey}
-                                        name={selectedPlayer.displayName}
-                                        stroke={selectedLineColor}
-                                        strokeWidth={3}
-                                        dot={(props: any) => {
-                                            const idx = Number(props?.payload?.index);
-                                            if (!Number.isFinite(idx)) return null;
-                                            const isSelected = selectedFightIndex === idx;
-                                            return (
-                                                <g
-                                                    style={{ cursor: 'pointer', pointerEvents: 'all' }}
-                                                    onClick={(event) => {
-                                                        event.stopPropagation();
-                                                        setSelectedFightIndex(isSelected ? null : idx);
-                                                    }}
-                                                >
-                                                    <circle cx={props.cx} cy={props.cy} r={10} fill="transparent" style={{ pointerEvents: 'all' }} />
-                                                    <circle
-                                                        cx={props.cx}
-                                                        cy={props.cy}
-                                                        r={isSelected ? 4 : 3}
-                                                        fill={selectedLineColor}
-                                                        stroke={isSelected ? 'rgba(251,191,36,0.95)' : 'rgba(15,23,42,0.9)'}
-                                                        strokeWidth={isSelected ? 2 : 1}
-                                                        style={{ pointerEvents: 'all' }}
-                                                    />
-                                                </g>
-                                            );
-                                        }}
-                                        activeDot={{ r: 4 }}
-                                    />
-                                    {showStackCapLine && (
-                                        <ReferenceLine
-                                            y={25}
-                                            stroke="rgba(251,191,36,0.9)"
-                                            strokeDasharray="6 4"
-                                            ifOverflow="extendDomain"
-                                            label={{ value: '25', position: 'right', fill: '#fbbf24', fontSize: 10 }}
-                                        />
-                                    )}
-                                </LineChart>
-                            </ChartContainer>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {selectedPlayer && (
-                <div className="mt-4 px-4 py-3 grid gap-3 md:grid-cols-3">
-                    <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Selected Entry</div>
-                        <div className="mt-1 text-sm font-semibold text-white flex items-center gap-2 min-w-0">
-                            {renderEntryIcon(selectedPlayer, 'w-4 h-4')}
-                            <span className="truncate">{selectedPlayer.displayName}</span>
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">
-                            {selectedFight
-                                ? (showStackCapLine ? 'Selected Fight Avg Stacks' : 'Selected Fight Uptime')
-                                : 'Overall Uptime'}
-                        </div>
-                        <div className="mt-1 text-lg font-black text-amber-200 font-mono">
-                            {selectedFight
-                                ? (showStackCapLine
-                                    ? formatWithCommas(Number(selectedFight.average ?? 0), 1)
-                                    : `${formatWithCommas(Number(selectedFight.uptimePercent || 0), 1)}%`)
-                                : (overallUptimePercent === null
-                                    ? '--'
-                                    : `${formatWithCommas(Number(overallUptimePercent || 0), 1)}%`)}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">
-                            {selectedFight ? 'Selected Fight' : 'Peak Fight'}
-                        </div>
-                        <div className="mt-1 text-sm text-[color:var(--text-primary)] truncate">
-                            {(() => {
-                                const bestLabel = sanitizeWvwLabel(infoFight?.fullLabel || 'N/A');
-                                const timeLabel = formatFightTimestamp(Number(infoFight?.timestamp || 0));
-                                return timeLabel ? `${timeLabel} - ${bestLabel}` : bestLabel;
-                            })()}
-                        </div>
-                    </div>
+                                )}
+                            </ComposedChart>
+                        </ChartContainer>
+                    )}
                 </div>
             )}
-
-            {selectedPlayer && selectedFightIndex !== null && (
-                <div className="mt-4 px-4 py-3">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{drilldownTitle}</div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
-                                className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
-                                    showIncomingHeatmap
-                                        ? 'text-red-200 hover:text-red-100'
-                                        : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
-                                }`}
-                                title="Toggle squad incoming damage intensity heatmap overlay"
-                            >
-                                Squad Damage Heatmap
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setSelectedFightIndex(null)}
-                                className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                            >
-                                Clear
-                            </button>
-                        </div>
-                    </div>
-                    <div className="h-[220px] relative">
-                        {drilldownData.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
-                                No detailed data available for this fight.
-                            </div>
-                        ) : (
-                            <ChartContainer width="100%" height="100%">
-                                <ComposedChart data={drilldownHeatData}>
-                                    <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
-                                    <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
-                                    <YAxis tick={{ fill: '#e2e8f0', fontSize: 10 }} domain={[0, drilldownChartMaxY]} />
-                                    <YAxis yAxisId="incomingHeat" hide domain={[0, 1]} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
-                                        formatter={(value: any, name: any, item: any) => {
-                                            const point = item?.payload || {};
-                                            if (String(name || '') === 'Incoming Damage Heat') {
-                                                return [formatWithCommas(Number(point?.incomingDamage || 0), 0), 'Squad Incoming Damage'];
-                                            }
-                                            return [formatWithCommas(Number(value || 0), 0), String(name || '')];
-                                        }}
-                                        labelFormatter={(value: any) => String(value || '')}
-                                    />
-                                    {showIncomingHeatmap && hasIncomingHeatData && (
-                                        <Bar
-                                            yAxisId="incomingHeat"
-                                            dataKey="incomingHeatBand"
-                                            name="Incoming Damage Heat"
-                                            barSize={24}
-                                            fill="rgba(239,68,68,0.35)"
-                                            stroke="none"
-                                            isAnimationActive={false}
-                                        >
-                                            {drilldownData.map((entry, index) => {
-                                                const intensity = Math.max(0, Math.min(1, Number(entry?.incomingIntensity || 0)));
-                                                const alpha = 0.06 + (0.52 * intensity);
-                                                return <Cell key={`incoming-heat-${index}`} fill={`rgba(239, 68, 68, ${alpha.toFixed(3)})`} />;
-                                            })}
-                                        </Bar>
-                                    )}
-                                    <Line
-                                        type="monotone"
-                                        dataKey="value"
-                                        name="Selected"
-                                        stroke={selectedLineColor}
-                                        strokeWidth={2.5}
-                                        dot={{ r: 2 }}
-                                        activeDot={{ r: 4 }}
-                                    />
-                                    {showStackCapLine && (
-                                        <ReferenceLine
-                                            y={25}
-                                            stroke="rgba(251,191,36,0.9)"
-                                            strokeDasharray="6 4"
-                                            ifOverflow="extendDomain"
-                                            label={{ value: '25', position: 'right', fill: '#fbbf24', fontSize: 10 }}
-                                        />
-                                    )}
-                                </ComposedChart>
-                            </ChartContainer>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
+        />
     );
 };
