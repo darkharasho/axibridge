@@ -5,6 +5,7 @@ import { getProfessionColor } from '../../shared/professionUtils';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { computeSkillUsageData } from './computeSkillUsageData';
 import { computeSpikeDamageData } from './computeSpikeDamageData';
+import { computeStripSpikesData } from './computeStripSpikesData';
 import { computeIncomingStrikeDamageData } from './computeIncomingStrikeDamageData';
 import { computeHealEffectivenessData } from './computeHealEffectivenessData';
 import { computeCommanderStats } from './computeCommanderStats';
@@ -655,6 +656,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             });
 
         const spikeDamage = computeSpikeDamageData(validLogs, splitPlayersByClass);
+        const stripSpikes = computeStripSpikesData(validLogs, splitPlayersByClass);
 
         const incomingStrikeDamage = computeIncomingStrikeDamageData(validLogs);
         const healEffectiveness = computeHealEffectivenessData(validLogs);
@@ -737,6 +739,7 @@ export const computeStatsAggregation = ({ logs, precomputedStats, mvpWeights, st
             attendanceData,
             squadCompByFight,
             spikeDamage,
+            stripSpikes,
             incomingStrikeDamage,
             healEffectiveness,
             tagDistanceDeaths,
