@@ -140,10 +140,6 @@ body.glass-surfaces .app-dropdown {
   background: rgba(15, 18, 25, 0.85) !important;
   backdrop-filter: blur(16px);
 }
-body.glass-surfaces .boon-selector-dropdown {
-  background: rgba(15, 18, 25, 0.6) !important;
-  backdrop-filter: blur(20px);
-}
 
 /* Settings sidebar in glass mode */
 body.glass-surfaces .settings-view aside > div {

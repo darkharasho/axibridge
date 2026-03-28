@@ -303,7 +303,7 @@ export const BoonUptimeSection = ({
                         <ChevronDown className={`w-3 h-3 transition-transform ${boonDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {boonDropdownOpen && (
-                        <div className="boon-selector-dropdown absolute top-full left-0 mt-2 z-50 w-96 rounded-lg border border-white/10 shadow-xl p-3 space-y-2">
+                        <div className="absolute top-full left-0 mt-2 z-50 w-96 rounded-lg border border-white/10 bg-[#0f1219] shadow-xl p-3 space-y-2">
                             <div className="flex items-center gap-2">
                                 <input
                                     type="text"
