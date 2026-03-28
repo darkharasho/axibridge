@@ -577,7 +577,17 @@ export const PlayerBreakdownSection = ({
                                                                     : 0,
                                                                 1
                                                             )
-                                                        }
+                                                        },
+                                                        { label: 'Min Hit', value: formatTopStatValue(activePlayerSkill?.min || 0) },
+                                                        {
+                                                            label: 'Avg Hit',
+                                                            value: formatTopStatValue(
+                                                                (activePlayerSkill?.hits || 0) > 0
+                                                                    ? Math.round((activePlayerSkill?.damage || 0) / (activePlayerSkill?.hits || 1))
+                                                                    : 0
+                                                            )
+                                                        },
+                                                        { label: 'Max Hit', value: formatTopStatValue(activePlayerSkill?.max || 0) }
                                                     ]).map((row) => (
                                                         <div key={row.label} className="grid grid-cols-[1.2fr_0.8fr] px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                                             <div className="font-semibold text-white">{row.label}</div>
