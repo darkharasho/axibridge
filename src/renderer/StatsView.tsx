@@ -780,6 +780,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const [selectedBoonTimelinePlayerKey, setSelectedBoonTimelinePlayerKey] = useState<string | null>(null);
     const [selectedBoonTimelineFightIndex, setSelectedBoonTimelineFightIndex] = useState<number | null>(null);
     const [showBoonTimelineIncomingHeatmap, setShowBoonTimelineIncomingHeatmap] = useState(false);
+    const [showBoonUptimeIncomingHeatmap, setShowBoonUptimeIncomingHeatmap] = useState(false);
     const [boonUptimeSearch, setBoonUptimeSearch] = useState('');
     const [activeBoonUptimeId, setActiveBoonUptimeId] = useState<string | null>(null);
     const [boonUptimePlayerFilter, setBoonUptimePlayerFilter] = useState('');
@@ -3523,14 +3524,14 @@ type SpikeFight = {
         if (!selectedPoint || !activeBoonUptime || !selectedBoonUptimePlayerKey) {
             return {
                 title: 'Fight Breakdown',
-                data: [] as Array<{ label: string; value: number; maxValue: number }>
+                data: [] as Array<{ label: string; value: number; maxValue: number; incomingDamage: number; incomingIntensity: number }>
             };
         }
         const selectedFight = boonUptimeFightsWithSubgroups?.[selectedPoint.index];
         if (!selectedFight) {
             return {
                 title: 'Fight Breakdown',
-                data: [] as Array<{ label: string; value: number; maxValue: number }>
+                data: [] as Array<{ label: string; value: number; maxValue: number; incomingDamage: number; incomingIntensity: number }>
             };
         }
         const selectedValue = selectedFight?.values?.[selectedBoonUptimePlayerKey];
@@ -3550,11 +3551,41 @@ type SpikeFight = {
                 maxValue
             };
         });
+        const primaryIncomingByFightId = squadIncomingDamageBucketsByFightId.get(String(selectedFight?.id || ''))
+            || squadIncomingDamageBucketsByFightId.get(String(selectedPoint?.fightId || ''))
+            || [];
+        const fallbackIncomingByFightId = fallbackIncomingDamageBucketsByFightId.get(String(selectedFight?.id || ''))
+            || fallbackIncomingDamageBucketsByFightId.get(String(selectedPoint?.fightId || ''))
+            || [];
+        const primaryIncomingTotal = primaryIncomingByFightId.reduce((sum, value) => sum + Number(value || 0), 0);
+        const fallbackIncomingTotal = fallbackIncomingByFightId.reduce((sum, value) => sum + Number(value || 0), 0);
+        const incomingShape = primaryIncomingTotal > 0 ? primaryIncomingByFightId : fallbackIncomingByFightId;
+        const incomingShapeTotal = primaryIncomingTotal > 0 ? primaryIncomingTotal : fallbackIncomingTotal;
+        const incomingTotal = Math.max(
+            0,
+            Number(squadIncomingDamageTotalByFightId.get(String(selectedFight?.id || ''))
+                ?? squadIncomingDamageTotalByFightId.get(String(selectedPoint?.fightId || ''))
+                ?? 0)
+        );
+        let incomingBuckets = Array.from({ length: bucketCount }, (_, index) => Number(incomingShape[index] || 0));
+        if (incomingTotal > 0 && incomingShapeTotal > 0) {
+            const scale = incomingTotal / incomingShapeTotal;
+            incomingBuckets = incomingBuckets.map((value) => Number(value || 0) * scale);
+        }
+        const incomingMax = incomingBuckets.reduce((best, value) => Math.max(best, Number(value || 0)), 0);
+        const dataWithIncoming = data.map((entry, index) => {
+            const incomingDamage = Number(incomingBuckets[index] || 0);
+            return {
+                ...entry,
+                incomingDamage,
+                incomingIntensity: incomingMax > 0 ? Math.max(0, Math.min(1, incomingDamage / incomingMax)) : 0
+            };
+        });
         return {
             title: `Fight Breakdown - ${selectedPoint.shortLabel || 'Fight'} (5s Stack Buckets)`,
-            data
+            data: dataWithIncoming
         };
-    }, [selectedBoonUptimeFightIndex, boonUptimeChartData, boonUptimeFightsWithSubgroups, selectedBoonUptimePlayerKey]);
+    }, [selectedBoonUptimeFightIndex, boonUptimeChartData, boonUptimeFightsWithSubgroups, selectedBoonUptimePlayerKey, squadIncomingDamageBucketsByFightId, fallbackIncomingDamageBucketsByFightId, squadIncomingDamageTotalByFightId]);
     const boonUptimeOverallPercent = useMemo(() => {
         if (!selectedBoonUptimePlayerKey) return null;
         const value = boonUptimePercentByPlayer.get(selectedBoonUptimePlayerKey);
@@ -4048,6 +4079,8 @@ type SpikeFight = {
                                 overallUptimePercent={boonUptimeOverallPercent}
                                 showStackCapLine={Boolean(activeBoonUptime?.stacking)}
                                 subgroupMembers={boonUptimeSubgroupMembers}
+                                showIncomingHeatmap={showBoonUptimeIncomingHeatmap}
+                                setShowIncomingHeatmap={setShowBoonUptimeIncomingHeatmap}
                             />)}
 
                             {renderSectionWrap(<OffenseSection
@@ -4625,6 +4658,8 @@ type SpikeFight = {
                                 overallUptimePercent={boonUptimeOverallPercent}
                                 showStackCapLine={Boolean(activeBoonUptime?.stacking)}
                                 subgroupMembers={boonUptimeSubgroupMembers}
+                                showIncomingHeatmap={showBoonUptimeIncomingHeatmap}
+                                setShowIncomingHeatmap={setShowBoonUptimeIncomingHeatmap}
                             /> },
                             { id: 'support-detailed', element: <SupportSection
                                 supportSearch={supportSearch}
