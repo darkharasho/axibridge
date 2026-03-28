@@ -73,17 +73,17 @@ export const SkillUsageSection = ({
     getLineDashForPlayer,
     formatSkillUsageValue
 }: SkillUsageSectionProps) => {
-    const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, renderProfessionIcon } = useStatsSharedContext();
+    const { expandedSection, openExpandedSection, closeExpandedSection, renderProfessionIcon } = useStatsSharedContext();
     const allPlayerKeys = groupedSkillUsagePlayers.flatMap((group) => group.players.map((player) => player.key));
     const hasAllPlayersSelected = allPlayerKeys.length > 0 && allPlayerKeys.every((key) => selectedPlayers.includes(key));
     return (
     <div
-        className={`${expandedSection === 'skill-usage' ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-        style={expandedSection === 'skill-usage' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+        className={`${expandedSection === 'skill-usage' ? 'fixed inset-0 z-50 overflow-y-auto h-screen flex flex-col pb-10' : ''}`}
+        style={{ scrollMarginTop: '80px' }}
     >
         <div className="flex items-center gap-2 mb-3.5">
-            <Keyboard className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Skill Usage Tracker</h3>
+            <Keyboard className="w-4 h-4 shrink-0 text-slate-400" />
+            <h3 className="text-sm font-semibold text-slate-200">Skill Usage Tracker</h3>
             <div className="ml-auto flex items-center gap-2">
                 <PillToggleGroup
                     value={skillUsageView}
@@ -93,17 +93,16 @@ export const SkillUsageSection = ({
                         { value: 'perSecond', label: 'Per Sec' }
                     ]}
                     activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                    inactiveClassName="text-[color:var(--text-secondary)]"
+                    inactiveClassName="text-slate-500"
                 />
                 <button
                     type="button"
                     onClick={() => (expandedSection === 'skill-usage' ? closeExpandedSection() : openExpandedSection('skill-usage'))}
-                    className="flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
+                    className="p-1 rounded hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors"
                     aria-label={expandedSection === 'skill-usage' ? 'Close Skill Usage' : 'Expand Skill Usage'}
                     title={expandedSection === 'skill-usage' ? 'Close' : 'Expand'}
                 >
-                    {expandedSection === 'skill-usage' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
+                    {expandedSection === 'skill-usage' ? <X className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
                 </button>
             </div>
         </div>
@@ -112,7 +111,7 @@ export const SkillUsageSection = ({
                 <button
                     type="button"
                     onClick={() => setSelectedPlayers([])}
-                    className="px-3 py-1 rounded-full border border-[color:var(--border-default)] bg-[var(--bg-hover)] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                    className="px-3 py-1 rounded-full border border-white/5 bg-white/5 text-[10px] uppercase tracking-widest text-slate-500 hover:text-slate-200"
                 >
                     Clear All
                 </button>
@@ -134,7 +133,7 @@ export const SkillUsageSection = ({
         <div className="grid gap-4 lg:grid-cols-2 items-stretch">
             <div className="space-y-2 flex flex-col h-[320px]">
                 <div className="flex items-center justify-between">
-                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500">
                         Squad Players
                     </div>
                     <button
@@ -150,7 +149,7 @@ export const SkillUsageSection = ({
                             });
                         }}
                         disabled={allPlayerKeys.length === 0}
-                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border border-[color:var(--border-default)] bg-[var(--bg-hover)] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border border-white/5 bg-white/5 text-[10px] uppercase tracking-widest text-slate-500 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {hasAllPlayersSelected ? 'Clear All' : 'Select All'}
                     </button>
@@ -160,11 +159,11 @@ export const SkillUsageSection = ({
                     value={skillUsagePlayerFilter}
                     onChange={(event) => setSkillUsagePlayerFilter(event.target.value)}
                     placeholder="Search player or account"
-                    className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-cyan-400 focus:outline-none"
+                    className="w-full rounded-lg border border-white/5 bg-white/5 px-3 py-2 text-sm text-slate-200 focus:ring-1 focus:ring-indigo-500/50 outline-none"
                 />
-                <div className="skill-usage-player-list-container flex-1 min-h-0 overflow-y-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)]">
+                <div className="skill-usage-player-list-container flex-1 min-h-0 overflow-y-auto rounded-lg border border-white/5">
                     {groupedSkillUsagePlayers.length === 0 ? (
-                        <div className="px-3 py-4 text-xs text-[color:var(--text-muted)] italic">
+                        <div className="px-3 py-4 text-xs text-slate-600 italic">
                             No squad players match the filter
                         </div>
                     ) : (
@@ -173,7 +172,7 @@ export const SkillUsageSection = ({
                             const groupKeys = group.players.map((player) => player.key);
                             const allSelected = groupKeys.length > 0 && groupKeys.every((key) => selectedPlayers.includes(key));
                             return (
-                                <div key={group.profession} className="border-b border-[color:var(--border-subtle)] last:border-b-0">
+                                <div key={group.profession} className="border-b border-white/5 last:border-b-0">
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -183,14 +182,14 @@ export const SkillUsageSection = ({
                                             }
                                             setExpandedSkillUsageClass(group.profession);
                                         }}
-                                        className={`skill-usage-player-list-item w-full px-3 py-2 text-left transition-colors ${isExpanded ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]'}`}
+                                        className={`skill-usage-player-list-item w-full px-3 py-2 text-left transition-colors ${isExpanded ? 'bg-white/5' : 'hover:bg-white/5'}`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2 min-w-0">
                                                 {renderProfessionIcon(group.profession, undefined, 'w-4 h-4')}
                                                 <div className="text-sm font-semibold truncate text-white">{group.profession}</div>
                                             </div>
-                                            <div className="flex items-center gap-2 text-[color:var(--text-secondary)]">
+                                            <div className="flex items-center gap-2 text-slate-500">
                                                 <span className="text-[10px]">{group.players.length}p</span>
                                                 {isExpanded ? (
                                                     <ChevronDown className="w-3.5 h-3.5" />
@@ -202,7 +201,7 @@ export const SkillUsageSection = ({
                                     </button>
                                     {isExpanded && (
                                         <div className="pb-2">
-                                            <div className="px-6 pt-1 pb-2 flex items-center justify-between text-[11px] text-[color:var(--text-secondary)]">
+                                            <div className="px-6 pt-1 pb-2 flex items-center justify-between text-[11px] text-slate-500">
                                                 <span>{group.players.length} {group.players.length === 1 ? 'player' : 'players'}</span>
                                                     <button
                                                         type="button"
@@ -216,7 +215,7 @@ export const SkillUsageSection = ({
                                                             return Array.from(next);
                                                         });
                                                     }}
-                                                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border border-[color:var(--border-default)] bg-[var(--bg-hover)] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                                                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border border-white/5 bg-white/5 text-[10px] uppercase tracking-widest text-slate-500 hover:text-slate-200"
                                                     >
                                                         {allSelected ? 'Clear All' : 'Select All'}
                                                     </button>
@@ -228,16 +227,16 @@ export const SkillUsageSection = ({
                                                         type="button"
                                                         key={player.key}
                                                         onClick={() => togglePlayerSelection(player.key)}
-                                                        className={`skill-usage-player-list-item w-full border-b border-[color:var(--border-subtle)] px-6 py-2 text-left transition-colors last:border-b-0 ${isSelected ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg-strong)] text-[color:var(--text-primary)]' : 'border-transparent hover:border-[color:var(--border-default)] hover:bg-[var(--bg-hover)]'}`}
+                                                        className={`skill-usage-player-list-item w-full border-b border-white/5 px-6 py-2 text-left transition-colors last:border-b-0 ${isSelected ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 text-slate-200' : 'border-transparent hover:border-white/10 hover:bg-white/5'}`}
                                                     >
                                                         <div className="flex items-center justify-between">
                                                             <div>
                                                                 <div className="text-sm font-semibold truncate text-white">{player.displayName}</div>
-                                                                <div className="text-[11px] text-[color:var(--text-secondary)]">
+                                                                <div className="text-[11px] text-slate-500">
                                                                     {player.account} · {player.profession} · {player.logs} {player.logs === 1 ? 'log' : 'logs'}
                                                                 </div>
                                                             </div>
-                                                            {isSelected && <CheckCircle2 className="w-4 h-4 text-[color:var(--brand-primary)]" />}
+                                                            {isSelected && <CheckCircle2 className="w-4 h-4 text-indigo-300" />}
                                                         </div>
                                                     </button>
                                                 );
@@ -252,10 +251,10 @@ export const SkillUsageSection = ({
             </div>
             <div className="space-y-2 flex flex-col h-[320px]">
                 <div className="flex items-center justify-between">
-                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500">
                         Skill Totals
                     </div>
-                    <div className="text-[11px] text-[color:var(--text-secondary)]">
+                    <div className="text-[11px] text-slate-500">
                         {selectedPlayers.length > 0
                             ? `${selectedPlayers.length} player${selectedPlayers.length === 1 ? '' : 's'} · ${isSkillUsagePerSecond ? 'casts/sec' : 'total casts'}`
                             : 'Select players'}
@@ -266,15 +265,15 @@ export const SkillUsageSection = ({
                     value={skillUsageSkillFilter}
                     onChange={(event) => setSkillUsageSkillFilter(event.target.value)}
                     placeholder="Filter skill names"
-                    className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:border-cyan-400 focus:outline-none"
+                    className="w-full rounded-lg border border-white/5 bg-white/5 px-3 py-2 text-sm text-slate-200 focus:ring-1 focus:ring-indigo-500/50 outline-none"
                 />
-                <div className="rounded-[var(--radius-md)] p-0.5 flex-1 min-h-0">
+                <div className="rounded-lg p-0.5 flex-1 min-h-0">
                     {selectedPlayers.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-xs text-[color:var(--text-muted)]">
+                        <div className="h-full flex flex-col items-center justify-center text-xs text-slate-600">
                             Select squad players to see the skills they cast.
                         </div>
                     ) : skillBarData.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-xs text-[color:var(--text-muted)]">
+                        <div className="h-full flex flex-col items-center justify-center text-xs text-slate-600">
                             No skill casts found for the selected players.
                         </div>
                     ) : (
@@ -290,11 +289,11 @@ export const SkillUsageSection = ({
                                                 key={entry.skillId}
                                                 type="button"
                                                 onClick={() => setSelectedSkillId(entry.skillId)}
-                                                className={`w-full space-y-1 rounded-[var(--radius-md)] border px-2 py-1.5 text-left transition-colors ${isSelected ? 'border-white/60 bg-[var(--bg-hover)]' : 'border-[color:var(--border-default)] bg-[var(--bg-hover)] hover:border-[color:var(--border-hover)] hover:bg-[var(--bg-hover)]'}`}
+                                                className={`w-full space-y-1 rounded-lg border px-2 py-1.5 text-left transition-colors ${isSelected ? 'border-white/60 bg-white/5' : 'border-white/5 bg-white/5 hover:border-white/10 hover:bg-white/5'}`}
                                             >
                                                 <div className="flex items-center justify-between text-sm text-white min-w-0">
                                                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--text-secondary)]">{`#${index + 1}`}</span>
+                                                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">{`#${index + 1}`}</span>
                                                         <InlineIconLabel
                                                             name={entry.name}
                                                             iconUrl={entry.icon}
@@ -303,9 +302,9 @@ export const SkillUsageSection = ({
                                                             textClassName="font-semibold"
                                                         />
                                                     </div>
-                                                    <span className="text-[color:var(--brand-primary)] font-mono text-xs shrink-0">{formatSkillUsageValue(entry.total)}</span>
+                                                    <span className="text-indigo-300 font-mono text-xs shrink-0">{formatSkillUsageValue(entry.total)}</span>
                                                 </div>
-                                                <div className="h-1 w-full rounded-full bg-[var(--bg-hover)]">
+                                                <div className="h-1 w-full rounded-full bg-white/5">
                                                     <div
                                                         className="h-full rounded-full transition-all"
                                                         style={{ width: `${widthPct}%`, backgroundColor: entry.color }}
@@ -324,14 +323,14 @@ export const SkillUsageSection = ({
         <div className="space-y-3">
             {skillUsageReady ? (
                 <div className="space-y-4">
-                    <div className="space-y-4 rounded-[var(--radius-md)] p-4 mt-2">
+                    <div className="space-y-4 rounded-lg p-4 mt-2">
                         <div className="flex items-center justify-between">
-                            <div className="text-sm font-semibold text-[color:var(--text-primary)]">
+                            <div className="text-sm font-semibold text-slate-200">
                                 {selectedSkillName
                                     ? <InlineIconLabel name={selectedSkillName} iconUrl={selectedSkillIcon} iconClassName="h-6 w-6" />
                                     : 'Selected Skill Usage'}
                             </div>
-                            <div className="text-[11px] text-[color:var(--text-secondary)]">
+                            <div className="text-[11px] text-slate-500">
                                 ({isSkillUsagePerSecond ? 'casts per second' : 'casts per log'})
                             </div>
                         </div>
@@ -341,7 +340,7 @@ export const SkillUsageSection = ({
                                 <XAxis
                                     dataKey="index"
                                     type="number"
-                                    tick={{ fill: '#e2e8f0', fontSize: 10 }}
+                                    tick={{ fill: '#64748b', fontSize: 10 }}
                                     interval={0}
                                     tickFormatter={(value: number) => {
                                         const entry = skillChartData[value];
@@ -350,7 +349,7 @@ export const SkillUsageSection = ({
                                     }}
                                 />
                                 <YAxis
-                                    tick={{ fill: '#e2e8f0', fontSize: 10 }}
+                                    tick={{ fill: '#64748b', fontSize: 10 }}
                                     domain={[0, Math.max(1, skillChartMaxY)]}
                                     allowDecimals={false}
                                 />
@@ -362,7 +361,7 @@ export const SkillUsageSection = ({
                                         const first = sorted[0];
                                         const header = (first?.payload as any)?.fullLabel || label;
                                         return (
-                                            <div className="rounded-[var(--radius-md)] bg-[var(--bg-card-inner)]/95 border border-[color:var(--border-default)] px-3 py-2">
+                                            <div className="rounded-lg bg-white/5 border border-white/5 px-3 py-2">
                                                 <div className="text-sm text-white mb-1">{header}</div>
                                                 <div className="space-y-1">
                                                     {sorted.map((item) => {
@@ -374,7 +373,7 @@ export const SkillUsageSection = ({
                                                         return (
                                                             <div key={`${labelText}-${value}`} className="flex items-center justify-between text-sm">
                                                                 <span className="truncate" style={{ color }}>{labelText}</span>
-                                                                <span className="text-[color:var(--text-primary)] font-mono">{value}</span>
+                                                                <span className="text-slate-200 font-mono">{value}</span>
                                                             </div>
                                                         );
                                                     })}
@@ -408,10 +407,10 @@ export const SkillUsageSection = ({
                         </ChartContainer>
                     </div>
                     {selectedPlayers.length > 0 && (
-                        <div className="rounded-[var(--radius-md)] p-4 space-y-3">
+                        <div className="rounded-lg p-4 space-y-3">
                             <div className="flex items-center justify-between">
-                                <div className="text-xs uppercase tracking-[0.4em] text-[color:var(--text-secondary)]">Selected Players</div>
-                                <div className="text-[11px] text-[color:var(--text-secondary)]">
+                                <div className="text-[10px] uppercase tracking-wider text-slate-500">Selected Players</div>
+                                <div className="text-[11px] text-slate-500">
                                     {selectedPlayers.length} {selectedPlayers.length === 1 ? 'player' : 'players'}
                                 </div>
                             </div>
@@ -436,7 +435,7 @@ export const SkillUsageSection = ({
                                                         return [...prev, playerKey];
                                                     });
                                                 }}
-                                                className={`w-full rounded-[var(--radius-md)] border bg-[var(--bg-hover)] p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 min-w-0 ${isActive ? 'border-white/40 bg-[var(--bg-hover)]' : 'border-[color:var(--border-default)] hover:border-[color:var(--border-hover)] hover:bg-[var(--bg-hover)]'
+                                                className={`w-full rounded-lg border bg-white/5 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 min-w-0 ${isActive ? 'border-white/40 bg-white/5' : 'border-white/5 hover:border-white/10 hover:bg-white/5'
                                                     }`}
                                                 aria-pressed={isActive}
                                             >
@@ -455,9 +454,9 @@ export const SkillUsageSection = ({
                                                     </svg>
                                                     {renderProfessionIcon(player?.profession, player?.professionList, 'w-4 h-4')}
                                                     <div className="min-w-0">
-                                                        <div className="text-[10px] uppercase tracking-[0.4em] text-[color:var(--text-secondary)]">Player</div>
+                                                        <div className="text-[10px] uppercase tracking-wider text-slate-500">Player</div>
                                                         <div className="font-semibold text-white truncate">{player?.displayName || playerKey}</div>
-                                                        <div className="text-[11px] text-[color:var(--text-secondary)]">
+                                                        <div className="text-[11px] text-slate-500">
                                                             {player?.logs ?? 0} {(player?.logs ?? 0) === 1 ? 'log' : 'logs'}
                                                         </div>
                                                     </div>
@@ -473,7 +472,7 @@ export const SkillUsageSection = ({
                     )}
                 </div>
             ) : (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 mt-2 text-center text-xs text-[color:var(--text-secondary)]">
+                <div className="rounded-lg border border-dashed border-white/10 px-4 py-6 mt-2 text-center text-xs text-slate-500">
                     {skillUsageAvailable
                         ? 'Pick one skill and up to two players to visualize their usage over time.'
                         : 'Upload or highlight logs with rotation data to enable the skill usage tracker.'}
