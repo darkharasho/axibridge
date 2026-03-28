@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Bar, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '../ui/ChartContainer';
+import { ChevronDown } from 'lucide-react';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { Gw2FuryIcon } from '../../ui/Gw2FuryIcon';
 import { getProfessionColor } from '../../../shared/professionUtils';
@@ -164,6 +165,21 @@ export const BoonUptimeSection = ({
     setShowIncomingHeatmap
 }: BoonUptimeSectionProps) => {
     const { formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
+    const [boonDropdownOpen, setBoonDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!boonDropdownOpen) return;
+        const handleClick = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setBoonDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [boonDropdownOpen]);
+
+    const activeBoon = boons.find((b) => b.id === activeBoonId);
 
     const selectedLineColor = selectedPlayer?.profession && selectedPlayer.profession !== 'All'
         ? (getProfessionColor(selectedPlayer.profession) || '#f59e0b')
@@ -271,49 +287,66 @@ export const BoonUptimeSection = ({
                     Squad Damage Heatmap
                 </button>
             ) : undefined}
-            renderAbovePlayerList={() => (
-                <div className="px-3 py-2 space-y-2">
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="text"
-                            value={boonSearch}
-                            onChange={(event) => setBoonSearch(event.target.value)}
-                            placeholder="Search boon"
-                            className="flex-1 bg-white/5 rounded px-2 py-1 text-xs text-slate-300 placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
-                        />
-                        <span className="text-[10px] text-slate-500 shrink-0">
-                            {boons.length} {boons.length === 1 ? 'boon' : 'boons'}
-                        </span>
-                    </div>
-                    <div className="max-h-28 overflow-y-auto">
-                        {boons.length === 0 ? (
-                            <div className="px-2 py-2 text-xs text-slate-500 italic">No boons match this filter.</div>
+            renderTitleExtra={() => (
+                <div className="relative" ref={dropdownRef}>
+                    <button
+                        onClick={() => setBoonDropdownOpen(!boonDropdownOpen)}
+                        className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                        <span className="text-slate-500">·</span>
+                        {activeBoon?.icon ? (
+                            <img src={activeBoon.icon} alt="" className="h-3.5 w-3.5 object-contain" />
                         ) : (
-                            <div className="flex flex-wrap gap-1.5">
-                                {boons.map((boon) => {
-                                    const isActive = activeBoonId === boon.id;
-                                    return (
-                                        <button
-                                            key={boon.id}
-                                            type="button"
-                                            onClick={() => setActiveBoonId(boon.id)}
-                                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${isActive
-                                                ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 border-transparent text-slate-200'
-                                                : 'bg-white/5 border-transparent text-slate-400 hover:text-slate-300'
-                                            }`}
-                                        >
-                                            {boon.icon ? (
-                                                <img src={boon.icon} alt="" className="h-3.5 w-3.5 object-contain" loading="lazy" />
-                                            ) : (
-                                                <Gw2BoonIcon className="h-3.5 w-3.5 text-amber-300" />
-                                            )}
-                                            <span>{boon.name}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            <Gw2BoonIcon className="h-3.5 w-3.5 text-amber-300" />
                         )}
-                    </div>
+                        <span>{activeBoon?.name || 'Select boon'}</span>
+                        <ChevronDown className={`w-3 h-3 transition-transform ${boonDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {boonDropdownOpen && (
+                        <div className="absolute top-full left-0 mt-2 z-50 w-80 rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur-sm shadow-xl p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={boonSearch}
+                                    onChange={(event) => setBoonSearch(event.target.value)}
+                                    placeholder="Search boon"
+                                    className="flex-1 bg-white/5 rounded px-2 py-1 text-xs text-slate-300 placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
+                                />
+                                <span className="text-[10px] text-slate-500 shrink-0">
+                                    {boons.length} {boons.length === 1 ? 'boon' : 'boons'}
+                                </span>
+                            </div>
+                            <div className="max-h-40 overflow-y-auto">
+                                {boons.length === 0 ? (
+                                    <div className="px-2 py-2 text-xs text-slate-500 italic">No boons match this filter.</div>
+                                ) : (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {boons.map((boon) => {
+                                            const isActive = activeBoonId === boon.id;
+                                            return (
+                                                <button
+                                                    key={boon.id}
+                                                    type="button"
+                                                    onClick={() => { setActiveBoonId(boon.id); setBoonDropdownOpen(false); }}
+                                                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${isActive
+                                                        ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 border-transparent text-slate-200'
+                                                        : 'bg-white/5 border-transparent text-slate-400 hover:text-slate-300'
+                                                    }`}
+                                                >
+                                                    {boon.icon ? (
+                                                        <img src={boon.icon} alt="" className="h-3.5 w-3.5 object-contain" loading="lazy" />
+                                                    ) : (
+                                                        <Gw2BoonIcon className="h-3.5 w-3.5 text-amber-300" />
+                                                    )}
+                                                    <span>{boon.name}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
             renderPlayerItem={(player, isSelected) => {

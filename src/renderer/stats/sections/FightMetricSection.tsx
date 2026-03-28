@@ -77,6 +77,9 @@ type FightMetricSectionProps = {
     // Custom player item renderer (replaces default icon + name + value)
     renderPlayerItem?: (player: FightMetricPlayer, isSelected: boolean) => ReactNode;
 
+    // Inline content next to section title (e.g., boon dropdown trigger)
+    renderTitleExtra?: () => ReactNode;
+
     // Container class (defaults to '' for flat style)
     containerClassName?: string;
 
@@ -114,6 +117,7 @@ export const FightMetricSection = ({
     renderFooter,
     renderAbovePlayerList,
     renderPlayerItem,
+    renderTitleExtra,
     containerClassName = '',
     referenceLineY,
     referenceLineLabel,
@@ -154,6 +158,7 @@ export const FightMetricSection = ({
                 <div className="flex items-center gap-2">
                     {TitleIcon && <TitleIcon className={`w-4 h-4 ${titleIconClassName}`} />}
                     <span className="text-sm font-semibold text-slate-200">{title}</span>
+                    {renderTitleExtra && renderTitleExtra()}
                 </div>
                 <div className="flex items-center gap-2">
                     {modes.length > 1 && (
