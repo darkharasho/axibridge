@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown } from 'lucide-react';
+import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown, Eraser } from 'lucide-react';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
 import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
@@ -91,13 +91,14 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
         id: 'offense',
         label: 'Offensive Stats',
         icon: Swords,
-        sectionIds: ['offense-detailed', 'damage-modifiers', 'player-breakdown', 'damage-breakdown', 'spike-damage', 'conditions-outgoing'],
+        sectionIds: ['offense-detailed', 'damage-modifiers', 'player-breakdown', 'damage-breakdown', 'spike-damage', 'strip-spikes', 'conditions-outgoing'],
         items: [
             { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords },
             { id: 'damage-modifiers', label: 'Damage Modifiers', icon: Flame },
             { id: 'player-breakdown', label: 'Player Breakdown', icon: ListTree },
             { id: 'damage-breakdown', label: 'Damage Breakdown', icon: BarChart3 },
             { id: 'spike-damage', label: 'Spike Damage', icon: Zap },
+            { id: 'strip-spikes', label: 'Strip Spikes', icon: Eraser },
             { id: 'conditions-outgoing', label: 'Conditions', icon: Skull }
         ]
     },
