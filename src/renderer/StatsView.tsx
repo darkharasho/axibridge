@@ -1750,10 +1750,6 @@ type SpikeFight = {
         return Math.max(1, selectedPeak, fightPeak);
     }, [stripChartData]);
 
-    const formatStripTime = (ms: number) => {
-        const seconds = ms / 1000;
-        return seconds < 10 ? seconds.toFixed(1) + 's' : Math.round(seconds) + 's';
-    };
 
     const spikeDrilldown = useMemo(() => {
         const selectedPoint = selectedSpikeFightIndex === null
@@ -4275,7 +4271,6 @@ type SpikeFight = {
                                 titleIconClassName="text-amber-300"
                                 modes={[
                                     { id: 'strips', label: 'Strips' },
-                                    { id: 'stripTime', label: 'Strip Time' },
                                     { id: 'stripDownContrib', label: 'Down Contrib' },
                                 ]}
                                 activeMode={stripMode}
@@ -4288,7 +4283,7 @@ type SpikeFight = {
                                 selectedPlayer={selectedStripPlayer}
                                 chartData={stripChartData}
                                 chartMaxY={stripChartMaxY}
-                                formatValue={stripMode === 'stripTime' ? formatStripTime : (v: number) => formatWithCommas(v, 0)}
+                                formatValue={(v: number) => formatWithCommas(v, 0)}
                                 valueSuffix={stripMode === 'strips' ? 'strips' : ''}
                             />)}
 
@@ -4675,7 +4670,6 @@ type SpikeFight = {
                                 titleIconClassName="text-amber-300"
                                 modes={[
                                     { id: 'strips', label: 'Strips' },
-                                    { id: 'stripTime', label: 'Strip Time' },
                                     { id: 'stripDownContrib', label: 'Down Contrib' },
                                 ]}
                                 activeMode={stripMode}
@@ -4688,7 +4682,7 @@ type SpikeFight = {
                                 selectedPlayer={selectedStripPlayer}
                                 chartData={stripChartData}
                                 chartMaxY={stripChartMaxY}
-                                formatValue={stripMode === 'stripTime' ? formatStripTime : (v: number) => formatWithCommas(v, 0)}
+                                formatValue={(v: number) => formatWithCommas(v, 0)}
                                 valueSuffix={stripMode === 'strips' ? 'strips' : ''}
                             /> },
                             { id: 'conditions-outgoing', element: <ConditionsSection

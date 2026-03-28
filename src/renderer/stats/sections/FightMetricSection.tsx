@@ -244,7 +244,9 @@ export const FightMetricSection = ({
                                             strokeWidth={1.5}
                                             strokeDasharray="6 4"
                                             dot={false}
-                                            isAnimationActive={false}
+                                            isAnimationActive
+                                            animationDuration={600}
+                                            animationEasing="ease-out"
                                         />
                                         <Line
                                             dataKey="value"
@@ -253,7 +255,9 @@ export const FightMetricSection = ({
                                             strokeWidth={2.5}
                                             dot={{ r: 3, fill: playerColor, stroke: playerColor }}
                                             activeDot={{ r: 5, fill: playerColor, stroke: '#fff', strokeWidth: 2 }}
-                                            isAnimationActive={false}
+                                            isAnimationActive
+                                            animationDuration={800}
+                                            animationEasing="ease-out"
                                         />
                                     </LineChart>
                                 </ChartContainer>
