@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CartesianGrid, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, CartesianGrid, Cell, ComposedChart, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '../ui/ChartContainer';
 import { Maximize2, X } from 'lucide-react';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
@@ -61,10 +61,12 @@ type BoonUptimeSectionProps = {
     selectedFightIndex: number | null;
     setSelectedFightIndex: (value: number | null) => void;
     drilldownTitle: string;
-    drilldownData: Array<{ label: string; value: number; maxValue?: number }>;
+    drilldownData: Array<{ label: string; value: number; maxValue?: number; incomingDamage?: number; incomingIntensity?: number }>;
     overallUptimePercent: number | null;
     showStackCapLine?: boolean;
     subgroupMembers?: Map<number, Array<{ account: string; profession: string; professionList: string[]; fightCount: number }>>;
+    showIncomingHeatmap: boolean;
+    setShowIncomingHeatmap: (value: boolean) => void;
 };
 
 const SubgroupMembersTooltip = ({
@@ -156,7 +158,9 @@ export const BoonUptimeSection = ({
     drilldownData,
     overallUptimePercent,
     showStackCapLine = false,
-    subgroupMembers
+    subgroupMembers,
+    showIncomingHeatmap,
+    setShowIncomingHeatmap
 }: BoonUptimeSectionProps) => {
     const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
     const sectionId = 'boon-uptime';
@@ -177,6 +181,11 @@ export const BoonUptimeSection = ({
         ? null
         : chartData.find((entry) => entry.index === selectedFightIndex) || null;
     const infoFight = selectedFight || topFight;
+    const hasIncomingHeatData = drilldownData.some((entry) => Number(entry?.incomingDamage || 0) > 0);
+    const drilldownHeatData = drilldownData.map((entry) => ({
+        ...entry,
+        incomingHeatBand: 1
+    }));
     const mainChartMaxY = showStackCapLine
         ? Math.ceil(Math.max(1, chartMaxY) + 3)
         : Math.max(1, chartMaxY);
@@ -490,13 +499,27 @@ export const BoonUptimeSection = ({
                 <div className="mt-4 px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                         <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{drilldownTitle}</div>
-                        <button
-                            type="button"
-                            onClick={() => setSelectedFightIndex(null)}
-                            className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                        >
-                            Clear
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
+                                className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                                    showIncomingHeatmap
+                                        ? 'text-red-200 hover:text-red-100'
+                                        : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                                }`}
+                                title="Toggle squad incoming damage intensity heatmap overlay"
+                            >
+                                Squad Damage Heatmap
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedFightIndex(null)}
+                                className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                            >
+                                Clear
+                            </button>
+                        </div>
                     </div>
                     <div className="h-[220px] relative">
                         {drilldownData.length === 0 ? (
@@ -505,15 +528,39 @@ export const BoonUptimeSection = ({
                             </div>
                         ) : (
                             <ChartContainer width="100%" height="100%">
-                                <LineChart data={drilldownData}>
+                                <ComposedChart data={drilldownHeatData}>
                                     <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                     <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 10 }} />
                                     <YAxis tick={{ fill: '#e2e8f0', fontSize: 10 }} domain={[0, drilldownChartMaxY]} />
+                                    <YAxis yAxisId="incomingHeat" hide domain={[0, 1]} />
                                     <Tooltip
                                         contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
-                                        formatter={(value: any, name: any) => [formatWithCommas(Number(value || 0), 0), String(name || '')]}
+                                        formatter={(value: any, name: any, item: any) => {
+                                            const point = item?.payload || {};
+                                            if (String(name || '') === 'Incoming Damage Heat') {
+                                                return [formatWithCommas(Number(point?.incomingDamage || 0), 0), 'Squad Incoming Damage'];
+                                            }
+                                            return [formatWithCommas(Number(value || 0), 0), String(name || '')];
+                                        }}
                                         labelFormatter={(value: any) => String(value || '')}
                                     />
+                                    {showIncomingHeatmap && hasIncomingHeatData && (
+                                        <Bar
+                                            yAxisId="incomingHeat"
+                                            dataKey="incomingHeatBand"
+                                            name="Incoming Damage Heat"
+                                            barSize={24}
+                                            fill="rgba(239,68,68,0.35)"
+                                            stroke="none"
+                                            isAnimationActive={false}
+                                        >
+                                            {drilldownData.map((entry, index) => {
+                                                const intensity = Math.max(0, Math.min(1, Number(entry?.incomingIntensity || 0)));
+                                                const alpha = 0.06 + (0.52 * intensity);
+                                                return <Cell key={`incoming-heat-${index}`} fill={`rgba(239, 68, 68, ${alpha.toFixed(3)})`} />;
+                                            })}
+                                        </Bar>
+                                    )}
                                     <Line
                                         type="monotone"
                                         dataKey="value"
@@ -532,7 +579,7 @@ export const BoonUptimeSection = ({
                                             label={{ value: '25', position: 'right', fill: '#fbbf24', fontSize: 10 }}
                                         />
                                     )}
-                                </LineChart>
+                                </ComposedChart>
                             </ChartContainer>
                         )}
                     </div>
