@@ -1,7 +1,7 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '../ui/ChartContainer';
-import { Maximize2, X } from 'lucide-react';
+import { Maximize2, X, Users, User } from 'lucide-react';
 import { getProfessionColor } from '../../../shared/professionUtils';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
@@ -115,6 +115,16 @@ export const FightMetricSection = ({
         ? chartData.reduce((sum, entry) => sum + Number(entry.value || 0), 0) / chartData.length
         : 0;
 
+    const [playerSortMode, setPlayerSortMode] = useState<'group' | 'player'>('group');
+
+    const displayPlayers = useMemo(() => {
+        if (playerSortMode === 'group') return groupedPlayers;
+        // Flat list sorted by individual value, wrapped in a single group
+        const all = groupedPlayers.flatMap((g) => g.players);
+        all.sort((a, b) => b.value - a.value || a.displayName.localeCompare(b.displayName));
+        return [{ profession: '', players: all }];
+    }, [groupedPlayers, playerSortMode]);
+
     const renderContent = (expanded: boolean) => (
         <div
             id={expanded ? undefined : sectionId}
@@ -172,11 +182,20 @@ export const FightMetricSection = ({
                             className="w-full bg-white/5 rounded px-2 py-1 text-xs text-slate-300 placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
                         />
                     </div>
-                    <div className="text-[10px] uppercase tracking-wider text-slate-500 px-3 pt-2 pb-1">{listTitle}</div>
+                    <div className="flex items-center justify-between px-3 pt-2 pb-1">
+                        <div className="text-[10px] uppercase tracking-wider text-slate-500">{listTitle}</div>
+                        <button
+                            onClick={() => setPlayerSortMode(playerSortMode === 'group' ? 'player' : 'group')}
+                            className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+                            title={playerSortMode === 'group' ? 'Sorted by class group' : 'Sorted by player'}
+                        >
+                            {playerSortMode === 'group' ? <Users className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                        </button>
+                    </div>
                     <div className="flex-1 overflow-y-auto px-1.5 pb-2">
-                        {groupedPlayers.map((group) => (
-                            <div key={group.profession}>
-                                {groupedPlayers.length > 1 && (
+                        {displayPlayers.map((group) => (
+                            <div key={group.profession || '__all__'}>
+                                {displayPlayers.length > 1 && group.profession && (
                                     <div className="text-[10px] text-slate-500 px-2 pt-2 pb-0.5">{group.profession}</div>
                                 )}
                                 {group.players.map((player) => {
@@ -203,7 +222,7 @@ export const FightMetricSection = ({
                                 })}
                             </div>
                         ))}
-                        {groupedPlayers.length === 0 && (
+                        {displayPlayers.length === 0 && (
                             <div className="text-xs text-slate-500 px-2 py-4 text-center">No players</div>
                         )}
                     </div>
