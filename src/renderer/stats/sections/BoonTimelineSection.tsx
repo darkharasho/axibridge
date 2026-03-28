@@ -179,16 +179,30 @@ export const BoonTimelineSection = ({
             formatValue={(v) => formatWithCommas(v / 1000, 0)}
             selectedFightIndex={selectedFightIndex}
             setSelectedFightIndex={setSelectedFightIndex}
-            headerExtras={selectedFightIndex !== null ? (
-                <button
-                    onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
-                    className={`text-[10px] uppercase tracking-wider transition-colors ${
-                        showIncomingHeatmap ? 'text-red-300 hover:text-red-200' : 'text-slate-500 hover:text-slate-300'
-                    }`}
-                >
-                    Squad Damage Heatmap
-                </button>
-            ) : undefined}
+            headerExtras={<>
+                <PillToggleGroup
+                    value={timelineScope}
+                    onChange={(value) => setTimelineScope(value as 'selfBuffs' | 'groupBuffs' | 'squadBuffs' | 'totalBuffs')}
+                    options={[
+                        { value: 'selfBuffs', label: 'Self' },
+                        { value: 'squadBuffs', label: 'Squad' },
+                        { value: 'groupBuffs', label: 'Group' },
+                        { value: 'totalBuffs', label: 'All' }
+                    ]}
+                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                    inactiveClassName="text-[color:var(--text-secondary)]"
+                />
+                {selectedFightIndex !== null && (
+                    <button
+                        onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
+                        className={`text-[10px] uppercase tracking-wider transition-colors ${
+                            showIncomingHeatmap ? 'text-red-300 hover:text-red-200' : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                    >
+                        Squad Damage Heatmap
+                    </button>
+                )}
+            </>}
             renderTitleExtra={() => (
                 <div className="relative" ref={dropdownRef}>
                     <button
@@ -206,18 +220,6 @@ export const BoonTimelineSection = ({
                     </button>
                     {boonDropdownOpen && (
                         <div className="absolute top-full left-0 mt-2 z-50 w-96 rounded-lg border border-white/10 bg-[#0f1219] shadow-xl p-3 space-y-2">
-                            <PillToggleGroup
-                                value={timelineScope}
-                                onChange={(value) => setTimelineScope(value as 'selfBuffs' | 'groupBuffs' | 'squadBuffs' | 'totalBuffs')}
-                                options={[
-                                    { value: 'selfBuffs', label: 'Self' },
-                                    { value: 'squadBuffs', label: 'Squad' },
-                                    { value: 'groupBuffs', label: 'Group' },
-                                    { value: 'totalBuffs', label: 'All' }
-                                ]}
-                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                inactiveClassName="text-[color:var(--text-secondary)]"
-                            />
                             <div className="flex items-center gap-2">
                                 <input
                                     type="text"
