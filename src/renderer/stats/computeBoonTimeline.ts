@@ -1,6 +1,6 @@
 import { getPlayerBoonGenerationMs } from '../../shared/boonGeneration';
 import { resolveFightTimestamp } from './utils/timestampUtils';
-import { sanitizeWvwLabel, buildFightLabel, resolveMapName } from './utils/labelUtils';
+import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 
 type BoonPlayer = {
     key: string;
@@ -197,9 +197,11 @@ export function ingestLogBoonTimeline(log: any, acc: BoonTimelineAccumulator, _b
             .filter(Boolean)
             .forEach((value) => nameToKey.set(value, key));
     });
-    const fightName = sanitizeWvwLabel(details.fightName || log.fightName || `Fight ${index + 1}`);
-    const mapName = resolveMapName(details, log);
-    const fullLabel = buildFightLabel(fightName, String(mapName || ''));
+    const fullLabel = buildFightLabelV2({
+        zone: details.fightName || log.fightName || `Fight ${index + 1}`,
+        durationMs: details.durationMS,
+        avgPosition: computeFightAvgPosition(details),
+    });
     const fightValuesByBoon = new Map<string, Map<string, { selfBuffs: number; groupBuffs: number; squadBuffs: number; totalBuffs: number }>>();
     const fightBucketTimelineByBoon = new Map<string, Map<string, number[]>>();
     const fightPlayerSeenByBoon = new Map<string, Set<string>>();
@@ -370,10 +372,15 @@ export function finalizeBoonTimeline(acc: BoonTimelineAccumulator): any {
                 if (totalDiff !== 0) return totalDiff;
                 return String(a.displayName || '').localeCompare(String(b.displayName || ''));
             }),
-            fights: [...bucket.fights].sort((a, b) => {
-                if (a.timestamp > 0 && b.timestamp > 0 && a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
-                return a.shortLabel.localeCompare(b.shortLabel, undefined, { numeric: true });
-            })
+            fights: [...bucket.fights]
+                .sort((a, b) => {
+                    if (a.timestamp > 0 && b.timestamp > 0 && a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+                    return a.shortLabel.localeCompare(b.shortLabel, undefined, { numeric: true });
+                })
+                // Reassign shortLabels after sort so F1=oldest, F2=next, etc.
+                // Labels are assigned during ingestion by insertion order, which may
+                // not match chronological order, causing scrambled fight numbers.
+                .map((fight, i) => ({ ...fight, shortLabel: `F${i + 1}` }))
         }))
         .filter((boon) => boon.players.length > 0 && boon.fights.length > 0)
         .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));

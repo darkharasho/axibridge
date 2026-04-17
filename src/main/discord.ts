@@ -29,6 +29,7 @@ import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSe
 import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../shared/professionUtils';
 import { Player } from '../shared/dpsReportTypes';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
+import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 
 const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/axibridge/main/public/img/AxiBridge-white.png';
 
@@ -106,23 +107,20 @@ const resolveFightTimestampMs = (jsonDetails: any, logData: any) => {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 };
 
-const cleanFightMapLabel = (rawFightName: any) => {
-    return String(rawFightName || 'Unknown Map')
-        .replace(/^Detailed\s*WvW\s*-\s*/i, '')
-        .replace(/^WvW\s*-\s*/i, '')
-        .trim();
-};
-
 const formatFightTitleForDiscord = (jsonDetails: any, logData: any) => {
     const timestampMs = resolveFightTimestampMs(jsonDetails, logData);
-    const mapLabel = cleanFightMapLabel(jsonDetails?.fightName);
+    const fightLabel = buildFightLabelV2({
+        zone: jsonDetails?.fightName || logData?.encounterName || '',
+        durationMs: jsonDetails?.durationMS,
+        avgPosition: computeFightAvgPosition(jsonDetails),
+    });
     const dateLabel = timestampMs > 0
         ? new Date(timestampMs).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' })
         + ' '
         + new Date(timestampMs).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
         : '';
-    if (dateLabel && mapLabel) return `${dateLabel} - ${mapLabel}`;
-    if (mapLabel) return mapLabel;
+    if (dateLabel && fightLabel) return `${dateLabel} - ${fightLabel}`;
+    if (fightLabel) return fightLabel;
     return jsonDetails?.fightName || 'Log Uploaded';
 };
 

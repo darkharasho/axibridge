@@ -1,6 +1,6 @@
 import { getFightDownsDeaths, getFightOutcome, resolveProfessionLabel } from './computePlayerAggregation';
 import { resolveFightTimestamp } from './utils/timestampUtils';
-import { resolveMapName } from './utils/labelUtils';
+import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { formatDurationMs } from './utils/dashboardUtils';
 
 const resolvePermalink = (details: any, log: any): string => {
@@ -98,9 +98,15 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
         .slice(0, 3)
         .map(([teamId, count]) => ({ teamId, count }));
 
+    const fullLabel = buildFightLabelV2({
+        zone: details?.fightName || log?.fightName || log?.encounterName || `Fight ${fightIndex + 1}`,
+        avgPosition: computeFightAvgPosition(details),
+    });
+
     return {
         id: log.filePath || `fight-${fightIndex}`,
         label: log.encounterName || `Fight ${fightIndex + 1}`,
+        fullLabel,
         permalink: resolvePermalink(details, log),
         timestamp,
         mapName,

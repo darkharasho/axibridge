@@ -1,4 +1,4 @@
-import { sanitizeWvwLabel, buildFightLabel, resolveMapName } from './utils/labelUtils';
+import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { getFightOutcome } from './computePlayerAggregation';
 
 export type TagDistanceDeathEvent = {
@@ -41,10 +41,12 @@ const resolveFightOutcome = (details: any, log: any): boolean | null => {
 export function ingestLogTagDistanceDeaths(log: any, fightIndex: number): TagDistanceDeathFightSummary {
     const details = log?.details;
     const fightId = log?.filePath || `fight-${fightIndex}`;
-    const fightName = sanitizeWvwLabel(details?.fightName || log?.encounterName || `Fight ${fightIndex + 1}`);
-    const mapName = resolveMapName(details, log);
     const shortLabel = `F${fightIndex + 1}`;
-    const fullLabel = buildFightLabel(fightName, String(mapName || ''));
+    const fullLabel = buildFightLabelV2({
+        zone: details?.fightName || log?.encounterName || `Fight ${fightIndex + 1}`,
+        durationMs: details?.durationMS,
+        avgPosition: computeFightAvgPosition(details),
+    });
     const isWin = resolveFightOutcome(details, log);
 
     const players = Array.isArray(details?.players) ? details.players : [];

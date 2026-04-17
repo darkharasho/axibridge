@@ -421,6 +421,7 @@ declare global {
         uploadTime?: number;
         encounterDuration?: string;
         fightName?: string;
+        fightLabel?: string;
         detailsStatus: DetailsStatus;
         splitEnemiesByTeam?: boolean;
         dashboardSummary?: {

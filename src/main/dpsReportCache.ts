@@ -27,12 +27,23 @@ export type DpsReportCacheEntry = {
     result: UploadResult;
     detailsPath?: string | null;
     detailsCachedAt?: number | null;
+    detailsSchemaVersion?: number | null;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const DPS_REPORT_CACHE_KEY = 'dpsReportCacheIndex';
 export const DPS_REPORT_DETAILS_TTL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Increment this when the pruned-details schema changes in a way that makes
+ * old cached files incompatible (e.g. new fields preserved in pruning).
+ * Entries written with an older version are treated as expired and re-fetched.
+ *
+ * History:
+ *   1 → 2: target combatReplayData.positions now preserved (enemy replay data)
+ */
+export const DETAILS_SCHEMA_VERSION = 2;
 
 // ─── Pure helpers (no store I/O) ──────────────────────────────────────────────
 
@@ -222,7 +233,8 @@ export const saveDpsReportCacheEntry = async (
         createdAt: Date.now(),
         result,
         detailsPath: null,
-        detailsCachedAt: null
+        detailsCachedAt: null,
+        detailsSchemaVersion: DETAILS_SCHEMA_VERSION,
     };
 
     if (jsonDetails) {
@@ -264,6 +276,7 @@ export const updateDpsReportCacheDetails = async (
         await fs.promises.writeFile(detailsPath, JSON.stringify(jsonDetails));
         entry.detailsPath = detailsPath;
         entry.detailsCachedAt = Date.now();
+        entry.detailsSchemaVersion = DETAILS_SCHEMA_VERSION;
         index[hash] = entry;
         saveDpsReportCacheIndex(store, index);
     } catch {

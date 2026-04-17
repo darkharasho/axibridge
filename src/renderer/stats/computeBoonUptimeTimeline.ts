@@ -1,5 +1,5 @@
 import { resolveFightTimestamp } from './utils/timestampUtils';
-import { sanitizeWvwLabel, buildFightLabel, resolveMapName } from './utils/labelUtils';
+import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 
 type UptimePlayer = {
     key: string;
@@ -155,9 +155,11 @@ export function ingestLogBoonUptimeTimeline(log: any, acc: BoonUptimeTimelineAcc
     const buffMap = (details?.buffMap && typeof details.buffMap === 'object')
         ? details.buffMap
         : {};
-    const fightName = sanitizeWvwLabel(details.fightName || log.fightName || `Fight ${index + 1}`);
-    const mapName = resolveMapName(details, log);
-    const fullLabel = buildFightLabel(fightName, String(mapName || ''));
+    const fullLabel = buildFightLabelV2({
+        zone: details.fightName || log.fightName || `Fight ${index + 1}`,
+        durationMs: details.durationMS,
+        avgPosition: computeFightAvgPosition(details),
+    });
     const fightValuesByBoon = new Map<string, Map<string, UptimeFightValue>>();
     const fightPlayerSeenByBoon = new Map<string, Set<string>>();
 
@@ -264,10 +266,12 @@ export function finalizeBoonUptimeTimeline(acc: BoonUptimeTimelineAccumulator): 
                 if (totalDiff !== 0) return totalDiff;
                 return String(a.displayName || '').localeCompare(String(b.displayName || ''));
             }),
-            fights: [...bucket.fights].sort((a, b) => {
-                if (a.timestamp > 0 && b.timestamp > 0 && a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
-                return a.shortLabel.localeCompare(b.shortLabel, undefined, { numeric: true });
-            })
+            fights: [...bucket.fights]
+                .sort((a, b) => {
+                    if (a.timestamp > 0 && b.timestamp > 0 && a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+                    return a.shortLabel.localeCompare(b.shortLabel, undefined, { numeric: true });
+                })
+                .map((fight, i) => ({ ...fight, shortLabel: `F${i + 1}` }))
         }))
         .filter((boon) => boon.players.length > 0 && boon.fights.length > 0)
         .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));

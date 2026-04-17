@@ -39,7 +39,7 @@ export const SquadKillPressureSection = () => {
                 index: idx,
                 fightId: fight.id || `fight-${idx}`,
                 shortLabel: `F${idx + 1}`,
-                fullLabel: `${fight.mapName || fight.label || 'Unknown'} • ${fight.duration || '--:--'}`,
+                fullLabel: fight.fullLabel || `${fight.mapName || fight.label || 'Unknown'} • ${fight.duration || '--:--'}`,
                 isWin: fight.isWin,
                 kdr: Math.round(kdr * 100) / 100,
                 logKdr: Math.log2(safeKdr),

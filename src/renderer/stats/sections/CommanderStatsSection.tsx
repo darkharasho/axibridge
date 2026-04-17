@@ -235,7 +235,7 @@ export const CommanderTargetConversionSection = ({
                                 <tbody>
                                     {(selectedCommander.fightsData || []).map((fight) => (
                                         <tr key={`${fight.id}-target-conversion`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
+                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.downs)}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.kills)}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(fight.downToKillConversionPct)}</td>
@@ -354,7 +354,7 @@ export const CommanderTagMovementSection = ({
                                 <tbody>
                                     {(selectedCommander.fightsData || []).map((fight) => (
                                         <tr key={`${fight.id}-tag-movement`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
+                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.distanceTraveled, 0)}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.movementPerMinute, 1)}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(fight.stationaryPct)}</td>
@@ -478,7 +478,7 @@ export const CommanderTagDeathResponseSection = ({
                                     <tbody>
                                         {deathFights.map((fight) => (
                                             <tr key={`${fight.id}-tag-death-response`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
+                                                <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
                                                 <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(fight.commanderDiedAtMs)}</td>
                                                 <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.squadDeathsAfterTagDeath, 0)}</td>
                                                 <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.enemyKillsAfterTagDeath, 0)}</td>
@@ -614,7 +614,7 @@ export const CommanderPushTimingSection = ({
                                 <tbody>
                                     {(selectedCommander.fightsData || []).map((fight) => (
                                         <tr key={`${fight.id}-push-timing`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.mapName || 'Unknown'}</td>
+                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
                                             <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
@@ -894,7 +894,7 @@ export const CommanderStatsSection = ({
                                                 className="bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] rounded-md px-2 py-1 text-xs text-[color:var(--text-primary)]"
                                             >
                                                 {(selectedCommander.fightsData || []).map((fight) => (
-                                                    <option key={fight.id} value={fight.id}>{fight.shortLabel} • {fight.mapName || 'Unknown'}</option>
+                                                    <option key={fight.id} value={fight.id}>{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</option>
                                                 ))}
                                             </select>
                                             <PillToggleGroup

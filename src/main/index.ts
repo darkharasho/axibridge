@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto'
 
 import { spawn } from 'node:child_process'
 import { LEGACY_THEME_TO_PALETTE } from '../shared/webThemes';
+import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'
 import { Uploader, UploadResult } from './uploader'
@@ -77,6 +78,14 @@ import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers } from './handlers/githubHandlers';
 import { registerEiHandlers } from './handlers/eiHandlers';
 import { EiManager, DEFAULT_EI_SETTINGS, EiParserSettings } from './eiParser';
+
+/** Compute the landmark-aware fight label from pruned EI details (safe to call with null). */
+function buildFightLabelFromDetails(details: any): string | undefined {
+    if (!details) return undefined;
+    const zone = details.fightName;
+    if (!zone) return undefined;
+    return buildFightLabelV2({ zone, avgPosition: computeFightAvgPosition(details) });
+}
 
 // Increase V8 heap for packaged and dev builds to avoid OOM on large datasets.
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=6144');
@@ -482,6 +491,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 permalink: '',
                 filePath,
                 fightName: prunedDetails?.fightName || fileId,
+                fightLabel: buildFightLabelFromDetails(prunedDetails),
                 encounterDuration: prunedDetails?.encounterDuration,
                 uploadTime: prunedDetails?.uploadTime || Date.now() / 1000,
                 status: hasUsableDetails ? 'calculating' : 'success',
@@ -567,6 +577,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             const dashboardSummary = prunedDetails ? buildDashboardSummaryFromDetails(prunedDetails) : undefined;
             const detailsSummary = {
                 fightName: prunedDetails?.fightName,
+                fightLabel: buildFightLabelFromDetails(prunedDetails),
                 encounterDuration: prunedDetails?.encounterDuration,
                 uploadTime: prunedDetails?.uploadTime,
                 success: prunedDetails?.success
@@ -846,6 +857,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             const dashboardSummary = prunedDetails ? buildDashboardSummaryFromDetails(prunedDetails) : undefined;
             const detailsSummary = {
                 fightName: prunedDetails?.fightName,
+                fightLabel: buildFightLabelFromDetails(prunedDetails),
                 encounterDuration: prunedDetails?.encounterDuration,
                 uploadTime: prunedDetails?.uploadTime,
                 success: prunedDetails?.success

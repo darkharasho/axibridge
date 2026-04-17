@@ -51,8 +51,7 @@ export const FightBreakdownSection = ({
                 minute: '2-digit'
             })
             : '--';
-        const rawMap = fight?.mapName || fight?.map || 'Unknown Map';
-        const mapLabel = String(rawMap)
+        const mapLabel = fight?.fullLabel || String(fight?.mapName || fight?.map || 'Unknown Map')
             .replace(/^Detailed\s*WvW\s*-\s*/i, '')
             .replace(/^World\s*vs\s*World\s*-\s*/i, '')
             .replace(/^WvW\s*-\s*/i, '')
