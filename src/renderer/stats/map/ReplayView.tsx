@@ -165,7 +165,6 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
             centerOn(pos[0], pos[1]);
         }
         setReplayFollowTarget(commander.account || commander.name);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedId, centerOn]);
 
     useEffect(() => {
