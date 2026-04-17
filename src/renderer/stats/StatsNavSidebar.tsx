@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { STATS_TOC_GROUPS } from './hooks/useStatsNavigation';
@@ -28,6 +28,16 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
     const setActiveGroup = useStatsStore((s) => s.setActiveNavGroup);
     const [openGroup, setOpenGroup] = useState(activeGroup);
     const [isHovered, setIsHovered] = useState(false);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Stop wheel events from bubbling to the page when scrolling inside the nav.
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        const stop = (e: WheelEvent) => e.stopPropagation();
+        el.addEventListener('wheel', stop, { passive: true });
+        return () => el.removeEventListener('wheel', stop);
+    }, []);
 
     const activeGroupDef = useMemo(
         () => STATS_TOC_GROUPS.find((g) => g.id === activeGroup) || STATS_TOC_GROUPS[0],
@@ -90,7 +100,7 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
-                <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-1.5">
+                <div ref={scrollContainerRef} className="h-full min-h-0 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-1.5">
                     {/* Header: padding/gap via CSS transition */}
                     <div
                         className="h-5 flex items-center"

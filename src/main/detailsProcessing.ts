@@ -74,7 +74,7 @@ const omit = (obj: any, keys: string[]): any => {
 const pruneCombatReplayData = (value: any): any => {
     const pruneEntry = (entry: any) => {
         if (!entry || typeof entry !== 'object') return null;
-        return pick(entry, ['start', 'down', 'dead']);
+        return pick(entry, ['start', 'down', 'dead', 'positions']);
     };
     if (Array.isArray(value)) {
         return value

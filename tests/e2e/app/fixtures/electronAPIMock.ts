@@ -32,6 +32,17 @@ export interface ElectronAPIMockOverrides {
     githubReports?: any[]
     /** Upload retry queue state */
     uploadRetryQueue?: any
+    /**
+     * Fixture IDs to serve via getLogDetails().
+     *
+     * When set, getLogDetails() fetches `/__test-fixtures__/<id>.json` from the
+     * Playwright route interceptor instead of returning null.  The log entry's
+     * permalink is expected to be `https://dps.report/<id>` so the mock can
+     * derive the fixture id from it.
+     */
+    detailsFixtureIds?: string[]
+    /** Artificial delay (ms) added before each getLogDetails() response. Default 0. */
+    detailsDelayMs?: number
 }
 
 /**
@@ -185,7 +196,23 @@ export function createElectronAPIMock(overrides?: ElectronAPIMockOverrides): voi
         },
         getLogDetails: (...args: any[]) => {
             log('getLogDetails', args)
-            return Promise.resolve(null)
+            const fixtureIds: string[] = o.detailsFixtureIds || []
+            const delayMs: number = o.detailsDelayMs ?? 0
+            if (!fixtureIds.length) return Promise.resolve(null)
+            // Derive fixture id from the permalink (https://dps.report/<id>)
+            const payload: any = args[0] || {}
+            const permalink: string = payload.permalink || ''
+            const fixtureId = permalink.replace(/^.*dps\.report\//, '')
+            if (!fixtureId || !fixtureIds.includes(fixtureId)) return Promise.resolve(null)
+            const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+            return delay(delayMs).then(() =>
+                fetch(`/__test-fixtures__/${fixtureId}.json`)
+                    .then((res) => (res.ok ? res.json() : null))
+                    .then((details) =>
+                        details ? { success: true, details } : { success: false, error: 'Not found' }
+                    )
+                    .catch(() => ({ success: false, error: 'Fetch failed' }))
+            )
         },
         onDetailsPrewarm: (callback: any) => {
             log('onDetailsPrewarm', [callback])

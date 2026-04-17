@@ -4,7 +4,7 @@ import { ShieldAlert, Eraser } from 'lucide-react';
 
 
 import { formatTopStatValue, formatWithCommas } from './stats/utils/dashboardUtils';
-import { sanitizeWvwLabel, buildFightLabel } from './stats/utils/labelUtils';
+import { sanitizeWvwLabel, buildFightLabelV2, computeFightAvgPosition } from './stats/utils/labelUtils';
 import { parseTimestamp } from './stats/utils/timestampUtils';
 import { NON_DAMAGING_CONDITIONS } from './stats/statsMetrics';
 import { StatsSharedContext } from './stats/StatsViewContext';
@@ -69,6 +69,7 @@ import { SquadDamageComparisonSection } from './stats/sections/SquadDamageCompar
 import { SquadKillPressureSection } from './stats/sections/SquadKillPressureSection';
 import { SquadTagDistanceDeathsSection } from './stats/sections/SquadTagDistanceDeathsSection';
 import { PlayerComparisonSection } from './stats/sections/PlayerComparisonSection';
+import { ReplaySection } from './stats/sections/ReplaySection';
 import type { TagDistanceDeathFightSummary } from './stats/computeTagDistanceDeaths';
 import { StatsHeader } from './stats/ui/StatsHeader';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
@@ -1276,9 +1277,11 @@ type SpikeFight = {
             const details = getDetails(log);
             if (!details || !details.players) return;
             const fightIndex = fights.length + 1;
-            const fightName = sanitizeWvwLabel(details.fightName || log.fightName || `Fight ${fightIndex}`);
-            const rawMap = details.zone || details.mapName || details.map || details.location || '';
-            const fullLabel = buildFightLabel(fightName, String(rawMap || ''));
+            const fullLabel = buildFightLabelV2({
+                zone: details.fightName || log.fightName || `Fight ${fightIndex}`,
+                durationMs: details?.durationMS,
+                avgPosition: computeFightAvgPosition(details),
+            });
             const values: Record<string, {
                 hit: number;
                 burst1s: number;
@@ -4256,7 +4259,14 @@ type SpikeFight = {
                 </div>
             )}
 
-            {!sectionsDeferred && (<div
+            {/* Replay: full-page experience — skip all section chrome */}
+            {!embedded && !sectionsDeferred && activeNavGroup === 'map' && (
+                <div className="flex-1 min-h-0 flex" style={{ minHeight: 0 }}>
+                    <ReplaySection fights={(stats as any)?.replayFights ?? []} />
+                </div>
+            )}
+
+            {!sectionsDeferred && activeNavGroup !== 'map' && (<div
                 className={`${embedded ? '' : 'flex-1 min-h-0 flex'} relative`}
             >
                 <div
@@ -5150,6 +5160,9 @@ type SpikeFight = {
                                 playerBKey={comparisonPlayerBKey}
                                 setPlayerBKey={setComparisonPlayerBKey}
                             /> },
+                        ])}
+                        {renderGroup('map', [
+                            { id: 'replay', element: <div style={{ height: '88vh', minHeight: 500, maxHeight: 1000, display: 'flex', width: '100%' }}><ReplaySection fights={(stats as any)?.replayFights ?? []} /></div> },
                         ])}
                     </>
                 )}

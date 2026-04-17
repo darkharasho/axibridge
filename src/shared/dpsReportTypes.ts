@@ -34,7 +34,12 @@ export interface DPSReportJSON {
     success: boolean;
     skillMap?: { [key: string]: { name: string; icon: string; autoAttack?: boolean; isTraitProc?: boolean; isGearProc?: boolean; isUnconditionalProc?: boolean } };
     buffMap?: { [key: string]: { name: string; stacking: boolean; icon?: string; classification?: string } };
-    combatReplayMetaData?: { inchToPixel?: number; pollingRate?: number };
+    combatReplayMetaData?: {
+        inchToPixel?: number;
+        pollingRate?: number;
+        sizes?: [number, number];
+        maps?: Array<{ url?: string }>;
+    };
     damageModMap?: Record<string, DamageModifierInfo>;
     personalDamageMods?: Record<string, number[]>;
 }
@@ -105,6 +110,7 @@ export interface Player {
         down?: Array<[number, number]>;
         start?: number;
     };
+    healthPercents?: Array<[number, number]>;
     hasCommanderTag?: boolean;
     notInSquad?: boolean;
     account?: string;

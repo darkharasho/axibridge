@@ -1,5 +1,5 @@
 import { resolveFightTimestamp } from './utils/timestampUtils';
-import { sanitizeWvwLabel, resolveMapName, buildFightLabel } from './utils/labelUtils';
+import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { resolveProfessionLabel } from './computePlayerAggregation';
 
 const resolveSkillMeta = (rawId: any, details: any) => {
@@ -272,9 +272,11 @@ export function ingestLogIncomingStrikeDamage(log: any, acc: IncomingStrikeDamag
     if (!details) return;
 
     const index = acc.fightIndex++;
-    const fightName = sanitizeWvwLabel(details.fightName || log.fightName || `Fight ${index + 1}`);
-    const mapName = resolveMapName(details, log);
-    const fullLabel = buildFightLabel(fightName, String(mapName || ''));
+    const fullLabel = buildFightLabelV2({
+        zone: details.fightName || log.fightName || `Fight ${index + 1}`,
+        durationMs: details.durationMS,
+        avgPosition: computeFightAvgPosition(details),
+    });
     const values: Record<string, IncomingStrikeFightValue> = {};
     const allPlayers = Array.isArray(details.players) ? details.players : [];
     const squadPlayers = allPlayers.filter((entry: any) => !entry?.notInSquad);

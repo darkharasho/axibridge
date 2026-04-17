@@ -53,7 +53,8 @@ import {
     ShieldMinus,
     ArrowUpDown,
     Crosshair,
-    Eraser
+    Eraser,
+    Play
 } from 'lucide-react';
 
 
@@ -661,6 +662,15 @@ export function ReportApp() {
                 { id: 'skill-usage', label: 'Skill Usage', icon: Keyboard },
                 { id: 'apm-stats', label: 'APM Breakdown', icon: Gw2ApmIcon },
                 { id: 'player-comparison', label: 'Player Comparison', icon: Users }
+            ]
+        },
+        {
+            id: 'map',
+            label: 'Map',
+            icon: MapIcon,
+            sectionIds: ['replay'],
+            items: [
+                { id: 'replay', label: 'Replay', icon: Play }
             ]
         }
     ]), []);

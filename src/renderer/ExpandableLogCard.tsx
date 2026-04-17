@@ -11,6 +11,7 @@ import { getProfessionAbbrev, getProfessionEmoji } from '../shared/professionUti
 import { getProfessionIconPath } from './classIconUtils';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { useLogDetails } from './cache/useLogDetails';
+import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 
 // Track which logs have already played their arrival/success animations (survives virtualization remounts)
 const seenArrivalIds = new Set<string>();
@@ -221,27 +222,15 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         });
     };
     const borderlandLabel = () => {
-        const candidates = [
-            details.mapName,
-            details.map,
-            details.location,
-            details.zoneName,
-            details.zone,
-            details.fightName,
-            log.fightName
-        ];
-        const raw = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
-        if (!raw) return 'Unknown Borderland';
-        const normalized = String(raw)
-            .trim()
-            .replace(/^Detailed\s*WvW\s*-\s*/i, '')
-            .replace(/^World\s*vs\s*World\s*-\s*/i, '')
-            .replace(/^WvW\s*-\s*/i, '')
-            .trim();
-        if (/borderlands?/i.test(normalized)) {
-            return normalized.replace(/\bborderlands?\b/i, 'Borderland');
+        // Prefer pre-computed label from main process (includes nearest landmark).
+        if (log.fightLabel) return log.fightLabel;
+        // Fallback: build from whatever zone/details are available.
+        const zone = details.fightName || log.fightName || details.mapName || details.map
+            || details.location || details.zoneName || details.zone || '';
+        if (zone) {
+            return buildFightLabelV2({ zone, avgPosition: computeFightAvgPosition(details) });
         }
-        return normalized;
+        return 'Unknown Borderland';
     };
     const cardTitle = `${formattedDateTime()} - ${borderlandLabel()}`;
     const formatDurationFromMs = (ms: number) => {

@@ -1,4 +1,4 @@
-import { sanitizeWvwLabel, buildFightLabel, resolveMapName } from './utils/labelUtils';
+import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 
 export type StripFightValue = {
@@ -65,9 +65,11 @@ export function ingestLogStripSpikes(log: any, acc: StripSpikesAccumulator, opti
     if (!details) return;
 
     const index = acc.fightIndex++;
-    const fightName = sanitizeWvwLabel(details.fightName || log.fightName || `Fight ${index + 1}`);
-    const mapName = resolveMapName(details, log);
-    const fullLabel = buildFightLabel(fightName, String(mapName || ''));
+    const fullLabel = buildFightLabelV2({
+        zone: details.fightName || log.fightName || `Fight ${index + 1}`,
+        durationMs: details.durationMS,
+        avgPosition: computeFightAvgPosition(details),
+    });
     const fightId = log.filePath || log.id || `fight-${index + 1}`;
     const shortLabel = `F${index + 1}`;
     const timestamp = resolveFightTimestamp(details, log);
@@ -147,7 +149,17 @@ export function finalizeStripSpikes(acc: StripSpikesAccumulator): StripSpikesDat
     const players = Array.from(acc.playerMap.values())
         .sort((a, b) => b.totalStrips - a.totalStrips || a.displayName.localeCompare(b.displayName));
 
-    return { fights: acc.fights, players };
+    // Sort fights chronologically and reassign shortLabels so F1=oldest.
+    // In the incremental path, fights are pushed in ingestion order which may
+    // not match timestamp order, causing scrambled fight numbers on the chart.
+    const fights = [...acc.fights]
+        .sort((a, b) => {
+            if (a.timestamp > 0 && b.timestamp > 0 && a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+            return a.shortLabel.localeCompare(b.shortLabel, undefined, { numeric: true });
+        })
+        .map((fight, i) => ({ ...fight, shortLabel: `F${i + 1}` }));
+
+    return { fights, players };
 }
 
 export function computeStripSpikesData(validLogs: any[], splitPlayersByClass = false): StripSpikesData {

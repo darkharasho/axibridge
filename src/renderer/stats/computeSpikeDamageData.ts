@@ -1,5 +1,5 @@
 import { resolveFightTimestamp } from './utils/timestampUtils';
-import { sanitizeWvwLabel, resolveMapName, buildFightLabel } from './utils/labelUtils';
+import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 
 const getHighestSingleHit = (player: any, details: any) => {
     const skillMap = details?.skillMap || {};
@@ -355,9 +355,11 @@ export function ingestLogSpikeDamage(log: any, acc: SpikeDamageAccumulator, opti
     if (!details) return;
 
     const index = acc.fightIndex++;
-    const fightName = sanitizeWvwLabel(details.fightName || log.fightName || `Fight ${index + 1}`);
-    const mapName = resolveMapName(details, log);
-    const fullLabel = buildFightLabel(fightName, String(mapName || ''));
+    const fullLabel = buildFightLabelV2({
+        zone: details.fightName || log.fightName || `Fight ${index + 1}`,
+        durationMs: details.durationMS,
+        avgPosition: computeFightAvgPosition(details),
+    });
     const values: Record<string, SpikeDamageFightValue> = {};
     const players = Array.isArray(details.players) ? details.players : [];
     const allReplayStarts = players

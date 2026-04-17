@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown, Eraser } from 'lucide-react';
+import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown, Eraser, Play } from 'lucide-react';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
 import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
@@ -135,6 +135,15 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
             { id: 'skill-usage', label: 'Skill Usage', icon: Keyboard },
             { id: 'apm-stats', label: 'APM Breakdown', icon: Gw2ApmIcon },
             { id: 'player-comparison', label: 'Player Comparison', icon: Users }
+        ]
+    },
+    {
+        id: 'map',
+        label: 'Map',
+        icon: MapIcon,
+        sectionIds: ['replay'],
+        items: [
+            { id: 'replay', label: 'Replay', icon: Play }
         ]
     }
 ];

@@ -254,8 +254,13 @@ export const StabPerformanceSection = ({
                                                         return (
                                                             <div key={member.key} style={{ color }} className="py-px flex items-center gap-1">
                                                                 <span>{member.displayName}</span>
-                                                                {hasFar && <MapPin className="inline w-3.5 h-3.5 text-yellow-400" />}
                                                                 <span>: {stacks === 0 ? 'No stab' : stacks.toFixed(1) + ' stacks'}</span>
+                                                                {distance > 0 && (
+                                                                    <span className={`flex items-center gap-0.5 ${hasFar ? 'text-yellow-400' : 'text-slate-400'}`}>
+                                                                        <MapPin className="inline w-3 h-3" />
+                                                                        {Math.round(distance)}u
+                                                                    </span>
+                                                                )}
                                                                 {hasDeath && <Skull className={`inline w-3.5 h-3.5 ${member.key === selectedPlayerKey ? 'text-purple-400' : 'text-white'}`} />}
                                                             </div>
                                                         );

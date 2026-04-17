@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
-const MAX_GITHUB_REPORT_JSON_BYTES = 32 * 1024 * 1024;
+const MAX_GITHUB_REPORT_JSON_BYTES = 90 * 1024 * 1024;
 const GITHUB_DEVICE_CLIENT_ID = process.env.GITHUB_DEVICE_CLIENT_ID || 'Ov23liFh1ih9LAcnLACw';
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
 
@@ -447,7 +447,8 @@ const buildWebReportPayload = (
         { label: 'topSkillsByDownContribution', apply: () => clearArray(stats, 'topSkillsByDownContribution') },
         { label: 'fightBreakdown', apply: () => clearArray(stats, 'fightBreakdown') },
         { label: 'timelineData', apply: () => clearArray(stats, 'timelineData') },
-        { label: 'squadCompByFight', apply: () => clearArray(stats, 'squadCompByFight') }
+        { label: 'squadCompByFight', apply: () => clearArray(stats, 'squadCompByFight') },
+        { label: 'replayFights', apply: () => clearArray(stats, 'replayFights') },
     ];
 
     for (const step of trimSteps) {

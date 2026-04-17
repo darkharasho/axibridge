@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeWvwLabel, normalizeMapLabel, tokenizeLabel, buildFightLabel, resolveMapName } from '../stats/utils/labelUtils';
+import { sanitizeWvwLabel, normalizeMapLabel, tokenizeLabel, resolveMapName } from '../stats/utils/labelUtils';
 
 // ─── sanitizeWvwLabel ─────────────────────────────────────────────────────────
 
@@ -107,40 +107,6 @@ describe('tokenizeLabel', () => {
     it('filters out empty tokens', () => {
         const tokens = tokenizeLabel('  --  ');
         expect(tokens).toHaveLength(0);
-    });
-});
-
-// ─── buildFightLabel ──────────────────────────────────────────────────────────
-
-describe('buildFightLabel', () => {
-    it('returns fightName when mapName is empty', () => {
-        expect(buildFightLabel('Skirmish', '')).toBe('Skirmish');
-    });
-
-    it('returns mapName when fightName is empty', () => {
-        expect(buildFightLabel('', 'Eternal Battlegrounds')).toBe('Eternal Battlegrounds');
-    });
-
-    it('deduplicates when names are identical', () => {
-        expect(buildFightLabel('Eternal Battlegrounds', 'Eternal Battlegrounds')).toBe('Eternal Battlegrounds');
-    });
-
-    it('deduplicates when fight name tokens fully cover map name tokens', () => {
-        // "Eternal Battlegrounds" covers "Battlegrounds"
-        expect(buildFightLabel('Eternal Battlegrounds', 'Battlegrounds')).toBe('Eternal Battlegrounds');
-    });
-
-    it('deduplicates when map name tokens fully cover fight name tokens', () => {
-        expect(buildFightLabel('Eternal', 'Eternal Battlegrounds')).toBe('Eternal');
-    });
-
-    it('combines with " - " when names are distinct', () => {
-        expect(buildFightLabel('Skirmish', 'Eternal Battlegrounds')).toBe('Skirmish - Eternal Battlegrounds');
-    });
-
-    it('strips WvW prefixes from both names before comparing', () => {
-        const result = buildFightLabel('WvW - Eternal Battlegrounds', 'Detailed WvW - Eternal Battlegrounds');
-        expect(result).toBe('Eternal Battlegrounds');
     });
 });
 

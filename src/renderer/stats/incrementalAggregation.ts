@@ -37,6 +37,196 @@ import { createBoonUptimeTimelineAccumulator, ingestLogBoonUptimeTimeline, final
 import { computeSpecialTables } from './computeSpecialTables';
 import { classifyPlayerRoles } from './classifyPlayerRoles';
 
+import { buildMovementData } from '../../shared/movementData';
+import { resolveMapFromZone, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
+import { findNearestLandmark } from '../../shared/wvwLandmarks';
+import { TRACKED_REPLAY_BUFF_IDS } from '../../shared/replayBuffs';
+import type { ReplayFightPayload, ReplayDpsSample, ReplayKillEvent, DamageSpikeEvent, RallyEvent, TargetFocusSample } from './map/replayTypes';
+
+function memberKey(p: any): string {
+    return String(p?.account || p?.name || '');
+}
+
+function computeRallyEvents(details: any): RallyEvent[] {
+    const events: RallyEvent[] = [];
+    for (const p of details?.players ?? []) {
+        if (p?.isFake || p?.notInSquad) continue;
+        const downs: [number, number][] = p?.combatReplayData?.down ?? [];
+        const deaths: [number, number][] = p?.combatReplayData?.dead ?? [];
+        for (const [downStart, downEnd] of downs) {
+            if (downEnd <= 0) continue;
+            const diedFromThisDown = deaths.some(([dStart]) => Math.abs(dStart - downStart) <= 250 || (dStart >= downStart && dStart <= downEnd));
+            if (!diedFromThisDown) {
+                events.push({ timeMs: downEnd, memberKey: memberKey(p) });
+            }
+        }
+    }
+    events.sort((a, b) => a.timeMs - b.timeMs);
+    return events;
+}
+
+function rollingMedian(arr: number[], windowEnd: number, windowSize: number): number {
+    const start = Math.max(0, windowEnd - windowSize);
+    const slice = arr.slice(start, windowEnd);
+    if (!slice.length) return 0;
+    const sorted = [...slice].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function computeDamageSpikeEvents(details: any): DamageSpikeEvent[] {
+    const events: DamageSpikeEvent[] = [];
+    for (const p of details?.players ?? []) {
+        if (p?.isFake || p?.notInSquad) continue;
+        const cumulative: number[] = p?.damage1S?.[0] ?? [];
+        if (cumulative.length < 2) continue;
+        const perSecond: number[] = [];
+        for (let i = 1; i < cumulative.length; i++) {
+            perSecond.push(Math.max(0, cumulative[i] - cumulative[i - 1]));
+        }
+        const key = memberKey(p);
+        for (let i = 0; i < perSecond.length; i++) {
+            const magnitude = perSecond[i];
+            if (magnitude < 20_000) continue;
+            const median = rollingMedian(perSecond, i, 10);
+            if (median > 0 && magnitude >= median * 2) {
+                events.push({ timeMs: (i + 1) * 1000, memberKey: key, magnitude });
+            }
+        }
+    }
+    events.sort((a, b) => a.timeMs - b.timeMs);
+    return events;
+}
+
+function computeTargetFocusSamples(details: any): TargetFocusSample[] {
+    const samples: TargetFocusSample[] = [];
+    const players = details?.players ?? [];
+    const numSeconds = Math.max(
+        0,
+        ...players.map((p: any) => {
+            const series: number[][] | undefined = p?.targetDamage1S?.[0];
+            if (!series?.length) return 0;
+            return Math.max(...series.map((s: number[]) => s?.length ?? 0));
+        }),
+    );
+    if (numSeconds === 0) return samples;
+
+    const WINDOW_S = 2;
+    for (const p of players) {
+        if (p?.isFake || p?.notInSquad) continue;
+        const series: number[][] | undefined = p?.targetDamage1S?.[0];
+        if (!series?.length) continue;
+        const key = memberKey(p);
+        for (let t = WINDOW_S; t < numSeconds; t++) {
+            let bestTarget = -1;
+            let bestDamage = 0;
+            for (let ti = 0; ti < series.length; ti++) {
+                const arr = series[ti];
+                if (!arr || arr.length <= t) continue;
+                const start = Math.max(0, t - WINDOW_S);
+                const delta = Math.max(0, arr[t] - (arr[start] ?? 0));
+                if (delta > bestDamage) {
+                    bestDamage = delta;
+                    bestTarget = ti;
+                }
+            }
+            if (bestTarget >= 0 && bestDamage > 0) {
+                samples.push({ timeMs: t * 1000, memberKey: key, targetIndex: bestTarget });
+            }
+        }
+    }
+    samples.sort((a, b) => a.timeMs - b.timeMs || a.memberKey.localeCompare(b.memberKey));
+    return samples;
+}
+
+export function buildReplayFightPayload(log: any, fightIndex: number): ReplayFightPayload | null {
+    const details = log?.details;
+    if (!details) return null;
+
+    const movement = buildMovementData(details, {
+        trackedBuffIds: TRACKED_REPLAY_BUFF_IDS,
+        localAccount: log?.recordedAccount,
+        localName: log?.recordedBy,
+    });
+    if (!movement) return null;
+
+    const avgPosition = computeFightAvgPosition(details);
+    const zone = details?.fightName || log?.encounterName || `Fight ${fightIndex + 1}`;
+    const mapKey = resolveMapFromZone(String(zone));
+    const landmark = (mapKey && avgPosition)
+        ? findNearestLandmark(mapKey, avgPosition[0], avgPosition[1])?.name ?? null
+        : null;
+
+    const fightId = String(log?.id || log?.filePath || `fight-${fightIndex}`);
+    const label = buildFightLabelV2({
+        zone: String(zone),
+        durationMs: Number(details?.durationMS) || 0,
+        avgPosition,
+    });
+
+    const squadMembers = movement.members.filter(m => !m.isEnemy && m.inSquad);
+    const kills = movement.members.filter(m => m.isEnemy && m.deadRanges.length > 0).length;
+    const deaths = squadMembers.filter(m => m.deadRanges.length > 0).length;
+
+    const dpsSamples: ReplayDpsSample[] = computeSquadDpsSamples(details);
+    const killEvents: ReplayKillEvent[] = collectKillEvents(movement);
+    const rallyEvents = computeRallyEvents(details);
+    const damageSpikeEvents = computeDamageSpikeEvents(details);
+    const targetFocusSamples = computeTargetFocusSamples(details);
+
+    return {
+        fightId,
+        fightIndex,
+        label,
+        timestampMs: Number(log?.uploadTime ? log.uploadTime * 1000 : log?.timestampMs ?? 0),
+        durationMs: Number(details?.durationMS) || 0,
+        mapKey,
+        mapImageUrl: details?.combatReplayMetaData?.maps?.[0]?.url ?? null,
+        mapSize: details?.combatReplayMetaData?.sizes ?? null,
+        avgPosition,
+        nearestLandmark: landmark,
+        squadSize: squadMembers.length,
+        kills,
+        deaths,
+        movementData: movement,
+        dpsSamples,
+        killEvents,
+        damageSpikeEvents,
+        rallyEvents,
+        targetFocusSamples,
+    };
+}
+
+function computeSquadDpsSamples(details: any): ReplayDpsSample[] {
+    const squad = Array.isArray(details?.players) ? details.players.filter((p: any) => !p?.notInSquad && !p?.isFake) : [];
+    if (!squad.length) return [];
+    const seriesLen = Math.max(...squad.map((p: any) => p?.damage1S?.[0]?.length ?? 0));
+    if (seriesLen === 0) return [];
+
+    const samples: ReplayDpsSample[] = [];
+    for (let t = 1; t < seriesLen; t++) {
+        let total = 0;
+        for (const p of squad) {
+            const arr = p?.damage1S?.[0];
+            if (!arr || arr.length <= t) continue;
+            total += (arr[t] - arr[t - 1]);
+        }
+        samples.push({ timeMs: t * 1000, squadDps: total });
+    }
+    return samples;
+}
+
+function collectKillEvents(movement: any): ReplayKillEvent[] {
+    const events: ReplayKillEvent[] = [];
+    for (const m of movement.members) {
+        for (const [deadAt] of m.deadRanges) {
+            events.push({ timeMs: deadAt, victimName: m.name, isAlly: !m.isEnemy });
+        }
+    }
+    events.sort((a, b) => a.timeMs - b.timeMs);
+    return events;
+}
+
 export interface IncrementalAggregatorOptions {
     precomputedStats?: any;
     mvpWeights?: IMvpWeights;
@@ -267,7 +457,7 @@ const enrichPrecomputedStats = (input: any, logs: any[]) => {
             return {
                 id: String(fight?.id || `fight-${idx + 1}`),
                 shortLabel: `F${idx + 1}`,
-                fullLabel: `${String(fight?.mapName || fight?.label || 'Unknown Map')} • ${String(fight?.duration || '--:--')}`,
+                fullLabel: fight?.fullLabel || `${String(fight?.mapName || fight?.label || 'Unknown Map')} • ${String(fight?.duration || '--:--')}`,
                 mapName: String(fight?.mapName || ''),
                 timestamp: Number(fight?.timestamp || 0),
                 duration: String(fight?.duration || '--:--'),
@@ -336,6 +526,7 @@ export class IncrementalAggregator {
 
     // Stored boon table logs (minimal - just details reference for buildBoonTables)
     private boonTableLogs: StoredBoonTableLog[] = [];
+    private replayPayloads: ReplayFightPayload[] = [];
 
     constructor(options: IncrementalAggregatorOptions = {}) {
         this.options = options;
@@ -467,6 +658,10 @@ export class IncrementalAggregator {
                 }
             }
         }
+
+        // Replay payload
+        const replayPayload = buildReplayFightPayload(log, idx);
+        if (replayPayload !== null) this.replayPayloads.push(replayPayload);
 
         // 2. Core player aggregation
         precomputeGlobalEnemySkillStats(log, this.playerAcc);
@@ -1232,6 +1427,7 @@ export class IncrementalAggregator {
             fightBreakdown,
             commanderStats,
             fightDiffMode,
+            replayFights: this.replayPayloads,
             attendanceData,
             squadCompByFight,
             spikeDamage,

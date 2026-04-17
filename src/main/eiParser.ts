@@ -30,7 +30,7 @@ export const DEFAULT_EI_SETTINGS: EiParserSettings = {
     anonymous: false,
     customTooShort: 2200,
     saveOutHTML: false,
-    parseCombatReplay: false,
+    parseCombatReplay: true,
     lightTheme: false,
     rawTimelineArrays: true,
     singleThreaded: false,

@@ -1,5 +1,5 @@
 import { resolveFightTimestamp } from './utils/timestampUtils';
-import { resolveMapName } from './utils/labelUtils';
+import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { formatDurationMs } from './utils/dashboardUtils';
 import {
     getPlayerCleanses,
@@ -248,7 +248,7 @@ export function ingestLogFightDiffMode(log: any, idx: number) {
     return {
         id: log.filePath || log.id || `fight-${idx + 1}`,
         shortLabel: `F${idx + 1}`,
-        fullLabel: `${mapName || (log.encounterName || 'Unknown Map')} • ${formatDurationMs(durationMs)}`,
+        fullLabel: `${buildFightLabelV2({ zone: details?.fightName || log?.fightName || log?.encounterName || 'Unknown', avgPosition: computeFightAvgPosition(details) })} • ${formatDurationMs(durationMs)}`,
         mapName,
         timestamp,
         duration: formatDurationMs(durationMs),
