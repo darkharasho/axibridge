@@ -1,37 +1,22 @@
 # Release Notes
 
-Version v2.5.0 — April 17, 2026
+Version v2.5.1 — April 17, 2026
 
-## WvW Map Replay
+## GitHub Uploads Fixed
 
-The biggest thing in this release: a full interactive map replay for every WvW fight. Open any analysed session, go to the Map tab, and you can watch the fight play back on the actual WvW map tile.
+Web report uploads were failing with a "blob too large" error for any session that included map replay data. The replay section was generating reports over 90 MB, which GitHub's API rejects once base64-encoded. Uploads now succeed.
 
-- Player icons move in real time, coloured by profession, with HP bars, boon stacks, and active skill casts visible in the squad panel on the right
-- Zoom in from 1× to 50× with cursor-centred wheel zoom, and pan freely — even while following a specific player
-- Squad overlays: centroid + spread ring, commander tag range rings (600 / 1200 units), per-party convex hulls, and a health strip across the top of the map
-- Event overlays: damage pulses, rally rings, and target-focus lines
-- Heatmaps for deaths, time spent, and damage taken — rendered as topographic colour bands so the density actually reads clearly
+NOTE: This only affects future uploads. Reports already on GitHub Pages are unaffected.
 
-## Fight Phase Timeline
+## Smaller Web Reports
 
-When you enable "Fight phases on timeline" in the layers panel, the scrubber is now colour-coded by what the squad was doing: opening (blue), push (green), retreat (red, whenever deaths are happening), cleanup (purple). Hover any phase chip to see what it means, or open the layers panel for the full legend.
+Report size dropped from ~90 MB to ~31 MB. A few things contribute to that:
 
-## Location-Aware Fight Names
-
-Log cards now show the nearest WvW landmark instead of just the raw map name — so "Blue BL: Camp Resolve (8:14)" instead of "Blue Alpine Borderland". This also applies across the dashboard: commander stats, fight breakdown, kill pressure, boon timelines, and stab performance all use the same landmark-aware naming.
-
-NOTE: Existing logs saved before this update won't show the landmark until they're re-uploaded.
-
-## Rounded Window Corners
-
-On Windows and Linux the app window now uses a transparent background so the OS can apply its own rounded corner treatment. No functional change, just looks cleaner.
-
-## Discord Notifications on Release
-
-AxiBridge can now post a Discord notification when a new version is released. Configure the webhook in Settings if you want it.
+- Player and enemy positions are now stored as integers instead of floats — sub-pixel precision doesn't matter for map visualization
+- Icon URLs (~84 chars each) are stored once in a lookup table instead of repeated throughout the report — the same GW2 CDN URLs were appearing hundreds of times across skill tables, boon tables, and breakdowns
+- Boon and skill icon dictionaries are shared across all replay fights instead of duplicated per fight
+- Target focus samples use compact per-fight player indices instead of repeating full account name strings
 
 ## Fixes
 
-- Discord notifications now correctly use the webhook identity (name/avatar) instead of falling back to the default bot appearance
-- Fight timeline order in the defense tab was reversed — fixed
-- Navbar scroll wheel was propagating to the page — fixed
+- If a report is still too large to upload after the above, replay data is now dropped first instead of last — previously, skill usage tables, boon timelines, and condition data would all be stripped before replay was even touched
