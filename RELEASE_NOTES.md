@@ -1,17 +1,26 @@
 # Release Notes
 
-Version v2.5.7 — April 17, 2026
+Version v2.5.8 — April 18, 2026
 
-## Fight picker overlay
+## Redesigned Web Upload Modal
 
-The fight thumbnail selector is now a full overlay instead of a horizontal strip that cuts off. Click "Show all fights" and all fights tile across multiple rows. Clicking a fight closes the overlay automatically.
+The upload modal now shows a proper step-by-step progress indicator (Prepare → Build → Package → Upload → Finalize) with a live activity log streaming status messages as they arrive. The old single-line status that sometimes got stuck on "Preparing report..." is gone.
 
-## Overlay strokes scale with zoom
+## Upload Log Viewer
 
-Hull outlines, centroid rings, and tag range rings now stay at a consistent 1px on screen when you zoom in. Previously they grew thicker as you zoomed.
+After a successful upload, the banner now has a **Logs** button that reopens the full activity log from that upload in a modal. Useful if something looked off and you want to review what happened.
+
+## History Tab: Copy Link & Delete
+
+Each report card in the History tab now has a three-dot menu with two actions: **Copy link** copies the web address for that report to your clipboard, and **Delete** removes it from GitHub Pages (and from R2 if you have that configured).
+
+## Theme-Aware Upload UI & Map Chrome
+
+The upload modal, banner, and a few map elements (active fight card highlight, commander tag range rings, the squad DPS chart line) now pick up your chosen color palette instead of always being cyan-blue.
 
 ## Fixes
 
-**R2 replay not loading on web reports** — the CORS rule was being set with the full GitHub Pages URL path (e.g. `https://user.github.io/repo`) instead of just the origin (`https://user.github.io`). Browsers check origin only, so the rule never matched and all R2 replay fetches were blocked.
-
-If your R2 API token doesn't have bucket admin permissions, the automatic CORS update will now show a visible warning during upload with instructions to set it manually in the Cloudflare R2 dashboard. Previously this failure was silent.
+- Upload modal now correctly shows live status messages from the backend instead of staying stuck on the initial "Preparing report..." text.
+- Build status error icon in the upload banner now shows a red background as intended.
+- Rapid second uploads no longer leave the modal faded out.
+- Glass mode dropdowns are now solid-colored instead of see-through.
