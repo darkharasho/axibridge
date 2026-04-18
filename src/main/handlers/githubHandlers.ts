@@ -551,6 +551,26 @@ const r2PutObject = (key: string, body: Buffer, contentType: string, config: R2C
     });
 };
 
+const r2DeleteObject = (key: string, config: R2Config): Promise<{ success: boolean; error?: string }> => {
+    const emptyBody = Buffer.alloc(0);
+    const opts = r2SignedRequest('DELETE', config, `/${key}`, '', '', emptyBody);
+    return new Promise((resolve) => {
+        const req = https.request({ method: 'DELETE', hostname: opts.hostname, path: opts.path, headers: opts.headers }, (res) => {
+            let data = '';
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => {
+                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                    resolve({ success: true });
+                } else {
+                    resolve({ success: false, error: `R2 DELETE failed: HTTP ${res.statusCode} — ${data.slice(0, 200)}` });
+                }
+            });
+        });
+        req.on('error', (err: Error) => resolve({ success: false, error: `R2 DELETE error: ${err.message}` }));
+        req.end();
+    });
+};
+
 // ─── Report payload builder ────────────────────────────────────────────────────
 
 const formatBytes = (value: number) => {
@@ -1194,6 +1214,14 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const commitMessage = `Delete ${ids.length} report${ids.length === 1 ? '' : 's'}`;
             const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, headSha);
             await updateGithubRef(owner, repo, branch, token, newCommit.sha);
+
+            // Best-effort: delete replay objects from R2 if configured
+            const r2Config = getR2Config(store);
+            if (r2Config) {
+                await Promise.allSettled(
+                    ids.map((id) => r2DeleteObject(`reports/${id}/replay.json`, r2Config))
+                );
+            }
 
             return { success: true, removed: ids };
         } catch (err: any) {

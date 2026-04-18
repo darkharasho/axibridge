@@ -1,4 +1,4 @@
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Copy, MoreHorizontal, Search, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ParticleHover } from './particles';
@@ -149,6 +149,8 @@ export function FightReportHistoryView() {
     }, []);
     const [commanderDropdownOpen, setCommanderDropdownOpen] = useState(false);
     const commanderDropdownRef = useRef<HTMLDivElement>(null);
+    const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!commanderDropdownOpen) return;
@@ -158,6 +160,15 @@ export function FightReportHistoryView() {
         document.addEventListener('mousedown', handleClick);
         return () => document.removeEventListener('mousedown', handleClick);
     }, [commanderDropdownOpen]);
+
+    useEffect(() => {
+        if (!menuOpenId) return;
+        const handler = (e: MouseEvent) => {
+            if (!(e.target as HTMLElement).closest('[data-card-menu]')) setMenuOpenId(null);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [menuOpenId]);
 
     useEffect(() => {
         let mounted = true;
@@ -339,6 +350,43 @@ export function FightReportHistoryView() {
             setDetailError(err?.message || 'Failed to delete reports.');
         } finally {
             setDeleteLoading(false);
+        }
+    };
+
+    const handleDeleteOne = async (entry: ReportIndexEntry) => {
+        setMenuOpenId(null);
+        const confirmed = window.confirm(
+            `Delete "${entry.title}" from GitHub? This cannot be undone.`
+        );
+        if (!confirmed) return;
+        setDeleteLoading(true);
+        try {
+            const payload: any = { ids: [entry.id] };
+            if (isOverride && selectedRepo) {
+                payload.owner = selectedRepo.owner;
+                payload.repo = selectedRepo.repo;
+            }
+            const result = await window.electronAPI.deleteGithubReports(payload);
+            if (result?.success) {
+                setTabs((prev) => prev.filter((t) => t.id !== entry.id));
+                setActiveTab((prev) => prev === entry.id ? 'list' : prev);
+                await fetchIndex();
+            } else {
+                setDetailError(result?.error || 'Failed to delete report.');
+            }
+        } catch (err: any) {
+            setDetailError(err?.message || 'Failed to delete report.');
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
+
+    const handleCopyLink = (entry: ReportIndexEntry) => {
+        setMenuOpenId(null);
+        if (entry.url) {
+            navigator.clipboard.writeText(entry.url);
+            setCopiedId(entry.id);
+            setTimeout(() => setCopiedId((prev) => (prev === entry.id ? null : prev)), 1500);
         }
     };
 
@@ -563,14 +611,16 @@ export function FightReportHistoryView() {
                     {!indexLoading && filteredEntries.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {filteredEntries.map((entry, i) => (
-                                <motion.button
+                                <motion.div
                                     key={entry.id}
-                                    type="button"
+                                    role="button"
+                                    tabIndex={0}
                                     initial={{ opacity: 0, y: 16 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4), ease: 'easeOut' }}
                                     onClick={() => handleCardClick(entry)}
-                                    className="text-left rounded-[6px] p-4 transition-colors"
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick(entry); } }}
+                                    className="relative text-left rounded-[6px] p-4 transition-colors cursor-pointer"
                                     style={{
                                         background: 'var(--bg-card)',
                                         border: `1px solid ${selectedForDelete.has(entry.id) ? 'var(--brand-primary)' : 'var(--border-default)'}`,
@@ -579,12 +629,69 @@ export function FightReportHistoryView() {
                                     whileHover={{ scale: 1.01, borderColor: 'rgba(255,255,255,0.15)' }}
                                     whileTap={{ scale: 0.99 }}
                                 >
+                                    {/* 3-dot menu */}
+                                    {!deleteMode && (
+                                        <div
+                                            data-card-menu
+                                            className="absolute top-2 right-2"
+                                            onClick={(e) => e.stopPropagation()}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => setMenuOpenId((prev) => prev === entry.id ? null : entry.id)}
+                                                className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                                                style={{
+                                                    color: menuOpenId === entry.id ? 'var(--text-primary)' : 'var(--text-muted)',
+                                                    background: menuOpenId === entry.id ? 'var(--bg-hover)' : 'transparent',
+                                                }}
+                                                aria-label="Report options"
+                                                aria-expanded={menuOpenId === entry.id}
+                                            >
+                                                <MoreHorizontal className="w-3.5 h-3.5" />
+                                            </button>
+                                            {menuOpenId === entry.id && (
+                                                <div
+                                                    className="absolute right-0 top-full mt-1 w-36 rounded-[4px] py-1 z-50"
+                                                    style={{
+                                                        background: 'var(--bg-card)',
+                                                        border: '1px solid var(--border-hover)',
+                                                        boxShadow: 'var(--shadow-dropdown)',
+                                                    }}
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleCopyLink(entry)}
+                                                        className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-left transition-colors"
+                                                        style={{ color: copiedId === entry.id ? 'var(--status-success)' : 'var(--text-primary)' }}
+                                                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                                                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                                    >
+                                                        <Copy className="w-3 h-3 shrink-0" />
+                                                        {copiedId === entry.id ? 'Copied!' : 'Copy link'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteOne(entry)}
+                                                        className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-left transition-colors"
+                                                        style={{ color: 'var(--status-error)' }}
+                                                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                                                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                                    >
+                                                        <Trash2 className="w-3 h-3 shrink-0" />
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {deleteMode && (
                                         <div className="mb-2">
                                             <input type="checkbox" checked={selectedForDelete.has(entry.id)} readOnly className="accent-blue-500" />
                                         </div>
                                     )}
-                                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{entry.title}</div>
+                                    <div className="text-sm font-semibold pr-6" style={{ color: 'var(--text-primary)' }}>{entry.title}</div>
                                     <div className="text-[11px] mt-1" style={{ color: 'var(--text-secondary)' }}>
                                         {entry.dateLabel || `${entry.dateStart} — ${entry.dateEnd}`}
                                     </div>
@@ -616,7 +723,7 @@ export function FightReportHistoryView() {
                                             ))}
                                         </div>
                                     )}
-                                </motion.button>
+                                </motion.div>
                             ))}
                         </div>
                     )}
