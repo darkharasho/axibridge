@@ -1,22 +1,21 @@
 # Release Notes
 
-Version v2.5.1 — April 17, 2026
+Version v2.5.2 — April 17, 2026
 
-## GitHub Uploads Fixed
+## Cloudflare R2 replay storage
 
-Web report uploads were failing with a "blob too large" error for any session that included map replay data. The replay section was generating reports over 90 MB, which GitHub's API rejects once base64-encoded. Uploads now succeed.
+You can now connect a Cloudflare R2 bucket in Settings to store replay data separately from your GitHub Pages report. The motivation: GitHub's API has a file size limit, and large sessions were hitting it. With R2, the full replay data (player movement, health, damage-taken, skill casts) is uploaded to your own R2 bucket and streamed on demand — so your reports stay under GitHub's limits no matter how long the session is.
 
-NOTE: This only affects future uploads. Reports already on GitHub Pages are unaffected.
+To set it up, go to Settings → R2 Storage and enter your Cloudflare account ID, R2 API token, bucket name, and public URL. All five fields are required.
 
-## Smaller Web Reports
+NOTE: This only affects new uploads. Existing reports aren't changed.
 
-Report size dropped from ~90 MB to ~31 MB. A few things contribute to that:
+## Replay map now works in the history tab
 
-- Player and enemy positions are now stored as integers instead of floats — sub-pixel precision doesn't matter for map visualization
-- Icon URLs (~84 chars each) are stored once in a lookup table instead of repeated throughout the report — the same GW2 CDN URLs were appearing hundreds of times across skill tables, boon tables, and breakdowns
-- Boon and skill icon dictionaries are shared across all replay fights instead of duplicated per fight
-- Target focus samples use compact per-fight player indices instead of repeating full account name strings
+The replay section was blank when viewing a fight from the history tab. Fixed — it renders correctly now regardless of whether you're in the main view or the embedded history view.
 
-## Fixes
+## Precise replay positions (R2)
 
-- If a report is still too large to upload after the above, replay data is now dropped first instead of last — previously, skill usage tables, boon timelines, and condition data would all be stripped before replay was even touched
+When R2 is configured, there's a new "Precise replay positions" toggle in Settings. Normally positions get rounded to integers to keep file sizes down. Enable this if you want full floating-point precision — slightly smoother movement on the map, slightly larger R2 payloads.
+
+NOTE: This only affects future uploads.
