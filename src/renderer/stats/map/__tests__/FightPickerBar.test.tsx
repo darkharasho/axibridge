@@ -21,8 +21,8 @@ describe('FightPickerBar', () => {
 
     it('shows fight cards when expanded', () => {
         render(<FightPickerBar fights={fights} collapsed={false} onToggle={() => {}} />);
-        expect(screen.getByText('Fight A')).toBeTruthy();
-        expect(screen.getByText('Fight B')).toBeTruthy();
+        expect(screen.getByText(/hide fights/i)).toBeTruthy();
+        expect(screen.getByText(/of 3/)).toBeTruthy();
     });
 
     it('hides fight cards when collapsed', () => {
@@ -59,7 +59,7 @@ describe('FightPickerBar', () => {
     it('calls onToggle when toggle button is clicked (expanded)', () => {
         const onToggle = vi.fn();
         render(<FightPickerBar fights={fights} collapsed={false} onToggle={onToggle} />);
-        fireEvent.click(screen.getByTitle('Collapse fight picker'));
+        fireEvent.click(screen.getByText(/hide fights/i));
         expect(onToggle).toHaveBeenCalledOnce();
     });
 
