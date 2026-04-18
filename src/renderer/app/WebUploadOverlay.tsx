@@ -50,11 +50,13 @@ export function WebUploadOverlay({
 
     // Start timer and reset log when upload begins; clear timer when done
     useEffect(() => {
-        if (webUploadState.uploading && startTimeRef.current === null) {
-            startTimeRef.current  = Date.now();
-            prevMessageRef.current = null;
-            setLogEntries([]);
-            setClosing(false);
+        if (webUploadState.uploading) {
+            if (startTimeRef.current === null) {
+                startTimeRef.current  = Date.now();
+                prevMessageRef.current = null;
+                setLogEntries([]);
+            }
+            setClosing(false);   // always reset, not guarded by startTimeRef
         }
         if (!webUploadState.uploading && !webUploadState.stage) {
             startTimeRef.current = null;

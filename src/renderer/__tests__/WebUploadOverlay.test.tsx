@@ -88,6 +88,17 @@ describe('WebUploadOverlay', () => {
         expect(screen.getByRole('button', { name: /dismiss/i })).toBeInTheDocument();
     });
 
+    it('shows Dismiss button when buildStatus is errored', () => {
+        render(
+            <WebUploadOverlay
+                webUploadState={{ ...base, stage: 'Upload complete', buildStatus: 'errored' }}
+                isDev={false}
+                setWebUploadState={vi.fn()}
+            />
+        );
+        expect(screen.getByRole('button', { name: /dismiss/i })).toBeInTheDocument();
+    });
+
     it('calls setWebUploadState when Dismiss is clicked', () => {
         const setFn = vi.fn();
         render(
