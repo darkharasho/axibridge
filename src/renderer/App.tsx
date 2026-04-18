@@ -628,17 +628,32 @@ function App() {
         pendingLogUpdatesRef,
     });
 
-    // Pre-warm: populate memory LRU only (no IndexedDB structured clone)
+    // Pre-warm: populate LRU + IDB so details survive LRU eviction on large sessions.
+    // Also mark the log as loaded so useLogsForStats re-triggers aggregation after
+    // prewarm data arrives (without this, the worker would settle with partial replays
+    // if EI JSON fetches were still in flight when endBulkUpload fired).
     useEffect(() => {
         const cache = detailsCacheRef.current;
         if (!cache || !window.electronAPI?.onDetailsPrewarm) return;
         const cleanup = window.electronAPI.onDetailsPrewarm((payload: any) => {
             if (payload?.details && (payload.logId || payload.filePath)) {
-                cache.putMemoryOnly(payload.logId || payload.filePath, payload.details);
+                const logId = payload.logId || payload.filePath;
+                cache.putSync(logId, payload.details);
+                setLogsDeferred((currentLogs) => {
+                    const idx = currentLogs.findIndex(
+                        (l) => (l.id && l.id === logId) || (l.filePath && l.filePath === logId)
+                    );
+                    if (idx < 0) return currentLogs;
+                    const entry = currentLogs[idx];
+                    if (entry.detailsStatus === 'loaded') return currentLogs;
+                    const updated = [...currentLogs];
+                    updated[idx] = { ...entry, detailsStatus: 'loaded' as const };
+                    return updated;
+                });
             }
         });
         return cleanup;
-    }, []);
+    }, [setLogsDeferred]);
 
     const appIconPath = `${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg`;
     const axibridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;

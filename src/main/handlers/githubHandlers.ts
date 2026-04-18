@@ -4,6 +4,7 @@ import path from 'node:path';
 import https from 'node:https';
 import { createHash, createHmac } from 'node:crypto';
 import { spawn } from 'node:child_process';
+import log from 'electron-log';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
@@ -403,7 +404,7 @@ const getR2Config = (store: any): R2Config | null => {
     const bucketName = store.get('r2BucketName') as string | null | undefined;
     const publicUrl = store.get('r2PublicUrl') as string | null | undefined;
     if (!accountId || !accessKeyId || !secretAccessKey || !bucketName || !publicUrl) {
-        console.log(`[Main] R2 config incomplete — accountId=${!!accountId} accessKeyId=${!!accessKeyId} secretAccessKey=${!!secretAccessKey} bucketName=${!!bucketName} publicUrl=${!!publicUrl}`);
+        log.info(`[Main] R2 config incomplete — accountId=${!!accountId} accessKeyId=${!!accessKeyId} secretAccessKey=${!!secretAccessKey} bucketName=${!!bucketName} publicUrl=${!!publicUrl}`);
         return null;
     }
     return { accountId, accessKeyId, secretAccessKey, bucketName, publicUrl };
@@ -487,7 +488,7 @@ const r2EnsureBucketCors = async (config: R2Config, newOrigin: string): Promise<
 
     // 3. If origin (or wildcard) already present, nothing to do
     if (existingOrigins.includes(newOrigin) || existingOrigins.includes('*')) {
-        console.log(`[Main] R2 CORS already includes origin ${newOrigin}, skipping update`);
+        log.info(`[Main] R2 CORS already includes origin ${newOrigin}, skipping update`);
         return { success: true };
     }
 
@@ -516,7 +517,7 @@ const r2EnsureBucketCors = async (config: R2Config, newOrigin: string): Promise<
             res.on('data', (chunk) => (data += chunk));
             res.on('end', () => {
                 if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                    console.log(`[Main] R2 CORS updated — added origin ${newOrigin} to bucket ${config.bucketName}`);
+                    log.info(`[Main] R2 CORS updated — added origin ${newOrigin} to bucket ${config.bucketName}`);
                     resolve({ success: true });
                 } else {
                     resolve({ success: false, error: `R2 PutBucketCors failed: HTTP ${res.statusCode} — ${data.slice(0, 200)}` });
@@ -1571,10 +1572,17 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             if (r2Config) {
                 // Ensure CORS is set so the web viewer can fetch replay.json from the browser.
                 const pagesBaseUrl = (store.get('githubPagesBaseUrl') as string | null | undefined) || null;
-                const corsOrigin = pagesBaseUrl ? pagesBaseUrl.replace(/\/$/, '') : '*';
+                // CORS AllowedOrigin must be scheme+host only (no path). Extract the origin
+                // from the full GitHub Pages URL so "https://user.github.io/repo/" → "https://user.github.io".
+                const corsOrigin = pagesBaseUrl ? new URL(pagesBaseUrl).origin : '*';
                 const corsResult = await r2EnsureBucketCors(r2Config, corsOrigin);
                 if (!corsResult.success) {
-                    console.warn(`[Main] R2 CORS config failed (non-fatal): ${corsResult.error}`);
+                    const corsWarning = `R2 CORS setup failed (${corsResult.error ?? 'unknown error'}). ` +
+                        `The replay viewer may not load in the browser. ` +
+                        `Fix: in the Cloudflare R2 dashboard → your bucket → Settings → CORS, ` +
+                        `add an AllowedOrigin of "${corsOrigin}" with GET method. ` +
+                        `Alternatively, use an R2 API token with Admin Read & Write permissions.`;
+                    sendWebUploadStatus('Warning', corsWarning, 39);
                 }
             }
             let sourceStats: Record<string, any> = payload.stats || {};
@@ -1585,9 +1593,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                     replayBuffer = Buffer.from(JSON.stringify({ replayFights: rawReplayFights }), 'utf8');
                     sourceStats = { ...sourceStats };
                     delete sourceStats.replayFights;
-                    console.log(`[Main] R2 configured — ${rawReplayFights.length} replay fight(s) found (${formatBytes(replayBuffer.length)}), will upload to R2.`);
+                    log.info(`[Main] R2 configured — ${rawReplayFights.length} replay fight(s) found (${formatBytes(replayBuffer.length)}), will upload to R2.`);
                 } else {
-                    console.log('[Main] R2 configured but no replay fights found in stats — skipping R2 upload. Enable Combat Replay in Parser Settings and re-process logs.');
+                    log.info('[Main] R2 configured but no replay fights found in stats — skipping R2 upload. Enable Combat Replay in Parser Settings and re-process logs.');
                     sendWebUploadStatus('Packaging', 'R2 configured — no replay data found (Combat Replay may be disabled in Parser Settings)', 39);
                 }
             }
@@ -1606,9 +1614,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 if (r2Result.success && r2Result.url) {
                     (builtReport.payload.stats as any).replayDataUrl = r2Result.url;
                     builtReport.jsonBuffer = Buffer.from(JSON.stringify(builtReport.payload), 'utf8');
-                    console.log(`[Main] R2 replay upload succeeded: ${r2Result.url} (${formatBytes(replayBuffer.length)})`);
+                    log.info(`[Main] R2 replay upload succeeded: ${r2Result.url} (${formatBytes(replayBuffer.length)})`);
                 } else {
-                    console.warn(`[Main] R2 replay upload failed: ${r2Result.error}`);
+                    log.warn(`[Main] R2 replay upload failed: ${r2Result.error}`);
                     sendWebUploadStatus('Warning', `R2 upload failed: ${r2Result.error}`, 39);
                 }
             }

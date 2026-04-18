@@ -14,6 +14,7 @@ import { SquadHealthStrip } from './SquadHealthStrip';
 import { LayersPanel } from './LayersPopover';
 import { useHeatmapData } from './hooks/useHeatmapData';
 import { FightPickerBar } from './FightPickerBar';
+import { FightPicker } from './FightPicker';
 import { ReplaySquadPanel } from './ReplaySquadPanel';
 import { SyncedTimeline } from './SyncedTimeline';
 import { EventOverlay } from './EventOverlay';
@@ -219,6 +220,29 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                 <>
                     {/* Map area fills everything; squad panel overlays on the right */}
                     <div ref={mapContainerRef} style={{ flex: 1, position: 'relative', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+                            {/* Fight picker overlay — covers the map area when expanded */}
+                            {!pickerCollapsed && (
+                                <div style={{
+                                    position: 'absolute', inset: 0, zIndex: 30,
+                                    background: 'rgba(8, 14, 30, 0.88)',
+                                    backdropFilter: 'blur(3px)',
+                                    display: 'flex', flexDirection: 'column',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '.05em', textTransform: 'uppercase' }}>
+                                            {fights.length} fight{fights.length !== 1 ? 's' : ''}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPickerCollapsed(true)}
+                                            style={{ fontSize: 11, color: 'var(--text-muted)', padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border-subtle)', background: 'var(--bg-hover)', cursor: 'pointer' }}
+                                        >
+                                            ✕ Close
+                                        </button>
+                                    </div>
+                                    <FightPicker fights={fights} onSelect={() => setPickerCollapsed(true)} />
+                                </div>
+                            )}
                             {/* Floating zoom controls — offset past the layers panel (220px open, 28px collapsed) */}
                             <div style={{ position: 'absolute', top: 8, left: (layersOpen ? 220 : 28) + 8, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 4, transition: 'left 0.15s' }}>
                                 <button type="button" onClick={() => viewport.zoomIn()} title="Zoom in" style={ctrlBtnStyle}><Plus size={12} /></button>
@@ -386,7 +410,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                             </g>
                                         );
                                     })}
-                                    <SquadOverlay fight={selectedFight} timeMs={playhead.timeMs} />
+                                    <SquadOverlay fight={selectedFight} timeMs={playhead.timeMs} scale={viewport.scale} />
                                     <EventOverlay fight={selectedFight} timeMs={playhead.timeMs} scale={viewport.scale} />
                                 </g>
                             </svg>

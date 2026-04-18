@@ -30,7 +30,7 @@ describe('SquadOverlay', () => {
 
     it('renders nothing when all toggles are off', () => {
         const fight = mkFight([mkMember({ isCommander: true })]);
-        const { container } = render(<svg><SquadOverlay fight={fight} timeMs={0} /></svg>);
+        const { container } = render(<svg><SquadOverlay fight={fight} timeMs={0} scale={1} /></svg>);
         expect(container.querySelector('[data-overlay="centroid"]')).toBeNull();
         expect(container.querySelector('[data-overlay="tag-rings"]')).toBeNull();
         expect(container.querySelector('[data-overlay="party-hulls"]')).toBeNull();
@@ -42,14 +42,14 @@ describe('SquadOverlay', () => {
             mkMember({ positions: [[100, 100]] }),
             mkMember({ positions: [[120, 120]] }),
         ]);
-        const { container } = render(<svg><SquadOverlay fight={fight} timeMs={0} /></svg>);
+        const { container } = render(<svg><SquadOverlay fight={fight} timeMs={0} scale={1} /></svg>);
         expect(container.querySelector('[data-overlay="centroid"]')).not.toBeNull();
     });
 
     it('renders two tag range rings when tagRangeRings is on', () => {
         useStatsStore.getState().setReplayLayer('tagRangeRings', true);
         const fight = mkFight([mkMember({ isCommander: true, positions: [[200, 200]] })]);
-        const { container } = render(<svg><SquadOverlay fight={fight} timeMs={0} /></svg>);
+        const { container } = render(<svg><SquadOverlay fight={fight} timeMs={0} scale={1} /></svg>);
         const rings = container.querySelectorAll('[data-overlay="tag-rings"] circle');
         expect(rings.length).toBe(2);
     });
@@ -61,7 +61,7 @@ describe('SquadOverlay', () => {
             mkMember({ group: 1, positions: [[100, 0]] }),
             mkMember({ group: 1, positions: [[50, 50]] }),
         ]);
-        const { container } = render(<svg><SquadOverlay fight={fight} timeMs={0} /></svg>);
+        const { container } = render(<svg><SquadOverlay fight={fight} timeMs={0} scale={1} /></svg>);
         expect(container.querySelector('[data-overlay="party-hulls"] polygon')).not.toBeNull();
     });
 });

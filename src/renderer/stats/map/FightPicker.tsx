@@ -5,6 +5,7 @@ import type { ReplayFightPayload } from './replayTypes';
 
 interface FightPickerProps {
     fights: ReplayFightPayload[];
+    onSelect?: () => void;
 }
 
 function formatShortTime(timestampMs: number): string {
@@ -33,7 +34,7 @@ function Thumbnail({ fight }: { fight: ReplayFightPayload }) {
     );
 }
 
-export const FightPicker: React.FC<FightPickerProps> = ({ fights }) => {
+export const FightPicker: React.FC<FightPickerProps> = ({ fights, onSelect }) => {
     const selectedId = useStatsStore(state => state.selectedReplayFightId);
     const setSelectedReplayFight = useStatsStore(state => state.setSelectedReplayFight);
 
@@ -90,7 +91,7 @@ export const FightPicker: React.FC<FightPickerProps> = ({ fights }) => {
 
     return (
         <div role="listbox" tabIndex={0} className="replay-picker" onKeyDown={onKeyDown}
-             style={{ display: 'flex', gap: 8, padding: 8, overflowX: 'auto', outline: 'none' }}>
+             style={{ display: 'flex', flexWrap: 'wrap', alignContent: 'flex-start', gap: 8, padding: 12, overflowY: 'auto', outline: 'none' }}>
             {fights.map(fight => {
                 const active = fight.fightId === selectedId;
                 return (
@@ -99,7 +100,7 @@ export const FightPicker: React.FC<FightPickerProps> = ({ fights }) => {
                         type="button"
                         role="option"
                         aria-selected={active}
-                        onClick={() => setSelectedReplayFight(fight.fightId)}
+                        onClick={() => { setSelectedReplayFight(fight.fightId); onSelect?.(); }}
                         className={`replay-picker-card${active ? ' is-active' : ''}`}
                         style={{
                             width: 180, flexShrink: 0, padding: 8, borderRadius: 8,

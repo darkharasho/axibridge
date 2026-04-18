@@ -6,6 +6,7 @@ import type { ReplayFightPayload } from './replayTypes';
 interface SquadOverlayProps {
     fight: ReplayFightPayload;
     timeMs: number;
+    scale: number;
 }
 
 const PARTY_COLORS = ['#f87171', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa'];
@@ -22,7 +23,8 @@ function sampleAtTime<T extends { timeMs: number }>(samples: T[], timeMs: number
     return result === -1 ? null : samples[result];
 }
 
-export const SquadOverlay: React.FC<SquadOverlayProps> = ({ fight, timeMs }) => {
+export const SquadOverlay: React.FC<SquadOverlayProps> = ({ fight, timeMs, scale }) => {
+    const sw = 1 / scale;
     const layers = useStatsStore(state => state.replayLayers);
     const derived = useSquadDerived(fight);
     const sample = useMemo(() => sampleAtTime(derived.samples, timeMs), [derived.samples, timeMs]);
@@ -58,7 +60,7 @@ export const SquadOverlay: React.FC<SquadOverlayProps> = ({ fight, timeMs }) => 
                                 fillOpacity={0.08}
                                 stroke={color}
                                 strokeOpacity={0.4}
-                                strokeWidth={1}
+                                strokeWidth={sw}
                             />
                         );
                     })}
@@ -69,17 +71,17 @@ export const SquadOverlay: React.FC<SquadOverlayProps> = ({ fight, timeMs }) => 
                 <g data-overlay="centroid">
                     <circle cx={sample.centroid[0]} cy={sample.centroid[1]} r={sample.spread}
                             fill="#fbbf24" fillOpacity={0.05}
-                            stroke="#fbbf24" strokeOpacity={0.5} strokeWidth={1} />
-                    <circle cx={sample.centroid[0]} cy={sample.centroid[1]} r={3} fill="#fbbf24" />
+                            stroke="#fbbf24" strokeOpacity={0.5} strokeWidth={sw} />
+                    <circle cx={sample.centroid[0]} cy={sample.centroid[1]} r={3 / scale} fill="#fbbf24" />
                 </g>
             )}
 
             {layers.tagRangeRings && commanderPos && (
                 <g data-overlay="tag-rings">
                     <circle cx={commanderPos[0]} cy={commanderPos[1]} r={ringRadii.near}
-                            fill="none" stroke="#60a5fa" strokeOpacity={0.4} strokeWidth={1} strokeDasharray="4 2" />
+                            fill="none" stroke="#60a5fa" strokeOpacity={0.4} strokeWidth={sw} strokeDasharray={`${4/scale} ${2/scale}`} />
                     <circle cx={commanderPos[0]} cy={commanderPos[1]} r={ringRadii.far}
-                            fill="none" stroke="#60a5fa" strokeOpacity={0.25} strokeWidth={1} strokeDasharray="4 2" />
+                            fill="none" stroke="#60a5fa" strokeOpacity={0.25} strokeWidth={sw} strokeDasharray={`${4/scale} ${2/scale}`} />
                 </g>
             )}
         </g>
