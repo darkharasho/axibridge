@@ -48,7 +48,9 @@ export const WebUploadBanner = ({
         : webUploadBuildStatus === 'errored' ? '✕'
         : '🌐';
     const iconStyle: CSSProperties = webUploadBuildStatus === 'built'
-        ? { background: 'rgba(63,185,80,0.1)', border: '1px solid rgba(63,185,80,0.3)' }
+        ? { background: 'rgba(63,185,80,0.1)',  border: '1px solid rgba(63,185,80,0.3)'  }
+        : webUploadBuildStatus === 'errored'
+        ? { background: 'rgba(248,81,73,0.1)',  border: '1px solid rgba(248,81,73,0.3)'  }
         : { background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)' };
 
     // Build status pill
