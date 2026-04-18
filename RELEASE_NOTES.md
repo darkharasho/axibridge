@@ -1,9 +1,15 @@
 # Release Notes
 
-Version v2.5.4 — April 17, 2026
+Version v2.5.5 — April 17, 2026
 
-## Fight location names in activity log
+## Fight picker overlay
 
-Fight titles in the activity log (e.g. "Green BL: Garrison") were showing just the map name with no landmark. Fixed.
+The fight thumbnail selector is now a full overlay instead of a horizontal strip that cuts off. Click "Show all fights" and all fights tile across multiple rows. Clicking a fight closes the overlay automatically.
 
-The fight location is determined by looking at player positions in the EI JSON from dps.report. dps.report doesn't always include position data for squad members, but it does include it for enemy targets — so we now fall back to enemy positions when squad positions aren't available. Close enough to identify which WvW objective the fight was near.
+## Overlay strokes scale with zoom
+
+Hull outlines, centroid rings, and tag range rings now stay at a consistent 1px on screen when you zoom in. Previously they grew thicker as you zoomed.
+
+## Fixes
+
+Fixed "Failed to load replay data" on web reports — the R2 CORS rule was being set with the full GitHub Pages URL path instead of just the origin, so browser requests were rejected. Your next upload will correct the CORS rule and the existing broken report will start working too.
