@@ -1,21 +1,13 @@
 # Release Notes
 
-Version v2.5.2 — April 17, 2026
+Version v2.5.3 — April 17, 2026
 
-## Cloudflare R2 replay storage
+## More replays showing up in large sessions
 
-You can now connect a Cloudflare R2 bucket in Settings to store replay data separately from your GitHub Pages report. The motivation: GitHub's API has a file size limit, and large sessions were hitting it. With R2, the full replay data (player movement, health, damage-taken, skill casts) is uploaded to your own R2 bucket and streamed on demand — so your reports stay under GitHub's limits no matter how long the session is.
+When you had a lot of fights in one session, only some of them would show up in the replay map — usually the first 8 or so, even though all of them uploaded fine. Fixed.
 
-To set it up, go to Settings → R2 Storage and enter your Cloudflare account ID, R2 API token, bucket name, and public URL. All five fields are required.
+The root cause: the EI JSON fetches from dps.report are sequential, so when a large bulk upload finished, the aggregation worker would run before all the fight data was ready. The fights that hadn't been fetched yet simply had no replay data to work with. After that first run, the app never went back to rebuild the replays for the fights that came in later — it considered the work done.
 
-NOTE: This only affects new uploads. Existing reports aren't changed.
+Now, each time fight data arrives it marks the fight as ready and schedules a fresh aggregation pass. The passes are debounced, so the worker re-runs once after everything settles rather than restarting 18 times.
 
-## Replay map now works in the history tab
-
-The replay section was blank when viewing a fight from the history tab. Fixed — it renders correctly now regardless of whether you're in the main view or the embedded history view.
-
-## Precise replay positions (R2)
-
-When R2 is configured, there's a new "Precise replay positions" toggle in Settings. Normally positions get rounded to integers to keep file sizes down. Enable this if you want full floating-point precision — slightly smoother movement on the map, slightly larger R2 payloads.
-
-NOTE: This only affects future uploads.
+NOTE: This only affects newly viewed sessions. If a previous upload to R2 captured fewer replays than expected, re-uploading the web report will pick up the full set.
