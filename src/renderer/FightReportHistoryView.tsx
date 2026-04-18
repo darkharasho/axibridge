@@ -539,7 +539,7 @@ export function FightReportHistoryView() {
                                     </button>
                                     {commanderDropdownOpen && (
                                         <div
-                                            className="absolute z-50 mt-1 right-0 w-56 rounded-[4px] py-1 overflow-auto max-h-60"
+                                            className="app-dropdown absolute z-50 mt-1 right-0 w-56 rounded-[4px] py-1 overflow-auto max-h-60"
                                             style={{ background: 'var(--bg-card)', border: '1px solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}
                                         >
                                             <button
@@ -652,7 +652,7 @@ export function FightReportHistoryView() {
                                             </button>
                                             {menuOpenId === entry.id && (
                                                 <div
-                                                    className="absolute right-0 top-full mt-1 w-36 rounded-[4px] py-1 z-50"
+                                                    className="app-dropdown absolute right-0 top-full mt-1 w-36 rounded-[4px] py-1 z-50"
                                                     style={{
                                                         background: 'var(--bg-card)',
                                                         border: '1px solid var(--border-hover)',

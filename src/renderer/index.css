@@ -236,10 +236,10 @@ body.glass-surfaces .app-modal-card {
   backdrop-filter: blur(20px);
 }
 
-/* Dropdowns and tooltips in glass mode */
+/* Dropdowns and tooltips in glass mode — always solid so content beneath doesn't bleed through */
 body.glass-surfaces .app-dropdown {
-  background: rgba(15, 18, 25, 0.85) !important;
-  backdrop-filter: blur(16px);
+  background: #1a1f2e !important;
+  backdrop-filter: none !important;
 }
 
 /* Settings sidebar in glass mode */
