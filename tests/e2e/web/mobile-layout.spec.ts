@@ -10,7 +10,7 @@ import fs from 'fs';
 import path from 'path';
 
 const VIEWPORT = { width: 393, height: 852 };
-const fixturePath = path.resolve(process.cwd(), 'web/report.json');
+const fixturePath = path.resolve(process.cwd(), 'tests/fixtures/report.json');
 
 // ─── Shared violation scanner ────────────────────────────────────────────────
 

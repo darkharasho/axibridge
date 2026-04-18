@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
-const fixturePath = path.resolve(process.cwd(), 'web/report.json');
+const fixturePath = path.resolve(process.cwd(), 'tests/fixtures/report.json');
 
 const LEGACY_THEMES = ['crt', 'matte', 'kinetic'];
 
