@@ -53,11 +53,16 @@ function medianPosition(positions: Array<[number, number]>): [number, number] | 
 
 export function computeFightAvgPosition(details: any): [number, number] | null {
     const players = Array.isArray(details?.players) ? details.players : [];
-    if (!players.length) return null;
     const commander = players.find((p: any) => p?.hasCommanderTag && p?.combatReplayData?.positions?.length);
     if (commander) return medianPosition(commander.combatReplayData.positions);
     const anyWithPos = players.find((p: any) => p?.combatReplayData?.positions?.length);
-    return anyWithPos ? medianPosition(anyWithPos.combatReplayData.positions) : null;
+    if (anyWithPos) return medianPosition(anyWithPos.combatReplayData.positions);
+    // Fall back to enemy targets — dps.report includes positions on targets even when
+    // squad player positions are absent. Enemy positions are close enough to determine
+    // the nearest WvW objective for the fight label.
+    const targets = Array.isArray(details?.targets) ? details.targets : [];
+    const targetWithPos = targets.find((t: any) => t?.combatReplayData?.positions?.length);
+    return targetWithPos ? medianPosition(targetWithPos.combatReplayData.positions) : null;
 }
 
 export interface FightLabelInputs {
