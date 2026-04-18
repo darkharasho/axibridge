@@ -132,6 +132,7 @@ self.onmessage = (event: MessageEvent) => {
             mvpWeights: data.payload?.mvpWeights,
             statsViewSettings: data.payload?.statsViewSettings,
             disruptionMethod: data.payload?.disruptionMethod,
+            preciseReplay: data.payload?.preciseReplay,
         });
         ingestedLogCount = 0;
         return;

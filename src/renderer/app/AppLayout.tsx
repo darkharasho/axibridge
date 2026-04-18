@@ -98,6 +98,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         handleWalkthroughLearnMore,
         isBulkUploadActive,
         setAllowLocalJson,
+        setR2PreciseReplay,
     } = ctx;
 
     const [activeNavView, setActiveNavView] = useState(view);
@@ -422,6 +423,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onGlassSurfacesSaved={setGlassSurfaces}
                                 onParticlesEnabledSaved={setParticlesEnabled}
                                 onAllowLocalJsonSaved={setAllowLocalJson}
+                                onR2PreciseReplaySaved={setR2PreciseReplay}
                                 particlesEnabled={particlesEnabled}
                                 developerSettingsTrigger={developerSettingsTrigger}
                                 helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}

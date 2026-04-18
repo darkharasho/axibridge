@@ -36,7 +36,8 @@ export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
             const uploadTime = Number(log?.uploadTime || (details as any)?.uploadTime || 0);
             const successValue = (details as any)?.success;
             const successToken = successValue === true ? '1' : successValue === false ? '0' : 'u';
-            key += `|${identifier}:${detailsId}:${logId}:${uploadTime}:${successToken}:${permalink}`;
+            const r2 = log?.replayDataUrl ? '1' : '0';
+            key += `|${identifier}:${detailsId}:${logId}:${uploadTime}:${successToken}:${permalink}:${r2}`;
         });
         return key;
     }, [getStatsObjectId, detailsCache]);
@@ -56,12 +57,14 @@ export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
             const previousEntry = previousByIdentity.get(identity);
             if (!previousEntry) return entry;
             const shouldCarryStatsLoaded = entry.detailsStatus !== 'loaded' && previousEntry.detailsStatus === 'loaded';
-            if (!shouldCarryStatsLoaded) {
+            const shouldCarryReplayUrl = !entry.replayDataUrl && previousEntry.replayDataUrl;
+            if (!shouldCarryStatsLoaded && !shouldCarryReplayUrl) {
                 return entry;
             }
             changed = true;
             const nextEntry: ILogData = { ...entry };
-            nextEntry.detailsStatus = 'loaded';
+            if (shouldCarryStatsLoaded) nextEntry.detailsStatus = 'loaded';
+            if (shouldCarryReplayUrl) nextEntry.replayDataUrl = previousEntry.replayDataUrl;
             return nextEntry;
         });
         return changed ? merged : entries;

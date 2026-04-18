@@ -139,7 +139,7 @@ function computeTargetFocusSamples(details: any): TargetFocusSample[] {
     return samples;
 }
 
-export function buildReplayFightPayload(log: any, fightIndex: number): ReplayFightPayload | null {
+export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { precisePositions?: boolean }): ReplayFightPayload | null {
     const details = log?.details;
     if (!details) return null;
 
@@ -147,6 +147,7 @@ export function buildReplayFightPayload(log: any, fightIndex: number): ReplayFig
         trackedBuffIds: TRACKED_REPLAY_BUFF_IDS,
         localAccount: log?.recordedAccount,
         localName: log?.recordedBy,
+        precisePositions: opts?.precisePositions,
     });
     if (!movement) return null;
 
@@ -233,6 +234,7 @@ export interface IncrementalAggregatorOptions {
     statsViewSettings?: IStatsViewSettings;
     disruptionMethod?: DisruptionMethod;
     includePlayerSkillMap?: boolean;
+    preciseReplay?: boolean;
 }
 
 // ---- Lightweight per-log metadata stored for sorting/finalize ----
@@ -660,7 +662,7 @@ export class IncrementalAggregator {
         }
 
         // Replay payload
-        const replayPayload = buildReplayFightPayload(log, idx);
+        const replayPayload = buildReplayFightPayload(log, idx, { precisePositions: this.options.preciseReplay });
         if (replayPayload !== null) this.replayPayloads.push(replayPayload);
 
         // 2. Core player aggregation

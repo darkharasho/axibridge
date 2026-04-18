@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_WEB_UPLOAD_STATE, type IWebUploadState } from '../../global.d';
 
-export function useWebUpload() {
+export function useWebUpload(opts?: {
+    onLogReplayUrl?: (logPermalinks: string[], replayDataUrl: string) => void;
+}) {
     const [webUploadState, setWebUploadState] = useState<IWebUploadState>(DEFAULT_WEB_UPLOAD_STATE);
     const webUploadClearTimerRef = useRef<number | null>(null);
 
@@ -87,7 +89,7 @@ export function useWebUpload() {
         }, 2500);
     }, [webUploadState.stage]);
 
-    const handleWebUpload = useCallback(async (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string }) => {
+    const handleWebUpload = useCallback(async (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; logIds?: string[] }) => {
         if (!window.electronAPI?.uploadWebReport) {
             setWebUploadState((prev) => ({
                 ...prev,
@@ -120,10 +122,14 @@ export function useWebUpload() {
             }));
         let uploadSucceeded = false;
         try {
-            const result = await window.electronAPI.uploadWebReport(payload);
+            const { logIds, ...ipcPayload } = payload;
+            const result = await window.electronAPI.uploadWebReport(ipcPayload);
             if (result?.success) {
                 uploadSucceeded = true;
                 const url = result.url || '';
+                if (result.replayDataUrl && logIds && logIds.length > 0) {
+                    opts?.onLogReplayUrl?.(logIds, result.replayDataUrl as string);
+                }
                 setWebUploadState((prev) => ({
                     ...prev,
                     url,

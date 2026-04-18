@@ -31,6 +31,8 @@ export interface BuildMovementDataOptions {
     trackedBuffIds: Set<number>;
     localAccount?: string;
     localName?: string;
+    /** When true, skip integer rounding of position/health/damage values for higher precision. */
+    precisePositions?: boolean;
 }
 
 /** Flatten a possibly-nested EI cumulative series to a flat number[]. */
@@ -57,7 +59,10 @@ function normalizeCumulative(val: any): number[] {
 }
 
 export function buildMovementData(details: any, options: BuildMovementDataOptions): MovementData | null {
-    const { trackedBuffIds, localAccount, localName } = options;
+    const { trackedBuffIds, localAccount, localName, precisePositions } = options;
+    const roundPos = precisePositions
+        ? (pt: any): [number, number] => [pt[0], pt[1]]
+        : (pt: any): [number, number] => [Math.round(pt[0]), Math.round(pt[1])];
     const pollingRate = details?.combatReplayMetaData?.pollingRate ?? 300;
     const durationMs = details?.durationMS ?? 0;
     const inchToPixel = details?.combatReplayMetaData?.inchToPixel ?? 1;
@@ -131,12 +136,12 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
             isLocal,
             isEnemy: false,
             inSquad: !p.notInSquad,
-            positions,
+            positions: positions.map(roundPos),
             downRanges: p.combatReplayData?.down ?? [],
             deadRanges: p.combatReplayData?.dead ?? [],
             boonStates,
-            healthPercents: p.healthPercents,
-            damageTaken1SPerSec,
+            healthPercents: p.healthPercents?.map((pt: any) => [pt[0], precisePositions ? pt[1] : Math.round(pt[1])] as [number, number]),
+            damageTaken1SPerSec: precisePositions ? damageTaken1SPerSec : damageTaken1SPerSec?.map(Math.round),
             skillCasts,
         });
     }
@@ -160,7 +165,7 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
             isLocal: false,
             isEnemy: true,
             inSquad: false,
-            positions,
+            positions: positions.map(roundPos),
             downRanges: t.combatReplayData?.down ?? [],
             deadRanges: t.combatReplayData?.dead ?? [],
         });

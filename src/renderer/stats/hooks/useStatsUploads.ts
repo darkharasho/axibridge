@@ -8,7 +8,7 @@ interface UseStatsUploadsProps {
     skillUsageData: any;
     activeStatsViewSettings: any;
     embedded: boolean;
-    onWebUpload?: (payload: { meta: any; stats: any }) => Promise<void> | void;
+    onWebUpload?: (payload: { meta: any; stats: any; logIds?: string[]; repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<void> | void;
 }
 
 export const useStatsUploads = ({
@@ -161,6 +161,7 @@ export const useStatsUploads = ({
             await onWebUpload({
                 meta,
                 stats: uploadStats,
+                logIds: logs.map((l) => l.permalink).filter(Boolean),
                 ...(normalizedRepoFullName ? { repoFullName: normalizedRepoFullName } : {}),
                 ...(repoParts.length === 2 ? { repoOwner: repoParts[0], repoName: repoParts[1] } : {})
             });

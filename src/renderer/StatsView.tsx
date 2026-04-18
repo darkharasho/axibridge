@@ -85,7 +85,7 @@ interface StatsViewProps {
     statsViewSettings?: IStatsViewSettings;
     onStatsViewSettingsChange?: (settings: IStatsViewSettings) => void;
     webUploadState?: IWebUploadState;
-    onWebUpload?: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<void> | void;
+    onWebUpload?: (payload: { meta: any; stats: any; logIds?: string[]; repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<void> | void;
     disruptionMethod?: DisruptionMethod;
     precomputedStats?: any;
     embedded?: boolean;
@@ -161,6 +161,53 @@ const EMPTY_SKILL_USAGE_SUMMARY: SkillUsageSummary = {
 };
 
 const EMPTY_ANY_ARRAY: any[] = [];
+
+// Web uploads compress replay fights to save space. Re-expand before passing to the viewer:
+//   - boonIcons/skillIcons are lifted into stats.replayIcons and need re-injecting per fight.
+//   - targetFocusSamples.memberKey is stored as a numeric index into fight.memberKeys[].
+function resolveReplayFights(stats: any): any[] {
+    const fights: any[] = stats?.replayFights ?? [];
+    if (!fights.length) return fights;
+    const icons = stats?.replayIcons;
+    const needsResolve = icons || fights.some((f: any) => Array.isArray(f?.memberKeys));
+    if (!needsResolve) return fights;
+    return fights.map((f: any) => {
+        if (!f) return f;
+        let result = f;
+
+        // Re-inject shared icons stripped at upload time.
+        if (icons && f.movementData) {
+            const md = f.movementData;
+            const hasBoon = md.boonIcons && Object.keys(md.boonIcons).length > 0;
+            const hasSkill = md.skillIcons && Object.keys(md.skillIcons).length > 0;
+            if (!hasBoon || !hasSkill) {
+                result = {
+                    ...result,
+                    movementData: {
+                        ...md,
+                        boonIcons: hasBoon ? md.boonIcons : icons.boonIcons,
+                        skillIcons: hasSkill ? md.skillIcons : icons.skillIcons,
+                    }
+                };
+            }
+        }
+
+        // Restore targetFocusSamples memberKey indices back to account strings.
+        if (Array.isArray(f.memberKeys) && Array.isArray(f.targetFocusSamples)) {
+            const keys = f.memberKeys as string[];
+            const { memberKeys: _discarded, ...rest } = result;
+            result = {
+                ...rest,
+                targetFocusSamples: f.targetFocusSamples.map((s: any) => ({
+                    ...s,
+                    memberKey: typeof s.memberKey === 'number' ? (keys[s.memberKey] ?? '') : s.memberKey,
+                })),
+            };
+        }
+
+        return result;
+    });
+}
 
 export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
@@ -243,6 +290,50 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     // (e.g. future diagnostic panels). Not consumed in StatsView render directly.
     void storeDiagnostics;
     const { stats, skillUsageData: computedSkillUsageData } = aggregationResult;
+
+    // R2 lazy-load: if stats.replayDataUrl is set, replay data lives in R2 and must be fetched.
+    const [r2ReplayFights, setR2ReplayFights] = useState<any[] | null>(null);
+    const [r2ReplayStatus, setR2ReplayStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+    const [r2ReplayError, setR2ReplayError] = useState<string | null>(null);
+    useEffect(() => {
+        const replayDataUrl: string | undefined =
+            ((stats as any)?.replayDataUrl as string | undefined)
+            ?? logs?.find((l) => l.replayDataUrl)?.replayDataUrl
+            ?? undefined;
+        if (!replayDataUrl || r2ReplayFights !== null || r2ReplayStatus !== 'idle') return;
+        setR2ReplayStatus('loading');
+        const fetchJson = async (): Promise<any> => {
+            // In Electron, proxy through the main process to avoid CORS restrictions.
+            if (window.electronAPI?.fetchR2Json) {
+                const result = await window.electronAPI.fetchR2Json(replayDataUrl);
+                if (!result.success) throw new Error(result.error ?? 'Fetch failed');
+                return result.json;
+            }
+            const res = await fetch(replayDataUrl, { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        };
+        fetchJson()
+            .then((data: any) => {
+                setR2ReplayFights(Array.isArray(data?.replayFights) ? data.replayFights : []);
+                setR2ReplayStatus('idle');
+            })
+            .catch((err) => {
+                const msg = err?.message ?? String(err);
+                console.error('[StatsView] R2 replay fetch failed:', replayDataUrl, msg);
+                setR2ReplayError(msg);
+                setR2ReplayStatus('error');
+            });
+    }, [stats, logs, r2ReplayFights, r2ReplayStatus]);
+
+    const getReplayFights = useCallback((): any[] => {
+        const localFights = (stats as any)?.replayFights;
+        if (Array.isArray(localFights) && localFights.length > 0) {
+            return resolveReplayFights(stats);
+        }
+        return r2ReplayFights ?? [];
+    }, [stats, r2ReplayFights]);
+
     const aggregationSettling = useMemo(() => {
         // Prefer real aggregation progress over the generic "Preparing" placeholder.
         // This avoids showing "Preparing fights for stats" when the worker is already
@@ -4262,11 +4353,25 @@ type SpikeFight = {
             {/* Replay: full-page experience — skip all section chrome */}
             {!embedded && !sectionsDeferred && activeNavGroup === 'map' && (
                 <div className="flex-1 min-h-0 flex" style={{ minHeight: 0 }}>
-                    <ReplaySection fights={(stats as any)?.replayFights ?? []} />
+                    {r2ReplayStatus === 'error' ? (
+                        <div className="flex flex-col items-center justify-center w-full gap-1">
+                            <span className="text-sm text-rose-400">Failed to load replay data.</span>
+                            {r2ReplayError && <span className="text-xs text-rose-300/70">{r2ReplayError}</span>}
+                        </div>
+                    ) : (
+                        <div style={{ display: 'contents' }}>
+                            {r2ReplayStatus === 'loading' && (
+                                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
+                                    <span className="text-sm text-gray-400">Loading replay data...</span>
+                                </div>
+                            )}
+                            <ReplaySection fights={getReplayFights()} />
+                        </div>
+                    )}
                 </div>
             )}
 
-            {!sectionsDeferred && activeNavGroup !== 'map' && (<div
+            {!sectionsDeferred && (embedded || activeNavGroup !== 'map') && (<div
                 className={`${embedded ? '' : 'flex-1 min-h-0 flex'} relative`}
             >
                 <div
@@ -5162,7 +5267,7 @@ type SpikeFight = {
                             /> },
                         ])}
                         {renderGroup('map', [
-                            { id: 'replay', element: <div style={{ height: '88vh', minHeight: 500, maxHeight: 1000, display: 'flex', width: '100%' }}><ReplaySection fights={(stats as any)?.replayFights ?? []} /></div> },
+                            { id: 'replay', element: <div style={{ height: '88vh', minHeight: 500, maxHeight: 1000, display: 'flex', width: '100%' }}>{r2ReplayStatus === 'loading' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#9ca3af' }}>Loading replay data...</div> : r2ReplayStatus === 'error' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#fb7185' }}>Failed to load replay data.</div> : <ReplaySection fights={getReplayFights()} />}</div> },
                         ])}
                     </>
                 )}

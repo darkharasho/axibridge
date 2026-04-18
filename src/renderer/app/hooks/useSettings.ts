@@ -20,6 +20,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
+    const [r2PreciseReplay, setR2PreciseReplay] = useState(false);
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
     const [glassSurfaces, setGlassSurfaces] = useState(DEFAULT_GLASS_SURFACES);
     const [particlesEnabled, setParticlesEnabled] = useState(DEFAULT_PARTICLES_ENABLED);
@@ -87,6 +88,9 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             if (typeof settings.allowLocalJson === 'boolean') {
                 setAllowLocalJson(settings.allowLocalJson);
             }
+            if (typeof settings.r2PreciseReplay === 'boolean') {
+                setR2PreciseReplay(settings.r2PreciseReplay);
+            }
             if (typeof settings.autoUpdateSupported === 'boolean') {
                 onAutoUpdateSettingsRef.current?.(settings.autoUpdateSupported, settings.autoUpdateDisabledReason || null);
             }
@@ -135,6 +139,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         statsViewSettings, setStatsViewSettings,
         disruptionMethod, setDisruptionMethod,
         allowLocalJson, setAllowLocalJson,
+        r2PreciseReplay, setR2PreciseReplay,
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
         particlesEnabled, setParticlesEnabled,
@@ -150,7 +155,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         shouldOpenWhatsNew,
     }), [
         logDirectory, notificationType, embedStatSettings, mvpWeights,
-        statsViewSettings, disruptionMethod, allowLocalJson, colorPalette, glassSurfaces, particlesEnabled,
+        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, colorPalette, glassSurfaces, particlesEnabled,
         webhooks, selectedWebhookId, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         eiAnnouncementDismissed, setEiAnnouncementDismissed,

@@ -59,6 +59,7 @@ function App() {
         statsViewSettings, setStatsViewSettings,
         disruptionMethod, setDisruptionMethod,
         allowLocalJson, setAllowLocalJson,
+        r2PreciseReplay, setR2PreciseReplay,
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
         particlesEnabled, setParticlesEnabled,
@@ -134,12 +135,73 @@ function App() {
         logsCount: logs.length,
     });
 
-    const { webUploadState, setWebUploadState, handleWebUpload } = useWebUpload();
+    // Persisted map of permalink → replayDataUrl, loaded from electron-store at startup.
+    const r2ReplayUrlsRef = useRef<Record<string, string>>({});
+    useEffect(() => {
+        window.electronAPI?.getSettings?.().then((s) => {
+            console.log('[App] r2ReplayUrls from store:', s?.r2ReplayUrls);
+            if (!s?.r2ReplayUrls || typeof s.r2ReplayUrls !== 'object') return;
+            r2ReplayUrlsRef.current = s.r2ReplayUrls;
+            // Immediately inject into any logs already loaded.
+            setLogsDeferred((currentLogs) => {
+                const r2Map = s.r2ReplayUrls!;
+                let changed = false;
+                const next = currentLogs.map((l) => {
+                    if (l.permalink && r2Map[l.permalink] && !l.replayDataUrl) {
+                        changed = true;
+                        return { ...l, replayDataUrl: r2Map[l.permalink] };
+                    }
+                    return l;
+                });
+                return changed ? next : currentLogs;
+            });
+        }).catch(() => {});
+    }, [setLogsDeferred]);
+
+    const { webUploadState, setWebUploadState, handleWebUpload } = useWebUpload({
+        onLogReplayUrl: useCallback((logPermalinks: string[], replayDataUrl: string) => {
+            // 1. Persist to electron-store so it survives restarts.
+            const entries: Record<string, string> = {};
+            for (const p of logPermalinks) { if (p) entries[p] = replayDataUrl; }
+            if (Object.keys(entries).length > 0) {
+                r2ReplayUrlsRef.current = { ...r2ReplayUrlsRef.current, ...entries };
+                window.electronAPI?.saveR2ReplayUrls?.(entries);
+            }
+            // 2. Inject into in-memory logs immediately.
+            const pSet = new Set(logPermalinks);
+            setLogsDeferred((currentLogs) => {
+                let changed = false;
+                const next = currentLogs.map((l) => {
+                    if (l.permalink && pSet.has(l.permalink)) { changed = true; return { ...l, replayDataUrl }; }
+                    return l;
+                });
+                return changed ? next : currentLogs;
+            });
+        }, [setLogsDeferred]),
+    });
     const {
         logsForStats,
         setLogsForStats,
         logsRef,
     } = useLogsForStats({ logs });
+
+    // When logs change (new logs added from watcher/file-picker), inject any persisted replayDataUrl.
+    useEffect(() => {
+        const r2Map = r2ReplayUrlsRef.current;
+        if (!r2Map || Object.keys(r2Map).length === 0) return;
+        setLogsDeferred((currentLogs) => {
+            let changed = false;
+            const next = currentLogs.map((l) => {
+                if (l.permalink && r2Map[l.permalink] && !l.replayDataUrl) {
+                    changed = true;
+                    return { ...l, replayDataUrl: r2Map[l.permalink] };
+                }
+                return l;
+            });
+            return changed ? next : currentLogs;
+        });
+    }, [logs, setLogsDeferred]);
+
     const [bulkCalculatingActive, setBulkCalculatingActive] = useState(false);
     const detailsCacheRef = useRef<DetailsCache | null>(null);
     if (!detailsCacheRef.current) {
@@ -233,7 +295,8 @@ function App() {
         mvpWeights,
         statsViewSettings,
         disruptionMethod,
-        detailsCache: detailsCacheRef.current
+        detailsCache: detailsCacheRef.current,
+        preciseReplay: r2PreciseReplay,
     });
     const { stats: computedStats, skillUsageData: computedSkillUsageData } = aggregationResult;
 
@@ -940,7 +1003,7 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, isBulkUploadActive
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, isBulkUploadActive
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,

@@ -2,12 +2,15 @@ import { ipcMain, app, BrowserWindow } from 'electron';
 import fs from 'fs';
 import path from 'node:path';
 import https from 'node:https';
-import { createHash } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import { spawn } from 'node:child_process';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
-const MAX_GITHUB_REPORT_JSON_BYTES = 90 * 1024 * 1024;
+// GitHub's blob API encodes content as base64, adding ~33% overhead.
+// A 50 MB raw file becomes ~67 MB base64 — safely under GitHub's ~100 MB request limit.
+// 90 MB was too large: it produced ~120 MB base64 payloads that GitHub rejects with 422.
+const MAX_GITHUB_REPORT_JSON_BYTES = 50 * 1024 * 1024;
 const GITHUB_DEVICE_CLIENT_ID = process.env.GITHUB_DEVICE_CLIENT_ID || 'Ov23liFh1ih9LAcnLACw';
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
 
@@ -383,6 +386,170 @@ const withPagesPath = (pagesPath: string, repoPath: string) => {
     return `${pagesPath}/${repoPath}`.replace(/\/{2,}/g, '/');
 };
 
+// ─── Cloudflare R2 helpers ────────────────────────────────────────────────────
+
+interface R2Config {
+    accountId: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    bucketName: string;
+    publicUrl: string;
+}
+
+const getR2Config = (store: any): R2Config | null => {
+    const accountId = store.get('r2AccountId') as string | null | undefined;
+    const accessKeyId = store.get('r2AccessKeyId') as string | null | undefined;
+    const secretAccessKey = store.get('r2SecretAccessKey') as string | null | undefined;
+    const bucketName = store.get('r2BucketName') as string | null | undefined;
+    const publicUrl = store.get('r2PublicUrl') as string | null | undefined;
+    if (!accountId || !accessKeyId || !secretAccessKey || !bucketName || !publicUrl) {
+        console.log(`[Main] R2 config incomplete — accountId=${!!accountId} accessKeyId=${!!accessKeyId} secretAccessKey=${!!secretAccessKey} bucketName=${!!bucketName} publicUrl=${!!publicUrl}`);
+        return null;
+    }
+    return { accountId, accessKeyId, secretAccessKey, bucketName, publicUrl };
+};
+
+const r2SignedRequest = (
+    method: string,
+    config: R2Config,
+    bucketRelativePath: string,
+    canonicalQueryString: string,
+    contentType: string,
+    body: Buffer
+): { hostname: string; path: string; headers: Record<string, string | number> } => {
+    const region = 'auto';
+    const service = 's3';
+    const host = `${config.accountId}.r2.cloudflarestorage.com`;
+    const requestPath = `/${config.bucketName}${bucketRelativePath}`;
+
+    const now = new Date();
+    const amzDate = now.toISOString().replace(/[:\-]|\.\d{3}/g, '').slice(0, 15) + 'Z';
+    const dateStamp = amzDate.slice(0, 8);
+
+    const bodyHash = createHash('sha256').update(body).digest('hex');
+
+    let canonicalHeaders: string;
+    let signedHeaders: string;
+    if (contentType) {
+        canonicalHeaders = `content-type:${contentType}\nhost:${host}\nx-amz-content-sha256:${bodyHash}\nx-amz-date:${amzDate}\n`;
+        signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
+    } else {
+        canonicalHeaders = `host:${host}\nx-amz-content-sha256:${bodyHash}\nx-amz-date:${amzDate}\n`;
+        signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+    }
+
+    const canonicalRequest = [method, requestPath, canonicalQueryString, canonicalHeaders, signedHeaders, bodyHash].join('\n');
+    const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, createHash('sha256').update(canonicalRequest).digest('hex')].join('\n');
+
+    const hmac = (k: Buffer | string, data: string) => createHmac('sha256', k).update(data).digest();
+    const kDate = hmac(`AWS4${config.secretAccessKey}`, dateStamp);
+    const kRegion = hmac(kDate, region);
+    const kService = hmac(kRegion, service);
+    const kSigning = hmac(kService, 'aws4_request');
+    const signature = createHmac('sha256', kSigning).update(stringToSign).digest('hex');
+
+    const authorizationHeader = `AWS4-HMAC-SHA256 Credential=${config.accessKeyId}/${credentialScope},SignedHeaders=${signedHeaders},Signature=${signature}`;
+
+    const headers: Record<string, string | number> = {
+        'Authorization': authorizationHeader,
+        'x-amz-content-sha256': bodyHash,
+        'x-amz-date': amzDate,
+    };
+    if (contentType) headers['Content-Type'] = contentType;
+    if (body.length > 0) headers['Content-Length'] = body.length;
+
+    const fullPath = canonicalQueryString ? `${requestPath}?${canonicalQueryString}` : requestPath;
+    return { hostname: host, path: fullPath, headers };
+};
+
+const r2EnsureBucketCors = async (config: R2Config, newOrigin: string): Promise<{ success: boolean; error?: string }> => {
+    const emptyBody = Buffer.alloc(0);
+
+    // 1. GET existing CORS config
+    const getOpts = r2SignedRequest('GET', config, '', 'cors=', '', emptyBody);
+    const existingXml = await new Promise<string | null>((resolve) => {
+        const req = https.request({ method: 'GET', hostname: getOpts.hostname, path: getOpts.path, headers: getOpts.headers }, (res) => {
+            let data = '';
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => resolve((res.statusCode === 200) ? data : null));
+        });
+        req.on('error', () => resolve(null));
+        req.end();
+    });
+
+    // 2. Parse existing AllowedOrigin values
+    const existingOrigins: string[] = [];
+    if (existingXml) {
+        const matches = existingXml.match(/<AllowedOrigin>(.*?)<\/AllowedOrigin>/g) ?? [];
+        for (const m of matches) existingOrigins.push(m.replace(/<\/?AllowedOrigin>/g, ''));
+    }
+
+    // 3. If origin (or wildcard) already present, nothing to do
+    if (existingOrigins.includes(newOrigin) || existingOrigins.includes('*')) {
+        console.log(`[Main] R2 CORS already includes origin ${newOrigin}, skipping update`);
+        return { success: true };
+    }
+
+    // 4. Build updated XML: preserve all existing rules, append a new rule for the new origin
+    const newRule = [
+        '  <CORSRule>',
+        `    <AllowedOrigin>${newOrigin}</AllowedOrigin>`,
+        '    <AllowedMethod>GET</AllowedMethod>',
+        '    <AllowedHeader>*</AllowedHeader>',
+        '  </CORSRule>',
+    ].join('\n');
+
+    let updatedXml: string;
+    if (existingXml && existingXml.includes('</CORSConfiguration>')) {
+        updatedXml = existingXml.replace('</CORSConfiguration>', `${newRule}\n</CORSConfiguration>`);
+    } else {
+        updatedXml = `<?xml version="1.0" encoding="UTF-8"?>\n<CORSConfiguration>\n${newRule}\n</CORSConfiguration>`;
+    }
+
+    // 5. PUT updated config
+    const putBody = Buffer.from(updatedXml, 'utf-8');
+    const putOpts = r2SignedRequest('PUT', config, '', 'cors=', 'application/xml', putBody);
+    return new Promise((resolve) => {
+        const req = https.request({ method: 'PUT', hostname: putOpts.hostname, path: putOpts.path, headers: putOpts.headers }, (res) => {
+            let data = '';
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => {
+                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                    console.log(`[Main] R2 CORS updated — added origin ${newOrigin} to bucket ${config.bucketName}`);
+                    resolve({ success: true });
+                } else {
+                    resolve({ success: false, error: `R2 PutBucketCors failed: HTTP ${res.statusCode} — ${data.slice(0, 200)}` });
+                }
+            });
+        });
+        req.on('error', (err: Error) => resolve({ success: false, error: `R2 CORS request error: ${err.message}` }));
+        req.write(putBody);
+        req.end();
+    });
+};
+
+const r2PutObject = (key: string, body: Buffer, contentType: string, config: R2Config): Promise<{ success: boolean; url?: string; error?: string }> => {
+    const opts = r2SignedRequest('PUT', config, `/${key}`, '', contentType, body);
+    return new Promise((resolve) => {
+        const req = https.request({ method: 'PUT', hostname: opts.hostname, path: opts.path, headers: opts.headers }, (res) => {
+            let data = '';
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => {
+                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                    const publicBase = config.publicUrl.replace(/\/$/, '');
+                    resolve({ success: true, url: `${publicBase}/${key}` });
+                } else {
+                    resolve({ success: false, error: `R2 PUT failed: HTTP ${res.statusCode} — ${data.slice(0, 200)}` });
+                }
+            });
+        });
+        req.on('error', (err: Error) => resolve({ success: false, error: `R2 request error: ${err.message}` }));
+        req.write(body);
+        req.end();
+    });
+};
+
 // ─── Report payload builder ────────────────────────────────────────────────────
 
 const formatBytes = (value: number) => {
@@ -414,13 +581,73 @@ const buildWebReportPayload = (
         } as Record<string, any>
     };
 
+    const stats = payload.stats as Record<string, any>;
+
+    // Deduplicate boonIcons/skillIcons across replayFights: these icon dictionaries are
+    // identical (or near-identical) across every fight in a session, so storing them once
+    // at the top level instead of once per fight saves significant space.
+    const replayFightsRaw = Array.isArray(stats.replayFights) ? (stats.replayFights as any[]) : [];
+    if (replayFightsRaw.length > 0) {
+        const mergedBoonIcons: Record<number, { name: string; icon: string }> = {};
+        const mergedSkillIcons: Record<number, { name: string; icon: string }> = {};
+        for (const fight of replayFightsRaw) {
+            if (fight?.movementData?.boonIcons) Object.assign(mergedBoonIcons, fight.movementData.boonIcons);
+            if (fight?.movementData?.skillIcons) Object.assign(mergedSkillIcons, fight.movementData.skillIcons);
+            if (fight?.movementData) {
+                fight.movementData.boonIcons = {};
+                fight.movementData.skillIcons = {};
+            }
+        }
+        stats.replayIcons = { boonIcons: mergedBoonIcons, skillIcons: mergedSkillIcons };
+    }
+
+    // Build a global icon URL index: collect every `icon` string value in the entire
+    // stats object, store deduplicated URLs in stats.iconIndex[], and replace each
+    // occurrence with its numeric index. A GW2 CDN URL is ~84 chars; indices are 1-3
+    // chars, and the same URL is repeated many times across skill/boon tables.
+    (() => {
+        const iconIndex: string[] = [];
+        const iconMap = new Map<string, number>();
+        const walk = (obj: any) => {
+            if (!obj || typeof obj !== 'object') return;
+            if (Array.isArray(obj)) { for (const item of obj) walk(item); return; }
+            for (const key of Object.keys(obj)) {
+                const val = obj[key];
+                if (key === 'icon' && typeof val === 'string' && val.length > 0) {
+                    let idx = iconMap.get(val);
+                    if (idx === undefined) { idx = iconIndex.length; iconIndex.push(val); iconMap.set(val, idx); }
+                    obj[key] = idx;
+                } else if (val && typeof val === 'object') {
+                    walk(val);
+                }
+            }
+        };
+        walk(stats);
+        if (iconIndex.length > 0) stats.iconIndex = iconIndex;
+    })();
+
+    // Compress targetFocusSamples: replace repeated memberKey account strings with
+    // per-fight numeric indices into a fight.memberKeys array.
+    for (const fight of replayFightsRaw) {
+        if (!Array.isArray(fight?.targetFocusSamples) || fight.targetFocusSamples.length === 0) continue;
+        const seen = new Set<string>();
+        for (const s of fight.targetFocusSamples) { if (typeof s.memberKey === 'string') seen.add(s.memberKey); }
+        const memberKeys = Array.from(seen);
+        if (memberKeys.length === 0) continue;
+        const keyToIdx = new Map(memberKeys.map((k, i) => [k, i] as const));
+        fight.memberKeys = memberKeys;
+        fight.targetFocusSamples = fight.targetFocusSamples.map((s: any) => {
+            const idx = keyToIdx.get(s.memberKey);
+            return idx !== undefined ? { ...s, memberKey: idx } : s;
+        });
+    }
+
     const serialize = () => Buffer.from(JSON.stringify(payload), 'utf8');
     let jsonBuffer = serialize();
     if (jsonBuffer.length <= MAX_GITHUB_REPORT_JSON_BYTES) {
         return { payload, jsonBuffer, trimmedSections: [] as string[] };
     }
 
-    const stats = payload.stats as Record<string, any>;
     const trimmedSections: string[] = [];
     const clearArray = (target: any, key: string) => {
         if (!target || typeof target !== 'object' || !Array.isArray(target[key]) || target[key].length === 0) {
@@ -429,8 +656,17 @@ const buildWebReportPayload = (
         target[key] = [];
         return true;
     };
+    const deleteKey = (target: any, key: string) => {
+        if (!target || typeof target !== 'object' || !(key in target)) return false;
+        delete target[key];
+        return true;
+    };
 
     const trimSteps: Array<{ label: string; apply: () => boolean }> = [
+        // Replay data is the largest section — drop it first.
+        { label: 'replayFights', apply: () => clearArray(stats, 'replayFights') },
+        // Icons become orphaned once fights are dropped.
+        { label: 'replayIcons', apply: () => deleteKey(stats, 'replayIcons') },
         { label: 'skillUsageData.logRecords', apply: () => clearArray(stats.skillUsageData, 'logRecords') },
         { label: 'playerSkillBreakdowns', apply: () => clearArray(stats, 'playerSkillBreakdowns') },
         { label: 'boonTimeline', apply: () => clearArray(stats, 'boonTimeline') },
@@ -448,7 +684,7 @@ const buildWebReportPayload = (
         { label: 'fightBreakdown', apply: () => clearArray(stats, 'fightBreakdown') },
         { label: 'timelineData', apply: () => clearArray(stats, 'timelineData') },
         { label: 'squadCompByFight', apply: () => clearArray(stats, 'squadCompByFight') },
-        { label: 'replayFights', apply: () => clearArray(stats, 'replayFights') },
+        { label: 'iconIndex', apply: () => deleteKey(stats, 'iconIndex') },
     ];
 
     for (const step of trimSteps) {
@@ -1329,12 +1565,53 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             };
             const paletteValue = (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue';
             const glassValue = !!store.get('glassSurfaces', false);
+
+            // R2: if configured, strip replayFights from the main payload and upload separately.
+            const r2Config = getR2Config(store);
+            if (r2Config) {
+                // Ensure CORS is set so the web viewer can fetch replay.json from the browser.
+                const pagesBaseUrl = (store.get('githubPagesBaseUrl') as string | null | undefined) || null;
+                const corsOrigin = pagesBaseUrl ? pagesBaseUrl.replace(/\/$/, '') : '*';
+                const corsResult = await r2EnsureBucketCors(r2Config, corsOrigin);
+                if (!corsResult.success) {
+                    console.warn(`[Main] R2 CORS config failed (non-fatal): ${corsResult.error}`);
+                }
+            }
+            let sourceStats: Record<string, any> = payload.stats || {};
+            let replayBuffer: Buffer | null = null;
+            if (r2Config) {
+                const rawReplayFights = Array.isArray(sourceStats.replayFights) ? sourceStats.replayFights : [];
+                if (rawReplayFights.length > 0) {
+                    replayBuffer = Buffer.from(JSON.stringify({ replayFights: rawReplayFights }), 'utf8');
+                    sourceStats = { ...sourceStats };
+                    delete sourceStats.replayFights;
+                    console.log(`[Main] R2 configured — ${rawReplayFights.length} replay fight(s) found (${formatBytes(replayBuffer.length)}), will upload to R2.`);
+                } else {
+                    console.log('[Main] R2 configured but no replay fights found in stats — skipping R2 upload. Enable Combat Replay in Parser Settings and re-process logs.');
+                    sendWebUploadStatus('Packaging', 'R2 configured — no replay data found (Combat Replay may be disabled in Parser Settings)', 39);
+                }
+            }
+
             const builtReport = buildWebReportPayload(
                 reportMeta,
-                payload.stats || {},
+                sourceStats,
                 paletteValue,
                 glassValue
             );
+
+            if (r2Config && replayBuffer) {
+                sendWebUploadStatus('Uploading', 'Uploading replay data to R2...', 38);
+                const r2Key = `reports/${reportMeta.id}/replay.json`;
+                const r2Result = await r2PutObject(r2Key, replayBuffer, 'application/json', r2Config);
+                if (r2Result.success && r2Result.url) {
+                    (builtReport.payload.stats as any).replayDataUrl = r2Result.url;
+                    builtReport.jsonBuffer = Buffer.from(JSON.stringify(builtReport.payload), 'utf8');
+                    console.log(`[Main] R2 replay upload succeeded: ${r2Result.url} (${formatBytes(replayBuffer.length)})`);
+                } else {
+                    console.warn(`[Main] R2 replay upload failed: ${r2Result.error}`);
+                    sendWebUploadStatus('Warning', `R2 upload failed: ${r2Result.error}`, 39);
+                }
+            }
 
             sendWebUploadStatus('Packaging', 'Preparing report bundle...', 40);
             const stagingRoot = path.join(app.getPath('userData'), 'web-report-staging', reportMeta.id);
@@ -1497,9 +1774,11 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 queueFile(withPagesPath(pagesPath, 'logo.json'), logoJson);
             }
 
+            const replayDataUrl = (builtReport.payload.stats as any)?.replayDataUrl as string | undefined;
+
             if (pendingEntries.length === 0 && deleteEntries.length === 0) {
                 sendWebUploadStatus('Complete', 'No changes to upload.', 100);
-                return { success: true, url: reportUrl };
+                return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null };
             }
 
             sendWebUploadStatus('Uploading', 'Uploading changes...', 75);
@@ -1541,7 +1820,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             }
 
             sendWebUploadStatus('Complete', 'Web report uploaded.', 100);
-            return { success: true, url: reportUrl };
+            return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null };
         } catch (err: any) {
             const error = err?.message || 'Upload failed.';
             const errorDetail = err?.stack || String(err);

@@ -52,6 +52,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
     openMobilePreview: (url: string) => ipcRenderer.invoke('open-mobile-preview', url),
     fetchImageAsDataUrl: (url: string) => ipcRenderer.invoke('fetch-image-data-url', url),
+    fetchR2Json: (url: string) => ipcRenderer.invoke('fetch-r2-json', url),
+    saveR2ReplayUrls: (entries: Record<string, string>) => ipcRenderer.invoke('save-r2-replay-urls', entries),
     onConsoleLog: (callback: (log: any) => void) => {
         ipcRenderer.on('console-log', (_event, value) => callback(value))
         return () => ipcRenderer.removeAllListeners('console-log')

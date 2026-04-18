@@ -52,6 +52,7 @@ const SETTINGS_SECTIONS = [
     { id: 'appearance', label: 'Appearance' },
     { id: 'dps-token', label: 'dps.report Token' },
     { id: 'github-pages', label: 'GitHub Pages' },
+    { id: 'r2-storage', label: 'R2 Storage' },
     { id: 'embed-summary', label: 'Embed Summary' },
     { id: 'embed-top', label: 'Embed Top Stats' },
     { id: 'help-updates', label: 'Help & Updates' },
@@ -105,6 +106,7 @@ interface SettingsViewProps {
     onGlassSurfacesSaved?: (glass: boolean) => void;
     onParticlesEnabledSaved?: (enabled: boolean) => void;
     onAllowLocalJsonSaved?: (enabled: boolean) => void;
+    onR2PreciseReplaySaved?: (enabled: boolean) => void;
     colorPalette?: ColorPalette;
     glassSurfaces?: boolean;
     particlesEnabled?: boolean;
@@ -187,7 +189,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
@@ -246,6 +248,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [githubTemplateStatusKind, setGithubTemplateStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
     const lastEnsuredRepoRef = useRef<string | null>(null);
     const [githubLogoPath, setGithubLogoPath] = useState<string | null>(null);
+    const [r2AccountId, setR2AccountId] = useState('');
+    const [r2AccessKeyId, setR2AccessKeyId] = useState('');
+    const [r2SecretAccessKey, setR2SecretAccessKey] = useState('');
+    const [r2BucketName, setR2BucketName] = useState('');
+    const [r2PublicUrl, setR2PublicUrl] = useState('');
+    const [r2PreciseReplay, setR2PreciseReplay] = useState(false);
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
     const [githubLogoStatus, setGithubLogoStatus] = useState<string | null>(null);
     const [githubLogoStatusKind, setGithubLogoStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
@@ -520,6 +528,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (settings.githubToken) {
             setGithubAuthStatus('connected');
         }
+        setR2AccountId(settings.r2AccountId || '');
+        setR2AccessKeyId(settings.r2AccessKeyId || '');
+        setR2SecretAccessKey(settings.r2SecretAccessKey || '');
+        setR2BucketName(settings.r2BucketName || '');
+        setR2PublicUrl(settings.r2PublicUrl || '');
+        setR2PreciseReplay(settings.r2PreciseReplay ?? false);
     };
 
     useEffect(() => {
@@ -867,7 +881,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             githubLogoPath: githubLogoPath || null,
             githubFavoriteRepos,
             allowLocalJson,
-            forceDpsReportOnly
+            forceDpsReportOnly,
+            r2AccountId: r2AccountId || null,
+            r2AccessKeyId: r2AccessKeyId || null,
+            r2SecretAccessKey: r2SecretAccessKey || null,
+            r2BucketName: r2BucketName || null,
+            r2PublicUrl: r2PublicUrl || null,
+            r2PreciseReplay,
         });
         onEmbedStatSettingsSaved?.(embedStats);
         onMvpWeightsSaved?.(mvpWeights);
@@ -908,6 +928,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         githubLogoPath,
         githubFavoriteRepos,
         forceDpsReportOnly,
+        r2AccountId,
+        r2AccessKeyId,
+        r2SecretAccessKey,
+        r2BucketName,
+        r2PublicUrl,
+        r2PreciseReplay,
         hasLoaded
     ]);
 
@@ -1753,6 +1779,59 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 </div>
                             )}
                         </div>
+                    </SettingsSection>
+
+                    {/* Cloudflare R2 Replay Storage */}
+                    <SettingsSection
+                        title="Cloudflare R2 — Replay Storage"
+                        icon={Key}
+                        delay={0.09}
+                        sectionId="r2-storage"
+                        hidden={settingsSearchHidden.has('r2-storage')}
+                    >
+                        <p className="text-sm text-gray-400 mb-4">
+                            Optional. When configured, map replay data is uploaded to R2 instead of GitHub Pages, keeping report files small. Requires a Cloudflare R2 bucket with public access enabled.
+                        </p>
+                        <div className="space-y-3">
+                            {([
+                                { label: 'Account ID', value: r2AccountId, set: setR2AccountId, placeholder: 'Found on the Cloudflare dashboard home page' },
+                                { label: 'Access Key ID', value: r2AccessKeyId, set: setR2AccessKeyId, placeholder: 'R2 → Manage R2 API Tokens → Create API Token' },
+                                { label: 'Secret Access Key', value: r2SecretAccessKey, set: setR2SecretAccessKey, placeholder: 'Generated alongside Access Key ID', secret: true },
+                                { label: 'Bucket Name', value: r2BucketName, set: setR2BucketName, placeholder: 'my-bucket' },
+                                { label: 'Public URL', value: r2PublicUrl, set: setR2PublicUrl, placeholder: 'https://pub-xxx.r2.dev' },
+                            ] as Array<{ label: string; value: string; set: (v: string) => void; placeholder: string; secret?: boolean }>).map(({ label, value, set, placeholder, secret }) => (
+                                <div key={label}>
+                                    <label className="block text-xs text-gray-400 mb-1">{label}</label>
+                                    <input
+                                        type={secret ? 'password' : 'text'}
+                                        value={value}
+                                        onChange={(e) => set(e.target.value)}
+                                        placeholder={placeholder}
+                                        className="w-full bg-black/30 border border-white/10 rounded-[4px] px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        {(r2AccountId || r2AccessKeyId || r2SecretAccessKey || r2BucketName || r2PublicUrl) && !(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl) && (
+                            <p className="mt-3 text-xs text-amber-400">All five fields are required to enable R2 upload.</p>
+                        )}
+                        {r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl && (
+                            <>
+                                <p className="mt-3 text-xs text-emerald-400">R2 configured — replay data will be stored in R2 on next upload.</p>
+                                <div className="mt-3">
+                                    <Toggle
+                                        enabled={r2PreciseReplay}
+                                        onChange={(v) => {
+                                            setR2PreciseReplay(v);
+                                            window.electronAPI?.saveSettings?.({ r2PreciseReplay: v });
+                                            onR2PreciseReplaySaved?.(v);
+                                        }}
+                                        label="Precise replay positions"
+                                        description="Store full floating-point position, health, and damage values instead of rounding to integers. Increases replay file size."
+                                    />
+                                </div>
+                            </>
+                        )}
                     </SettingsSection>
 
                     {/* Discord Embed Stats - Summary Sections */}

@@ -1,5 +1,7 @@
 import { ipcMain, shell, dialog, BrowserWindow, app } from 'electron';
 import fs from 'fs';
+import https from 'node:https';
+import http from 'node:http';
 import path from 'node:path';
 import { LEGACY_THEME_TO_PALETTE } from '../../shared/webThemes';
 import { DEFAULT_DISRUPTION_METHOD, type DisruptionMethod } from '../../shared/metricsSettings';
@@ -166,8 +168,22 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             githubLogoPath: store.get('githubLogoPath', null),
             githubFavoriteRepos: store.get('githubFavoriteRepos', []),
             walkthroughSeen: store.get('walkthroughSeen', false),
-            allowLocalJson: store.get('allowLocalJson', false)
+            allowLocalJson: store.get('allowLocalJson', false),
+            r2AccountId: store.get('r2AccountId', null),
+            r2AccessKeyId: store.get('r2AccessKeyId', null),
+            r2SecretAccessKey: store.get('r2SecretAccessKey', null),
+            r2BucketName: store.get('r2BucketName', null),
+            r2PublicUrl: store.get('r2PublicUrl', null),
+            r2PreciseReplay: store.get('r2PreciseReplay', false),
+            r2ReplayUrls: store.get('r2ReplayUrls', {}) as Record<string, string>,
         };
+    });
+
+    ipcMain.handle('save-r2-replay-urls', (_event, entries: Record<string, string>) => {
+        if (!entries || typeof entries !== 'object') return { success: false };
+        const existing = (store.get('r2ReplayUrls', {}) as Record<string, string>) || {};
+        store.set('r2ReplayUrls', { ...existing, ...entries });
+        return { success: true };
     });
 
     ipcMain.on('save-settings', (_event, settings: any) => {
@@ -219,7 +235,12 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             githubLogoPath: store.get('githubLogoPath', null),
             githubFavoriteRepos: store.get('githubFavoriteRepos', []),
             walkthroughSeen: store.get('walkthroughSeen', false),
-            allowLocalJson: store.get('allowLocalJson', false)
+            allowLocalJson: store.get('allowLocalJson', false),
+            r2AccountId: store.get('r2AccountId', null),
+            r2AccessKeyId: store.get('r2AccessKeyId', null),
+            r2SecretAccessKey: store.get('r2SecretAccessKey', null),
+            r2BucketName: store.get('r2BucketName', null),
+            r2PublicUrl: store.get('r2PublicUrl', null),
         };
 
         try {
@@ -326,5 +347,28 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to fetch image.' };
         }
+    });
+
+    ipcMain.handle('fetch-r2-json', async (_event, url: string) => {
+        if (!url || typeof url !== 'string') return { success: false, error: 'Invalid URL.' };
+        if (!/^https?:\/\//i.test(url)) return { success: false, error: 'Unsupported URL scheme.' };
+        return new Promise((resolve) => {
+            const lib = url.startsWith('https') ? https : http;
+            lib.get(url, (res) => {
+                let data = '';
+                res.on('data', (chunk) => (data += chunk));
+                res.on('end', () => {
+                    if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                        try {
+                            resolve({ success: true, json: JSON.parse(data) });
+                        } catch {
+                            resolve({ success: false, error: 'Response is not valid JSON.' });
+                        }
+                    } else {
+                        resolve({ success: false, error: `HTTP ${res.statusCode}` });
+                    }
+                });
+            }).on('error', (err: Error) => resolve({ success: false, error: err.message }));
+        });
     });
 }

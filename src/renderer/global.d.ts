@@ -275,6 +275,13 @@ export interface IElectronAPI {
         walkthroughSeen?: boolean;
         allowLocalJson?: boolean;
         eiAnnouncementDismissed?: boolean;
+        r2AccountId?: string | null;
+        r2AccessKeyId?: string | null;
+        r2SecretAccessKey?: string | null;
+        r2BucketName?: string | null;
+        r2PublicUrl?: string | null;
+        r2PreciseReplay?: boolean;
+        r2ReplayUrls?: Record<string, string>;
     }>;
     clearDpsReportCache: () => Promise<{ success: boolean; clearedEntries?: number; error?: string }>;
     onClearDpsReportCacheProgress: (callback: (data: { stage?: string; message?: string; progress?: number; current?: number; total?: number }) => void) => () => void;
@@ -312,10 +319,18 @@ export interface IElectronAPI {
         allowLocalJson?: boolean;
         forceDpsReportOnly?: boolean;
         eiAnnouncementDismissed?: boolean;
+        r2AccountId?: string | null;
+        r2AccessKeyId?: string | null;
+        r2SecretAccessKey?: string | null;
+        r2BucketName?: string | null;
+        r2PublicUrl?: string | null;
+        r2PreciseReplay?: boolean;
     }) => void;
     openExternal: (url: string) => Promise<{ success: boolean, error?: string }>;
     openMobilePreview: (url: string) => Promise<{ success: boolean, error?: string }>;
     fetchImageAsDataUrl: (url: string) => Promise<{ success: boolean; dataUrl?: string; error?: string }>;
+    fetchR2Json: (url: string) => Promise<{ success: boolean; json?: any; error?: string }>;
+    saveR2ReplayUrls: (entries: Record<string, string>) => Promise<{ success: boolean }>;
     onConsoleLog: (callback: (log: { type: 'info' | 'error', message: string, timestamp: string }) => void) => () => void;
     onConsoleLogHistory: (callback: (logs: Array<{ type: 'info' | 'error', message: string, timestamp: string }>) => void) => () => void;
     setConsoleLogForwarding: (enabled: boolean) => void;
@@ -351,7 +366,7 @@ export interface IElectronAPI {
     ensureGithubTemplate: () => Promise<{ success: boolean; updated?: boolean; error?: string }>;
     selectGithubLogo: () => Promise<string | null>;
     applyGithubLogo: (payload?: { logoPath?: string }) => Promise<{ success: boolean; updated?: boolean; error?: string }>;
-    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; url?: string; error?: string; errorDetail?: string }>;
+    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string }>;
     mockWebReport: (payload: { meta: any; stats: any }) => Promise<{ success: boolean; url?: string; error?: string }>;
     getGithubPagesBuildStatus: (payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; status?: string; updatedAt?: string; errorMessage?: string; error?: string }>;
     onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number }) => void) => () => void;
@@ -441,6 +456,7 @@ declare global {
             uploadTime: number;
             [key: string]: any;
         };
+        replayDataUrl?: string | null;
     }
 
     interface IPlayer {

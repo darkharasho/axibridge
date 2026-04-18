@@ -11,6 +11,7 @@ interface UseStatsAggregationProps {
     statsViewSettings?: IStatsViewSettings;
     disruptionMethod?: DisruptionMethod;
     detailsCache?: DetailsCache | null;
+    preciseReplay?: boolean;
 }
 
 export interface AggregationProgressState {
@@ -74,7 +75,7 @@ export const pruneDetailsForWorker = (details: any): any => {
     return pruned;
 };
 
-export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod, detailsCache: detailsCacheProp }: UseStatsAggregationProps) => {
+export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, statsViewSettings, disruptionMethod, detailsCache: detailsCacheProp, preciseReplay }: UseStatsAggregationProps) => {
     const detailsCacheContext = useContext(DetailsCacheContext);
     const detailsCache = detailsCacheProp ?? detailsCacheContext;
     const workerLogLimit = 8;
@@ -346,7 +347,8 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     precomputedStats,
                     mvpWeights,
                     statsViewSettings: aggregationStatsViewSettings,
-                    disruptionMethod
+                    disruptionMethod,
+                    preciseReplay,
                 }
             });
             let index = 0;
@@ -466,7 +468,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             cancelled = true;
             clearStreamTimer();
         };
-    }, [logs, precomputedStats, mvpWeights, aggregationStatsViewSettings, disruptionMethod, shouldUseWorker, workerFailed]);
+    }, [logs, precomputedStats, mvpWeights, aggregationStatsViewSettings, disruptionMethod, preciseReplay, shouldUseWorker, workerFailed]);
 
     const fallback = useMemo(() => {
         if (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker) return null;
@@ -476,7 +478,8 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         const aggregator = new IncrementalAggregator({
             precomputedStats, mvpWeights,
             statsViewSettings: aggregationStatsViewSettings,
-            disruptionMethod
+            disruptionMethod,
+            preciseReplay,
         });
 
         for (const log of logs) {
@@ -498,7 +501,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         const computeMs = Math.max(0, performance.now() - computeStartedAt);
         const completedAt = Date.now();
         return { result, computeMs, startedAt, completedAt };
-    }, [workerFailed, logs, precomputedStats, mvpWeights, aggregationStatsViewSettings, disruptionMethod, shouldUseWorker]);
+    }, [workerFailed, logs, precomputedStats, mvpWeights, aggregationStatsViewSettings, disruptionMethod, preciseReplay, shouldUseWorker]);
     const fallbackComputeKey = useMemo(() => {
         if (!workerFailed && typeof Worker !== 'undefined' && shouldUseWorker) return 'worker';
         const firstLog = logs[0];
