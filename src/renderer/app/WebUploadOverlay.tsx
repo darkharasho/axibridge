@@ -65,7 +65,7 @@ export function WebUploadOverlay({
 
     // Accumulate a new log entry whenever message or detail changes
     useEffect(() => {
-        const text = webUploadState.message || webUploadState.detail;
+        const text = webUploadState.detail || webUploadState.message;
         if (!text || text === prevMessageRef.current) return;
         prevMessageRef.current = text;
         const elapsed = startTimeRef.current
@@ -201,7 +201,7 @@ export function WebUploadOverlay({
                         />
                     </div>
                     <div className={`text-[11px] font-medium mt-2 leading-snug ${hasFailure ? 'text-red-300' : 'text-white/80'}`}>
-                        {webUploadState.message || webUploadState.detail || 'Working...'}
+                        {webUploadState.detail || webUploadState.message || 'Working...'}
                     </div>
                 </div>
 
