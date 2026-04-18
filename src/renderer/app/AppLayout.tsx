@@ -42,6 +42,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setShowTerminal,
         webUploadState,
         setWebUploadState,
+        webUploadLogEntries,
         logsForStats,
         mvpWeights,
         disruptionMethod,
@@ -363,6 +364,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     webUploadState={webUploadState}
                     isDev={isDev}
                     setWebUploadState={setWebUploadState}
+                    logEntries={webUploadLogEntries}
                 />
 
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 20 }}>
@@ -404,6 +406,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                             onStatsViewSettingsChange={stableOnStatsViewSettingsChange}
                                             webUploadState={webUploadState}
                                             onWebUpload={handleWebUpload}
+                                            webUploadLogEntries={webUploadLogEntries}
                                         />
                                     </StatsErrorBoundary>
                                 </div>

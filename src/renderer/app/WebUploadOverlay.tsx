@@ -1,5 +1,6 @@
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 import type { IWebUploadState } from '../global.d';
+import type { LogEntry } from './hooks/useWebUpload';
 
 const UPLOAD_STEPS = [
     { key: 'preparing', label: 'Prepare' },
@@ -31,51 +32,26 @@ export function getFailedStepIndex(stage: string | null): number {
     return UPLOAD_STEPS.findIndex(({ label }) => label.toLowerCase() === word);
 }
 
-type LogEntry = { elapsed: string; text: string; isError: boolean; isWarn: boolean };
-
 export function WebUploadOverlay({
     webUploadState,
     isDev,
     setWebUploadState,
+    logEntries,
 }: {
     webUploadState: IWebUploadState;
     isDev: boolean;
     setWebUploadState: Dispatch<SetStateAction<IWebUploadState>>;
+    logEntries: LogEntry[];
 }) {
-    const startTimeRef    = useRef<number | null>(null);
-    const prevMessageRef  = useRef<string | null>(null);
-    const logEndRef       = useRef<HTMLDivElement | null>(null);
-    const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
-    const [closing, setClosing]       = useState(false);
+    const logEndRef = useRef<HTMLDivElement | null>(null);
+    const [closing, setClosing] = useState(false);
 
-    // Start timer and reset log when upload begins; clear timer when done
+    // Reset closing flag on new upload
     useEffect(() => {
         if (webUploadState.uploading) {
-            if (startTimeRef.current === null) {
-                startTimeRef.current  = Date.now();
-                prevMessageRef.current = null;
-                setLogEntries([]);
-            }
-            setClosing(false);   // always reset, not guarded by startTimeRef
+            setClosing(false);
         }
-        if (!webUploadState.uploading && !webUploadState.stage) {
-            startTimeRef.current = null;
-        }
-    }, [webUploadState.uploading, webUploadState.stage]);
-
-    // Accumulate a new log entry whenever message or detail changes
-    useEffect(() => {
-        const text = webUploadState.detail || webUploadState.message;
-        if (!text || text === prevMessageRef.current) return;
-        prevMessageRef.current = text;
-        const elapsed = startTimeRef.current
-            ? `${((Date.now() - startTimeRef.current) / 1000).toFixed(1)}s`
-            : '0.0s';
-        const stage    = webUploadState.stage ?? '';
-        const isError  = stage.toLowerCase().includes('fail');
-        const isWarn   = stage.toLowerCase() === 'warning';
-        setLogEntries((prev) => [...prev, { elapsed, text, isError, isWarn }]);
-    }, [webUploadState.message, webUploadState.detail, webUploadState.stage]);
+    }, [webUploadState.uploading]);
 
     // Keep the log scrolled to the latest entry
     useEffect(() => {

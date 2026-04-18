@@ -158,7 +158,7 @@ function App() {
         }).catch(() => {});
     }, [setLogsDeferred]);
 
-    const { webUploadState, setWebUploadState, handleWebUpload } = useWebUpload({
+    const { webUploadState, setWebUploadState, handleWebUpload, logEntries: webUploadLogEntries } = useWebUpload({
         onLogReplayUrl: useCallback((logPermalinks: string[], replayDataUrl: string) => {
             // 1. Persist to electron-store so it survives restarts.
             const entries: Record<string, string> = {};
@@ -1018,11 +1018,11 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, isBulkUploadActive
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, isBulkUploadActive
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,
-        view, appVersion, showTerminal, webUploadState,
+        view, appVersion, showTerminal, webUploadState, webUploadLogEntries,
         logsForStats, mvpWeights, disruptionMethod, statsViewSettings,
         computedStats, computedSkillUsageData, aggregationProgress,
         aggregationDiagnostics, statsDataProgress, colorPalette, glassSurfaces, particlesEnabled,

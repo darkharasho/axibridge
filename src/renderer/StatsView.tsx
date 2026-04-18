@@ -86,6 +86,7 @@ interface StatsViewProps {
     onStatsViewSettingsChange?: (settings: IStatsViewSettings) => void;
     webUploadState?: IWebUploadState;
     onWebUpload?: (payload: { meta: any; stats: any; logIds?: string[]; repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<void> | void;
+    webUploadLogEntries?: import('./app/hooks/useWebUpload').LogEntry[];
     disruptionMethod?: DisruptionMethod;
     precomputedStats?: any;
     embedded?: boolean;
@@ -209,7 +210,7 @@ function resolveReplayFights(stats: any): any[] {
     });
 }
 
-export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
+export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
     useEffect(() => {
@@ -4303,6 +4304,7 @@ type SpikeFight = {
                 webUploadBuildStatus={webUploadBuildStatus}
                 webCopyStatus={webCopyStatus}
                 setWebCopyStatus={setWebCopyStatus}
+                logEntries={webUploadLogEntries}
             />
 
             <DevMockBanner

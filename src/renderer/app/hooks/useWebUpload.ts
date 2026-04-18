@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_WEB_UPLOAD_STATE, type IWebUploadState } from '../../global.d';
 
+export type LogEntry = { elapsed: string; text: string; isError: boolean; isWarn: boolean };
+
 export function useWebUpload(opts?: {
     onLogReplayUrl?: (logPermalinks: string[], replayDataUrl: string) => void;
 }) {
     const [webUploadState, setWebUploadState] = useState<IWebUploadState>(DEFAULT_WEB_UPLOAD_STATE);
+    const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
     const webUploadClearTimerRef = useRef<number | null>(null);
+    const startTimeRef   = useRef<number | null>(null);
+    const prevMessageRef = useRef<string | null>(null);
 
     useEffect(() => {
         if (!window.electronAPI?.onWebUploadStatus) return;
@@ -22,6 +27,34 @@ export function useWebUpload(opts?: {
             cleanupWebUpload();
         };
     }, []);
+
+    // Reset timer and log when a new upload begins; clear timer when idle
+    useEffect(() => {
+        if (webUploadState.uploading) {
+            if (startTimeRef.current === null) {
+                startTimeRef.current   = Date.now();
+                prevMessageRef.current = null;
+                setLogEntries([]);
+            }
+        }
+        if (!webUploadState.uploading && !webUploadState.stage) {
+            startTimeRef.current = null;
+        }
+    }, [webUploadState.uploading, webUploadState.stage]);
+
+    // Accumulate a log entry whenever the visible status text changes
+    useEffect(() => {
+        const text = webUploadState.detail || webUploadState.message;
+        if (!text || text === prevMessageRef.current) return;
+        prevMessageRef.current = text;
+        const elapsed = startTimeRef.current
+            ? `${((Date.now() - startTimeRef.current) / 1000).toFixed(1)}s`
+            : '0.0s';
+        const stage   = webUploadState.stage ?? '';
+        const isError = stage.toLowerCase().includes('fail');
+        const isWarn  = stage.toLowerCase() === 'warning';
+        setLogEntries((prev) => [...prev, { elapsed, text, isError, isWarn }]);
+    }, [webUploadState.message, webUploadState.detail, webUploadState.stage]);
 
     useEffect(() => {
         if (webUploadState.buildStatus !== 'checking' && webUploadState.buildStatus !== 'building') return;
@@ -178,6 +211,7 @@ export function useWebUpload(opts?: {
     return {
         webUploadState,
         setWebUploadState,
-        handleWebUpload
+        handleWebUpload,
+        logEntries,
     };
 }

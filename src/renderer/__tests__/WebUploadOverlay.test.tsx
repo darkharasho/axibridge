@@ -37,7 +37,7 @@ describe('getFailedStepIndex', () => {
 describe('WebUploadOverlay', () => {
     it('renders nothing when not uploading and no stage', () => {
         const { container } = render(
-            <WebUploadOverlay webUploadState={base} isDev={false} setWebUploadState={vi.fn()} />
+            <WebUploadOverlay webUploadState={base} isDev={false} setWebUploadState={vi.fn()} logEntries={[]} />
         );
         expect(container.firstChild).toBeNull();
     });
@@ -48,6 +48,7 @@ describe('WebUploadOverlay', () => {
                 webUploadState={{ ...base, uploading: true, stage: 'Preparing', message: 'Validating settings...' }}
                 isDev={false}
                 setWebUploadState={vi.fn()}
+                logEntries={[]}
             />
         );
         expect(screen.getByText('Preparing')).toBeInTheDocument();
@@ -59,6 +60,7 @@ describe('WebUploadOverlay', () => {
                 webUploadState={{ ...base, uploading: true, stage: 'Packaging', message: 'Preparing bundle...' }}
                 isDev={false}
                 setWebUploadState={vi.fn()}
+                logEntries={[]}
             />
         );
         expect(screen.getByText('3 / 5')).toBeInTheDocument();
@@ -70,6 +72,7 @@ describe('WebUploadOverlay', () => {
                 webUploadState={{ ...base, uploading: true, stage: 'Uploading', message: 'Uploading...' }}
                 isDev={false}
                 setWebUploadState={vi.fn()}
+                logEntries={[]}
             />
         );
         for (const label of ['Prepare', 'Build', 'Package', 'Upload', 'Finalize']) {
@@ -83,6 +86,7 @@ describe('WebUploadOverlay', () => {
                 webUploadState={{ ...base, stage: 'Upload failed', message: 'Auth failed.' }}
                 isDev={false}
                 setWebUploadState={vi.fn()}
+                logEntries={[]}
             />
         );
         expect(screen.getByRole('button', { name: /dismiss/i })).toBeInTheDocument();
@@ -94,6 +98,7 @@ describe('WebUploadOverlay', () => {
                 webUploadState={{ ...base, stage: 'Upload complete', buildStatus: 'errored' }}
                 isDev={false}
                 setWebUploadState={vi.fn()}
+                logEntries={[]}
             />
         );
         expect(screen.getByRole('button', { name: /dismiss/i })).toBeInTheDocument();
@@ -106,6 +111,7 @@ describe('WebUploadOverlay', () => {
                 webUploadState={{ ...base, stage: 'Upload failed', message: 'Auth failed.' }}
                 isDev={false}
                 setWebUploadState={setFn}
+                logEntries={[]}
             />
         );
         screen.getByRole('button', { name: /dismiss/i }).click();

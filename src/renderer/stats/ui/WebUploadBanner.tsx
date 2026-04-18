@@ -1,6 +1,8 @@
-import type { CSSProperties } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
+import { Loader2, X } from 'lucide-react';
 import type { WebUploadBuildStatus } from '../../global.d';
+import type { LogEntry } from '../../app/hooks/useWebUpload';
 
 type WebUploadBannerProps = {
     embedded: boolean;
@@ -9,6 +11,7 @@ type WebUploadBannerProps = {
     webUploadBuildStatus: WebUploadBuildStatus;
     webCopyStatus: 'idle' | 'copied';
     setWebCopyStatus: (value: 'idle' | 'copied') => void;
+    logEntries?: LogEntry[];
 };
 
 export const WebUploadBanner = ({
@@ -18,7 +21,9 @@ export const WebUploadBanner = ({
     webUploadBuildStatus,
     webCopyStatus,
     setWebCopyStatus,
+    logEntries,
 }: WebUploadBannerProps) => {
+    const [logsOpen, setLogsOpen] = useState(false);
     if (embedded || !webUploadMessage) return null;
 
     const displayUrl = webUploadUrl || webUploadMessage.replace(/^Uploaded:\s*/i, '').trim();
@@ -72,6 +77,7 @@ export const WebUploadBanner = ({
     };
 
     return (
+        <>
         <div className="mb-3 bg-white/[0.04] border border-white/[0.09] rounded-xl px-3 py-2.5 flex items-center gap-3">
             {/* Icon */}
             <div
@@ -109,6 +115,15 @@ export const WebUploadBanner = ({
 
             {/* Actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
+                {logEntries && logEntries.length > 0 && (
+                    <button
+                        type="button"
+                        onClick={() => setLogsOpen(true)}
+                        className="px-3 py-1 rounded-full text-[10px] font-medium border bg-white/[0.04] text-gray-400 border-white/[0.08] hover:text-white hover:bg-white/[0.08] transition-colors"
+                    >
+                        Logs
+                    </button>
+                )}
                 <button
                     type="button"
                     onClick={() => {
@@ -131,5 +146,77 @@ export const WebUploadBanner = ({
                 </button>
             </div>
         </div>
+
+        {logsOpen && logEntries && createPortal(
+            <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                onClick={() => setLogsOpen(false)}
+            >
+                <div
+                    className="w-full max-w-lg rounded-2xl shadow-2xl"
+                    style={{
+                        background: 'rgba(13,17,23,0.96)',
+                        border: '1px solid rgba(255,255,255,0.10)',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.07]">
+                        <div>
+                            <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'rgba(34,211,238,0.6)' }}>
+                                Web Upload
+                            </div>
+                            <div className="text-base font-bold mt-0.5 text-white">Upload Log</div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setLogsOpen(false)}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                    {/* Log feed */}
+                    <div
+                        className="overflow-y-auto overscroll-contain px-4 py-3"
+                        style={{ background: 'rgba(0,0,0,0.28)', maxHeight: '360px' }}
+                    >
+                        {logEntries.map((entry, i) => (
+                            <div key={i} className="flex gap-2 items-baseline py-[2px]">
+                                <span className="text-[8.5px] font-mono shrink-0" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                                    {entry.elapsed}
+                                </span>
+                                <span
+                                    className="text-[10px] leading-snug"
+                                    style={{
+                                        color: entry.isError
+                                            ? 'rgba(252,165,165,0.8)'
+                                            : entry.isWarn
+                                            ? 'rgba(251,191,36,0.8)'
+                                            : i === logEntries.length - 1
+                                            ? 'rgba(255,255,255,0.85)'
+                                            : 'rgba(255,255,255,0.45)',
+                                    }}
+                                >
+                                    {entry.text}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                    {/* Footer */}
+                    <div className="flex justify-end px-5 py-3 border-t border-white/[0.07]">
+                        <button
+                            type="button"
+                            onClick={() => setLogsOpen(false)}
+                            className="px-4 py-1.5 rounded-lg text-xs font-semibold border border-white/10 bg-white/[0.05] text-gray-300 hover:bg-white/[0.10] transition-colors"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        )}
+    </>
     );
 };
