@@ -104,8 +104,8 @@ export const FightPicker: React.FC<FightPickerProps> = ({ fights, onSelect }) =>
                         className={`replay-picker-card${active ? ' is-active' : ''}`}
                         style={{
                             width: 180, flexShrink: 0, padding: 8, borderRadius: 8,
-                            background: active ? 'rgba(96, 165, 250, 0.2)' : 'rgba(255,255,255,0.04)',
-                            border: active ? '1px solid #60a5fa' : '1px solid rgba(255,255,255,0.08)',
+                            background: active ? 'var(--accent-bg-strong)' : 'rgba(255,255,255,0.04)',
+                            border: active ? '1px solid var(--brand-primary)' : '1px solid rgba(255,255,255,0.08)',
                             textAlign: 'left', cursor: 'pointer',
                         }}
                     >

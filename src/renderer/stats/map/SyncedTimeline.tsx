@@ -87,7 +87,7 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                             fill={phaseColor[p.kind]} opacity={0.35} />
                     );
                 })}
-                <path d={pathData} fill="rgba(96, 165, 250, 0.35)" stroke="rgba(96, 165, 250, 0.9)" strokeWidth={1} />
+                <path d={pathData} style={{ fill: 'var(--accent-bg-strong)', stroke: 'var(--brand-primary)' }} strokeWidth={1} />
                 {enemyKillMarks.map((m, i) => (
                     <line key={`k-${i}`} x1={(m.timeMs / fight.durationMs) * 1000} x2={(m.timeMs / fight.durationMs) * 1000}
                           y1={0} y2={12} stroke="#22c55e" strokeWidth={2} />

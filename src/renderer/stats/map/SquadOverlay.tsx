@@ -79,9 +79,9 @@ export const SquadOverlay: React.FC<SquadOverlayProps> = ({ fight, timeMs, scale
             {layers.tagRangeRings && commanderPos && (
                 <g data-overlay="tag-rings">
                     <circle cx={commanderPos[0]} cy={commanderPos[1]} r={ringRadii.near}
-                            fill="none" stroke="#60a5fa" strokeOpacity={0.4} strokeWidth={sw} strokeDasharray={`${4/scale} ${2/scale}`} />
+                            fill="none" style={{ stroke: 'var(--brand-primary)' }} strokeOpacity={0.4} strokeWidth={sw} strokeDasharray={`${4/scale} ${2/scale}`} />
                     <circle cx={commanderPos[0]} cy={commanderPos[1]} r={ringRadii.far}
-                            fill="none" stroke="#60a5fa" strokeOpacity={0.25} strokeWidth={sw} strokeDasharray={`${4/scale} ${2/scale}`} />
+                            fill="none" style={{ stroke: 'var(--brand-primary)' }} strokeOpacity={0.25} strokeWidth={sw} strokeDasharray={`${4/scale} ${2/scale}`} />
                 </g>
             )}
         </g>

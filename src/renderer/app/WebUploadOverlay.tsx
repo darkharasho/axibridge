@@ -103,14 +103,14 @@ export function WebUploadOverlay({
                 className={`w-full rounded-2xl shadow-2xl backdrop-blur-2xl ${hasErrorDetail && hasFailure ? 'max-w-2xl' : 'max-w-md'}`}
                 style={{
                     background: 'rgba(13,17,23,0.96)',
-                    border: `1px solid ${hasFailure ? 'rgba(248,81,73,0.35)' : 'rgba(255,255,255,0.10)'}`,
+                    border: `1px solid ${hasFailure ? 'var(--status-error-border)' : 'rgba(255,255,255,0.10)'}`,
                 }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* ── Topbar ── */}
                 <div className="flex items-start justify-between px-5 pt-4 pb-3 border-b border-white/[0.07]">
                     <div>
-                        <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'rgba(34,211,238,0.6)' }}>
+                        <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--brand-primary)' }}>
                             Web Upload
                         </div>
                         <div className={`text-base font-bold mt-0.5 ${hasFailure ? 'text-red-300' : 'text-white'}`}>
@@ -119,7 +119,7 @@ export function WebUploadOverlay({
                     </div>
                     {!hasFailure && stepIndex >= 0 && (
                         <div className="text-right">
-                            <div className="text-[11px] font-bold text-cyan-400">{stepIndex + 1} / {UPLOAD_STEPS.length}</div>
+                            <div className="text-[11px] font-bold" style={{ color: 'var(--brand-primary)' }}>{stepIndex + 1} / {UPLOAD_STEPS.length}</div>
                             <div className="text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>steps</div>
                         </div>
                     )}
@@ -148,11 +148,11 @@ export function WebUploadOverlay({
                                     className="text-[9px] font-semibold"
                                     style={{
                                         color: isActive && hasFailure
-                                            ? 'rgba(252,165,165,0.8)'
+                                            ? 'var(--status-error-muted)'
                                             : isDone
-                                            ? 'rgba(34,211,238,0.5)'
+                                            ? 'var(--brand-primary)'
                                             : isActive
-                                            ? '#e6edf3'
+                                            ? 'var(--text-primary)'
                                             : 'rgba(255,255,255,0.2)',
                                     }}
                                 >
@@ -171,8 +171,8 @@ export function WebUploadOverlay({
                             style={{
                                 width: `${webUploadState.progress ?? (webUploadState.uploading ? 35 : 100)}%`,
                                 background: hasFailure
-                                    ? 'linear-gradient(90deg, #f85149, #fb923c)'
-                                    : 'linear-gradient(90deg, #22d3ee, #60a5fa)',
+                                    ? 'linear-gradient(90deg, var(--status-error), var(--status-warning))'
+                                    : 'linear-gradient(90deg, var(--brand-primary), var(--brand-secondary))',
                             }}
                         />
                     </div>
@@ -229,7 +229,7 @@ export function WebUploadOverlay({
                 <div className="flex items-center justify-between px-5 py-3">
                     <span
                         className="text-[9px]"
-                        style={{ color: hasFailure ? 'rgba(248,81,73,0.6)' : 'rgba(255,255,255,0.2)' }}
+                        style={{ color: hasFailure ? 'var(--status-error)' : 'rgba(255,255,255,0.2)' }}
                     >
                         {hasFailure
                             ? failedIndex >= 0
@@ -273,13 +273,13 @@ function StepFragment({
 
     let bg: string, borderColor: string, color: string, boxShadow: string | undefined;
     if (isFailed) {
-        bg = 'rgba(248,81,73,0.15)'; borderColor = 'rgba(248,81,73,0.5)';  color = '#fca5a5'; boxShadow = undefined;
+        bg = 'var(--status-error-bg)';   borderColor = 'var(--status-error-border)'; color = 'var(--status-error-muted)'; boxShadow = undefined;
     } else if (isDone) {
-        bg = 'rgba(34,211,238,0.1)';  borderColor = 'rgba(34,211,238,0.4)'; color = '#22d3ee'; boxShadow = undefined;
+        bg = 'var(--accent-bg)';         borderColor = 'var(--accent-border)';       color = 'var(--brand-primary)';      boxShadow = undefined;
     } else if (isActive) {
-        bg = 'rgba(34,211,238,0.15)'; borderColor = '#22d3ee';              color = '#22d3ee'; boxShadow = '0 0 8px rgba(34,211,238,0.3)';
+        bg = 'var(--accent-bg-strong)';  borderColor = 'var(--brand-primary)';       color = 'var(--brand-primary)';      boxShadow = '0 0 8px var(--glow-primary)';
     } else {
-        bg = 'rgba(255,255,255,0.04)';borderColor = 'rgba(255,255,255,0.10)';color = 'rgba(255,255,255,0.2)'; boxShadow = undefined;
+        bg = 'rgba(255,255,255,0.04)';   borderColor = 'rgba(255,255,255,0.10)';     color = 'rgba(255,255,255,0.2)';     boxShadow = undefined;
     }
 
     return (
@@ -293,7 +293,7 @@ function StepFragment({
             {!last && (
                 <div
                     className="flex-1 h-px mx-1"
-                    style={{ background: isDone ? 'rgba(34,211,238,0.3)' : 'rgba(255,255,255,0.07)' }}
+                    style={{ background: isDone ? 'var(--accent-border)' : 'rgba(255,255,255,0.07)' }}
                 />
             )}
         </>

@@ -53,10 +53,10 @@ export const WebUploadBanner = ({
         : webUploadBuildStatus === 'errored' ? '✕'
         : '🌐';
     const iconStyle: CSSProperties = webUploadBuildStatus === 'built'
-        ? { background: 'rgba(63,185,80,0.1)',  border: '1px solid rgba(63,185,80,0.3)'  }
+        ? { background: 'var(--status-success-bg)',  border: '1px solid var(--status-success-border)'  }
         : webUploadBuildStatus === 'errored'
-        ? { background: 'rgba(248,81,73,0.1)',  border: '1px solid rgba(248,81,73,0.3)'  }
-        : { background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)' };
+        ? { background: 'var(--status-error-bg)',    border: '1px solid var(--status-error-border)'    }
+        : { background: 'var(--accent-bg)',          border: '1px solid var(--accent-border)'          };
 
     // Build status pill
     const isBuilding  = webUploadBuildStatus === 'checking' || webUploadBuildStatus === 'building';
@@ -65,10 +65,10 @@ export const WebUploadBanner = ({
         : webUploadBuildStatus === 'errored' ? 'Build failed'
         : 'Building…';
     const pillStyle: CSSProperties = webUploadBuildStatus === 'built'
-        ? { background: 'rgba(63,185,80,0.1)',  border: '1px solid rgba(63,185,80,0.25)',  color: '#3fb950' }
+        ? { background: 'var(--status-success-bg)',  border: '1px solid var(--status-success-border)',  color: 'var(--status-success)' }
         : webUploadBuildStatus === 'errored'
-        ? { background: 'rgba(248,81,73,0.1)',  border: '1px solid rgba(248,81,73,0.25)',  color: '#f85149' }
-        : { background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)', color: '#22d3ee' };
+        ? { background: 'var(--status-error-bg)',    border: '1px solid var(--status-error-border)',    color: 'var(--status-error)'   }
+        : { background: 'var(--accent-bg)',          border: '1px solid var(--accent-border)',          color: 'var(--brand-primary)'  };
 
     const openUrl = () => {
         if (displayUrl && window.electronAPI?.openExternal) {
@@ -91,7 +91,7 @@ export const WebUploadBanner = ({
             {/* Body */}
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[9px] font-bold tracking-[.1em] uppercase" style={{ color: 'rgba(34,211,238,0.6)' }}>
+                    <span className="text-[9px] font-bold tracking-[.1em] uppercase" style={{ color: 'var(--brand-primary)' }}>
                         Published
                     </span>
                     {showPill && (
@@ -107,7 +107,8 @@ export const WebUploadBanner = ({
                 <button
                     type="button"
                     onClick={openUrl}
-                    className="text-[11px] text-cyan-200 hover:text-cyan-100 underline underline-offset-2 truncate block max-w-full text-left"
+                    className="text-[11px] underline underline-offset-2 truncate block max-w-full text-left"
+                    style={{ color: 'var(--brand-primary)' }}
                 >
                     {displayUrl}
                 </button>
@@ -163,7 +164,7 @@ export const WebUploadBanner = ({
                     {/* Header */}
                     <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.07]">
                         <div>
-                            <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'rgba(34,211,238,0.6)' }}>
+                            <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--brand-primary)' }}>
                                 Web Upload
                             </div>
                             <div className="text-base font-bold mt-0.5 text-white">Upload Log</div>
