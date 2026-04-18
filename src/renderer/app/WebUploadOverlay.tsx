@@ -84,7 +84,10 @@ export function WebUploadOverlay({
         }
     }, [logEntries]);
 
-    // Fade out on success
+    // Fade out on success. The CSS transition is duration-700; useWebUpload's
+    // scheduleWebUploadClear fires after 2500ms and resets stage to null, which
+    // unmounts this component. Keep scheduleWebUploadClear delay >= 700ms or
+    // the overlay will be destroyed mid-fade.
     useEffect(() => {
         const stage = webUploadState.stage ?? '';
         if (stage === 'Complete' || stage === 'Upload complete') {
