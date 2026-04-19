@@ -19,9 +19,10 @@ function makePlayer(account: string, group: number, overrides: any = {}) {
         support: [{ resurrects: 2, condiCleanse: 5, condiCleanseSelf: 1, boonStrips: 3 }],
         statsAll: [{ distToCom: 100 }],
         buffUptimes: [
-            { id: 726, buffData: [{ uptime: 72 }] },
-            { id: 1187, buffData: [{ uptime: 58 }] },
-            { id: 1, buffData: [{ uptime: 80 }] },
+            { id: 1122, buffData: [{ uptime: 1.5, presence: 72 }] },  // Stability: presence=72% uptime
+            { id: 726, buffData: [{ uptime: 45, presence: 0 }] },     // Vigor: non-stacking, uptime=45%
+            { id: 1187, buffData: [{ uptime: 58, presence: 0 }] },
+            { id: 1, buffData: [{ uptime: 18, presence: 80 }] },      // Might: stacking, presence=80%
         ],
         ...overrides,
     };

@@ -61,7 +61,7 @@ function hydratedStats(
 }
 
 const BOON_IDS: Record<string, number[]> = {
-    Stability: [726, 1122],
+    Stability: [1122],      // 726 is Vigor, not Stability
     Quickness: [1187],
     Alacrity: [30328],
     Might: [1],
@@ -70,7 +70,7 @@ const BOON_IDS: Record<string, number[]> = {
     Protection: [743],
     Aegis: [717],
     Regeneration: [718],
-    Vigor: [719],
+    Vigor: [726],           // 726 = Vigor (non-stacking)
     Resolution: [873],
     Resistance: [26980],
 };
@@ -82,12 +82,16 @@ function boonUptimesForPlayers(players: any[]): Record<string, number[]> {
         for (const [boonName, ids] of Object.entries(BOON_IDS)) {
             for (const b of p.buffUptimes ?? []) {
                 if ((ids as number[]).includes(b.id as number)) {
-                    const uptime = b.buffData?.[0]?.uptime ?? b.uptime ?? null;
-                    if (uptime != null) {
+                    const d = b.buffData?.[0];
+                    if (!d) break;
+                    // Stacking boons (Stability, Might) store avg stack count in `uptime`
+                    // and actual uptime % in `presence`. Non-stacking boons have presence=0.
+                    const value = (d.presence > 0) ? d.presence : d.uptime;
+                    if (value != null) {
                         if (!agg[boonName]) agg[boonName] = [];
-                        agg[boonName].push(uptime as number);
-                        break;
+                        agg[boonName].push(value as number);
                     }
+                    break;
                 }
             }
         }
