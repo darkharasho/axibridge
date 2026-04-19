@@ -123,14 +123,20 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
             await agentLoop(text, history, logs, (id) => detailsCache?.peek(id), handleToolCall, handleToken, provider);
         } catch (err: any) {
             const apiErr = err?.message ?? '';
+            const isOomErr = apiErr.toLowerCase().includes('system memory') || apiErr.toLowerCase().includes('not enough memory');
+            const isTimeoutErr = err?.name === 'AbortError' || apiErr.toLowerCase().includes('aborted') || apiErr.toLowerCase().includes('timed out');
             const isNetworkErr = apiErr.toLowerCase().includes('failed to fetch') || apiErr.toLowerCase().includes('network');
-            const content = isNetworkErr && aiSettings.provider !== 'ollama'
-                    ? 'Request failed — the context may be too large. Try asking a more specific question (e.g. "what can we improve?" instead of an open-ended one).'
-                    : aiSettings.provider === 'anthropic'
-                        ? `Error calling Anthropic API: ${apiErr}`
-                        : aiSettings.provider === 'openai'
-                            ? `Error calling OpenAI API: ${apiErr}`
-                            : 'Error: could not reach Ollama. Is it still running?';
+            const content = isOomErr
+                    ? `Model requires more RAM than is available. Switch to a smaller model (e.g. llama3.2:3b or qwen2.5:7b) in Settings.`
+                    : isTimeoutErr
+                        ? `Request timed out — the model took too long to respond. Try a smaller model or ask a more specific question.`
+                        : isNetworkErr && aiSettings.provider !== 'ollama'
+                        ? 'Request failed — the context may be too large. Try asking a more specific question.'
+                        : aiSettings.provider === 'anthropic'
+                            ? `Error calling Anthropic API: ${apiErr}`
+                            : aiSettings.provider === 'openai'
+                                ? `Error calling OpenAI API: ${apiErr}`
+                                : 'Error: could not reach Ollama. Is it still running?';
             setMessages(prev => prev.map(m =>
                 m.id === assistantId ? { ...m, content, streaming: false } : m
             ));

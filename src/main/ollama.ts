@@ -99,7 +99,7 @@ export class OllamaManager {
         const body: any = { model, messages, stream: false };
         if (tools?.length) body.tools = tools;
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 120_000);
+        const timeout = setTimeout(() => controller.abort(), 300_000);
         try {
             const res = await fetch(`${BASE_URL}/api/chat`, {
                 method: 'POST',
@@ -112,6 +112,15 @@ export class OllamaManager {
         } finally {
             clearTimeout(timeout);
         }
+    }
+
+    async deleteModel(model: string): Promise<void> {
+        const res = await fetch(`${BASE_URL}/api/delete`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: model }),
+        });
+        if (!res.ok) throw new Error(`Delete failed: ${res.status} ${await res.text()}`);
     }
 
     private async _readStream(res: Response, onLine: (line: string) => void): Promise<void> {

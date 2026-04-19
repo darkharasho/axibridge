@@ -407,9 +407,8 @@ export interface IElectronAPI {
     onOllamaStatusChanged: (callback: (status: IOllamaStatus) => void) => () => void;
     startOllama: () => Promise<IOllamaStatus>;
     stopOllama: () => Promise<void>;
+    deleteOllamaModel: (model: string) => Promise<void>;
     chatOnce: (messages: ChatMessage[], tools?: any[]) => Promise<OllamaChatResponse>;
-    // Window panel control
-    setPanelOpen: (open: boolean) => void;
     // AI provider settings
     getAiSettings: () => Promise<IAiSettings>;
     saveAiSettings: (settings: Partial<IAiSettings>) => void;

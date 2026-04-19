@@ -9,8 +9,6 @@ interface OllamaHandlerOptions {
     getOllamaManager: () => OllamaManager;
 }
 
-let prePanelWidth: number | null = null;
-
 export function registerOllamaHandlers({ store, getWindow, getOllamaManager }: OllamaHandlerOptions) {
     ipcMain.handle('ollama:get-status', async () => {
         const mgr = getOllamaManager();
@@ -84,6 +82,13 @@ export function registerOllamaHandlers({ store, getWindow, getOllamaManager }: O
         mgr.stop();
     });
 
+    ipcMain.handle('ollama:delete-model', async (_event, model: string) => {
+        const mgr = getOllamaManager();
+        await mgr.deleteModel(model);
+        const activeModel = store.get('ollamaActiveModel', null) as string | null;
+        if (activeModel === model) store.delete('ollamaActiveModel');
+    });
+
     ipcMain.handle('ai:get-settings', () => {
         return {
             provider: store.get('aiProvider', 'ollama') as string,
@@ -108,17 +113,4 @@ export function registerOllamaHandlers({ store, getWindow, getOllamaManager }: O
         if (settings.openaiModel !== undefined) store.set('openaiModel', settings.openaiModel);
     });
 
-    // Window panel resize
-    ipcMain.on('chat:set-panel-open', (_event, open: boolean) => {
-        const win = getWindow();
-        if (!win) return;
-        const [w, h] = win.getSize();
-        if (open) {
-            prePanelWidth = w;
-            win.setSize(w + 320, h, true);
-        } else if (prePanelWidth !== null) {
-            win.setSize(prePanelWidth, h, true);
-            prePanelWidth = null;
-        }
-    });
 }

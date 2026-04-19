@@ -127,16 +127,10 @@ export function AppLayout({ ctx }: { ctx: any }) {
 
     const openChatPanel = useCallback(() => {
         setChatPanelOpen(true);
-        window.electronAPI.setPanelOpen(true); // expand window immediately so panel slides into new space
     }, []);
 
     const closeChatPanel = useCallback(() => {
         setChatPanelOpen(false);
-        // window shrinks in handlePanelExitComplete, after exit animation finishes
-    }, []);
-
-    const handlePanelExitComplete = useCallback(() => {
-        window.electronAPI.setPanelOpen(false);
     }, []);
 
     const toggleChatPanel = useCallback(() => {
@@ -495,21 +489,20 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     </motion.div>
                 </AnimatePresence>
 
-                {/* Floating chat button — hidden when Chat tab is active; shifts left of panel when open */}
-                {ollamaEnabled && view !== 'chat' && (
+                {/* Floating chat button — stats view only */}
+                {ollamaEnabled && view === 'stats' && (
                     <button
                         onClick={toggleChatPanel}
-                        className="absolute bottom-4 z-40 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 shadow-lg flex items-center justify-center transition-all duration-200"
-                        style={{ right: chatPanelOpen ? 320 + 16 : 16 }}
+                        className="absolute bottom-4 right-4 z-40 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 shadow-lg flex items-center justify-center transition-all duration-200"
                         title="AI Assistant"
                     >
                         <MessageSquare className="w-5 h-5 text-white" />
                     </button>
                 )}
 
-                {/* Floating chat panel — slides in from the right */}
-                <AnimatePresence onExitComplete={handlePanelExitComplete}>
-                    {ollamaEnabled && chatPanelOpen && view !== 'chat' && (
+                {/* Floating chat panel — slides in from the right, overlays content */}
+                <AnimatePresence>
+                    {ollamaEnabled && chatPanelOpen && view === 'stats' && (
                         <motion.div
                             key="chat-panel"
                             initial={{ x: 320 }}

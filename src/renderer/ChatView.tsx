@@ -42,6 +42,20 @@ const MD_COMPONENTS = {
     h2: ({ children }: any) => <h2 className="font-semibold text-sm mb-1 mt-2">{children}</h2>,
     h3: ({ children }: any) => <h3 className="font-semibold text-sm mb-1 mt-2">{children}</h3>,
     strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
+    table: ({ children }: any) => (
+        <div className="overflow-x-auto my-2">
+            <table className="text-xs border-collapse w-full">{children}</table>
+        </div>
+    ),
+    thead: ({ children }: any) => <thead className="border-b border-gray-600">{children}</thead>,
+    tbody: ({ children }: any) => <tbody>{children}</tbody>,
+    tr: ({ children }: any) => <tr className="border-b border-gray-700/40 hover:bg-gray-700/20 transition-colors">{children}</tr>,
+    th: ({ children, style }: any) => (
+        <th style={style} className="px-2 py-1 text-gray-400 font-medium whitespace-nowrap text-left">{children}</th>
+    ),
+    td: ({ children, style }: any) => (
+        <td style={style} className="px-2 py-1 text-gray-200 whitespace-nowrap">{children}</td>
+    ),
     code: ({ children, className }: any) => {
         if (className === 'language-chart') {
             return <ChartBlock content={String(children).trim()} />;

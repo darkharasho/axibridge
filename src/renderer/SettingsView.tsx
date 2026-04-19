@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Bot, Play } from 'lucide-react';
+import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Bot, Play, Loader2 } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, normalizeMvpWeights, IEiParserSettings, IEiStatus, IOllamaStatus, IAiSettings } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { PALETTES, type ColorPalette, DEFAULT_PALETTE_ID } from '../shared/webThemes';
@@ -263,6 +263,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [startingOllama, setStartingOllama] = useState(false);
     const [pullingModel, setPullingModel] = useState<string | null>(null);
     const [pullProgress, setPullProgress] = useState<{ status: string; percent: number } | null>(null);
+    const [modelSearch, setModelSearch] = useState('');
+    const [deletingModel, setDeletingModel] = useState<string | null>(null);
     const [eiStatus, setEiStatus] = useState<IEiStatus>({ installed: false, version: null, updateAvailable: null, installing: false, error: null });
     const [eiSettings, setEiSettings] = useState<IEiParserSettings | null>(null);
     const [eiDownloadProgress, setEiDownloadProgress] = useState<{ percent: number; message: string } | null>(null);
@@ -2896,17 +2898,61 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         <div className="flex flex-col gap-3">
                                             {ollamaStatus.models.length > 0 && (
                                                 <div>
-                                                    <p className="text-xs font-medium text-gray-300 mb-1.5">Active model</p>
-                                                    <select
-                                                        value={ollamaModelProp}
-                                                        onChange={e => setOllamaModel?.(e.target.value)}
-                                                        className="w-full text-xs px-2 py-1.5 rounded-md border bg-gray-900 text-gray-200"
-                                                        style={{ borderColor: 'var(--border-default)' }}
-                                                    >
-                                                        {ollamaStatus.models.map(m => (
-                                                            <option key={m} value={m}>{m}</option>
-                                                        ))}
-                                                    </select>
+                                                    <p className="text-xs font-medium text-gray-300 mb-1.5">Installed models</p>
+                                                    {ollamaStatus.models.length > 4 && (
+                                                        <input
+                                                            type="text"
+                                                            value={modelSearch}
+                                                            onChange={e => setModelSearch(e.target.value)}
+                                                            placeholder="Search models…"
+                                                            className="w-full text-xs px-2 py-1.5 rounded-md border bg-gray-900 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 mb-1.5"
+                                                            style={{ borderColor: 'var(--border-default)' }}
+                                                        />
+                                                    )}
+                                                    <div className="flex flex-col gap-1 max-h-48 overflow-y-auto pr-0.5">
+                                                        {ollamaStatus.models
+                                                            .filter(m => !modelSearch || m.toLowerCase().includes(modelSearch.toLowerCase()))
+                                                            .map(m => (
+                                                                <div
+                                                                    key={m}
+                                                                    onClick={() => setOllamaModel?.(m)}
+                                                                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md border cursor-pointer transition-colors ${
+                                                                        ollamaModelProp === m
+                                                                            ? 'border-blue-500/60 bg-blue-500/10 text-gray-100'
+                                                                            : 'border-transparent hover:border-gray-600 text-gray-400 hover:text-gray-200'
+                                                                    }`}
+                                                                    style={ollamaModelProp !== m ? { background: 'var(--bg-card)' } : {}}
+                                                                >
+                                                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${ollamaModelProp === m ? 'bg-blue-400' : 'bg-gray-600'}`} />
+                                                                    <span className="flex-1 text-xs font-mono truncate">{m}</span>
+                                                                    <button
+                                                                        title={`Uninstall ${m}`}
+                                                                        disabled={!!deletingModel || !!pullingModel}
+                                                                        onClick={async e => {
+                                                                            e.stopPropagation();
+                                                                            if (!confirm(`Uninstall ${m}?`)) return;
+                                                                            setDeletingModel(m);
+                                                                            try {
+                                                                                await window.electronAPI.deleteOllamaModel(m);
+                                                                                const status = await window.electronAPI.getOllamaStatus();
+                                                                                setOllamaStatus(status);
+                                                                                if (ollamaModelProp === m) setOllamaModel?.(status.models[0] ?? '');
+                                                                            } finally {
+                                                                                setDeletingModel(null);
+                                                                            }
+                                                                        }}
+                                                                        className="shrink-0 p-1 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                    >
+                                                                        {deletingModel === m
+                                                                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                                                                            : <Trash2 className="w-3 h-3" />}
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        {ollamaStatus.models.filter(m => !modelSearch || m.toLowerCase().includes(modelSearch.toLowerCase())).length === 0 && (
+                                                            <p className="text-xs text-gray-600 px-2 py-1">No models match "{modelSearch}"</p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             )}
 
@@ -2929,60 +2975,117 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                                             {/* Curated model list */}
                                             <div>
-                                                <p className="text-xs font-medium text-gray-300 mb-2">
+                                                <p className="text-xs font-medium text-gray-300 mb-1.5">
                                                     {ollamaStatus.models.length > 0 ? 'Download more models' : 'Download a model to get started'}
                                                 </p>
-                                                <div className="flex flex-col gap-1.5">
+                                                <input
+                                                    type="text"
+                                                    value={modelSearch}
+                                                    onChange={e => setModelSearch(e.target.value)}
+                                                    placeholder="Search models…"
+                                                    className="w-full text-xs px-2 py-1.5 rounded-md border bg-gray-900 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 mb-1.5"
+                                                    style={{ borderColor: 'var(--border-default)' }}
+                                                />
+                                                <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-0.5">
                                                     {([
-                                                        { id: 'llama3.2:3b', label: 'Llama 3.2 3B', size: '2.0 GB', desc: 'Fast and lightweight. Great for quick answers.' },
-                                                        { id: 'llama3.1:8b', label: 'Llama 3.1 8B', size: '4.7 GB', desc: 'Recommended. Good balance of speed and quality.' },
-                                                        { id: 'llama3.1:70b', label: 'Llama 3.1 70B', size: '40 GB', desc: 'Best quality. Requires a powerful machine.' },
-                                                        { id: 'mistral:7b', label: 'Mistral 7B', size: '4.1 GB', desc: 'Strong reasoning, very efficient.' },
-                                                        { id: 'gemma3:4b', label: 'Gemma 3 4B', size: '3.3 GB', desc: 'Google\'s compact model. Fast on CPU.' },
-                                                    ] as const).map(model => {
-                                                        const installed = ollamaStatus.models.some(m => m.startsWith(model.id.split(':')[0]));
-                                                        const downloading = pullingModel === model.id;
-                                                        return (
-                                                            <div
-                                                                key={model.id}
-                                                                className="flex items-center gap-3 px-3 py-2 rounded-md border"
-                                                                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
-                                                            >
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-xs font-medium text-gray-200">{model.label}</span>
-                                                                        <span className="text-[10px] text-gray-600">{model.size}</span>
-                                                                        {installed && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25">Installed</span>}
-                                                                    </div>
-                                                                    <p className="text-[10px] text-gray-500 mt-0.5">{model.desc}</p>
-                                                                </div>
-                                                                <button
-                                                                    onClick={async () => {
-                                                                        setPullingModel(model.id);
-                                                                        setPullProgress(null);
-                                                                        try {
-                                                                            await window.electronAPI.pullOllamaModel(model.id);
-                                                                            const status = await window.electronAPI.getOllamaStatus();
-                                                                            setOllamaStatus(status);
-                                                                            if (!ollamaModelProp) setOllamaModel?.(model.id);
-                                                                        } finally {
-                                                                            setPullingModel(null);
-                                                                            setPullProgress(null);
-                                                                        }
-                                                                    }}
-                                                                    disabled={!!pullingModel}
-                                                                    className="shrink-0 flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                                                    style={downloading
-                                                                        ? { borderColor: 'var(--status-info-border)', color: 'var(--status-info)', background: 'var(--status-info-bg)' }
-                                                                        : { borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-elevated)' }
-                                                                    }
+                                                        { id: 'llama3.2:1b',       label: 'Llama 3.2 1B',       size: '0.7 GB', desc: 'Tiny and fast. Best for very limited RAM.' },
+                                                        { id: 'llama3.2:3b',       label: 'Llama 3.2 3B',       size: '2.0 GB', desc: 'Fast and lightweight. Great for quick answers.' },
+                                                        { id: 'llama3.1:8b',       label: 'Llama 3.1 8B',       size: '4.7 GB', desc: 'Recommended. Good balance of speed and quality.' },
+                                                        { id: 'llama3.3:70b',      label: 'Llama 3.3 70B',      size: '43 GB',  desc: 'Best Llama quality. Requires a powerful machine.' },
+                                                        { id: 'mistral:7b',        label: 'Mistral 7B',         size: '4.1 GB', desc: 'Strong reasoning, very efficient.' },
+                                                        { id: 'mistral-nemo:12b',  label: 'Mistral Nemo 12B',   size: '7.1 GB', desc: 'Larger Mistral with better context handling.' },
+                                                        { id: 'gemma3:2b',         label: 'Gemma 3 2B',         size: '1.6 GB', desc: 'Google\'s smallest model. Fast on CPU.' },
+                                                        { id: 'gemma3:4b',         label: 'Gemma 3 4B',         size: '3.3 GB', desc: 'Google\'s compact model. Fast on CPU.' },
+                                                        { id: 'gemma3:12b',        label: 'Gemma 3 12B',        size: '8.1 GB', desc: 'Stronger Google model with good reasoning.' },
+                                                        { id: 'gemma3:27b',        label: 'Gemma 3 27B',        size: '17 GB',  desc: 'Google\'s flagship local model.' },
+                                                        { id: 'qwen2.5:3b',        label: 'Qwen 2.5 3B',        size: '1.9 GB', desc: 'Alibaba\'s compact model. Fast and capable.' },
+                                                        { id: 'qwen2.5:7b',        label: 'Qwen 2.5 7B',        size: '4.4 GB', desc: 'Strong at instruction following and analysis.' },
+                                                        { id: 'qwen2.5:14b',       label: 'Qwen 2.5 14B',       size: '9.0 GB', desc: 'High quality, good for detailed analysis.' },
+                                                        { id: 'qwen2.5:32b',       label: 'Qwen 2.5 32B',       size: '19 GB',  desc: 'Near-frontier quality for local models.' },
+                                                        { id: 'phi4:14b',          label: 'Phi-4 14B',          size: '9.1 GB', desc: 'Microsoft\'s reasoning-focused model.' },
+                                                        { id: 'phi4-mini:3.8b',    label: 'Phi-4 Mini 3.8B',    size: '2.5 GB', desc: 'Compact Phi-4 variant. Great for low RAM.' },
+                                                        { id: 'deepseek-r1:7b',    label: 'DeepSeek R1 7B',     size: '4.7 GB', desc: 'Strong reasoning with chain-of-thought.' },
+                                                        { id: 'deepseek-r1:14b',   label: 'DeepSeek R1 14B',    size: '9.0 GB', desc: 'Higher quality reasoning model.' },
+                                                    ] as const)
+                                                        .filter(model => !modelSearch || model.label.toLowerCase().includes(modelSearch.toLowerCase()) || model.id.toLowerCase().includes(modelSearch.toLowerCase()))
+                                                        .map(model => {
+                                                            const installedName = ollamaStatus.models.find(m => m === model.id || m.startsWith(model.id.split(':')[0] + ':'));
+                                                            const installed = !!installedName;
+                                                            const downloading = pullingModel === model.id;
+                                                            const deleting = deletingModel === installedName;
+                                                            return (
+                                                                <div
+                                                                    key={model.id}
+                                                                    className="flex items-center gap-3 px-3 py-2 rounded-md border"
+                                                                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
                                                                 >
-                                                                    <Download className="w-3 h-3" />
-                                                                    {downloading ? 'Downloading…' : installed ? 'Re-download' : 'Download'}
-                                                                </button>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-xs font-medium text-gray-200">{model.label}</span>
+                                                                            <span className="text-[10px] text-gray-600">{model.size}</span>
+                                                                            {installed && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25">Installed</span>}
+                                                                        </div>
+                                                                        <p className="text-[10px] text-gray-500 mt-0.5">{model.desc}</p>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1 shrink-0">
+                                                                        {installed && (
+                                                                            <button
+                                                                                title={`Uninstall ${installedName}`}
+                                                                                disabled={!!pullingModel || !!deletingModel}
+                                                                                onClick={async () => {
+                                                                                    if (!installedName || !confirm(`Uninstall ${installedName}?`)) return;
+                                                                                    setDeletingModel(installedName);
+                                                                                    try {
+                                                                                        await window.electronAPI.deleteOllamaModel(installedName);
+                                                                                        const status = await window.electronAPI.getOllamaStatus();
+                                                                                        setOllamaStatus(status);
+                                                                                        if (ollamaModelProp === installedName) setOllamaModel?.(status.models[0] ?? '');
+                                                                                    } finally {
+                                                                                        setDeletingModel(null);
+                                                                                    }
+                                                                                }}
+                                                                                className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-red-400 hover:text-red-300"
+                                                                                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-elevated)' }}
+                                                                            >
+                                                                                {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                                                            </button>
+                                                                        )}
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                setPullingModel(model.id);
+                                                                                setPullProgress(null);
+                                                                                try {
+                                                                                    await window.electronAPI.pullOllamaModel(model.id);
+                                                                                    const status = await window.electronAPI.getOllamaStatus();
+                                                                                    setOllamaStatus(status);
+                                                                                    if (!ollamaModelProp) setOllamaModel?.(model.id);
+                                                                                } finally {
+                                                                                    setPullingModel(null);
+                                                                                    setPullProgress(null);
+                                                                                }
+                                                                            }}
+                                                                            disabled={!!pullingModel || !!deletingModel}
+                                                                            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                                                            style={downloading
+                                                                                ? { borderColor: 'var(--status-info-border)', color: 'var(--status-info)', background: 'var(--status-info-bg)' }
+                                                                                : { borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-elevated)' }
+                                                                            }
+                                                                        >
+                                                                            <Download className="w-3 h-3" />
+                                                                            {downloading ? 'Downloading…' : installed ? 'Re-download' : 'Download'}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    {modelSearch && !([
+                                                        'llama3.2:1b', 'llama3.2:3b', 'llama3.1:8b', 'llama3.3:70b',
+                                                        'mistral:7b', 'mistral-nemo:12b', 'gemma3:2b', 'gemma3:4b', 'gemma3:12b', 'gemma3:27b',
+                                                        'qwen2.5:3b', 'qwen2.5:7b', 'qwen2.5:14b', 'qwen2.5:32b',
+                                                        'phi4:14b', 'phi4-mini:3.8b', 'deepseek-r1:7b', 'deepseek-r1:14b',
+                                                    ].some(id => id.toLowerCase().includes(modelSearch.toLowerCase()) || id.split(':')[0].toLowerCase().includes(modelSearch.toLowerCase()))) && (
+                                                        <p className="text-xs text-gray-600 px-1 py-1">No models match "{modelSearch}"</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

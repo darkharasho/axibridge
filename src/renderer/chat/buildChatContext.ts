@@ -19,6 +19,7 @@ const ANALYST_INSTRUCTIONS = `
 - If a metric or player is not in the data, say so — do not invent numbers
 - Keep answers concise and actionable; use bullet points for comparisons
 - Correct any GW2 misconceptions if the user states something inaccurate
+- For improvement questions ("what could we do better?", "where did we struggle?", "what went wrong?"): identify specific weaknesses, underperformers, and areas that fell short of expectations — do NOT just list top performers or summarize who did the most
 `.trim();
 
 export function buildSystemPrompt(logs: ILogData[]): string {

@@ -175,8 +175,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     startOllama: () => ipcRenderer.invoke('ollama:start'),
     stopOllama: () => ipcRenderer.invoke('ollama:stop'),
+    deleteOllamaModel: (model: string) => ipcRenderer.invoke('ollama:delete-model', model),
     chatOnce: (messages: any[], tools?: any[]) => ipcRenderer.invoke('ollama:chat-once', messages, tools),
-    setPanelOpen: (open: boolean) => ipcRenderer.send('chat:set-panel-open', open),
     getAiSettings: () => ipcRenderer.invoke('ai:get-settings'),
     saveAiSettings: (settings: any) => ipcRenderer.send('ai:save-settings', settings),
 
