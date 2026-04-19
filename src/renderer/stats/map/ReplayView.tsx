@@ -87,6 +87,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const squadPanelRef = useRef<HTMLDivElement>(null);
+    const pickerOverlayRef = useRef<HTMLDivElement>(null);
     const draggedRef = useRef(false);
     // Stable ref so the drag handler can read followMember without being recreated.
     const followMemberRef = useRef<SquadMemberMovement | null>(null);
@@ -130,6 +131,14 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
         el.addEventListener('wheel', stop, { passive: true });
         return () => el.removeEventListener('wheel', stop);
     }, [selectedFight]);
+    // Prevent wheel events on the fight-picker overlay from zooming the map beneath it.
+    useEffect(() => {
+        const el = pickerOverlayRef.current;
+        if (!el) return;
+        const stop = (e: WheelEvent) => e.stopPropagation();
+        el.addEventListener('wheel', stop, { passive: true });
+        return () => el.removeEventListener('wheel', stop);
+    }, [pickerCollapsed]);
 
     // Fractional poll position — used for smooth lerped rendering.
     // Integer floor is used for array indexing (trails, hit detection).
@@ -222,7 +231,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                     <div ref={mapContainerRef} style={{ flex: 1, position: 'relative', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
                             {/* Fight picker overlay — covers the map area when expanded */}
                             {!pickerCollapsed && (
-                                <div style={{
+                                <div ref={pickerOverlayRef} style={{
                                     position: 'absolute', inset: 0, zIndex: 30,
                                     background: 'rgba(8, 14, 30, 0.88)',
                                     backdropFilter: 'blur(3px)',
