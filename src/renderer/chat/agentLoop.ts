@@ -1,6 +1,7 @@
 import type { ChatMessage, OllamaChatResponse } from '../global';
 import { TOOL_SCHEMAS } from './tools/toolSchemas';
 import { executeToolCall } from './tools/toolExecutors';
+import { computeStatsSync } from '../stats/incrementalAggregation';
 
 export class ToolUseNotSupportedError extends Error {
     constructor() {
@@ -24,6 +25,15 @@ export async function agentLoop(
         ...history,
         { role: 'user', content: userText },
     ];
+
+    // Hydrate logs and compute stats once for this turn
+    const hydratedLogs = logs
+        .filter(l => l.detailsStatus === 'loaded')
+        .map(log => {
+            const details = (log as any).details ?? getDetails(log.id) ?? getDetails(log.filePath);
+            return details ? { ...log, details } : log;
+        });
+    const { stats: computedStats } = computeStatsSync({ logs: hydratedLogs });
 
     let iterations = 0;
 
@@ -64,7 +74,7 @@ export async function agentLoop(
 
             let result: Record<string, any>;
             try {
-                result = executeToolCall(name, args, logs, getDetails);
+                result = executeToolCall(name, args, logs, getDetails, computedStats);
             } catch (err: any) {
                 result = { error: err?.message ?? 'Tool execution failed' };
             }
