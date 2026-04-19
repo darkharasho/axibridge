@@ -17,6 +17,7 @@ import { FilePickerModal } from './FilePickerModal';
 import { WebUploadOverlay } from './WebUploadOverlay';
 import { FightReportHistoryView } from '../FightReportHistoryView';
 import { ChatView } from '../ChatView';
+import { useChat } from '../chat/useChat';
 import { useParticleEffect, PRESETS } from '../particles';
 import { TRANSITION } from '../motion';
 
@@ -105,6 +106,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setOllamaEnabled,
         ollamaModel,
         setOllamaModel,
+        ollamaAutoManage,
+        setOllamaAutoManage,
         logs: logsWithDetails,
     } = ctx;
 
@@ -115,6 +118,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
     useEffect(() => {
         return window.electronAPI?.onMaximizedChange?.((m: boolean) => setMaximized(m));
     }, []);
+
+    const chatState = useChat(logsWithDetails, ollamaEnabled);
 
     const [chatPanelOpen, setChatPanelOpen] = useState(false);
 
@@ -459,6 +464,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 ollamaModel={ollamaModel}
                                 setOllamaEnabled={setOllamaEnabled}
                                 setOllamaModel={setOllamaModel}
+                                ollamaAutoManage={ollamaAutoManage}
+                                setOllamaAutoManage={setOllamaAutoManage}
                                 particlesEnabled={particlesEnabled}
                                 developerSettingsTrigger={developerSettingsTrigger}
                                 helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}
@@ -477,6 +484,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     compact={false}
                                     ollamaEnabled={ollamaEnabled}
                                     onNavigateToChat={() => {}}
+                                    chatState={chatState}
                                 />
                             </div>
                         )}
@@ -516,6 +524,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     setView('chat');
                                 }}
                                 onClose={closeChatPanel}
+                                chatState={chatState}
                             />
                         </motion.div>
                     )}

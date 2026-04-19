@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback, Fragment } from 'react';
-import { Maximize2, X, Send, Bot, Play, Loader2, CheckCircle2 } from 'lucide-react';
-import { useChat } from './chat/useChat';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Maximize2, X, Send, Bot, Play, Loader2, CheckCircle2, PenSquare } from 'lucide-react';
+import { useChat, type ChatMsg, type ToolCallStatus } from './chat/useChat';
 
 const TOOL_DISPLAY: Record<string, string> = {
     player_deep_dive: 'Analyzing player',
@@ -22,6 +24,22 @@ function ToolCallBadge({ name, status }: { name: string; status: 'running' | 'do
     );
 }
 
+const MD_COMPONENTS = {
+    p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
+    ol: ({ children }: any) => <ol className="list-decimal ml-4 mb-2 space-y-0.5">{children}</ol>,
+    ul: ({ children }: any) => <ul className="list-disc ml-4 mb-2 space-y-0.5">{children}</ul>,
+    li: ({ children }: any) => <li>{children}</li>,
+    h1: ({ children }: any) => <h1 className="font-bold text-base mb-1 mt-2">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="font-semibold text-sm mb-1 mt-2">{children}</h2>,
+    h3: ({ children }: any) => <h3 className="font-semibold text-sm mb-1 mt-2">{children}</h3>,
+    strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
+    code: ({ children, className }: any) =>
+        className
+            ? <pre className="bg-gray-900 rounded p-2 my-1 text-xs overflow-x-auto"><code>{children}</code></pre>
+            : <code className="bg-gray-900 rounded px-1 text-xs font-mono">{children}</code>,
+    blockquote: ({ children }: any) => <blockquote className="border-l-2 border-gray-600 pl-2 italic text-gray-400 my-1">{children}</blockquote>,
+};
+
 const SUGGESTION_PILLS = [
     'Summarize tonight\'s fights',
     'Who topped damage?',
@@ -30,6 +48,17 @@ const SUGGESTION_PILLS = [
     'Which fight had the best boon coverage?',
 ];
 
+export interface ChatState {
+    messages: ChatMsg[];
+    streaming: boolean;
+    thinking: boolean;
+    toolCalls: ToolCallStatus[];
+    ollamaConnected: boolean;
+    availableModels: string[];
+    sendMessage: (text: string) => void;
+    clearMessages: () => void;
+}
+
 interface ChatViewProps {
     logs: ILogData[];
     compact: boolean;
@@ -37,10 +66,12 @@ interface ChatViewProps {
     onNavigateToChat: () => void;
     onClose?: () => void;
     ollamaConnected?: boolean;
+    chatState?: ChatState;
 }
 
-export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClose, ollamaConnected: connectedProp }: ChatViewProps) {
-    const { messages, streaming, thinking, toolCalls, ollamaConnected: hookConnected, sendMessage } = useChat(logs, ollamaEnabled);
+export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClose, ollamaConnected: connectedProp, chatState: externalState }: ChatViewProps) {
+    const internalChat = useChat(logs, ollamaEnabled);
+    const { messages, streaming, thinking, toolCalls, ollamaConnected: hookConnected, sendMessage, clearMessages } = externalState ?? internalChat;
     const connected = connectedProp ?? hookConnected;
     const [input, setInput] = useState('');
     const [starting, setStarting] = useState(false);
@@ -103,6 +134,11 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
                         <span className="text-xs text-gray-600">{logs.filter(l => l.detailsStatus === 'loaded').length} fights</span>
                     </div>
                     <div className="flex gap-1">
+                        {hasMessages && (
+                            <button title="New chat" onClick={clearMessages} disabled={streaming} className="p-1 text-gray-400 hover:text-gray-200 transition-colors disabled:opacity-40">
+                                <PenSquare className="w-3.5 h-3.5" />
+                            </button>
+                        )}
                         <button title="Expand" onClick={onNavigateToChat} className="p-1 text-gray-400 hover:text-gray-200 transition-colors">
                             <Maximize2 className="w-3.5 h-3.5" />
                         </button>
@@ -114,11 +150,18 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
                     </div>
                 </div>
             ) : (
-                <div className="flex items-center justify-center gap-2 px-4 py-2 border-b shrink-0 text-xs text-gray-500" style={{ borderColor: 'var(--border-subtle)' }}>
-                    <Bot className="w-3.5 h-3.5 text-blue-400" />
-                    <span>AI Assistant</span>
-                    <span>·</span>
-                    <span>{logs.filter(l => l.detailsStatus === 'loaded').length} fights loaded</span>
+                <div className="flex items-center justify-between px-4 py-2 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Bot className="w-3.5 h-3.5 text-blue-400" />
+                        <span>AI Assistant</span>
+                        <span>·</span>
+                        <span>{logs.filter(l => l.detailsStatus === 'loaded').length} fights loaded</span>
+                    </div>
+                    {hasMessages && (
+                        <button title="New chat" onClick={clearMessages} disabled={streaming} className="p-1 text-gray-400 hover:text-gray-200 transition-colors disabled:opacity-40">
+                            <PenSquare className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -154,11 +197,15 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                                     </span>
-                                ) : (
+                                ) : msg.role === 'assistant' ? (
                                     <>
-                                        {msg.content}
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
+                                            {msg.content}
+                                        </ReactMarkdown>
                                         {msg.streaming && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-blue-400 animate-pulse rounded-sm" />}
                                     </>
+                                ) : (
+                                    msg.content
                                 )}
                             </div>
                         </Fragment>
