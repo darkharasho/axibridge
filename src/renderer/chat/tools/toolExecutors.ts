@@ -63,6 +63,15 @@ function chartBlock(spec: object): string {
     return '\n```chart\n' + JSON.stringify(spec) + '\n```';
 }
 
+const fightLabel = (log: ILogData, index: number): string =>
+    log.fightName ? `${log.fightName} (#${index + 1})` : `Fight ${index + 1}`;
+
+const scopeLabel = (logs: ILogData[], fight_index: number | undefined, allLabel = 'all fights'): string => {
+    if (fight_index == null) return allLabel;
+    const fight = loadedFights(logs, fight_index)[0];
+    return fight ? fightLabel(fight, fight_index) : `Fight ${fight_index + 1}`;
+};
+
 function buildPlayerMap(stats: any): Map<string, { account: string; profession: string; professionList?: string[]; offense?: any; defense?: any; support?: any; general?: any }> {
     const map = new Map<string, any>();
     const merge = (rows: any[] = [], key: string) => {
@@ -126,7 +135,7 @@ const executors: Record<string, Executor> = {
             .sort((a, b) => b.value - a.value)
             .slice(0, 15);
 
-        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights combined';
+        const scope = scopeLabel(logs, fight_index, 'all fights combined');
         if (ranked.length === 0) return `No data found for metric '${metric}'.`;
 
         const metricLabel = METRIC_LABELS[metric] ?? metric;
@@ -226,7 +235,7 @@ const executors: Record<string, Executor> = {
         // Track cross-fight boon averages for the chart
         const allBoonValues: Record<string, number[]> = {};
 
-        for (const log of fights) {
+        for (const [fi, log] of fights.entries()) {
             const details = (log as any).details ?? getDetails(log.id) ?? getDetails(log.filePath);
             const players = (details?.players ?? [])
                 .map((p: any) => {
@@ -241,10 +250,10 @@ const executors: Record<string, Executor> = {
                 })
                 .filter((p: any) => Object.keys(p.boons).length > 0);
 
-            const fightLabel = log.fightName ?? log.id;
+            const label = fightLabel(log, fight_index != null ? fight_index : fi);
 
             if (players.length === 0) {
-                parts.push(`**${fightLabel}**\n\nNo boon data available.`);
+                parts.push(`**${label}**\n\nNo boon data available.`);
                 continue;
             }
 
@@ -274,7 +283,7 @@ const executors: Record<string, Executor> = {
             });
 
             const table = mdTable(['Boon', 'Avg', 'Min', 'Max', 'Players'], rows, [1, 2, 3, 4]);
-            parts.push(`**${fightLabel}**\n\n${table}`);
+            parts.push(`**${label}**\n\n${table}`);
         }
 
         if (parts.length === 0) return 'No boon data found.';
@@ -310,7 +319,7 @@ const executors: Record<string, Executor> = {
         const fights = loadedFights(logs, fight_index);
         const parts: string[] = [];
 
-        for (const log of fights) {
+        for (const [fi, log] of fights.entries()) {
             const details = (log as any).details ?? getDetails(log.id) ?? getDetails(log.filePath);
             const byGroup = new Map<number, any[]>();
             for (const p of details?.players ?? []) {
@@ -319,7 +328,7 @@ const executors: Record<string, Executor> = {
                 byGroup.get(g)!.push(p);
             }
 
-            const fightLabel = log.fightName ?? log.id;
+            const label = fightLabel(log, fight_index != null ? fight_index : fi);
             const groups = Array.from(byGroup.entries()).sort(([a], [b]) => a - b);
 
             const rows = groups.map(([g, players]) => {
@@ -331,7 +340,7 @@ const executors: Record<string, Executor> = {
             });
 
             const table = mdTable(['Group', 'Players', 'Damage', 'Deaths', 'Cleanses', 'Rezzes'], rows, [1, 2, 3, 4, 5]);
-            parts.push(`**${fightLabel}**\n\n${table}`);
+            parts.push(`**${label}**\n\n${table}`);
         }
 
         return parts.join('\n\n') || 'No group data found.';
@@ -348,7 +357,7 @@ const executors: Record<string, Executor> = {
             .slice(0, top_n);
 
         if (skills.length === 0) return 'No skill damage data found.';
-        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights';
+        const scope = scopeLabel(logs, fight_index);
         const heading = `**Top squad skills by ${metric} — ${scope}**`;
 
         const rows = skills.map((s, i) => [
@@ -384,7 +393,7 @@ const executors: Record<string, Executor> = {
             .slice(0, 20);
 
         if (healers.length === 0) return 'No healing data found — this fight may not have dedicated healers or healing was not logged.';
-        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights';
+        const scope = scopeLabel(logs, fight_index);
         const heading = `**Healing output — ${scope}**`;
 
         const hasBarrier = healers.some(p => (p.healingTotals?.barrier ?? 0) > 0);
@@ -434,7 +443,7 @@ const executors: Record<string, Executor> = {
         if (summary.length === 0) return condition_name
             ? `No data found for condition '${condition_name}'.`
             : 'No condition data found.';
-        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights';
+        const scope = scopeLabel(logs, fight_index);
         const heading = `**Conditions applied to enemies — ${scope}**`;
 
         const topConditions = summary.slice(0, 20);
@@ -465,7 +474,7 @@ const executors: Record<string, Executor> = {
             .slice(0, 20);
 
         if (players.length === 0) return 'No mitigation data found.';
-        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights';
+        const scope = scopeLabel(logs, fight_index);
         const heading = `**Damage mitigation — ${scope}**`;
 
         const hasEvades = players.some(p => (p.mitigationTotals?.evaded ?? 0) > 0);
@@ -507,7 +516,7 @@ const executors: Record<string, Executor> = {
             .slice(0, 15);
 
         if (players.length === 0) return 'No spike damage data found.';
-        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights';
+        const scope = scopeLabel(logs, fight_index);
         const heading = `**Spike/burst damage — ${scope}**`;
 
         const rows = players.map((p, i) => [
@@ -530,7 +539,7 @@ const executors: Record<string, Executor> = {
         const parts: string[] = [];
         let firstFightWithData: { sorted: Array<{ name: string; damage: number; hits: number }> } | null = null;
 
-        for (const log of fights) {
+        for (const [fi, log] of fights.entries()) {
             const details = (log as any).details ?? getDetails(log.id) ?? getDetails(log.filePath);
             if (!details) continue;
 
@@ -564,8 +573,7 @@ const executors: Record<string, Executor> = {
                 .sort((a, b) => b.damage - a.damage)
                 .slice(0, top_n);
 
-            const fightLabel = log.fightName ?? log.id;
-            const heading = `**${fightLabel} — Top enemy skills hitting your squad**`;
+            const heading = `**${fightLabel(log, fight_index != null ? fight_index : fi)} — Top enemy skills hitting your squad**`;
 
             if (sorted.length === 0) {
                 parts.push(`${heading}\n\nNo incoming skill data available.`);
@@ -599,8 +607,6 @@ const executors: Record<string, Executor> = {
         const { fight_index } = args;
         const fights = loadedFights(logs, fight_index);
         if (fights.length === 0) return 'No loaded fights found for performance analysis.';
-
-        const scope = fight_index != null ? `Fight ${fight_index + 1}` : `all ${fights.length} fight${fights.length !== 1 ? 's' : ''}`;
 
         const { stats, error } = statsForIndex(fight_index, logs, getDetails, computedStats);
         if (error) return error;
@@ -725,14 +731,14 @@ const executors: Record<string, Executor> = {
         // Opening sentence
         const kdStr = totalDeaths > 0 ? `${totalKills}:${totalDeaths}` : `${totalKills}:0`;
         const fightCount = fights.length;
-        const scopeLabel = fight_index != null ? `Fight ${fight_index + 1}` : `${fightCount} fight${fightCount !== 1 ? 's' : ''}`;
+        const sessionLabel = scopeLabel(logs, fight_index, `${fightCount} fight${fightCount !== 1 ? 's' : ''}`);
         let openingSentence: string;
         if (kdRatio >= 2) {
-            openingSentence = `Over ${scopeLabel} your squad went ${kdStr} kills to deaths — a strong ${kdStr} K/D (${kdLabel}).`;
+            openingSentence = `Over ${sessionLabel} your squad went ${kdStr} kills to deaths — a strong ${kdStr} K/D (${kdLabel}).`;
         } else if (kdRatio >= 1) {
-            openingSentence = `Over ${scopeLabel} your squad went ${kdStr} kills to deaths — a ${kdStr} K/D (${kdLabel}).`;
+            openingSentence = `Over ${sessionLabel} your squad went ${kdStr} kills to deaths — a ${kdStr} K/D (${kdLabel}).`;
         } else {
-            openingSentence = `Tough session (${scopeLabel}) — ${totalKills} kills against ${totalDeaths} deaths puts you at a ${kdStr} K/D (${kdLabel}).`;
+            openingSentence = `Tough session (${sessionLabel}) — ${totalKills} kills against ${totalDeaths} deaths puts you at a ${kdStr} K/D (${kdLabel}).`;
         }
 
         // Offense table
@@ -842,9 +848,9 @@ const executors: Record<string, Executor> = {
 
             for (const [i, log] of loaded.entries()) {
                 const details = (log as any).details ?? getDetails(log.id) ?? getDetails(log.filePath);
-                const fightLabel = log.fightName ?? log.id;
+                const label = fightLabel(log, i);
                 if (!details) {
-                    tableRows.push([`Fight ${i + 1}`, fightLabel, '(no data)']);
+                    tableRows.push([label, '(no data)']);
                     continue;
                 }
                 const { stats } = computeStatsSync({ logs: [{ ...log, details }] });
@@ -852,11 +858,11 @@ const executors: Record<string, Executor> = {
                 const query = String(player_name).toLowerCase();
                 const match = Array.from(playerMap.entries()).find(([acc]) => acc.toLowerCase().includes(query));
                 const val = match ? extractor(match[1]) : null;
-                tableRows.push([`Fight ${i + 1}`, fightLabel, val != null ? fmt(val) : 'not found']);
-                if (val != null) chartData.push({ name: `Fight ${i + 1}`, value: val });
+                tableRows.push([label, val != null ? fmt(val) : 'not found']);
+                if (val != null) chartData.push({ name: label, value: val });
             }
 
-            const table = mdTable(['Fight', 'Name', 'Value'], tableRows, [2]);
+            const table = mdTable(['Fight', metricLabel], tableRows, [1]);
             let chart = '';
             if (chartData.length > 0) {
                 chart = chartBlock({
@@ -874,9 +880,9 @@ const executors: Record<string, Executor> = {
 
             for (const [i, log] of loaded.entries()) {
                 const details = (log as any).details ?? getDetails(log.id) ?? getDetails(log.filePath);
-                const fightLabel = log.fightName ?? log.id;
+                const label = fightLabel(log, i);
                 if (!details) {
-                    tableRows.push([`Fight ${i + 1}`, fightLabel, '(no data)', '(no data)']);
+                    tableRows.push([label, '(no data)', '(no data)']);
                     continue;
                 }
                 const { stats } = computeStatsSync({ logs: [{ ...log, details }] });
@@ -884,11 +890,11 @@ const executors: Record<string, Executor> = {
                 const values = Array.from(playerMap.values()).map(extractor).filter(v => v > 0);
                 const avg = values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
                 const total = values.reduce((a, b) => a + b, 0);
-                tableRows.push([`Fight ${i + 1}`, fightLabel, fmt(avg), fmt(total)]);
-                chartData.push({ name: `Fight ${i + 1}`, value: avg });
+                tableRows.push([label, fmt(avg), fmt(total)]);
+                chartData.push({ name: label, value: avg });
             }
 
-            const table = mdTable(['Fight', 'Name', 'Avg', 'Total'], tableRows, [2, 3]);
+            const table = mdTable(['Fight', 'Avg', 'Total'], tableRows, [1, 2]);
             const chart = chartBlock({
                 type: 'bar',
                 data: chartData,

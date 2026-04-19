@@ -121,9 +121,11 @@ const extractFightOverview: ExtractFn = (logs) => {
     const rows = fights.map((log, i) => {
         const s = log.dashboardSummary;
         const outcome = s?.isWin === true ? 'WIN' : s?.isWin === false ? 'LOSS' : '?';
-        const kd = s?.squadDeaths > 0
-            ? (s.enemyDeaths / s.squadDeaths).toFixed(1)
-            : s?.enemyDeaths > 0 ? `${s.enemyDeaths}:0` : '—';
+        const squadDeaths = s?.squadDeaths ?? 0;
+        const enemyDeaths = s?.enemyDeaths ?? 0;
+        const kd = squadDeaths > 0
+            ? (enemyDeaths / squadDeaths).toFixed(1)
+            : enemyDeaths > 0 ? `${enemyDeaths}:0` : '—';
         const duration = log.encounterDuration ?? '?';
         return [fightLabel(log, i), outcome, duration, s?.squadCount ?? '?', s?.squadDeaths ?? '?', s?.enemyDeaths ?? '?', kd];
     });

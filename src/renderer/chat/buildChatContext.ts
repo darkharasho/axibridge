@@ -29,9 +29,11 @@ export function buildSystemPrompt(logs: ILogData[]): string {
         : loaded.map((log, i) => {
             const s = log.dashboardSummary;
             const outcome = s?.isWin === true ? 'WIN' : s?.isWin === false ? 'LOSS' : '?';
-            const kd = s?.squadDeaths > 0
-                ? `${(s.enemyDeaths / s.squadDeaths).toFixed(1)}:1 K/D`
-                : s?.enemyDeaths > 0 ? `${s.enemyDeaths}:0 K/D` : '';
+            const squadDeaths = s?.squadDeaths ?? 0;
+            const enemyDeaths = s?.enemyDeaths ?? 0;
+            const kd = squadDeaths > 0
+                ? `${(enemyDeaths / squadDeaths).toFixed(1)}:1 K/D`
+                : enemyDeaths > 0 ? `${enemyDeaths}:0 K/D` : '';
             const name = log.fightName ?? `Fight ${i + 1}`;
             return `${i + 1}. ${name} — ${outcome}${kd ? ` — ${kd}` : ''}`;
         }).join('\n');
