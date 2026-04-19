@@ -176,4 +176,18 @@ export const TOOL_SCHEMAS: OllamaTool[] = [
             },
         },
     },
+    {
+        type: 'function',
+        function: {
+            name: 'performance_analysis',
+            description: 'Generate a coaching report analyzing overall squad performance — offense, defense, boon coverage, healing, and actionable recommendations. Use for "what can we improve?", "coaching report", "how did we do?", "what were our weaknesses?", "performance review".',
+            parameters: {
+                type: 'object',
+                properties: {
+                    fight_index: { type: 'number', description: '0-based fight index. Omit for all fights combined.' },
+                },
+                required: [],
+            },
+        },
+    },
 ];

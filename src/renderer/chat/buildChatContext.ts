@@ -15,6 +15,14 @@ const BOON_NAMES: Record<number, string> = {
     30328: 'Alacrity',
 };
 
+// Boon IDs for squad averages line
+const SQUAD_AVG_BOONS: Array<{ ids: number[]; label: string }> = [
+    { ids: [726, 1122], label: 'Stability' },
+    { ids: [1187],      label: 'Quickness' },
+    { ids: [30328],     label: 'Alacrity' },
+    { ids: [1],         label: 'Might' },
+];
+
 function fmt(n: number): string {
     return n.toLocaleString('en-US');
 }
@@ -54,6 +62,46 @@ function playerLine(p: any): string {
     if (dist != null) parts.push(`DistToTag: ${Math.round(dist)}`);
 
     return `    ${parts.join(' | ')}`;
+}
+
+function squadAveragesLine(players: any[]): string | null {
+    if (!players?.length) return null;
+
+    const boonParts: string[] = [];
+    for (const { ids, label } of SQUAD_AVG_BOONS) {
+        const values: number[] = [];
+        for (const p of players) {
+            if (!Array.isArray(p.buffUptimes)) continue;
+            for (const b of p.buffUptimes) {
+                if (ids.includes(b.id as number)) {
+                    const uptime = b.buffData?.[0]?.uptime ?? b.uptime ?? null;
+                    if (uptime != null) {
+                        values.push((uptime as number) * 100);
+                        break;
+                    }
+                }
+            }
+        }
+        // Only include if at least half the squad has data
+        if (values.length >= players.length / 2) {
+            const avg = Math.round(values.reduce((s, v) => s + v, 0) / values.length);
+            boonParts.push(`${label}: ${avg}%`);
+        }
+    }
+
+    const dpsValues = players
+        .map(p => (p.dpsAll?.[0]?.dps ?? 0) as number)
+        .filter(v => v > 0);
+    const avgDps = dpsValues.length > 0
+        ? Math.round(dpsValues.reduce((s, v) => s + v, 0) / dpsValues.length)
+        : 0;
+
+    const parts: string[] = [];
+    if (boonParts.length > 0) parts.push(boonParts.join(' | '));
+    if (avgDps > 0) parts.push(`Avg DPS: ${fmt(avgDps)}`);
+    if (parts.length === 0) return null;
+
+    return `Squad Averages: ${parts.join(' | ')}`;
 }
 
 function boonLines(p: any): string[] {
@@ -127,6 +175,8 @@ export function buildChatContext(logs: ILogData[], getDetails: (id: string) => a
         }
 
         const players: any[] = details?.players;
+        const avgLine = squadAveragesLine(players);
+        if (avgLine) lines.push(avgLine);
         if (players?.length > 0) {
             lines.push(`Players (${players.length}):`);
             // Sort by damage desc for the prompt
@@ -168,6 +218,10 @@ export function buildChatContext(logs: ILogData[], getDetails: (id: string) => a
     lines.push('- player_deep_dive: full stats for one specific named player');
     lines.push('- Do NOT call rank_players for questions about skills or abilities — use the skill/condition tools instead.');
     lines.push('- Do NOT call any tool if the answer is already visible in the fight data above.');
+    lines.push('- performance_analysis: comprehensive coaching report covering offense, boon coverage, deaths, healing, and recommendations ("what can we improve?", "coaching report", "performance review", "how did we do overall?")');
+    lines.push('');
+    lines.push('## Multi-Tool Analysis');
+    lines.push('For broad questions requiring synthesis across multiple dimensions ("analyze our performance", "summarize tonight", "what can we improve overall"), call multiple tools in sequence and synthesize the results. Don\'t limit yourself to one tool per question.');
 
     return lines.join('\n');
 }

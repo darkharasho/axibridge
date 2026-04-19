@@ -425,6 +425,166 @@ const executors: Record<string, Executor> = {
         return lines.join('\n').trim() || 'No incoming skill damage data found.';
     },
 
+    performance_analysis(args, logs, getDetails, computedStats) {
+        const { fight_index } = args;
+        const fights = loadedFights(logs, fight_index);
+        if (fights.length === 0) return 'No loaded fights found for performance analysis.';
+
+        const scope = fight_index != null ? `Fight ${fight_index + 1}` : `all ${fights.length} fight${fights.length !== 1 ? 's' : ''}`;
+
+        // --- Offense: K/D and top damage ---
+        const { stats, error } = statsForIndex(fight_index, logs, getDetails, computedStats);
+        if (error) return error;
+
+        let totalKills = 0;
+        let totalDeaths = 0;
+        let squadCount = 0;
+        for (const log of fights) {
+            const s = log.dashboardSummary;
+            if (s) {
+                totalKills += s.enemyDeaths ?? 0;
+                totalDeaths += s.squadDeaths ?? 0;
+                squadCount = Math.max(squadCount, s.squadCount ?? 0);
+            }
+        }
+        const kdRatio = totalDeaths > 0 ? totalKills / totalDeaths : totalKills;
+        let kdLabel = 'Losing';
+        if (kdRatio > 3) kdLabel = 'Dominant';
+        else if (kdRatio >= 2) kdLabel = 'Winning';
+        else if (kdRatio >= 1) kdLabel = 'Competitive';
+
+        const offensePlayers = (stats?.offensePlayers ?? []) as any[];
+        const topDamagePlayer = [...offensePlayers].sort((a, b) =>
+            (b.offenseTotals?.damage ?? 0) - (a.offenseTotals?.damage ?? 0)
+        )[0];
+
+        // --- Boon averages across fights ---
+        const PERF_BOONS: Array<{ ids: number[]; label: string; goodPct: number; okPct: number }> = [
+            { ids: [726, 1122], label: 'Stability',  goodPct: 80, okPct: 65 },
+            { ids: [1187],      label: 'Quickness',  goodPct: 75, okPct: 55 },
+            { ids: [30328],     label: 'Alacrity',   goodPct: 70, okPct: 50 },
+            { ids: [1],         label: 'Might',      goodPct: 85, okPct: 70 },
+            { ids: [5],         label: 'Fury',       goodPct: 70, okPct: 50 },
+        ];
+
+        // Collect per-boon values across all fights
+        const boonValues: Record<string, number[]> = {};
+        for (const log of fights) {
+            const details = (log as any).details ?? getDetails(log.id) ?? getDetails(log.filePath);
+            const players: any[] = details?.players ?? [];
+            for (const { ids, label } of PERF_BOONS) {
+                for (const p of players) {
+                    if (!Array.isArray(p.buffUptimes)) continue;
+                    for (const b of p.buffUptimes) {
+                        if (ids.includes(b.id as number)) {
+                            const uptime = b.buffData?.[0]?.uptime ?? b.uptime ?? null;
+                            if (uptime != null) {
+                                if (!boonValues[label]) boonValues[label] = [];
+                                boonValues[label].push((uptime as number) * 100);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Deaths: most deaths per player ---
+        const defensePlayers = (stats?.defensePlayers ?? []) as any[];
+        const sortedByDeaths = [...defensePlayers].sort((a, b) =>
+            (b.defenseTotals?.deadCount ?? 0) - (a.defenseTotals?.deadCount ?? 0)
+        );
+        const mostDeadPlayer = sortedByDeaths[0];
+        const totalSquadDeaths = defensePlayers.reduce((s, p) => s + (p.defenseTotals?.deadCount ?? 0), 0);
+        const avgSquadSize = fights.reduce((s, l) => s + (l.dashboardSummary?.squadCount ?? 0), 0) / fights.length || 1;
+        const deathRate = (totalSquadDeaths / avgSquadSize) / fights.length * 100;
+        let deathRateLabel = 'normal';
+        if (deathRate < 5) deathRateLabel = 'low';
+        else if (deathRate > 15) deathRateLabel = 'high';
+
+        // --- Healing ---
+        const healers = ((stats?.healingPlayers ?? []) as any[])
+            .filter(p => (p.healingTotals?.healing ?? 0) > 0);
+
+        // --- Build output ---
+        const lines: string[] = [];
+        lines.push(`Performance Analysis (${scope}):`);
+        lines.push('');
+
+        // Offensive section
+        lines.push('OFFENSIVE');
+        const kdStr = totalDeaths > 0 ? `${kdRatio.toFixed(1)}:1` : `${totalKills}:0`;
+        lines.push(`  K/D: ${kdStr} (${kdLabel}) — ${totalKills} enemy kills, ${totalDeaths} squad deaths`);
+        if (topDamagePlayer) {
+            const dmg = fmt(topDamagePlayer.offenseTotals?.damage ?? 0);
+            lines.push(`  Top damage: ${topDamagePlayer.account} (${topDamagePlayer.profession ?? '?'}) — ${dmg}`);
+        }
+        lines.push('');
+
+        // Boon section
+        lines.push('BOON COVERAGE (squad averages)');
+        const recommendations: string[] = [];
+        for (const { label, goodPct, okPct } of PERF_BOONS) {
+            const values = boonValues[label];
+            if (!values || values.length === 0) continue;
+            const avg = Math.round(values.reduce((s, v) => s + v, 0) / values.length);
+            if (avg < okPct) {
+                const suggestion = label === 'Quickness'
+                    ? 'consider adding Firebrand support'
+                    : label === 'Alacrity'
+                        ? 'a Mechanist or Specter would help'
+                        : label === 'Stability'
+                            ? 'ensure Guardians are maintaining Stability'
+                            : label === 'Might'
+                                ? 'more Might stacking support needed'
+                                : 'check boon support coverage';
+                lines.push(`  \u26a0 ${label}: ${avg}% (below ${goodPct}% target — ${suggestion})`);
+                recommendations.push(`${label} uptime (${avg}%) is below target — target ${goodPct}%+ with ${suggestion}`);
+            } else if (avg < goodPct) {
+                lines.push(`  \u2713 ${label}: ${avg}% (ok)`);
+            } else {
+                lines.push(`  \u2713 ${label}: ${avg}%`);
+            }
+        }
+        if (Object.keys(boonValues).length === 0) lines.push('  (no boon data available)');
+        lines.push('');
+
+        // Deaths section
+        lines.push('DEATHS');
+        lines.push(`  Death rate: ${deathRate.toFixed(1)}% (${deathRateLabel})`);
+        if (mostDeadPlayer && (mostDeadPlayer.defenseTotals?.deadCount ?? 0) > 0) {
+            const deathCount = mostDeadPlayer.defenseTotals?.deadCount ?? 0;
+            lines.push(`  Most deaths: ${mostDeadPlayer.account} — ${deathCount} death${deathCount !== 1 ? 's' : ''} across fights`);
+            if (deathCount >= 3) {
+                recommendations.push(`${mostDeadPlayer.account} died ${deathCount} times — review positioning or swap role`);
+            }
+        }
+        lines.push('');
+
+        // Healing section
+        lines.push('HEALING');
+        if (healers.length === 0) {
+            lines.push('  (no healing data recorded)');
+        } else {
+            for (const h of healers.slice(0, 3)) {
+                const healing = fmt(h.healingTotals?.healing ?? 0);
+                const hps = h.activeMs > 0 ? fmt(Math.round((h.healingTotals?.healing ?? 0) / (h.activeMs / 1000))) : '?';
+                lines.push(`  ${h.account} (${h.profession ?? '?'}) — ${healing} (${hps} HPS)`);
+            }
+        }
+        lines.push('');
+
+        // Recommendations
+        lines.push('RECOMMENDATIONS');
+        if (recommendations.length === 0) {
+            lines.push('  Squad performance looks solid across all measured dimensions.');
+        } else {
+            recommendations.forEach((r, i) => lines.push(`  ${i + 1}. ${r}`));
+        }
+
+        return lines.join('\n');
+    },
+
     compare_fights(args, logs, getDetails) {
         const { metric, player_name } = args;
         const extractor = METRIC_MAP[metric];

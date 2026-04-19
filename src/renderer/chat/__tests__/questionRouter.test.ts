@@ -264,6 +264,44 @@ describe('spike_damage', () => {
     });
 });
 
+describe('performance_analysis', () => {
+    const cases = [
+        'what can we improve?',
+        'give me a coaching report',
+        'what were our weaknesses?',
+        'performance review for tonight',
+        'where did we struggle?',
+        'what should we focus on?',
+        'how did we do overall?',
+        'give us a full analysis',
+        'overall performance summary',
+        'areas for improvement',
+        'how can we get better?',
+    ];
+    it.each(cases)('routes "%s" to performance_analysis', (q) => {
+        const r = classifyQuestion(q);
+        expect(r.kind).toBe('tool');
+        if (r.kind === 'tool') {
+            expect(r.tool).toBe('performance_analysis');
+            expect(r.argsComplete).toBe(true);
+        }
+    });
+
+    it('extracts fight_index when specified', () => {
+        const r = classifyQuestion('performance review for fight 2');
+        expect(r.kind).toBe('tool');
+        if (r.kind === 'tool') {
+            expect(r.tool).toBe('performance_analysis');
+            expect(r.args.fight_index).toBe(1);
+        }
+    });
+
+    it('does not route "how was tonight overall?" to performance_analysis', () => {
+        const r = classifyQuestion('how was tonight overall?');
+        expect(r.kind).not.toBe('tool');
+    });
+});
+
 // Critical: these must NOT route to rank_players
 describe('does not misroute skill questions to rank_players', () => {
     const cases = [

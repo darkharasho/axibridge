@@ -128,6 +128,28 @@ describe('compare_fights', () => {
     });
 });
 
+describe('performance_analysis', () => {
+    it('returns a non-empty coaching report string containing key sections', () => {
+        const result = executeToolCall('performance_analysis', {}, logs, getDetails, computedStats);
+        expect(typeof result).toBe('string');
+        expect(result.length).toBeGreaterThan(0);
+        const hasExpectedSection = result.includes('OFFENSIVE') || result.includes('BOON') || result.includes('RECOMMENDATIONS');
+        expect(hasExpectedSection).toBe(true);
+    });
+
+    it('includes K/D information in the offensive section', () => {
+        const result = executeToolCall('performance_analysis', {}, logs, getDetails, computedStats);
+        expect(result).toContain('OFFENSIVE');
+        expect(result).toContain('K/D');
+    });
+
+    it('works for a specific fight index', () => {
+        const result = executeToolCall('performance_analysis', { fight_index: 0 }, logs, getDetails, computedStats);
+        expect(typeof result).toBe('string');
+        expect(result).toContain('Fight 1');
+    });
+});
+
 describe('executeToolCall', () => {
     it('returns error for unknown tool', () => {
         const result = executeToolCall('unknown_tool', {}, logs, getDetails, computedStats);

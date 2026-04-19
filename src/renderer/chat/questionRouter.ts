@@ -90,6 +90,35 @@ type Matcher = {
 const any = (...patterns: RegExp[]) => (text: string) => patterns.some(p => p.test(lower(text)));
 
 const MATCHERS: Matcher[] = [
+    // Performance analysis / coaching report — broad synthesis questions
+    {
+        test: any(
+            /what\s+can\s+we\s+improve/,
+            /how\s+(can|do)\s+we\s+(get\s+)?better/,
+            /coaching\s+report/,
+            /what\s+(were|are)\s+our\s+(weakness|strength|problem|issue)/,
+            /performance\s+(review|report|analysis|summary)/,
+            /where\s+(did|do)\s+we\s+struggle/,
+            /what\s+should\s+we\s+focus\s+on/,
+            /areas?\s+(for|to)\s+improve/,
+            /how\s+did\s+we\s+do\s+overall/,
+            /give\s+(me|us)\s+(a\s+)?(full|overall|complete|comprehensive)\s+analysis/,
+            /overall\s+(performance|analysis|review)/,
+        ),
+        decide: (text) => {
+            const args: Record<string, any> = {};
+            const fi = extractFightIndex(text);
+            if (fi != null) args.fight_index = fi;
+            return {
+                kind: 'tool',
+                tool: 'performance_analysis',
+                args,
+                argsComplete: true,
+                directive: 'The user wants a coaching report / performance analysis. Use performance_analysis.',
+            };
+        },
+    },
+
     // Unavailable data — check first to avoid false-positive routing
     {
         test: any(

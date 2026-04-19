@@ -16,6 +16,7 @@ const TOOL_DISPLAY: Record<string, string> = {
     conditions_applied: 'Analyzing conditions',
     damage_mitigation: 'Analyzing mitigation',
     spike_damage: 'Analyzing spike damage',
+    performance_analysis: 'Generating coaching report',
 };
 
 function ToolCallBadge({ name, status }: { name: string; status: 'running' | 'done' }) {
