@@ -1,15 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Users } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
-import { PROFESSION_COLORS } from '../../../shared/professionUtils';
-
-const hexToRgba = (hex: string, alpha: number): string => {
-    const h = hex.replace('#', '');
-    const r = parseInt(h.substring(0, 2), 16);
-    const g = parseInt(h.substring(2, 4), 16);
-    const b = parseInt(h.substring(4, 6), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
-};
+import { getProfessionColor, hexToRgba } from '../../../shared/professionUtils';
 
 type SquadCompPlayer = {
     account: string;
@@ -90,7 +82,7 @@ export const SquadCompByFightSection = ({
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Search player or class (highlight matches)..."
-                        className="w-full sm:w-[360px] bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] rounded-[var(--radius-md)] px-3 py-2 text-xs text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none"
+                        className="w-full sm:w-[360px] bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] rounded-[var(--radius-md)] px-3 py-2 text-xs text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[color:var(--brand-primary)]"
                     />
                 </div>
                 {fights.length === 0 ? (
@@ -107,11 +99,11 @@ export const SquadCompByFightSection = ({
                                             key={fight.id}
                                             onClick={() => setActiveFightId(fight.id)}
                                             className={`squad-comp-fight-nav-item w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${isActive
-                                                ? 'bg-[var(--accent-bg-strong)] border-[color:var(--accent-border)] text-[#93c5fd] squad-comp-fight-nav-item--active'
+                                                ? 'bg-[var(--accent-bg-strong)] border-[color:var(--accent-border)] text-[color:var(--brand-primary)] squad-comp-fight-nav-item--active'
                                                 : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
                                                 }`}
                                         >
-                                            <div className={`text-[10px] uppercase tracking-widest ${isActive ? 'text-[rgba(147,197,253,0.7)]' : 'text-[color:var(--text-secondary)]'}`}>{fight.label}</div>
+                                            <div className={`text-[10px] uppercase tracking-widest ${isActive ? 'text-[color:var(--accent-border)]' : 'text-[color:var(--text-secondary)]'}`}>{fight.label}</div>
                                             <div className="text-xs font-semibold truncate">{fight.mapName || 'Unknown Map'}</div>
                                             <div className="text-[10px] text-[color:var(--text-secondary)] truncate">{fight.duration || '--:--'} · {formatTimestamp(fight.timestamp)}</div>
                                         </button>
@@ -148,16 +140,14 @@ export const SquadCompByFightSection = ({
                                                             }`}
                                                         style={{
                                                             borderLeftWidth: '2px',
-                                                            borderLeftColor: PROFESSION_COLORS[player.profession] ?? 'rgba(255,255,255,0.14)',
+                                                            borderLeftColor: getProfessionColor(player.profession),
                                                         }}
                                                     >
                                                         <div className="grid grid-cols-[18px_minmax(0,1fr)] grid-rows-2 gap-x-2 items-center min-w-0">
                                                             <div
                                                                 className="row-span-2 flex items-center justify-center w-5 h-5 rounded-sm flex-shrink-0"
                                                                 style={{
-                                                                    backgroundColor: PROFESSION_COLORS[player.profession]
-                                                                        ? hexToRgba(PROFESSION_COLORS[player.profession], 0.08)
-                                                                        : 'rgba(255,255,255,0.05)',
+                                                                    backgroundColor: hexToRgba(getProfessionColor(player.profession), 0.08),
                                                                 }}
                                                             >
                                                                 {getProfessionIconPath(player.profession) ? (
@@ -174,8 +164,8 @@ export const SquadCompByFightSection = ({
                                                                 <span className="truncate min-w-0">{player.account}</span>
                                                                 {player.isCommander ? (
                                                                     <span
-                                                                        className="inline-flex items-center justify-center w-3 h-3 rounded-full flex-shrink-0 text-[8px] leading-none"
-                                                                        style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)', color: '#fbbf24' }}
+                                                                        className="inline-flex items-center justify-center w-3 h-3 rounded-full flex-shrink-0 text-[8px] leading-none text-[color:var(--status-warning)]"
+                                                                        style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)' }}
                                                                         title="Commander"
                                                                     >★</span>
                                                                 ) : null}
