@@ -131,7 +131,7 @@ export const SquadCompByFightSection = ({
                                         >
                                             <div className="squad-comp-party-badge rounded-[var(--radius-md)] border border-[color:var(--border-default)] text-center py-2">
                                                 <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-muted)]">P</div>
-                                                <div className="text-base font-bold text-gray-100 leading-none">
+                                                <div className="text-base font-bold text-[color:var(--text-primary)] leading-none">
                                                     {party.party > 0 ? party.party : '-'}
                                                 </div>
                                             </div>
