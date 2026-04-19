@@ -1,26 +1,12 @@
 # Release Notes
 
-Version v2.5.8 — April 18, 2026
+Version v2.5.9 — April 19, 2026
 
-## Redesigned Web Upload Modal
+## Squad Comp By Fight — Visual Overhaul
 
-The upload modal now shows a proper step-by-step progress indicator (Prepare → Build → Package → Upload → Finalize) with a live activity log streaming status messages as they arrive. The old single-line status that sometimes got stuck on "Preparing report..." is gone.
-
-## Upload Log Viewer
-
-After a successful upload, the banner now has a **Logs** button that reopens the full activity log from that upload in a modal. Useful if something looked off and you want to review what happened.
-
-## History Tab: Copy Link & Delete
-
-Each report card in the History tab now has a three-dot menu with two actions: **Copy link** copies the web address for that report to your clipboard, and **Delete** removes it from GitHub Pages (and from R2 if you have that configured).
-
-## Theme-Aware Upload UI & Map Chrome
-
-The upload modal, banner, and a few map elements (active fight card highlight, commander tag range rings, the squad DPS chart line) now pick up your chosen color palette instead of always being cyan-blue.
+The Squad Comp section now fits in with the rest of the app. Player tiles use the standard card style with a 2px colored left border matching each GW2 profession, the commander indicator is a small inline badge instead of a large watermark, and the active fight tab uses the same blue accent tokens every other section uses. Looks right across all themes now.
 
 ## Fixes
 
-- Upload modal now correctly shows live status messages from the backend instead of staying stuck on the initial "Preparing report..." text.
-- Build status error icon in the upload banner now shows a red background as intended.
-- Rapid second uploads no longer leave the modal faded out.
-- Glass mode dropdowns are now solid-colored instead of see-through.
+- Players who were moved between parties mid-fight and moved back no longer show up twice in the same party row.
+- Fixed a scrolling issue with the replay overlay.
