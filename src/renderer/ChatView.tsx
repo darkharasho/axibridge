@@ -1,6 +1,26 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Maximize2, X, Send, Bot } from 'lucide-react';
+import { Maximize2, X, Send, Bot, Play, Loader2, CheckCircle2 } from 'lucide-react';
 import { useChat } from './chat/useChat';
+
+const TOOL_DISPLAY: Record<string, string> = {
+    player_deep_dive: 'Analyzing player',
+    rank_players: 'Ranking players',
+    boon_analysis: 'Analyzing boons',
+    group_breakdown: 'Breaking down groups',
+    compare_fights: 'Comparing fights',
+};
+
+function ToolCallBadge({ name, status }: { name: string; status: 'running' | 'done' }) {
+    const label = TOOL_DISPLAY[name] ?? name;
+    return (
+        <div className={`flex items-center gap-1.5 text-xs py-1 ${status === 'done' ? 'text-green-400' : 'text-gray-500'}`}>
+            {status === 'running'
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <CheckCircle2 className="w-3 h-3" />}
+            <span>{label}</span>
+        </div>
+    );
+}
 
 const SUGGESTION_PILLS = [
     'Summarize tonight\'s fights',
@@ -20,9 +40,10 @@ interface ChatViewProps {
 }
 
 export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClose, ollamaConnected: connectedProp }: ChatViewProps) {
-    const { messages, streaming, ollamaConnected: hookConnected, sendMessage } = useChat(logs, ollamaEnabled);
+    const { messages, streaming, thinking, toolCalls, ollamaConnected: hookConnected, sendMessage } = useChat(logs, ollamaEnabled);
     const connected = connectedProp ?? hookConnected;
     const [input, setInput] = useState('');
+    const [starting, setStarting] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const hasMessages = messages.length > 0;
@@ -37,6 +58,12 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
         setInput('');
         requestAnimationFrame(() => inputRef.current?.focus());
     }, [streaming, connected, sendMessage]);
+
+    const handleStartOllama = useCallback(async () => {
+        setStarting(true);
+        await window.electronAPI.startOllama();
+        setStarting(false);
+    }, []);
 
     if (!connected) {
         return (
@@ -54,7 +81,14 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
                 )}
                 <Bot className="w-8 h-8 text-gray-600" />
                 <p className="text-sm text-gray-400">Ollama isn't connected</p>
-                <p className="text-xs text-gray-600">Start Ollama or check your settings</p>
+                <button
+                    onClick={handleStartOllama}
+                    disabled={starting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+                >
+                    <Play className="w-3 h-3" />
+                    {starting ? 'Starting…' : 'Start Ollama'}
+                </button>
             </div>
         );
     }
@@ -119,6 +153,13 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
                         )}
                     </div>
                 ))}
+                {toolCalls.length > 0 && (
+                    <div className="self-start flex flex-col gap-0.5 px-1">
+                        {toolCalls.map(tc => (
+                            <ToolCallBadge key={tc.id} name={tc.name} status={tc.status} />
+                        ))}
+                    </div>
+                )}
                 <div ref={bottomRef} />
             </div>
 
@@ -137,27 +178,34 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
                         ))}
                     </div>
                 )}
-                <form
-                    onSubmit={e => { e.preventDefault(); handleSubmit(input); }}
-                    className="flex gap-2 items-center"
-                >
-                    <input
-                        ref={inputRef}
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        placeholder="Ask about your fights..."
-                        disabled={streaming}
-                        className="flex-1 text-sm px-3 py-2 rounded-md border bg-gray-900 text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-                        style={{ borderColor: 'var(--border-default)' }}
-                    />
-                    <button
-                        type="submit"
-                        disabled={!input.trim() || streaming}
-                        className="p-2 rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                {thinking ? (
+                    <div className="flex items-center gap-2 px-3 py-2 text-xs text-gray-500">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Thinking...</span>
+                    </div>
+                ) : (
+                    <form
+                        onSubmit={e => { e.preventDefault(); handleSubmit(input); }}
+                        className="flex gap-2 items-center"
                     >
-                        <Send className="w-4 h-4 text-white" />
-                    </button>
-                </form>
+                        <input
+                            ref={inputRef}
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            placeholder="Ask about your fights..."
+                            disabled={streaming}
+                            className="flex-1 text-sm px-3 py-2 rounded-md border bg-gray-900 text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+                            style={{ borderColor: 'var(--border-default)' }}
+                        />
+                        <button
+                            type="submit"
+                            disabled={!input.trim() || streaming}
+                            className="p-2 rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <Send className="w-4 h-4 text-white" />
+                        </button>
+                    </form>
+                )}
             </div>
         </div>
     );
