@@ -26,15 +26,9 @@ export function routeSections(question: string): RouteResult {
     let picked: SectionName[];
 
     if (COACHING_PATTERN.test(q)) {
-        // Broad question — always fetch core dimensions
-        const coreSet = new Set<SectionName>(['fight_overview', 'offense', 'defense', 'boons', 'support']);
-        // Add any additional high-scoring sections
-        scores
-            .filter(s => s.score > 0 && !coreSet.has(s.name))
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 1)
-            .forEach(s => coreSet.add(s.name));
-        picked = Array.from(coreSet);
+        // Broad coaching question — always return the 5 core dimensions.
+        // Intentionally exceeds the 4-section cap for specific questions.
+        picked = ['fight_overview', 'offense', 'defense', 'boons', 'support'];
     } else {
         // Specific question — take top 3 scoring (non-overview) + fight_overview
         const topN = scores
