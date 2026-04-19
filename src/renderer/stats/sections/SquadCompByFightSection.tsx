@@ -2,10 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Users } from 'lucide-react';
 import { resolvePublicAssetPath } from '../../ui/resolvePublicAssetPath';
 import { useStatsSharedContext } from '../StatsViewContext';
-// @ts-ignore - Used in Task 2: tile redesign
 import { PROFESSION_COLORS } from '../../../shared/professionUtils';
 
-// @ts-ignore - Used in Task 2: tile redesign
 const hexToRgba = (hex: string, alpha: number): string => {
     const h = hex.replace('#', '');
     const r = parseInt(h.substring(0, 2), 16);
@@ -146,10 +144,14 @@ export const SquadCompByFightSection = ({
                                                         return (
                                                     <div
                                                         key={`${activeFight.id}-${party.party}-${player.account}-${index}`}
-                                                        className={`squad-comp-player-tile rounded-md border border-emerald-300/20 bg-gradient-to-b from-emerald-500/30 to-emerald-700/25 px-2 py-1.5 min-w-0 transition-all ${isMatch
-                                                            ? 'ring-2 ring-cyan-300/70 border-cyan-300/60 shadow-[0_0_20px_rgba(34,211,238,0.25)]'
+                                                        className={`squad-comp-player-tile rounded-md border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-2 py-1.5 min-w-0 transition-all hover:border-[color:var(--border-hover)] ${isMatch
+                                                            ? 'ring-1 ring-[var(--brand-primary)]/50 border-[color:var(--brand-primary)]/40 bg-[var(--accent-bg)] shadow-[0_0_12px_rgba(59,130,246,0.15)]'
                                                             : ''
-                                                            } ${player.isCommander ? 'relative overflow-hidden' : ''}`}
+                                                            }`}
+                                                        style={{
+                                                            borderLeftWidth: '2px',
+                                                            borderLeftColor: PROFESSION_COLORS[player.profession] ?? 'rgba(255,255,255,0.14)',
+                                                        }}
                                                     >
                                                         {player.isCommander ? (
                                                             <img
@@ -160,7 +162,14 @@ export const SquadCompByFightSection = ({
                                                             />
                                                         ) : null}
                                                         <div className="grid grid-cols-[18px_minmax(0,1fr)] grid-rows-2 gap-x-2 items-center min-w-0">
-                                                            <div className="row-span-2 flex items-center justify-center">
+                                                            <div
+                                                                className="row-span-2 flex items-center justify-center w-5 h-5 rounded-sm flex-shrink-0"
+                                                                style={{
+                                                                    backgroundColor: PROFESSION_COLORS[player.profession]
+                                                                        ? hexToRgba(PROFESSION_COLORS[player.profession], 0.08)
+                                                                        : 'rgba(255,255,255,0.05)',
+                                                                }}
+                                                            >
                                                                 {getProfessionIconPath(player.profession) ? (
                                                                     <img
                                                                         src={getProfessionIconPath(player.profession) as string}
