@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Maximize2, X, Send, Bot, Play, Loader2, CheckCircle2, PenSquare } from 'lucide-react';
 import { useChat, type ChatMsg, type ToolCallStatus } from './chat/useChat';
+import { ChartBlock } from './chat/ChartBlock';
 
 const TOOL_DISPLAY: Record<string, string> = {
     player_deep_dive: 'Analyzing player',
@@ -40,10 +41,14 @@ const MD_COMPONENTS = {
     h2: ({ children }: any) => <h2 className="font-semibold text-sm mb-1 mt-2">{children}</h2>,
     h3: ({ children }: any) => <h3 className="font-semibold text-sm mb-1 mt-2">{children}</h3>,
     strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
-    code: ({ children, className }: any) =>
-        className
+    code: ({ children, className }: any) => {
+        if (className === 'language-chart') {
+            return <ChartBlock content={String(children).trim()} />;
+        }
+        return className
             ? <pre className="bg-gray-900 rounded p-2 my-1 text-xs overflow-x-auto"><code>{children}</code></pre>
-            : <code className="bg-gray-900 rounded px-1 text-xs font-mono">{children}</code>,
+            : <code className="bg-gray-900 rounded px-1 text-xs font-mono">{children}</code>;
+    },
     blockquote: ({ children }: any) => <blockquote className="border-l-2 border-gray-600 pl-2 italic text-gray-400 my-1">{children}</blockquote>,
 };
 

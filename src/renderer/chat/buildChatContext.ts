@@ -76,7 +76,7 @@ function squadAveragesLine(players: any[]): string | null {
                 if (ids.includes(b.id as number)) {
                     const uptime = b.buffData?.[0]?.uptime ?? b.uptime ?? null;
                     if (uptime != null) {
-                        values.push((uptime as number) * 100);
+                        values.push(uptime as number);
                         break;
                     }
                 }
@@ -112,7 +112,7 @@ function boonLines(p: any): string[] {
             const name = BOON_NAMES[id] ?? null;
             if (!name) continue;
             const uptime = b.buffData?.[0]?.uptime ?? b.uptime ?? null;
-            if (uptime != null) uptimes.push({ name, pct: uptime * 100 });
+            if (uptime != null) uptimes.push({ name, pct: uptime as number });
         }
     }
     if (uptimes.length === 0) return [];
@@ -203,6 +203,7 @@ export function buildChatContext(logs: ILogData[], getDetails: (id: string) => a
     lines.push('- For outcome questions ("did we wipe?", "how did fight 2 go?"), use the Duration/Outcome/K/D fields above.');
     lines.push('- For specific player lookups, find them by name in the Players list above.');
     lines.push('- If a metric is not in the data above, say so — do not invent numbers.');
+    lines.push('- Tool results contain markdown tables and ```chart blocks. When presenting tool results, preserve these verbatim — do not paraphrase numbers from tables or drop chart blocks.');
     lines.push('');
     lines.push('## When to call tools');
     lines.push('- incoming_skill_damage: which ENEMY skills hurt the squad most ("top incoming skill", "what hit us")');
