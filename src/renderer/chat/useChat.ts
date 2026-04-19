@@ -1,8 +1,12 @@
-import { useState, useCallback, useEffect, useRef, useContext } from 'react';
-import type { ChatMessage } from '../global';
+import { useState, useCallback, useEffect, useRef, useContext, useMemo } from 'react';
+import type { ChatMessage, IAiSettings } from '../global';
 import { buildChatContext } from './buildChatContext';
 import { agentLoop, ToolUseNotSupportedError } from './agentLoop';
 import { DetailsCacheContext } from '../cache/DetailsCacheContext';
+import { createAnthropicProvider } from './providers/anthropicClient';
+import { createOpenAIProvider } from './providers/openaiClient';
+import { createOllamaProvider } from './providers/ollamaProvider';
+import type { ChatProvider } from './providers/types';
 
 export interface ChatMsg {
     id: string;
@@ -24,6 +28,13 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
     const [toolCalls, setToolCalls] = useState<ToolCallStatus[]>([]);
     const [ollamaConnected, setOllamaConnected] = useState(false);
     const [availableModels, setAvailableModels] = useState<string[]>([]);
+    const [aiSettings, setAiSettings] = useState<IAiSettings>({
+        provider: 'ollama',
+        anthropicApiKey: '',
+        anthropicModel: 'claude-sonnet-4-6',
+        openaiApiKey: '',
+        openaiModel: 'gpt-4o',
+    });
     const messagesRef = useRef<ChatMsg[]>([]);
     const detailsCache = useContext(DetailsCacheContext);
 
@@ -38,12 +49,29 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
                 setAvailableModels(status.models);
             }
         });
+        window.electronAPI.getAiSettings().then(setAiSettings).catch(() => {});
         const unsub = window.electronAPI.onOllamaStatusChanged(status => {
             setOllamaConnected(status.connected);
             setAvailableModels(status.models);
         });
         return () => { cancelled = true; unsub(); };
     }, [ollamaEnabled]);
+
+    const connected = aiSettings.provider === 'anthropic'
+        ? !!aiSettings.anthropicApiKey
+        : aiSettings.provider === 'openai'
+            ? !!aiSettings.openaiApiKey
+            : ollamaConnected;
+
+    const provider = useMemo<ChatProvider>(() => {
+        if (aiSettings.provider === 'anthropic' && aiSettings.anthropicApiKey) {
+            return createAnthropicProvider(aiSettings.anthropicApiKey, aiSettings.anthropicModel);
+        }
+        if (aiSettings.provider === 'openai' && aiSettings.openaiApiKey) {
+            return createOpenAIProvider(aiSettings.openaiApiKey, aiSettings.openaiModel);
+        }
+        return createOllamaProvider();
+    }, [aiSettings]);
 
     const sendMessage = useCallback(async (text: string) => {
         if (!text.trim() || streaming) return;
@@ -89,7 +117,7 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
         };
 
         try {
-            await agentLoop(text, history, logs, (id) => detailsCache?.peek(id), handleToolCall, handleToken);
+            await agentLoop(text, history, logs, (id) => detailsCache?.peek(id), handleToolCall, handleToken, provider);
         } catch (err: any) {
             const content = err instanceof ToolUseNotSupportedError
                 ? err.message
@@ -100,12 +128,12 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
             setStreaming(false);
             setThinking(false);
         }
-    }, [logs, streaming, detailsCache]);
+    }, [logs, streaming, detailsCache, provider]);
 
     const clearMessages = useCallback(() => {
         setMessages([]);
         setToolCalls([]);
     }, []);
 
-    return { messages, streaming, thinking, toolCalls, ollamaConnected, availableModels, sendMessage, clearMessages };
+    return { messages, streaming, thinking, toolCalls, ollamaConnected, connected, aiSettings, availableModels, sendMessage, clearMessages };
 }

@@ -8,6 +8,7 @@ const mockElectronAPI = {
     onOllamaChatToken: vi.fn().mockReturnValue(() => {}),
     ollamaChat: vi.fn().mockResolvedValue(undefined),
     getOllamaSettings: vi.fn().mockResolvedValue({ enabled: true, activeModel: 'llama3.1:8b' }),
+    getAiSettings: vi.fn().mockResolvedValue({ provider: 'ollama', anthropicApiKey: '', anthropicModel: 'claude-sonnet-4-6', openaiApiKey: '', openaiModel: 'gpt-4o' }),
 };
 
 beforeEach(() => {

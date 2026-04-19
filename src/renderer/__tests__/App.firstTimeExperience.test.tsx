@@ -48,7 +48,8 @@ const makeElectronApiMock = (overrides?: {
         getEiAutoManage: vi.fn().mockResolvedValue(false),
         onEiStatusChanged: vi.fn(() => () => {}),
         onEiDownloadProgress: vi.fn(() => () => {}),
-        getOllamaSettings: vi.fn().mockResolvedValue({ enabled: false, activeModel: '' })
+        getOllamaSettings: vi.fn().mockResolvedValue({ enabled: false, activeModel: '' }),
+        getAiSettings: vi.fn().mockResolvedValue({ provider: 'ollama', anthropicApiKey: '', anthropicModel: 'claude-sonnet-4-6', openaiApiKey: '', openaiModel: 'gpt-4o' }),
     };
 };
 

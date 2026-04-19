@@ -3,6 +3,7 @@ import { TOOL_SCHEMAS } from './tools/toolSchemas';
 import { executeToolCall } from './tools/toolExecutors';
 import { computeStatsSync } from '../stats/incrementalAggregation';
 import { classifyQuestion } from './questionRouter';
+import type { ChatProvider } from './providers/types';
 
 export class ToolUseNotSupportedError extends Error {
     constructor() {
@@ -13,10 +14,6 @@ export class ToolUseNotSupportedError extends Error {
 
 const MAX_ITERATIONS = 5;
 
-async function chatOnce(messages: any[], tools: any[]): Promise<OllamaChatResponse> {
-    return window.electronAPI.chatOnce(messages, tools);
-}
-
 export async function agentLoop(
     userText: string,
     history: ChatMessage[],
@@ -24,6 +21,7 @@ export async function agentLoop(
     getDetails: (id: string) => any,
     onToolCall: (name: string, status: 'running' | 'done') => void,
     onToken: (token: string, done: boolean) => void,
+    provider: ChatProvider,
 ): Promise<void> {
     // Hydrate logs and compute stats once for this turn
     const hydratedLogs = logs
@@ -38,22 +36,22 @@ export async function agentLoop(
 
     // Branch: data not in arcdps logs
     if (route.kind === 'unavailable') {
-        const msgs = [
+        const msgs: ChatMessage[] = [
             ...history,
             { role: 'user', content: `[The user is asking about data that is not available in arcdps logs: ${route.reason} Tell the user this directly and briefly suggest what IS available.]\n\n${userText}` },
         ];
-        const resp = await chatOnce(msgs, []);
+        const resp = await provider.chatOnce(msgs, []);
         onToken(resp.message.content ?? '', true);
         return;
     }
 
     // Branch: answer is visible in context — no tools
     if (route.kind === 'context') {
-        const msgs = [
+        const msgs: ChatMessage[] = [
             ...history,
             { role: 'user', content: `[${route.directive}]\n\n${userText}` },
         ];
-        const resp = await chatOnce(msgs, []);
+        const resp = await provider.chatOnce(msgs, []);
         onToken(resp.message.content ?? '', true);
         return;
     }
@@ -70,13 +68,13 @@ export async function agentLoop(
         onToolCall(route.tool, 'done');
 
         // Inject synthetic tool-call turn so model knows what was fetched
-        const msgs = [
+        const msgs: ChatMessage[] = [
             ...history,
             { role: 'user', content: userText },
             { role: 'assistant', content: '', tool_calls: [{ function: { name: route.tool, arguments: route.args } }] },
             { role: 'tool', content: toolResult },
         ];
-        const resp = await chatOnce(msgs, []); // no tools — just synthesize
+        const resp = await provider.chatOnce(msgs, []); // no tools — just synthesize
         onToken(resp.message.content ?? '', true);
         return;
     }
@@ -96,7 +94,7 @@ export async function agentLoop(
 
         let response: OllamaChatResponse;
         try {
-            response = await chatOnce(messages, TOOL_SCHEMAS);
+            response = await provider.chatOnce(messages, TOOL_SCHEMAS);
         } catch (err: any) {
             const msg = (err?.message ?? '').toLowerCase();
             if (msg.includes('tool') || msg.includes('function')) {
@@ -137,17 +135,5 @@ export async function agentLoop(
     // Cap reached — fall through to streaming with accumulated context
     console.warn('[agentLoop] Max iterations reached, falling through to streaming');
 
-    await new Promise<void>((resolve, reject) => {
-        const unsub = window.electronAPI.onOllamaChatToken(({ token, done }) => {
-            onToken(token, done);
-            if (done) {
-                unsub();
-                resolve();
-            }
-        });
-        window.electronAPI.ollamaChat(messages).catch(err => {
-            unsub();
-            reject(err);
-        });
-    });
+    await provider.streamChat(messages, onToken);
 }

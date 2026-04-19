@@ -177,6 +177,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     stopOllama: () => ipcRenderer.invoke('ollama:stop'),
     chatOnce: (messages: any[], tools?: any[]) => ipcRenderer.invoke('ollama:chat-once', messages, tools),
     setPanelOpen: (open: boolean) => ipcRenderer.send('chat:set-panel-open', open),
+    getAiSettings: () => ipcRenderer.invoke('ai:get-settings'),
+    saveAiSettings: (settings: any) => ipcRenderer.send('ai:save-settings', settings),
 
     onMaximizedChange: (callback: (maximized: boolean) => void) => {
         const listener = (_event: Electron.IpcRendererEvent, maximized: boolean) => callback(maximized);

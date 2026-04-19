@@ -410,6 +410,9 @@ export interface IElectronAPI {
     chatOnce: (messages: ChatMessage[], tools?: any[]) => Promise<OllamaChatResponse>;
     // Window panel control
     setPanelOpen: (open: boolean) => void;
+    // AI provider settings
+    getAiSettings: () => Promise<IAiSettings>;
+    saveAiSettings: (settings: Partial<IAiSettings>) => void;
 }
 
 export interface IEiParserSettings {
@@ -433,6 +436,14 @@ export interface IEiStatus {
     updateAvailable: string | null;
     installing: boolean;
     error: string | null;
+}
+
+export interface IAiSettings {
+    provider: 'ollama' | 'anthropic' | 'openai';
+    anthropicApiKey: string;
+    anthropicModel: string;
+    openaiApiKey: string;
+    openaiModel: string;
 }
 
 export interface IOllamaStatus {

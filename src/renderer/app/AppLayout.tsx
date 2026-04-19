@@ -108,6 +108,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setOllamaModel,
         ollamaAutoManage,
         setOllamaAutoManage,
+        aiSettings,
+        saveAiSettings,
         logs: logsWithDetails,
     } = ctx;
 
@@ -466,6 +468,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 setOllamaModel={setOllamaModel}
                                 ollamaAutoManage={ollamaAutoManage}
                                 setOllamaAutoManage={setOllamaAutoManage}
+                                aiSettings={aiSettings}
+                                onSaveAiSettings={saveAiSettings}
                                 particlesEnabled={particlesEnabled}
                                 developerSettingsTrigger={developerSettingsTrigger}
                                 helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}

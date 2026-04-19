@@ -1,7 +1,7 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Bot, Play } from 'lucide-react';
-import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, normalizeMvpWeights, IEiParserSettings, IEiStatus, IOllamaStatus } from './global.d';
+import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, normalizeMvpWeights, IEiParserSettings, IEiStatus, IOllamaStatus, IAiSettings } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { PALETTES, type ColorPalette, DEFAULT_PALETTE_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
@@ -119,6 +119,8 @@ interface SettingsViewProps {
     setOllamaEnabled?: (enabled: boolean) => void;
     setOllamaModel?: (model: string) => void;
     setOllamaAutoManage?: (autoManage: boolean) => void;
+    aiSettings?: IAiSettings;
+    onSaveAiSettings?: (settings: Partial<IAiSettings>) => void;
 }
 
 // Toggle switch component — memoized with a custom comparator that ignores onChange reference
@@ -196,7 +198,55 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, ollamaEnabled: ollamaEnabledProp = false, ollamaModel: ollamaModelProp = '', ollamaAutoManage: ollamaAutoManageProp = false, setOllamaEnabled, setOllamaModel, setOllamaAutoManage }: SettingsViewProps) {
+function ApiKeyInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState('');
+
+    const masked = value ? '•'.repeat(Math.min(value.length, 20)) + value.slice(-4) : '';
+
+    if (!editing) {
+        return (
+            <div className="flex gap-2 items-center">
+                <span className="flex-1 text-xs text-gray-400 font-mono">
+                    {value ? masked : <span className="text-gray-600">Not set</span>}
+                </span>
+                <button
+                    onClick={() => { setDraft(value); setEditing(true); }}
+                    className="text-xs text-blue-400 hover:text-blue-300"
+                >
+                    {value ? 'Change' : 'Add key'}
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex gap-2">
+            <input
+                type="password"
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                placeholder="sk-ant-... or sk-..."
+                autoFocus
+                className="flex-1 text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-gray-200 font-mono"
+            />
+            <button
+                onClick={() => { onChange(draft); setEditing(false); }}
+                className="text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white"
+            >
+                Save
+            </button>
+            <button
+                onClick={() => setEditing(false)}
+                className="text-xs px-2 py-1 rounded border border-gray-700 text-gray-400 hover:text-gray-200"
+            >
+                Cancel
+            </button>
+        </div>
+    );
+}
+
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, ollamaEnabled: ollamaEnabledProp = false, ollamaModel: ollamaModelProp = '', ollamaAutoManage: ollamaAutoManageProp = false, setOllamaEnabled, setOllamaModel, setOllamaAutoManage, aiSettings, onSaveAiSettings }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
@@ -2938,6 +2988,77 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         </div>
                                     )}
                                 </>
+                            )}
+
+                            {ollamaEnabledProp && (
+                                <div className="mt-4">
+                                    <p className="text-xs font-semibold text-gray-300 mb-2">AI Provider</p>
+                                    <div className="flex flex-col gap-2">
+                                        {(['ollama', 'anthropic', 'openai'] as const).map(p => (
+                                            <label key={p} className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="aiProvider"
+                                                    value={p}
+                                                    checked={aiSettings?.provider === p}
+                                                    onChange={() => onSaveAiSettings?.({ provider: p })}
+                                                    className="accent-blue-500"
+                                                />
+                                                <span className="text-sm text-gray-300">
+                                                    {p === 'ollama' ? 'Local — Ollama' : p === 'anthropic' ? 'Anthropic Claude' : 'OpenAI'}
+                                                </span>
+                                                {p !== 'ollama' && <span className="text-xs text-gray-600">API key required</span>}
+                                            </label>
+                                        ))}
+                                    </div>
+
+                                    {aiSettings?.provider === 'anthropic' && (
+                                        <div className="mt-3 flex flex-col gap-2">
+                                            <div>
+                                                <label className="text-xs text-gray-400 block mb-1">API Key</label>
+                                                <ApiKeyInput
+                                                    value={aiSettings.anthropicApiKey}
+                                                    onChange={(key) => onSaveAiSettings?.({ anthropicApiKey: key })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-gray-400 block mb-1">Model</label>
+                                                <select
+                                                    value={aiSettings.anthropicModel}
+                                                    onChange={e => onSaveAiSettings?.({ anthropicModel: e.target.value })}
+                                                    className="w-full text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-gray-200"
+                                                >
+                                                    <option value="claude-haiku-4-5-20251001">Claude Haiku (fast)</option>
+                                                    <option value="claude-sonnet-4-6">Claude Sonnet (recommended)</option>
+                                                    <option value="claude-opus-4-7">Claude Opus (most capable)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {aiSettings?.provider === 'openai' && (
+                                        <div className="mt-3 flex flex-col gap-2">
+                                            <div>
+                                                <label className="text-xs text-gray-400 block mb-1">API Key</label>
+                                                <ApiKeyInput
+                                                    value={aiSettings.openaiApiKey}
+                                                    onChange={(key) => onSaveAiSettings?.({ openaiApiKey: key })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-gray-400 block mb-1">Model</label>
+                                                <select
+                                                    value={aiSettings.openaiModel}
+                                                    onChange={e => onSaveAiSettings?.({ openaiModel: e.target.value })}
+                                                    className="w-full text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-gray-200"
+                                                >
+                                                    <option value="gpt-4o-mini">GPT-4o Mini (fast)</option>
+                                                    <option value="gpt-4o">GPT-4o (recommended)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </SettingsSection>

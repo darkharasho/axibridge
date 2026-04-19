@@ -84,6 +84,30 @@ export function registerOllamaHandlers({ store, getWindow, getOllamaManager }: O
         mgr.stop();
     });
 
+    ipcMain.handle('ai:get-settings', () => {
+        return {
+            provider: store.get('aiProvider', 'ollama') as string,
+            anthropicApiKey: store.get('anthropicApiKey', '') as string,
+            anthropicModel: store.get('anthropicModel', 'claude-sonnet-4-6') as string,
+            openaiApiKey: store.get('openaiApiKey', '') as string,
+            openaiModel: store.get('openaiModel', 'gpt-4o') as string,
+        };
+    });
+
+    ipcMain.on('ai:save-settings', (_event, settings: {
+        provider?: string;
+        anthropicApiKey?: string;
+        anthropicModel?: string;
+        openaiApiKey?: string;
+        openaiModel?: string;
+    }) => {
+        if (settings.provider !== undefined) store.set('aiProvider', settings.provider);
+        if (settings.anthropicApiKey !== undefined) store.set('anthropicApiKey', settings.anthropicApiKey);
+        if (settings.anthropicModel !== undefined) store.set('anthropicModel', settings.anthropicModel);
+        if (settings.openaiApiKey !== undefined) store.set('openaiApiKey', settings.openaiApiKey);
+        if (settings.openaiModel !== undefined) store.set('openaiModel', settings.openaiModel);
+    });
+
     // Window panel resize
     ipcMain.on('chat:set-panel-open', (_event, open: boolean) => {
         const win = getWindow();

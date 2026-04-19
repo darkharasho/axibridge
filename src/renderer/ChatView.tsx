@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { Maximize2, X, Send, Bot, Play, Loader2, CheckCircle2, PenSquare } from 'lucide-react';
 import { useChat, type ChatMsg, type ToolCallStatus } from './chat/useChat';
 import { ChartBlock } from './chat/ChartBlock';
+import type { IAiSettings } from './global';
 
 const TOOL_DISPLAY: Record<string, string> = {
     player_deep_dive: 'Analyzing player',
@@ -66,6 +67,8 @@ export interface ChatState {
     thinking: boolean;
     toolCalls: ToolCallStatus[];
     ollamaConnected: boolean;
+    connected: boolean;
+    aiSettings?: IAiSettings;
     availableModels: string[];
     sendMessage: (text: string) => void;
     clearMessages: () => void;
@@ -83,8 +86,8 @@ interface ChatViewProps {
 
 export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClose, ollamaConnected: connectedProp, chatState: externalState }: ChatViewProps) {
     const internalChat = useChat(logs, ollamaEnabled);
-    const { messages, streaming, thinking, toolCalls, ollamaConnected: hookConnected, sendMessage, clearMessages } = externalState ?? internalChat;
-    const connected = connectedProp ?? hookConnected;
+    const { messages, streaming, thinking, toolCalls, ollamaConnected: hookConnected, connected: hookConnected2, sendMessage, clearMessages } = externalState ?? internalChat;
+    const connected = externalState?.connected ?? connectedProp ?? hookConnected2 ?? hookConnected;
     const [input, setInput] = useState('');
     const [starting, setStarting] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -109,6 +112,7 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
     }, []);
 
     if (!connected) {
+        const provider = (externalState ?? internalChat)?.aiSettings?.provider ?? 'ollama';
         return (
             <div className="flex flex-col flex-1 items-center justify-center gap-3 p-6 text-center">
                 {compact && (
@@ -123,15 +127,23 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
                     </div>
                 )}
                 <Bot className="w-8 h-8 text-gray-600" />
-                <p className="text-sm text-gray-400">Ollama isn't connected</p>
-                <button
-                    onClick={handleStartOllama}
-                    disabled={starting}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
-                >
-                    <Play className="w-3 h-3" />
-                    {starting ? 'Starting…' : 'Start Ollama'}
-                </button>
+                {provider === 'ollama' ? (
+                    <>
+                        <p className="text-sm text-gray-400">Ollama isn't connected</p>
+                        <button
+                            onClick={handleStartOllama}
+                            disabled={starting}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+                        >
+                            <Play className="w-3 h-3" />
+                            {starting ? 'Starting…' : 'Start Ollama'}
+                        </button>
+                    </>
+                ) : (
+                    <p className="text-sm text-gray-400">
+                        Add your {provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} API key in Settings to get started
+                    </p>
+                )}
             </div>
         );
     }

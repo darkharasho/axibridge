@@ -3,7 +3,7 @@ import {
     DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS,
     DEFAULT_GLASS_SURFACES, DEFAULT_PARTICLES_ENABLED, DEFAULT_MVP_WEIGHTS,
     DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeights, normalizeMvpWeights,
-    IStatsViewSettings,
+    IStatsViewSettings, IAiSettings,
 } from '../../global.d';
 import { Webhook } from '../../WebhookModal';
 import { PALETTES, type ColorPalette } from '../../../shared/webThemes';
@@ -24,6 +24,13 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [ollamaEnabled, setOllamaEnabledState] = useState(false);
     const [ollamaModel, setOllamaModelState] = useState('');
     const [ollamaAutoManage, setOllamaAutoManageState] = useState(false);
+    const [aiSettings, setAiSettings] = useState<IAiSettings>({
+        provider: 'ollama',
+        anthropicApiKey: '',
+        anthropicModel: 'claude-sonnet-4-6',
+        openaiApiKey: '',
+        openaiModel: 'gpt-4o',
+    });
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
     const [glassSurfaces, setGlassSurfaces] = useState(DEFAULT_GLASS_SURFACES);
     const [particlesEnabled, setParticlesEnabled] = useState(DEFAULT_PARTICLES_ENABLED);
@@ -106,6 +113,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             setOllamaEnabledState(ollamaSettings.enabled);
             setOllamaModelState(ollamaSettings.activeModel);
             setOllamaAutoManageState(ollamaSettings.autoManage);
+            window.electronAPI.getAiSettings().then(setAiSettings).catch(() => {});
 
             const whatsNew = await window.electronAPI.getWhatsNew();
             setWhatsNewVersion(whatsNew.version);
@@ -164,6 +172,11 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             setOllamaAutoManageState(autoManage);
             window.electronAPI.saveOllamaSettings({ autoManage });
         },
+        aiSettings,
+        saveAiSettings: (settings: Partial<IAiSettings>) => {
+            setAiSettings(prev => ({ ...prev, ...settings }));
+            window.electronAPI.saveAiSettings(settings);
+        },
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
         particlesEnabled, setParticlesEnabled,
@@ -183,6 +196,6 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         webhooks, selectedWebhookId, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         eiAnnouncementDismissed, setEiAnnouncementDismissed,
-        shouldOpenWhatsNew,
+        shouldOpenWhatsNew, aiSettings,
     ]);
 }
