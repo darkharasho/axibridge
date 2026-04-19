@@ -1,3 +1,5 @@
+import { spawn, type ChildProcess } from 'child_process';
+
 const BASE_URL = 'http://localhost:11434';
 
 export interface OllamaStatus {
@@ -12,11 +14,41 @@ export interface PullProgress {
 }
 
 export interface ChatMessage {
-    role: 'system' | 'user' | 'assistant';
+    role: 'system' | 'user' | 'assistant' | 'tool';
     content: string;
+    tool_calls?: Array<{ function: { name: string; arguments: Record<string, any> } }>;
 }
 
 export class OllamaManager {
+    private _proc: ChildProcess | null = null;
+
+    async start(): Promise<OllamaStatus> {
+        try {
+            const proc = spawn('ollama', ['serve'], {
+                detached: true,
+                stdio: 'ignore',
+                shell: process.platform === 'win32',
+            });
+            proc.unref();
+            this._proc = proc;
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            return this.getStatus();
+        } catch {
+            return { connected: false, models: [], activeModel: null };
+        }
+    }
+
+    stop(): void {
+        if (this._proc) {
+            try { this._proc.kill(); } catch { /* already gone */ }
+            this._proc = null;
+        }
+    }
+
+    get managedByUs(): boolean {
+        return this._proc !== null;
+    }
+
     async getStatus(): Promise<OllamaStatus> {
         try {
             const res = await fetch(`${BASE_URL}/api/tags`);
@@ -61,6 +93,25 @@ export class OllamaManager {
             const data = JSON.parse(line) as { message?: { content: string }; done: boolean };
             onToken(data.message?.content ?? '', data.done);
         });
+    }
+
+    async chatOnce(messages: ChatMessage[], tools?: any[], model = 'llama3.1:8b'): Promise<any> {
+        const body: any = { model, messages, stream: false };
+        if (tools?.length) body.tools = tools;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30_000);
+        try {
+            const res = await fetch(`${BASE_URL}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                signal: controller.signal,
+            });
+            if (!res.ok) throw new Error(`chatOnce failed: ${res.status} ${await res.text()}`);
+            return await res.json();
+        } finally {
+            clearTimeout(timeout);
+        }
     }
 
     private async _readStream(res: Response, onLine: (line: string) => void): Promise<void> {

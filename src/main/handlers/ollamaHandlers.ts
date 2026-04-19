@@ -50,16 +50,36 @@ export function registerOllamaHandlers({ store, getWindow, getOllamaManager }: O
         }
     });
 
+    ipcMain.handle('ollama:chat-once', async (_event, messages: ChatMessage[], tools?: any[]) => {
+        const mgr = getOllamaManager();
+        const activeModel = (store.get('ollamaActiveModel', 'llama3.1:8b') as string);
+        return mgr.chatOnce(messages, tools, activeModel);
+    });
+
     ipcMain.handle('ollama:get-settings', () => {
         return {
             enabled: store.get('ollamaEnabled', false) as boolean,
             activeModel: store.get('ollamaActiveModel', '') as string,
+            autoManage: store.get('ollamaAutoManage', false) as boolean,
         };
     });
 
-    ipcMain.on('ollama:save-settings', (_event, settings: { enabled?: boolean; activeModel?: string }) => {
+    ipcMain.on('ollama:save-settings', (_event, settings: { enabled?: boolean; activeModel?: string; autoManage?: boolean }) => {
         if (settings.enabled !== undefined) store.set('ollamaEnabled', settings.enabled);
         if (settings.activeModel !== undefined) store.set('ollamaActiveModel', settings.activeModel);
+        if (settings.autoManage !== undefined) store.set('ollamaAutoManage', settings.autoManage);
+    });
+
+    ipcMain.handle('ollama:start', async () => {
+        const mgr = getOllamaManager();
+        const status = await mgr.start();
+        const activeModel = store.get('ollamaActiveModel', null) as string | null;
+        return { ...status, activeModel };
+    });
+
+    ipcMain.handle('ollama:stop', async () => {
+        const mgr = getOllamaManager();
+        mgr.stop();
     });
 
     // Window panel resize

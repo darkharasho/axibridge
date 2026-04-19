@@ -405,6 +405,9 @@ export interface IElectronAPI {
     onOllamaPullProgress: (callback: (data: { percent: number; status: string }) => void) => () => void;
     onOllamaChatToken: (callback: (data: { token: string; done: boolean }) => void) => () => void;
     onOllamaStatusChanged: (callback: (status: IOllamaStatus) => void) => () => void;
+    startOllama: () => Promise<IOllamaStatus>;
+    stopOllama: () => Promise<void>;
+    chatOnce: (messages: ChatMessage[], tools?: any[]) => Promise<OllamaChatResponse>;
     // Window panel control
     setPanelOpen: (open: boolean) => void;
 }
@@ -441,11 +444,25 @@ export interface IOllamaStatus {
 export interface IOllamaSettings {
     enabled: boolean;
     activeModel: string;
+    autoManage: boolean;
+}
+
+export interface OllamaToolCall {
+    function: { name: string; arguments: Record<string, any> };
+}
+
+export interface OllamaChatResponse {
+    message: {
+        role: string;
+        content: string;
+        tool_calls?: OllamaToolCall[];
+    };
 }
 
 export interface ChatMessage {
-    role: 'system' | 'user' | 'assistant';
+    role: 'system' | 'user' | 'assistant' | 'tool';
     content: string;
+    tool_calls?: OllamaToolCall[];
 }
 
 type DetailsStatus = 'idle' | 'loading' | 'available' | 'loaded' | 'exhausted' | 'unavailable';

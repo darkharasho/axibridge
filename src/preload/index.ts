@@ -173,6 +173,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('ollama:status-changed', listener);
         return () => { ipcRenderer.removeListener('ollama:status-changed', listener); };
     },
+    startOllama: () => ipcRenderer.invoke('ollama:start'),
+    stopOllama: () => ipcRenderer.invoke('ollama:stop'),
+    chatOnce: (messages: any[], tools?: any[]) => ipcRenderer.invoke('ollama:chat-once', messages, tools),
     setPanelOpen: (open: boolean) => ipcRenderer.send('chat:set-panel-open', open),
 
     onMaximizedChange: (callback: (maximized: boolean) => void) => {
