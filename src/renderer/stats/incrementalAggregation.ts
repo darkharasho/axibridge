@@ -1511,23 +1511,26 @@ export class IncrementalAggregator {
             party: number;
             players: Array<{ account: string; characterName: string; profession: string; isCommander?: boolean }>;
             classCounts: Record<string, number>;
+            seenAccounts: Set<string>;
         }>();
         players.forEach((player: any) => {
             const partyRaw = Number(player?.group);
             const party = Number.isFinite(partyRaw) && partyRaw > 0 ? partyRaw : 0;
             if (!parties.has(party)) {
-                parties.set(party, { party, players: [], classCounts: {} });
+                parties.set(party, { party, players: [], classCounts: {}, seenAccounts: new Set() });
             }
             const profession = resolveProfessionLabel(player?.profession || player?.name || 'Unknown');
             const account = String(player?.account || 'Unknown');
             const characterName = String(player?.name || player?.character_name || '');
             const isCommander = Boolean(player?.hasCommanderTag);
             const row = parties.get(party)!;
+            if (row.seenAccounts.has(account)) return;
+            row.seenAccounts.add(account);
             row.players.push({ account, characterName, profession, isCommander });
             row.classCounts[profession] = (row.classCounts[profession] || 0) + 1;
         });
         const partyRows = Array.from(parties.values())
-            .map((row) => ({
+            .map(({ seenAccounts: _seen, ...row }) => ({
                 ...row,
                 players: row.players.sort((a, b) => {
                     const commanderDelta = Number(Boolean(b.isCommander)) - Number(Boolean(a.isCommander));
