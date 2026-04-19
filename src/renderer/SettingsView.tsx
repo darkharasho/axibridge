@@ -418,6 +418,18 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         return () => window.removeEventListener('mousedown', handleMouseDown);
     }, [proofOfWorkOpen]);
 
+    useEffect(() => {
+        if (ollamaEnabledProp) {
+            window.electronAPI?.getOllamaStatus?.().then(status => {
+                setOllamaStatus(status);
+                // Auto-persist the first available model if none is set yet
+                if (status.connected && status.models.length > 0 && !ollamaModelProp) {
+                    setOllamaModel?.(status.models[0]);
+                }
+            });
+        }
+    }, []); // intentionally run once on mount
+
     const metricsSpecNav = useMemo(() => {
         const lines = metricsSpecMarkdown.split('\n');
         const counts = new Map<string, number>();
@@ -2768,7 +2780,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 }}
                             />
 
-                            {ollamaEnabledProp && (
+                            {ollamaEnabledProp && ollamaStatus !== null && (
                                 <>
                                     <div className="flex items-center gap-2">
                                         <div className={`w-2 h-2 rounded-full ${ollamaStatus?.connected ? 'bg-green-400' : 'bg-red-500'}`} />
@@ -2777,7 +2789,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         </span>
                                         {!ollamaStatus?.connected && (
                                             <button
-                                                onClick={() => window.electronAPI.openExternal('https://ollama.com/download')}
+                                                onClick={() => window.electronAPI?.openExternal?.('https://ollama.com/download')}
                                                 className="text-xs text-blue-400 hover:text-blue-300 underline ml-1"
                                             >
                                                 Install Ollama
@@ -2799,7 +2811,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             <p className="text-xs font-medium text-gray-300 mb-1.5">Active model</p>
                                             {ollamaStatus.models.length > 0 ? (
                                                 <select
-                                                    value={ollamaModelProp || ollamaStatus.models[0]}
+                                                    value={ollamaModelProp}
                                                     onChange={e => setOllamaModel?.(e.target.value)}
                                                     className="w-full text-xs px-2 py-1.5 rounded-md border bg-gray-900 text-gray-200"
                                                     style={{ borderColor: 'var(--border-default)' }}
