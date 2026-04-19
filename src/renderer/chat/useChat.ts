@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useContext, useMemo } from 'react';
 import type { ChatMessage, IAiSettings } from '../global';
 import { buildSystemPrompt } from './buildChatContext';
-import { agentLoop, ToolUseNotSupportedError } from './agentLoop';
+import { agentLoop } from './agentLoop';
 import { DetailsCacheContext } from '../cache/DetailsCacheContext';
 import { createAnthropicProvider } from './providers/anthropicClient';
 import { createOpenAIProvider } from './providers/openaiClient';
@@ -124,9 +124,7 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
         } catch (err: any) {
             const apiErr = err?.message ?? '';
             const isNetworkErr = apiErr.toLowerCase().includes('failed to fetch') || apiErr.toLowerCase().includes('network');
-            const content = err instanceof ToolUseNotSupportedError
-                ? err.message
-                : isNetworkErr && aiSettings.provider !== 'ollama'
+            const content = isNetworkErr && aiSettings.provider !== 'ollama'
                     ? 'Request failed — the context may be too large. Try asking a more specific question (e.g. "what can we improve?" instead of an open-ended one).'
                     : aiSettings.provider === 'anthropic'
                         ? `Error calling Anthropic API: ${apiErr}`
