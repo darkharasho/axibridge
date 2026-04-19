@@ -143,7 +143,7 @@ export const SquadCompByFightSection = ({
                                                     <div
                                                         key={`${activeFight.id}-${party.party}-${player.account}-${index}`}
                                                         className={`squad-comp-player-tile rounded-md border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-2 py-1.5 min-w-0 transition-all hover:border-[color:var(--border-hover)] ${isMatch
-                                                            ? 'ring-1 ring-[var(--brand-primary)]/50 border-[color:var(--brand-primary)]/40 bg-[var(--accent-bg)] shadow-[0_0_12px_rgba(59,130,246,0.15)]'
+                                                            ? 'ring-1 ring-[color:var(--brand-primary)] border-[color:var(--brand-primary)] bg-[var(--accent-bg)]'
                                                             : ''
                                                             }`}
                                                         style={{
