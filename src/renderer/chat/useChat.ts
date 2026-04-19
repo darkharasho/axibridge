@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useContext } from 'react';
 import type { ChatMessage } from '../global';
 import { buildChatContext } from './buildChatContext';
+import { DetailsCacheContext } from '../cache/DetailsCacheContext';
 
 export interface ChatMsg {
     id: string;
@@ -16,6 +17,7 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
     const [availableModels, setAvailableModels] = useState<string[]>([]);
     const messagesRef = useRef<ChatMsg[]>([]);
     const cleanupRef = useRef<(() => void) | null>(null);
+    const detailsCache = useContext(DetailsCacheContext);
 
     // Keep messagesRef in sync
     useEffect(() => {
@@ -60,7 +62,7 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
         ]);
         setStreaming(true);
 
-        const systemPrompt = buildChatContext(logs);
+        const systemPrompt = buildChatContext(logs, (id) => detailsCache?.peek(id));
         const history: ChatMessage[] = [
             { role: 'system', content: systemPrompt },
             ...messagesRef.current.map(m => ({ role: m.role, content: m.content })),
@@ -93,7 +95,7 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
             setStreaming(false);
             unsub();
         }
-    }, [logs, streaming]);
+    }, [logs, streaming, detailsCache]);
 
     const clearMessages = useCallback(() => {
         setMessages([]);

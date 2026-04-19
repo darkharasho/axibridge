@@ -24,6 +24,7 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
     const connected = connectedProp ?? hookConnected;
     const [input, setInput] = useState('');
     const bottomRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const hasMessages = messages.length > 0;
 
     useEffect(() => {
@@ -34,6 +35,7 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
         if (!text.trim() || streaming || !connected) return;
         sendMessage(text);
         setInput('');
+        requestAnimationFrame(() => inputRef.current?.focus());
     }, [streaming, connected, sendMessage]);
 
     if (!connected) {
@@ -140,6 +142,7 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
                     className="flex gap-2 items-center"
                 >
                     <input
+                        ref={inputRef}
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         placeholder="Ask about your fights..."
