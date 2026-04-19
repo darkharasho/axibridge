@@ -12,6 +12,36 @@ export class ToolUseNotSupportedError extends Error {
 
 const MAX_ITERATIONS = 3;
 
+const ROUTING_SYSTEM_PROMPT = `You classify questions about GW2 WvW arcdps fight logs.
+
+Data available in context: fight name, duration, outcome (WIN/LOSS), squad size, squad deaths, enemy size, enemy deaths, K/D ratio. Per player: damage total, DPS, deaths, downs, damage taken (total only, not by skill), cleanses, strips, rezzes, CC/breakbar damage, distance to tag, boon uptimes.
+
+Tools available:
+- rank_players: rank all players by a stat (dps, damage, deaths, downs, damage_taken, cleanses, strips, rezzes, breakbar_damage, dist_to_tag)
+- player_deep_dive: full stats for one specific named player
+- boon_analysis: per-player boon uptime detail with squad averages
+- group_breakdown: stats grouped by subgroup G1/G2/etc.
+- compare_fights: how a stat trended across multiple fights
+
+NOT in the data: incoming damage broken down by enemy skill, enemy skill names, player rotation/cast sequences, build/gear/traits, target-specific damage splits, rally counts.
+
+Respond with EXACTLY one line — no explanation, no preamble:
+CONTEXT: [where in the fight data the answer is visible]
+TOOL: [tool_name] | [one-sentence reason]
+UNAVAILABLE: [what specific data is missing and why]`;
+
+async function routeQuestion(userText: string): Promise<string> {
+    try {
+        const resp = await window.electronAPI.chatOnce([
+            { role: 'system', content: ROUTING_SYSTEM_PROMPT },
+            { role: 'user', content: `Question: "${userText}"` },
+        ], []);
+        return resp.message.content?.trim() ?? '';
+    } catch {
+        return '';
+    }
+}
+
 export async function agentLoop(
     userText: string,
     history: ChatMessage[],
@@ -20,12 +50,6 @@ export async function agentLoop(
     onToolCall: (name: string, status: 'running' | 'done') => void,
     onToken: (token: string, done: boolean) => void,
 ): Promise<void> {
-    // Internal message list — typed loosely to support tool_calls on assistant messages
-    const messages: any[] = [
-        ...history,
-        { role: 'user', content: userText },
-    ];
-
     // Hydrate logs and compute stats once for this turn
     const hydratedLogs = logs
         .filter(l => l.detailsStatus === 'loaded')
@@ -34,6 +58,18 @@ export async function agentLoop(
             return details ? { ...log, details } : log;
         });
     const { stats: computedStats } = computeStatsSync({ logs: hydratedLogs });
+
+    // Step 0: Route the question so the model knows how to approach it
+    const routing = await routeQuestion(userText);
+    const annotatedQuestion = routing
+        ? `[Routing analysis: ${routing}]\n\n${userText}`
+        : userText;
+
+    // Internal message list — typed loosely to support tool_calls on assistant messages
+    const messages: any[] = [
+        ...history,
+        { role: 'user', content: annotatedQuestion },
+    ];
 
     let iterations = 0;
 
