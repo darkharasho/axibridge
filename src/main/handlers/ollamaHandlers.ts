@@ -53,7 +53,9 @@ export function registerOllamaHandlers({ store, getWindow, getOllamaManager }: O
     ipcMain.handle('ollama:chat-once', async (_event, messages: ChatMessage[], tools?: any[]) => {
         const mgr = getOllamaManager();
         const activeModel = (store.get('ollamaActiveModel', 'llama3.1:8b') as string);
-        return mgr.chatOnce(messages, tools, activeModel);
+        const raw = await mgr.chatOnce(messages, tools, activeModel);
+        if (!raw?.message) throw new Error('Unexpected Ollama response shape');
+        return raw;
     });
 
     ipcMain.handle('ollama:get-settings', () => {
