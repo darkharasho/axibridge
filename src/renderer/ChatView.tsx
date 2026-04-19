@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { Maximize2, X, Send, Bot, Play, Loader2, CheckCircle2 } from 'lucide-react';
 import { useChat } from './chat/useChat';
 
@@ -130,36 +130,40 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
                         <p className="text-sm text-gray-400">Ask anything about your loaded fights</p>
                     </div>
                 )}
-                {messages.map(msg => (
-                    <div
-                        key={msg.id}
-                        className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${
-                            msg.role === 'user'
-                                ? 'self-end bg-blue-600/30 border border-blue-500/40 text-gray-100'
-                                : 'self-start bg-gray-800 border border-gray-700 text-gray-200'
-                        }`}
-                    >
-                        {msg.streaming && !msg.content ? (
-                            <span className="flex gap-1 items-center h-4">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </span>
-                        ) : (
-                            <>
-                                {msg.content}
-                                {msg.streaming && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-blue-400 animate-pulse rounded-sm" />}
-                            </>
-                        )}
-                    </div>
-                ))}
-                {toolCalls.length > 0 && (
-                    <div className="self-start flex flex-col gap-0.5 px-1">
-                        {toolCalls.map(tc => (
-                            <ToolCallBadge key={tc.id} name={tc.name} status={tc.status} />
-                        ))}
-                    </div>
-                )}
+                {messages.map((msg, idx) => {
+                    const isLastAssistant = msg.role === 'assistant' && !messages.slice(idx + 1).some(m => m.role === 'assistant');
+                    return (
+                        <Fragment key={msg.id}>
+                            {isLastAssistant && toolCalls.length > 0 && (
+                                <div className="self-start flex flex-col gap-0.5 px-1">
+                                    {toolCalls.map(tc => (
+                                        <ToolCallBadge key={tc.id} name={tc.name} status={tc.status} />
+                                    ))}
+                                </div>
+                            )}
+                            <div
+                                className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${
+                                    msg.role === 'user'
+                                        ? 'self-end bg-blue-600/30 border border-blue-500/40 text-gray-100'
+                                        : 'self-start bg-gray-800 border border-gray-700 text-gray-200'
+                                }`}
+                            >
+                                {msg.streaming && !msg.content ? (
+                                    <span className="flex gap-1 items-center h-4">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                    </span>
+                                ) : (
+                                    <>
+                                        {msg.content}
+                                        {msg.streaming && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-blue-400 animate-pulse rounded-sm" />}
+                                    </>
+                                )}
+                            </div>
+                        </Fragment>
+                    );
+                })}
                 <div ref={bottomRef} />
             </div>
 
