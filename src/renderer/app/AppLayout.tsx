@@ -100,6 +100,10 @@ export function AppLayout({ ctx }: { ctx: any }) {
         isBulkUploadActive,
         setAllowLocalJson,
         setR2PreciseReplay,
+        ollamaEnabled,
+        setOllamaEnabled,
+        ollamaModel,
+        setOllamaModel,
     } = ctx;
 
     const [activeNavView, setActiveNavView] = useState(view);
@@ -427,6 +431,10 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onParticlesEnabledSaved={setParticlesEnabled}
                                 onAllowLocalJsonSaved={setAllowLocalJson}
                                 onR2PreciseReplaySaved={setR2PreciseReplay}
+                                ollamaEnabled={ollamaEnabled}
+                                ollamaModel={ollamaModel}
+                                setOllamaEnabled={setOllamaEnabled}
+                                setOllamaModel={setOllamaModel}
                                 particlesEnabled={particlesEnabled}
                                 developerSettingsTrigger={developerSettingsTrigger}
                                 helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}

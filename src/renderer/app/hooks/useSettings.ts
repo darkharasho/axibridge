@@ -21,6 +21,8 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
     const [r2PreciseReplay, setR2PreciseReplay] = useState(false);
+    const [ollamaEnabled, setOllamaEnabledState] = useState(false);
+    const [ollamaModel, setOllamaModelState] = useState('');
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
     const [glassSurfaces, setGlassSurfaces] = useState(DEFAULT_GLASS_SURFACES);
     const [particlesEnabled, setParticlesEnabled] = useState(DEFAULT_PARTICLES_ENABLED);
@@ -99,6 +101,10 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
                 setEiAnnouncementDismissed(true);
             }
 
+            const ollamaSettings = await window.electronAPI.getOllamaSettings();
+            setOllamaEnabledState(ollamaSettings.enabled);
+            setOllamaModelState(ollamaSettings.activeModel);
+
             const whatsNew = await window.electronAPI.getWhatsNew();
             setWhatsNewVersion(whatsNew.version);
             setWhatsNewNotes(whatsNew.releaseNotes);
@@ -140,6 +146,17 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         disruptionMethod, setDisruptionMethod,
         allowLocalJson, setAllowLocalJson,
         r2PreciseReplay, setR2PreciseReplay,
+        ollamaEnabled,
+        ollamaModel,
+        setOllamaEnabled: (enabled: boolean) => {
+            setOllamaEnabledState(enabled);
+            window.electronAPI.saveOllamaSettings({ enabled });
+        },
+        setOllamaModel: (model: string) => {
+            setOllamaModelState(model);
+            window.electronAPI.setOllamaActiveModel(model);
+            window.electronAPI.saveOllamaSettings({ activeModel: model });
+        },
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
         particlesEnabled, setParticlesEnabled,
@@ -155,7 +172,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         shouldOpenWhatsNew,
     }), [
         logDirectory, notificationType, embedStatSettings, mvpWeights,
-        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, colorPalette, glassSurfaces, particlesEnabled,
+        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, ollamaEnabled, ollamaModel, colorPalette, glassSurfaces, particlesEnabled,
         webhooks, selectedWebhookId, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         eiAnnouncementDismissed, setEiAnnouncementDismissed,

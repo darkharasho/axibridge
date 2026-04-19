@@ -1,7 +1,7 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search } from 'lucide-react';
-import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, normalizeMvpWeights, IEiParserSettings, IEiStatus } from './global.d';
+import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Bot } from 'lucide-react';
+import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, normalizeMvpWeights, IEiParserSettings, IEiStatus, IOllamaStatus } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { PALETTES, type ColorPalette, DEFAULT_PALETTE_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
@@ -60,6 +60,7 @@ const SETTINGS_SECTIONS = [
     { id: 'boon-uptime-resolution', label: 'Boon Uptime' },
     { id: 'mvp-weighting', label: 'MVP Weighting' },
     { id: 'parser-settings', label: 'Parser Settings' },
+    { id: 'ai-assistant', label: 'AI Assistant' },
     { id: 'close-behavior', label: 'Close Behavior' },
     { id: 'export-import', label: 'Export / Import' },
     { id: 'legal', label: 'Legal' }
@@ -112,6 +113,10 @@ interface SettingsViewProps {
     particlesEnabled?: boolean;
     developerSettingsTrigger?: number;
     isBulkUploadActive?: boolean;
+    ollamaEnabled?: boolean;
+    ollamaModel?: string;
+    setOllamaEnabled?: (enabled: boolean) => void;
+    setOllamaModel?: (model: string) => void;
 }
 
 // Toggle switch component — memoized with a custom comparator that ignores onChange reference
@@ -189,7 +194,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, ollamaEnabled: ollamaEnabledProp = false, ollamaModel: ollamaModelProp = '', setOllamaEnabled, setOllamaModel }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
@@ -202,6 +207,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [glassSurfaces, setGlassSurfaces] = useState(glassSurfacesProp ?? false);
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
+    const [ollamaStatus, setOllamaStatus] = useState<IOllamaStatus | null>(null);
+    const [pullingModel, setPullingModel] = useState(false);
     const [eiStatus, setEiStatus] = useState<IEiStatus>({ installed: false, version: null, updateAvailable: null, installing: false, error: null });
     const [eiSettings, setEiSettings] = useState<IEiParserSettings | null>(null);
     const [eiDownloadProgress, setEiDownloadProgress] = useState<{ percent: number; message: string } | null>(null);
@@ -2738,6 +2745,97 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         )}
                     </SettingsSection>
                     </div>
+
+                    {/* AI Assistant Section */}
+                    <SettingsSection
+                        title="AI Assistant"
+                        icon={Bot}
+                        sectionId="ai-assistant"
+                        hidden={settingsSearchHidden.has('ai-assistant')}
+                        delay={0.13}
+                    >
+                        <div className="flex flex-col gap-4">
+                            <Toggle
+                                label="Enable AI Assistant"
+                                description="Adds a Chat tab and floating panel powered by a local Ollama model. No API key required."
+                                enabled={ollamaEnabledProp}
+                                onChange={async (val) => {
+                                    setOllamaEnabled?.(val);
+                                    if (val) {
+                                        const status = await window.electronAPI.getOllamaStatus();
+                                        setOllamaStatus(status);
+                                    }
+                                }}
+                            />
+
+                            {ollamaEnabledProp && (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${ollamaStatus?.connected ? 'bg-green-400' : 'bg-red-500'}`} />
+                                        <span className="text-xs text-gray-400">
+                                            {ollamaStatus?.connected ? 'Ollama connected' : 'Ollama not detected'}
+                                        </span>
+                                        {!ollamaStatus?.connected && (
+                                            <button
+                                                onClick={() => window.electronAPI.openExternal('https://ollama.com/download')}
+                                                className="text-xs text-blue-400 hover:text-blue-300 underline ml-1"
+                                            >
+                                                Install Ollama
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={async () => {
+                                                const status = await window.electronAPI.getOllamaStatus();
+                                                setOllamaStatus(status);
+                                            }}
+                                            className="text-xs text-gray-500 hover:text-gray-300 ml-auto"
+                                        >
+                                            Retry
+                                        </button>
+                                    </div>
+
+                                    {ollamaStatus?.connected && (
+                                        <div>
+                                            <p className="text-xs font-medium text-gray-300 mb-1.5">Active model</p>
+                                            {ollamaStatus.models.length > 0 ? (
+                                                <select
+                                                    value={ollamaModelProp || ollamaStatus.models[0]}
+                                                    onChange={e => setOllamaModel?.(e.target.value)}
+                                                    className="w-full text-xs px-2 py-1.5 rounded-md border bg-gray-900 text-gray-200"
+                                                    style={{ borderColor: 'var(--border-default)' }}
+                                                >
+                                                    {ollamaStatus.models.map(m => (
+                                                        <option key={m} value={m}>{m}</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-xs text-gray-500">No models installed.</p>
+                                                    <button
+                                                        onClick={async () => {
+                                                            setPullingModel(true);
+                                                            try {
+                                                                await window.electronAPI.pullOllamaModel('llama3.1:8b');
+                                                                const status = await window.electronAPI.getOllamaStatus();
+                                                                setOllamaStatus(status);
+                                                            } finally {
+                                                                setPullingModel(false);
+                                                            }
+                                                        }}
+                                                        disabled={pullingModel}
+                                                        className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
+                                                    >
+                                                        <Download className="w-3 h-3" />
+                                                        {pullingModel ? 'Downloading llama3.1:8b...' : 'Download llama3.1:8b'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </SettingsSection>
 
                     {/* Close Behavior Section */}
                     <SettingsSection title="Window Close Behavior" icon={Minimize} delay={0.2} sectionId="close-behavior" hidden={settingsSearchHidden.has('close-behavior')}>
