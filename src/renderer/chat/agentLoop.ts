@@ -2,6 +2,7 @@ import type { ChatMessage, OllamaChatResponse } from '../global';
 import { TOOL_SCHEMAS } from './tools/toolSchemas';
 import { executeToolCall } from './tools/toolExecutors';
 import { computeStatsSync } from '../stats/incrementalAggregation';
+import { classifyQuestion } from './questionRouter';
 
 export class ToolUseNotSupportedError extends Error {
     constructor() {
@@ -12,40 +13,8 @@ export class ToolUseNotSupportedError extends Error {
 
 const MAX_ITERATIONS = 5;
 
-const ROUTING_SYSTEM_PROMPT = `You classify questions about GW2 WvW arcdps fight logs.
-
-Data available in context: fight name, duration, outcome (WIN/LOSS), squad size, squad deaths, enemy size, enemy deaths, K/D ratio. Per player: damage total, DPS, deaths, downs, damage taken (total), cleanses, strips, rezzes, CC/breakbar damage, distance to tag, boon uptimes.
-
-Tools available:
-- rank_players: rank all PLAYERS by a stat. Only for "who had the most/best/worst X" questions about individual people. Stats: dps, damage, deaths, downs, damage_taken, cleanses, strips, rezzes, breakbar_damage, dist_to_tag.
-- player_deep_dive: full stats for one specific named player
-- boon_analysis: per-player boon uptime detail with squad averages
-- group_breakdown: stats by subgroup G1/G2/etc.
-- compare_fights: how a stat trended across multiple fights
-- incoming_skill_damage: which ENEMY SKILLS/ATTACKS dealt the most damage to the squad (squad-wide aggregate). Use for any question about incoming attacks, enemy abilities, what hurt the squad, top incoming skill/attack/spell.
-
-NOT in the data: player rotation/cast sequences, player build/gear/traits, rally counts, target-specific damage splits.
-
-CRITICAL DISTINCTION:
-"top [skill/attack/ability/spell/hit]" = incoming_skill_damage (it's asking about an enemy skill, not a player)
-"who topped [stat]" / "top player by [stat]" = rank_players (asking about a person)
-"top incoming X" = ALWAYS incoming_skill_damage
-
-Respond with EXACTLY one line — no explanation, no preamble:
-CONTEXT: [where in the fight data the answer is visible]
-TOOL: [tool_name] | [one-sentence reason]
-UNAVAILABLE: [what specific data is missing and why]`;
-
-async function routeQuestion(userText: string): Promise<string> {
-    try {
-        const resp = await window.electronAPI.chatOnce([
-            { role: 'system', content: ROUTING_SYSTEM_PROMPT },
-            { role: 'user', content: `Question: "${userText}"` },
-        ], []);
-        return resp.message.content?.trim() ?? '';
-    } catch {
-        return '';
-    }
+async function chatOnce(messages: any[], tools: any[]): Promise<OllamaChatResponse> {
+    return window.electronAPI.chatOnce(messages, tools);
 }
 
 export async function agentLoop(
@@ -65,16 +34,59 @@ export async function agentLoop(
         });
     const { stats: computedStats } = computeStatsSync({ logs: hydratedLogs });
 
-    // Step 0: Route the question so the model knows how to approach it
-    const routing = await routeQuestion(userText);
-    const annotatedQuestion = routing
-        ? `[Routing analysis: ${routing}]\n\n${userText}`
-        : userText;
+    const route = classifyQuestion(userText);
 
-    // Internal message list — typed loosely to support tool_calls on assistant messages
+    // Branch: data not in arcdps logs
+    if (route.kind === 'unavailable') {
+        const msgs = [
+            ...history,
+            { role: 'user', content: `[The user is asking about data that is not available in arcdps logs: ${route.reason} Tell the user this directly and briefly suggest what IS available.]\n\n${userText}` },
+        ];
+        const resp = await chatOnce(msgs, []);
+        onToken(resp.message.content ?? '', true);
+        return;
+    }
+
+    // Branch: answer is visible in context — no tools
+    if (route.kind === 'context') {
+        const msgs = [
+            ...history,
+            { role: 'user', content: `[${route.directive}]\n\n${userText}` },
+        ];
+        const resp = await chatOnce(msgs, []);
+        onToken(resp.message.content ?? '', true);
+        return;
+    }
+
+    // Branch: tool identified with complete args — pre-execute, skip model tool selection
+    if (route.kind === 'tool' && route.argsComplete) {
+        onToolCall(route.tool, 'running');
+        let toolResult: string;
+        try {
+            toolResult = executeToolCall(route.tool, route.args, logs, getDetails, computedStats);
+        } catch (err: any) {
+            toolResult = `Tool execution failed: ${err?.message ?? 'unknown error'}`;
+        }
+        onToolCall(route.tool, 'done');
+
+        // Inject synthetic tool-call turn so model knows what was fetched
+        const msgs = [
+            ...history,
+            { role: 'user', content: userText },
+            { role: 'assistant', content: '', tool_calls: [{ function: { name: route.tool, arguments: route.args } }] },
+            { role: 'tool', content: toolResult },
+        ];
+        const resp = await chatOnce(msgs, []); // no tools — just synthesize
+        onToken(resp.message.content ?? '', true);
+        return;
+    }
+
+    // Branch: tool identified but args need model (open-world entity, e.g. player name) OR unknown
+    // Inject a strong directive into the user message so the model uses the right tool
+    const directive = route.kind === 'tool' ? `[${route.directive}]\n\n` : '';
     const messages: any[] = [
         ...history,
-        { role: 'user', content: annotatedQuestion },
+        { role: 'user', content: `${directive}${userText}` },
     ];
 
     let iterations = 0;
@@ -84,7 +96,7 @@ export async function agentLoop(
 
         let response: OllamaChatResponse;
         try {
-            response = await window.electronAPI.chatOnce(messages, TOOL_SCHEMAS);
+            response = await chatOnce(messages, TOOL_SCHEMAS);
         } catch (err: any) {
             const msg = (err?.message ?? '').toLowerCase();
             if (msg.includes('tool') || msg.includes('function')) {
@@ -95,21 +107,17 @@ export async function agentLoop(
 
         const toolCalls = response.message.tool_calls;
 
-        // Model answered directly — emit full content as a single token then return
         if (!toolCalls?.length) {
-            const content = response.message.content ?? '';
-            onToken(content, true);
+            onToken(response.message.content ?? '', true);
             return;
         }
 
-        // Append the assistant's tool-call message to history
         messages.push({
             role: 'assistant',
             content: response.message.content ?? '',
             tool_calls: toolCalls,
         });
 
-        // Execute each tool and append results
         for (const tc of toolCalls) {
             const { name, arguments: args } = tc.function;
             onToolCall(name, 'running');
