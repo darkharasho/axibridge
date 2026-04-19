@@ -78,6 +78,8 @@ import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers } from './handlers/githubHandlers';
 import { registerEiHandlers } from './handlers/eiHandlers';
 import { EiManager, DEFAULT_EI_SETTINGS, EiParserSettings } from './eiParser';
+import { registerOllamaHandlers } from './handlers/ollamaHandlers';
+import { OllamaManager } from './ollama';
 
 /** Compute the landmark-aware fight label from pruned EI details (safe to call with null). */
 function buildFightLabelFromDetails(details: any): string | undefined {
@@ -227,6 +229,7 @@ let watcher: LogWatcher | null = null
 let uploader: Uploader | null = null
 let discord: DiscordNotifier | null = null
 let eiManager: EiManager | null = null
+let ollamaManager: OllamaManager | null = null
 let autoUpdateRetryAttempts = 0;
 let autoUpdateRetryTimer: NodeJS.Timeout | null = null;
 let resolvedRetryCount = 0;
@@ -1178,6 +1181,7 @@ function createWindow() {
     discord = new DiscordNotifier();
 
     eiManager = new EiManager(app.getPath('userData'));
+    ollamaManager = new OllamaManager();
     const savedEiSettings = store.get('eiParserSettings') as EiParserSettings | undefined;
     if (savedEiSettings) {
         eiManager.setSettings({ ...DEFAULT_EI_SETTINGS, ...savedEiSettings });
@@ -1699,6 +1703,11 @@ if (!gotTheLock) {
             store,
             getWindow: () => win,
             getEiManager: () => eiManager!,
+        });
+        registerOllamaHandlers({
+            store,
+            getWindow: () => win,
+            getOllamaManager: () => ollamaManager!,
         });
     })
 }
