@@ -72,14 +72,14 @@ export async function agentLoop(
             const { name, arguments: args } = tc.function;
             onToolCall(name, 'running');
 
-            let result: Record<string, any>;
+            let result: string;
             try {
                 result = executeToolCall(name, args, logs, getDetails, computedStats);
             } catch (err: any) {
-                result = { error: err?.message ?? 'Tool execution failed' };
+                result = `Tool execution failed: ${err?.message ?? 'unknown error'}`;
             }
 
-            messages.push({ role: 'tool', content: JSON.stringify(result) });
+            messages.push({ role: 'tool', content: result });
             onToolCall(name, 'done');
         }
     }
