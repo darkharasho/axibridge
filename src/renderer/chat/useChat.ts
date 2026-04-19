@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { ChatMessage } from '../global.d';
+import type { ChatMessage } from '../global';
 import { buildChatContext } from './buildChatContext';
 
 export interface ChatMsg {
