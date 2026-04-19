@@ -17,13 +17,13 @@ beforeEach(() => {
 
 describe('ChatView', () => {
     it('shows empty state with suggestion pills when no messages', () => {
-        render(<ChatView logs={[]} compact={false} ollamaEnabled={true} onNavigateToChat={() => {}} />);
+        render(<ChatView logs={[]} compact={false} ollamaEnabled={true} onNavigateToChat={() => {}} ollamaConnected={true} />);
         expect(screen.getByText(/ask anything/i)).toBeInTheDocument();
         expect(screen.getByText(/summarize tonight/i)).toBeInTheDocument();
     });
 
     it('hides pills once a message is sent', async () => {
-        render(<ChatView logs={[]} compact={false} ollamaEnabled={true} onNavigateToChat={() => {}} />);
+        render(<ChatView logs={[]} compact={false} ollamaEnabled={true} onNavigateToChat={() => {}} ollamaConnected={true} />);
         const input = screen.getByPlaceholderText(/ask about your fights/i);
         fireEvent.change(input, { target: { value: 'Who topped damage?' } });
         fireEvent.submit(input.closest('form')!);
