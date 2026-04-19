@@ -88,4 +88,19 @@ export const TOOL_SCHEMAS: OllamaTool[] = [
             },
         },
     },
+    {
+        type: 'function',
+        function: {
+            name: 'incoming_skill_damage',
+            description: 'Show which enemy skills dealt the most damage to the squad — squad-wide aggregate sorted by total damage taken. Use when asked "what hit us the most", "top incoming skill", "what killed us", "what ability damaged us", or any question about enemy attacks/skills against the squad.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    fight_index: { type: 'number', description: '0-based fight index. Omit for all fights.' },
+                    top_n: { type: 'number', description: 'Number of top skills to show (default 10).' },
+                },
+                required: [],
+            },
+        },
+    },
 ];

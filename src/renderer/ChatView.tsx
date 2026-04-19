@@ -10,6 +10,7 @@ const TOOL_DISPLAY: Record<string, string> = {
     boon_analysis: 'Analyzing boons',
     group_breakdown: 'Breaking down groups',
     compare_fights: 'Comparing fights',
+    incoming_skill_damage: 'Analyzing incoming skills',
 };
 
 function ToolCallBadge({ name, status }: { name: string; status: 'running' | 'done' }) {

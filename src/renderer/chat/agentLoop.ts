@@ -10,20 +10,26 @@ export class ToolUseNotSupportedError extends Error {
     }
 }
 
-const MAX_ITERATIONS = 3;
+const MAX_ITERATIONS = 5;
 
 const ROUTING_SYSTEM_PROMPT = `You classify questions about GW2 WvW arcdps fight logs.
 
-Data available in context: fight name, duration, outcome (WIN/LOSS), squad size, squad deaths, enemy size, enemy deaths, K/D ratio. Per player: damage total, DPS, deaths, downs, damage taken (total only, not by skill), cleanses, strips, rezzes, CC/breakbar damage, distance to tag, boon uptimes.
+Data available in context: fight name, duration, outcome (WIN/LOSS), squad size, squad deaths, enemy size, enemy deaths, K/D ratio. Per player: damage total, DPS, deaths, downs, damage taken (total), cleanses, strips, rezzes, CC/breakbar damage, distance to tag, boon uptimes.
 
 Tools available:
-- rank_players: rank all players by a stat (dps, damage, deaths, downs, damage_taken, cleanses, strips, rezzes, breakbar_damage, dist_to_tag)
+- rank_players: rank all PLAYERS by a stat. Only for "who had the most/best/worst X" questions about individual people. Stats: dps, damage, deaths, downs, damage_taken, cleanses, strips, rezzes, breakbar_damage, dist_to_tag.
 - player_deep_dive: full stats for one specific named player
 - boon_analysis: per-player boon uptime detail with squad averages
-- group_breakdown: stats grouped by subgroup G1/G2/etc.
+- group_breakdown: stats by subgroup G1/G2/etc.
 - compare_fights: how a stat trended across multiple fights
+- incoming_skill_damage: which ENEMY SKILLS/ATTACKS dealt the most damage to the squad (squad-wide aggregate). Use for any question about incoming attacks, enemy abilities, what hurt the squad, top incoming skill/attack/spell.
 
-NOT in the data: incoming damage broken down by enemy skill, enemy skill names, player rotation/cast sequences, build/gear/traits, target-specific damage splits, rally counts.
+NOT in the data: player rotation/cast sequences, player build/gear/traits, rally counts, target-specific damage splits.
+
+CRITICAL DISTINCTION:
+"top [skill/attack/ability/spell/hit]" = incoming_skill_damage (it's asking about an enemy skill, not a player)
+"who topped [stat]" / "top player by [stat]" = rank_players (asking about a person)
+"top incoming X" = ALWAYS incoming_skill_damage
 
 Respond with EXACTLY one line — no explanation, no preamble:
 CONTEXT: [where in the fight data the answer is visible]

@@ -239,6 +239,59 @@ const executors: Record<string, Executor> = {
         return lines.join('\n').trim() || 'No group data found.';
     },
 
+    incoming_skill_damage(args, logs, getDetails) {
+        const { fight_index, top_n = 10 } = args;
+        const fights = loadedFights(logs, fight_index);
+        const lines: string[] = [];
+
+        for (const log of fights) {
+            const details = (log as any).details ?? getDetails(log.id) ?? getDetails(log.filePath);
+            if (!details) continue;
+
+            const skillMap: Record<string, any> = details.skillMap ?? {};
+            const buffMap: Record<string, any> = details.buffMap ?? {};
+            const players: any[] = details.players ?? [];
+
+            const bySkill = new Map<string, { name: string; damage: number; hits: number }>();
+
+            for (const p of players) {
+                const rows: any[] = [];
+                if (Array.isArray(p.totalDamageTaken)) {
+                    for (const group of p.totalDamageTaken) {
+                        if (Array.isArray(group)) rows.push(...group);
+                    }
+                }
+                for (const entry of rows) {
+                    if (!entry?.id) continue;
+                    const key = `s${entry.id}`;
+                    const mapped = skillMap[key] || skillMap[String(entry.id)];
+                    const buffed = buffMap[`b${entry.id}`];
+                    const name = mapped?.name || buffed?.name || `Skill ${entry.id}`;
+                    const existing = bySkill.get(key) ?? { name, damage: 0, hits: 0 };
+                    existing.damage += Math.max(0, Number(entry.totalDamage ?? 0));
+                    existing.hits += Math.max(0, Number(entry.hits ?? entry.connectedHits ?? 0));
+                    bySkill.set(key, existing);
+                }
+            }
+
+            const sorted = Array.from(bySkill.values())
+                .sort((a, b) => b.damage - a.damage)
+                .slice(0, top_n);
+
+            const fightLabel = log.fightName ?? log.id;
+            lines.push(`\n${fightLabel} — Top enemy skills by damage dealt to squad:`);
+            if (sorted.length === 0) {
+                lines.push('  No incoming skill data available.');
+            } else {
+                sorted.forEach((s, i) => {
+                    lines.push(`  ${i + 1}. ${s.name}: ${fmt(s.damage)} damage (${s.hits} hits)`);
+                });
+            }
+        }
+
+        return lines.join('\n').trim() || 'No incoming skill damage data found.';
+    },
+
     compare_fights(args, logs, getDetails) {
         const { metric, player_name } = args;
         const extractor = METRIC_MAP[metric];

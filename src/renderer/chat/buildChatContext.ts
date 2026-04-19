@@ -155,11 +155,13 @@ export function buildChatContext(logs: ILogData[], getDetails: (id: string) => a
     lines.push('- If a metric is not in the data above, say so — do not invent numbers.');
     lines.push('');
     lines.push('## When to call tools (rare — only when context above is insufficient)');
-    lines.push('- player_deep_dive: user asks for full skill/boon detail on one player not visible in the summary');
-    lines.push('- rank_players: user explicitly requests a ranked list for a metric NOT already shown above');
+    lines.push('- incoming_skill_damage: user asks which enemy skills/attacks dealt the most damage to the squad ("top incoming skill", "what hit us", "what killed us", "top attack against us")');
     lines.push('- boon_analysis: user asks for per-player boon uptime breakdown across the squad');
     lines.push('- group_breakdown: user asks specifically about subgroup (G1/G2/etc.) performance');
     lines.push('- compare_fights: user asks how a stat changed across multiple fights over time');
+    lines.push('- rank_players: user explicitly asks which PLAYER had the most/best/worst of a metric (a person ranking, not a skill ranking)');
+    lines.push('- player_deep_dive: user asks for full detail on one specific named player');
+    lines.push('- Do NOT call rank_players for questions about skills, attacks, or abilities — use incoming_skill_damage instead.');
     lines.push('- Do NOT call any tool if the answer is already visible in the context above.');
 
     return lines.join('\n');
