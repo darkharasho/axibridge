@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useContext, useMemo } from 'react';
 import type { ChatMessage, IAiSettings } from '../global';
-import { buildChatContext } from './buildChatContext';
+import { buildSystemPrompt } from './buildChatContext';
 import { agentLoop, ToolUseNotSupportedError } from './agentLoop';
 import { DetailsCacheContext } from '../cache/DetailsCacheContext';
 import { createAnthropicProvider } from './providers/anthropicClient';
@@ -41,6 +41,10 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
     useEffect(() => { messagesRef.current = messages; }, [messages]);
 
     useEffect(() => {
+        window.electronAPI.getAiSettings().then(setAiSettings).catch(() => {});
+    }, []);
+
+    useEffect(() => {
         if (!ollamaEnabled) return;
         let cancelled = false;
         window.electronAPI.getOllamaStatus().then(status => {
@@ -49,7 +53,6 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
                 setAvailableModels(status.models);
             }
         });
-        window.electronAPI.getAiSettings().then(setAiSettings).catch(() => {});
         const unsub = window.electronAPI.onOllamaStatusChanged(status => {
             setOllamaConnected(status.connected);
             setAvailableModels(status.models);
@@ -88,7 +91,7 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
         setThinking(true);
         setToolCalls([]);
 
-        const systemPrompt = buildChatContext(logs, (id) => detailsCache?.peek(id));
+        const systemPrompt = buildSystemPrompt(logs);
         const history: ChatMessage[] = [
             { role: 'system', content: systemPrompt },
             ...messagesRef.current.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
@@ -119,16 +122,24 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
         try {
             await agentLoop(text, history, logs, (id) => detailsCache?.peek(id), handleToolCall, handleToken, provider);
         } catch (err: any) {
+            const apiErr = err?.message ?? '';
+            const isNetworkErr = apiErr.toLowerCase().includes('failed to fetch') || apiErr.toLowerCase().includes('network');
             const content = err instanceof ToolUseNotSupportedError
                 ? err.message
-                : 'Error: could not reach Ollama. Is it still running?';
+                : isNetworkErr && aiSettings.provider !== 'ollama'
+                    ? 'Request failed — the context may be too large. Try asking a more specific question (e.g. "what can we improve?" instead of an open-ended one).'
+                    : aiSettings.provider === 'anthropic'
+                        ? `Error calling Anthropic API: ${apiErr}`
+                        : aiSettings.provider === 'openai'
+                            ? `Error calling OpenAI API: ${apiErr}`
+                            : 'Error: could not reach Ollama. Is it still running?';
             setMessages(prev => prev.map(m =>
                 m.id === assistantId ? { ...m, content, streaming: false } : m
             ));
             setStreaming(false);
             setThinking(false);
         }
-    }, [logs, streaming, detailsCache, provider]);
+    }, [logs, streaming, detailsCache, provider, aiSettings]);
 
     const clearMessages = useCallback(() => {
         setMessages([]);
