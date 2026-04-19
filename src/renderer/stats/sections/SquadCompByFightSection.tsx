@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Users } from 'lucide-react';
-import { resolvePublicAssetPath } from '../../ui/resolvePublicAssetPath';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { PROFESSION_COLORS } from '../../../shared/professionUtils';
 
@@ -55,7 +54,6 @@ export const SquadCompByFightSection = ({
     const [activeFightId, setActiveFightId] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const normalizedSearch = search.trim().toLowerCase();
-    const commanderTagIcon = resolvePublicAssetPath('svg/commander_tag.svg');
 
     useEffect(() => {
         if (fights.length === 0) {
@@ -153,14 +151,6 @@ export const SquadCompByFightSection = ({
                                                             borderLeftColor: PROFESSION_COLORS[player.profession] ?? 'rgba(255,255,255,0.14)',
                                                         }}
                                                     >
-                                                        {player.isCommander ? (
-                                                            <img
-                                                                src={commanderTagIcon}
-                                                                alt=""
-                                                                aria-hidden="true"
-                                                                className="absolute -right-2 -bottom-2 w-12 h-12 object-contain opacity-20 brightness-75 pointer-events-none"
-                                                            />
-                                                        ) : null}
                                                         <div className="grid grid-cols-[18px_minmax(0,1fr)] grid-rows-2 gap-x-2 items-center min-w-0">
                                                             <div
                                                                 className="row-span-2 flex items-center justify-center w-5 h-5 rounded-sm flex-shrink-0"
@@ -180,10 +170,17 @@ export const SquadCompByFightSection = ({
                                                                     <span className="squad-comp-player-icon inline-block w-5 h-5 rounded-sm border border-[color:var(--border-default)]" />
                                                                 )}
                                                             </div>
-                                                            <div className="squad-comp-player-account text-[11px] font-semibold text-emerald-50 truncate min-w-0 flex items-center gap-1" title={player.account}>
+                                                            <div className="squad-comp-player-account text-[11px] font-semibold text-[color:var(--text-primary)] truncate min-w-0 flex items-center gap-1" title={player.account}>
                                                                 <span className="truncate min-w-0">{player.account}</span>
+                                                                {player.isCommander ? (
+                                                                    <span
+                                                                        className="inline-flex items-center justify-center w-3 h-3 rounded-full flex-shrink-0 text-[8px] leading-none"
+                                                                        style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)', color: '#fbbf24' }}
+                                                                        title="Commander"
+                                                                    >★</span>
+                                                                ) : null}
                                                             </div>
-                                                            <div className="squad-comp-player-character text-[10px] text-emerald-100/80 truncate min-w-0" title={player.characterName || 'Unknown'}>
+                                                            <div className="squad-comp-player-character text-[10px] text-[color:var(--text-secondary)] truncate min-w-0" title={player.characterName || 'Unknown'}>
                                                                 {player.characterName || 'Unknown'}
                                                             </div>
                                                         </div>
