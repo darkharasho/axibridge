@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BarChart3, Clock3, LayoutDashboard, Minus, RefreshCw, Settings as SettingsIcon, Square, X } from 'lucide-react';
+import { BarChart3, Clock3, LayoutDashboard, MessageSquare, Minus, RefreshCw, Settings as SettingsIcon, Square, X } from 'lucide-react';
 import { Terminal as TerminalIcon } from 'lucide-react';
 import { SettingsView } from '../SettingsView';
 import { StatsView } from '../StatsView';
@@ -16,6 +16,7 @@ import { WhatsNewModal } from '../WhatsNewModal';
 import { FilePickerModal } from './FilePickerModal';
 import { WebUploadOverlay } from './WebUploadOverlay';
 import { FightReportHistoryView } from '../FightReportHistoryView';
+import { ChatView } from '../ChatView';
 import { useParticleEffect, PRESETS } from '../particles';
 import { TRANSITION } from '../motion';
 
@@ -114,6 +115,14 @@ export function AppLayout({ ctx }: { ctx: any }) {
         return window.electronAPI?.onMaximizedChange?.((m: boolean) => setMaximized(m));
     }, []);
 
+    const [chatPanelOpen, setChatPanelOpen] = useState(false);
+
+    const toggleChatPanel = useCallback(() => {
+        const next = !chatPanelOpen;
+        setChatPanelOpen(next);
+        window.electronAPI.setPanelOpen(next);
+    }, [chatPanelOpen]);
+
     useEffect(() => {
         setActiveNavView(view);
     }, [view]);
@@ -161,7 +170,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         aggregationDiagnostics,
     }), [computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics]);
 
-    const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'history' | 'settings') => {
+    const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'history' | 'settings' | 'chat') => {
         setActiveNavView(nextView);
         if (navSwitchRafRef.current !== null) {
             window.cancelAnimationFrame(navSwitchRafRef.current);
@@ -208,6 +217,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 {([
                     { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
                     { id: 'stats' as const, label: 'Stats', icon: BarChart3 },
+                    ...(ollamaEnabled ? [{ id: 'chat' as const, label: 'Chat', icon: MessageSquare }] : []),
                     { id: 'history' as const, label: 'History', icon: Clock3 },
                     { id: 'settings' as const, label: 'Settings', icon: SettingsIcon },
                 ]).map(({ id, label, icon: Icon }) => (
@@ -446,8 +456,49 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 isBulkUploadActive={isBulkUploadActive}
                             />
                         )}
+                        {view === 'chat' && ollamaEnabled && (
+                            <div className="flex-1 min-h-0 flex flex-col">
+                                <ChatView
+                                    logs={logsForStats}
+                                    compact={false}
+                                    ollamaEnabled={ollamaEnabled}
+                                    onNavigateToChat={() => {}}
+                                />
+                            </div>
+                        )}
                     </motion.div>
                 </AnimatePresence>
+
+                {/* Floating chat button — hidden when Chat tab is active */}
+                {ollamaEnabled && view !== 'chat' && (
+                    <button
+                        onClick={toggleChatPanel}
+                        className="absolute bottom-4 right-4 z-40 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 shadow-lg flex items-center justify-center transition-colors"
+                        title="AI Assistant"
+                    >
+                        <MessageSquare className="w-5 h-5 text-white" />
+                    </button>
+                )}
+
+                {/* Floating chat panel */}
+                {ollamaEnabled && chatPanelOpen && view !== 'chat' && (
+                    <div
+                        className="absolute right-0 top-0 bottom-0 z-30 flex flex-col"
+                        style={{ width: 320, background: 'var(--bg-elevated)', borderLeft: '1px solid var(--border-subtle)' }}
+                    >
+                        <ChatView
+                            logs={logsForStats}
+                            compact={true}
+                            ollamaEnabled={ollamaEnabled}
+                            onNavigateToChat={() => {
+                                setChatPanelOpen(false);
+                                window.electronAPI.setPanelOpen(false);
+                                setView('chat');
+                            }}
+                            onClose={toggleChatPanel}
+                        />
+                    </div>
+                )}
             </div>
 
             <FilePickerModal ctx={filePickerCtx} isBulkUploadActive={isBulkUploadActive} />
