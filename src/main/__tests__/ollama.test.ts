@@ -1,3 +1,7 @@
+// Note: this file tests main-process code, so the "node" vitest environment would be
+// semantically correct. However, the global setup file (src/renderer/test/setup.ts)
+// references `window`, which is undefined in the node environment. Switching environments
+// breaks the suite. Tests pass correctly under the default jsdom environment.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OllamaManager } from '../ollama';
 

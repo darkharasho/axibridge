@@ -64,10 +64,11 @@ export class OllamaManager {
     }
 
     private async _readStream(res: Response, onLine: (line: string) => void): Promise<void> {
-        const reader = res.body!.getReader();
+        if (!res.body) throw new Error('Response body is null');
+        const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-        while (true) {
+        for (;;) {
             const { value, done } = await reader.read();
             if (done) break;
             buffer += decoder.decode(value, { stream: true });
