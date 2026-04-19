@@ -199,30 +199,28 @@ export function buildChatContext(logs: ILogData[], getDetails: (id: string) => a
 
     lines.push('## Instructions');
     lines.push('- Answer directly from the fight data above. It is your primary source of truth.');
-    lines.push('- For ranking questions ("who topped X"), read the Players list above and sort by that stat — do NOT call a tool.');
-    lines.push('- For outcome questions ("did we wipe?", "how did fight 2 go?"), use the Duration/Outcome/K/D fields above.');
+    lines.push('- For ranking questions, read the Players list above and sort by that stat — do NOT call a tool.');
+    lines.push('- For outcome questions, use the Duration/Outcome/K/D fields above.');
     lines.push('- For specific player lookups, find them by name in the Players list above.');
     lines.push('- If a metric is not in the data above, say so — do not invent numbers.');
-    lines.push('- Tool results contain markdown tables and ```chart blocks. When presenting tool results, preserve these verbatim — do not paraphrase numbers from tables or drop chart blocks.');
+    lines.push('- Preserve markdown tables and ```chart blocks verbatim when presenting tool results.');
     lines.push('');
-    lines.push('## When to call tools');
-    lines.push('- incoming_skill_damage: which ENEMY skills hurt the squad most ("top incoming skill", "what hit us")');
-    lines.push('- squad_skill_damage: which OUR skills dealt the most damage ("top damage skills", "skill breakdown", "outgoing skills")');
-    lines.push('- healing_stats: healing output, HPS, barrier ("who healed most", "healing output", "top healer")');
-    lines.push('- conditions_applied: conditions we applied to enemies ("condition damage", "how much burning", "condi output")');
-    lines.push('- damage_mitigation: evades, blocks, dodges per player ("mitigation", "who dodged most", "evade count")');
-    lines.push('- spike_damage: burst/peak damage output ("spike damage", "biggest hit", "burst damage")');
-    lines.push('- boon_analysis: per-player boon uptime ("boon coverage", "stability uptime", "boon breakdown")');
-    lines.push('- group_breakdown: stats by subgroup G1–G5 ("group breakdown", "how did G2 do")');
+    lines.push('## Available tools (call only when data is not already in context above)');
+    lines.push('- incoming_skill_damage: enemy skills that damaged the squad');
+    lines.push('- squad_skill_damage: our skills by outgoing damage');
+    lines.push('- healing_stats: healing output and HPS per player');
+    lines.push('- conditions_applied: conditions applied to enemies');
+    lines.push('- damage_mitigation: evades, blocks, and dodges per player');
+    lines.push('- spike_damage: peak/burst damage output per player');
+    lines.push('- boon_analysis: per-player boon uptime breakdown');
+    lines.push('- group_breakdown: stats aggregated by subgroup');
     lines.push('- compare_fights: how a metric trended across multiple fights');
-    lines.push('- rank_players: rank all PLAYERS by a stat ("who topped damage", "who died most")');
-    lines.push('- player_deep_dive: full stats for one specific named player');
-    lines.push('- Do NOT call rank_players for questions about skills or abilities — use the skill/condition tools instead.');
-    lines.push('- Do NOT call any tool if the answer is already visible in the fight data above.');
-    lines.push('- performance_analysis: comprehensive coaching report covering offense, boon coverage, deaths, healing, and recommendations ("what can we improve?", "coaching report", "performance review", "how did we do overall?")');
+    lines.push('- rank_players: rank all players by a single stat');
+    lines.push('- player_deep_dive: full stats for one specific player');
+    lines.push('- performance_analysis: comprehensive coaching report covering offense, boons, deaths, healing, and recommendations');
     lines.push('');
-    lines.push('## Multi-Tool Analysis');
-    lines.push('For broad questions requiring synthesis across multiple dimensions ("analyze our performance", "summarize tonight", "what can we improve overall"), call multiple tools in sequence and synthesize the results. Don\'t limit yourself to one tool per question.');
+    lines.push('## Multi-tool analysis');
+    lines.push('For broad questions requiring multiple dimensions, chain tool calls and synthesize the results.');
 
     return lines.join('\n');
 }

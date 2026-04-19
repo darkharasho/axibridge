@@ -67,14 +67,17 @@ export async function agentLoop(
         }
         onToolCall(route.tool, 'done');
 
-        // Inject synthetic tool-call turn so model knows what was fetched
-        const msgs: ChatMessage[] = [
-            ...history,
+        // Synthesis: use a minimal system prompt so the model doesn't confuse the tool-calling
+        // instructions in the main system prompt as additional questions to answer.
+        const historyWithoutSystem = history.filter(m => m.role !== 'system');
+        const synthMsgs: ChatMessage[] = [
+            { role: 'system', content: 'You are a GW2 WvW analyst. Answer the user\'s specific question directly and concisely based on the tool data provided. Only address what was asked. Preserve markdown tables and ```chart blocks verbatim in your response.' },
+            ...historyWithoutSystem,
             { role: 'user', content: userText },
             { role: 'assistant', content: '', tool_calls: [{ function: { name: route.tool, arguments: route.args } }] },
             { role: 'tool', content: toolResult },
         ];
-        const resp = await provider.chatOnce(msgs, []); // no tools — just synthesize
+        const resp = await provider.chatOnce(synthMsgs, []);
         onToken(resp.message.content ?? '', true);
         return;
     }
