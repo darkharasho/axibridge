@@ -118,11 +118,24 @@ export function AppLayout({ ctx }: { ctx: any }) {
 
     const [chatPanelOpen, setChatPanelOpen] = useState(false);
 
+    const openChatPanel = useCallback(() => {
+        setChatPanelOpen(true);
+        window.electronAPI.setPanelOpen(true); // expand window immediately so panel slides into new space
+    }, []);
+
+    const closeChatPanel = useCallback(() => {
+        setChatPanelOpen(false);
+        // window shrinks in handlePanelExitComplete, after exit animation finishes
+    }, []);
+
+    const handlePanelExitComplete = useCallback(() => {
+        window.electronAPI.setPanelOpen(false);
+    }, []);
+
     const toggleChatPanel = useCallback(() => {
-        const next = !chatPanelOpen;
-        setChatPanelOpen(next);
-        window.electronAPI.setPanelOpen(next);
-    }, [chatPanelOpen]);
+        if (chatPanelOpen) closeChatPanel();
+        else openChatPanel();
+    }, [chatPanelOpen, openChatPanel, closeChatPanel]);
 
     useEffect(() => {
         setActiveNavView(view);
@@ -482,25 +495,31 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     </button>
                 )}
 
-                {/* Floating chat panel */}
-                {ollamaEnabled && chatPanelOpen && view !== 'chat' && (
-                    <div
-                        className="absolute right-0 top-0 bottom-0 z-30 flex flex-col"
-                        style={{ width: 320, background: 'var(--bg-elevated)', borderLeft: '1px solid var(--border-subtle)' }}
-                    >
-                        <ChatView
-                            logs={logsWithDetails}
-                            compact={true}
-                            ollamaEnabled={ollamaEnabled}
-                            onNavigateToChat={() => {
-                                setChatPanelOpen(false);
-                                window.electronAPI.setPanelOpen(false);
-                                setView('chat');
-                            }}
-                            onClose={toggleChatPanel}
-                        />
-                    </div>
-                )}
+                {/* Floating chat panel — slides in from the right */}
+                <AnimatePresence onExitComplete={handlePanelExitComplete}>
+                    {ollamaEnabled && chatPanelOpen && view !== 'chat' && (
+                        <motion.div
+                            key="chat-panel"
+                            initial={{ x: 320 }}
+                            animate={{ x: 0 }}
+                            exit={{ x: 320 }}
+                            transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+                            className="absolute right-0 top-0 bottom-0 z-30 flex flex-col"
+                            style={{ width: 320, background: 'var(--bg-elevated)', borderLeft: '1px solid var(--border-subtle)' }}
+                        >
+                            <ChatView
+                                logs={logsWithDetails}
+                                compact={true}
+                                ollamaEnabled={ollamaEnabled}
+                                onNavigateToChat={() => {
+                                    closeChatPanel();
+                                    setView('chat');
+                                }}
+                                onClose={closeChatPanel}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             <FilePickerModal ctx={filePickerCtx} isBulkUploadActive={isBulkUploadActive} />
