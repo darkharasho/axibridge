@@ -136,9 +136,12 @@ const extractFightOverview: ExtractFn = (logs) => {
 
 const extractOffense: ExtractFn = (logs, getDetails, computedStats, fightIndex) => {
     const stats = hydratedStats(logs, getDetails, fightIndex) ?? computedStats;
-    const scope = fightIndex != null
-        ? fightLabel(loadedFights(logs, fightIndex)[0] ?? logs[0], fightIndex)
-        : 'all fights combined';
+    const scope = (() => {
+        if (fightIndex == null) return 'all fights combined';
+        const f = loadedFights(logs, fightIndex)[0];
+        if (!f) return `Fight ${fightIndex + 1} (not found)`;
+        return fightLabel(f, fightIndex);
+    })();
     const players = ((stats?.offensePlayers ?? []) as any[])
         .sort((a, b) => (b.offenseTotals?.damage ?? 0) - (a.offenseTotals?.damage ?? 0))
         .slice(0, 20);
@@ -154,9 +157,12 @@ const extractOffense: ExtractFn = (logs, getDetails, computedStats, fightIndex) 
 
 const extractDefense: ExtractFn = (logs, getDetails, computedStats, fightIndex) => {
     const stats = hydratedStats(logs, getDetails, fightIndex) ?? computedStats;
-    const scope = fightIndex != null
-        ? fightLabel(loadedFights(logs, fightIndex)[0] ?? logs[0], fightIndex)
-        : 'all fights combined';
+    const scope = (() => {
+        if (fightIndex == null) return 'all fights combined';
+        const f = loadedFights(logs, fightIndex)[0];
+        if (!f) return `Fight ${fightIndex + 1} (not found)`;
+        return fightLabel(f, fightIndex);
+    })();
     const players = ((stats?.defensePlayers ?? []) as any[])
         .sort((a, b) => (b.defenseTotals?.deadCount ?? 0) - (a.defenseTotals?.deadCount ?? 0))
         .slice(0, 20);
@@ -174,9 +180,12 @@ const extractDefense: ExtractFn = (logs, getDetails, computedStats, fightIndex) 
 
 const extractSupport: ExtractFn = (logs, getDetails, computedStats, fightIndex) => {
     const stats = hydratedStats(logs, getDetails, fightIndex) ?? computedStats;
-    const scope = fightIndex != null
-        ? fightLabel(loadedFights(logs, fightIndex)[0] ?? logs[0], fightIndex)
-        : 'all fights combined';
+    const scope = (() => {
+        if (fightIndex == null) return 'all fights combined';
+        const f = loadedFights(logs, fightIndex)[0];
+        if (!f) return `Fight ${fightIndex + 1} (not found)`;
+        return fightLabel(f, fightIndex);
+    })();
     const players = ((stats?.supportPlayers ?? []) as any[])
         .filter(p => (p.supportTotals?.condiCleanse ?? 0) + (p.supportTotals?.boonStrips ?? 0) + (p.supportTotals?.resurrects ?? 0) > 0)
         .sort((a, b) => ((b.supportTotals?.condiCleanse ?? 0) + (b.supportTotals?.condiCleanseSelf ?? 0)) -
@@ -201,7 +210,8 @@ const extractBoons: ExtractFn = (logs, getDetails, _computedStats, fightIndex) =
         const details = (log as any).details ?? getDetails(log.id) ?? getDetails(log.filePath);
         const players: any[] = details?.players ?? [];
         if (players.length === 0) continue;
-        const label = fightLabel(log, fightIndex != null ? fightIndex : fi);
+        const realIndex = logs.indexOf(log);
+        const label = fightLabel(log, fightIndex != null ? fightIndex : realIndex >= 0 ? realIndex : fi);
         const allBoons = boonUptimesForPlayers(players);
         const summaryRows = BOON_ORDER
             .filter(b => allBoons[b]?.length)
@@ -241,7 +251,8 @@ const extractGroups: ExtractFn = (logs, getDetails, _computedStats, fightIndex) 
         const details = (log as any).details ?? getDetails(log.id) ?? getDetails(log.filePath);
         const players: any[] = details?.players ?? [];
         if (players.length === 0) continue;
-        const label = fightLabel(log, fightIndex != null ? fightIndex : fi);
+        const realIndex = logs.indexOf(log);
+        const label = fightLabel(log, fightIndex != null ? fightIndex : realIndex >= 0 ? realIndex : fi);
         const byGroup = new Map<number, any[]>();
         for (const p of players) {
             const g = p.group ?? 0;
@@ -265,9 +276,12 @@ const extractGroups: ExtractFn = (logs, getDetails, _computedStats, fightIndex) 
 
 const extractHealing: ExtractFn = (logs, getDetails, computedStats, fightIndex) => {
     const stats = hydratedStats(logs, getDetails, fightIndex) ?? computedStats;
-    const scope = fightIndex != null
-        ? fightLabel(loadedFights(logs, fightIndex)[0] ?? logs[0], fightIndex)
-        : 'all fights combined';
+    const scope = (() => {
+        if (fightIndex == null) return 'all fights combined';
+        const f = loadedFights(logs, fightIndex)[0];
+        if (!f) return `Fight ${fightIndex + 1} (not found)`;
+        return fightLabel(f, fightIndex);
+    })();
     const healers = ((stats?.healingPlayers ?? []) as any[])
         .filter(p => (p.healingTotals?.healing ?? 0) > 0)
         .sort((a, b) => (b.healingTotals?.healing ?? 0) - (a.healingTotals?.healing ?? 0))
@@ -283,9 +297,12 @@ const extractHealing: ExtractFn = (logs, getDetails, computedStats, fightIndex) 
 
 const extractSkillsOutgoing: ExtractFn = (logs, getDetails, computedStats, fightIndex) => {
     const stats = hydratedStats(logs, getDetails, fightIndex) ?? computedStats;
-    const scope = fightIndex != null
-        ? fightLabel(loadedFights(logs, fightIndex)[0] ?? logs[0], fightIndex)
-        : 'all fights combined';
+    const scope = (() => {
+        if (fightIndex == null) return 'all fights combined';
+        const f = loadedFights(logs, fightIndex)[0];
+        if (!f) return `Fight ${fightIndex + 1} (not found)`;
+        return fightLabel(f, fightIndex);
+    })();
     const skills = ((stats?.topSkillsByDamage ?? []) as any[])
         .sort((a, b) => (b.damage ?? 0) - (a.damage ?? 0))
         .slice(0, 15);
@@ -324,18 +341,24 @@ const extractSkillsIncoming: ExtractFn = (logs, getDetails, _computedStats, figh
     }
     const sorted = Array.from(bySkill.values()).sort((a, b) => b.damage - a.damage).slice(0, 15);
     if (sorted.length === 0) return 'No incoming skill data.';
-    const scope = fightIndex != null
-        ? fightLabel(loadedFights(logs, fightIndex)[0] ?? logs[0], fightIndex)
-        : 'all fights combined';
+    const scope = (() => {
+        if (fightIndex == null) return 'all fights combined';
+        const f = loadedFights(logs, fightIndex)[0];
+        if (!f) return `Fight ${fightIndex + 1} (not found)`;
+        return fightLabel(f, fightIndex);
+    })();
     const rows = sorted.map((s, i) => [i + 1, s.name, fmt(s.damage), s.hits]);
     return `**Top Incoming Enemy Skills — ${scope}**\n\n${mdTable(['#', 'Skill', 'Damage to Squad', 'Hits'], rows, [0, 2, 3])}`;
 };
 
 const extractMitigation: ExtractFn = (logs, getDetails, computedStats, fightIndex) => {
     const stats = hydratedStats(logs, getDetails, fightIndex) ?? computedStats;
-    const scope = fightIndex != null
-        ? fightLabel(loadedFights(logs, fightIndex)[0] ?? logs[0], fightIndex)
-        : 'all fights combined';
+    const scope = (() => {
+        if (fightIndex == null) return 'all fights combined';
+        const f = loadedFights(logs, fightIndex)[0];
+        if (!f) return `Fight ${fightIndex + 1} (not found)`;
+        return fightLabel(f, fightIndex);
+    })();
     const players = ((stats?.damageMitigationPlayers ?? []) as any[])
         .sort((a, b) => (b.mitigationTotals?.totalMitigation ?? 0) - (a.mitigationTotals?.totalMitigation ?? 0))
         .slice(0, 15);
@@ -349,9 +372,12 @@ const extractMitigation: ExtractFn = (logs, getDetails, computedStats, fightInde
 
 const extractConditions: ExtractFn = (logs, getDetails, computedStats, fightIndex) => {
     const stats = hydratedStats(logs, getDetails, fightIndex) ?? computedStats;
-    const scope = fightIndex != null
-        ? fightLabel(loadedFights(logs, fightIndex)[0] ?? logs[0], fightIndex)
-        : 'all fights combined';
+    const scope = (() => {
+        if (fightIndex == null) return 'all fights combined';
+        const f = loadedFights(logs, fightIndex)[0];
+        if (!f) return `Fight ${fightIndex + 1} (not found)`;
+        return fightLabel(f, fightIndex);
+    })();
     const summary = ((stats?.outgoingConditionSummary ?? []) as any[]).slice(0, 15);
     if (summary.length === 0) return 'No condition data.';
     const rows = summary.map((c, i) => [i + 1, c.name, fmt(c.damage ?? 0), c.applications ?? 0]);

@@ -105,3 +105,43 @@ describe('SECTION_CATALOG', () => {
         }
     });
 });
+
+describe('healing extractor', () => {
+    it('returns a string (may be empty-data message when healing unavailable)', () => {
+        const r = extractSection('healing', logs, getDetails, computedStats);
+        expect(typeof r).toBe('string');
+        expect(r.length).toBeGreaterThan(0);
+    });
+});
+
+describe('skills_outgoing extractor', () => {
+    it('returns a string', () => {
+        const r = extractSection('skills_outgoing', logs, getDetails, computedStats);
+        expect(typeof r).toBe('string');
+        expect(r.length).toBeGreaterThan(0);
+    });
+});
+
+describe('skills_incoming extractor', () => {
+    it('returns a string', () => {
+        const r = extractSection('skills_incoming', logs, getDetails, computedStats);
+        expect(typeof r).toBe('string');
+        expect(r.length).toBeGreaterThan(0);
+    });
+});
+
+describe('mitigation extractor', () => {
+    it('returns a string', () => {
+        const r = extractSection('mitigation', logs, getDetails, computedStats);
+        expect(typeof r).toBe('string');
+        expect(r.length).toBeGreaterThan(0);
+    });
+});
+
+describe('conditions extractor', () => {
+    it('returns a string', () => {
+        const r = extractSection('conditions', logs, getDetails, computedStats);
+        expect(typeof r).toBe('string');
+        expect(r.length).toBeGreaterThan(0);
+    });
+});
