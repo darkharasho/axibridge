@@ -30,6 +30,7 @@ const METRIC_ALIASES: Record<string, string> = {
     'damage received': 'damage_taken',
     // Support
     'cleanses': 'cleanses',
+    'cleanse': 'cleanses',
     'cleansing': 'cleanses',
     'strips': 'strips',
     'stripped': 'strips',
@@ -374,7 +375,7 @@ const MATCHERS: Matcher[] = [
         },
     },
 
-    // Player ranking — "who" questions about individuals
+    // Player ranking — "who" questions about individuals, stat spread/distribution questions
     {
         test: any(
             /who\s+(had|topped|dealt|did|took|got|was|is|has|have|stripped|cleansed|rezz|killed|downed)\s.{0,30}(most|best|worst|highest|lowest|top|least|more|less)/,
@@ -384,6 +385,11 @@ const MATCHERS: Matcher[] = [
             /\btop\s+\d*\s*players?\b/,
             /\bplayer\s+(ranking|leaderboard|list)\b/,
             /rank\s+(all\s+)?players\s+by/,
+            // "[metric] spread / distribution / breakdown by player"
+            /\b(spread|distribution)\b.{0,30}\b(damage|dps|deaths|downs|cleanses?|strips|boon.?strips|rezzes?|breakbar)\b/,
+            /\b(damage|dps|deaths|downs|cleanses?|strips|boon.?strips|rezzes?|breakbar)\b.{0,15}\b(spread|distribution|breakdown|by\s+player|ranking)\b/,
+            // "how were/was our cleanses/strips/rezzes"
+            /how\s+(were|was|is)\s+(?:our\s+|the\s+)?.{0,15}\b(cleanses?|strips|boon.?strips|rezzes?|resurrects?)\b/,
         ),
         decide: (text) => {
             const metric = extractMetric(text);

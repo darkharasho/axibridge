@@ -302,6 +302,25 @@ describe('performance_analysis', () => {
     });
 });
 
+describe('rank_players — spread/distribution queries', () => {
+    const cases: [string, string][] = [
+        ['what was the spread of boon strips?', 'strips'],
+        ['boon strips distribution', 'strips'],
+        ['cleanses spread across players', 'cleanses'],
+        ['how were our strips?', 'strips'],
+        ['how was our cleanse count?', 'cleanses'],
+        ['rezzes breakdown by player', 'rezzes'],
+    ];
+    it.each(cases)('routes "%s" to rank_players with metric %s', (q, metric) => {
+        const r = classifyQuestion(q);
+        expect(r.kind).toBe('tool');
+        if (r.kind === 'tool') {
+            expect(r.tool).toBe('rank_players');
+            expect(r.args.metric).toBe(metric);
+        }
+    });
+});
+
 // Critical: these must NOT route to rank_players
 describe('does not misroute skill questions to rank_players', () => {
     const cases = [
