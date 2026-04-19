@@ -154,15 +154,20 @@ export function buildChatContext(logs: ILogData[], getDetails: (id: string) => a
     lines.push('- For specific player lookups, find them by name in the Players list above.');
     lines.push('- If a metric is not in the data above, say so — do not invent numbers.');
     lines.push('');
-    lines.push('## When to call tools (rare — only when context above is insufficient)');
-    lines.push('- incoming_skill_damage: user asks which enemy skills/attacks dealt the most damage to the squad ("top incoming skill", "what hit us", "what killed us", "top attack against us")');
-    lines.push('- boon_analysis: user asks for per-player boon uptime breakdown across the squad');
-    lines.push('- group_breakdown: user asks specifically about subgroup (G1/G2/etc.) performance');
-    lines.push('- compare_fights: user asks how a stat changed across multiple fights over time');
-    lines.push('- rank_players: user explicitly asks which PLAYER had the most/best/worst of a metric (a person ranking, not a skill ranking)');
-    lines.push('- player_deep_dive: user asks for full detail on one specific named player');
-    lines.push('- Do NOT call rank_players for questions about skills, attacks, or abilities — use incoming_skill_damage instead.');
-    lines.push('- Do NOT call any tool if the answer is already visible in the context above.');
+    lines.push('## When to call tools');
+    lines.push('- incoming_skill_damage: which ENEMY skills hurt the squad most ("top incoming skill", "what hit us")');
+    lines.push('- squad_skill_damage: which OUR skills dealt the most damage ("top damage skills", "skill breakdown", "outgoing skills")');
+    lines.push('- healing_stats: healing output, HPS, barrier ("who healed most", "healing output", "top healer")');
+    lines.push('- conditions_applied: conditions we applied to enemies ("condition damage", "how much burning", "condi output")');
+    lines.push('- damage_mitigation: evades, blocks, dodges per player ("mitigation", "who dodged most", "evade count")');
+    lines.push('- spike_damage: burst/peak damage output ("spike damage", "biggest hit", "burst damage")');
+    lines.push('- boon_analysis: per-player boon uptime ("boon coverage", "stability uptime", "boon breakdown")');
+    lines.push('- group_breakdown: stats by subgroup G1–G5 ("group breakdown", "how did G2 do")');
+    lines.push('- compare_fights: how a metric trended across multiple fights');
+    lines.push('- rank_players: rank all PLAYERS by a stat ("who topped damage", "who died most")');
+    lines.push('- player_deep_dive: full stats for one specific named player');
+    lines.push('- Do NOT call rank_players for questions about skills or abilities — use the skill/condition tools instead.');
+    lines.push('- Do NOT call any tool if the answer is already visible in the fight data above.');
 
     return lines.join('\n');
 }

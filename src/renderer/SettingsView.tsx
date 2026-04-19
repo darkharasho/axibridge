@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Bot } from 'lucide-react';
+import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Bot, Play } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, normalizeMvpWeights, IEiParserSettings, IEiStatus, IOllamaStatus } from './global.d';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { PALETTES, type ColorPalette, DEFAULT_PALETTE_ID } from '../shared/webThemes';
@@ -115,8 +115,10 @@ interface SettingsViewProps {
     isBulkUploadActive?: boolean;
     ollamaEnabled?: boolean;
     ollamaModel?: string;
+    ollamaAutoManage?: boolean;
     setOllamaEnabled?: (enabled: boolean) => void;
     setOllamaModel?: (model: string) => void;
+    setOllamaAutoManage?: (autoManage: boolean) => void;
 }
 
 // Toggle switch component — memoized with a custom comparator that ignores onChange reference
@@ -194,7 +196,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, ollamaEnabled: ollamaEnabledProp = false, ollamaModel: ollamaModelProp = '', setOllamaEnabled, setOllamaModel }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, ollamaEnabled: ollamaEnabledProp = false, ollamaModel: ollamaModelProp = '', ollamaAutoManage: ollamaAutoManageProp = false, setOllamaEnabled, setOllamaModel, setOllamaAutoManage }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
@@ -208,6 +210,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
     const [ollamaStatus, setOllamaStatus] = useState<IOllamaStatus | null>(null);
+    const [startingOllama, setStartingOllama] = useState(false);
     const [pullingModel, setPullingModel] = useState<string | null>(null);
     const [pullProgress, setPullProgress] = useState<{ status: string; percent: number } | null>(null);
     const [eiStatus, setEiStatus] = useState<IEiStatus>({ installed: false, version: null, updateAvailable: null, installing: false, error: null });
@@ -2789,6 +2792,15 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 }}
                             />
 
+                            {ollamaEnabledProp && (
+                                <Toggle
+                                    label="Auto-start / stop Ollama"
+                                    description="Launch Ollama when the app opens and stop it when the app closes."
+                                    enabled={ollamaAutoManageProp}
+                                    onChange={(val) => setOllamaAutoManage?.(val)}
+                                />
+                            )}
+
                             {ollamaEnabledProp && ollamaStatus !== null && (
                                 <>
                                     <div className="flex items-center gap-2">
@@ -2797,12 +2809,27 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             {ollamaStatus?.connected ? 'Ollama connected' : 'Ollama not detected'}
                                         </span>
                                         {!ollamaStatus?.connected && (
-                                            <button
-                                                onClick={() => window.electronAPI?.openExternal?.('https://ollama.com/download')}
-                                                className="text-xs text-blue-400 hover:text-blue-300 underline ml-1"
-                                            >
-                                                Install Ollama
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={async () => {
+                                                        setStartingOllama(true);
+                                                        const status = await window.electronAPI.startOllama();
+                                                        setOllamaStatus(status);
+                                                        setStartingOllama(false);
+                                                    }}
+                                                    disabled={startingOllama}
+                                                    className="flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors ml-1"
+                                                >
+                                                    <Play className="w-2.5 h-2.5" />
+                                                    {startingOllama ? 'Starting…' : 'Start'}
+                                                </button>
+                                                <button
+                                                    onClick={() => window.electronAPI?.openExternal?.('https://ollama.com/download')}
+                                                    className="text-xs text-blue-400 hover:text-blue-300 underline"
+                                                >
+                                                    Install Ollama
+                                                </button>
+                                            </>
                                         )}
                                         <button
                                             onClick={async () => {

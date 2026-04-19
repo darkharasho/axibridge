@@ -1371,6 +1371,9 @@ app.on('activate', () => {
 app.on('before-quit', () => {
     isQuitting = true;
     eiManager?.killActiveProcess();
+    if (store.get('ollamaAutoManage', false) && ollamaManager?.managedByUs) {
+        ollamaManager.stop();
+    }
 });
 
 app.on('open-url', (event) => {
@@ -1709,5 +1712,11 @@ if (!gotTheLock) {
             getWindow: () => win,
             getOllamaManager: () => ollamaManager!,
         });
+
+        if (store.get('ollamaAutoManage', false) && store.get('ollamaEnabled', false)) {
+            ollamaManager!.getStatus().then(status => {
+                if (!status.connected) ollamaManager!.start().catch(() => {});
+            });
+        }
     })
 }

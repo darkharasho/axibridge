@@ -23,6 +23,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [r2PreciseReplay, setR2PreciseReplay] = useState(false);
     const [ollamaEnabled, setOllamaEnabledState] = useState(false);
     const [ollamaModel, setOllamaModelState] = useState('');
+    const [ollamaAutoManage, setOllamaAutoManageState] = useState(false);
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
     const [glassSurfaces, setGlassSurfaces] = useState(DEFAULT_GLASS_SURFACES);
     const [particlesEnabled, setParticlesEnabled] = useState(DEFAULT_PARTICLES_ENABLED);
@@ -104,6 +105,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             const ollamaSettings = await window.electronAPI.getOllamaSettings();
             setOllamaEnabledState(ollamaSettings.enabled);
             setOllamaModelState(ollamaSettings.activeModel);
+            setOllamaAutoManageState(ollamaSettings.autoManage);
 
             const whatsNew = await window.electronAPI.getWhatsNew();
             setWhatsNewVersion(whatsNew.version);
@@ -148,6 +150,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         r2PreciseReplay, setR2PreciseReplay,
         ollamaEnabled,
         ollamaModel,
+        ollamaAutoManage,
         setOllamaEnabled: (enabled: boolean) => {
             setOllamaEnabledState(enabled);
             window.electronAPI.saveOllamaSettings({ enabled });
@@ -156,6 +159,10 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             setOllamaModelState(model);
             window.electronAPI.setOllamaActiveModel(model);
             window.electronAPI.saveOllamaSettings({ activeModel: model });
+        },
+        setOllamaAutoManage: (autoManage: boolean) => {
+            setOllamaAutoManageState(autoManage);
+            window.electronAPI.saveOllamaSettings({ autoManage });
         },
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
@@ -172,7 +179,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         shouldOpenWhatsNew,
     }), [
         logDirectory, notificationType, embedStatSettings, mvpWeights,
-        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, ollamaEnabled, ollamaModel, colorPalette, glassSurfaces, particlesEnabled,
+        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, ollamaEnabled, ollamaModel, ollamaAutoManage, colorPalette, glassSurfaces, particlesEnabled,
         webhooks, selectedWebhookId, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         eiAnnouncementDismissed, setEiAnnouncementDismissed,

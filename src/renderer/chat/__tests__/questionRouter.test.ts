@@ -169,6 +169,101 @@ describe('unknown', () => {
     });
 });
 
+describe('squad_skill_damage', () => {
+    const cases = [
+        'what was our top damage skill?',
+        'which skill did the most damage for us?',
+        'skill breakdown for tonight',
+        'outgoing skill damage',
+        'what skills did we use the most?',
+        'top skills by down contribution',
+    ];
+    it.each(cases)('routes "%s" to squad_skill_damage', (q) => {
+        const r = classifyQuestion(q);
+        expect(r.kind).toBe('tool');
+        if (r.kind === 'tool') expect(r.tool).toBe('squad_skill_damage');
+    });
+
+    it('sets metric: down_contribution when asked', () => {
+        const r = classifyQuestion('top skills by down contribution');
+        expect(r.kind).toBe('tool');
+        if (r.kind === 'tool') expect(r.args.metric).toBe('down_contribution');
+    });
+
+    it('does NOT match "top incoming skill" (must stay as incoming_skill_damage)', () => {
+        const r = classifyQuestion('top incoming skill damage');
+        if (r.kind === 'tool') expect(r.tool).toBe('incoming_skill_damage');
+    });
+});
+
+describe('healing_stats', () => {
+    const cases = [
+        'who healed the most?',
+        'how was our healing?',
+        'top healer tonight',
+        'healing output breakdown',
+        'what was our HPS?',
+        'how much barrier did we generate?',
+    ];
+    it.each(cases)('routes "%s" to healing_stats', (q) => {
+        const r = classifyQuestion(q);
+        expect(r.kind).toBe('tool');
+        if (r.kind === 'tool') expect(r.tool).toBe('healing_stats');
+    });
+});
+
+describe('conditions_applied', () => {
+    const cases = [
+        'what conditions did we apply?',
+        'condition damage output',
+        'how much burning did we apply?',
+        'condi damage breakdown',
+        'how much bleeding did we do?',
+    ];
+    it.each(cases)('routes "%s" to conditions_applied', (q) => {
+        const r = classifyQuestion(q);
+        expect(r.kind).toBe('tool');
+        if (r.kind === 'tool') expect(r.tool).toBe('conditions_applied');
+    });
+
+    it('extracts specific condition name', () => {
+        const r = classifyQuestion('how much burning did we apply?');
+        expect(r.kind).toBe('tool');
+        if (r.kind === 'tool') expect(r.args.condition_name).toBe('burning');
+    });
+});
+
+describe('damage_mitigation', () => {
+    const cases = [
+        'who dodged the most?',
+        'mitigation stats',
+        'how many evades did we get?',
+        'who evaded the most hits?',
+        'defensive stats breakdown',
+    ];
+    it.each(cases)('routes "%s" to damage_mitigation', (q) => {
+        const r = classifyQuestion(q);
+        expect(r.kind).toBe('tool');
+        if (r.kind === 'tool') expect(r.tool).toBe('damage_mitigation');
+    });
+});
+
+describe('spike_damage', () => {
+    const cases = [
+        'who had the biggest hit?',
+        'spike damage breakdown',
+        'burst damage output',
+        'who hit the hardest?',
+        'peak hit values',
+        'highest single hit',
+    ];
+    it.each(cases)('routes "%s" to spike_damage', (q) => {
+        const r = classifyQuestion(q);
+        expect(r.kind).toBe('tool');
+        if (r.kind === 'tool') expect(r.tool).toBe('spike_damage');
+    });
+});
+
 // Critical: these must NOT route to rank_players
 describe('does not misroute skill questions to rank_players', () => {
     const cases = [

@@ -118,7 +118,7 @@ const MATCHERS: Matcher[] = [
         test: any(
             /incoming.{0,15}(skill|attack|abilit|spell|hit)/,
             /top.{0,10}incoming/,
-            /(skill|attack|abilit|spell).{0,15}(hit|hurt|kill|damage).{0,10}(us|squad|our)/,
+            /(skill|attack|abilit|spell).{0,15}(hit|hurt|killed?|damaged).{0,10}(us|squad)\b/,
             /what.{0,10}(hit|hurt|killed|damaged).{0,10}(us|squad|our)/,
             /enemy.{0,10}(skill|attack|abilit|spell).{0,10}(damage|hit)/,
             /what.{0,10}(skill|attack|abilit|spell).{0,10}did.{0,10}(most|highest|top)/,
@@ -137,6 +137,138 @@ const MATCHERS: Matcher[] = [
                 args,
                 argsComplete: true,
                 directive: 'The user wants to know which enemy skills/attacks dealt the most damage to the squad. Use incoming_skill_damage to get a squad-wide aggregate ranked by damage.',
+            };
+        },
+    },
+
+    // Squad outgoing skill damage (must come after incoming_skill_damage to avoid conflict)
+    {
+        test: any(
+            /outgoing.{0,10}skill/,
+            /squad.{0,10}skill.{0,10}(damage|breakdown)/,
+            /our.{0,10}(best|top|highest).{0,10}skill/,
+            /what.{0,10}skill.{0,10}(did|deal|does).{0,10}(most|highest|best|top).{0,10}damage/,
+            /top.{0,10}skill.{0,20}damage/,
+            /skill.{0,10}(breakdown|usage|output|damage)\b/,
+            /which.{0,10}skill.{0,10}(did|hit|deal).{0,15}(most|best|highest)/,
+            /what\s+skills?\s+(did\s+we|do\s+we|have\s+we)\s+(use|deal|do)/,
+            /down\s+contribution.{0,20}skill/,
+            /skill.{0,20}down\s+contrib/,
+        ),
+        decide: (text) => {
+            const args: Record<string, any> = {};
+            const fi = extractFightIndex(text);
+            if (fi != null) args.fight_index = fi;
+            const topN = extractTopN(text);
+            if (topN != null) args.top_n = topN;
+            if (/down.?contrib/i.test(text)) args.metric = 'down_contribution';
+            return {
+                kind: 'tool',
+                tool: 'squad_skill_damage',
+                args,
+                argsComplete: true,
+                directive: 'The user wants to know which squad skills dealt the most damage. Use squad_skill_damage.',
+            };
+        },
+    },
+
+    // Healing
+    {
+        test: any(
+            /\bheal(ing|ers?|ed|s)?\b/,
+            /\bhps\b/,
+            /\bbarrier\b.{0,20}(output|uptime|who|top|best|generat|produc)/,
+            /how\s+much\s+barrier/,
+            /who.{0,10}(healed|support).{0,10}(most|best|highest)/,
+            /how.{0,10}(was|were).{0,10}(our\s+)?heal/,
+            /top.{0,10}healer/,
+        ),
+        decide: (text) => {
+            const args: Record<string, any> = {};
+            const fi = extractFightIndex(text);
+            if (fi != null) args.fight_index = fi;
+            return {
+                kind: 'tool',
+                tool: 'healing_stats',
+                args,
+                argsComplete: true,
+                directive: 'The user is asking about healing output. Use healing_stats.',
+            };
+        },
+    },
+
+    // Conditions applied
+    {
+        test: any(
+            /condition.{0,20}(damage|applied|output|we|our)/,
+            /condi.{0,20}(damage|output|applied)/,
+            /\b(burning|bleeding|torment|confusion|poisoned?|chilled|crippled?|feared?|immobilize[d]?|vulnerability|weakness)\b/,
+            /what\s+conditions?\s+(did|do|have)/,
+            /how\s+much\s+(condition|condi|burn|bleed)/,
+        ),
+        decide: (text) => {
+            const args: Record<string, any> = {};
+            const fi = extractFightIndex(text);
+            if (fi != null) args.fight_index = fi;
+            const condis = ['burning', 'bleeding', 'torment', 'confusion', 'poison', 'chilled', 'crippled', 'fear', 'immobilize', 'vulnerability', 'weakness'];
+            for (const c of condis) {
+                if (lower(text).includes(c)) { args.condition_name = c; break; }
+            }
+            return {
+                kind: 'tool',
+                tool: 'conditions_applied',
+                args,
+                argsComplete: true,
+                directive: 'The user is asking about conditions applied to enemies. Use conditions_applied.',
+            };
+        },
+    },
+
+    // Damage mitigation
+    {
+        test: any(
+            /\bmitigation\b/,
+            /\b(evad(ed?|es?|ing)|dodg(ed?|es?|ing)|block(ed?|ing|s)?)\b.{0,20}(most|count|stats?|how many|who)/,
+            /who.{0,15}(evad|dodg|block).{0,10}(most|best|most|highest)/,
+            /how\s+many\s+(evade|dodge|block)/,
+            /defensive\s+(stats?|play|performance)/,
+            /invuln(erable)?\s+count/,
+        ),
+        decide: (text) => {
+            const args: Record<string, any> = {};
+            const fi = extractFightIndex(text);
+            if (fi != null) args.fight_index = fi;
+            return {
+                kind: 'tool',
+                tool: 'damage_mitigation',
+                args,
+                argsComplete: true,
+                directive: 'The user is asking about damage mitigation (evades, blocks, dodges). Use damage_mitigation.',
+            };
+        },
+    },
+
+    // Spike / burst damage
+    {
+        test: any(
+            /\bspike\b.{0,20}damage/,
+            /\bburst\b.{0,20}(damage|output|dps)/,
+            /peak\s+(hit|damage|dps|burst)/,
+            /biggest\s+(hit|spike|burst)/,
+            /highest\s+single\s+hit/,
+            /who\s+(hit|burst|spiked).{0,20}(hardest|highest|most|biggest)/,
+            /one.?shot|1.?shot/,
+        ),
+        decide: (text) => {
+            const args: Record<string, any> = {};
+            const fi = extractFightIndex(text);
+            if (fi != null) args.fight_index = fi;
+            return {
+                kind: 'tool',
+                tool: 'spike_damage',
+                args,
+                argsComplete: true,
+                directive: 'The user is asking about burst/spike damage output. Use spike_damage.',
             };
         },
     },

@@ -91,6 +91,79 @@ export const TOOL_SCHEMAS: OllamaTool[] = [
     {
         type: 'function',
         function: {
+            name: 'squad_skill_damage',
+            description: 'Show which skills our squad used that dealt the most damage or down contribution — outgoing squad skills ranked by damage. Use for "what skills did we use", "top damage skills", "outgoing skill breakdown", "which skill did the most damage for us".',
+            parameters: {
+                type: 'object',
+                properties: {
+                    fight_index: { type: 'number', description: '0-based fight index. Omit for all fights.' },
+                    metric: { type: 'string', description: '"damage" (default) or "down_contribution"' },
+                    top_n: { type: 'number', description: 'Number of skills to show (default 15).' },
+                },
+                required: [],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'healing_stats',
+            description: 'Show healing output per player — total healing, HPS, barrier, downed healing. Use when asked about healing, healers, HPS, or barrier output.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    fight_index: { type: 'number', description: '0-based fight index. Omit for all fights.' },
+                },
+                required: [],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'conditions_applied',
+            description: 'Show which conditions our squad applied to enemies — sorted by damage. Use when asked about condition damage, what conditions we applied, condi output, or a specific condition like burning/bleeding/torment.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    fight_index: { type: 'number', description: '0-based fight index. Omit for all fights.' },
+                    condition_name: { type: 'string', description: 'Filter to a specific condition, e.g. "burning", "bleeding", "torment". Omit for all.' },
+                },
+                required: [],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'damage_mitigation',
+            description: 'Show damage mitigation per player — evades, blocks, dodges, invulns, and total damage mitigated. Use when asked who dodged most, evade counts, mitigation stats, or defensive play.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    fight_index: { type: 'number', description: '0-based fight index. Omit for all fights.' },
+                },
+                required: [],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'spike_damage',
+            description: 'Show spike/burst damage output per player — peak single hit, 1-second burst, and down-spike values. Use when asked about burst damage, peak hits, biggest hits, or spike pressure.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    fight_index: { type: 'number', description: '0-based fight index. Omit for all fights.' },
+                },
+                required: [],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
             name: 'incoming_skill_damage',
             description: 'Show which enemy skills dealt the most damage to the squad — squad-wide aggregate sorted by total damage taken. Use when asked "what hit us the most", "top incoming skill", "what killed us", "what ability damaged us", or any question about enemy attacks/skills against the squad.',
             parameters: {

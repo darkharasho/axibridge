@@ -11,6 +11,11 @@ const TOOL_DISPLAY: Record<string, string> = {
     group_breakdown: 'Breaking down groups',
     compare_fights: 'Comparing fights',
     incoming_skill_damage: 'Analyzing incoming skills',
+    squad_skill_damage: 'Analyzing squad skills',
+    healing_stats: 'Analyzing healing',
+    conditions_applied: 'Analyzing conditions',
+    damage_mitigation: 'Analyzing mitigation',
+    spike_damage: 'Analyzing spike damage',
 };
 
 function ToolCallBadge({ name, status }: { name: string; status: 'running' | 'done' }) {

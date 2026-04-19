@@ -59,6 +59,22 @@ function loadedFights(logs: ILogData[], fightIndex?: number): ILogData[] {
     return loaded;
 }
 
+function statsForIndex(
+    fight_index: number | undefined,
+    logs: ILogData[],
+    getDetails: (id: string) => any,
+    computedStats: any,
+): { stats: any; error?: string } {
+    if (fight_index == null) return { stats: computedStats };
+    const fights = loadedFights(logs, fight_index);
+    const fight = fights[0];
+    if (!fight) return { stats: null, error: `Fight index ${fight_index} out of range.` };
+    const details = (fight as any).details ?? getDetails(fight.id) ?? getDetails(fight.filePath);
+    if (!details) return { stats: null, error: `Fight details not available for fight ${fight_index}.` };
+    const { stats } = computeStatsSync({ logs: [{ ...fight, details }] });
+    return { stats };
+}
+
 const executors: Record<string, Executor> = {
     rank_players(args, logs, getDetails, computedStats) {
         const { metric, fight_index } = args;
@@ -237,6 +253,123 @@ const executors: Record<string, Executor> = {
         }
 
         return lines.join('\n').trim() || 'No group data found.';
+    },
+
+    squad_skill_damage(args, logs, getDetails, computedStats) {
+        const { fight_index, metric = 'damage', top_n = 15 } = args;
+        const { stats, error } = statsForIndex(fight_index, logs, getDetails, computedStats);
+        if (error) return error;
+
+        const skillKey = metric === 'down_contribution' ? 'downContribution' : 'damage';
+        const skills = ((stats?.topSkillsByDamage ?? []) as any[])
+            .sort((a, b) => (b[skillKey] ?? 0) - (a[skillKey] ?? 0))
+            .slice(0, top_n);
+
+        if (skills.length === 0) return 'No skill damage data found.';
+        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights';
+        const lines = [`Top squad skills by ${metric} (${scope}):`];
+        skills.forEach((s, i) => {
+            const val = s[skillKey] ?? 0;
+            const alt = skillKey === 'damage' && (s.downContribution ?? 0) > 0
+                ? ` | Down contrib: ${fmt(s.downContribution)}`
+                : skillKey === 'downContribution' && (s.damage ?? 0) > 0
+                    ? ` | Total dmg: ${fmt(s.damage)}`
+                    : '';
+            lines.push(`  ${i + 1}. ${s.name}: ${fmt(val)}${alt} (${s.hits ?? 0} hits)`);
+        });
+        return lines.join('\n');
+    },
+
+    healing_stats(args, logs, getDetails, computedStats) {
+        const { fight_index } = args;
+        const { stats, error } = statsForIndex(fight_index, logs, getDetails, computedStats);
+        if (error) return error;
+
+        const healers = ((stats?.healingPlayers ?? []) as any[])
+            .filter(p => (p.healingTotals?.healing ?? 0) > 0)
+            .sort((a, b) => (b.healingTotals?.healing ?? 0) - (a.healingTotals?.healing ?? 0));
+
+        if (healers.length === 0) return 'No healing data found — this fight may not have dedicated healers or healing was not logged.';
+        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights';
+        const lines = [`Healing output (${scope}):`];
+        healers.slice(0, 20).forEach((p, i) => {
+            const healing = p.healingTotals?.healing ?? 0;
+            const hps = p.activeMs > 0 ? Math.round(healing / (p.activeMs / 1000)) : 0;
+            const barrier = p.healingTotals?.barrier ?? 0;
+            const downedHealing = p.healingTotals?.downedHealing ?? 0;
+            let line = `  ${i + 1}. ${p.account} (${p.profession}) — ${fmt(healing)} (${fmt(hps)} HPS)`;
+            if (barrier > 0) line += ` | Barrier: ${fmt(barrier)}`;
+            if (downedHealing > 0) line += ` | Downed heal: ${fmt(downedHealing)}`;
+            lines.push(line);
+        });
+        return lines.join('\n');
+    },
+
+    conditions_applied(args, logs, getDetails, computedStats) {
+        const { fight_index, condition_name } = args;
+        const { stats, error } = statsForIndex(fight_index, logs, getDetails, computedStats);
+        if (error) return error;
+
+        let summary = (stats?.outgoingConditionSummary ?? []) as any[];
+        if (condition_name) {
+            const target = String(condition_name).toLowerCase();
+            summary = summary.filter(c => (c.name ?? '').toLowerCase().includes(target));
+        }
+
+        if (summary.length === 0) return condition_name
+            ? `No data found for condition '${condition_name}'.`
+            : 'No condition data found.';
+        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights';
+        const lines = [`Conditions applied to enemies (${scope}):`];
+        summary.slice(0, 20).forEach((c, i) => {
+            lines.push(`  ${i + 1}. ${c.name}: ${fmt(c.damage ?? 0)} damage, ${c.applications ?? 0} applications`);
+        });
+        return lines.join('\n');
+    },
+
+    damage_mitigation(args, logs, getDetails, computedStats) {
+        const { fight_index } = args;
+        const { stats, error } = statsForIndex(fight_index, logs, getDetails, computedStats);
+        if (error) return error;
+
+        const players = ((stats?.damageMitigationPlayers ?? []) as any[])
+            .sort((a, b) => (b.mitigationTotals?.totalMitigation ?? 0) - (a.mitigationTotals?.totalMitigation ?? 0));
+
+        if (players.length === 0) return 'No mitigation data found.';
+        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights';
+        const lines = [`Damage mitigation (${scope}):`];
+        players.slice(0, 20).forEach((p, i) => {
+            const m = p.mitigationTotals ?? {};
+            const parts: string[] = [];
+            if ((m.evaded ?? 0) > 0) parts.push(`Evades: ${m.evaded}`);
+            if ((m.blocked ?? 0) > 0) parts.push(`Blocks: ${m.blocked}`);
+            if ((m.missed ?? 0) > 0) parts.push(`Misses: ${m.missed}`);
+            if ((m.invulned ?? 0) > 0) parts.push(`Invulns: ${m.invulned}`);
+            if ((m.totalMitigation ?? 0) > 0) parts.push(`Total mitigated: ${fmt(m.totalMitigation)}`);
+            lines.push(`  ${i + 1}. ${p.account} (${p.profession}) — ${parts.join(' | ') || 'no mitigation recorded'}`);
+        });
+        return lines.join('\n');
+    },
+
+    spike_damage(args, logs, getDetails, computedStats) {
+        const { fight_index } = args;
+        const { stats, error } = statsForIndex(fight_index, logs, getDetails, computedStats);
+        if (error) return error;
+
+        const players = ((stats?.spikeDamage?.players ?? []) as any[])
+            .sort((a, b) => (b.peakHit ?? 0) - (a.peakHit ?? 0));
+
+        if (players.length === 0) return 'No spike damage data found.';
+        const scope = fight_index != null ? `Fight ${fight_index + 1}` : 'all fights';
+        const lines = [`Spike/burst damage output (${scope}):`];
+        players.slice(0, 15).forEach((p, i) => {
+            let line = `  ${i + 1}. ${p.account} (${p.profession}) — Peak hit: ${fmt(p.peakHit ?? 0)}`;
+            if ((p.peak1s ?? 0) > 0) line += ` | 1s burst: ${fmt(p.peak1s)}`;
+            if ((p.peakHitDown ?? 0) > 0) line += ` | Down spike: ${fmt(p.peakHitDown)}`;
+            if (p.peakSkillName) line += ` (${p.peakSkillName})`;
+            lines.push(line);
+        });
+        return lines.join('\n');
     },
 
     incoming_skill_damage(args, logs, getDetails) {
