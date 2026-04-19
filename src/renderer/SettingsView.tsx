@@ -208,7 +208,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
     const [ollamaStatus, setOllamaStatus] = useState<IOllamaStatus | null>(null);
-    const [pullingModel, setPullingModel] = useState(false);
+    const [pullingModel, setPullingModel] = useState<string | null>(null);
+    const [pullProgress, setPullProgress] = useState<{ status: string; percent: number } | null>(null);
     const [eiStatus, setEiStatus] = useState<IEiStatus>({ installed: false, version: null, updateAvailable: null, installing: false, error: null });
     const [eiSettings, setEiSettings] = useState<IEiParserSettings | null>(null);
     const [eiDownloadProgress, setEiDownloadProgress] = useState<{ percent: number; message: string } | null>(null);
@@ -428,6 +429,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 }
             });
         }
+        const unsub = window.electronAPI?.onOllamaPullProgress?.((data: { status: string; percent?: number }) => {
+            const pct = data.percent ?? 0;
+            setPullProgress({ status: data.status, percent: Math.round(pct) });
+            if (pct >= 100 || data.status === 'success') {
+                setPullProgress(null);
+            }
+        });
+        return () => { unsub?.(); };
     }, []); // intentionally run once on mount
 
     const metricsSpecNav = useMemo(() => {
@@ -2807,41 +2816,98 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     </div>
 
                                     {ollamaStatus?.connected && (
-                                        <div>
-                                            <p className="text-xs font-medium text-gray-300 mb-1.5">Active model</p>
-                                            {ollamaStatus.models.length > 0 ? (
-                                                <select
-                                                    value={ollamaModelProp}
-                                                    onChange={e => setOllamaModel?.(e.target.value)}
-                                                    className="w-full text-xs px-2 py-1.5 rounded-md border bg-gray-900 text-gray-200"
-                                                    style={{ borderColor: 'var(--border-default)' }}
-                                                >
-                                                    {ollamaStatus.models.map(m => (
-                                                        <option key={m} value={m}>{m}</option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-xs text-gray-500">No models installed.</p>
-                                                    <button
-                                                        onClick={async () => {
-                                                            setPullingModel(true);
-                                                            try {
-                                                                await window.electronAPI.pullOllamaModel('llama3.1:8b');
-                                                                const status = await window.electronAPI.getOllamaStatus();
-                                                                setOllamaStatus(status);
-                                                            } finally {
-                                                                setPullingModel(false);
-                                                            }
-                                                        }}
-                                                        disabled={pullingModel}
-                                                        className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
+                                        <div className="flex flex-col gap-3">
+                                            {ollamaStatus.models.length > 0 && (
+                                                <div>
+                                                    <p className="text-xs font-medium text-gray-300 mb-1.5">Active model</p>
+                                                    <select
+                                                        value={ollamaModelProp}
+                                                        onChange={e => setOllamaModel?.(e.target.value)}
+                                                        className="w-full text-xs px-2 py-1.5 rounded-md border bg-gray-900 text-gray-200"
+                                                        style={{ borderColor: 'var(--border-default)' }}
                                                     >
-                                                        <Download className="w-3 h-3" />
-                                                        {pullingModel ? 'Downloading llama3.1:8b...' : 'Download llama3.1:8b'}
-                                                    </button>
+                                                        {ollamaStatus.models.map(m => (
+                                                            <option key={m} value={m}>{m}</option>
+                                                        ))}
+                                                    </select>
                                                 </div>
                                             )}
+
+                                            {/* Pull progress bar */}
+                                            {pullingModel && (
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center justify-between text-xs text-gray-400">
+                                                        <span>Downloading <span className="text-gray-200">{pullingModel}</span>…</span>
+                                                        {pullProgress && <span>{pullProgress.percent}%</span>}
+                                                    </div>
+                                                    <div className="h-1.5 rounded-full bg-gray-800 overflow-hidden">
+                                                        <div
+                                                            className="h-full rounded-full bg-blue-500 transition-all duration-300"
+                                                            style={{ width: `${pullProgress?.percent ?? 0}%` }}
+                                                        />
+                                                    </div>
+                                                    {pullProgress && <p className="text-[10px] text-gray-600">{pullProgress.status}</p>}
+                                                </div>
+                                            )}
+
+                                            {/* Curated model list */}
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-300 mb-2">
+                                                    {ollamaStatus.models.length > 0 ? 'Download more models' : 'Download a model to get started'}
+                                                </p>
+                                                <div className="flex flex-col gap-1.5">
+                                                    {([
+                                                        { id: 'llama3.2:3b', label: 'Llama 3.2 3B', size: '2.0 GB', desc: 'Fast and lightweight. Great for quick answers.' },
+                                                        { id: 'llama3.1:8b', label: 'Llama 3.1 8B', size: '4.7 GB', desc: 'Recommended. Good balance of speed and quality.' },
+                                                        { id: 'llama3.1:70b', label: 'Llama 3.1 70B', size: '40 GB', desc: 'Best quality. Requires a powerful machine.' },
+                                                        { id: 'mistral:7b', label: 'Mistral 7B', size: '4.1 GB', desc: 'Strong reasoning, very efficient.' },
+                                                        { id: 'gemma3:4b', label: 'Gemma 3 4B', size: '3.3 GB', desc: 'Google\'s compact model. Fast on CPU.' },
+                                                    ] as const).map(model => {
+                                                        const installed = ollamaStatus.models.some(m => m.startsWith(model.id.split(':')[0]));
+                                                        const downloading = pullingModel === model.id;
+                                                        return (
+                                                            <div
+                                                                key={model.id}
+                                                                className="flex items-center gap-3 px-3 py-2 rounded-md border"
+                                                                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
+                                                            >
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs font-medium text-gray-200">{model.label}</span>
+                                                                        <span className="text-[10px] text-gray-600">{model.size}</span>
+                                                                        {installed && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25">Installed</span>}
+                                                                    </div>
+                                                                    <p className="text-[10px] text-gray-500 mt-0.5">{model.desc}</p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        setPullingModel(model.id);
+                                                                        setPullProgress(null);
+                                                                        try {
+                                                                            await window.electronAPI.pullOllamaModel(model.id);
+                                                                            const status = await window.electronAPI.getOllamaStatus();
+                                                                            setOllamaStatus(status);
+                                                                            if (!ollamaModelProp) setOllamaModel?.(model.id);
+                                                                        } finally {
+                                                                            setPullingModel(null);
+                                                                            setPullProgress(null);
+                                                                        }
+                                                                    }}
+                                                                    disabled={!!pullingModel}
+                                                                    className="shrink-0 flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                                                    style={downloading
+                                                                        ? { borderColor: 'var(--status-info-border)', color: 'var(--status-info)', background: 'var(--status-info-bg)' }
+                                                                        : { borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-elevated)' }
+                                                                    }
+                                                                >
+                                                                    <Download className="w-3 h-3" />
+                                                                    {downloading ? 'Downloading…' : installed ? 'Re-download' : 'Download'}
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                 </>

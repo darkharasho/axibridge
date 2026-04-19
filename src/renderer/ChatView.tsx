@@ -103,8 +103,18 @@ export function ChatView({ logs, compact, ollamaEnabled, onNavigateToChat, onClo
                                 : 'self-start bg-gray-800 border border-gray-700 text-gray-200'
                         }`}
                     >
-                        {msg.content}
-                        {msg.streaming && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-blue-400 animate-pulse rounded-sm" />}
+                        {msg.streaming && !msg.content ? (
+                            <span className="flex gap-1 items-center h-4">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </span>
+                        ) : (
+                            <>
+                                {msg.content}
+                                {msg.streaming && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-blue-400 animate-pulse rounded-sm" />}
+                            </>
+                        )}
                     </div>
                 ))}
                 <div ref={bottomRef} />

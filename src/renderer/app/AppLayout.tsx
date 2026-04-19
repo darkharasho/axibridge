@@ -105,6 +105,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setOllamaEnabled,
         ollamaModel,
         setOllamaModel,
+        logs: logsWithDetails,
     } = ctx;
 
     const [activeNavView, setActiveNavView] = useState(view);
@@ -459,7 +460,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         {view === 'chat' && ollamaEnabled && (
                             <div className="flex-1 min-h-0 flex flex-col">
                                 <ChatView
-                                    logs={logsForStats}
+                                    logs={logsWithDetails}
                                     compact={false}
                                     ollamaEnabled={ollamaEnabled}
                                     onNavigateToChat={() => {}}
@@ -469,11 +470,12 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     </motion.div>
                 </AnimatePresence>
 
-                {/* Floating chat button — hidden when Chat tab is active */}
+                {/* Floating chat button — hidden when Chat tab is active; shifts left of panel when open */}
                 {ollamaEnabled && view !== 'chat' && (
                     <button
                         onClick={toggleChatPanel}
-                        className="absolute bottom-4 right-4 z-40 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 shadow-lg flex items-center justify-center transition-colors"
+                        className="absolute bottom-4 z-40 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 shadow-lg flex items-center justify-center transition-all duration-200"
+                        style={{ right: chatPanelOpen ? 320 + 16 : 16 }}
                         title="AI Assistant"
                     >
                         <MessageSquare className="w-5 h-5 text-white" />
@@ -487,7 +489,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         style={{ width: 320, background: 'var(--bg-elevated)', borderLeft: '1px solid var(--border-subtle)' }}
                     >
                         <ChatView
-                            logs={logsForStats}
+                            logs={logsWithDetails}
                             compact={true}
                             ollamaEnabled={ollamaEnabled}
                             onNavigateToChat={() => {
