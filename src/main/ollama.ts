@@ -99,7 +99,7 @@ export class OllamaManager {
         const body: any = { model, messages, stream: false };
         if (tools?.length) body.tools = tools;
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30_000);
+        const timeout = setTimeout(() => controller.abort(), 120_000);
         try {
             const res = await fetch(`${BASE_URL}/api/chat`, {
                 method: 'POST',
