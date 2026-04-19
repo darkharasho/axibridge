@@ -5,6 +5,7 @@ const METRIC_MAP: Record<string, (p: any) => number> = {
     downs:           p => p.defenses?.[0]?.downCount ?? 0,
     damage_taken:    p => p.defenses?.[0]?.damageTaken ?? 0,
     cleanses:        p => (p.support?.[0]?.condiCleanse ?? 0) + (p.support?.[0]?.condiCleanseSelf ?? 0),
+    // raw boonStrips count — does not use user's DisruptionMethod setting, intentional simplification
     strips:          p => p.support?.[0]?.boonStrips ?? 0,
     rezzes:          p => p.support?.[0]?.resurrects ?? 0,
     breakbar_damage: p => p.dpsAll?.[0]?.breakbarDamage ?? 0,
@@ -21,8 +22,9 @@ const BOON_IDS: Record<string, number> = {
     regeneration: 718, vigor: 719, resolution: 873, resistance: 26980,
 };
 const BOON_ID_TO_NAME = new Map(Object.entries(BOON_IDS).map(([k, v]) => [v, k]));
+BOON_ID_TO_NAME.set(1122, 'stability'); // stability rework alt ID
 
-type Executor = (args: Record<string, any>, logs: ILogData[], getDetails: (id: string) => any | undefined) => Record<string, any>;
+type Executor = (args: Record<string, any>, logs: ILogData[], getDetails: (id: string) => any) => Record<string, any>;
 
 function loadedFights(logs: ILogData[], fightIndex?: number): ILogData[] {
     const loaded = logs.filter(l => l.detailsStatus === 'loaded');
@@ -92,7 +94,11 @@ const executors: Record<string, Executor> = {
     boon_analysis(args, logs, getDetails) {
         const { fight_index, boon_name } = args;
         const targetIds = boon_name
-            ? [BOON_IDS[String(boon_name).toLowerCase()]].filter(Boolean)
+            ? (() => {
+                const id = BOON_IDS[String(boon_name).toLowerCase()];
+                if (!id) return [];
+                return id === 726 ? [726, 1122] : [id]; // stability has two IDs
+            })()
             : Array.from(BOON_ID_TO_NAME.keys());
 
         const fights = loadedFights(logs, fight_index);
@@ -130,7 +136,7 @@ const executors: Record<string, Executor> = {
                 count: players.length,
                 totalDamage: players.reduce((s: number, p: any) => s + (p.dpsAll?.[0]?.damage ?? 0), 0),
                 totalDeaths: players.reduce((s: number, p: any) => s + (p.defenses?.[0]?.deadCount ?? 0), 0),
-                totalCleanses: players.reduce((s: number, p: any) => s + (p.support?.[0]?.condiCleanse ?? 0) + (p.support?.[0]?.condiCleanseSelf ?? 0), 0),
+                totalCleanses: players.reduce((s: number, p: any) => s + (METRIC_MAP['cleanses'](p)), 0),
                 totalRezzes: players.reduce((s: number, p: any) => s + (p.support?.[0]?.resurrects ?? 0), 0),
                 players: players.map((p: any) => p.character_name || p.display_name),
             }));
@@ -144,8 +150,7 @@ const executors: Record<string, Executor> = {
         const extractor = METRIC_MAP[metric];
         if (!extractor) return { error: 'Unknown metric', valid_metrics: Object.keys(METRIC_MAP) };
 
-        const loaded = logs.filter(l => l.detailsStatus === 'loaded');
-        const fights = loaded.map((log, i) => {
+        const fights = loadedFights(logs).map((log, i) => {
             const details = getDetails(log.id) ?? getDetails(log.filePath);
             if (!details) return { fight_index: i, fight: log.fightName ?? log.id, value: null, error: 'details not cached' };
             const players: any[] = details.players ?? [];
@@ -172,7 +177,7 @@ export function executeToolCall(
     name: string,
     args: Record<string, any>,
     logs: ILogData[],
-    getDetails: (id: string) => any | undefined
+    getDetails: (id: string) => any
 ): Record<string, any> {
     const executor = executors[name];
     if (!executor) return { error: 'Unknown tool', valid_tools: Object.keys(executors) };
