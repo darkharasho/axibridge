@@ -12,7 +12,7 @@ export interface ChatMsg {
 export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
     const [messages, setMessages] = useState<ChatMsg[]>([]);
     const [streaming, setStreaming] = useState(false);
-    const [ollamaConnected, setOllamaConnected] = useState(false);
+    const [ollamaConnected, setOllamaConnected] = useState(true);
     const [availableModels, setAvailableModels] = useState<string[]>([]);
     const messagesRef = useRef<ChatMsg[]>([]);
     const cleanupRef = useRef<(() => void) | null>(null);
