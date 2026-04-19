@@ -1,3 +1,5 @@
+type JsonSchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null';
+
 export interface OllamaTool {
     type: 'function';
     function: {
@@ -5,7 +7,7 @@ export interface OllamaTool {
         description: string;
         parameters: {
             type: 'object';
-            properties: Record<string, { type: string; description: string }>;
+            properties: Record<string, { type: JsonSchemaType; description: string }>;
             required: string[];
         };
     };
