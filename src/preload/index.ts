@@ -159,16 +159,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getOllamaSettings: () => ipcRenderer.invoke('ollama:get-settings'),
     saveOllamaSettings: (settings: any) => ipcRenderer.send('ollama:save-settings', settings),
     onOllamaPullProgress: (callback: (data: any) => void) => {
-        ipcRenderer.on('ollama:pull-progress', (_event, value) => callback(value));
-        return () => { ipcRenderer.removeAllListeners('ollama:pull-progress'); };
+        const listener = (_event: Electron.IpcRendererEvent, value: any) => callback(value);
+        ipcRenderer.on('ollama:pull-progress', listener);
+        return () => { ipcRenderer.removeListener('ollama:pull-progress', listener); };
     },
     onOllamaChatToken: (callback: (data: any) => void) => {
-        ipcRenderer.on('ollama:chat-token', (_event, value) => callback(value));
-        return () => { ipcRenderer.removeAllListeners('ollama:chat-token'); };
+        const listener = (_event: Electron.IpcRendererEvent, value: any) => callback(value);
+        ipcRenderer.on('ollama:chat-token', listener);
+        return () => { ipcRenderer.removeListener('ollama:chat-token', listener); };
     },
     onOllamaStatusChanged: (callback: (status: any) => void) => {
-        ipcRenderer.on('ollama:status-changed', (_event, value) => callback(value));
-        return () => { ipcRenderer.removeAllListeners('ollama:status-changed'); };
+        const listener = (_event: Electron.IpcRendererEvent, value: any) => callback(value);
+        ipcRenderer.on('ollama:status-changed', listener);
+        return () => { ipcRenderer.removeListener('ollama:status-changed', listener); };
     },
     setPanelOpen: (open: boolean) => ipcRenderer.send('chat:set-panel-open', open),
 

@@ -26,18 +26,28 @@ export function registerOllamaHandlers({ store, getWindow, getOllamaManager }: O
     ipcMain.handle('ollama:pull-model', async (_event, model: string) => {
         const mgr = getOllamaManager();
         const win = getWindow();
-        await mgr.pullModel(model, (progress) => {
-            win?.webContents.send('ollama:pull-progress', progress);
-        });
+        try {
+            await mgr.pullModel(model, (progress) => {
+                win?.webContents.send('ollama:pull-progress', progress);
+            });
+        } catch (err: any) {
+            win?.webContents.send('ollama:pull-progress', { percent: 0, status: `Error: ${err?.message ?? 'Pull failed'}` });
+            throw err;
+        }
     });
 
     ipcMain.handle('ollama:chat', async (_event, messages: ChatMessage[]) => {
         const mgr = getOllamaManager();
         const win = getWindow();
         const activeModel = (store.get('ollamaActiveModel', 'llama3.1:8b') as string);
-        await mgr.chat(messages, activeModel, (token, done) => {
-            win?.webContents.send('ollama:chat-token', { token, done });
-        });
+        try {
+            await mgr.chat(messages, activeModel, (token, done) => {
+                win?.webContents.send('ollama:chat-token', { token, done });
+            });
+        } catch (err: any) {
+            win?.webContents.send('ollama:chat-token', { token: '', done: true });
+            throw err;
+        }
     });
 
     ipcMain.handle('ollama:get-settings', () => {
