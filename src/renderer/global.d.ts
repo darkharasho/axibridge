@@ -395,6 +395,18 @@ export interface IElectronAPI {
     onEiDownloadProgress: (callback: (data: { percent: number; message: string }) => void) => () => void;
     onEiParseProgress: (callback: (data: { logId: string; message: string }) => void) => () => void;
     onEiStatusChanged: (callback: (status: IEiStatus) => void) => () => void;
+    // Ollama AI chat
+    getOllamaStatus: () => Promise<IOllamaStatus>;
+    setOllamaActiveModel: (model: string) => void;
+    pullOllamaModel: (model: string) => Promise<void>;
+    ollamaChat: (messages: ChatMessage[]) => Promise<void>;
+    getOllamaSettings: () => Promise<IOllamaSettings>;
+    saveOllamaSettings: (settings: Partial<IOllamaSettings>) => void;
+    onOllamaPullProgress: (callback: (data: { percent: number; status: string }) => void) => () => void;
+    onOllamaChatToken: (callback: (data: { token: string; done: boolean }) => void) => () => void;
+    onOllamaStatusChanged: (callback: (status: IOllamaStatus) => void) => () => void;
+    // Window panel control
+    setPanelOpen: (open: boolean) => void;
 }
 
 export interface IEiParserSettings {
@@ -418,6 +430,22 @@ export interface IEiStatus {
     updateAvailable: string | null;
     installing: boolean;
     error: string | null;
+}
+
+export interface IOllamaStatus {
+    connected: boolean;
+    models: string[];
+    activeModel: string | null;
+}
+
+export interface IOllamaSettings {
+    enabled: boolean;
+    activeModel: string;
+}
+
+export interface ChatMessage {
+    role: 'system' | 'user' | 'assistant';
+    content: string;
 }
 
 type DetailsStatus = 'idle' | 'loading' | 'available' | 'loaded' | 'exhausted' | 'unavailable';
