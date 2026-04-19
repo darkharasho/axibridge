@@ -14,7 +14,13 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
     const [streaming, setStreaming] = useState(false);
     const [ollamaConnected, setOllamaConnected] = useState(false);
     const [availableModels, setAvailableModels] = useState<string[]>([]);
+    const messagesRef = useRef<ChatMsg[]>([]);
     const cleanupRef = useRef<(() => void) | null>(null);
+
+    // Keep messagesRef in sync
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
 
     // Check Ollama status when enabled
     useEffect(() => {
@@ -36,6 +42,11 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
         };
     }, [ollamaEnabled]);
 
+    // Cleanup token listener on unmount
+    useEffect(() => {
+        return () => { cleanupRef.current?.(); };
+    }, []);
+
     const sendMessage = useCallback(async (text: string) => {
         if (!text.trim() || streaming) return;
 
@@ -52,7 +63,7 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
         const systemPrompt = buildChatContext(logs);
         const history: ChatMessage[] = [
             { role: 'system', content: systemPrompt },
-            ...messages.map(m => ({ role: m.role, content: m.content })),
+            ...messagesRef.current.map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: text },
         ];
 
@@ -82,7 +93,7 @@ export function useChat(logs: ILogData[], ollamaEnabled: boolean) {
             setStreaming(false);
             unsub();
         }
-    }, [logs, messages, streaming]);
+    }, [logs, streaming]);
 
     const clearMessages = useCallback(() => {
         setMessages([]);
