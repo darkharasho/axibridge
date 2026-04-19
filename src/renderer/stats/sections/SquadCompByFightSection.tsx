@@ -107,11 +107,11 @@ export const SquadCompByFightSection = ({
                                             key={fight.id}
                                             onClick={() => setActiveFightId(fight.id)}
                                             className={`squad-comp-fight-nav-item w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${isActive
-                                                ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100 squad-comp-fight-nav-item--active'
+                                                ? 'bg-[var(--accent-bg-strong)] border-[color:var(--accent-border)] text-[#93c5fd] squad-comp-fight-nav-item--active'
                                                 : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
                                                 }`}
                                         >
-                                            <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">{fight.label}</div>
+                                            <div className={`text-[10px] uppercase tracking-widest ${isActive ? 'text-[rgba(147,197,253,0.7)]' : 'text-[color:var(--text-secondary)]'}`}>{fight.label}</div>
                                             <div className="text-xs font-semibold truncate">{fight.mapName || 'Unknown Map'}</div>
                                             <div className="text-[10px] text-[color:var(--text-secondary)] truncate">{fight.duration || '--:--'} · {formatTimestamp(fight.timestamp)}</div>
                                         </button>
