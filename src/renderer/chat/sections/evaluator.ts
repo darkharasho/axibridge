@@ -9,7 +9,7 @@ export interface EvalResult {
     grade: 'good' | 'ok' | 'poor';
 }
 
-const FAIL_OPEN: EvalResult = { sufficient: true, missing: [], grade: 'ok' };
+const failOpen = (): EvalResult => ({ sufficient: true, missing: [], grade: 'ok' });
 
 export async function evaluateResponse(
     question: string,
@@ -48,7 +48,7 @@ If grade is "poor", list up to 2 section names in "missing" that would improve t
         const raw = (resp.message.content ?? '').trim();
         // Extract JSON even if wrapped in markdown
         const jsonMatch = raw.match(/\{[^}]+\}/);
-        if (!jsonMatch) return FAIL_OPEN;
+        if (!jsonMatch) return failOpen();
         const parsed = JSON.parse(jsonMatch[0]);
         return {
             sufficient: Boolean(parsed.sufficient),
@@ -59,6 +59,6 @@ If grade is "poor", list up to 2 section names in "missing" that would improve t
             grade: ['good', 'ok', 'poor'].includes(parsed.grade) ? parsed.grade : 'ok',
         };
     } catch {
-        return FAIL_OPEN;
+        return failOpen();
     }
 }
