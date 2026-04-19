@@ -2,6 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { Users } from 'lucide-react';
 import { resolvePublicAssetPath } from '../../ui/resolvePublicAssetPath';
 import { useStatsSharedContext } from '../StatsViewContext';
+// @ts-ignore - Used in Task 2: tile redesign
+import { PROFESSION_COLORS } from '../../../shared/professionUtils';
+
+// @ts-ignore - Used in Task 2: tile redesign
+const hexToRgba = (hex: string, alpha: number): string => {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+};
 
 type SquadCompPlayer = {
     account: string;
