@@ -63,6 +63,7 @@ const ICON_MAP: Record<string, ReactNode> = {
     clock: <Clock className="w-4 h-4 text-yellow-400 inline-block mx-1" />,
     check: <Check className="w-4 h-4 text-green-400 inline-block mx-1" />,
     error: <AlertTriangle className="w-4 h-4 text-red-400 inline-block mx-1" />,
+    'alert-triangle': <AlertTriangle className="w-4 h-4 text-red-400 inline-block mx-1" />,
     shield: <Shield className="w-4 h-4 text-indigo-400 inline-block mx-1" />,
     heart: <Heart className="w-4 h-4 text-rose-400 inline-block mx-1" />,
     'arrow-up': <ArrowUp className="w-4 h-4 text-cyan-400 inline-block mx-1" />,
@@ -278,7 +279,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
 
                             {(selectedNode.children || []).length > 0 && (
                                 <div className="mt-6">
-                                    <div className="text-xs uppercase tracking-wider text-gray-400 mb-3">Children</div>
+                                    <div className="text-xs uppercase tracking-wider text-gray-400 mb-3">In this section</div>
                                     <div className="grid gap-2">
                                         {selectedNode.children?.map((child) => (
                                             <button

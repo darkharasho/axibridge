@@ -2,9 +2,11 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 
-const inputPath = process.argv[2] || 'axibridge-settings.json';
-const settingsPath = path.resolve(process.cwd(), inputPath);
+const defaultPath = path.join(os.homedir(), '.config', 'AxiBridge-Dev', 'config.json');
+const inputPath = process.argv[2] || defaultPath;
+const settingsPath = path.resolve(inputPath);
 
 const readSettings = () => {
     try {

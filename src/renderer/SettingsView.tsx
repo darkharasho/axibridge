@@ -99,6 +99,8 @@ interface SettingsViewProps {
     onHelpUpdatesFocusConsumed?: (trigger: number) => void;
     parserSettingsFocusTrigger?: number;
     onParserSettingsFocusConsumed?: (trigger: number) => void;
+    howToTrigger?: number;
+    onHowToConsumed?: (trigger: number) => void;
     onMvpWeightsSaved?: (weights: IMvpWeights) => void;
     onStatsViewSettingsSaved?: (settings: IStatsViewSettings) => void;
     onDisruptionMethodSaved?: (method: DisruptionMethod) => void;
@@ -189,7 +191,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
@@ -282,6 +284,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const parserSettingsRef = useRef<HTMLDivElement | null>(null);
     const lastHelpUpdatesFocusTriggerRef = useRef<number>(0);
     const lastParserSettingsFocusTriggerRef = useRef<number>(0);
+    const lastHowToTriggerRef = useRef<number>(0);
     const inferredPagesUrl = githubRepoOwner && githubRepoName
         ? `https://${githubRepoOwner}.github.io/${githubRepoName}`
         : '';
@@ -632,6 +635,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         container.scrollTop = top;
         onParserSettingsFocusConsumed?.(trigger);
     }, [parserSettingsFocusTrigger, onParserSettingsFocusConsumed]);
+
+    useEffect(() => {
+        const trigger = howToTrigger || 0;
+        if (trigger <= lastHowToTriggerRef.current) return;
+        lastHowToTriggerRef.current = trigger;
+        setHowToOpen(true);
+        onHowToConsumed?.(trigger);
+    }, [howToTrigger, onHowToConsumed]);
 
     useEffect(() => {
         const container = settingsScrollRef.current;

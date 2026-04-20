@@ -67,6 +67,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         handleHelpUpdatesFocusConsumed,
         parserSettingsFocusTrigger,
         handleParserSettingsFocusConsumed,
+        howToTrigger,
+        handleHowToConsumed,
         showEiBanner,
         handleEiBannerDismiss,
         handleEiBannerSetup,
@@ -433,6 +435,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onHelpUpdatesFocusConsumed={handleHelpUpdatesFocusConsumed}
                                 parserSettingsFocusTrigger={parserSettingsFocusTrigger}
                                 onParserSettingsFocusConsumed={handleParserSettingsFocusConsumed}
+                                howToTrigger={howToTrigger}
+                                onHowToConsumed={handleHowToConsumed}
                                 onOpenWalkthrough={() => setWalkthroughOpen(true)}
                                 onOpenWhatsNew={() => setWhatsNewOpen(true)}
                                 isBulkUploadActive={isBulkUploadActive}

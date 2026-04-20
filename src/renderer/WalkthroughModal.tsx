@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { FileText, LineChart, Rocket, X, Zap } from 'lucide-react';
+import { BookOpen, FileText, LineChart, Rocket, X, Zap } from 'lucide-react';
 
 interface WalkthroughModalProps {
     isOpen: boolean;
@@ -99,10 +99,11 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                     <div className="flex justify-end gap-2 px-6 py-4" style={{ borderTop: '1px solid var(--border-default)' }}>
                         <button
                             onClick={() => onLearnMore?.()}
-                            className="px-4 py-2 rounded-[4px] text-gray-200 hover:bg-white/10 transition-colors text-sm font-medium"
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-[4px] text-gray-200 hover:bg-white/10 transition-colors text-sm font-medium"
                             style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}
                         >
-                            Learn More
+                            <BookOpen className="w-3.5 h-3.5" />
+                            How-To Guide
                         </button>
                         <button
                             onClick={onClose}

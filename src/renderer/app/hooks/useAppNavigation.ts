@@ -24,6 +24,7 @@ export function useAppNavigation({
     const [walkthroughOpen, setWalkthroughOpen] = useState(false);
     const [helpUpdatesFocusTrigger, setHelpUpdatesFocusTrigger] = useState(0);
     const [parserSettingsFocusTrigger, setParserSettingsFocusTrigger] = useState(0);
+    const [howToTrigger, setHowToTrigger] = useState(0);
 
     const [webhookModalOpen, setWebhookModalOpen] = useState(false);
     const [webhookDropdownOpen, setWebhookDropdownOpen] = useState(false);
@@ -157,8 +158,12 @@ export function useAppNavigation({
         window.electronAPI?.saveSettings?.({ walkthroughSeen: true, eiAnnouncementDismissed: true });
         setEiAnnouncementDismissed(true);
         setView('settings');
-        setParserSettingsFocusTrigger((current) => current + 1);
+        setHowToTrigger((current) => current + 1);
     }, [setEiAnnouncementDismissed]);
+
+    const handleHowToConsumed = useCallback((trigger: number) => {
+        setHowToTrigger((current) => (current === trigger ? 0 : current));
+    }, []);
 
     const handleHelpUpdatesFocusConsumed = useCallback((trigger: number) => {
         setHelpUpdatesFocusTrigger((current) => (current === trigger ? 0 : current));
@@ -238,6 +243,8 @@ export function useAppNavigation({
         handleHelpUpdatesFocusConsumed,
         parserSettingsFocusTrigger,
         handleParserSettingsFocusConsumed,
+        howToTrigger,
+        handleHowToConsumed,
         showEiBanner,
         handleEiBannerDismiss,
         handleEiBannerSetup,
