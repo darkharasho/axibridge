@@ -1391,6 +1391,7 @@ if (!gotTheLock) {
     });
 
     app.whenReady().then(async () => {
+        fs.writeFileSync(path.join(app.getPath('userData'), 'axiom-version'), app.getVersion(), 'utf8')
         if (process.defaultApp && process.argv.length >= 2) {
             app.setAsDefaultProtocolClient(GITHUB_PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
         } else {
