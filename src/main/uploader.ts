@@ -144,7 +144,9 @@ export class Uploader {
 
                 return {
                     id: data.id,
-                    permalink: data.permalink,
+                    permalink: typeof data.permalink === 'string'
+                        ? data.permalink.replace('https://wvw.report/', 'https://dps.report/')
+                        : data.permalink,
                     userToken: data.userToken,
                     uploadTime: data.uploadTime || Math.floor(Date.now() / 1000),
                     encounterDuration: data.encounter?.duration,
