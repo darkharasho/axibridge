@@ -106,31 +106,23 @@ describe('App first-time walkthrough', () => {
         expect(await screen.findByText('What’s New')).toBeInTheDocument();
     });
 
-    it('learn more routes to Settings and scrolls to Parser Settings', async () => {
+    it('how-to guide routes to Settings and opens the How To modal', async () => {
         const user = userEvent.setup();
         const electronApi = makeElectronApiMock({
             settings: { walkthroughSeen: false }
         });
         window.electronAPI = electronApi as any;
 
-        const scrollToSpy = vi.fn();
-        Object.defineProperty(HTMLDivElement.prototype, 'scrollTo', {
-            configurable: true,
-            writable: true,
-            value: scrollToSpy
-        });
-
         render(<App />);
 
         expect(await screen.findByText('Welcome to AxiBridge')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Learn More' }));
+        await user.click(screen.getByRole('button', { name: 'How-To Guide' }));
 
         await waitFor(() => {
             expect(screen.queryByText('Welcome to AxiBridge')).not.toBeInTheDocument();
         });
-        // Should navigate to Settings and scroll to Parser Settings section
-        expect(await screen.findByRole('heading', { name: 'Parser Settings' })).toBeInTheDocument();
-        expect(scrollToSpy).toHaveBeenCalledTimes(1);
+        // Should navigate to Settings and open the How To modal
+        expect(await screen.findByText('Feature and workflow reference')).toBeInTheDocument();
         // Should also dismiss the EI announcement
         await waitFor(() => {
             expect(electronApi.saveSettings).toHaveBeenCalledWith({ walkthroughSeen: true, eiAnnouncementDismissed: true });
@@ -151,26 +143,18 @@ describe('App first-time walkthrough', () => {
         expect(screen.getByText('Step 4')).toBeInTheDocument();
     });
 
-    it('does not re-scroll to Parser Settings after leaving and returning to Settings', async () => {
+    it('does not re-open How To modal after leaving and returning to Settings', async () => {
         const user = userEvent.setup();
         const electronApi = makeElectronApiMock({
             settings: { walkthroughSeen: false }
         });
         window.electronAPI = electronApi as any;
 
-        const scrollToSpy = vi.fn();
-        Object.defineProperty(HTMLDivElement.prototype, 'scrollTo', {
-            configurable: true,
-            writable: true,
-            value: scrollToSpy
-        });
-
         render(<App />);
 
         expect(await screen.findByText('Welcome to AxiBridge')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Learn More' }));
-        expect(await screen.findByRole('heading', { name: 'Parser Settings' })).toBeInTheDocument();
-        expect(scrollToSpy).toHaveBeenCalledTimes(1);
+        await user.click(screen.getByRole('button', { name: 'How-To Guide' }));
+        expect(await screen.findByText('Feature and workflow reference')).toBeInTheDocument();
 
         await user.click(screen.getByTitle('Dashboard'));
         // Wait for Dashboard to mount after AnimatePresence exit/enter transition
@@ -179,7 +163,8 @@ describe('App first-time walkthrough', () => {
         });
         await user.click(screen.getByTitle('Settings'));
         expect(await screen.findByRole('heading', { name: 'Parser Settings' })).toBeInTheDocument();
-        expect(scrollToSpy).toHaveBeenCalledTimes(1);
+        // How To modal should not reappear on returning to Settings
+        expect(screen.queryByText('Feature and workflow reference')).not.toBeInTheDocument();
     });
 });
 
