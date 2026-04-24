@@ -113,7 +113,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
         const el = mapContainerRef.current;
         if (!el) return;
         return attachWheelZoom(el);
-    }, [attachWheelZoom]);
+    }, [attachWheelZoom, fullscreen]);
     useEffect(() => {
         const el = mapContainerRef.current;
         if (!el) return;
@@ -123,7 +123,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
             // user dragged it. A recenter button lets them re-lock.
             if (d && followMemberRef.current) setCenteredOnFollow(false);
         });
-    }, [attachPanDrag]);
+    }, [attachPanDrag, fullscreen]);
     useEffect(() => {
         const el = squadPanelRef.current;
         if (!el) return;
