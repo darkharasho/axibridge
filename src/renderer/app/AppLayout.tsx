@@ -362,12 +362,15 @@ export function AppLayout({ ctx }: { ctx: any }) {
 
             <div className={`app-content relative z-10 max-w-none flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history') ? 'pt-4 px-4 pb-2 overflow-hidden' : 'p-4 overflow-hidden'}`} style={{ background: 'var(--bg-elevated)' }}>
 
-                <WebUploadOverlay
-                    webUploadState={webUploadState}
-                    isDev={isDev}
-                    setWebUploadState={setWebUploadState}
-                    logEntries={webUploadLogEntries}
-                />
+                {createPortal(
+                    <WebUploadOverlay
+                        webUploadState={webUploadState}
+                        isDev={isDev}
+                        setWebUploadState={setWebUploadState}
+                        logEntries={webUploadLogEntries}
+                    />,
+                    document.body
+                )}
 
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 20 }}>
                     {tabEmitter}

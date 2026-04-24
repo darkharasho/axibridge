@@ -2,6 +2,7 @@ import { Bar, Brush, CartesianGrid, Cell, ComposedChart, Line, Tooltip, XAxis, Y
 import { ChartContainer } from '../ui/ChartContainer';
 import { MapPin, Shield, Skull } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { getProfessionColor } from '../../../shared/professionUtils';
 import { FightMetricSection } from './FightMetricSection';
 import type { FightMetricPlayer, FightMetricPoint } from './FightMetricSection';
 
@@ -92,6 +93,7 @@ export const StabPerformanceSection = ({
 }: StabPerformanceSectionProps) => {
     const { formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
 
+    const selectedPlayerColor = getProfessionColor(selectedPlayer?.profession || '') || '#818cf8';
     const hasIncomingHeatData = drilldownData.some((entry) => Number(entry?.incomingDamage || 0) > 0);
 
     const drilldownHeatData = drilldownData.map((entry) => ({
@@ -286,6 +288,18 @@ export const StabPerformanceSection = ({
                                             })}
                                         </Bar>
                                     )}
+                                    <Line
+                                        type="monotone"
+                                        dataKey="value"
+                                        name={selectedPlayer?.displayName || 'Stab Generation'}
+                                        stroke={selectedPlayerColor}
+                                        strokeWidth={2}
+                                        dot={{ r: 2, fill: selectedPlayerColor }}
+                                        activeDot={{ r: 4 }}
+                                        isAnimationActive
+                                        animationDuration={600}
+                                        animationEasing="ease-out"
+                                    />
                                     {partyMembers.map((member, mi) => {
                                         const color = PARTY_MEMBER_COLORS[mi % PARTY_MEMBER_COLORS.length];
                                         return (

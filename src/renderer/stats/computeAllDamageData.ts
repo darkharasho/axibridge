@@ -281,7 +281,15 @@ export function ingestLogAllDamage(log: any, acc: AllDamageAccumulator, options:
 
 export function finalizeAllDamage(acc: AllDamageAccumulator): AllDamageData {
     const players = Array.from(acc.playerAgg.values()).sort((a, b) => b.totalDamage - a.totalDamage);
-    return { fights: acc.fights, players };
+
+    const fights = [...acc.fights]
+        .sort((a, b) => {
+            if (a.timestamp > 0 && b.timestamp > 0 && a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+            return a.shortLabel.localeCompare(b.shortLabel, undefined, { numeric: true });
+        })
+        .map((fight, i) => ({ ...fight, shortLabel: `F${i + 1}` }));
+
+    return { fights, players };
 }
 
 export function computeAllDamageData(validLogs: any[], splitPlayersByClass = false): AllDamageData {

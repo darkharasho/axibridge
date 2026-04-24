@@ -577,7 +577,14 @@ export function finalizeSpikeDamage(acc: SpikeDamageAccumulator): { fights: Spik
         return a.displayName.localeCompare(b.displayName);
     });
 
-    return { fights: acc.fights, players };
+    const fights = [...acc.fights]
+        .sort((a, b) => {
+            if (a.timestamp > 0 && b.timestamp > 0 && a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+            return a.shortLabel.localeCompare(b.shortLabel, undefined, { numeric: true });
+        })
+        .map((fight, i) => ({ ...fight, shortLabel: `F${i + 1}` }));
+
+    return { fights, players };
 }
 
 export function computeSpikeDamageData(validLogs: any[], splitPlayersByClass = false) {
