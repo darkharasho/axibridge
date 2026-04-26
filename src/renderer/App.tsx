@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParticleEffect, PRESETS, ParticleHover } from './particles';
 import { useStatsStore, hashAggregationSettings } from './stats/statsStore';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FilePlus2, Clipboard } from 'lucide-react';
+import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FilePlus2, Clipboard, Check } from 'lucide-react';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { AppLayout } from './app/AppLayout';
@@ -660,6 +660,7 @@ function App() {
     const appIconPath = `${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg`;
     const axibridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;
     const isDev = import.meta.env.DEV;
+    const [copyPathsFlash, setCopyPathsFlash] = useState(false);
     const shellClassName = 'app-shell h-screen w-screen text-white overflow-hidden flex flex-col';
 
     const successCount = statusCounts.success || 0;
@@ -885,13 +886,20 @@ function App() {
                             onClick={() => {
                                 const paths = logs.map(l => l.filePath).filter(Boolean).join('\n');
                                 navigator.clipboard.writeText(paths).catch(() => {});
+                                setCopyPathsFlash(true);
+                                window.setTimeout(() => setCopyPathsFlash(false), 1400);
                             }}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
-                            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card-inner)', color: 'var(--text-secondary)' }}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-semibold uppercase tracking-[0.18em] border transition-all duration-200 ${copyPathsFlash ? 'scale-105' : ''}`}
+                            style={{
+                                borderColor: copyPathsFlash ? 'rgba(74, 222, 128, 0.6)' : 'rgba(245, 158, 11, 0.5)',
+                                background: copyPathsFlash ? 'rgba(74, 222, 128, 0.18)' : 'rgba(245, 158, 11, 0.15)',
+                                color: copyPathsFlash ? '#86efac' : '#fcd34d',
+                                boxShadow: copyPathsFlash ? '0 0 0 3px rgba(74, 222, 128, 0.18)' : 'none',
+                            }}
                             title={`Copy ${logs.length} log file path${logs.length === 1 ? '' : 's'} to clipboard`}
                         >
-                            <Clipboard className="w-3 h-3" />
-                            Copy Paths
+                            {copyPathsFlash ? <Check className="w-3 h-3" /> : <Clipboard className="w-3 h-3" />}
+                            {copyPathsFlash ? 'Copied' : 'Copy Paths'}
                         </button>
                     )}
                 </div>
