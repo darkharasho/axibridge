@@ -159,35 +159,35 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
                         )}
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-xs" style={{ color: 'var(--text-primary)' }}>
+                    <div className={`rounded-[var(--radius-md)] overflow-hidden ${visibleRows.length > 12 ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
+                        <table className="w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
                             <thead>
-                                <tr style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
-                                    <th className="text-left px-2 py-1 cursor-pointer" onClick={() => onSort('account')}>Player {sortIcon('account')}</th>
-                                    <th className="text-right px-2 py-1 cursor-pointer" onClick={() => onSort('fightCount')}># Fights {sortIcon('fightCount')}</th>
-                                    <th className="text-right px-2 py-1 cursor-pointer" onClick={() => onSort('sampleCount')}>Samples {sortIcon('sampleCount')}</th>
-                                    <th className="text-right px-2 py-1 cursor-pointer" onClick={() => onSort('avg')}>Avg {sortIcon('avg')}</th>
-                                    <th className="text-right px-2 py-1 cursor-pointer" onClick={() => onSort('median')}>Median {sortIcon('median')}</th>
-                                    <th className="text-right px-2 py-1 cursor-pointer" onClick={() => onSort('p95')}>p95 {sortIcon('p95')}</th>
-                                    <th className="text-left px-2 py-1">Source</th>
+                                <tr className="text-[10px] uppercase tracking-widest border-b border-[color:var(--border-default)]" style={{ color: 'var(--text-secondary)' }}>
+                                    <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('account')}>Player {sortIcon('account')}</th>
+                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('fightCount')}># Fights {sortIcon('fightCount')}</th>
+                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('sampleCount')}>Samples {sortIcon('sampleCount')}</th>
+                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('avg')}>Avg {sortIcon('avg')}</th>
+                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('median')}>Median {sortIcon('median')}</th>
+                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('p95')}>p95 {sortIcon('p95')}</th>
+                                    <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Source</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {visibleRows.map(r => (
-                                    <tr key={r.account} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                                        <td className="px-2 py-1">
+                                    <tr key={r.account} className="align-top border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                        <td className="py-2 px-3 whitespace-nowrap">
                                             <span className="inline-flex items-center gap-1.5">
                                                 {renderProfessionIcon(r.profession, r.professionList, 'w-4 h-4 flex-shrink-0')}
                                                 <span>{r.account}</span>
                                                 {r.isCommander && <span title="Commander" style={{ color: 'var(--status-warning)' }}>★</span>}
                                             </span>
                                         </td>
-                                        <td className="text-right px-2 py-1 font-mono">{r.fightCount}</td>
-                                        <td className="text-right px-2 py-1 font-mono">{formatWithCommas(r.sampleCount, 0)}</td>
-                                        <td className="text-right px-2 py-1 font-mono">{formatWithCommas(r.avg, 0)}</td>
-                                        <td className="text-right px-2 py-1 font-mono">{formatWithCommas(r.median, 0)}</td>
-                                        <td className="text-right px-2 py-1 font-mono">{formatWithCommas(r.p95, 0)}</td>
-                                        <td className="px-2 py-1">{sourceBadge(r.source)}</td>
+                                        <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{r.fightCount}</td>
+                                        <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{formatWithCommas(r.sampleCount, 0)}</td>
+                                        <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{formatWithCommas(r.avg, 0)}</td>
+                                        <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{formatWithCommas(r.median, 0)}</td>
+                                        <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{formatWithCommas(r.p95, 0)}</td>
+                                        <td className="py-2 px-3 whitespace-nowrap">{sourceBadge(r.source)}</td>
                                     </tr>
                                 ))}
                             </tbody>
