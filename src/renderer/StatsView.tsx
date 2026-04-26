@@ -125,6 +125,7 @@ const ORDERED_SECTION_IDS = [
     'squad-kill-pressure',
     'heal-effectiveness',
     'squad-tag-distance-deaths',
+    'squad-distance-to-tag',
     'attendance-ledger',
     'squad-comp-fight',
     'fight-comp',
