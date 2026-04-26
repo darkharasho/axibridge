@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Maximize2, X, Crosshair, ArrowUp, ArrowDown } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
-import { getProfessionColor, getProfessionAbbrev } from '../../../shared/professionUtils';
+import { renderProfessionIcon } from '../ui/StatsViewShared';
 import type { DistanceToTagResult, DistanceToTagRow } from '../computeDistanceToTag';
 
 type Props = {
@@ -164,7 +164,6 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
                             <thead>
                                 <tr style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
                                     <th className="text-left px-2 py-1 cursor-pointer" onClick={() => onSort('account')}>Player {sortIcon('account')}</th>
-                                    <th className="text-left px-2 py-1">Prof</th>
                                     <th className="text-right px-2 py-1 cursor-pointer" onClick={() => onSort('fightCount')}># Fights {sortIcon('fightCount')}</th>
                                     <th className="text-right px-2 py-1 cursor-pointer" onClick={() => onSort('sampleCount')}>Samples {sortIcon('sampleCount')}</th>
                                     <th className="text-right px-2 py-1 cursor-pointer" onClick={() => onSort('avg')}>Avg {sortIcon('avg')}</th>
@@ -177,10 +176,12 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
                                 {visibleRows.map(r => (
                                     <tr key={r.account} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                                         <td className="px-2 py-1">
-                                            {r.account}
-                                            {r.isCommander && <span title="Commander" className="ml-1" style={{ color: 'var(--status-warning)' }}>★</span>}
+                                            <span className="inline-flex items-center gap-1.5">
+                                                {renderProfessionIcon(r.profession, r.professionList, 'w-4 h-4 flex-shrink-0')}
+                                                <span>{r.account}</span>
+                                                {r.isCommander && <span title="Commander" style={{ color: 'var(--status-warning)' }}>★</span>}
+                                            </span>
                                         </td>
-                                        <td className="px-2 py-1" style={{ color: getProfessionColor(r.profession) }}>{getProfessionAbbrev(r.profession)}</td>
                                         <td className="text-right px-2 py-1 font-mono">{r.fightCount}</td>
                                         <td className="text-right px-2 py-1 font-mono">{formatWithCommas(r.sampleCount, 0)}</td>
                                         <td className="text-right px-2 py-1 font-mono">{formatWithCommas(r.avg, 0)}</td>
