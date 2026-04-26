@@ -27,10 +27,10 @@ const CHIP_RADIUS = 7;
 const CHIP_RADIUS_EXPANDED = 10;
 
 const ZONES: Array<{ inner: number; outer: number; fill: string }> = [
-    { inner: 0, outer: 600, fill: 'rgba(34, 197, 94, 0.28)' },
-    { inner: 600, outer: 800, fill: 'rgba(234, 179, 8, 0.22)' },
-    { inner: 800, outer: 1200, fill: 'rgba(249, 115, 22, 0.22)' },
-    { inner: 1200, outer: SCALE_MAX, fill: 'rgba(239, 68, 68, 0.25)' },
+    { inner: 0, outer: 600, fill: 'rgb(34, 197, 94)' },
+    { inner: 600, outer: 800, fill: 'rgb(234, 179, 8)' },
+    { inner: 800, outer: 1200, fill: 'rgb(249, 115, 22)' },
+    { inner: 1200, outer: SCALE_MAX, fill: 'rgb(239, 68, 68)' },
 ];
 
 const RING_LABELS = [600, 800, 1200];
