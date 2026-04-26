@@ -92,8 +92,94 @@ export const ingestLogDistanceToTag = (log: any, fightIndex: number): DistanceCo
     return out;
 };
 
-export const finalizeDistanceToTag = (_contributions: DistanceContribution[]): DistanceToTagResult => {
-    return { rows: [], commanderCount: 0 };
+const median = (sortedAsc: number[]): number => {
+    if (sortedAsc.length === 0) return 0;
+    const n = sortedAsc.length;
+    if (n % 2 === 1) return sortedAsc[(n - 1) / 2];
+    return (sortedAsc[n / 2 - 1] + sortedAsc[n / 2]) / 2;
+};
+
+const nearestRankP95 = (sortedAsc: number[]): number => {
+    if (sortedAsc.length === 0) return 0;
+    const idx = Math.max(0, Math.ceil(0.95 * sortedAsc.length) - 1);
+    return sortedAsc[idx];
+};
+
+export const finalizeDistanceToTag = (contributions: DistanceContribution[]): DistanceToTagResult => {
+    if (contributions.length === 0) return { rows: [], commanderCount: 0 };
+
+    // Group contributions by account.
+    const byAccount = new Map<string, DistanceContribution[]>();
+    for (const c of contributions) {
+        const list = byAccount.get(c.account);
+        if (list) list.push(c);
+        else byAccount.set(c.account, [c]);
+    }
+
+    // Identify commander accounts (any fight where they were commander).
+    const commanderAccounts = new Set<string>();
+    for (const [account, list] of byAccount) {
+        if (list.some(c => c.isCommander)) commanderAccounts.add(account);
+    }
+    const commanderCount = commanderAccounts.size;
+    const includeCommanders = commanderCount > 2;
+
+    const rows: DistanceToTagRow[] = [];
+
+    for (const [account, list] of byAccount) {
+        const isCommander = commanderAccounts.has(account);
+        if (isCommander && !includeCommanders) continue;
+
+        const fightIds = new Set<string>();
+        const sources = new Set<DistanceContributionSource>();
+        for (const c of list) {
+            fightIds.add(c.fightId);
+            sources.add(c.source);
+        }
+
+        const sourceLabel: DistanceToTagRow['source'] =
+            sources.size > 1 ? 'mixed' : (sources.has('replay') ? 'replay' : 'fightAvg');
+
+        // Profession bookkeeping.
+        const professionList = Array.from(new Set(list.map(c => c.profession).filter(p => p && p !== 'Unknown')));
+        const profession = list[list.length - 1].profession;
+
+        let values: number[];
+        if (sourceLabel === 'replay') {
+            // Pure replay: pool every sample.
+            values = [];
+            for (const c of list) {
+                if (c.samples.length > 0) {
+                    for (const s of c.samples) values.push(s);
+                } else {
+                    values.push(c.fightMean);
+                }
+            }
+        } else {
+            // fightAvg or mixed: per-fight values.
+            values = list.map(c => c.fightMean);
+        }
+
+        if (values.length === 0) continue;
+
+        const sorted = [...values].sort((a, b) => a - b);
+        const avg = values.reduce((s, v) => s + v, 0) / values.length;
+
+        rows.push({
+            account,
+            profession,
+            professionList,
+            fightCount: fightIds.size,
+            sampleCount: values.length,
+            avg: Math.round(avg),
+            median: Math.round(median(sorted)),
+            p95: Math.round(nearestRankP95(sorted)),
+            source: sourceLabel,
+            isCommander,
+        });
+    }
+
+    return { rows, commanderCount };
 };
 
 export const computeDistanceToTag = (sortedFightLogs: Array<{ log: any }>): DistanceToTagResult => {
