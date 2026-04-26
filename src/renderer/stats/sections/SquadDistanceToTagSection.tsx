@@ -99,7 +99,7 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
                 </div>
             ) : (
                 <>
-                    <div className="flex items-center gap-2 mb-2 text-[11px] whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex flex-nowrap items-center gap-2 mb-2 text-[11px] whitespace-nowrap overflow-x-auto" style={{ color: 'var(--text-secondary)' }}>
                         <button
                             type="button"
                             role="switch"
@@ -131,7 +131,7 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
                                 }}
                             />
                         </button>
-                        <span>Min</span>
+                        <span className="shrink-0">Min</span>
                         <input
                             type="number"
                             min={1}
@@ -141,7 +141,7 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
                                 setFilterEnabled(true);
                                 setMinFights(Math.max(1, Number(e.target.value) || 1));
                             }}
-                            className="w-10 px-1 py-0.5 rounded text-center font-mono text-[11px]"
+                            className="shrink-0 w-10 px-1 py-0.5 rounded text-center font-mono text-[11px]"
                             style={{
                                 background: 'var(--bg-card-inner)',
                                 border: '1px solid var(--border-subtle)',
@@ -150,10 +150,10 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
                             }}
                             aria-label="Minimum fight count"
                         />
-                        <span>fights</span>
+                        <span className="shrink-0">fights</span>
                         {filterEnabled && hiddenCount > 0 && (
                             <span
-                                className="px-1.5 py-0.5 rounded text-[10px]"
+                                className="shrink-0 px-1.5 py-0.5 rounded text-[10px]"
                                 style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}
                             >{hiddenCount} hidden</span>
                         )}
