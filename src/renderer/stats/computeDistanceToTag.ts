@@ -20,7 +20,9 @@ export type DistanceToTagRow = {
     fightCount: number;
     sampleCount: number;
     avg: number;
+    p25: number;
     median: number;
+    p75: number;
     p95: number;
     source: 'replay' | 'fightAvg' | 'mixed';
     isCommander: boolean;
@@ -99,9 +101,9 @@ const median = (sortedAsc: number[]): number => {
     return (sortedAsc[n / 2 - 1] + sortedAsc[n / 2]) / 2;
 };
 
-const nearestRankP95 = (sortedAsc: number[]): number => {
+const nearestRankPercentile = (sortedAsc: number[], percentile: number): number => {
     if (sortedAsc.length === 0) return 0;
-    const idx = Math.max(0, Math.ceil(0.95 * sortedAsc.length) - 1);
+    const idx = Math.max(0, Math.ceil(percentile * sortedAsc.length) - 1);
     return sortedAsc[idx];
 };
 
@@ -172,8 +174,10 @@ export const finalizeDistanceToTag = (contributions: DistanceContribution[]): Di
             fightCount: fightIds.size,
             sampleCount: values.length,
             avg: Math.round(avg),
+            p25: Math.round(nearestRankPercentile(sorted, 0.25)),
             median: Math.round(median(sorted)),
-            p95: Math.round(nearestRankP95(sorted)),
+            p75: Math.round(nearestRankPercentile(sorted, 0.75)),
+            p95: Math.round(nearestRankPercentile(sorted, 0.95)),
             source: sourceLabel,
             isCommander,
         });
