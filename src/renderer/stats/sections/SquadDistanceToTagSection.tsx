@@ -6,12 +6,17 @@ import type { DistanceToTagResult, DistanceToTagRow } from '../computeDistanceTo
 
 type Props = {
     result: DistanceToTagResult;
+    filterEnabled?: boolean;
+    onFilterEnabledChange?: (v: boolean) => void;
+    minFights?: number;
+    onMinFightsChange?: (v: number) => void;
 };
 
 type SortKey = 'account' | 'fightCount' | 'sampleCount' | 'avg' | 'median' | 'p95';
 type SortDir = 'asc' | 'desc';
 
-export const SquadDistanceToTagSection = ({ result }: Props) => {
+export const SquadDistanceToTagSection = (props: Props) => {
+    const { result } = props;
     const {
         formatWithCommas,
         expandedSection,
@@ -24,8 +29,19 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
 
     const [sortKey, setSortKey] = useState<SortKey>('avg');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
-    const [filterEnabled, setFilterEnabled] = useState(false);
-    const [minFights, setMinFights] = useState(3);
+    const [internalFilterEnabled, setInternalFilterEnabled] = useState(false);
+    const [internalMinFights, setInternalMinFights] = useState(3);
+    const filterEnabled = props.filterEnabled ?? internalFilterEnabled;
+    const minFights = props.minFights ?? internalMinFights;
+    const setFilterEnabled = (next: boolean | ((prev: boolean) => boolean)) => {
+        const value = typeof next === 'function' ? next(filterEnabled) : next;
+        if (props.onFilterEnabledChange) props.onFilterEnabledChange(value);
+        else setInternalFilterEnabled(value);
+    };
+    const setMinFights = (next: number) => {
+        if (props.onMinFightsChange) props.onMinFightsChange(next);
+        else setInternalMinFights(next);
+    };
 
     const rows = result?.rows ?? [];
 
