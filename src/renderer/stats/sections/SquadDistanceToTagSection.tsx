@@ -99,26 +99,64 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
                 </div>
             ) : (
                 <>
-                    <div className="flex items-center gap-3 mb-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={filterEnabled}
-                                onChange={e => setFilterEnabled(e.target.checked)}
+                    <div className="flex items-center gap-2 mb-2 text-[11px] whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={filterEnabled}
+                            onClick={() => setFilterEnabled(v => !v)}
+                            className="relative inline-flex items-center shrink-0"
+                            style={{
+                                width: 26,
+                                height: 14,
+                                borderRadius: 9999,
+                                background: filterEnabled ? 'var(--brand-primary)' : 'var(--bg-card-inner)',
+                                border: '1px solid var(--border-subtle)',
+                                transition: 'background 120ms',
+                                cursor: 'pointer',
+                            }}
+                            title={filterEnabled ? 'Min-fights filter on' : 'Min-fights filter off'}
+                        >
+                            <span
+                                aria-hidden
+                                style={{
+                                    position: 'absolute',
+                                    top: 1,
+                                    left: filterEnabled ? 13 : 1,
+                                    width: 10,
+                                    height: 10,
+                                    borderRadius: '50%',
+                                    background: 'var(--text-primary)',
+                                    transition: 'left 120ms',
+                                }}
                             />
-                            <span>Hide players under</span>
-                        </label>
+                        </button>
+                        <span>Min</span>
                         <input
                             type="number"
                             min={1}
                             value={minFights}
-                            disabled={!filterEnabled}
-                            onChange={e => setMinFights(Math.max(1, Number(e.target.value) || 1))}
-                            className="w-12 px-1 py-0.5 rounded text-center"
-                            style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                            onFocus={() => setFilterEnabled(true)}
+                            onChange={e => {
+                                setFilterEnabled(true);
+                                setMinFights(Math.max(1, Number(e.target.value) || 1));
+                            }}
+                            className="w-10 px-1 py-0.5 rounded text-center font-mono text-[11px]"
+                            style={{
+                                background: 'var(--bg-card-inner)',
+                                border: '1px solid var(--border-subtle)',
+                                color: 'var(--text-primary)',
+                                opacity: filterEnabled ? 1 : 0.55,
+                            }}
+                            aria-label="Minimum fight count"
                         />
                         <span>fights</span>
-                        {filterEnabled && hiddenCount > 0 && <span>· {hiddenCount} hidden</span>}
+                        {filterEnabled && hiddenCount > 0 && (
+                            <span
+                                className="px-1.5 py-0.5 rounded text-[10px]"
+                                style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}
+                            >{hiddenCount} hidden</span>
+                        )}
                     </div>
 
                     <div className="overflow-x-auto">
