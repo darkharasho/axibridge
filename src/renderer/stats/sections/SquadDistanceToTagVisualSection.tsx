@@ -26,11 +26,14 @@ const SCALE_MAX = 1500;
 const CHIP_RADIUS = 7;
 const CHIP_RADIUS_EXPANDED = 10;
 
+// Soft, desaturated tones aligned with the app's status palette
+// (status-success / status-warning / status-error). The orange band uses
+// amber-700, sitting between warning and error to give a clear progression.
 const ZONES: Array<{ inner: number; outer: number; fill: string }> = [
-    { inner: 0, outer: 600, fill: 'rgb(34, 197, 94)' },
-    { inner: 600, outer: 800, fill: 'rgb(234, 179, 8)' },
-    { inner: 800, outer: 1200, fill: 'rgb(249, 115, 22)' },
-    { inner: 1200, outer: SCALE_MAX, fill: 'rgb(239, 68, 68)' },
+    { inner: 0, outer: 600, fill: '#15803d' },        // emerald-700
+    { inner: 600, outer: 800, fill: '#b45309' },      // amber-700
+    { inner: 800, outer: 1200, fill: '#c2410c' },     // orange-700
+    { inner: 1200, outer: SCALE_MAX, fill: '#b91c1c' }, // red-700
 ];
 
 const RING_LABELS = [600, 800, 1200];
