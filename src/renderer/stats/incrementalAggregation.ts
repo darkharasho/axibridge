@@ -33,6 +33,7 @@ import { createSkillUsageAccumulator, ingestLogSkillUsage, finalizeSkillUsage } 
 
 import { createBoonTimelineAccumulator, ingestLogBoonTimeline, finalizeBoonTimeline } from './computeBoonTimeline';
 import { createBoonUptimeTimelineAccumulator, ingestLogBoonUptimeTimeline, finalizeBoonUptimeTimeline } from './computeBoonUptimeTimeline';
+import { createStabPerformanceAccumulator, ingestLogStabPerformance, finalizeStabPerformance } from './computeStabPerformance';
 
 import { computeSpecialTables } from './computeSpecialTables';
 import { classifyPlayerRoles } from './classifyPlayerRoles';
@@ -519,6 +520,7 @@ export class IncrementalAggregator {
     // Boon timelines
     private boonTimelineAcc;
     private boonUptimeAcc;
+    private stabPerfAcc;
 
     // Map counts
     private mapCounts: Record<string, number> = {};
@@ -561,6 +563,7 @@ export class IncrementalAggregator {
         };
         this.boonTimelineAcc = createBoonTimelineAccumulator();
         this.boonUptimeAcc = createBoonUptimeTimelineAccumulator(boonIntervalSettings);
+        this.stabPerfAcc = createStabPerformanceAccumulator();
     }
 
     /** Process a single log and accumulate results. The log is NOT stored. */
@@ -690,6 +693,7 @@ export class IncrementalAggregator {
         // 5. Boon timelines
         ingestLogBoonTimeline(log, this.boonTimelineAcc);
         ingestLogBoonUptimeTimeline(log, this.boonUptimeAcc);
+        ingestLogStabPerformance(log, this.stabPerfAcc);
 
         // 6. incomingDamagePerSecond
         this.processIncomingDamagePerSecond(log, idx);
@@ -792,6 +796,7 @@ export class IncrementalAggregator {
         // 3. Finalize boon timelines
         const boonTimeline = finalizeBoonTimeline(this.boonTimelineAcc);
         const boonUptimeTimeline = finalizeBoonUptimeTimeline(this.boonUptimeAcc);
+        const stabPerformanceDrilldown = finalizeStabPerformance(this.stabPerfAcc);
 
         // 4. Build boon tables from stored log data
         const { boonTables } = buildBoonTables(this.boonTableLogs, this.splitPlayersByClass);
@@ -1378,7 +1383,7 @@ export class IncrementalAggregator {
             playerSkillBreakdowns,
             healingBreakdownPlayers,
             topSkillsMetric: this.topSkillsMetric,
-            mapData, timelineData, boonTables, boonTimeline, boonUptimeTimeline, incomingDamagePerSecondByFightId,
+            mapData, timelineData, boonTables, boonTimeline, boonUptimeTimeline, stabPerformanceDrilldown, incomingDamagePerSecondByFightId,
             offensePlayers: Array.from(playerStats.values()).map(s => ({
                 account: s.account, profession: s.profession, professionList: s.professionList,
                 offenseTotals: s.offenseTotals, offenseRateWeights: s.offenseRateWeights, totalFightMs: s.totalFightMs

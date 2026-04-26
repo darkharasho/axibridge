@@ -3300,6 +3300,7 @@ type SpikeFight = {
         const fightPeak = stabPerfChartData.reduce((best, e) => Math.max(best, Number(e?.maxTotal || 0)), 0);
         return Math.max(1, selectedPeak, fightPeak);
     }, [stabPerfChartData]);
+    const stabPerformanceDrilldown = (safeStats as any)?.stabPerformanceDrilldown;
     const stabPerfDrilldown = useMemo(() => {
         const emptyResult = {
             title: 'Fight Breakdown (5s Squad Stab Generation Buckets)',
@@ -3347,194 +3348,48 @@ type SpikeFight = {
             };
         });
         const selectedFightId = String(selectedFight?.id || '');
-        const pointFightId = String(selectedPoint?.fightId || '');
-        const sortedLogs = [...logs]
-            .map((log: any) => ({ log, ts: parseTimestamp(log?.details?.uploadTime ?? log?.uploadTime ?? log?.details?.timeStartStd ?? log?.details?.timeStart) }))
-            .sort((a, b) => a.ts - b.ts);
-        const logAtIndex = sortedLogs[selectedPoint.index]?.log;
-        const selectedLog = logs.find((log: any) =>
-            String(log?.filePath || '') === selectedFightId
-            || String(log?.id || '') === selectedFightId
-        ) || logAtIndex;
-        const selectedLogDetails = getDetails(selectedLog);
+        const drilldownFights: any[] = Array.isArray(stabPerformanceDrilldown?.fights) ? stabPerformanceDrilldown.fights : [];
         const normPath = (p: string) => p.replace(/\\/g, '/').toLowerCase();
         const normFightId = normPath(selectedFightId);
-        const normPointId = normPath(pointFightId);
-        const findInDmgMap = <T,>(m: Map<string, T>): T | undefined => {
-            const direct = m.get(selectedFightId) ?? m.get(pointFightId);
-            if (direct !== undefined) return direct;
-            for (const [k, v] of m) {
-                if (normPath(k) === normFightId || normPath(k) === normPointId) return v;
-            }
-            return undefined;
-        };
-        const primaryIncoming: number[] = (findInDmgMap(squadIncomingDamageBucketsByFightId) as any)?.buckets ?? [];
-        const fallbackIncoming: number[] = findInDmgMap(fallbackIncomingDamageBucketsByFightId) ?? [];
-        const primaryTotal = primaryIncoming.reduce((s: number, v: number) => s + Number(v || 0), 0);
-        const fallbackTotal = fallbackIncoming.reduce((s: number, v: number) => s + Number(v || 0), 0);
-        const incomingShape = primaryTotal > 0 ? primaryIncoming : fallbackIncoming;
-        const incomingShapeTotal = primaryTotal > 0 ? primaryTotal : fallbackTotal;
-        const incomingTotal = Math.max(0, Number(findInDmgMap(squadIncomingDamageTotalByFightId) ?? 0));
-        let stabIncomingBuckets = Array.from({ length: bucketCount }, (_, i) => Number(incomingShape[i] || 0));
-        if (incomingTotal > 0 && incomingShapeTotal > 0) {
-            const scale = incomingTotal / incomingShapeTotal;
-            stabIncomingBuckets = stabIncomingBuckets.map((v: number) => Number(v || 0) * scale);
-        }
-        if (!stabIncomingBuckets.some(v => v > 0) && selectedLogDetails?.players) {
-            const normCum = (val: any): number[] => {
-                if (!Array.isArray(val) || val.length === 0) return [];
-                const f = val[0];
-                if (typeof f === 'number') return val.map((e: any) => Number(e || 0));
-                if (Array.isArray(f) && f.length > 0) {
-                    if (typeof f[0] === 'number') return f.map((e: any) => Number(e || 0));
-                    if (Array.isArray(f[0]) && Array.isArray((f[0] as any)[0])) {
-                        const targets = f
-                            .map((s: any) => Array.isArray(s) ? s.map((e: any) => Number(e || 0)) : null)
-                            .filter((s: number[] | null): s is number[] => Array.isArray(s) && s.length > 0);
-                        const len = targets.reduce((m: number, s: number[]) => Math.max(m, s.length), 0);
-                        if (len <= 0) return [];
-                        const out = new Array<number>(len).fill(0);
-                        targets.forEach((s: number[]) => { for (let i = 0; i < len; i++) out[i] += Number(s[i] || 0); });
-                        return out;
-                    }
-                }
-                return [];
-            };
-            const toDeltas = (s: number[]): number[] => s.map((v, i) => Math.max(0, Number(v || 0) - Number(s[i - 1] || 0)));
-            const toBkt = (s: number[]): number[] => {
-                const out: number[] = [];
-                for (let i = 0; i < s.length; i += 5) out.push(s.slice(i, Math.min(i + 5, s.length)).reduce((a, b) => a + b, 0));
-                return out;
-            };
-            const allPlayers = ((selectedLogDetails?.players || []) as any[]).filter((p: any) => !p?.notInSquad);
-            const trySource = (field: string) => {
-                const arrays = allPlayers.map((p: any) => toDeltas(normCum(p?.[field]))).filter((a: number[]) => a.length > 0);
-                if (arrays.length === 0) return false;
-                const maxLen = arrays.reduce((m: number, a: number[]) => Math.max(m, a.length), 0);
-                const summed = new Array<number>(maxLen).fill(0);
-                arrays.forEach((a: number[]) => a.forEach((v: number, i: number) => { summed[i] += v; }));
-                const raw = toBkt(summed);
-                const candidate = Array.from({ length: bucketCount }, (_, i) => Number(raw[i] || 0));
-                if (!candidate.some(v => v > 0)) return false;
-                stabIncomingBuckets = candidate;
-                const bktSum = candidate.reduce((s: number, v: number) => s + v, 0);
-                if (bktSum > 0 && incomingTotal > 0) {
-                    const sc = incomingTotal / bktSum;
-                    stabIncomingBuckets = stabIncomingBuckets.map((v: number) => v * sc);
-                }
-                return true;
-            };
-            trySource('damageTaken1S') || trySource('powerDamageTaken1S');
-        }
-        if (!stabIncomingBuckets.some(v => v > 0) && incomingTotal > 0) {
-            stabIncomingBuckets = Array.from({ length: bucketCount }, () => incomingTotal / bucketCount);
-        }
-        const selectedPlayerDetails = selectedLogDetails?.players?.find((p: any) =>
-            String(p?.account || p?.name || 'Unknown') === selectedStabPerfPlayerKey
-        );
-        const selectedPlayerGroup = Number(selectedPlayerDetails?.group ?? 0);
-        const playerDeathsPerBucket = new Map<string, number[]>();
-        const playerDistancesPerBucket = new Map<string, number[]>();
-        const partyMembersMap = new Map<string, { displayName: string; stacksPerBucket: number[] }>();
-        if (selectedLogDetails?.players && selectedPlayerGroup > 0) {
-            const squadPlayers = (selectedLogDetails.players as any[]).filter((p: any) => !p?.notInSquad);
-            const replayMeta = (selectedLogDetails as any)?.combatReplayMetaData || {};
-            const inchesToPixel = Number(replayMeta?.inchToPixel || 0) > 0 ? Number(replayMeta.inchToPixel) : 1;
-            const pollingRate = Number(replayMeta?.pollingRate || 0) > 0 ? Number(replayMeta.pollingRate) : 500;
-            const getFirstSeg = (replayData: any) => Array.isArray(replayData) ? replayData[0] : replayData;
-            const commanderPlayer = squadPlayers.find((p: any) => p?.hasCommanderTag);
-            const cmdSeg = getFirstSeg(commanderPlayer?.combatReplayData);
-            const cmdPositions: Array<[number, number]> = Array.isArray(cmdSeg?.positions) ? cmdSeg.positions : [];
-            const cmdOffset = Math.floor(Number(cmdSeg?.start || 0) / pollingRate);
-            squadPlayers.forEach((player: any) => {
-                if (Number(player?.group || 0) !== selectedPlayerGroup) return;
-                const playerAccount = String(player?.account || player?.name || 'Unknown');
-                const fallbackDist = Number((player as any)?.statsAll?.[0]?.distToCom || (player as any)?.statsAll?.[0]?.stackDist || 0);
-                const deathSkill = (Array.isArray(player?.rotation) ? player.rotation : []).find((r: any) => Number(r?.id) === -28);
-                const deathsPerBucket = Array.from({ length: bucketCount }, () => 0);
-                if (deathSkill && Array.isArray(deathSkill.skills)) {
-                    deathSkill.skills.forEach((skill: any) => {
-                        const bucketIdx = Math.min(bucketCount - 1, Math.floor(Number(skill?.castTime || 0) / 5000));
-                        if (bucketIdx >= 0) {
-                            deathsPerBucket[bucketIdx]++;
-                        }
-                    });
-                }
-                playerDeathsPerBucket.set(playerAccount, deathsPerBucket);
-                const playerSeg = getFirstSeg(player?.combatReplayData);
-                const playerPositions: Array<[number, number]> = Array.isArray(playerSeg?.positions) ? playerSeg.positions : [];
-                const playerOffset = Math.floor(Number(playerSeg?.start || 0) / pollingRate);
-                const distancesPerBucket: number[] = Array.from({ length: bucketCount }, (_, b) => {
-                    if (cmdPositions.length === 0 || playerPositions.length === 0) return fallbackDist;
-                    const bucketStartMs = b * 5000;
-                    const bucketEndMs = (b + 1) * 5000;
-                    let sum = 0, count = 0;
-                    for (let t = bucketStartMs; t < bucketEndMs; t += pollingRate) {
-                        const tick = Math.floor(t / pollingRate);
-                        const cmdIdx = tick - cmdOffset;
-                        const playerIdx = tick - playerOffset;
-                        if (cmdIdx < 0 || cmdIdx >= cmdPositions.length) continue;
-                        if (playerIdx < 0 || playerIdx >= playerPositions.length) continue;
-                        const [cx, cy] = cmdPositions[cmdIdx];
-                        const [px, py] = playerPositions[playerIdx];
-                        const d = Math.hypot(px - cx, py - cy) / inchesToPixel;
-                        if (Number.isFinite(d)) { sum += d; count++; }
-                    }
-                    return count > 0 ? sum / count : fallbackDist;
-                });
-                playerDistancesPerBucket.set(playerAccount, distancesPerBucket);
-                const buffUptime = Array.isArray(player?.buffUptimes)
-                    ? player.buffUptimes.find((b: any) => Number(b?.id) === 1122)
-                    : null;
-                const stacksPerBucket = Array.from({ length: bucketCount }, () => 0);
-                if (buffUptime?.states && Array.isArray(buffUptime.states)) {
-                    const states: Array<[number, number]> = (buffUptime.states as any[])
-                        .map((s: any) => Array.isArray(s) ? [Number(s[0]), Number(s[1])] : null)
-                        .filter(Boolean) as Array<[number, number]>;
-                    for (let b = 0; b < bucketCount; b++) {
-                        const bucketStart = b * 5000;
-                        const bucketEnd = (b + 1) * 5000;
-                        let curStacks = 0;
-                        for (let i = states.length - 1; i >= 0; i--) {
-                            if (states[i][0] <= bucketStart) { curStacks = states[i][1]; break; }
-                        }
-                        let weightedSum = 0;
-                        let prevTime = bucketStart;
-                        for (let i = 0; i < states.length; i++) {
-                            if (states[i][0] <= bucketStart) continue;
-                            if (states[i][0] >= bucketEnd) break;
-                            weightedSum += curStacks * (states[i][0] - prevTime);
-                            prevTime = states[i][0];
-                            curStacks = states[i][1];
-                        }
-                        weightedSum += curStacks * (bucketEnd - prevTime);
-                        stacksPerBucket[b] = weightedSum / 5000;
-                    }
-                }
-                partyMembersMap.set(playerAccount, { displayName: playerAccount.split('.')[0], stacksPerBucket });
+        const drilldownFight = drilldownFights.find((f) => String(f?.id || '') === selectedFightId)
+            || drilldownFights.find((f) => normPath(String(f?.id || '')) === normFightId)
+            || null;
+        const drilldownPlayers: Record<string, any> = drilldownFight?.players || {};
+        const selectedPlayerEntry = drilldownPlayers[selectedStabPerfPlayerKey];
+        const selectedPlayerGroup = Number(selectedPlayerEntry?.group || 0);
+        const stabIncomingBuckets: number[] = Array.isArray(drilldownFight?.incomingDamage)
+            ? drilldownFight.incomingDamage.slice(0, bucketCount)
+            : [];
+        while (stabIncomingBuckets.length < bucketCount) stabIncomingBuckets.push(0);
+        const incomingMax = stabIncomingBuckets.reduce((best: number, v: number) => Math.max(best, Number(v || 0)), 0);
+        const partyMembers: Array<{ key: string; displayName: string }> = [];
+        const partyData: Record<string, { stacks: number[]; deaths: number[]; distances: number[] }> = {};
+        if (drilldownFight && selectedPlayerGroup > 0) {
+            Object.entries(drilldownPlayers).forEach(([key, val]: [string, any]) => {
+                if (Number(val?.group || 0) !== selectedPlayerGroup) return;
+                partyMembers.push({ key, displayName: String(val?.displayName || key.split('.')[0]) });
+                partyData[key] = {
+                    stacks: Array.isArray(val?.stacks) ? val.stacks : [],
+                    deaths: Array.isArray(val?.deaths) ? val.deaths : [],
+                    distances: Array.isArray(val?.distances) ? val.distances : []
+                };
             });
         }
-        const incomingMax = stabIncomingBuckets.reduce((best: number, v: number) => Math.max(best, Number(v || 0)), 0);
-        const partyMembers = Array.from(partyMembersMap.entries()).map(([key, val]) => ({
-            key,
-            displayName: val.displayName
-        }));
         const dataWithOverlays = data.map((entry, i) => {
             const partyIncomingDamage = Number(stabIncomingBuckets[i] || 0);
             const intensity = incomingMax > 0 ? Math.max(0, Math.min(1, partyIncomingDamage / incomingMax)) : 0;
-            const playerData: Record<string, any> = {};
-            partyMembersMap.forEach((_, playerAccount) => {
-                const deaths = playerDeathsPerBucket.get(playerAccount)?.[i] || 0;
-                const distance = playerDistancesPerBucket.get(playerAccount)?.[i] || 0;
-                playerData[`playerDeaths_${playerAccount}`] = deaths;
-                playerData[`playerDistance_${playerAccount}`] = distance;
+            const overlay: Record<string, any> = {};
+            partyMembers.forEach(({ key }) => {
+                const pd = partyData[key];
+                overlay[`pm_${key}`] = Number(pd?.stacks?.[i] || 0);
+                overlay[`playerDeaths_${key}`] = Number(pd?.deaths?.[i] || 0);
+                overlay[`playerDistance_${key}`] = Number(pd?.distances?.[i] || 0);
             });
             return {
                 ...entry,
                 incomingDamage: partyIncomingDamage,
                 incomingIntensity: intensity,
-                ...playerData,
-                ...Object.fromEntries(Array.from(partyMembersMap.entries()).map(([key, val]) => [`pm_${key}`, val.stacksPerBucket[i] || 0]))
+                ...overlay
             };
         });
         return {
@@ -3542,7 +3397,7 @@ type SpikeFight = {
             data: dataWithOverlays,
             partyMembers
         };
-    }, [stabBoon, stabPerfChartData, selectedStabPerfFightIndex, selectedStabPerfPlayerKey, logs, squadIncomingDamageBucketsByFightId, fallbackIncomingDamageBucketsByFightId, squadIncomingDamageTotalByFightId]);
+    }, [stabBoon, stabPerfChartData, selectedStabPerfFightIndex, selectedStabPerfPlayerKey, stabPerformanceDrilldown]);
 
     const boonUptimeSubgroupKeyPrefix = '__subgroup__:';
     const boonUptimeBoons = useMemo(() => {

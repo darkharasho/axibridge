@@ -122,7 +122,7 @@ export const FightMetricSection = ({
     referenceLineY,
     referenceLineLabel,
 }: FightMetricSectionProps) => {
-    const { expandedSection, openExpandedSection, closeExpandedSection, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
+    const { expandedSection, openExpandedSection, closeExpandedSection, renderProfessionIcon } = useStatsSharedContext();
     const isExpanded = expandedSection === sectionId;
 
     const sanitizeWvwLabel = (value: string) => String(value || '')
@@ -279,7 +279,7 @@ export const FightMetricSection = ({
                                         <span className="text-slate-500">in {sanitizeWvwLabel(selectedPlayer.peakFightLabel)}</span>
                                     )}
                                     <span className="text-slate-500">|</span>
-                                    <span>Avg: <strong className="text-slate-200">{formatWithCommas(avgValue, 1)}</strong> per fight</span>
+                                    <span>Avg: <strong className="text-slate-200">{formatValue(avgValue)}</strong> per fight</span>
                                 </div>
                             )}
 
