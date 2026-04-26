@@ -537,9 +537,23 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
 
     // If we have a full cache hit (permalink + usable details), use it directly
     // regardless of EI availability — no need to re-parse or re-upload.
+    // Exception: when local EI is installed with parseCombatReplay enabled, treat
+    // the cache as stale if it lacks combatReplayMetaData. Without this, fights
+    // first parsed before replay was enabled would never re-acquire replay data.
+    const eiReplayEnabled = Boolean(eiManager?.isInstalled() && eiManager.getSettings().parseCombatReplay);
+    const cachedDetailsLackReplay = eiReplayEnabled
+        && cached?.jsonDetails
+        && !cached.jsonDetails.combatReplayMetaData;
     const cachedHasUsableDetails = Boolean(
-        cached?.entry?.result && cached?.jsonDetails && !cached.jsonDetails.error && hasUsableFightDetails(cached.jsonDetails)
+        cached?.entry?.result
+        && cached?.jsonDetails
+        && !cached.jsonDetails.error
+        && hasUsableFightDetails(cached.jsonDetails)
+        && !cachedDetailsLackReplay
     );
+    if (cachedDetailsLackReplay) {
+        console.log(`[Cache] Cached details for ${filePath} lack combatReplayMetaData; forcing EI re-parse.`);
+    }
 
     // ─── EI-first path ──────────────────────────────────────────────────────
     // When EI is installed and we don't have a full cache hit, parse locally
