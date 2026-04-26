@@ -68,6 +68,8 @@ import { FightCompSection } from './stats/sections/FightCompSection';
 import { SquadDamageComparisonSection } from './stats/sections/SquadDamageComparisonSection';
 import { SquadKillPressureSection } from './stats/sections/SquadKillPressureSection';
 import { SquadTagDistanceDeathsSection } from './stats/sections/SquadTagDistanceDeathsSection';
+import { SquadDistanceToTagSection } from './stats/sections/SquadDistanceToTagSection';
+import type { DistanceToTagResult } from './stats/computeDistanceToTag';
 import { PlayerComparisonSection } from './stats/sections/PlayerComparisonSection';
 import { ReplaySection } from './stats/sections/ReplaySection';
 import type { TagDistanceDeathFightSummary } from './stats/computeTagDistanceDeaths';
@@ -710,6 +712,11 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
 
     const tagDistanceDeathsData: TagDistanceDeathFightSummary[] = useMemo(() => {
         return Array.isArray((safeStats as any)?.tagDistanceDeaths) ? (safeStats as any).tagDistanceDeaths : [];
+    }, [safeStats]);
+
+    const distanceToTagResult: DistanceToTagResult = useMemo(() => {
+        const v = (safeStats as any)?.distanceToTag;
+        return v && Array.isArray(v.rows) ? v : { rows: [], commanderCount: 0 };
     }, [safeStats]);
 
     // console logging removed to avoid blocking view transitions
@@ -4644,6 +4651,10 @@ type SpikeFight = {
                                 fights={tagDistanceDeathsData}
                             />)}
 
+                            {renderSectionWrap(<SquadDistanceToTagSection
+                                result={distanceToTagResult}
+                            />)}
+
                             {renderSectionWrap(<AttendanceSection
                                 attendanceRows={attendanceData}
                                 getProfessionIconPath={getProfessionIconPath}
@@ -4735,6 +4746,9 @@ type SpikeFight = {
                             /> },
                             { id: 'squad-tag-distance-deaths', element: <SquadTagDistanceDeathsSection
                                 fights={tagDistanceDeathsData}
+                            /> },
+                            { id: 'squad-distance-to-tag', element: <SquadDistanceToTagSection
+                                result={distanceToTagResult}
                             /> },
                         ])}
 
