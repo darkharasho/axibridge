@@ -81,25 +81,8 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Distance to Tag</h3>
-                <button
-                    type="button"
-                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={isExpanded ? 'Close Distance to Tag' : 'Expand Distance to Tag'}
-                    title={isExpanded ? 'Close' : 'Expand'}
-                >
-                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
-            </div>
-
-            {rows.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
-                    No distance data for the loaded fights.
-                </div>
-            ) : (
-                <>
-                    <div className="flex flex-nowrap items-center gap-2 mb-2 text-[11px] whitespace-nowrap overflow-x-auto" style={{ color: 'var(--text-secondary)' }}>
+                {rows.length > 0 && (
+                    <div className="ml-auto flex flex-nowrap items-center gap-2 text-[11px] whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
                         <button
                             type="button"
                             role="switch"
@@ -158,7 +141,25 @@ export const SquadDistanceToTagSection = ({ result }: Props) => {
                             >{hiddenCount} hidden</span>
                         )}
                     </div>
+                )}
+                <button
+                    type="button"
+                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
+                    className={`${rows.length > 0 ? '' : 'ml-auto '}flex items-center justify-center w-[26px] h-[26px]`}
+                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
+                    aria-label={isExpanded ? 'Close Distance to Tag' : 'Expand Distance to Tag'}
+                    title={isExpanded ? 'Close' : 'Expand'}
+                >
+                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
+                </button>
+            </div>
 
+            {rows.length === 0 ? (
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                    No distance data for the loaded fights.
+                </div>
+            ) : (
+                <>
                     <div className={`rounded-[var(--radius-md)] overflow-hidden ${visibleRows.length > 12 ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
                         <table className="w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
                             <thead>
