@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParticleEffect, PRESETS, ParticleHover } from './particles';
 import { useStatsStore, hashAggregationSettings } from './stats/statsStore';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FilePlus2 } from 'lucide-react';
+import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FilePlus2, Clipboard } from 'lucide-react';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { AppLayout } from './app/AppLayout';
@@ -880,6 +880,20 @@ function App() {
                             Clear Logs
                         </button>
                     </ParticleHover>
+                    {isDev && (
+                        <button
+                            onClick={() => {
+                                const paths = logs.map(l => l.filePath).filter(Boolean).join('\n');
+                                navigator.clipboard.writeText(paths).catch(() => {});
+                            }}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
+                            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card-inner)', color: 'var(--text-secondary)' }}
+                            title={`Copy ${logs.length} log file path${logs.length === 1 ? '' : 's'} to clipboard`}
+                        >
+                            <Clipboard className="w-3 h-3" />
+                            Copy Paths
+                        </button>
+                    )}
                 </div>
             </div>
             {bulkCalculatingActive && calculatingCount > 0 && (
