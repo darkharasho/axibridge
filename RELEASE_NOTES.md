@@ -1,11 +1,9 @@
 # Release Notes
 
-Version v2.5.16 — April 23, 2026
+Version v2.5.17 — April 26, 2026
 
 ## Fixes
 
-**Fight charts showing data in the wrong order.** The Spike Damage, Incoming Strike Damage, and All Damage charts were showing the right fight labels (F1, F2, etc.) but with values belonging to a different fight at each position. Charts now correctly match each fight's data to its label.
+**Fights stuck as "Unknown" after bulk uploads.** When local Elite Insights finished parsing a log within the same ~50ms window as dps.report returning the permalink, the renderer's batched update queue was dropping the EI summary (squad count, outcome, duration) and only keeping the permalink. Rows ended up showing `0` / `--:--` / `Unknown` even though the link worked. The queue now merges updates per file instead of replacing them, so the summary survives. NOTE: this won't retroactively fix rows that are already broken — drop those `.zevtc` files into the watch folder again and they'll process correctly.
 
-**Stab Performance fight breakdown was empty.** Clicking into a fight on the Stab Performance section showed a blank chart. The selected player's stab generation line is now drawn correctly.
-
-**Upload overlay wasn't blurring the sidebar.** When the web upload modal was open, the left sidebar would render on top of the overlay instead of behind it. Fixed by rendering the overlay at the document root level.
+**Stab Performance party overlay missing in web reports.** The drilldown chart in the published web report wasn't drawing party overlays because the data wasn't being computed before export. Now precomputed at export time so the overlay renders.
