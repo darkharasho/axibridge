@@ -81,7 +81,14 @@ export function useLogQueue(
     const queueLogUpdate = useCallback((incoming: ILogData) => {
         const identity = incoming.filePath || incoming.id;
         if (!identity) return;
-        pendingLogUpdatesRef.current.set(String(identity), incoming);
+        const key = String(identity);
+        // Merge with any prior queued update for the same identity. Without this
+        // a thin payload (e.g. upload-permalink, which carries only id/filePath/
+        // permalink) arriving in the same batch window as upload-complete would
+        // replace the EI fields — dashboardSummary, detailsStatus, playerCount —
+        // and the row would render as Unknown / 0 / --:--.
+        const prior = pendingLogUpdatesRef.current.get(key);
+        pendingLogUpdatesRef.current.set(key, prior ? { ...prior, ...incoming } : incoming);
         if (pendingLogFlushTimerRef.current !== null) return;
         const pendingCount = pendingLogUpdatesRef.current.size;
         // Sweet spot batching: 50-80ms avoids render thrashing while staying responsive
