@@ -69,6 +69,7 @@ import { SquadDamageComparisonSection } from './stats/sections/SquadDamageCompar
 import { SquadKillPressureSection } from './stats/sections/SquadKillPressureSection';
 import { SquadTagDistanceDeathsSection } from './stats/sections/SquadTagDistanceDeathsSection';
 import { SquadDistanceToTagSection } from './stats/sections/SquadDistanceToTagSection';
+import { SquadDistanceToTagVisualSection } from './stats/sections/SquadDistanceToTagVisualSection';
 import type { DistanceToTagResult } from './stats/computeDistanceToTag';
 import { PlayerComparisonSection } from './stats/sections/PlayerComparisonSection';
 import { ReplaySection } from './stats/sections/ReplaySection';
@@ -126,6 +127,7 @@ const ORDERED_SECTION_IDS = [
     'heal-effectiveness',
     'squad-tag-distance-deaths',
     'squad-distance-to-tag',
+    'squad-distance-to-tag-visual',
     'attendance-ledger',
     'squad-comp-fight',
     'fight-comp',
@@ -719,6 +721,9 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         const v = (safeStats as any)?.distanceToTag;
         return v && Array.isArray(v.rows) ? v : { rows: [], commanderCount: 0 };
     }, [safeStats]);
+
+    const [distanceToTagFilterEnabled, setDistanceToTagFilterEnabled] = useState(false);
+    const [distanceToTagMinFights, setDistanceToTagMinFights] = useState(3);
 
     // console logging removed to avoid blocking view transitions
 
@@ -4654,6 +4659,16 @@ type SpikeFight = {
 
                             {renderSectionWrap(<SquadDistanceToTagSection
                                 result={distanceToTagResult}
+                                filterEnabled={distanceToTagFilterEnabled}
+                                onFilterEnabledChange={setDistanceToTagFilterEnabled}
+                                minFights={distanceToTagMinFights}
+                                onMinFightsChange={setDistanceToTagMinFights}
+                            />)}
+
+                            {renderSectionWrap(<SquadDistanceToTagVisualSection
+                                result={distanceToTagResult}
+                                filterEnabled={distanceToTagFilterEnabled}
+                                minFights={distanceToTagMinFights}
                             />)}
 
                             {renderSectionWrap(<AttendanceSection
@@ -4750,6 +4765,15 @@ type SpikeFight = {
                             /> },
                             { id: 'squad-distance-to-tag', element: <SquadDistanceToTagSection
                                 result={distanceToTagResult}
+                                filterEnabled={distanceToTagFilterEnabled}
+                                onFilterEnabledChange={setDistanceToTagFilterEnabled}
+                                minFights={distanceToTagMinFights}
+                                onMinFightsChange={setDistanceToTagMinFights}
+                            /> },
+                            { id: 'squad-distance-to-tag-visual', element: <SquadDistanceToTagVisualSection
+                                result={distanceToTagResult}
+                                filterEnabled={distanceToTagFilterEnabled}
+                                minFights={distanceToTagMinFights}
                             /> },
                         ])}
 
