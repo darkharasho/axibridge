@@ -262,6 +262,48 @@ describe('finalizeDistanceToTag', () => {
     });
 });
 
+describe('finalizeDistanceToTag — p25 and p75', () => {
+    it('emits p25 and p75 with nearest-rank for fightAvg-only player', () => {
+        // Per-fight values [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+        // p25 nearest-rank: idx = ceil(0.25 * 10) - 1 = 2 → 30
+        // median (p50): mean of values at idx 4 and 5 → (50+60)/2 = 55
+        // p75 nearest-rank: idx = ceil(0.75 * 10) - 1 = 7 → 80
+        // p95 nearest-rank: idx = ceil(0.95 * 10) - 1 = 9 → 100
+        const out = finalizeDistanceToTag(
+            [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((v, i) =>
+                contrib({ fightId: `f${i}`, fightMean: v })
+            )
+        );
+        const r = out.rows[0];
+        expect(r.p25).toBe(30);
+        expect(r.median).toBe(55);
+        expect(r.p75).toBe(80);
+        expect(r.p95).toBe(100);
+    });
+
+    it('p25 == p75 == median == avg for a single data point', () => {
+        const out = finalizeDistanceToTag([contrib({ fightMean: 250 })]);
+        const r = out.rows[0];
+        expect(r.avg).toBe(250);
+        expect(r.p25).toBe(250);
+        expect(r.median).toBe(250);
+        expect(r.p75).toBe(250);
+        expect(r.p95).toBe(250);
+    });
+
+    it('emits p25 and p75 in pure-replay mode at sample level', () => {
+        // 10 samples [10..100] in one fight
+        const samples = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+        const out = finalizeDistanceToTag([
+            contrib({ fightId: 'f1', source: 'replay', samples, fightMean: 55 }),
+        ]);
+        const r = out.rows[0];
+        expect(r.source).toBe('replay');
+        expect(r.p25).toBe(30);
+        expect(r.p75).toBe(80);
+    });
+});
+
 describe('computeDistanceToTag (end-to-end)', () => {
     it('runs full pipeline on minimal logs', () => {
         const out = computeDistanceToTag([
