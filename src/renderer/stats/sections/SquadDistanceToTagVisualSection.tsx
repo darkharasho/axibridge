@@ -27,10 +27,10 @@ const CHIP_RADIUS = 7;
 const CHIP_RADIUS_EXPANDED = 10;
 
 const ZONES: Array<{ inner: number; outer: number; fill: string }> = [
-    { inner: 0, outer: 600, fill: 'rgba(34, 197, 94, 0.15)' },
-    { inner: 600, outer: 800, fill: 'rgba(234, 179, 8, 0.18)' },
-    { inner: 800, outer: 1200, fill: 'rgba(249, 115, 22, 0.18)' },
-    { inner: 1200, outer: SCALE_MAX, fill: 'rgba(239, 68, 68, 0.20)' },
+    { inner: 0, outer: 600, fill: 'rgba(34, 197, 94, 0.28)' },
+    { inner: 600, outer: 800, fill: 'rgba(234, 179, 8, 0.22)' },
+    { inner: 800, outer: 1200, fill: 'rgba(249, 115, 22, 0.22)' },
+    { inner: 1200, outer: SCALE_MAX, fill: 'rgba(239, 68, 68, 0.25)' },
 ];
 
 const RING_LABELS = [600, 800, 1200];
@@ -52,43 +52,48 @@ const accountAngle = (account: string): number => {
 
 type ChipPosition = { row: DistanceToTagRow; r: number; angle: number; x: number; y: number };
 
+// Bucket chips into radial bands (band height = chip diameter + small gap), then
+// evenly distribute the chips inside each band around the circumference. This
+// guarantees no overlap for same-band chips (the previous force-nudge pass
+// couldn't separate exactly-overlapping chips and could fail to converge with
+// a tight squad). Chip order within a band is stable per account so toggling
+// metrics moves chips between bands but doesn't randomly shuffle.
 const computeChipPositions = (
     rows: DistanceToTagRow[],
     metric: MetricKey,
     chipRadius: number
 ): ChipPosition[] => {
-    const initial: ChipPosition[] = rows.map(row => {
+    if (rows.length === 0) return [];
+    const bandHeight = chipRadius * 2 + 2;
+    type Bucketed = { row: DistanceToTagRow; r: number; bandIndex: number; seed: number };
+    const items: Bucketed[] = rows.map(row => {
         const r = distToRadius(row[metric]);
-        const angle = accountAngle(row.account);
-        return { row, r, angle, x: r * Math.cos(angle), y: r * Math.sin(angle) };
+        const bandIndex = Math.floor(r / bandHeight);
+        return { row, r, bandIndex, seed: accountAngle(row.account) };
     });
-    const minSeparation = chipRadius * 2 + 1;
-    for (let pass = 0; pass < 3; pass++) {
-        let moved = false;
-        for (let i = 0; i < initial.length; i++) {
-            for (let j = i + 1; j < initial.length; j++) {
-                const a = initial[i];
-                const b = initial[j];
-                const dx = a.x - b.x;
-                const dy = a.y - b.y;
-                const dist = Math.hypot(dx, dy);
-                if (dist < minSeparation && dist > 0) {
-                    const push = (minSeparation - dist) / 2;
-                    const r = Math.max(a.r, 1);
-                    const dAngle = push / r;
-                    a.angle += dAngle;
-                    b.angle -= dAngle;
-                    a.x = a.r * Math.cos(a.angle);
-                    a.y = a.r * Math.sin(a.angle);
-                    b.x = b.r * Math.cos(b.angle);
-                    b.y = b.r * Math.sin(b.angle);
-                    moved = true;
-                }
-            }
-        }
-        if (!moved) break;
+    const byBand = new Map<number, Bucketed[]>();
+    for (const item of items) {
+        const list = byBand.get(item.bandIndex);
+        if (list) list.push(item);
+        else byBand.set(item.bandIndex, [item]);
     }
-    return initial;
+    const placed: ChipPosition[] = [];
+    for (const list of byBand.values()) {
+        list.sort((a, b) => (a.seed - b.seed) || a.row.account.localeCompare(b.row.account));
+        const baseAngle = list[0].seed;
+        const step = (Math.PI * 2) / list.length;
+        list.forEach((item, idx) => {
+            const angle = baseAngle + idx * step;
+            placed.push({
+                row: item.row,
+                r: item.r,
+                angle,
+                x: item.r * Math.cos(angle),
+                y: item.r * Math.sin(angle),
+            });
+        });
+    }
+    return placed;
 };
 
 export const SquadDistanceToTagVisualSection = (props: Props) => {
