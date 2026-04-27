@@ -806,15 +806,23 @@ Spike Damage has four modes:
 
 ### Player Identity
 
-Per-fight player keys are resolved as:
+There are two spike-damage compute paths and they use different per-fight
+key formats:
+
+Runtime / on-demand path (`StatsView.tsx`):
 - `key = "${account}|${profession}"`
 - `account = player.account || player.name || "Unknown"`
 - `profession = player.profession || "Unknown"`
+- This key joins the player list, per-fight values, and the selected-player
+  chart/drilldown for runtime-recomputed spike data.
 
-This same key is used to join:
-- player list
-- per-fight values
-- selected-player chart/drilldown
+Precomputed ingest path (`ingestLogSpikeDamage` in `computeSpikeDamageData.ts`):
+- accepts `splitPlayersByClass` (default `false`).
+- when `false`: `key = account`. Per-account aggregates collapse across
+  profession swaps.
+- when `true` and `profession !== "Unknown"`: `key = "${account}::${profession}"`,
+  so the same account on different professions becomes separate rows.
+- when `true` and `profession === "Unknown"`: falls back to `key = account`.
 
 ### Highest Single Hit (`hit`)
 
@@ -860,6 +868,38 @@ Implementation includes support for EI shape variants:
 - Shape A: `[phase][target][time]`
 - Shape B: `[target][phase][time]`
 
+### Down Contribution Variants
+
+Spike Damage tracks a parallel set of values keyed off down contribution
+rather than raw damage. These power the chart's "down contribution" view and
+expose how much of a player's spike was applied pressure that pushed enemies
+toward downstate.
+
+Per-fight per-player values (alongside `hit` / `burst1s` / `burst5s` / `burst30s`):
+- `hitDown`: highest `entry.downContribution` observed during the same scan
+  that produces `hit`. Sourced directly from damage distribution entries
+  (target-side preferred, total-side fallback) — not a ratio derivation.
+- `burst1sDown`, `burst5sDown`, `burst30sDown`: rolling 1s/5s/30s maxima of
+  a per-second down-contribution series.
+
+Per-second down-contribution series:
+1. Compute the player's total damage and total down contribution from
+   `targetDamageDist` (with `totalDamageDist` fallback): `damageTotal`,
+   `downContributionTotal`.
+2. `downRatio = clamp(downContributionTotal / damageTotal, 0, 1)` (`0` when
+   `damageTotal <= 0`).
+3. `perSecondDown[i] = perSecond[i] * downRatio`.
+4. Apply rolling-window maxima identical to the damage-side `burstNs`
+   computation.
+
+This means burst down-contribution variants are derived by uniform scaling
+of the per-second damage series, while `hitDown` is read directly per-skill
+and is not derived from `hit` by ratio.
+
+Player aggregates (`SpikeDamagePlayer`):
+- `peakHitDown`, `peak1sDown`, `peak5sDown`, `peak30sDown` — running maxima
+  across fights, mirroring `peakHit` / `peak1s` / `peak5s` / `peak30s`.
+
 ### Per-Fight Max Reference Line
 
 For each fight:
@@ -867,6 +907,10 @@ For each fight:
 - `max1s = max(values[*].burst1s)`
 - `max5s = max(values[*].burst5s)`
 - `max30s = max(values[*].burst30s)`
+- `maxHitDown = max(values[*].hitDown)`
+- `max1sDown = max(values[*].burst1sDown)`
+- `max5sDown = max(values[*].burst5sDown)`
+- `max30sDown = max(values[*].burst30sDown)`
 
 The selected mode uses the corresponding max series as the dashed reference line.
 
@@ -880,6 +924,12 @@ Bucket source:
 
 Bucket value:
 - `bucket[k] = sum(delta[k*5 .. k*5+4])`
+
+Down-contribution drilldown buckets are produced in parallel as
+`buckets5sDown[k] = sum(deltaDown[k*5 .. k*5+4])`, where `deltaDown` is the
+per-second damage series scaled by the fight's `downRatio` (see
+*Down Contribution Variants*). The drilldown chart uses `buckets5s` or
+`buckets5sDown` depending on the selected display mode.
 
 Bucket count:
 - extended to full fight duration (`ceil(durationMS / 5000)`) so trailing
