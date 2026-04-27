@@ -1605,8 +1605,8 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 const corsOrigin = pagesBaseUrl ? new URL(pagesBaseUrl).origin : '*';
                 const corsResult = await r2EnsureBucketCors(r2Config, corsOrigin);
                 if (!corsResult.success) {
-                    const corsWarning = `R2 CORS setup failed (${corsResult.error ?? 'unknown error'}). ` +
-                        `The replay viewer may not load in the browser. ` +
+                    const corsWarning = `[WARN] (non-blocking) R2 CORS setup failed (${corsResult.error ?? 'unknown error'}). ` +
+                        `Upload will continue; the replay viewer may not load in the browser until CORS is configured. ` +
                         `Fix: in the Cloudflare R2 dashboard → your bucket → Settings → CORS, ` +
                         `add an AllowedOrigin of "${corsOrigin}" with GET method. ` +
                         `Alternatively, use an R2 API token with Admin Read & Write permissions.`;
