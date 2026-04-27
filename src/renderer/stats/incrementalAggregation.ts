@@ -281,6 +281,7 @@ interface StoredHealEffectiveness {
 
 // Stored per-valid-log result from ingestLogTagDistanceDeaths
 interface StoredTagDistanceDeaths {
+    timestamp: number;
     result: any;
 }
 
@@ -688,7 +689,8 @@ export class IncrementalAggregator {
 
         // Tag distance deaths
         this.tagDistanceDeathsResults.push({
-            result: ingestLogTagDistanceDeaths(log, idx), // idx is temporary
+            timestamp,
+            result: ingestLogTagDistanceDeaths(log, idx), // idx/shortLabel temporary, reassigned in finalize
         });
 
         // Distance to tag (per-player aggregation)
@@ -847,10 +849,11 @@ export class IncrementalAggregator {
             })
             .sort((a, b) => b.value - a.value);
 
-        // 6. Sort fight breakdowns and reassign indices
+        // 6. Sort fight breakdowns and reassign indices so F1 = earliest fight
         const sortedFightBreakdowns = [...this.fightBreakdowns].sort(sortByFightOrder);
         const fightBreakdown = sortedFightBreakdowns.map((stored, idx) => {
             const result = { ...stored.result };
+            result.shortLabel = `F${idx + 1}`;
             // Fix fallback id if needed
             if (!result.id || result.id.startsWith('fight-')) {
                 result.id = result.id || `fight-${idx}`;
@@ -887,8 +890,18 @@ export class IncrementalAggregator {
                 return [result];
             });
 
-        // Tag distance deaths - uses validLogs in original order (not sorted by timestamp)
-        const tagDistanceDeaths = this.tagDistanceDeathsResults.map(stored => stored.result);
+        // Tag distance deaths - sort by timestamp so F1 = earliest fight
+        const sortedTagDistance = [...this.tagDistanceDeathsResults]
+            .sort((a, b) => a.timestamp - b.timestamp);
+        const tagDistanceDeaths = sortedTagDistance.map((stored, idx) => {
+            const result = { ...stored.result };
+            const shortLabel = `F${idx + 1}`;
+            result.shortLabel = shortLabel;
+            if (Array.isArray(result.events)) {
+                result.events = result.events.map((event: any) => ({ ...event, shortLabel }));
+            }
+            return result;
+        });
 
         // Distance to tag — finalize from all collected contributions
         const distanceToTag: DistanceToTagResult = finalizeDistanceToTag(
