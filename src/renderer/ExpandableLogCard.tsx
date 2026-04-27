@@ -74,9 +74,14 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const isParsing = log.status === 'parsing';
     const isUploading = log.status === 'uploading';
     const isRetrying = log.status === 'retrying';
-    const isCalculating = log.status === 'calculating';
     const hasError = log.status === 'error';
     const isDiscord = log.status === 'discord';
+    const ds = log.detailsStatus || 'idle';
+    const detailsNotReady = ds !== 'available' && ds !== 'loaded';
+    const detailsLoading = ds === 'loading';
+    // Treat the post-upload "success but details still loading" window as calculating,
+    // so the badge stays amber/animated until the log is actually usable.
+    const isCalculating = log.status === 'calculating' || (log.status === 'success' && detailsLoading);
     const playerCount = allPlayers.length > 0 ? allPlayers.length : (log.playerCount ?? 0);
     const statusLabel = isQueued ? 'Queued'
         : isPending ? 'Pending'
@@ -95,8 +100,6 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                             : isDiscord ? 'discord'
                                 : hasError ? 'error'
                                     : 'success';
-    const ds = log.detailsStatus || 'idle';
-    const detailsNotReady = ds !== 'available' && ds !== 'loaded';
     const isCancellable = Boolean(detailsNotReady && !isExpanded && onCancel && (isQueued || isPending || isParsing || isUploading || isRetrying));
     const canRemove = Boolean(onRemove && !isCancellable);
     const squadDisplayCount = shouldComputeDetails ? squadPlayers.length : squadPlayerCount;
@@ -897,7 +900,9 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         data-status={statusKey}
                         className={`recent-activity-status-badge w-10 h-10 rounded-[4px] flex items-center justify-center border transition-all ${isQueued ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
                         isPending ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
+                            isParsing ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 animate-pulse' :
                             isUploading ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 animate-pulse' :
+                            isRetrying ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 animate-pulse' :
                                 isCalculating ? 'bg-amber-500/20 border-amber-400/30 text-amber-300 animate-pulse' :
                                     isDiscord ? 'bg-purple-500/20 border-purple-500/30 text-purple-400 animate-pulse' :
                                         hasError ? 'bg-red-500/20 border-red-500/30 text-red-400' :
@@ -906,7 +911,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                     >
                         {badgePuffEmitter}
                         <span className="font-bold text-xs uppercase">
-                            {isQueued ? 'QUE' : isPending ? 'PEN' : isUploading ? '...' : isCalculating ? 'CAL' : isDiscord ? 'DC' : hasError ? 'ERR' : 'LOG'}
+                            {isQueued ? 'QUE' : isPending ? 'PEN' : isParsing ? '...' : isUploading ? '...' : isRetrying ? 'RTY' : isCalculating ? 'CAL' : isDiscord ? 'DC' : hasError ? 'ERR' : 'LOG'}
                         </span>
                     </div>
                     <div style={{ position: 'absolute', top: '50%', right: 0, pointerEvents: 'none' }}>
