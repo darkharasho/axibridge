@@ -889,7 +889,7 @@ function App() {
                                 setCopyPathsFlash(true);
                                 window.setTimeout(() => setCopyPathsFlash(false), 1400);
                             }}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-semibold uppercase tracking-[0.18em] border transition-all duration-200 ${copyPathsFlash ? 'scale-105' : ''}`}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-all duration-200 ${copyPathsFlash ? 'scale-105' : ''}`}
                             style={{
                                 borderColor: copyPathsFlash ? 'rgba(74, 222, 128, 0.6)' : 'rgba(245, 158, 11, 0.5)',
                                 background: copyPathsFlash ? 'rgba(74, 222, 128, 0.18)' : 'rgba(245, 158, 11, 0.15)',
