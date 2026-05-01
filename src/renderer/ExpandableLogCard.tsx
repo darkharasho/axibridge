@@ -646,7 +646,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     if (isSummary) {
                                         return (
                                             <div key={`${title}-summary`} className="flex items-center justify-between gap-2 bg-white/5 rounded-md px-2 py-1 border border-white/10">
-                                                <span className="text-gray-300">{`+ ${count}`}</span>
+                                                <span className="text-gray-300 min-w-0 flex-1 truncate">{`+ ${count}`}</span>
                                                 <span />
                                             </div>
                                         );
@@ -660,21 +660,21 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     const shouldShowIcon = (alwaysShowDetailedClassInfo || useClassIcons) && Boolean(iconPath);
                                     return (
                                         <div key={profession} className="flex items-center justify-between gap-2 bg-white/5 rounded-md px-2 py-1 border border-white/10">
-                                            <span className="flex items-center gap-1 text-gray-100" title={displayName}>
+                                            <span className="flex items-center gap-1 text-gray-100 min-w-0 flex-1" title={displayName}>
                                                 {shouldShowIcon ? (
                                                     <img
                                                         src={iconPath ?? undefined}
                                                         alt={profession}
-                                                        className={fullHeight ? 'w-5 h-5 object-contain' : 'w-4 h-4 object-contain'}
+                                                        className={`shrink-0 ${fullHeight ? 'w-5 h-5 object-contain' : 'w-4 h-4 object-contain'}`}
                                                     />
                                                 ) : (
-                                                    <span className="uppercase text-gray-400">{displayLabel}</span>
+                                                    <span className="uppercase text-gray-400 truncate">{displayLabel}</span>
                                                 )}
                                                 {shouldShowIcon ? (
-                                                    <span className={`${forceShortLabels || !alwaysShowDetailedClassInfo ? 'uppercase ' : ''}text-gray-400`}>{displayLabel}</span>
+                                                    <span className={`${forceShortLabels || !alwaysShowDetailedClassInfo ? 'uppercase ' : ''}text-gray-400 truncate`}>{displayLabel}</span>
                                                 ) : null}
                                             </span>
-                                            <span className="font-bold text-white">{count}</span>
+                                            <span className="font-bold text-white shrink-0">{count}</span>
                                         </div>
                                     );
                                 })}
