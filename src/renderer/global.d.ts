@@ -234,6 +234,7 @@ export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS: IDiscordEnemySplitSettings = 
 };
 
 export const DEFAULT_GLASS_SURFACES = false;
+export const DEFAULT_GLASSMORPHIC = false;
 export const DEFAULT_PARTICLES_ENABLED = true;
 
 export interface IElectronAPI {
@@ -262,6 +263,7 @@ export interface IElectronAPI {
         disruptionMethod: DisruptionMethod;
         colorPalette?: ColorPalette;
         glassSurfaces?: boolean;
+        glassmorphic?: boolean;
         particlesEnabled?: boolean;
         autoUpdateSupported?: boolean;
         autoUpdateDisabledReason?: string | null;
@@ -307,6 +309,7 @@ export interface IElectronAPI {
         disruptionMethod?: DisruptionMethod;
         colorPalette?: ColorPalette;
         glassSurfaces?: boolean;
+        glassmorphic?: boolean;
         particlesEnabled?: boolean;
         githubRepoOwner?: string | null;
         githubRepoName?: string | null;

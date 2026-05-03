@@ -55,6 +55,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setStatsViewSettings,
         setColorPalette,
         setGlassSurfaces,
+        setGlassmorphic,
         particlesEnabled,
         setParticlesEnabled,
         handleWebUpload,
@@ -181,7 +182,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     <span className="axibridge-logo h-5 w-5" style={axibridgeLogoStyle} aria-label="AxiBridge logo" />
                     <span style={{ fontFamily: '"Cinzel", serif', fontSize: '0.95rem', letterSpacing: '0.06em', fontWeight: 500 }}>
                         <span style={{ color: '#ffffff' }}>Axi</span>
-                        <span style={{ color: 'var(--brand-primary)' }}>Bridge</span>
+                        <span className="app-brand-bridge" style={{ color: 'var(--brand-primary)' }}>Bridge</span>
                     </span>
                     {isDev ? (
                         <span className="dev-build-badge ml-1 rounded-md border border-amber-500/50 bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-amber-300">
@@ -429,6 +430,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onDisruptionMethodSaved={stableSetDisruptionMethod}
                                 onColorPaletteSaved={setColorPalette}
                                 onGlassSurfacesSaved={setGlassSurfaces}
+                                onGlassmorphicSaved={setGlassmorphic}
                                 onParticlesEnabledSaved={setParticlesEnabled}
                                 onAllowLocalJsonSaved={setAllowLocalJson}
                                 onR2PreciseReplaySaved={setR2PreciseReplay}

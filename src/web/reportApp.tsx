@@ -220,6 +220,7 @@ export function ReportApp() {
     const [searchTerm, setSearchTerm] = useState('');
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
     const [glassSurfaces, setGlassSurfaces] = useState(false);
+    const [glassmorphic, setGlassmorphic] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
@@ -374,7 +375,8 @@ export function ReportApp() {
             body.classList.add(`palette-${colorPalette}`);
         }
         body.classList.toggle('glass-surfaces', glassSurfaces);
-    }, [colorPalette, glassSurfaces]);
+        body.classList.toggle('glassmorphic', glassmorphic);
+    }, [colorPalette, glassSurfaces, glassmorphic]);
 
     useEffect(() => {
         setAssetBasePath(assetBasePathCandidates[0] || '/');
@@ -834,9 +836,10 @@ export function ReportApp() {
         setReportPathHint(reportId ? reportPath : null);
 
         const applyPaletteFromReport = (reportData: ReportPayload) => {
-            const { palette, glass } = readPaletteFromReport(reportData.stats);
+            const { palette, glass, glassmorphic: gm } = readPaletteFromReport(reportData.stats);
             setColorPalette(palette);
             setGlassSurfaces(glass);
+            setGlassmorphic(gm);
         };
 
         const loadIndex = (suppressError = false) => {
@@ -849,9 +852,10 @@ export function ReportApp() {
                     setIndex(entries);
                     // Apply site-wide palette and glass from index.json
                     if (!Array.isArray(data) && data?.colorPalette) {
-                        const { palette, glass } = readPaletteFromReport(data);
+                        const { palette, glass, glassmorphic: gm } = readPaletteFromReport(data);
                         setColorPalette(palette);
                         setGlassSurfaces(glass);
+                        setGlassmorphic(gm);
                     }
                 })
                 .catch(() => {

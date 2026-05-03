@@ -76,6 +76,7 @@ const IMPORT_SETTING_META: Array<{ key: string; label: string; description: stri
     { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
     { key: 'colorPalette', label: 'Color Palette', description: 'Accent color palette for the UI.', section: 'App' },
     { key: 'glassSurfaces', label: 'Glass Surfaces', description: 'Enable frosted-glass card surfaces.', section: 'App' },
+    { key: 'glassmorphic', label: 'Lillifox Mode', description: 'Aurora background with rounded glass cards (legacy look).', section: 'App' },
     { key: 'particlesEnabled', label: 'Particle Effects', description: 'Enable particle animations and effects.', section: 'App' },
     { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
     { key: 'mvpWeights', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
@@ -106,11 +107,13 @@ interface SettingsViewProps {
     onDisruptionMethodSaved?: (method: DisruptionMethod) => void;
     onColorPaletteSaved?: (palette: ColorPalette) => void;
     onGlassSurfacesSaved?: (glass: boolean) => void;
+    onGlassmorphicSaved?: (glass: boolean) => void;
     onParticlesEnabledSaved?: (enabled: boolean) => void;
     onAllowLocalJsonSaved?: (enabled: boolean) => void;
     onR2PreciseReplaySaved?: (enabled: boolean) => void;
     colorPalette?: ColorPalette;
     glassSurfaces?: boolean;
+    glassmorphic?: boolean;
     particlesEnabled?: boolean;
     developerSettingsTrigger?: number;
     isBulkUploadActive?: boolean;
@@ -191,7 +194,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
@@ -202,6 +205,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [colorPalette, setColorPalette] = useState<ColorPalette>(colorPaletteProp ?? DEFAULT_PALETTE_ID);
     const [glassSurfaces, setGlassSurfaces] = useState(glassSurfacesProp ?? false);
+    const [glassmorphic, setGlassmorphic] = useState(glassmorphicProp ?? false);
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
     const [eiStatus, setEiStatus] = useState<IEiStatus>({ installed: false, version: null, updateAvailable: null, installing: false, error: null });
@@ -509,6 +513,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (typeof settings.glassSurfaces === 'boolean') {
             setGlassSurfaces(settings.glassSurfaces);
         }
+        if (typeof settings.glassmorphic === 'boolean') {
+            setGlassmorphic(settings.glassmorphic);
+        }
         if (typeof settings.particlesEnabled === 'boolean') {
             setParticlesEnabled(settings.particlesEnabled);
         }
@@ -752,6 +759,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         disruptionMethod,
         colorPalette,
         glassSurfaces,
+        glassmorphic,
         githubRepoOwner,
         githubRepoName,
         githubToken,
@@ -885,6 +893,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             disruptionMethod: disruptionMethod,
             colorPalette,
             glassSurfaces,
+            glassmorphic,
             particlesEnabled,
             githubRepoName: githubRepoName || null,
             githubRepoOwner: githubRepoOwner || null,
@@ -906,6 +915,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         onDisruptionMethodSaved?.(disruptionMethod);
         onColorPaletteSaved?.(colorPalette);
         onGlassSurfacesSaved?.(glassSurfaces);
+        onGlassmorphicSaved?.(glassmorphic);
         onParticlesEnabledSaved?.(particlesEnabled);
         onAllowLocalJsonSaved?.(allowLocalJson);
 
@@ -932,6 +942,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         disruptionMethod,
         colorPalette,
         glassSurfaces,
+        glassmorphic,
         particlesEnabled,
         githubRepoName,
         githubRepoOwner,
@@ -1398,15 +1409,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             Choose a color palette for the interface accent colors.
                         </p>
                         <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
-                            Color Palette
+                            Color Palette {glassmorphic ? <span className="ml-2 normal-case tracking-normal text-gray-500">(disabled in Lillifox Mode)</span> : null}
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${glassmorphic ? 'opacity-40 pointer-events-none' : ''}`} aria-disabled={glassmorphic}>
                             {(Object.values(PALETTES) as import('../shared/webThemes').PaletteDefinition[]).map((palette) => {
                                 const isActive = colorPalette === palette.id;
                                 return (
                                     <button
                                         key={palette.id}
                                         type="button"
+                                        disabled={glassmorphic}
                                         onClick={() => { setColorPalette(palette.id); onColorPaletteSaved?.(palette.id); }}
                                         className={`rounded-[4px] border px-3 py-3 text-left transition-colors ${isActive
                                             ? 'border-white/40 bg-white/10'
@@ -1428,6 +1440,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 onChange={(v) => { setGlassSurfaces(v); onGlassSurfacesSaved?.(v); }}
                                 label="Glass Surfaces"
                                 description="Enable frosted-glass card backgrounds with backdrop blur"
+                            />
+                            <Toggle
+                                enabled={glassmorphic}
+                                onChange={(v) => { setGlassmorphic(v); onGlassmorphicSaved?.(v); }}
+                                label="Lillifox Mode"
+                                description="Aurora background, rounded translucent cards — the original AxiBridge look"
                             />
                             <Toggle
                                 enabled={particlesEnabled}

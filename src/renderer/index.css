@@ -284,6 +284,203 @@ body.bulk-uploading.glass-surfaces .app-modal-card {
   backdrop-filter: none;
 }
 
+/* Glassmorphic theme — restores the original AxiBridge look:
+   indigo radial body with bright purple/blue blurred orbs, rounded
+   translucent cards. Composes with any color palette.
+
+   NOTE: must override the unified design system at the bottom of this
+   file which forces all rounded-* to 4px and remaps translucent bg
+   utilities to solid var(--bg-card). */
+
+/* Body gradient — vivid indigo top-right, very visible */
+body.glassmorphic #root {
+  background: radial-gradient(ellipse at top right, #312e81 0%, #0f0d2a 30%, #050505 80%) !important;
+  position: relative;
+}
+
+/* Aurora orbs — position:fixed so a tall web report doesn't get
+   extra scroll height from the bottom orb's negative offset. */
+body.glassmorphic #root::before,
+body.glassmorphic #root::after {
+  content: '';
+  position: fixed;
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+}
+body.glassmorphic #root::before {
+  top: -200px;
+  right: -100px;
+  background: rgba(62, 44, 137, 0.32);
+}
+body.glassmorphic #root::after {
+  bottom: -200px;
+  left: -100px;
+  background: rgba(8, 20, 45, 0.55);
+}
+body.glassmorphic #root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Translucent surface variables (consumed by inline-styled cards
+   and the AppLayout shell — title bar, content area, dashboard rail).
+   Color palette is forced to white-on-glass; the per-palette accent
+   overrides at body.palette-* never see this body class. */
+body.glassmorphic {
+  --bg-base: rgba(15, 18, 25, 0.55);
+  --bg-elevated: transparent;
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-card-inner: rgba(255, 255, 255, 0.07);
+  --bg-input: rgba(0, 0, 0, 0.4);
+  --bg-hover: rgba(255, 255, 255, 0.10);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-hover: rgba(255, 255, 255, 0.20);
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  --brand-primary: #ffffff;
+  --brand-secondary: rgba(255, 255, 255, 0.85);
+  --brand-gradient: linear-gradient(135deg, #ffffff, rgba(255, 255, 255, 0.7));
+  --accent-bg: rgba(255, 255, 255, 0.10);
+  --accent-bg-strong: rgba(255, 255, 255, 0.18);
+  --accent-border: rgba(255, 255, 255, 0.35);
+  --glow-primary: rgba(255, 255, 255, 0.35);
+  --glow-secondary: rgba(255, 255, 255, 0.25);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.85);
+  --text-muted: rgba(255, 255, 255, 0.65);
+  /* Bump radii so anything using var(--radius-*) (incl. stats sections
+     that use rounded-[var(--radius-md)]) gets the bubbly treatment. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+/* Glassmorphic must beat any palette-* class on body */
+body.glassmorphic.palette-refined-cyan,
+body.glassmorphic.palette-amber-warm,
+body.glassmorphic.palette-emerald-mint,
+body.glassmorphic.palette-rose-pink,
+body.glassmorphic.palette-violet-purple,
+body.glassmorphic.palette-crimson-red,
+body.glassmorphic.palette-slate-silver,
+body.glassmorphic.palette-teal-ocean,
+body.glassmorphic.palette-gold-bronze {
+  --brand-primary: #ffffff;
+  --brand-secondary: rgba(255, 255, 255, 0.85);
+  --brand-gradient: linear-gradient(135deg, #ffffff, rgba(255, 255, 255, 0.7));
+  --accent-bg: rgba(255, 255, 255, 0.10);
+  --accent-bg-strong: rgba(255, 255, 255, 0.18);
+  --accent-border: rgba(255, 255, 255, 0.35);
+  --glow-primary: rgba(255, 255, 255, 0.35);
+  --glow-secondary: rgba(255, 255, 255, 0.25);
+}
+
+/* Title bar gets backdrop blur so it has depth without being opaque */
+body.glassmorphic .app-titlebar {
+  backdrop-filter: blur(12px) saturate(130%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+}
+
+/* "Bridge" wordmark — restore the blue→purple gradient from the original */
+body.glassmorphic .app-brand-bridge {
+  background: linear-gradient(to right, #60a5fa, #c084fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+}
+
+/* Victory/Defeat overview + MVP cards get the OG blue→purple gradient fill */
+body.glassmorphic .overview-card,
+body.glassmorphic .mvp-card {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.20) 0%, rgba(147, 51, 234, 0.20) 100%) !important;
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 20px 40px -12px rgba(0, 0, 0, 0.4);
+}
+
+/* Restore rounded corners — reverse the unified-design 4px flattening */
+body.glassmorphic .rounded-\[4px\],
+body.glassmorphic .rounded-md {
+  border-radius: 0.5rem !important;
+}
+body.glassmorphic .rounded-lg {
+  border-radius: 0.75rem !important;
+}
+body.glassmorphic .rounded-xl {
+  border-radius: 1rem !important;
+}
+body.glassmorphic .rounded-2xl {
+  border-radius: 1.25rem !important;
+}
+
+/* Glass effect on common card surfaces — both Tailwind utilities (which
+   the unified design has remapped to var(--bg-card)) and direct class
+   markers used by the app/web shells. */
+body.glassmorphic .bg-white\/5,
+body.glassmorphic .bg-white\/4,
+body.glassmorphic .bg-white\/3,
+body.glassmorphic .bg-black\/20,
+body.glassmorphic .bg-black\/25,
+body.glassmorphic .bg-black\/30,
+body.glassmorphic .bg-black\/40,
+body.glassmorphic .stats-group-container,
+body.glassmorphic .app-modal-card,
+body.glassmorphic.web-report .glass-card,
+body.glassmorphic.web-report #report-list-container {
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
+/* Modal/nav sidebar — slightly more opaque than cards so content is readable */
+body.glassmorphic .app-modal-card {
+  background: rgba(15, 18, 25, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+body.glassmorphic .stats-dashboard-nav-panel,
+body.glassmorphic.web-report .report-nav-sidebar {
+  background: rgba(15, 18, 25, 0.7) !important;
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+body.glassmorphic .app-dropdown {
+  background: rgba(15, 18, 25, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-radius: 0.75rem !important;
+}
+
+/* Bulk-upload performance fallback */
+body.bulk-uploading.glassmorphic #root::before,
+body.bulk-uploading.glassmorphic #root::after {
+  display: none;
+}
+body.bulk-uploading.glassmorphic .bg-white\/5,
+body.bulk-uploading.glassmorphic .bg-white\/4,
+body.bulk-uploading.glassmorphic .bg-white\/3,
+body.bulk-uploading.glassmorphic .bg-black\/20,
+body.bulk-uploading.glassmorphic .bg-black\/25,
+body.bulk-uploading.glassmorphic .bg-black\/30,
+body.bulk-uploading.glassmorphic .bg-black\/40,
+body.bulk-uploading.glassmorphic .stats-group-container,
+body.bulk-uploading.glassmorphic .app-modal-card,
+body.bulk-uploading.glassmorphic .stats-dashboard-nav-panel,
+body.bulk-uploading.glassmorphic.web-report .report-nav-sidebar,
+body.bulk-uploading.glassmorphic .app-dropdown {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 html,
 body {
     height: 100%;

@@ -62,6 +62,7 @@ function App() {
         r2PreciseReplay, setR2PreciseReplay,
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
+        glassmorphic, setGlassmorphic,
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
@@ -1042,14 +1043,14 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,
         view, appVersion, showTerminal, webUploadState, webUploadLogEntries,
         logsForStats, mvpWeights, disruptionMethod, statsViewSettings,
         computedStats, computedSkillUsageData, aggregationProgress,
-        aggregationDiagnostics, statsDataProgress, colorPalette, glassSurfaces, particlesEnabled,
+        aggregationDiagnostics, statsDataProgress, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
         selectedWebhookId, developerSettingsTrigger, helpUpdatesFocusTrigger, parserSettingsFocusTrigger,
         showEiBanner, eiAutoManageStatus, eiAutoManageProgress,
         activityPanel, configurationPanel, filePickerCtx,
