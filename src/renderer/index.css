@@ -292,9 +292,12 @@ body.bulk-uploading.glass-surfaces .app-modal-card {
    file which forces all rounded-* to 4px and remaps translucent bg
    utilities to solid var(--bg-card). */
 
-/* Body gradient — vivid indigo top-right, very visible */
+/* Body gradient — vivid indigo top-right, very visible.
+   background-attachment: fixed keeps the gradient viewport-sized
+   even when #root grows tall on long web reports (otherwise the
+   ellipse stretches across the whole document). */
 body.glassmorphic #root {
-  background: radial-gradient(ellipse at top right, #312e81 0%, #0f0d2a 30%, #050505 80%) !important;
+  background: radial-gradient(ellipse at top right, #312e81 0%, #0f0d2a 30%, #050505 80%) fixed !important;
   position: relative;
 }
 
@@ -320,6 +323,18 @@ body.glassmorphic #root::after {
   bottom: -200px;
   left: -100px;
   background: rgba(8, 20, 45, 0.55);
+}
+
+/* No orbs on the web report — gradient background only.
+   The web report renders its own aurora orbs as JSX elements
+   styled with var(--glow-primary)/var(--glow-secondary), which
+   in Lillifox become near-white via the white-accent override.
+   Hide them here along with our own pseudo-element orbs. */
+body.glassmorphic.web-report #root::before,
+body.glassmorphic.web-report #root::after,
+body.glassmorphic.web-report [style*="var(--glow-primary)"],
+body.glassmorphic.web-report [style*="var(--glow-secondary)"] {
+  display: none !important;
 }
 body.glassmorphic #root > * {
   position: relative;
