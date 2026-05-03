@@ -1,9 +1,15 @@
 # Release Notes
 
-Version v2.6.1 — April 26, 2026
+Version v2.6.2 — May 2, 2026
 
-## Clearer R2 CORS Setup
+## Lillifox Mode
 
-The setup guide now explains how CORS works on Cloudflare R2, why an `Object Read & Write` API token isn't enough to auto-configure it, and exactly what to do instead. If you've been hitting the "R2 PutBucketCors failed" warning even after adding the rule manually, the new guide explains why — AxiBridge needs admin scope just to *read back* the rule and confirm it's there — and shows the exact origin format the rule has to match.
+Brings back the original glassmorphic look as an opt-in theme. Settings → App → Lillifox Mode. You get the indigo radial background, the purple/blue aurora orbs, rounded translucent cards, and the blue→purple "Bridge" wordmark gradient. The color palette picker is disabled while it's on since the look is intentionally white-accent.
 
-The CORS warning in the upload log is now prefixed with `[WARN] (non-blocking)` so it's obvious the upload itself succeeded and the viewer will load once CORS is in place.
+## All Damage chart polish
+
+Each fight tick on the all-damage chart now shows a W/L badge underneath, so you can tell at a glance which fights were wins without hovering.
+
+## Fixes
+
+- Long profession labels in the log card class breakdown no longer overflow — they get truncated cleanly.
