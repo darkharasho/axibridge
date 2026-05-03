@@ -1,5 +1,6 @@
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
+import { getFightOutcome } from './computePlayerAggregation';
 
 export interface AllDamagePlayerBucket {
     key: string;
@@ -22,6 +23,7 @@ export interface AllDamageFight {
     totalDamage: number;
     totalDownContribution: number;
     durationMs: number;
+    isWin: boolean | null;
     players: AllDamagePlayerBucket[];
 }
 
@@ -267,6 +269,8 @@ export function ingestLogAllDamage(log: any, acc: AllDamageAccumulator, options:
     // Sort players within fight by total damage descending
     fightPlayers.sort((a, b) => b.totalDamage - a.totalDamage);
 
+    const isWin = players.length > 0 ? getFightOutcome(details) : null;
+
     acc.fights.push({
         id: String(log?.filePath || log?.id || `fight-${index + 1}`),
         shortLabel: `F${index + 1}`,
@@ -275,6 +279,7 @@ export function ingestLogAllDamage(log: any, acc: AllDamageAccumulator, options:
         totalDamage: fightTotalDamage,
         totalDownContribution: fightTotalDown,
         durationMs,
+        isWin,
         players: fightPlayers,
     });
 }

@@ -52,6 +52,7 @@ export const AllDamageSection = ({
         index: idx,
         shortLabel: fight.shortLabel,
         fullLabel: fight.fullLabel,
+        isWin: fight.isWin,
         value: mode === 'damage' ? fight.totalDamage : fight.totalDownContribution,
     })), [fights, mode]);
 
@@ -199,7 +200,26 @@ export const AllDamageSection = ({
                                 <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                                 <XAxis
                                     dataKey="shortLabel"
-                                    tick={{ fontSize: 10, fill: '#64748b' }}
+                                    tick={(props: any) => {
+                                        const { x, y, payload } = props;
+                                        const datum = fightChartData[payload?.index];
+                                        const outcome = datum?.isWin;
+                                        const badge = outcome === true ? 'W' : outcome === false ? 'L' : null;
+                                        const badgeColor = outcome === true ? '#4ade80' : '#f87171';
+                                        return (
+                                            <g transform={`translate(${x},${y})`}>
+                                                <text x={0} y={0} dy={10} textAnchor="middle" fill="#64748b" fontSize={10}>
+                                                    {payload?.value}
+                                                </text>
+                                                {badge && (
+                                                    <text x={0} y={0} dy={22} textAnchor="middle" fill={badgeColor} fontSize={10} fontWeight={700}>
+                                                        {badge}
+                                                    </text>
+                                                )}
+                                            </g>
+                                        );
+                                    }}
+                                    height={36}
                                     axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
                                     tickLine={false}
                                 />
