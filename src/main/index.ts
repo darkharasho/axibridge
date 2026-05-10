@@ -1148,7 +1148,7 @@ function createWindow() {
         height: bounds ? bounds.height : 860,
         ...(isMac
             ? { frame: false, titleBarStyle: 'hidden', transparent: false, backgroundColor: '#000000' }
-            : { frame: false, transparent: true, backgroundColor: '#00000000' }
+            : { frame: false, transparent: false, backgroundColor: '#000000' }
         ),
         show: true
     })
