@@ -329,7 +329,7 @@ Editing thresholds re-evaluates detectors live without page reload.
 
 ### Tab registration
 
-Add a `commander` entry to the existing top-level tab enum (currently in `src/renderer/App.tsx`). Insert between History and Settings (or wherever the user prefers — see open question §Open). The tab is always visible; if no logs are loaded, the page shows an empty state with "Upload or wait for a log."
+Add a `commander` entry to the existing top-level tab enum (currently in `src/renderer/App.tsx`). Insert **between Stats and History**. The tab is always visible; if no logs are loaded, the page shows an empty state with "Upload or wait for a log."
 
 ---
 
@@ -361,12 +361,12 @@ No new e2e Playwright tests required for v1 (the existing fixture-driven view te
 
 ---
 
-## Open questions
+## Resolved decisions (previously open)
 
-1. **Tab placement** — between History and Settings, or as the new first tab? The Commander view arguably wants prominence ("the page you look at between pushes"), so first-tab is defensible. Defer to the user during plan review.
-2. **Support classification** — we rely on the existing role-classification helper (`player-role-classification` design from 2026-04-02). v1 trusts whatever that helper returns. If a fight has no classified support, "Time to first support death" shows "—" rather than guessing.
-3. **Bomb-window detection floor** — `bombFloor` (an absolute incoming-damage threshold) needs sensible defaults. Suggest: `max(150_000, p75 of all 3s windows in fight)`. Tunable.
-4. **Trend sparkline scoring** — for v1 use squad-alive-% per fight; revisit a composite "fight score" later.
+- **Tab placement** — between Stats and History.
+- **Support classification** — reuse the existing role-classification helper (`player-role-classification` design from 2026-04-02). If a fight has no classified support, "Time to first support death" shows "—" rather than guessing.
+- **Bomb-window detection floor** — `bombFloor` defaults to `max(150_000, p75 of all 3s incoming-damage windows in the fight)`. Tunable via Commander thresholds.
+- **Trend sparkline scoring** — for v1 use squad-alive-% per fight; revisit a composite "fight score" later.
 
 ---
 
