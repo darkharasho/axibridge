@@ -3,9 +3,11 @@ import type { CommanderFightData } from '../../../shared/commanderTypes';
 import type { CommanderThresholds } from '../../../shared/commanderThresholds';
 
 import firstSquadDeathEarly from './firstSquadDeathEarly';
+import firstSupportDeathPreBomb from './firstSupportDeathPreBomb';
 
 const DETECTORS: Detector[] = [
   firstSquadDeathEarly,
+  firstSupportDeathPreBomb,
 ];
 
 export function runAllDetectors(
