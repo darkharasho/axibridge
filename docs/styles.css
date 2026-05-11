@@ -805,10 +805,13 @@ main {
    FAQ accordions
    --------------------------------------------------------- */
 .faq {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-width: 760px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 720px) {
+  .faq { grid-template-columns: 1fr; }
 }
 
 .faq details {
