@@ -520,13 +520,13 @@ main {
    Section rules (// LABEL dividers)
    --------------------------------------------------------- */
 .section {
-  padding: 6rem 0;
+  padding: 3rem 0;
 }
 
 .section-rule {
   position: relative;
   border-top: 2px solid var(--border);
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 .section-rule-label {
