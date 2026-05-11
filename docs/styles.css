@@ -564,3 +564,22 @@ h1 {
   padding-top: 1.5rem;
   border-top: 1px solid var(--surface-border);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .hero-shot { transform: none; }
+}
+
+@media (max-width: 480px) {
+  main { padding: 2rem 1rem; }
+  .section { padding: 3rem 0; }
+  .hero { padding: 2rem 0 1rem; }
+  .cta-row { flex-direction: column; width: 100%; }
+  .cta-row .btn { width: 100%; text-align: center; }
+}
