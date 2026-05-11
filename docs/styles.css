@@ -156,3 +156,46 @@ h1 {
 @media (max-width: 720px) {
   .nav-links { display: none; }
 }
+
+.hero-logo {
+  filter: drop-shadow(0 0 24px rgba(140, 100, 255, 0.6));
+}
+
+.cta-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.release-meta {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.hero-shot {
+  margin-top: 3.5rem;
+  width: 100%;
+  max-width: 1000px;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--surface-glow), 0 30px 60px rgba(0, 0, 0, 0.5);
+  transform: perspective(1200px) rotateX(2deg);
+}
+
+.hero-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 720px) {
+  .hero { padding: 3rem 0 2rem; }
+  .hero-shot { transform: none; }
+}
