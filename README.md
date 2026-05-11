@@ -28,9 +28,9 @@ AxiBridge automatically uploads arcdps logs, summarizes WvW fights, and sends cl
 
 
 
-## 🔧 Installation
+## 🔧 Download
 
-[Install Claude CLI](https://github.com/anthropics/claude-cli) to use this project from the command line.
+Grab the latest build from the [AxiBridge site](https://darkharasho.github.io/axibridge/) or directly from [GitHub Releases](https://github.com/darkharasho/axibridge/releases). Windows installer and Linux AppImage available.
 
 ## 📖 Quick start
 
