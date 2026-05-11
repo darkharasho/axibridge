@@ -1,0 +1,71 @@
+:root {
+  --bg: #0a0418;
+  --bg-violet: #6d4cff;
+  --bg-cyan: #3b82f6;
+  --text: #f1eefc;
+  --text-muted: #a39ec0;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-border: rgba(255, 255, 255, 0.1);
+  --surface-glow: 0 0 40px rgba(140, 100, 255, 0.15);
+  --accent-gradient: linear-gradient(135deg, #8e63ff 0%, #5b9dff 100%);
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(109, 76, 255, 0.35), transparent 50%),
+    radial-gradient(ellipse at 85% 90%, rgba(59, 130, 246, 0.25), transparent 50%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.5rem, 5vw, 5rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 1.5rem 0 1rem;
+}
+
+.accent {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.lede {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  max-width: 38ch;
+}
+
+.hero {
+  text-align: center;
+  padding: 6rem 0 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
