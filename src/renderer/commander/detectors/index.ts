@@ -11,6 +11,7 @@ import stabCoverageBad from './stabCoverageBad';
 import cleanseRaceWon from './cleanseRaceWon';
 import cleanseRaceLost from './cleanseRaceLost';
 import stripRaceLost from './stripRaceLost';
+import rallyRateHealthy from './rallyRateHealthy';
 
 const DETECTORS: Detector[] = [
   firstSquadDeathEarly,
@@ -22,6 +23,7 @@ const DETECTORS: Detector[] = [
   cleanseRaceWon,
   cleanseRaceLost,
   stripRaceLost,
+  rallyRateHealthy,
 ];
 
 export function runAllDetectors(
