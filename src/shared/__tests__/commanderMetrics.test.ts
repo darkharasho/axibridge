@@ -1,7 +1,8 @@
 // src/shared/__tests__/commanderMetrics.test.ts
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { computeCommanderFightData } from '../commanderMetrics';
 import { commanderTestFixture } from './commander.fixtures';
+import type { CommanderFightData } from '../commanderTypes';
 
 describe('computeCommanderFightData', () => {
   it('returns a fully-shaped CommanderFightData for a real fixture', () => {
@@ -21,5 +22,36 @@ describe('computeCommanderFightData', () => {
     expect(data.engage).toBeDefined();
     expect(data.outcome).toBeDefined();
     expect(Array.isArray(data.verdictChips)).toBe(true);
+  });
+});
+
+describe('matchup', () => {
+  let data: CommanderFightData;
+  beforeAll(() => { data = computeCommanderFightData(commanderTestFixture); });
+
+  it('squadCount is positive', () => {
+    expect(data.matchup.squadCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('enemyPeak >= enemyCount', () => {
+    expect(data.matchup.enemyPeak).toBeGreaterThanOrEqual(data.matchup.enemyCount);
+  });
+
+  it('effectiveRatio = (squad+allies)/enemyPeak', () => {
+    expect(data.matchup.effectiveRatio).toBeCloseTo(
+      (data.matchup.squadCount + data.matchup.alliesCount) / Math.max(1, data.matchup.enemyPeak),
+      2,
+    );
+  });
+
+  it('enemyComp counts sum to enemyCount', () => {
+    const total = data.matchup.enemyComp.reduce((a, e) => a + e.count, 0);
+    expect(total).toBe(data.matchup.enemyCount);
+  });
+
+  it('enemyComp is sorted by count descending', () => {
+    for (let i = 1; i < data.matchup.enemyComp.length; i++) {
+      expect(data.matchup.enemyComp[i - 1].count).toBeGreaterThanOrEqual(data.matchup.enemyComp[i].count);
+    }
   });
 });

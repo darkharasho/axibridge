@@ -2,7 +2,57 @@
 // Pure function: DPSReportJSON → CommanderFightData (skeleton)
 // Real metric computations are filled in by Tasks 3–8.
 
+import type { DPSReportJSON } from './dpsReportTypes';
+import { PROFESSION_COLORS } from './professionUtils';
 import type { ComputeCommanderFightData, CommanderFightData } from './commanderTypes';
+
+/** Set of all known playable profession/elite-spec names for NPC filtering. */
+const KNOWN_PROFESSIONS = new Set(Object.keys(PROFESSION_COLORS).filter(k => k !== 'Unknown'));
+
+function computeMatchup(json: DPSReportJSON): CommanderFightData['matchup'] {
+  // Squad members are players where notInSquad is not set (or false).
+  const squadCount = json.players.filter(p => !p.notInSquad).length;
+
+  // Friendly off-group allies are players where notInSquad === true.
+  const alliesCount = json.players.filter(p => p.notInSquad === true).length;
+
+  // Enemy players appear as individual Target entries where enemyPlayer === true.
+  // NPC bosses/structures are filtered out by this flag.
+  // If no enemies are tracked (e.g. older EI WvW logs that lump enemies into a single
+  // fake "Enemy Players" target with isFake=true), enemyCount will be 0.
+  const enemyTargets = json.targets.filter(t => t.enemyPlayer === true);
+  const enemyCount = enemyTargets.length;
+
+  // TODO: enemyPeak should be the maximum number of enemy players alive at any one second.
+  // No per-second alive time-series for enemy targets is available in v1; leave equal to
+  // enemyCount.
+  const enemyPeak = enemyCount;
+
+  const effectiveRatio = (squadCount + alliesCount) / Math.max(1, enemyPeak);
+
+  // Extract profession from enemy target name ("Tempest pl-2421" → "Tempest").
+  // Validate against known profession list to guard against unexpected name formats.
+  const profMap = new Map<string, number>();
+  for (const t of enemyTargets) {
+    const profCandidate = t.name.split(' ')[0] ?? '';
+    const prof = KNOWN_PROFESSIONS.has(profCandidate) ? profCandidate : 'Unknown';
+    profMap.set(prof, (profMap.get(prof) ?? 0) + 1);
+  }
+  const enemyComp = Array.from(profMap.entries())
+    .map(([profession, count]) => ({ profession, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    squadCount,
+    alliesCount,
+    enemyCount,
+    enemyPeak,
+    effectiveRatio,
+    timeOutnumberedSec: 0, // TODO(task-6): needs per-second alive data computed in Task 6
+    enemyComp,
+    inTagBubbleAtEngage: 0, // TODO(task-6): needs positional data
+  };
+}
 
 export const computeCommanderFightData: ComputeCommanderFightData = (json, _options) => {
   // --- root fields -------------------------------------------------------
@@ -22,17 +72,7 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, _opti
   const seriesLen = Math.ceil(duration);
   const zeros = (): number[] => Array<number>(seriesLen).fill(0);
 
-  // TODO(task-3): fill in matchup fields
-  const matchup: CommanderFightData['matchup'] = {
-    squadCount: 0,
-    alliesCount: 0,
-    enemyCount: 0,
-    enemyPeak: 0,
-    effectiveRatio: 0,
-    timeOutnumberedSec: 0,
-    enemyComp: [],
-    inTagBubbleAtEngage: 0,
-  };
+  const matchup = computeMatchup(json);
 
   // TODO(task-4): fill in survival fields
   const survival: CommanderFightData['survival'] = {
