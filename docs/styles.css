@@ -6,28 +6,67 @@
    Custom properties
    --------------------------------------------------------- */
 :root {
-  --bg:              #0a090f;
-  --bg-elev:         #14121d;
-  --bg-elev-2:       #1c1928;
-  --border:          #2a2638;
-  --border-bright:   #3d3850;
-  --text:            #f4f1eb;
-  --text-muted:      #8d889c;
-  --text-dim:        #5a566a;
-  --commander:       #ff3a3a;
-  --commander-glow:  rgba(255, 58, 58, 0.35);
-  --data:            #5fc3ff;
-  --mvp:             #ffb83d;
-  --success:         #3fdc85;
-  --enemy:           #ff6b6b;
+  /* Backgrounds — match src/renderer/index.css */
+  --bg:              #090b10;
+  --bg-elev:         #0f1219;
+  --bg-elev-2:       #1a1f2e;
+  --bg-elev-3:       #222838;
 
-  --font-display: "Bricolage Grotesque", sans-serif;
-  --font-mono:    "JetBrains Mono", monospace;
-  --font-body:    "DM Sans", sans-serif;
+  /* Borders */
+  --border:          rgba(255, 255, 255, 0.08);
+  --border-subtle:   rgba(255, 255, 255, 0.05);
+  --border-bright:   rgba(255, 255, 255, 0.14);
 
-  --radius-card:   6px;
+  /* Text */
+  --text:            #e8eaed;
+  --text-muted:      #8b929e;
+  --text-dim:        #4a5162;
+
+  /* Brand — Electric Blue (app default palette) */
+  --brand-primary:   #3b82f6;
+  --brand-secondary: #6366f1;
+  --brand-gradient:  linear-gradient(135deg, #3b82f6, #6366f1);
+  --accent-bg:       rgba(59, 130, 246, 0.10);
+  --accent-bg-strong: rgba(59, 130, 246, 0.18);
+  --accent-border:   rgba(59, 130, 246, 0.35);
+  --glow:            rgba(59, 130, 246, 0.35);
+
+  /* Status / semantic — match app */
+  --success:         #4ade80;
+  --error:           #f87171;
+  --warning:         #fbbf24;
+  --info:            #60a5fa;
+
+  /* Section accent colors — match app's stats sections */
+  --damage:          #f47272;   /* offense */
+  --downs-up:        #4ade80;   /* success */
+  --downs-down:      #f87171;   /* error */
+  --cleanses:        #34d399;   /* support */
+  --mvp:             #fbbf24;   /* boon yellow */
+  --data:            #60a5fa;   /* defense / info */
+  --enemy:           #f87171;
+
+  /* Legacy aliases used in earlier sections */
+  --commander:       #3b82f6;
+  --commander-glow:  rgba(59, 130, 246, 0.35);
+
+  /* Typography — match app */
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-body:    "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+
+  /* Radius — match app */
+  --radius-sm:     2px;
+  --radius-md:     4px;
+  --radius-lg:     8px;
+  --radius-card:   8px;
   --radius-btn:    4px;
   --container:     1200px;
+
+  /* Motion — match app */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
 }
 
 /* ---------------------------------------------------------
@@ -119,15 +158,15 @@ code {
 }
 
 .btn-primary {
-  background: var(--commander);
+  background: var(--brand-gradient);
   color: #fff;
-  border-color: var(--commander);
-  box-shadow: 0 0 14px var(--commander-glow);
+  border-color: transparent;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 0 14px var(--glow);
 }
 
 .btn-primary:hover,
 .btn-primary:focus-visible {
-  box-shadow: 0 0 22px var(--commander-glow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 22px var(--glow);
   text-decoration: none;
 }
 
@@ -203,9 +242,10 @@ code {
 
 .nav-wordmark {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.05rem;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .nav-links {
@@ -284,11 +324,11 @@ main {
 }
 
 .hero-headline {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(3rem, 6vw, 5.5rem);
-  line-height: 0.95;
-  letter-spacing: -0.02em;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(3rem, 6vw, 5rem);
+  line-height: 1.0;
+  letter-spacing: -0.025em;
   color: var(--text);
   margin-bottom: 1.5rem;
 }
