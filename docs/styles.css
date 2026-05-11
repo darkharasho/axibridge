@@ -658,26 +658,35 @@ main {
    Field Report demo
    --------------------------------------------------------- */
 .demo-frame {
-  position: relative;
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   overflow: hidden;
   margin-bottom: 1.5rem;
+  background: var(--bg-elev);
 }
 
 .demo-frame-label {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-  background: rgba(10, 9, 15, 0.75);
-  padding: 0.25rem 0.5rem;
-  border-radius: 3px;
-  border: 1px solid var(--border);
-  z-index: 2;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-elev-2);
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.demo-frame-label::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--commander);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--commander-glow);
 }
 
 .demo-screenshot {
