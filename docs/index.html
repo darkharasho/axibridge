@@ -247,6 +247,24 @@
     <img id="lightbox-img" alt="" />
   </div>
 
+  <!-- Release modal -->
+  <div class="modal" id="release-modal" hidden>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <header class="modal-header">
+        <div>
+          <div class="modal-eyebrow" id="modal-eyebrow">// RELEASE</div>
+          <h3 class="modal-title" id="modal-title"></h3>
+          <p class="modal-date" id="modal-date"></p>
+        </div>
+        <button class="modal-close" id="modal-close" aria-label="Close release notes">×</button>
+      </header>
+      <div class="modal-body" id="modal-body"></div>
+      <footer class="modal-footer">
+        <a class="btn btn-secondary" id="modal-link" target="_blank" rel="noopener">VIEW ON GITHUB →</a>
+      </footer>
+    </div>
+  </div>
+
   <!-- 7. // FAQ -->
   <section class="section" id="faq">
     <div class="section-rule">

@@ -98,23 +98,109 @@ async function loadChangelog() {
     const releases = await res.json();
     if (!Array.isArray(releases) || releases.length === 0) throw new Error('empty');
 
-    list.innerHTML = releases.map((r) => {
+    releasesCache = releases;
+    list.innerHTML = releases.map((r, i) => {
       const date = formatDate(r.published_at);
-      const body = (r.body || '').split('\n').slice(0, 4).join(' ').slice(0, 240);
-      const safeBody = body.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
-      const safeName = (r.name || r.tag_name || '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+      const excerpt = makeExcerpt(r.body || '');
+      const safeBody = escapeHtml(excerpt);
+      const safeName = escapeHtml(r.tag_name || r.name || '');
       return `
-        <article class="release">
-          <h3><a href="${r.html_url}" target="_blank" rel="noopener">${safeName}</a></h3>
-          <p class="date">${date}</p>
-          <p class="body">${safeBody}</p>
-        </article>
+        <button class="release" data-release-index="${i}" type="button">
+          <div class="release-tag">${safeName}</div>
+          <div class="release-date">${date}</div>
+          <p class="release-body">${safeBody}</p>
+          <span class="release-cta">READ NOTES →</span>
+        </button>
       `;
     }).join('');
+
+    list.querySelectorAll('.release').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.releaseIndex, 10);
+        if (!Number.isNaN(idx)) openReleaseModal(releasesCache[idx]);
+      });
+    });
   } catch {
     list.innerHTML = `<p class="muted">Couldn't load releases right now. <a href="https://github.com/${REPO}/releases" target="_blank" rel="noopener">View on GitHub →</a></p>`;
   }
 }
+
+let releasesCache = [];
+
+function escapeHtml(s) {
+  return s.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+}
+
+// Strip the first H1 (e.g. "# Release Notes Version v2.6.2 — ...") because we
+// already show the tag + date in the card header. Then take ~3 meaningful lines.
+function makeExcerpt(body) {
+  const lines = body
+    .split('\n')
+    .map((l) => l.replace(/^#{1,6}\s+/, '').trim())
+    .filter((l) => l && !/^Release Notes Version/i.test(l));
+  return lines.slice(0, 3).join(' · ').slice(0, 260);
+}
+
+// Minimal markdown → HTML for the release modal. Handles: H2/H3 headers,
+// unordered lists, paragraphs, inline `code`, **bold**, and links.
+function renderMarkdown(md) {
+  const escaped = escapeHtml(md);
+  const blocks = escaped.split(/\n{2,}/);
+  return blocks.map((block) => {
+    const lines = block.split('\n');
+    // Heading
+    const headingMatch = /^(#{1,6})\s+(.+)$/.exec(lines[0]);
+    if (headingMatch && lines.length === 1) {
+      const level = Math.min(headingMatch[1].length + 1, 6);
+      return `<h${level}>${inlineMarkdown(headingMatch[2])}</h${level}>`;
+    }
+    // List
+    if (lines.every((l) => /^\s*[-*]\s+/.test(l))) {
+      const items = lines.map((l) => `<li>${inlineMarkdown(l.replace(/^\s*[-*]\s+/, ''))}</li>`).join('');
+      return `<ul>${items}</ul>`;
+    }
+    // Paragraph
+    return `<p>${inlineMarkdown(lines.join(' '))}</p>`;
+  }).join('\n');
+}
+
+function inlineMarkdown(s) {
+  return s
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+
+const releaseModal = document.getElementById('release-modal');
+const modalTitle = document.getElementById('modal-title');
+const modalDate = document.getElementById('modal-date');
+const modalBody = document.getElementById('modal-body');
+const modalLink = document.getElementById('modal-link');
+const modalClose = document.getElementById('modal-close');
+
+function openReleaseModal(release) {
+  if (!release || !releaseModal) return;
+  modalTitle.textContent = release.tag_name || release.name || 'Release';
+  modalDate.textContent = formatDate(release.published_at);
+  modalBody.innerHTML = renderMarkdown(release.body || '_No release notes._');
+  modalLink.href = release.html_url;
+  releaseModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeReleaseModal() {
+  if (!releaseModal) return;
+  releaseModal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+modalClose?.addEventListener('click', closeReleaseModal);
+releaseModal?.addEventListener('click', (e) => {
+  if (e.target === releaseModal) closeReleaseModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && releaseModal && !releaseModal.hidden) closeReleaseModal();
+});
 
 // ---------------------------------------------------------
 // Nav scrolled state

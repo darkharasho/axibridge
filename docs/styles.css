@@ -884,52 +884,198 @@ main {
 }
 
 .changelog .release {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
   background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   padding: 1.25rem;
-  transition: border-color 150ms ease;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
 }
 
-.changelog .release:hover {
-  border-color: var(--border-bright);
+.changelog .release:hover,
+.changelog .release:focus-visible {
+  border-color: var(--commander);
+  transform: translateY(-1px);
+  background: var(--bg-elev-2);
+  outline: none;
 }
 
-.changelog .release h3 {
+.changelog .release-tag {
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: var(--mvp);
-  margin-bottom: 0.25rem;
+  letter-spacing: 0.02em;
 }
 
-.changelog .release h3 a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.changelog .release h3 a:hover {
-  text-decoration: underline;
-}
-
-.changelog .release .date {
+.changelog .release-date {
   font-family: var(--font-mono);
   font-size: 0.7rem;
   color: var(--text-dim);
-  margin-bottom: 0.75rem;
   letter-spacing: 0.04em;
 }
 
-.changelog .release p.body {
+.changelog .release-body {
   font-family: var(--font-body);
   font-size: 0.88rem;
   color: var(--text-muted);
   line-height: 1.5;
-  margin: 0;
+  margin: 0.25rem 0 0;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.changelog .release-cta {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--data);
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+/* Release modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(5, 4, 10, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.modal[hidden] { display: none; }
+
+.modal-panel {
+  width: 100%;
+  max-width: 720px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-card);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--commander);
+  margin-bottom: 0.35rem;
+}
+
+.modal-title {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: var(--mvp);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.modal-date {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin: 0.35rem 0 0;
+}
+
+.modal-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.modal-close:hover {
+  border-color: var(--commander);
+  color: var(--commander);
+}
+
+.modal-body {
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.modal-body h2,
+.modal-body h3,
+.modal-body h4 {
+  font-family: var(--font-display);
+  margin: 1.25rem 0 0.5rem;
+  color: var(--text);
+}
+
+.modal-body h2 { font-size: 1.15rem; }
+.modal-body h3 { font-size: 1rem; color: var(--data); }
+.modal-body h4 { font-size: 0.92rem; color: var(--text-muted); }
+
+.modal-body p {
+  margin: 0 0 0.85rem;
+  color: var(--text-muted);
+}
+
+.modal-body ul {
+  margin: 0 0 0.85rem;
+  padding-left: 1.25rem;
+}
+
+.modal-body li {
+  margin-bottom: 0.35rem;
+  color: var(--text-muted);
+}
+
+.modal-body code {
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.05rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--mvp);
+}
+
+.modal-body a {
+  color: var(--data);
+  text-decoration: underline;
+  text-decoration-color: var(--border-bright);
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
 }
 
 .changelog-footer {
