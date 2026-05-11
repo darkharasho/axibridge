@@ -178,3 +178,46 @@ describe('cohesion & positioning', () => {
     expect(data.cohesion.stragglersAtBomb).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe('sustain & engage', () => {
+  let data: CommanderFightData;
+  beforeAll(() => { data = computeCommanderFightData(commanderTestFixture); });
+
+  it('cleansesApplied and conditionsTaken are non-negative integers', () => {
+    expect(Number.isInteger(data.sustain.cleansesApplied)).toBe(true);
+    expect(data.sustain.cleansesApplied).toBeGreaterThanOrEqual(0);
+    expect(data.sustain.conditionsTaken).toBeGreaterThanOrEqual(0);
+  });
+
+  it('stabThroughBombs, resistanceAtBurst, aegisAtBurst are in [0, 1]', () => {
+    for (const v of [data.sustain.stabThroughBombs, data.sustain.resistanceAtBurst, data.sustain.aegisAtBurst]) {
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('squadHpAtEngage, keyCdsUsed0to10s, stab0to10s are in [0, 1]', () => {
+    for (const v of [data.engage.squadHpAtEngage, data.engage.keyCdsUsed0to10s, data.engage.stab0to10s]) {
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('preEngageDowns is non-negative integer', () => {
+    expect(Number.isInteger(data.engage.preEngageDowns)).toBe(true);
+    expect(data.engage.preEngageDowns).toBeGreaterThanOrEqual(0);
+  });
+
+  it('series.stabUptime length matches incomingDps', () => {
+    expect(data.series.stabUptime.length).toBe(data.series.incomingDps.length);
+  });
+
+  it('stabUptimeInSpike equals avg of stabUptime over worst3s window', () => {
+    const start = data.burst.worst3sIncomingTSec;
+    const window = data.series.stabUptime.slice(start, start + 3);
+    if (window.length > 0) {
+      const avg = window.reduce((a, b) => a + b, 0) / window.length;
+      expect(data.burst.stabUptimeInSpike).toBeCloseTo(avg, 5);
+    }
+  });
+});
