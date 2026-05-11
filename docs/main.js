@@ -109,7 +109,7 @@ async function loadChangelog() {
           <div class="release-tag">${safeName}</div>
           <div class="release-date">${date}</div>
           <p class="release-body">${safeBody}</p>
-          <span class="release-cta">READ NOTES →</span>
+          <span class="release-cta">Read notes <i data-lucide="arrow-right"></i></span>
         </button>
       `;
     }).join('');
@@ -120,6 +120,7 @@ async function loadChangelog() {
         if (!Number.isNaN(idx)) openReleaseModal(releasesCache[idx]);
       });
     });
+    renderIcons();
   } catch {
     list.innerHTML = `<p class="muted">Couldn't load releases right now. <a href="https://github.com/${REPO}/releases" target="_blank" rel="noopener">View on GitHub →</a></p>`;
   }
@@ -314,6 +315,14 @@ function animateCounters() {
 // ---------------------------------------------------------
 // Bootstrap
 // ---------------------------------------------------------
+
+// Render any [data-lucide] icons present on first paint. Lucide is loaded
+// via CDN before this module, so window.lucide should be available.
+function renderIcons() {
+  if (window.lucide?.createIcons) window.lucide.createIcons();
+}
+
+renderIcons();
 loadLatestRelease();
 loadChangelog();
 animateCounters();

@@ -55,20 +55,20 @@
         <img class="hero-logo" src="assets/logo.svg" alt="" width="96" height="96" />
         <div class="hero-brand-text">
           <span class="hero-wordmark">AXIBRIDGE</span>
-          <span class="hero-eyebrow">// WVW SQUAD TOOLING</span>
+          <span class="hero-eyebrow"><i data-lucide="swords"></i>WVW SQUAD TOOLING</span>
         </div>
       </div>
       <h1 class="hero-headline">Read your <em>fights</em>.</h1>
       <p class="hero-lede">Automatic log uploads, WvW fight breakdowns, and clean squad reports — in Discord or on the web, the moment the fight ends.</p>
       <div class="cta-row">
         <a class="btn btn-primary" id="dl-win" href="https://github.com/darkharasho/axibridge/releases/latest">
-          DOWNLOAD · WINDOWS
+          <i data-lucide="download"></i><span>Windows</span>
         </a>
         <a class="btn btn-primary" id="dl-linux" href="https://github.com/darkharasho/axibridge/releases/latest">
-          DOWNLOAD · LINUX
+          <i data-lucide="download"></i><span>Linux</span>
         </a>
         <a class="btn btn-secondary" href="https://gw2eww.github.io/fight-reports/?report=20260420-180655-8lt2" target="_blank" rel="noopener">
-          SAMPLE REPORT →
+          <span>Sample report</span><i data-lucide="arrow-up-right"></i>
         </a>
       </div>
       <p class="release-meta" id="release-meta">v2.6.2 · released May 2026</p>
@@ -87,37 +87,37 @@
 
     <div class="feature-grid">
       <article class="feature-card">
-        <span class="feature-num">01</span>
+        <span class="feature-icon"><i data-lucide="upload-cloud"></i></span>
         <h3>Automatic uploads</h3>
         <p>Watches your arcdps log folder and uploads every fight to dps.report as soon as it lands.</p>
       </article>
 
       <article class="feature-card">
-        <span class="feature-num">02</span>
+        <span class="feature-icon"><i data-lucide="bar-chart-3"></i></span>
         <h3>WvW fight breakdowns</h3>
         <p>Squad vs enemy sizes, damage, downs/deaths, cleanses, strips, stability, healing — at a glance.</p>
       </article>
 
       <article class="feature-card">
-        <span class="feature-num">03</span>
+        <span class="feature-icon"><i data-lucide="trophy"></i></span>
         <h3>Rankings &amp; MVPs</h3>
         <p>Top performers by role and stat category across every session you've recorded.</p>
       </article>
 
       <article class="feature-card">
-        <span class="feature-num">04</span>
+        <span class="feature-icon"><i data-lucide="message-square"></i></span>
         <h3>Discord-ready summaries</h3>
         <p>Clean embeds or shareable report images, posted straight to your server's channel.</p>
       </article>
 
       <article class="feature-card">
-        <span class="feature-num">05</span>
+        <span class="feature-icon"><i data-lucide="globe-2"></i></span>
         <h3>Persistent web reports</h3>
         <p>Publish a GitHub Pages report your squad can revisit and link anytime. No server required.</p>
       </article>
 
       <article class="feature-card feature-card--wide">
-        <span class="feature-num">06</span>
+        <span class="feature-icon"><i data-lucide="map"></i></span>
         <h3>Full fight replay</h3>
         <p>Scrub through every fight on the actual WvW map — positions, downs, and damage spikes plotted on top of EBG and the borderlands.</p>
       </article>
@@ -176,7 +176,7 @@
     <div class="demo-actions">
       <p class="demo-desc">A published squad report, built and pushed by AxiBridge. Opens in a new tab — web reports are wide and full of data.</p>
       <a class="btn btn-primary" href="https://gw2eww.github.io/fight-reports/?report=20260420-180655-8lt2" target="_blank" rel="noopener">
-        OPEN SAMPLE REPORT →
+        <span>Open sample report</span><i data-lucide="external-link"></i>
       </a>
     </div>
   </section>
@@ -235,7 +235,7 @@
 
   <!-- Lightbox -->
   <div class="lightbox" id="lightbox" hidden>
-    <button class="lightbox-close" id="lightbox-close" aria-label="Close lightbox">×</button>
+    <button class="lightbox-close" id="lightbox-close" aria-label="Close lightbox"><i data-lucide="x"></i></button>
     <img id="lightbox-img" alt="" />
   </div>
 
@@ -248,11 +248,11 @@
           <h3 class="modal-title" id="modal-title"></h3>
           <p class="modal-date" id="modal-date"></p>
         </div>
-        <button class="modal-close" id="modal-close" aria-label="Close release notes">×</button>
+        <button class="modal-close" id="modal-close" aria-label="Close release notes"><i data-lucide="x"></i></button>
       </header>
       <div class="modal-body" id="modal-body"></div>
       <footer class="modal-footer">
-        <a class="btn btn-secondary" id="modal-link" target="_blank" rel="noopener">VIEW ON GITHUB →</a>
+        <a class="btn btn-secondary" id="modal-link" target="_blank" rel="noopener"><i data-lucide="github"></i><span>View on GitHub</span></a>
       </footer>
     </div>
   </div>
@@ -265,35 +265,35 @@
 
     <div class="faq">
       <details>
-        <summary>Is it safe to use?<span class="faq-indicator" aria-hidden="true">[+]</span></summary>
+        <summary>Is it safe to use?<span class="faq-indicator" aria-hidden="true"><i data-lucide="chevron-down"></i></span></summary>
         <div class="faq-body">
           <p>Yes. AxiBridge reads <code>.evtc</code> log files arcdps writes to disk and uploads them to <a href="https://dps.report" target="_blank" rel="noopener">dps.report</a>. It does not read or write game memory and is not a game modification. Source is on GitHub under GPL-3.0.</p>
         </div>
       </details>
 
       <details>
-        <summary>Does it touch the game?<span class="faq-indicator" aria-hidden="true">[+]</span></summary>
+        <summary>Does it touch the game?<span class="faq-indicator" aria-hidden="true"><i data-lucide="chevron-down"></i></span></summary>
         <div class="faq-body">
           <p>No. It only watches a folder for new files that arcdps produces. Nothing is injected into Guild Wars 2.</p>
         </div>
       </details>
 
       <details>
-        <summary>What is arcdps?<span class="faq-indicator" aria-hidden="true">[+]</span></summary>
+        <summary>What is arcdps?<span class="faq-indicator" aria-hidden="true"><i data-lucide="chevron-down"></i></span></summary>
         <div class="faq-body">
           <p>arcdps is the standard third-party combat logging addon used by virtually every WvW and raid squad. It writes <code>.evtc</code> files when fights end. AxiBridge consumes those files. <a href="https://www.deltaconnected.com/arcdps/" target="_blank" rel="noopener">deltaconnected.com/arcdps</a>.</p>
         </div>
       </details>
 
       <details>
-        <summary>Where do my logs go?<span class="faq-indicator" aria-hidden="true">[+]</span></summary>
+        <summary>Where do my logs go?<span class="faq-indicator" aria-hidden="true"><i data-lucide="chevron-down"></i></span></summary>
         <div class="faq-body">
           <p>To dps.report — the public log host the GW2 community uses. AxiBridge doesn't collect telemetry, doesn't run accounts, and doesn't transmit anything else.</p>
         </div>
       </details>
 
       <details>
-        <summary>Is it free?<span class="faq-indicator" aria-hidden="true">[+]</span></summary>
+        <summary>Is it free?<span class="faq-indicator" aria-hidden="true"><i data-lucide="chevron-down"></i></span></summary>
         <div class="faq-body">
           <p>Yes. GPL-3.0 licensed, free forever. No paid tier.</p>
         </div>
@@ -311,7 +311,7 @@
       <p class="muted">Loading recent releases…</p>
     </div>
     <div class="changelog-footer">
-      <a class="btn btn-secondary" href="https://github.com/darkharasho/axibridge/releases" target="_blank" rel="noopener">VIEW ALL →</a>
+      <a class="btn btn-secondary" href="https://github.com/darkharasho/axibridge/releases" target="_blank" rel="noopener"><span>View all releases</span><i data-lucide="arrow-right"></i></a>
     </div>
   </section>
 
@@ -349,6 +349,7 @@
   </div>
 </footer>
 
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script type="module" src="main.js"></script>
 </body>
 </html>

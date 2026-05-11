@@ -143,7 +143,9 @@ code {
    Buttons
    --------------------------------------------------------- */
 .btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.625rem 1.25rem;
   border-radius: var(--radius-btn);
   font-family: var(--font-mono);
@@ -154,7 +156,20 @@ code {
   text-transform: uppercase;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: box-shadow 150ms ease, background 150ms ease, border-color 150ms ease;
+  transition: box-shadow 150ms ease, background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.btn:hover svg {
+  transform: translateX(2px);
+}
+
+.btn:has(svg:first-child):hover svg {
+  transform: translateY(1px);
 }
 
 .btn-primary {
@@ -406,11 +421,20 @@ main {
 }
 
 .hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 0.7rem;
   letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--brand-primary);
+}
+
+.hero-eyebrow svg {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .hero-headline {
@@ -699,19 +723,29 @@ main {
   border-color: var(--border-bright);
 }
 
-.feature-card:hover .feature-num {
-  color: var(--commander);
+.feature-card:hover .feature-icon {
+  background: var(--accent-bg-strong);
+  border-color: var(--accent-border);
+  color: var(--brand-primary);
 }
 
-.feature-num {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 0.75rem;
-  color: var(--mvp);
-  letter-spacing: 0.06em;
-  display: block;
-  margin-bottom: 0.75rem;
-  transition: color 150ms ease;
+.feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--accent-bg);
+  border: 1px solid var(--border);
+  color: var(--brand-secondary);
+  margin-bottom: 1rem;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.feature-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .feature-card h3 {
@@ -950,6 +984,12 @@ main {
 
 .lightbox-close:hover { background: var(--bg-elev-2); }
 
+.lightbox-close svg,
+.modal-close svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 /* ---------------------------------------------------------
    FAQ accordions
    --------------------------------------------------------- */
@@ -993,18 +1033,22 @@ main {
 
 /* [+] / [−] indicator — toggled via JS */
 .faq-indicator {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
   color: var(--text-dim);
-  letter-spacing: 0;
   flex-shrink: 0;
   margin-left: 1rem;
-  transition: color 150ms ease;
+  transition: color 150ms ease, transform 200ms var(--ease-out-expo);
+}
+
+.faq-indicator svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .faq details[open] .faq-indicator {
-  color: var(--text-muted);
+  color: var(--brand-primary);
+  transform: rotate(180deg);
 }
 
 .faq-body {
@@ -1083,13 +1127,32 @@ main {
 }
 
 .changelog .release-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--data);
   margin-top: auto;
   padding-top: 0.5rem;
+  transition: color 150ms ease, transform 150ms ease;
+}
+
+.changelog .release-cta svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  transition: transform 150ms ease;
+}
+
+.changelog .release:hover .release-cta {
+  color: var(--brand-primary);
+}
+
+.changelog .release:hover .release-cta svg {
+  transform: translateX(3px);
 }
 
 /* Release modal */
