@@ -702,13 +702,13 @@ main {
    --------------------------------------------------------- */
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
 
 /* 5th tile spans full width */
 .feature-card--wide {
-  grid-column: 1 / -1;
+  /* no-op — kept for backwards-compat with markup hook */
 }
 
 .feature-card {
