@@ -2,8 +2,10 @@ import type { Detector, DetectorFinding } from './types';
 import type { CommanderFightData } from '../../../shared/commanderTypes';
 import type { CommanderThresholds } from '../../../shared/commanderThresholds';
 
+import firstSquadDeathEarly from './firstSquadDeathEarly';
+
 const DETECTORS: Detector[] = [
-  // registered in subsequent tasks
+  firstSquadDeathEarly,
 ];
 
 export function runAllDetectors(
