@@ -1,4 +1,3 @@
-import React from 'react';
 import { getProfessionColor } from '../../../shared/professionUtils';
 
 interface CompBarsProps {

@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface SparklineProps {
   series: number[];
   thresholdLine?: number;

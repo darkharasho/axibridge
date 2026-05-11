@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Severity } from './ThresholdBar';
 
 interface DonutProps {

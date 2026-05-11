@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface StackedCountBarProps {
   alive: number;
   downed?: number;

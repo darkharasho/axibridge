@@ -1,5 +1,3 @@
-import React from 'react';
-
 export type Severity = 'green' | 'yellow' | 'red';
 
 interface ThresholdBarProps {

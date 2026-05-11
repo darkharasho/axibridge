@@ -1,5 +1,3 @@
-import React from 'react';
-
 type MarkerColor = 'green' | 'yellow' | 'red';
 
 interface MiniTimelineProps {
