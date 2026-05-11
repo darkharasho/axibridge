@@ -221,3 +221,42 @@ describe('sustain & engage', () => {
     }
   });
 });
+
+describe('outcome & verdict chips', () => {
+  let data: CommanderFightData;
+  beforeAll(() => { data = computeCommanderFightData(commanderTestFixture); });
+
+  it('netTrade = kills / max(1, squadDeaths) when squadDeaths > 0', () => {
+    if (data.outcome.squadDeaths > 0) {
+      expect(data.outcome.netTrade).toBeCloseTo(
+        data.outcome.kills / Math.max(1, data.outcome.squadDeaths),
+        5,
+      );
+    }
+  });
+
+  it('damageOutInRatio = damageOut / max(1, damageIn)', () => {
+    expect(data.outcome.damageOutInRatio).toBeCloseTo(
+      data.outcome.damageOut / Math.max(1, data.outcome.damageIn),
+      5,
+    );
+  });
+
+  it('verdictChips contains only valid chip ids', () => {
+    const allowed = new Set([
+      'wipe','trade','carry','clean',
+      'outnumbered','caught-engage','caught-out','bomb-broke-us',
+    ]);
+    for (const c of data.verdictChips) expect(allowed.has(c)).toBe(true);
+  });
+
+  it('wipe and clean are mutually exclusive', () => {
+    const has = (chip: string) => data.verdictChips.includes(chip as never);
+    expect(has('wipe') && has('clean')).toBe(false);
+  });
+
+  it('bomb-broke-us fires iff any bomb window outcome is broke', () => {
+    const anyBroke = data.burst.bombWindows.some(w => w.outcome === 'broke');
+    expect(data.verdictChips.includes('bomb-broke-us')).toBe(anyBroke);
+  });
+});
