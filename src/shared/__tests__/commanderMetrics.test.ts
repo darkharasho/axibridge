@@ -95,3 +95,44 @@ describe('survival', () => {
     expect(data.survival.squadAliveAtEnd).toBeLessThanOrEqual(data.survival.squadTotal);
   });
 });
+
+describe('burst & series', () => {
+  let data: CommanderFightData;
+  beforeAll(() => { data = computeCommanderFightData(commanderTestFixture); });
+
+  it('series.incomingDps and healingThroughput have correct length', () => {
+    expect(data.series.incomingDps.length).toBe(Math.ceil(data.duration));
+    expect(data.series.healingThroughput.length).toBe(Math.ceil(data.duration));
+  });
+
+  it('worst3sIncoming matches the max sliding-3s sum of incomingDps', () => {
+    const s = data.series.incomingDps;
+    let maxSum = 0;
+    for (let i = 0; i + 3 <= s.length; i++) {
+      const sum = s[i] + s[i+1] + s[i+2];
+      if (sum > maxSum) maxSum = sum;
+    }
+    expect(data.burst.worst3sIncoming).toBeCloseTo(maxSum, 0);
+  });
+
+  it('worst3sIncomingTSec is within fight duration', () => {
+    expect(data.burst.worst3sIncomingTSec).toBeGreaterThanOrEqual(0);
+    expect(data.burst.worst3sIncomingTSec).toBeLessThanOrEqual(data.duration);
+  });
+
+  it('bombWindow outcomes are valid and references are in-range', () => {
+    for (const w of data.burst.bombWindows) {
+      expect(['survived', 'broke']).toContain(w.outcome);
+      expect(w.tSec).toBeGreaterThanOrEqual(0);
+      expect(w.tSec + w.durationSec).toBeLessThanOrEqual(data.duration + 1);
+    }
+  });
+
+  it('bombWindowCount equals bombWindows.length', () => {
+    expect(data.burst.bombWindowCount).toBe(data.burst.bombWindows.length);
+  });
+
+  it('inHealRatioAtSpike is non-negative', () => {
+    expect(data.burst.inHealRatioAtSpike).toBeGreaterThanOrEqual(0);
+  });
+});

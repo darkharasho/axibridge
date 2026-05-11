@@ -80,6 +80,10 @@ export interface Player {
             max: number;
             indirectHealing?: boolean;
         }>>;
+        /** Cumulative total outgoing healing per second (to all targets). Shape: [phase][time]. Diff to get per-second. */
+        healing1S?: number[][];
+        /** Cumulative healing received per second (from all sources). Shape: [phase][time]. Diff to get per-second. */
+        healingReceived1S?: number[][];
     };
     extBarrierStats?: {
         outgoingBarrierAllies?: { barrier: number }[][];
@@ -121,6 +125,8 @@ export interface Player {
     // Per-second cumulative damage arrays – shape: [phase][time] or [target][phase][time]
     damage1S?: number[][];
     targetDamage1S?: number[][][];
+    /** Cumulative incoming damage per second. Shape: [phase][time]. Diff adjacent entries to get per-second values. */
+    damageTaken1S?: number[][];
 }
 
 export interface StatsAll {
