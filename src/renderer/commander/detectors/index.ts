@@ -9,6 +9,7 @@ import bombSurvived from './bombSurvived';
 import stabCoverageGood from './stabCoverageGood';
 import stabCoverageBad from './stabCoverageBad';
 import cleanseRaceWon from './cleanseRaceWon';
+import cleanseRaceLost from './cleanseRaceLost';
 
 const DETECTORS: Detector[] = [
   firstSquadDeathEarly,
@@ -18,6 +19,7 @@ const DETECTORS: Detector[] = [
   stabCoverageGood,
   stabCoverageBad,
   cleanseRaceWon,
+  cleanseRaceLost,
 ];
 
 export function runAllDetectors(
