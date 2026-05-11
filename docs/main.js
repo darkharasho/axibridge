@@ -23,7 +23,7 @@ function closeLightbox() {
   document.body.style.overflow = '';
 }
 
-document.querySelectorAll('.thumb').forEach((btn) => {
+document.querySelectorAll('.thumb, .hero-shot').forEach((btn) => {
   btn.addEventListener('click', () => {
     const full = btn.dataset.full;
     const alt = btn.querySelector('img')?.alt;
