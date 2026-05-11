@@ -49,7 +49,7 @@
   <p class="release-meta" id="release-meta">Latest release on GitHub →</p>
 
   <div class="hero-shot">
-    <img src="assets/screenshots/hero.webp" alt="AxiBridge stats dashboard screenshot" loading="lazy" />
+    <img src="assets/screenshots/hero.png" alt="AxiBridge stats dashboard screenshot" loading="lazy" />
   </div>
 </section>
 
@@ -123,6 +123,35 @@
     </a>
   </div>
 </section>
+
+<section class="section" id="gallery">
+  <h2>What you'll see</h2>
+  <p class="section-lede">Click any shot to expand.</p>
+
+  <div class="gallery">
+    <button class="thumb" data-full="assets/screenshots/stats-dashboard.png" aria-label="Stats dashboard, full size">
+      <img src="assets/screenshots/stats-dashboard.png" alt="Aggregated stats dashboard" loading="lazy" />
+      <span>Live stats dashboard</span>
+    </button>
+    <button class="thumb" data-full="assets/screenshots/configuration.png" aria-label="Configuration panel, full size">
+      <img src="assets/screenshots/configuration.png" alt="Configuration panel" loading="lazy" />
+      <span>Configuration</span>
+    </button>
+    <button class="thumb" data-full="assets/screenshots/discord-embed.png" aria-label="Discord embed, full size">
+      <img src="assets/screenshots/discord-embed.png" alt="Discord embed summary" loading="lazy" />
+      <span>Discord embeds</span>
+    </button>
+    <button class="thumb" data-full="assets/screenshots/web-report.png" aria-label="Published web report, full size">
+      <img src="assets/screenshots/web-report.png" alt="Published web report" loading="lazy" />
+      <span>Persistent web reports</span>
+    </button>
+  </div>
+</section>
+
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lightbox-close" id="lightbox-close" aria-label="Close">×</button>
+  <img id="lightbox-img" alt="" />
+</div>
   </main>
 
   <script type="module" src="main.js"></script>
