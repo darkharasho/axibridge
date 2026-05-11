@@ -55,3 +55,43 @@ describe('matchup', () => {
     }
   });
 });
+
+describe('survival', () => {
+  let data: CommanderFightData;
+  beforeAll(() => { data = computeCommanderFightData(commanderTestFixture); });
+
+  it('first squad death (if any) has a non-negative tSec within fight duration', () => {
+    if (data.survival.firstSquadDeath) {
+      expect(data.survival.firstSquadDeath.tSec).toBeGreaterThanOrEqual(0);
+      expect(data.survival.firstSquadDeath.tSec).toBeLessThanOrEqual(data.duration);
+    }
+  });
+
+  it('firstSupportDeath is null when classifyRole is not provided', () => {
+    expect(data.survival.firstSupportDeath).toBeNull();
+  });
+
+  it('rallyRate equals rallies / downs when downs > 0', () => {
+    if (data.survival.downs > 0) {
+      expect(data.survival.rallyRate).toBeCloseTo(data.survival.rallies / data.survival.downs, 5);
+    } else {
+      expect(data.survival.rallyRate).toBe(0);
+    }
+  });
+
+  it('deathsTimeline length equals squadDeaths', () => {
+    const deadSquad = data.survival.squadTotal - data.survival.squadAliveAtEnd;
+    expect(data.series.deathsTimeline.length).toBe(deadSquad);
+  });
+
+  it('deathsTimeline is in chronological order', () => {
+    for (let i = 1; i < data.series.deathsTimeline.length; i++) {
+      expect(data.series.deathsTimeline[i].tSec)
+        .toBeGreaterThanOrEqual(data.series.deathsTimeline[i - 1].tSec);
+    }
+  });
+
+  it('squadAliveAtEnd <= squadTotal', () => {
+    expect(data.survival.squadAliveAtEnd).toBeLessThanOrEqual(data.survival.squadTotal);
+  });
+});
