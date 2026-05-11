@@ -414,3 +414,59 @@ h1 {
 }
 
 .lightbox-close:hover { background: rgba(255, 255, 255, 0.1); }
+
+.faq {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 760px;
+}
+
+.faq details {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 0.75rem;
+  backdrop-filter: blur(12px);
+  padding: 0 1.25rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.faq details[open] {
+  box-shadow: var(--surface-glow);
+}
+
+.faq summary {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  padding: 1rem 0;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faq summary::-webkit-details-marker { display: none; }
+
+.faq summary::after {
+  content: '+';
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.3rem;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.faq details[open] summary::after {
+  content: '−';
+}
+
+.faq p {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+}
+
+.faq a {
+  color: #b8a4ff;
+}

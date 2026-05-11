@@ -152,6 +152,37 @@
   <button class="lightbox-close" id="lightbox-close" aria-label="Close">×</button>
   <img id="lightbox-img" alt="" />
 </div>
+
+<section class="section" id="faq">
+  <h2>Common questions</h2>
+
+  <div class="faq">
+    <details>
+      <summary>Is it safe to use?</summary>
+      <p>Yes. AxiBridge reads <code>.evtc</code> log files arcdps writes to disk and uploads them to <a href="https://dps.report" target="_blank" rel="noopener">dps.report</a>. It does not read or write game memory and is not a game modification. Source is on GitHub under GPL-3.0.</p>
+    </details>
+
+    <details>
+      <summary>Does it touch the game?</summary>
+      <p>No. It only watches a folder for new files that arcdps produces. Nothing is injected into Guild Wars 2.</p>
+    </details>
+
+    <details>
+      <summary>What is arcdps?</summary>
+      <p>arcdps is the standard third-party combat logging addon used by virtually every WvW and raid squad. It writes <code>.evtc</code> files when fights end. AxiBridge consumes those files. <a href="https://www.deltaconnected.com/arcdps/" target="_blank" rel="noopener">deltaconnected.com/arcdps</a>.</p>
+    </details>
+
+    <details>
+      <summary>Where do my logs go?</summary>
+      <p>To dps.report — the public log host the GW2 community uses. AxiBridge doesn't collect telemetry, doesn't run accounts, and doesn't transmit anything else.</p>
+    </details>
+
+    <details>
+      <summary>Is it free?</summary>
+      <p>Yes. GPL-3.0 licensed, free forever. No paid tier.</p>
+    </details>
+  </div>
+</section>
   </main>
 
   <script type="module" src="main.js"></script>
