@@ -14,215 +14,328 @@
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=JetBrains+Mono:wght@500;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+
+<!-- SVG noise grain overlay -->
+<svg class="noise-overlay" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <filter id="noise">
+    <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+    <feColorMatrix type="saturate" values="0" />
+  </filter>
+  <rect width="100%" height="100%" filter="url(#noise)" />
+</svg>
+
+<!-- 1. TOP CHROME BAR -->
 <header class="nav" id="site-nav">
   <a class="nav-brand" href="#top">
-    <img src="assets/logo.svg" alt="" width="28" height="28" />
-    <span>AxiBridge</span>
+    <span class="nav-diamond" aria-hidden="true">◆</span>
+    <span class="nav-wordmark">AXIBRIDGE</span>
   </a>
-  <nav class="nav-links">
-    <a href="#features">Features</a>
-    <a href="#how">How it works</a>
+  <nav class="nav-links" aria-label="Site navigation">
+    <a href="#features">FEATURES</a>
+    <a href="#demo">REPORTS</a>
     <a href="#faq">FAQ</a>
-    <a href="https://github.com/darkharasho/axibridge" target="_blank" rel="noopener">GitHub</a>
   </nav>
-  <a class="btn btn-primary nav-cta" href="https://github.com/darkharasho/axibridge/releases/latest">Download</a>
+  <div class="nav-status">
+    <span class="status-dot" aria-hidden="true"></span>
+    <span class="status-label">TRACKING</span>
+    <span class="status-version" id="nav-version">v2.6.2</span>
+  </div>
 </header>
-  <main>
-    <section class="hero" id="top">
-  <img class="hero-logo" src="assets/logo.svg" alt="AxiBridge" width="80" height="80" />
-  <h1>WvW fights, <span class="accent">made readable</span>.</h1>
-  <p class="lede">Auto-upload arcdps logs, summarize WvW fights, and post clean reports to Discord or the web.</p>
 
-  <div class="cta-row">
-    <a class="btn btn-primary" id="dl-win" href="https://github.com/darkharasho/axibridge/releases/latest" data-asset="exe">
-      Download for Windows
-    </a>
-    <a class="btn btn-secondary" id="dl-linux" href="https://github.com/darkharasho/axibridge/releases/latest" data-asset="AppImage">
-      Download for Linux
-    </a>
+<main>
+
+  <!-- 2. HERO -->
+  <section class="hero" id="top">
+    <div class="hero-copy">
+      <p class="hero-eyebrow">// WVW SQUAD TOOLING</p>
+      <h1 class="hero-headline">Read your <em>fights</em>.</h1>
+      <p class="hero-lede">Automatic log uploads, WvW fight breakdowns, and clean squad reports — in Discord or on the web, the moment the fight ends.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" id="dl-win" href="https://github.com/darkharasho/axibridge/releases/latest" data-asset="exe">
+          DOWNLOAD ▾
+        </a>
+        <a class="btn btn-secondary" href="https://gw2eww.github.io/fight-reports/?report=20260420-180655-8lt2" target="_blank" rel="noopener">
+          SAMPLE REPORT →
+        </a>
+      </div>
+      <p class="release-meta" id="release-meta">v2.6.2 · released May 2026</p>
+    </div>
+
+    <div class="hero-hud">
+      <!-- Scanline overlay is purely CSS on this panel -->
+      <div class="hud-header">
+        <span class="hud-label">⚔ EBG · skirmish 4</span>
+        <span class="hud-label hud-dim">6m 22s · just now</span>
+      </div>
+
+      <div class="hud-vs">
+        <div class="hud-vs-team">
+          <span class="hud-team-label">SQUAD</span>
+          <span class="hud-num hud-squad" data-target="28" data-format="default">28</span>
+        </div>
+        <span class="hud-vs-sep">vs</span>
+        <div class="hud-vs-team">
+          <span class="hud-team-label">ENEMY</span>
+          <span class="hud-num hud-enemy" data-target="41" data-format="default">41</span>
+        </div>
+      </div>
+
+      <div class="hud-stats">
+        <div class="hud-stat">
+          <span class="hud-stat-val hud-mvp-color" data-target="12400000" data-format="M">12.4M</span>
+          <span class="hud-stat-label">DAMAGE</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-stat-val" data-target="19/7" data-format="slash">
+            <span class="hud-downs-good">19</span>/<span class="hud-downs-bad">7</span>
+          </span>
+          <span class="hud-stat-label">DOWNS</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-stat-val hud-data-color" data-target="847" data-format="default">847</span>
+          <span class="hud-stat-label">CLEANSES</span>
+        </div>
+      </div>
+
+      <div class="hud-mvp">
+        <span class="hud-mvp-tag">★ MVP</span>
+        <div class="hud-mvp-info">
+          <span class="hud-mvp-name">Valëria Dawnhold</span>
+          <span class="hud-mvp-class">Heal Scourge · 94k healing</span>
+        </div>
+      </div>
+
+      <div class="hud-footer">
+        <span class="hud-dim">posted to #raid-summary ✓</span>
+        <span class="hud-live"><span class="status-dot" aria-hidden="true"></span> live</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. // CAPABILITIES -->
+  <section class="section" id="features">
+    <div class="section-rule">
+      <span class="section-rule-label">// CAPABILITIES</span>
+    </div>
+
+    <div class="feature-grid">
+      <article class="feature-card">
+        <span class="feature-num">01</span>
+        <h3>Automatic uploads</h3>
+        <p>Watches your arcdps log folder and uploads every fight to dps.report as soon as it lands.</p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-num">02</span>
+        <h3>WvW fight breakdowns</h3>
+        <p>Squad vs enemy sizes, damage, downs/deaths, cleanses, strips, stability, healing — at a glance.</p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-num">03</span>
+        <h3>Rankings &amp; MVPs</h3>
+        <p>Top performers by role and stat category across every session you've recorded.</p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-num">04</span>
+        <h3>Discord-ready summaries</h3>
+        <p>Clean embeds or shareable report images, posted straight to your server's channel.</p>
+      </article>
+
+      <article class="feature-card feature-card--wide">
+        <span class="feature-num">05</span>
+        <h3>Persistent web reports</h3>
+        <p>Publish a GitHub Pages report your squad can revisit and link anytime. No server required.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- 4. // OPERATING PROCEDURE -->
+  <section class="section" id="how">
+    <div class="section-rule">
+      <span class="section-rule-label">// OPERATING PROCEDURE</span>
+    </div>
+
+    <ol class="steps" aria-label="How it works">
+      <li class="step-row">
+        <span class="step-num" aria-hidden="true">01</span>
+        <span class="step-divider" aria-hidden="true">│</span>
+        <div class="step-body">
+          <h3>Point at your logs</h3>
+          <p>Set your <code>arcdps.cbtlogs</code> folder in Configuration. That's it.</p>
+        </div>
+      </li>
+      <li class="step-row">
+        <span class="step-num" aria-hidden="true">02</span>
+        <span class="step-divider" aria-hidden="true">│</span>
+        <div class="step-body">
+          <h3>Fights upload automatically</h3>
+          <p>AxiBridge watches the folder and processes each new log to dps.report — no prompts, no clicks.</p>
+        </div>
+      </li>
+      <li class="step-row">
+        <span class="step-num" aria-hidden="true">03</span>
+        <span class="step-divider" aria-hidden="true">│</span>
+        <div class="step-body">
+          <h3>Share with your squad</h3>
+          <p>Post a Discord embed or publish a persistent web report. No game integration. No accounts.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- 5. // FIELD REPORT -->
+  <section class="section" id="demo">
+    <div class="section-rule">
+      <span class="section-rule-label">// FIELD REPORT</span>
+    </div>
+
+    <div class="demo-frame">
+      <div class="demo-frame-label">[ EXAMPLE — gw2eww squad ]</div>
+      <img
+        class="demo-screenshot"
+        src="assets/screenshots/hero.png"
+        alt="AxiBridge web report — aggregated squad stats dashboard"
+        loading="lazy"
+      />
+    </div>
+    <div class="demo-actions">
+      <p class="demo-desc">A published squad report, built and pushed by AxiBridge. Opens in a new tab — web reports are wide and full of data.</p>
+      <a class="btn btn-primary" href="https://gw2eww.github.io/fight-reports/?report=20260420-180655-8lt2" target="_blank" rel="noopener">
+        OPEN SAMPLE REPORT →
+      </a>
+    </div>
+  </section>
+
+  <!-- 6. // GALLERY -->
+  <section class="section" id="gallery">
+    <div class="section-rule">
+      <span class="section-rule-label">// GALLERY</span>
+    </div>
+
+    <div class="gallery">
+      <button class="thumb" data-full="assets/screenshots/stats-dashboard.png" aria-label="Stats dashboard, full size">
+        <img src="assets/screenshots/stats-dashboard.png" alt="Aggregated stats dashboard" loading="lazy" />
+        <span class="thumb-caption">STATS DASHBOARD</span>
+      </button>
+      <button class="thumb" data-full="assets/screenshots/configuration.png" aria-label="Configuration panel, full size">
+        <img src="assets/screenshots/configuration.png" alt="Configuration panel" loading="lazy" />
+        <span class="thumb-caption">CONFIGURATION</span>
+      </button>
+      <button class="thumb" data-full="assets/screenshots/discord-embed.png" aria-label="Discord embed, full size">
+        <img src="assets/screenshots/discord-embed.png" alt="Discord embed summary" loading="lazy" />
+        <span class="thumb-caption">DISCORD EMBEDS</span>
+      </button>
+      <button class="thumb" data-full="assets/screenshots/web-report.png" aria-label="Published web report, full size">
+        <img src="assets/screenshots/web-report.png" alt="Published web report" loading="lazy" />
+        <span class="thumb-caption">WEB REPORTS</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" hidden>
+    <button class="lightbox-close" id="lightbox-close" aria-label="Close lightbox">×</button>
+    <img id="lightbox-img" alt="" />
   </div>
 
-  <p class="release-meta" id="release-meta">Latest release on GitHub →</p>
+  <!-- 7. // FAQ -->
+  <section class="section" id="faq">
+    <div class="section-rule">
+      <span class="section-rule-label">// FAQ</span>
+    </div>
 
-  <div class="hero-shot">
-    <img src="assets/screenshots/hero.png" alt="AxiBridge stats dashboard screenshot" loading="lazy" />
-  </div>
-</section>
+    <div class="faq">
+      <details>
+        <summary>Is it safe to use?<span class="faq-indicator" aria-hidden="true">[+]</span></summary>
+        <div class="faq-body">
+          <p>Yes. AxiBridge reads <code>.evtc</code> log files arcdps writes to disk and uploads them to <a href="https://dps.report" target="_blank" rel="noopener">dps.report</a>. It does not read or write game memory and is not a game modification. Source is on GitHub under GPL-3.0.</p>
+        </div>
+      </details>
 
-<section class="section" id="features">
-  <h2>Everything your squad lead needs</h2>
-  <p class="section-lede">Five things AxiBridge does the moment a fight ends.</p>
+      <details>
+        <summary>Does it touch the game?<span class="faq-indicator" aria-hidden="true">[+]</span></summary>
+        <div class="faq-body">
+          <p>No. It only watches a folder for new files that arcdps produces. Nothing is injected into Guild Wars 2.</p>
+        </div>
+      </details>
 
-  <div class="feature-grid">
-    <article class="card feature">
-      <div class="feature-icon">⚡</div>
-      <h3>Automatic uploads</h3>
-      <p>Watches your arcdps log folder and uploads every fight to dps.report as soon as it lands.</p>
-    </article>
+      <details>
+        <summary>What is arcdps?<span class="faq-indicator" aria-hidden="true">[+]</span></summary>
+        <div class="faq-body">
+          <p>arcdps is the standard third-party combat logging addon used by virtually every WvW and raid squad. It writes <code>.evtc</code> files when fights end. AxiBridge consumes those files. <a href="https://www.deltaconnected.com/arcdps/" target="_blank" rel="noopener">deltaconnected.com/arcdps</a>.</p>
+        </div>
+      </details>
 
-    <article class="card feature">
-      <div class="feature-icon">📊</div>
-      <h3>WvW fight breakdowns</h3>
-      <p>Squad vs enemy sizes, damage, downs/deaths, cleanses, strips, stability, healing — at a glance.</p>
-    </article>
+      <details>
+        <summary>Where do my logs go?<span class="faq-indicator" aria-hidden="true">[+]</span></summary>
+        <div class="faq-body">
+          <p>To dps.report — the public log host the GW2 community uses. AxiBridge doesn't collect telemetry, doesn't run accounts, and doesn't transmit anything else.</p>
+        </div>
+      </details>
 
-    <article class="card feature">
-      <div class="feature-icon">🏆</div>
-      <h3>Rankings &amp; MVPs</h3>
-      <p>Top performers by role and stat category across every session you've recorded.</p>
-    </article>
+      <details>
+        <summary>Is it free?<span class="faq-indicator" aria-hidden="true">[+]</span></summary>
+        <div class="faq-body">
+          <p>Yes. GPL-3.0 licensed, free forever. No paid tier.</p>
+        </div>
+      </details>
+    </div>
+  </section>
 
-    <article class="card feature">
-      <div class="feature-icon">💬</div>
-      <h3>Discord-ready summaries</h3>
-      <p>Clean embeds or shareable report images, posted straight to your server's channel.</p>
-    </article>
+  <!-- 8. // CHANGELOG -->
+  <section class="section" id="changelog">
+    <div class="section-rule">
+      <span class="section-rule-label">// CHANGELOG</span>
+    </div>
 
-    <article class="card feature">
-      <div class="feature-icon">🌐</div>
-      <h3>Persistent web reports</h3>
-      <p>Publish a GitHub Pages report your squad can revisit and link anytime.</p>
-    </article>
-  </div>
-</section>
+    <div class="changelog" id="changelog-list">
+      <p class="muted">Loading recent releases…</p>
+    </div>
+    <div class="changelog-footer">
+      <a class="btn btn-secondary" href="https://github.com/darkharasho/axibridge/releases" target="_blank" rel="noopener">VIEW ALL →</a>
+    </div>
+  </section>
 
-<section class="section" id="how">
-  <h2>How it works</h2>
-  <p class="section-lede">Three steps. No game integration. No accounts.</p>
+</main>
 
-  <ol class="steps">
-    <li class="card step">
-      <div class="step-num">1</div>
-      <h3>Point at your logs</h3>
-      <p>Set your <code>arcdps.cbtlogs</code> folder in Configuration.</p>
-    </li>
-    <li class="card step">
-      <div class="step-num">2</div>
-      <h3>Fights upload automatically</h3>
-      <p>AxiBridge watches the folder and processes each new log to dps.report.</p>
-    </li>
-    <li class="card step">
-      <div class="step-num">3</div>
-      <h3>Share with your squad</h3>
-      <p>Post a Discord embed or publish a persistent web report.</p>
-    </li>
-  </ol>
-</section>
-
-<section class="section" id="demo">
-  <h2>See a real report</h2>
-  <p class="section-lede">A published squad report, built and pushed by AxiBridge.</p>
-  <div class="card demo-card">
-    <p>Opens in a new tab — web reports are wide and full of charts.</p>
-    <a class="btn btn-primary" href="https://gw2eww.github.io/fight-reports/?report=20260420-180655-8lt2" target="_blank" rel="noopener">
-      Open sample report →
-    </a>
-  </div>
-</section>
-
-<section class="section" id="gallery">
-  <h2>What you'll see</h2>
-  <p class="section-lede">Click any shot to expand.</p>
-
-  <div class="gallery">
-    <button class="thumb" data-full="assets/screenshots/stats-dashboard.png" aria-label="Stats dashboard, full size">
-      <img src="assets/screenshots/stats-dashboard.png" alt="Aggregated stats dashboard" loading="lazy" />
-      <span>Live stats dashboard</span>
-    </button>
-    <button class="thumb" data-full="assets/screenshots/configuration.png" aria-label="Configuration panel, full size">
-      <img src="assets/screenshots/configuration.png" alt="Configuration panel" loading="lazy" />
-      <span>Configuration</span>
-    </button>
-    <button class="thumb" data-full="assets/screenshots/discord-embed.png" aria-label="Discord embed, full size">
-      <img src="assets/screenshots/discord-embed.png" alt="Discord embed summary" loading="lazy" />
-      <span>Discord embeds</span>
-    </button>
-    <button class="thumb" data-full="assets/screenshots/web-report.png" aria-label="Published web report, full size">
-      <img src="assets/screenshots/web-report.png" alt="Published web report" loading="lazy" />
-      <span>Persistent web reports</span>
-    </button>
-  </div>
-</section>
-
-<div class="lightbox" id="lightbox" hidden>
-  <button class="lightbox-close" id="lightbox-close" aria-label="Close">×</button>
-  <img id="lightbox-img" alt="" />
-</div>
-
-<section class="section" id="faq">
-  <h2>Common questions</h2>
-
-  <div class="faq">
-    <details>
-      <summary>Is it safe to use?</summary>
-      <p>Yes. AxiBridge reads <code>.evtc</code> log files arcdps writes to disk and uploads them to <a href="https://dps.report" target="_blank" rel="noopener">dps.report</a>. It does not read or write game memory and is not a game modification. Source is on GitHub under GPL-3.0.</p>
-    </details>
-
-    <details>
-      <summary>Does it touch the game?</summary>
-      <p>No. It only watches a folder for new files that arcdps produces. Nothing is injected into Guild Wars 2.</p>
-    </details>
-
-    <details>
-      <summary>What is arcdps?</summary>
-      <p>arcdps is the standard third-party combat logging addon used by virtually every WvW and raid squad. It writes <code>.evtc</code> files when fights end. AxiBridge consumes those files. <a href="https://www.deltaconnected.com/arcdps/" target="_blank" rel="noopener">deltaconnected.com/arcdps</a>.</p>
-    </details>
-
-    <details>
-      <summary>Where do my logs go?</summary>
-      <p>To dps.report — the public log host the GW2 community uses. AxiBridge doesn't collect telemetry, doesn't run accounts, and doesn't transmit anything else.</p>
-    </details>
-
-    <details>
-      <summary>Is it free?</summary>
-      <p>Yes. GPL-3.0 licensed, free forever. No paid tier.</p>
-    </details>
-  </div>
-</section>
-
-<section class="section" id="changelog">
-  <h2>What's new</h2>
-  <p class="section-lede">Recent releases from GitHub.</p>
-  <div class="changelog" id="changelog-list">
-    <p class="muted">Loading recent releases…</p>
-  </div>
-  <p><a class="btn btn-secondary" href="https://github.com/darkharasho/axibridge/releases" target="_blank" rel="noopener">View all releases →</a></p>
-</section>
-  </main>
-
+<!-- 9. FOOTER -->
 <footer class="footer">
-  <div class="footer-grid">
-    <div>
-      <h4>Project</h4>
-      <ul>
-        <li><a href="https://github.com/darkharasho/axibridge" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="https://github.com/darkharasho/axibridge/releases" target="_blank" rel="noopener">Releases</a></li>
-        <li><a href="https://github.com/darkharasho/axibridge/blob/main/LICENSE" target="_blank" rel="noopener">License (GPL-3.0)</a></li>
-      </ul>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4 class="footer-heading">PROJECT</h4>
+        <ul>
+          <li><a href="https://github.com/darkharasho/axibridge" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="https://github.com/darkharasho/axibridge/releases" target="_blank" rel="noopener">Releases</a></li>
+          <li><a href="https://github.com/darkharasho/axibridge/blob/main/LICENSE" target="_blank" rel="noopener">License (GPL-3.0)</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4 class="footer-heading">COMMUNITY</h4>
+        <ul>
+          <li><a href="https://discord.gg/UjzMXMGXEg" target="_blank" rel="noopener">Discord</a></li>
+          <li><a href="https://github.com/darkharasho/axibridge/issues" target="_blank" rel="noopener">Issues</a></li>
+          <li><a href="https://github.com/darkharasho/axibridge/discussions" target="_blank" rel="noopener">Discussions</a></li>
+        </ul>
+      </div>
+      <div class="footer-col footer-col--about">
+        <h4 class="footer-heading">ABOUT</h4>
+        <p class="footer-muted">Logs go to dps.report. No other data is collected. AxiBridge stores nothing on a server — there is no server.</p>
+        <p class="footer-muted">Includes adapted code from PlenBot Log Uploader and GW2 EI Log Combiner. See <a href="https://github.com/darkharasho/axibridge/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener">third-party notices</a>.</p>
+      </div>
     </div>
-    <div>
-      <h4>Community</h4>
-      <ul>
-        <li><a href="https://discord.gg/UjzMXMGXEg" target="_blank" rel="noopener">Discord</a></li>
-        <li><a href="https://github.com/darkharasho/axibridge/issues" target="_blank" rel="noopener">Issues</a></li>
-        <li><a href="https://github.com/darkharasho/axibridge/discussions" target="_blank" rel="noopener">Discussions</a></li>
-      </ul>
+    <div class="footer-bottom">
+      © 2026 harasho · Not affiliated with ArenaNet · Guild Wars 2 © ArenaNet, LLC.
     </div>
-    <div>
-      <h4>About</h4>
-      <p class="footer-muted">Logs go to dps.report. No other data is collected. AxiBridge stores nothing on a server — there is no server.</p>
-      <p class="footer-muted">Includes adapted code from PlenBot Log Uploader and GW2 EI Log Combiner. See <a href="https://github.com/darkharasho/axibridge/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener">third-party notices</a>.</p>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    © 2026 harasho · Not affiliated with ArenaNet · Guild Wars 2 © ArenaNet, LLC.
   </div>
 </footer>
 
-  <script type="module" src="main.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>
