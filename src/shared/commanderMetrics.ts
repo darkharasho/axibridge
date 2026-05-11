@@ -6,6 +6,96 @@ import type { DPSReportJSON, Player } from './dpsReportTypes';
 import { PROFESSION_COLORS } from './professionUtils';
 import type { ComputeCommanderFightData, CommanderFightData, DeathEvent, BombWindow, CommanderComputeOptions } from './commanderTypes';
 
+// ---------------------------------------------------------------------------
+// Position helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the [x, y] position for a player at a given second `tSec`.
+ *
+ * EI encodes positions as Array<[number, number]>, where the player's
+ * `combatReplayData.start` frame is the absolute frame offset for positions[0].
+ * A polling rate of 300 ms → ~3.33 frames per second.
+ *
+ * Returns null if the player has no position data at that second
+ * (not yet spawned, or dead and no longer tracked).
+ */
+function playerPosAt(
+  player: Player,
+  tSec: number,
+  framesPerSec: number,
+): [number, number] | null {
+  const positions = player.combatReplayData?.positions;
+  if (!positions || positions.length === 0) return null;
+  const startFrame = player.combatReplayData?.start ?? 0;
+  const frame = Math.round(tSec * framesPerSec);
+  const idx = frame - startFrame;
+  if (idx < 0 || idx >= positions.length) return null;
+  const pt = positions[idx];
+  if (!Array.isArray(pt) || pt.length < 2) return null;
+  return [pt[0], pt[1]];
+}
+
+/**
+ * Compute the Euclidean distance between two 2-D points.
+ */
+function dist2d(a: [number, number], b: [number, number]): number {
+  const dx = a[0] - b[0];
+  const dy = a[1] - b[1];
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Compute the population standard deviation of an array of numbers.
+ * Returns 0 for arrays with fewer than 2 elements.
+ */
+function stdev(values: number[]): number {
+  if (values.length < 2) return 0;
+  const mean = values.reduce((s, v) => s + v, 0) / values.length;
+  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / values.length;
+  return Math.sqrt(variance);
+}
+
+/**
+ * Build per-second position data for the squad.
+ *
+ * Returns an array of length `seriesLen`, where each entry is either:
+ *   - an array of [x, y] positions for squad members present at that second, or
+ *   - an empty array (no players visible).
+ *
+ * Also returns `framesPerSec` for reuse.
+ */
+function buildSquadPositionSeries(
+  squadPlayers: Player[],
+  pollingRate: number,
+  seriesLen: number,
+): { perSecondPositions: Array<[number, number][]>; framesPerSec: number } {
+  const framesPerSec = 1000 / pollingRate;
+  const perSecondPositions: Array<[number, number][]> = [];
+
+  for (let t = 0; t < seriesLen; t++) {
+    const pts: [number, number][] = [];
+    for (const p of squadPlayers) {
+      const pos = playerPosAt(p, t, framesPerSec);
+      if (pos !== null) pts.push(pos);
+    }
+    perSecondPositions.push(pts);
+  }
+
+  return { perSecondPositions, framesPerSec };
+}
+
+/**
+ * Compute the centroid (mean position) of an array of [x, y] points.
+ * Returns null if the array is empty.
+ */
+function centroid(pts: [number, number][]): [number, number] | null {
+  if (pts.length === 0) return null;
+  let sx = 0, sy = 0;
+  for (const [x, y] of pts) { sx += x; sy += y; }
+  return [sx / pts.length, sy / pts.length];
+}
+
 /** Set of all known playable profession/elite-spec names for NPC filtering. */
 const KNOWN_PROFESSIONS = new Set(Object.keys(PROFESSION_COLORS).filter(k => k !== 'Unknown'));
 
@@ -193,9 +283,138 @@ function computeBurst(
   };
 }
 
-function computeMatchup(json: DPSReportJSON): CommanderFightData['matchup'] {
+// ---------------------------------------------------------------------------
+// Cohesion helpers
+// ---------------------------------------------------------------------------
+
+interface CohesionContext {
+  squadPlayers: Player[];
+  pollingRate: number;
+  seriesLen: number;
+  bombWindows: BombWindow[];
+  deathsTimeline: DeathEvent[];
+}
+
+/**
+ * Compute all cohesion & positioning metrics from per-second position data.
+ *
+ * This mutates `ctx.deathsTimeline` in-place to fill in `distFromTag` for
+ * each death event.
+ */
+function computeCohesion(
+  ctx: CohesionContext,
+): { cohesion: CommanderFightData['cohesion']; spreadStdev: number[] } {
+  const { squadPlayers, pollingRate, seriesLen, bombWindows, deathsTimeline } = ctx;
+  const { perSecondPositions, framesPerSec } = buildSquadPositionSeries(
+    squadPlayers, pollingRate, seriesLen,
+  );
+
+  // ---- Per-second metrics ----
+  const spreadStdev = new Array<number>(seriesLen).fill(0);
+  let totalDistSum = 0;
+  let totalDistCount = 0;
+  let timeSpread900PlusSec = 0;
+
+  for (let t = 0; t < seriesLen; t++) {
+    const pts = perSecondPositions[t];
+    if (pts.length === 0) continue;
+
+    const c = centroid(pts)!;
+    const dists = pts.map(p => dist2d(p, c));
+
+    // Average dist from tag (centroid) across all squad-player-seconds
+    for (const d of dists) {
+      totalDistSum += d;
+      totalDistCount++;
+    }
+
+    // Spread σ at this second
+    spreadStdev[t] = stdev(dists);
+
+    // Seconds where any player > 900u from tag
+    if (dists.some(d => d > 900)) {
+      timeSpread900PlusSec++;
+    }
+  }
+
+  const avgDistFromTag = totalDistCount > 0 ? totalDistSum / totalDistCount : 0;
+
+  // ---- Peak spread ----
+  let peakSpreadStdev = 0;
+  let peakSpreadStdevTSec = 0;
+  for (let t = 0; t < seriesLen; t++) {
+    if (spreadStdev[t] > peakSpreadStdev) {
+      peakSpreadStdev = spreadStdev[t];
+      peakSpreadStdevTSec = t;
+    }
+  }
+
+  // ---- Fill distFromTag on deathsTimeline entries ----
+  for (const death of deathsTimeline) {
+    const t = Math.min(Math.floor(death.tSec), seriesLen - 1);
+    const pts = perSecondPositions[t];
+    if (pts.length === 0) {
+      death.distFromTag = 0;
+      continue;
+    }
+    const c = centroid(pts)!;
+    // Find this player's position at this second
+    const player = squadPlayers.find(p => (p.account ?? p.name) === death.account);
+    if (player) {
+      const pos = playerPosAt(player, death.tSec, framesPerSec);
+      death.distFromTag = pos !== null ? dist2d(pos, c) : 0;
+    } else {
+      death.distFromTag = 0;
+    }
+  }
+
+  // ---- avgDistAtDeath ----
+  const avgDistAtDeath = deathsTimeline.length > 0
+    ? deathsTimeline.reduce((s, d) => s + d.distFromTag, 0) / deathsTimeline.length
+    : 0;
+
+  // ---- stragglersAtBomb ----
+  // Unique squad players > 1500u from centroid during any bomb window
+  const stragglerSet = new Set<string>();
+  for (const bw of bombWindows) {
+    const tStart = bw.tSec;
+    const tEnd = Math.min(bw.tSec + bw.durationSec, seriesLen - 1);
+    for (let t = Math.floor(tStart); t <= Math.ceil(tEnd) && t < seriesLen; t++) {
+      const pts = perSecondPositions[t];
+      if (pts.length === 0) continue;
+      const c = centroid(pts)!;
+      for (const p of squadPlayers) {
+        const pos = playerPosAt(p, t, framesPerSec);
+        if (pos === null) continue;
+        if (dist2d(pos, c) > 1500) {
+          stragglerSet.add(p.account ?? p.name);
+        }
+      }
+    }
+  }
+  const stragglersAtBomb = stragglerSet.size;
+
+  return {
+    cohesion: {
+      avgDistFromTag,
+      timeSpread900PlusSec,
+      avgDistAtDeath,
+      peakSpreadStdev,
+      peakSpreadStdevTSec,
+      stragglersAtBomb,
+    },
+    spreadStdev,
+  };
+}
+
+function computeMatchup(
+  json: DPSReportJSON,
+  squadPlayers: Player[],
+  pollingRate: number,
+  durationSec: number,
+): CommanderFightData['matchup'] {
   // Squad members are players where notInSquad is not set (or false).
-  const squadCount = json.players.filter(p => !p.notInSquad).length;
+  const squadCount = squadPlayers.length;
 
   // Friendly off-group allies are players where notInSquad === true.
   const alliesCount = json.players.filter(p => p.notInSquad === true).length;
@@ -226,15 +445,64 @@ function computeMatchup(json: DPSReportJSON): CommanderFightData['matchup'] {
     .map(([profession, count]) => ({ profession, count }))
     .sort((a, b) => b.count - a.count);
 
+  // ---- timeOutnumberedSec ----
+  // If there are no enemy targets, we cannot compute outnumbered status → 0.
+  // With real enemies, count seconds where (alive squad + alive allies) < alive enemies.
+  // For now we only have squad alive-status from combatReplayData.dead ranges.
+  let timeOutnumberedSec = 0;
+  if (enemyCount > 0) {
+    const allPlayers = json.players;
+    const alliesPlayers = allPlayers.filter(p => p.notInSquad === true);
+    const seriesLen = Math.ceil(durationSec);
+    // A player is alive at second t if they have no dead interval whose start ≤ t*1000
+    // (we use the simple approximation: alive = no dead range overlapping second t)
+    for (let t = 0; t < seriesLen; t++) {
+      const tMs = t * 1000;
+      const aliveSquad = squadPlayers.filter(p => {
+        const dead = p.combatReplayData?.dead ?? [];
+        return !dead.some(([s, e]) => tMs >= s && tMs < e);
+      }).length;
+      const aliveAllies = alliesPlayers.filter(p => {
+        const dead = p.combatReplayData?.dead ?? [];
+        return !dead.some(([s, e]) => tMs >= s && tMs < e);
+      }).length;
+      // For enemies, we can only use a fixed enemyCount (no per-second alive data)
+      const aliveEnemies = enemyCount;
+      if (aliveSquad + aliveAllies < aliveEnemies) {
+        timeOutnumberedSec++;
+      }
+    }
+  }
+
+  // ---- inTagBubbleAtEngage ----
+  // Count squad players within 600u of squad centroid at t = min(2, durationSec).
+  const TAG_RADIUS = 600;
+  const framesPerSec = 1000 / pollingRate;
+  const engageSec = Math.min(2, durationSec);
+  const engagePts: [number, number][] = [];
+  for (const p of squadPlayers) {
+    const pos = playerPosAt(p, engageSec, framesPerSec);
+    if (pos !== null) engagePts.push(pos);
+  }
+  const engageCentroid = centroid(engagePts);
+  let inTagBubbleAtEngage = 0;
+  if (engageCentroid !== null) {
+    for (const pos of engagePts) {
+      if (dist2d(pos, engageCentroid) <= TAG_RADIUS) {
+        inTagBubbleAtEngage++;
+      }
+    }
+  }
+
   return {
     squadCount,
     alliesCount,
     enemyCount,
     enemyPeak,
     effectiveRatio,
-    timeOutnumberedSec: 0, // TODO(task-6): needs per-second alive data computed in Task 6
+    timeOutnumberedSec,
     enemyComp,
-    inTagBubbleAtEngage: 0, // TODO(task-6): needs positional data
+    inTagBubbleAtEngage,
   };
 }
 
@@ -382,15 +650,20 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, optio
   const seriesLen = Math.ceil(duration);
   const zeros = (): number[] => Array<number>(seriesLen).fill(0);
 
-  const matchup = computeMatchup(json);
+  const pollingRate = json.combatReplayMetaData?.pollingRate ?? 300;
+
+  // Build squad players list early — shared across many sub-computations
+  const squadPlayers = json.players.filter(p => !p.notInSquad);
+
+  const matchup = computeMatchup(json, squadPlayers, pollingRate, duration);
 
   const survival = computeSurvival(json, options);
 
-  // Build the deathsTimeline early so burst can reference it
+  // Build the deathsTimeline early so burst and cohesion can reference it.
+  // distFromTag fields are 0 at this point and will be filled by computeCohesion.
   const deathsTimeline = buildDeathsTimeline(json, options);
 
   // Build per-second series for burst computation
-  const squadPlayers = json.players.filter(p => !p.notInSquad);
   const { incomingDps, healingThroughput } = buildSeries(squadPlayers, seriesLen);
 
   const burst = computeBurst(
@@ -402,15 +675,14 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, optio
     squadPlayers,
   );
 
-  // TODO(task-6): fill in cohesion fields
-  const cohesion: CommanderFightData['cohesion'] = {
-    avgDistFromTag: 0,
-    timeSpread900PlusSec: 0,
-    avgDistAtDeath: 0,
-    peakSpreadStdev: 0,
-    peakSpreadStdevTSec: 0,
-    stragglersAtBomb: 0,
-  };
+  // Compute cohesion & positioning (also mutates deathsTimeline.distFromTag in place)
+  const { cohesion, spreadStdev } = computeCohesion({
+    squadPlayers,
+    pollingRate,
+    seriesLen,
+    bombWindows: burst.bombWindows,
+    deathsTimeline,
+  });
 
   // TODO(task-7): fill in sustain fields
   const sustain: CommanderFightData['sustain'] = {
@@ -447,7 +719,7 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, optio
     incomingDps,
     healingThroughput,
     stabUptime: zeros(),
-    spreadStdev: zeros(),
+    spreadStdev,
     deathsTimeline,
   };
 

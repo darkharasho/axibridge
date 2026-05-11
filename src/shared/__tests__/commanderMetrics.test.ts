@@ -136,3 +136,45 @@ describe('burst & series', () => {
     expect(data.burst.inHealRatioAtSpike).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe('cohesion & positioning', () => {
+  let data: CommanderFightData;
+  beforeAll(() => { data = computeCommanderFightData(commanderTestFixture); });
+
+  it('avgDistFromTag is non-negative and finite', () => {
+    expect(data.cohesion.avgDistFromTag).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(data.cohesion.avgDistFromTag)).toBe(true);
+  });
+
+  it('timeSpread900Plus <= fight duration', () => {
+    expect(data.cohesion.timeSpread900PlusSec).toBeLessThanOrEqual(data.duration);
+  });
+
+  it('series.spreadStdev length matches series.incomingDps length', () => {
+    expect(data.series.spreadStdev.length).toBe(data.series.incomingDps.length);
+  });
+
+  it('peakSpreadStdev is the max of series.spreadStdev', () => {
+    const max = Math.max(...data.series.spreadStdev);
+    expect(data.cohesion.peakSpreadStdev).toBeCloseTo(max, 5);
+  });
+
+  it('peakSpreadStdevTSec corresponds to the peak index', () => {
+    if (data.cohesion.peakSpreadStdev > 0) {
+      const idx = data.series.spreadStdev.indexOf(data.cohesion.peakSpreadStdev);
+      expect(data.cohesion.peakSpreadStdevTSec).toBe(idx);
+    }
+  });
+
+  it('deaths timeline entries have non-negative distFromTag', () => {
+    for (const d of data.series.deathsTimeline) {
+      expect(d.distFromTag).toBeGreaterThanOrEqual(0);
+      expect(Number.isFinite(d.distFromTag)).toBe(true);
+    }
+  });
+
+  it('stragglersAtBomb is non-negative integer', () => {
+    expect(Number.isInteger(data.cohesion.stragglersAtBomb)).toBe(true);
+    expect(data.cohesion.stragglersAtBomb).toBeGreaterThanOrEqual(0);
+  });
+});
