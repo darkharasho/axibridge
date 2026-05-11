@@ -875,15 +875,34 @@ main {
   object-position: top;
 }
 
+.thumb-body {
+  padding: 0.85rem 1rem 1rem;
+  border-top: 1px solid var(--border);
+  text-align: left;
+}
+
 .thumb-caption {
   display: block;
-  padding: 0.5rem 0.75rem;
   font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--brand-primary);
   text-transform: uppercase;
-  border-top: 1px solid var(--border);
+  margin-bottom: 0.4rem;
+}
+
+.thumb-desc {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.thumb:hover .thumb-caption,
+.thumb:focus-visible .thumb-caption {
+  color: var(--brand-secondary);
 }
 
 /* ---------------------------------------------------------
