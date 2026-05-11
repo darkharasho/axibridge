@@ -4,10 +4,12 @@ import type { CommanderThresholds } from '../../../shared/commanderThresholds';
 
 import firstSquadDeathEarly from './firstSquadDeathEarly';
 import firstSupportDeathPreBomb from './firstSupportDeathPreBomb';
+import bombOverwhelmedSustain from './bombOverwhelmedSustain';
 
 const DETECTORS: Detector[] = [
   firstSquadDeathEarly,
   firstSupportDeathPreBomb,
+  bombOverwhelmedSustain,
 ];
 
 export function runAllDetectors(
