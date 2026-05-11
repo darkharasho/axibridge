@@ -54,6 +54,12 @@ describe('matchup', () => {
       expect(data.matchup.enemyComp[i - 1].count).toBeGreaterThanOrEqual(data.matchup.enemyComp[i].count);
     }
   });
+
+  it('verdictChips includes "outnumbered" iff effectiveRatio < outnumberedRatio threshold', () => {
+    const OUTNUMBERED_RATIO = 0.85;
+    const shouldHave = data.matchup.effectiveRatio < OUTNUMBERED_RATIO;
+    expect(data.verdictChips.includes('outnumbered')).toBe(shouldHave);
+  });
 });
 
 describe('survival', () => {
