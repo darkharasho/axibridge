@@ -15,7 +15,7 @@ const detector: Detector = (fight, thresholds) => {
     evidence: `${Math.round(value * 100)}% stab in spike (threshold ${Math.round(thresholds.stabBadInBomb * 100)}%)`,
     threshold: `bad if bomb-spike stab < ${Math.round(thresholds.stabBadInBomb * 100)}%`,
     vizKind: 'threshold-bar',
-    vizData: { value, threshold: thresholds.stabBadInBomb, max: 1 },
+    vizData: { value, threshold: thresholds.stabBadInBomb, max: 1, severity: 'red' },
   };
 };
 

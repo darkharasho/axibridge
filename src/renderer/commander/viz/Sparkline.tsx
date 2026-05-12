@@ -36,11 +36,7 @@ export function Sparkline({
   height = 20,
   markerAt,
 }: SparklineProps) {
-  const safeSeries: number[] = Array.isArray(series) ? series : [];
-  const safeSecondary: number[] | undefined = Array.isArray(secondarySeries) ? secondarySeries : undefined;
-  series = safeSeries;
-  secondarySeries = safeSecondary;
-  const all = [...safeSeries, ...(safeSecondary ?? []), ...(thresholdLine != null ? [thresholdLine] : [])];
+  const all = [...series, ...(secondarySeries ?? []), ...(thresholdLine != null ? [thresholdLine] : [])];
   const min = Math.min(0, ...all);
   const max = Math.max(1, ...all);
   const primaryPoints = toPoints(series, width, height, min, max);

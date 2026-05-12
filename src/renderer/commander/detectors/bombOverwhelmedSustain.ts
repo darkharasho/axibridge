@@ -30,9 +30,10 @@ const detector: Detector = (fight) => {
     threshold: 'flag if any bomb window outcome === broke',
     vizKind: 'sparkline',
     vizData: {
-      incoming: fight.series.incomingDps,
-      heal: fight.series.healingThroughput,
-      marker: { tSec: worst.tSec, color: 'red' },
+      series: fight.series.incomingDps,
+      secondarySeries: fight.series.healingThroughput,
+      color: 'red',
+      markerAt: { index: Math.max(0, Math.floor(worst.tSec)), color: 'red' },
     },
   };
 };

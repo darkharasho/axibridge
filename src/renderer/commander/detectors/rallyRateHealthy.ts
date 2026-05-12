@@ -13,8 +13,9 @@ const detector: Detector = (fight, thresholds) => {
     threshold: `good if rallyRate >= ${Math.round(thresholds.rallyGood * 100)}% and downs >= 4`,
     vizKind: 'donut',
     vizData: {
-      rallied: fight.survival.rallies,
-      total: fight.survival.downs,
+      pct: fight.survival.rallyRate,
+      color: 'green',
+      label: `${Math.round(fight.survival.rallyRate * 100)}%`,
     },
   };
 };

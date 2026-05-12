@@ -20,8 +20,9 @@ const detector: Detector = (fight, thresholds) => {
     vizKind: 'sparkline',
     vizData: {
       series: fight.series.spreadStdev,
-      marker: { tSec: peakT, color: 'red' },
       thresholdLine: thresholds.spreadBad,
+      color: 'red',
+      markerAt: { index: Math.max(0, Math.floor(peakT)), color: 'red' },
     },
   };
 };

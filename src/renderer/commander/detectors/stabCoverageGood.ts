@@ -17,6 +17,7 @@ const detector: Detector = (fight, thresholds) => {
     vizData: {
       series: fight.series.stabUptime,
       thresholdLine: thresholds.stabGoodEngage,
+      color: 'green',
     },
   };
 };
