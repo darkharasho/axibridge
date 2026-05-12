@@ -828,21 +828,28 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const [activeDefenseStat, setActiveDefenseStat] = useState<string>('damageTaken');
     const [activeDamageMitigationStat, setActiveDamageMitigationStat] = useState<string>('totalMitigation');
     const [activeConditionName, setActiveConditionName] = useState<string>('all');
-    const [conditionSort, setConditionSort] = useState<{ key: 'applications' | 'damage'; dir: 'asc' | 'desc' }>({
+    const [conditionSort, setConditionSort] = useState<{ key: 'applications' | 'damage' | 'uptime' | 'avgUptime'; dir: 'asc' | 'desc' }>({
         key: 'damage',
         dir: 'desc'
     });
     const isNonDamagingCondition = activeConditionName !== 'all' && NON_DAMAGING_CONDITIONS.has(activeConditionName);
     const showConditionDamage = !isNonDamagingCondition;
     const hasUptimeColumn = conditionDirection === 'outgoing';
-    const conditionGridClass = showConditionDamage && hasUptimeColumn
-        ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr_1fr]'
-        : showConditionDamage || hasUptimeColumn
-            ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr]'
-            : 'grid-cols-[0.4fr_1.6fr_1fr]';
+    const hasAvgUptimeColumn = conditionDirection === 'outgoing';
+    const conditionGridClass = showConditionDamage && hasUptimeColumn && hasAvgUptimeColumn
+        ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr_1fr_1fr]'
+        : showConditionDamage && (hasUptimeColumn || hasAvgUptimeColumn)
+            ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr_1fr]'
+            : (hasUptimeColumn && hasAvgUptimeColumn)
+                ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr_1fr]'
+                : showConditionDamage || hasUptimeColumn || hasAvgUptimeColumn
+                    ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr]'
+                    : 'grid-cols-[0.4fr_1.6fr_1fr]';
     const effectiveConditionSort = showConditionDamage
         ? conditionSort
-        : { key: 'applications', dir: conditionSort.key === 'applications' ? conditionSort.dir : 'desc' };
+        : conditionSort.key === 'damage'
+            ? { key: 'applications' as const, dir: 'desc' as const }
+            : conditionSort;
     const [activeSupportStat, setActiveSupportStat] = useState<string>('condiCleanse');
     const [activeHealingMetric, setActiveHealingMetric] = useState<string>('healing');
     const [healingCategory, setHealingCategory] = useState<'total' | 'squad' | 'group' | 'self' | 'offSquad'>('total');

@@ -19,8 +19,8 @@ type ConditionsSectionProps = {
     conditionDirection: 'outgoing' | 'incoming';
     setConditionDirection: (value: 'outgoing' | 'incoming') => void;
     conditionGridClass: string;
-    effectiveConditionSort: { key: 'applications' | 'damage' | 'uptime'; dir: 'asc' | 'desc' };
-    setConditionSort: (value: { key: 'applications' | 'damage' | 'uptime'; dir: 'asc' | 'desc' }) => void;
+    effectiveConditionSort: { key: 'applications' | 'damage' | 'uptime' | 'avgUptime'; dir: 'asc' | 'desc' };
+    setConditionSort: (value: { key: 'applications' | 'damage' | 'uptime' | 'avgUptime'; dir: 'asc' | 'desc' }) => void;
     showConditionDamage: boolean;
 };
 
@@ -178,10 +178,11 @@ export const ConditionsSection = ({
                             />
                             <PillToggleGroup
                                     value={effectiveConditionSort.key}
-                                    onChange={(value) => setConditionSort({ key: value as 'applications' | 'damage' | 'uptime', dir: 'desc' })}
+                                    onChange={(value) => setConditionSort({ key: value as 'applications' | 'damage' | 'uptime' | 'avgUptime', dir: 'desc' })}
                                     options={[
                                         { value: 'applications', label: 'Applications' },
                                         ...(conditionDirection === 'outgoing' ? [{ value: 'uptime', label: 'Uptime' }] : []),
+                                        ...(conditionDirection === 'outgoing' ? [{ value: 'avgUptime', label: 'Avg/app' }] : []),
                                         ...(showConditionDamage ? [{ value: 'damage', label: 'Damage' }] : [])
                                     ]}
                                     activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
@@ -207,18 +208,37 @@ export const ConditionsSection = ({
                                         const resolveMetricValue = (condition: any) => {
                                             if (!condition) return 0;
                                             if (metricKey === 'uptime') return Number(condition?.uptimeMs || 0) / 1000;
+                                            if (metricKey === 'avgUptime') {
+                                                const apps = resolveApplications(condition);
+                                                return apps > 0 ? Number(condition?.uptimeMs || 0) / apps / 1000 : 0;
+                                            }
                                             if (metricKey === 'damage') return Number(condition?.damage || 0);
                                             return resolveApplications(condition);
                                         };
                                         const formatMetricValue = (val: number) =>
                                             metricKey === 'uptime'
                                                 ? `${val.toLocaleString(undefined, { maximumFractionDigits: 0 })}s`
-                                                : Math.round(val || 0).toLocaleString();
+                                                : metricKey === 'avgUptime'
+                                                    ? (val > 0 ? `${val.toFixed(1)}s` : '—')
+                                                    : Math.round(val || 0).toLocaleString();
                                         columns.forEach((column: any) => {
                                             if (column.id === 'all' || column.name === 'All Conditions') {
-                                                const val = Object.values(conditionTotals).reduce(
-                                                    (acc: number, condition: any) => acc + resolveMetricValue(condition), 0
-                                                );
+                                                let val: number;
+                                                if (metricKey === 'avgUptime') {
+                                                    const totals = Object.values(conditionTotals).reduce(
+                                                        (acc: { uptimeMs: number; apps: number }, condition: any) => {
+                                                            acc.uptimeMs += Number(condition?.uptimeMs || 0);
+                                                            acc.apps += resolveApplications(condition);
+                                                            return acc;
+                                                        },
+                                                        { uptimeMs: 0, apps: 0 }
+                                                    );
+                                                    val = totals.apps > 0 ? totals.uptimeMs / totals.apps / 1000 : 0;
+                                                } else {
+                                                    val = Object.values(conditionTotals).reduce(
+                                                        (acc: number, condition: any) => acc + resolveMetricValue(condition), 0
+                                                    );
+                                                }
                                                 numericValues.all = val || 0;
                                                 values.all = formatMetricValue(val || 0);
                                                 return;
@@ -412,6 +432,21 @@ export const ConditionsSection = ({
                                         Uptime {effectiveConditionSort.key === 'uptime' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
                                     </button>
                                 ) : null}
+                                {conditionDirection === 'outgoing' ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setConditionSort({
+                                                key: 'avgUptime',
+                                                dir: effectiveConditionSort.key === 'avgUptime' ? (effectiveConditionSort.dir === 'desc' ? 'asc' : 'desc') : 'desc'
+                                            });
+                                        }}
+                                        title="Average duration each application stayed on the target. Lower than the skill's nominal duration indicates cleansing or natural expiry."
+                                        className={`text-right transition-colors ${effectiveConditionSort.key === 'avgUptime' ? 'text-[color:var(--brand-primary)]' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                    >
+                                        Avg/app {effectiveConditionSort.key === 'avgUptime' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
+                                    </button>
+                                ) : null}
                                 {showConditionDamage ? (
                                     <button
                                         type="button"
@@ -456,11 +491,21 @@ export const ConditionsSection = ({
                                                 uptimeMs: Number(condition?.uptimeMs || 0)
                                             };
                                         })
+                                        .map((row: any) => ({
+                                            ...row,
+                                            avgUptimeMs: row.applications > 0 ? (row.uptimeMs || 0) / row.applications : 0
+                                        }))
                                         .filter((row: any) => row.applications > 0 || row.damage > 0 || row.uptimeMs > 0)
                                         .sort((a: any, b: any) => {
                                             const sortKey = effectiveConditionSort.key;
-                                            const aVal = sortKey === 'uptime' ? (a.uptimeMs || 0) : sortKey === 'damage' ? (a.damage || 0) : (a.applications || 0);
-                                            const bVal = sortKey === 'uptime' ? (b.uptimeMs || 0) : sortKey === 'damage' ? (b.damage || 0) : (b.applications || 0);
+                                            const pick = (row: any) => {
+                                                if (sortKey === 'uptime') return row.uptimeMs || 0;
+                                                if (sortKey === 'avgUptime') return row.avgUptimeMs || 0;
+                                                if (sortKey === 'damage') return row.damage || 0;
+                                                return row.applications || 0;
+                                            };
+                                            const aVal = pick(a);
+                                            const bVal = pick(b);
                                             const primary = effectiveConditionSort.dir === 'desc' ? bVal - aVal : aVal - bVal;
                                             if (primary !== 0) return primary;
                                             return String(a.account || '').localeCompare(String(b.account || ''));
@@ -527,6 +572,16 @@ export const ConditionsSection = ({
                                                 {conditionDirection === 'outgoing' ? (
                                                     <div className="text-right font-mono text-[color:var(--text-secondary)]">
                                                         {Math.round((entry.uptimeMs || 0) / 1000).toLocaleString()}s
+                                                    </div>
+                                                ) : null}
+                                                {conditionDirection === 'outgoing' ? (
+                                                    <div
+                                                        className="text-right font-mono text-[color:var(--text-secondary)]"
+                                                        title="Average duration each application stayed on the target"
+                                                    >
+                                                        {entry.applications > 0
+                                                            ? `${(((entry.uptimeMs || 0) / entry.applications) / 1000).toFixed(1)}s`
+                                                            : '—'}
                                                     </div>
                                                 ) : null}
                                                 {showConditionDamage ? (
