@@ -26,7 +26,11 @@ export function CommanderRollup({ rollup }: { rollup: CommanderRollup | null }) 
       <Item label="Outnumbered" value={`${rollup.outnumberedCount} / ${rollup.fightCount}`} sub="" />
       <div className="flex flex-col gap-0.5">
         <div className="text-[10px] uppercase tracking-wide text-slate-500">Trend</div>
-        <Sparkline series={rollup.alivePctSeries} color="red" width={100} height={24} />
+        {rollup.alivePctSeries.length >= 2 ? (
+          <Sparkline series={rollup.alivePctSeries} color="red" width={100} height={24} />
+        ) : (
+          <div className="text-[11px] text-slate-500 italic">need 2+ fights</div>
+        )}
       </div>
     </div>
   );

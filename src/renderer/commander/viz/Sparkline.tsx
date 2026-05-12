@@ -84,13 +84,23 @@ export function Sparkline({
           points={secondaryPoints}
         />
       )}
-      <polyline
-        data-role="primary"
-        fill="none"
-        stroke={STROKE[color]}
-        strokeWidth={1.5}
-        points={primaryPoints}
-      />
+      {series.length === 1 ? (
+        <circle
+          data-role="primary"
+          cx={width / 2}
+          cy={height - ((series[0] - min) / ((max - min) || 1)) * height}
+          r={2}
+          fill={STROKE[color]}
+        />
+      ) : (
+        <polyline
+          data-role="primary"
+          fill="none"
+          stroke={STROKE[color]}
+          strokeWidth={1.5}
+          points={primaryPoints}
+        />
+      )}
       {markerCx != null && markerCy != null && (
         <circle
           data-role="marker"
