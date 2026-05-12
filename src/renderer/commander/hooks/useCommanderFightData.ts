@@ -22,10 +22,13 @@ interface UseCommanderFightDataResult {
 const HYDRATABLE: ReadonlySet<string> = new Set(['available', 'loaded']);
 
 function fightLabelForDetails(details: unknown, fallbackZone: string): string {
-  return buildFightLabelV2({
+  const raw = buildFightLabelV2({
     zone: fallbackZone,
     avgPosition: details ? computeFightAvgPosition(details) : null,
   });
+  // Shared helper abbreviates to "Green BL" etc. for compactness elsewhere;
+  // the Commander header has more room and reads better with the full word.
+  return raw.replace(/\b(Green|Blue|Red)\s+BL\b/g, '$1 Borderlands');
 }
 
 export function useCommanderFightData(logs: ILogData[]): UseCommanderFightDataResult {
