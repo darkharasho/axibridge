@@ -28,9 +28,9 @@ export function CommanderGrid({ fight, thresholds }: SectionProps) {
     <div className="flex flex-col gap-2">
       {SECTIONS.map(({ title, Comp }) => (
         <div key={title} className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500 mx-1 mt-2">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide mx-1 mt-2" style={{ color: 'var(--text-muted)' }}>
             <span>{title}</span>
-            <span className="flex-1 h-px bg-slate-800" />
+            <span className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }} />
           </div>
           <Comp fight={fight} thresholds={thresholds} />
         </div>

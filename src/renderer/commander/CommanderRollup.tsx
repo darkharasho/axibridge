@@ -18,18 +18,21 @@ function fmtMinSec(sec: number): string {
 export function CommanderRollup({ rollup }: { rollup: CommanderRollup | null }) {
   if (!rollup) return null;
   return (
-    <div className="grid grid-cols-6 gap-2 px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-md mb-3">
+    <div
+      className="grid grid-cols-6 gap-2 px-3 py-2.5 border rounded-md mb-3"
+      style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
+    >
       <Item label="Tonight" value={`${rollup.fightCount} fights`} sub={fmtDur(rollup.spanMs / 1000)} />
       <Item label="K / D" value={`${rollup.kills} / ${rollup.squadDeaths}`} sub={`${rollup.ratio.toFixed(2)} ratio`} />
       <Item label="Squad alive avg" value={`${Math.round(rollup.squadAliveAvgPct * 100)}%`} sub="across loaded fights" />
       <Item label="Avg duration" value={fmtMinSec(rollup.avgDurationSec)} sub="" />
       <Item label="Outnumbered" value={`${rollup.outnumberedCount} / ${rollup.fightCount}`} sub="" />
       <div className="flex flex-col gap-0.5">
-        <div className="text-[10px] uppercase tracking-wide text-slate-500">Trend</div>
+        <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Trend</div>
         {rollup.alivePctSeries.length >= 2 ? (
           <Sparkline series={rollup.alivePctSeries} color="red" width={100} height={24} />
         ) : (
-          <div className="text-[11px] text-slate-500 italic">need 2+ fights</div>
+          <div className="text-[11px] italic" style={{ color: 'var(--text-muted)' }}>need 2+ fights</div>
         )}
       </div>
     </div>
@@ -39,9 +42,9 @@ export function CommanderRollup({ rollup }: { rollup: CommanderRollup | null }) 
 function Item({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="text-[15px] font-semibold text-slate-100">{value}</div>
-      {sub && <div className="text-[11px] text-slate-400">{sub}</div>}
+      <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{label}</div>
+      <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{value}</div>
+      {sub && <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{sub}</div>}
     </div>
   );
 }

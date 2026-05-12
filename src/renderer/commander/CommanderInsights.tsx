@@ -17,10 +17,13 @@ export function CommanderInsights({ findings }: { findings: DetectorFinding[] })
 function Column({ title, tone, findings }: { title: string; tone: 'good' | 'bad'; findings: DetectorFinding[] }) {
   const titleColor = tone === 'good' ? 'text-emerald-400' : 'text-rose-400';
   return (
-    <section className="rounded-md bg-slate-900 border border-slate-800 p-3">
+    <section
+      className="rounded-md border p-3"
+      style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
+    >
       <div className={`text-[12px] uppercase tracking-[0.06em] mb-2 ${titleColor}`}>{title}</div>
       {findings.length === 0
-        ? <div className="text-xs text-slate-500 italic">Nothing notable yet.</div>
+        ? <div className="text-xs italic" style={{ color: 'var(--text-muted)' }}>Nothing notable yet.</div>
         : findings.map(f => <InsightCard key={f.id} finding={f} />)}
     </section>
   );

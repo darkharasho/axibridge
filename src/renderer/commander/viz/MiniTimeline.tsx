@@ -15,7 +15,7 @@ export function MiniTimeline({ duration, markers }: MiniTimelineProps) {
   const safeDuration = Math.max(1e-9, duration);
 
   return (
-    <div className="relative h-3 w-full rounded-sm bg-slate-800" data-role="timeline">
+    <div className="relative h-3 w-full rounded-sm" style={{ background: 'var(--bg-card-inner)' }} data-role="timeline">
       {markers.map((m, i) => {
         const pct = Math.max(0, Math.min(100, (m.tSec / safeDuration) * 100));
         return (

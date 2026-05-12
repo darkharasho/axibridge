@@ -13,8 +13,8 @@ export function DivergingBar({ positive, negative, width = '100%' }: DivergingBa
 
   return (
     <div
-      className="relative flex h-1.5 overflow-hidden rounded-sm bg-slate-800"
-      style={{ width }}
+      className="relative flex h-1.5 overflow-hidden rounded-sm"
+      style={{ width, background: 'var(--bg-card-inner)' }}
       data-role="diverging-bar"
     >
       <div

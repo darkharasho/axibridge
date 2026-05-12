@@ -31,13 +31,16 @@ function fmtDuration(sec: number): string {
 export function CommanderHeader({ fight, availableFights, selectedFightId, onSelectFight }: CommanderHeaderProps) {
   const m = fight.matchup;
   return (
-    <div className="flex items-start justify-between gap-3 px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-md mb-3 flex-wrap">
+    <div
+      className="flex items-start justify-between gap-3 px-3 py-2.5 border rounded-md mb-3 flex-wrap"
+      style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
+    >
       <div className="flex flex-col gap-1 min-w-0">
         <div className="flex items-baseline gap-3 flex-wrap">
-          <h2 className="text-lg font-semibold text-slate-100 leading-none">{fight.map || 'Fight'}</h2>
-          <span className="text-xs text-slate-400">{fmtTime(fight.startedAt)} · {fmtDuration(fight.duration)}</span>
+          <h2 className="text-lg font-semibold leading-none" style={{ color: 'var(--text-primary)' }}>{fight.map || 'Fight'}</h2>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{fmtTime(fight.startedAt)} · {fmtDuration(fight.duration)}</span>
         </div>
-        <div className="text-[12px] text-slate-300">
+        <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
           Squad {m.squadCount} + Allies {m.alliesCount} vs Enemy ~{m.enemyCount} (peak {m.enemyPeak})
         </div>
       </div>
@@ -58,7 +61,8 @@ export function CommanderHeader({ fight, availableFights, selectedFightId, onSel
           <select
             value={selectedFightId}
             onChange={(e) => onSelectFight(e.target.value)}
-            className="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded px-2 py-1"
+            className="border text-xs rounded px-2 py-1"
+            style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
           >
             {availableFights.map((f) => (
               <option key={f.id} value={f.id}>{f.label}</option>

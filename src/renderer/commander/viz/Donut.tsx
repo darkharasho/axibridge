@@ -30,8 +30,8 @@ export function Donut({ pct, color, label }: DonutProps) {
           cy={SIZE / 2}
           r={RADIUS}
           fill="none"
-          stroke="#1e293b"
           strokeWidth={STROKE_WIDTH}
+          style={{ stroke: 'var(--bg-card-inner)' }}
         />
         <circle
           data-role="donut-arc"
@@ -50,7 +50,8 @@ export function Donut({ pct, color, label }: DonutProps) {
       {label != null && (
         <span
           data-role="donut-label"
-          className="absolute text-[9px] font-medium text-slate-200"
+          className="absolute text-[9px] font-medium"
+          style={{ color: 'var(--text-primary)' }}
         >
           {label}
         </span>

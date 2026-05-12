@@ -22,7 +22,7 @@ export function ThresholdBar({ value, max, threshold, severity, width = '100%' }
       : Math.max(0, Math.min(100, (threshold / Math.max(1e-9, max)) * 100));
 
   return (
-    <div className="relative h-1.5 rounded-sm bg-slate-800" style={{ width }}>
+    <div className="relative h-1.5 rounded-sm" style={{ width, background: 'var(--bg-card-inner)' }}>
       <div
         data-role="fill"
         className={`absolute left-0 top-0 bottom-0 rounded-sm ${FILL_CLASS[severity]}`}

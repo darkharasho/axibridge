@@ -6,9 +6,9 @@ export function CommanderEmptyState({ status = 'idle' }: CommanderEmptyStateProp
   const isLoading = status === 'loading';
   const isError = status === 'error';
   return (
-    <div className="flex items-center justify-center min-h-[60vh] text-slate-400">
+    <div className="flex items-center justify-center min-h-[60vh]" style={{ color: 'var(--text-secondary)' }}>
       <div className="text-center">
-        <div className="text-base font-medium text-slate-200 mb-1">
+        <div className="text-base font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
           {isLoading
             ? 'Loading fight details…'
             : isError
