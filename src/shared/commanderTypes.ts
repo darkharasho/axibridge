@@ -37,6 +37,7 @@ export interface CommanderFightData {
     effectiveRatio: number;            // (squad+allies)/enemyPeak
     timeOutnumberedSec: number;
     enemyComp: Array<{ profession: string; count: number }>;
+    enemyByTeam: Array<{ teamID: number; count: number }>;
     inTagBubbleAtEngage: number;
   };
 

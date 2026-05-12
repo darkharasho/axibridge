@@ -11,7 +11,7 @@ const fight: CommanderFightData = {
   matchup: {
     squadCount: 25, alliesCount: 12, enemyCount: 50, enemyPeak: 53,
     effectiveRatio: 0.7, timeOutnumberedSec: 60,
-    enemyComp: [], inTagBubbleAtEngage: 20,
+    enemyComp: [], enemyByTeam: [], inTagBubbleAtEngage: 20,
   },
   survival: { firstSquadDeath: null, firstSupportDeath: null, squadAliveAtEnd: 20, squadTotal: 25, rallyRate: 0.5, rallies: 1, downs: 2, avgTimeDownedSec: 3 },
   burst: { worst3sIncoming: 0, worst3sIncomingTSec: 0, inHealRatioAtSpike: 0, healAtSpike: 0, bombWindowCount: 0, bombWindows: [], downsInWorst3s: 0, stabUptimeInSpike: 0 },

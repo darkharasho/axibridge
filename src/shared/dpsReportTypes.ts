@@ -54,6 +54,7 @@ export interface Target {
     totalHealth: number;
     healthPercentBurned: number;
     enemyPlayer: boolean;
+    teamID?: number;
 }
 
 export interface Player {

@@ -38,7 +38,9 @@ export function MatchupSection({ fight, thresholds }: { fight: CommanderFightDat
         description="Bodies on the field: your squad, pugs fighting with you, and enemies."
         meta={`peak enemy ${m.enemyPeak}`}
         severity={ratioSev}
-      />
+      >
+        {m.enemyByTeam.length >= 1 && <EnemyTeamSplit teams={m.enemyByTeam} />}
+      </MetricCard>
       <MetricCard
         label="Effective ratio"
         value={`${m.effectiveRatio.toFixed(2)}×`}
@@ -75,6 +77,39 @@ export function MatchupSection({ fight, thresholds }: { fight: CommanderFightDat
       >
         <TagBubble inside={m.inTagBubbleAtEngage} outside={Math.max(0, m.squadCount - m.inTagBubbleAtEngage)} />
       </MetricCard>
+    </div>
+  );
+}
+
+const TEAM_COLORS = ['rgb(248, 113, 113)', 'rgb(167, 139, 250)', 'rgb(96, 165, 250)'];
+
+function EnemyTeamSplit({ teams }: { teams: Array<{ teamID: number; count: number }> }) {
+  const total = Math.max(1, teams.reduce((a, t) => a + t.count, 0));
+  return (
+    <div className="flex flex-col gap-0.5" data-role="enemy-team-split">
+      <div className="flex h-1.5 w-full overflow-hidden rounded-sm" style={{ background: 'var(--bg-card-inner)' }}>
+        {teams.map((t, i) => (
+          <div
+            key={t.teamID}
+            style={{
+              width: `${(t.count / total) * 100}%`,
+              backgroundColor: TEAM_COLORS[i % TEAM_COLORS.length],
+            }}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between text-[10px]">
+        {teams.map((t, i) => (
+          <span
+            key={t.teamID}
+            className="font-mono"
+            style={{ color: TEAM_COLORS[i % TEAM_COLORS.length] }}
+            title={`team ${t.teamID}`}
+          >
+            T{String.fromCharCode(65 + i)} {t.count}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

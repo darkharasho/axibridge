@@ -14,6 +14,7 @@ export function baseFight(overrides: Partial<CommanderFightData> = {}): Commande
       effectiveRatio: 0.5,
       timeOutnumberedSec: 0,
       enemyComp: [],
+      enemyByTeam: [],
       inTagBubbleAtEngage: 25,
     },
     survival: {

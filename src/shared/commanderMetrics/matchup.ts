@@ -42,6 +42,18 @@ export function computeMatchup(
     .map(([profession, count]) => ({ profession, count }))
     .sort((a, b) => b.count - a.count);
 
+  // Enemy split by teamID (WvW shows two opposing teams; if EI didn't tag teamID
+  // on this log, this stays empty and the UI hides the breakdown).
+  const teamMap = new Map<number, number>();
+  for (const t of enemyTargets) {
+    if (typeof t.teamID === 'number') {
+      teamMap.set(t.teamID, (teamMap.get(t.teamID) ?? 0) + 1);
+    }
+  }
+  const enemyByTeam = Array.from(teamMap.entries())
+    .map(([teamID, count]) => ({ teamID, count }))
+    .sort((a, b) => b.count - a.count);
+
   // ---- timeOutnumberedSec ----
   // If there are no enemy targets, we cannot compute outnumbered status → 0.
   // With real enemies, count seconds where (alive squad + alive allies) < alive enemies.
@@ -99,6 +111,7 @@ export function computeMatchup(
     effectiveRatio,
     timeOutnumberedSec,
     enemyComp,
+    enemyByTeam,
     inTagBubbleAtEngage,
   };
 }
