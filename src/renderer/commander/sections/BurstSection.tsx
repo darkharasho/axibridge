@@ -36,6 +36,7 @@ export function BurstSection({ fight, thresholds }: { fight: CommanderFightData;
       <MetricCard
         label="Worst 3s incoming"
         value={fmtBigNum(b.worst3sIncoming)}
+        description="The peak 3-second damage spike your squad ate."
         meta={`at ${fmtTSec(b.worst3sIncomingTSec)}`}
         severity={ratioSev}
       >
@@ -44,6 +45,7 @@ export function BurstSection({ fight, thresholds }: { fight: CommanderFightData;
       <MetricCard
         label="In/Heal at spike"
         value={`${b.inHealRatioAtSpike.toFixed(2)}×`}
+        description="Incoming damage vs healing during the worst spike — over 1× means heals were behind."
         meta={`heal ${fmtBigNum(b.healAtSpike)}`}
         severity={ratioSev}
       >
@@ -52,18 +54,21 @@ export function BurstSection({ fight, thresholds }: { fight: CommanderFightData;
       <MetricCard
         label="Bomb windows"
         value={`${b.bombWindowCount}`}
+        description="How many enemy bombs landed on you, and how many actually broke the squad."
         meta={`${bombBrokeCount} broke us`}
         severity={bombSev}
       />
       <MetricCard
         label="Downs in worst 3s"
         value={`${b.downsInWorst3s}`}
+        description="How many squad members went down during the single worst damage window."
         meta=""
         severity={downsSev}
       />
       <MetricCard
         label="Stab in spike"
         value={`${Math.round(b.stabUptimeInSpike * 100)}%`}
+        description="Stability coverage during the worst spike — low means you got CC'd in the bomb."
         meta="uptime"
         severity={stabSev}
       >

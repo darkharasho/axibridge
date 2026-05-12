@@ -32,6 +32,7 @@ export function EngageSection({ fight, thresholds }: { fight: CommanderFightData
       <MetricCard
         label="Squad HP at engage"
         value={`${Math.round(e.squadHpAtEngage * 100)}%`}
+        description="Average squad HP when the fight kicked off — low means you engaged hurt."
         meta=""
         severity={hpSev}
       >
@@ -40,6 +41,7 @@ export function EngageSection({ fight, thresholds }: { fight: CommanderFightData
       <MetricCard
         label="Key CDs 0–10s"
         value={`${Math.round(e.keyCdsUsed0to10s * 100)}%`}
+        description="How much of the squad's stab, heal, and CC fired in the first 10s of engage."
         meta="stab/heal/CC"
         severity={cdSev}
       >
@@ -48,12 +50,14 @@ export function EngageSection({ fight, thresholds }: { fight: CommanderFightData
       <MetricCard
         label="Pre-engage downs"
         value={`${e.preEngageDowns}`}
+        description="Squad members downed before the real fight even started."
         meta=""
         severity={preEngageSev}
       />
       <MetricCard
         label="Stab 0–10s"
         value={`${Math.round(e.stab0to10s * 100)}%`}
+        description="Stability coverage during the opening 10 seconds of the fight."
         meta=""
         severity={stabSev}
       >
@@ -62,6 +66,7 @@ export function EngageSection({ fight, thresholds }: { fight: CommanderFightData
       <MetricCard
         label="Dodge starvation"
         value={DODGE_LABEL[e.dodgeStarvation]}
+        description="Rough read on whether the squad ran out of dodges when it mattered."
         meta="heuristic"
         severity={DODGE_SEV[e.dodgeStarvation]}
       />

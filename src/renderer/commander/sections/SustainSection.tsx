@@ -32,6 +32,7 @@ export function SustainSection({ fight, thresholds }: { fight: CommanderFightDat
       <MetricCard
         label="Cleanse net"
         value={`${cleanseNet >= 0 ? '+' : ''}${cleanseNet}`}
+        description="Condi cleanses your supports landed versus conditions the enemy stuck on you."
         meta={`${fmtBigNum(s.cleansesApplied)} / ${fmtBigNum(s.conditionsTaken)}`}
         severity={cleanseSev}
       >
@@ -40,6 +41,7 @@ export function SustainSection({ fight, thresholds }: { fight: CommanderFightDat
       <MetricCard
         label="Strip net"
         value={`${stripNet >= 0 ? '+' : ''}${stripNet}`}
+        description="Boons you ripped off enemies versus boons they ripped off you."
         meta={`${fmtBigNum(s.stripsLanded)} / ${fmtBigNum(s.stripsReceived)}`}
         severity={stripSev}
       >
@@ -48,6 +50,7 @@ export function SustainSection({ fight, thresholds }: { fight: CommanderFightDat
       <MetricCard
         label="Stab thru bombs"
         value={`${Math.round(s.stabThroughBombs * 100)}%`}
+        description="Stability coverage during enemy bomb windows — low means you got CC'd."
         meta=""
         severity={stabSev}
       >
@@ -56,6 +59,7 @@ export function SustainSection({ fight, thresholds }: { fight: CommanderFightDat
       <MetricCard
         label="Resistance at burst"
         value={`${Math.round(s.resistanceAtBurst * 100)}%`}
+        description="Resistance uptime when the burst hit — blocks condi damage and effects."
         meta=""
         severity={resSev}
       >
@@ -64,6 +68,7 @@ export function SustainSection({ fight, thresholds }: { fight: CommanderFightDat
       <MetricCard
         label="Aegis at burst"
         value={`${Math.round(s.aegisAtBurst * 100)}%`}
+        description="Aegis coverage during the burst — eats the first hit of the incoming bomb."
         meta=""
         severity={aegisSev}
       >

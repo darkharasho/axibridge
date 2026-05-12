@@ -17,20 +17,40 @@ export function OutcomeSection({ fight }: { fight: CommanderFightData; threshold
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-      <MetricCard label="Kills" value={`${o.kills}`} meta="enemy downs" severity={o.kills > 0 ? 'green' : 'yellow'} />
-      <MetricCard label="Squad deaths" value={`${o.squadDeaths}`} meta="" severity={o.squadDeaths === 0 ? 'green' : 'red'} />
-      <MetricCard label="Ally deaths" value={`${o.allyDeaths}`} meta="" severity={o.allyDeaths === 0 ? 'green' : 'yellow'}>
+      <MetricCard
+        label="Kills"
+        value={`${o.kills}`}
+        description="Enemy bodies your squad put on the floor."
+        meta="enemy downs"
+        severity={o.kills > 0 ? 'green' : 'yellow'}
+      />
+      <MetricCard
+        label="Squad deaths"
+        value={`${o.squadDeaths}`}
+        description="How many of your own squad died during the fight."
+        meta=""
+        severity={o.squadDeaths === 0 ? 'green' : 'red'}
+      />
+      <MetricCard
+        label="Ally deaths"
+        value={`${o.allyDeaths}`}
+        description="Pugs fighting alongside you who didn't make it."
+        meta=""
+        severity={o.allyDeaths === 0 ? 'green' : 'yellow'}
+      >
         <StackedCountBar alive={0} dead={o.allyDeaths} />
       </MetricCard>
       <MetricCard
         label="Net trade"
         value={`${o.netTrade >= 0 ? '+' : ''}${o.netTrade}`}
+        description="Kills minus squad deaths — positive means you won the bodycount."
         meta="kills − squad deaths"
         severity={tradeSev}
       />
       <MetricCard
         label="Damage out / in"
         value={`${o.damageOutInRatio.toFixed(2)}×`}
+        description="Damage you dealt vs damage you took — over 1× means you pushed harder than they did."
         meta={`${fmtBigNum(o.damageOut)} / ${fmtBigNum(o.damageIn)}`}
         severity={dmgSev}
       >

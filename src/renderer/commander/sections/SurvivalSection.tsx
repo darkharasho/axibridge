@@ -41,18 +41,21 @@ export function SurvivalSection({ fight, thresholds }: { fight: CommanderFightDa
       <MetricCard
         label="First squad death"
         value={s.firstSquadDeath ? fmtTSec(s.firstSquadDeath.tSec) : '—'}
+        description="When the first body dropped — early deaths usually mean a bad engage."
         meta={s.firstSquadDeath ? `${s.firstSquadDeath.account} (${s.firstSquadDeath.profession})` : 'no deaths'}
         severity={firstDeathSev}
       />
       <MetricCard
         label="First support death"
         value={s.firstSupportDeath ? fmtTSec(s.firstSupportDeath.tSec) : '—'}
+        description="When the first support went down — losing heals early snowballs fast."
         meta={s.firstSupportDeath ? `${s.firstSupportDeath.account} (${s.firstSupportDeath.profession})` : '—'}
         severity={firstSupportSev}
       />
       <MetricCard
         label="Squad alive at end"
         value={`${s.squadAliveAtEnd}/${s.squadTotal}`}
+        description="How many of your squad were still standing when the fight ended."
         meta={`${Math.round(aliveFrac * 100)}%`}
         severity={aliveSev}
       >
@@ -61,6 +64,7 @@ export function SurvivalSection({ fight, thresholds }: { fight: CommanderFightDa
       <MetricCard
         label="Rally rate"
         value={`${Math.round(s.rallyRate * 100)}%`}
+        description="Of squad members that went down, what fraction got back up."
         meta={`${s.rallies}/${s.downs} downs`}
         severity={rallySev}
       >
@@ -69,6 +73,7 @@ export function SurvivalSection({ fight, thresholds }: { fight: CommanderFightDa
       <MetricCard
         label="Deaths timeline"
         value={`${fight.series.deathsTimeline.length}`}
+        description="When deaths happened across the fight — clusters mean a bomb landed."
         meta={s.avgTimeDownedSec > 0 ? `${s.avgTimeDownedSec.toFixed(1)}s avg down` : ''}
         severity={fight.series.deathsTimeline.length > 0 ? 'yellow' : 'green'}
       >

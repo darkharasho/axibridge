@@ -27,12 +27,14 @@ export function MatchupSection({ fight, thresholds }: { fight: CommanderFightDat
       <MetricCard
         label="Sq / Ally / Enemy"
         value={`${m.squadCount}·${m.alliesCount}·${m.enemyCount}`}
+        description="Bodies on the field: your squad, pugs fighting with you, and enemies."
         meta={`peak enemy ${m.enemyPeak}`}
         severity={ratioSev}
       />
       <MetricCard
         label="Effective ratio"
         value={`${m.effectiveRatio.toFixed(2)}×`}
+        description="Squad plus allies divided by enemies — under 1× means you were outnumbered."
         meta="(sq+ally) / enemy"
         severity={ratioSev}
       >
@@ -41,6 +43,7 @@ export function MatchupSection({ fight, thresholds }: { fight: CommanderFightDat
       <MetricCard
         label="Time outnumbered"
         value={durStr(m.timeOutnumberedSec)}
+        description="How long you were outmanned during the fight."
         meta={`${outPct}% of fight`}
         severity={m.timeOutnumberedSec > fight.duration * 0.5 ? 'red' : m.timeOutnumberedSec > 0 ? 'yellow' : 'green'}
       >
@@ -49,6 +52,7 @@ export function MatchupSection({ fight, thresholds }: { fight: CommanderFightDat
       <MetricCard
         label="Enemy comp"
         value={m.enemyComp.slice(0, 2).map((e) => `${e.count}${e.profession[0] ?? '?'}`).join(' · ') || '—'}
+        description="What the enemy group was running — top professions stacked."
         meta=""
         severity="yellow"
       >
@@ -57,6 +61,7 @@ export function MatchupSection({ fight, thresholds }: { fight: CommanderFightDat
       <MetricCard
         label="In tag bubble"
         value={`${m.inTagBubbleAtEngage}/${m.squadCount}`}
+        description="How many were stacked on tag when the fight kicked off."
         meta="at engage start"
         severity={tagPct > 0.8 ? 'green' : tagPct > 0.5 ? 'yellow' : 'red'}
       >

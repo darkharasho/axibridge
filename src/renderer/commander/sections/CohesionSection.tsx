@@ -43,6 +43,7 @@ export function CohesionSection({ fight, thresholds }: { fight: CommanderFightDa
       <MetricCard
         label="Avg dist from tag"
         value={`${Math.round(c.avgDistFromTag)}u`}
+        description="How far the squad sat from tag on average — bigger numbers mean spread out."
         meta={`tag bubble ${thresholds.tagRadius}u`}
         severity={avgDistSev}
       >
@@ -56,6 +57,7 @@ export function CohesionSection({ fight, thresholds }: { fight: CommanderFightDa
       <MetricCard
         label="Time spread >900u"
         value={fmtTSec(c.timeSpread900PlusSec)}
+        description="How long the squad was spread too wide for boons and heals to reach everyone."
         meta={`${Math.round(100 * c.timeSpread900PlusSec / Math.max(1, fight.duration))}% of fight`}
         severity={timeSpreadSev}
       >
@@ -64,12 +66,14 @@ export function CohesionSection({ fight, thresholds }: { fight: CommanderFightDa
       <MetricCard
         label="Avg dist at death"
         value={`${Math.round(c.avgDistAtDeath)}u`}
+        description="How far from tag squad members were when they died — high means caught out."
         meta=""
         severity={deathDistSev}
       />
       <MetricCard
         label="Peak spread σ"
         value={`${Math.round(c.peakSpreadStdev)}u`}
+        description="The most spread-out the squad ever got during the fight."
         meta={`at ${fmtTSec(c.peakSpreadStdevTSec)}`}
         severity={spreadSev}
       >
@@ -78,6 +82,7 @@ export function CohesionSection({ fight, thresholds }: { fight: CommanderFightDa
       <MetricCard
         label="Stragglers at bomb"
         value={`${c.stragglersAtBomb}`}
+        description="How many were way out of range of tag when the bomb dropped on you."
         meta=">1500u from tag"
         severity={stragglersSev}
       />
