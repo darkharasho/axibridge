@@ -60,24 +60,35 @@ export function computeMatchup(
   // For now we only have squad alive-status from combatReplayData.dead ranges.
   let timeOutnumberedSec = 0;
   if (enemyCount > 0) {
-    const allPlayers = json.players;
-    const alliesPlayers = allPlayers.filter(p => p.notInSquad === true);
+    const alliesPlayers = json.players.filter(p => p.notInSquad === true);
     const seriesLen = Math.ceil(durationSec);
-    // A player is alive at second t if they have no dead interval whose start ≤ t*1000
-    // (we use the simple approximation: alive = no dead range overlapping second t)
+
+    // Precompute per-player alive[t] arrays once, then per second it's just a sum.
+    // alive[t] = no dead range overlaps second t (in ms).
+    const buildAliveArr = (p: Player): Uint8Array => {
+      const arr = new Uint8Array(seriesLen).fill(1);
+      const dead = p.combatReplayData?.dead ?? [];
+      for (const [s, e] of dead) {
+        const tStart = Math.max(0, Math.floor(s / 1000));
+        const tEnd = Math.min(seriesLen - 1, Math.ceil(e / 1000) - 1);
+        for (let t = tStart; t <= tEnd; t++) {
+          // Match the exact original predicate: tMs >= s && tMs < e
+          const tMs = t * 1000;
+          if (tMs >= s && tMs < e) arr[t] = 0;
+        }
+      }
+      return arr;
+    };
+
+    const squadAlive = squadPlayers.map(buildAliveArr);
+    const alliesAlive = alliesPlayers.map(buildAliveArr);
+
     for (let t = 0; t < seriesLen; t++) {
-      const tMs = t * 1000;
-      const aliveSquad = squadPlayers.filter(p => {
-        const dead = p.combatReplayData?.dead ?? [];
-        return !dead.some(([s, e]) => tMs >= s && tMs < e);
-      }).length;
-      const aliveAllies = alliesPlayers.filter(p => {
-        const dead = p.combatReplayData?.dead ?? [];
-        return !dead.some(([s, e]) => tMs >= s && tMs < e);
-      }).length;
-      // For enemies, we can only use a fixed enemyCount (no per-second alive data)
-      const aliveEnemies = enemyCount;
-      if (aliveSquad + aliveAllies < aliveEnemies) {
+      let aliveSquad = 0;
+      for (const arr of squadAlive) aliveSquad += arr[t];
+      let aliveAllies = 0;
+      for (const arr of alliesAlive) aliveAllies += arr[t];
+      if (aliveSquad + aliveAllies < enemyCount) {
         timeOutnumberedSec++;
       }
     }
