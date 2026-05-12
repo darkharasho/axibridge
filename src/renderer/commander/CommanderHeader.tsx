@@ -5,6 +5,7 @@ import { normalizeMapLabel } from '../stats/utils/labelUtils';
 
 interface CommanderHeaderProps {
   fight: CommanderFightData;
+  fightLabel?: string;
   availableFights: Array<{ id: string; label: string }>;
   selectedFightId: string;
   onSelectFight: (id: string) => void;
@@ -31,7 +32,7 @@ function fmtDuration(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export function CommanderHeader({ fight, availableFights, selectedFightId, onSelectFight }: CommanderHeaderProps) {
+export function CommanderHeader({ fight, fightLabel, availableFights, selectedFightId, onSelectFight }: CommanderHeaderProps) {
   const m = fight.matchup;
   return (
     <div
@@ -42,7 +43,7 @@ export function CommanderHeader({ fight, availableFights, selectedFightId, onSel
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-baseline gap-3 flex-wrap">
             <h2 className="text-lg font-semibold leading-none" style={{ color: 'var(--text-primary)' }}>
-              {normalizeMapLabel(fight.map)}
+              {fightLabel || normalizeMapLabel(fight.map)}
             </h2>
             <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               {fmtTime(fight.startedAt)} · {fmtDuration(fight.duration)}

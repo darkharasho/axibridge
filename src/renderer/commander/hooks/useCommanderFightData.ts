@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { computeCommanderFightData } from '../../../shared/commanderMetrics';
 import type { CommanderFightData } from '../../../shared/commanderTypes';
 import type { DPSReportJSON } from '../../../shared/dpsReportTypes';
 import { useLogDetails } from '../../cache/useLogDetails';
-import { normalizeMapLabel } from '../../stats/utils/labelUtils';
+import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
+import { buildFightLabelV2, computeFightAvgPosition } from '../../stats/utils/labelUtils';
 
 const LRU_LIMIT = 10;
 
@@ -11,6 +12,7 @@ type Status = 'idle' | 'loading' | 'loaded' | 'error';
 
 interface UseCommanderFightDataResult {
   fight: CommanderFightData | null;
+  fightLabel: string;
   status: Status;
   selectedFightId: string | null;
   availableFights: Array<{ id: string; label: string }>;
@@ -19,7 +21,16 @@ interface UseCommanderFightDataResult {
 
 const HYDRATABLE: ReadonlySet<string> = new Set(['available', 'loaded']);
 
+function fightLabelForDetails(details: unknown, fallbackZone: string): string {
+  return buildFightLabelV2({
+    zone: fallbackZone,
+    avgPosition: details ? computeFightAvgPosition(details) : null,
+  });
+}
+
 export function useCommanderFightData(logs: ILogData[]): UseCommanderFightDataResult {
+  const cache = useContext(DetailsCacheContext);
+
   const candidates = useMemo(
     () =>
       logs
@@ -38,7 +49,6 @@ export function useCommanderFightData(logs: ILogData[]): UseCommanderFightDataRe
     [candidates, effectiveId],
   );
 
-  // Inline details on the log take priority; otherwise fetch via cache.
   const needsCacheFetch = effectiveId != null && (selectedLog?.details == null);
   const { details: cachedDetails, status: cacheStatus } = useLogDetails(
     needsCacheFetch ? effectiveId ?? undefined : undefined,
@@ -61,6 +71,11 @@ export function useCommanderFightData(logs: ILogData[]): UseCommanderFightDataRe
     return data;
   }, [effectiveId, resolvedDetails]);
 
+  const fightLabel = useMemo(() => {
+    if (!fight) return '';
+    return fightLabelForDetails(resolvedDetails, fight.map);
+  }, [fight, resolvedDetails]);
+
   const status: Status = !effectiveId
     ? 'idle'
     : fight
@@ -71,18 +86,23 @@ export function useCommanderFightData(logs: ILogData[]): UseCommanderFightDataRe
 
   const availableFights = useMemo(
     () =>
-      candidates.map((l) => ({
-        id: l.id,
-        label: `${
-          l.uploadTime
-            ? new Date(l.uploadTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : '—'
-        } · ${normalizeMapLabel(l.fightName ?? l.fightLabel ?? 'Fight')}`,
-      })),
-    [candidates],
+      candidates.map((l) => {
+        const inline = l.details;
+        const cached = inline ?? cache?.peek(l.id);
+        const label = fightLabelForDetails(cached, l.fightName ?? l.fightLabel ?? 'Fight');
+        return {
+          id: l.id,
+          label: `${
+            l.uploadTime
+              ? new Date(l.uploadTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : '—'
+          } · ${label}`,
+        };
+      }),
+    [candidates, cache],
   );
 
   const selectFight = useCallback((id: string) => setSelectedId(id), []);
 
-  return { fight, status, selectedFightId: effectiveId, availableFights, selectFight };
+  return { fight, fightLabel, status, selectedFightId: effectiveId, availableFights, selectFight };
 }

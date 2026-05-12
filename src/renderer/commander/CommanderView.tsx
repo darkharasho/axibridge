@@ -11,7 +11,7 @@ import { useCommanderThresholds } from './hooks/useCommanderThresholds';
 import { runAllDetectors } from './detectors';
 
 export function CommanderView({ logs }: { logs: ILogData[] }) {
-  const { fight, status, selectedFightId, availableFights, selectFight } = useCommanderFightData(logs);
+  const { fight, fightLabel, status, selectedFightId, availableFights, selectFight } = useCommanderFightData(logs);
   const rollup = useCommanderRollup(logs);
   const { thresholds } = useCommanderThresholds();
 
@@ -35,6 +35,7 @@ export function CommanderView({ logs }: { logs: ILogData[] }) {
       <CommanderRollup rollup={rollup} />
       <CommanderHeader
         fight={fight}
+        fightLabel={fightLabel}
         availableFights={availableFights}
         selectedFightId={selectedFightId ?? ''}
         onSelectFight={selectFight}
