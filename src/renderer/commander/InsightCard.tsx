@@ -11,7 +11,7 @@ export function InsightCard({ finding }: { finding: DetectorFinding }) {
         <div className="text-[10px] text-slate-500 mt-0.5">{finding.threshold}</div>
       </div>
       <div className="flex items-center justify-center">
-        <VizRouter kind={finding.vizKind} data={finding.vizData} />
+        <VizRouter kind={finding.vizKind} data={finding.vizData} side={finding.side} />
       </div>
     </div>
   );
