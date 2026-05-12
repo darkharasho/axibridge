@@ -1,5 +1,3 @@
-import { Loader2 } from 'lucide-react';
-
 const ACTIVE_STATUSES: ReadonlySet<NonNullable<ILogData['status']>> = new Set([
   'queued',
   'pending',
@@ -38,10 +36,15 @@ export function CommanderProcessingBanner({ logs }: { logs: ILogData[] }) {
       }}
       data-role="commander-processing-banner"
     >
-      <Loader2
-        className="w-3.5 h-3.5 animate-spin shrink-0"
-        style={{ color: 'var(--brand-primary)' }}
-      />
+      <div className="stats-particle-spinner shrink-0" style={{ width: 18, height: 18 }}>
+        <div className="stats-particle-spinner__ring" />
+        <div className="stats-particle-spinner__orbit">
+          <span className="stats-particle-spinner__particle" />
+          <span className="stats-particle-spinner__particle" />
+          <span className="stats-particle-spinner__particle" />
+          <span className="stats-particle-spinner__particle" />
+        </div>
+      </div>
       <span>
         <span style={{ color: 'var(--text-primary)' }}>{summary}</span>
         <span className="ml-1.5" style={{ color: 'var(--text-muted)' }}>
