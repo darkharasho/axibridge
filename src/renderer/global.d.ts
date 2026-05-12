@@ -261,6 +261,7 @@ export interface IElectronAPI {
         mvpWeights: IMvpWeights;
         statsViewSettings: IStatsViewSettings;
         disruptionMethod: DisruptionMethod;
+        commanderThresholds?: Partial<import('../shared/commanderThresholds').CommanderThresholds>;
         colorPalette?: ColorPalette;
         glassSurfaces?: boolean;
         glassmorphic?: boolean;
@@ -307,6 +308,7 @@ export interface IElectronAPI {
         mvpWeights?: IMvpWeights;
         statsViewSettings?: IStatsViewSettings;
         disruptionMethod?: DisruptionMethod;
+        commanderThresholds?: Partial<import('../shared/commanderThresholds').CommanderThresholds>;
         colorPalette?: ColorPalette;
         glassSurfaces?: boolean;
         glassmorphic?: boolean;

@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, normalizeMvpWeights, IEiParserSettings, IEiStatus } from './global.d';
+import { DEFAULT_COMMANDER_THRESHOLDS, type CommanderThresholds } from '../shared/commanderThresholds';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { PALETTES, type ColorPalette, DEFAULT_PALETTE_ID } from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
@@ -59,6 +60,7 @@ const SETTINGS_SECTIONS = [
     { id: 'dashboard-stats', label: 'Dashboard Stats' },
     { id: 'boon-uptime-resolution', label: 'Boon Uptime' },
     { id: 'mvp-weighting', label: 'MVP Weighting' },
+    { id: 'commander-thresholds', label: 'Commander Thresholds' },
     { id: 'parser-settings', label: 'Parser Settings' },
     { id: 'close-behavior', label: 'Close Behavior' },
     { id: 'export-import', label: 'Export / Import' },
@@ -203,6 +205,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
+    const [commanderThresholds, setCommanderThresholds] = useState<CommanderThresholds>(DEFAULT_COMMANDER_THRESHOLDS);
     const [colorPalette, setColorPalette] = useState<ColorPalette>(colorPaletteProp ?? DEFAULT_PALETTE_ID);
     const [glassSurfaces, setGlassSurfaces] = useState(glassSurfacesProp ?? false);
     const [glassmorphic, setGlassmorphic] = useState(glassmorphicProp ?? false);
@@ -525,6 +528,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (settings.disruptionMethod) {
             setDisruptionMethod(settings.disruptionMethod);
         }
+        const loadedCommanderThresholds = (settings as { commanderThresholds?: Partial<CommanderThresholds> }).commanderThresholds;
+        if (loadedCommanderThresholds && typeof loadedCommanderThresholds === 'object') {
+            setCommanderThresholds({ ...DEFAULT_COMMANDER_THRESHOLDS, ...loadedCommanderThresholds });
+        }
         if (typeof settings.forceDpsReportOnly === 'boolean') {
             setForceDpsReportOnly(settings.forceDpsReportOnly);
         }
@@ -757,6 +764,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         mvpWeights,
         statsViewSettings,
         disruptionMethod,
+        commanderThresholds,
         colorPalette,
         glassSurfaces,
         glassmorphic,
@@ -891,6 +899,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             mvpWeights: mvpWeights,
             statsViewSettings: statsViewSettings,
             disruptionMethod: disruptionMethod,
+            commanderThresholds: commanderThresholds,
             colorPalette,
             glassSurfaces,
             glassmorphic,
@@ -940,6 +949,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         mvpWeights,
         statsViewSettings,
         disruptionMethod,
+        commanderThresholds,
         colorPalette,
         glassSurfaces,
         glassmorphic,
@@ -2509,6 +2519,82 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     ))}
                                 </div>
                             </div>
+                        </div>
+                    </SettingsSection>
+
+                    {/* Commander Thresholds Section */}
+                    <SettingsSection title="Commander Thresholds" icon={BarChart3} delay={0.185} sectionId="commander-thresholds" hidden={settingsSearchHidden.has('commander-thresholds')}>
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-sm text-gray-400">
+                                Tune the thresholds that drive Commander tab severity colors and insight detectors.
+                            </p>
+                            <button
+                                onClick={() => setCommanderThresholds(DEFAULT_COMMANDER_THRESHOLDS)}
+                                className="text-xs font-semibold text-blue-300 hover:text-blue-200 transition-colors"
+                            >
+                                Reset all
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {([
+                                { key: 'firstDeathMinSec', label: 'First squad death — flag if before (s)', kind: 'number' },
+                                { key: 'firstDeathMaxDist', label: 'First squad death — flag if farther than (units)', kind: 'number' },
+                                { key: 'bombRatio', label: 'Bomb overwhelms sustain when incoming/heal ≥ (×)', kind: 'number' },
+                                { key: 'bombFloor', label: 'Bomb-window incoming damage floor (or "auto")', kind: 'bombFloor' },
+                                { key: 'stabGoodEngage', label: 'Stab in engage considered good ≥ (0–1)', kind: 'number' },
+                                { key: 'stabBadInBomb', label: 'Stab in bomb window considered bad < (0–1)', kind: 'number' },
+                                { key: 'cleanseDeficitWarn', label: 'Cleanse deficit warning threshold (signed int)', kind: 'number' },
+                                { key: 'stripDeficitWarn', label: 'Strip deficit warning threshold (positive int)', kind: 'number' },
+                                { key: 'rallyGood', label: 'Rally rate considered good ≥ (0–1)', kind: 'number' },
+                                { key: 'caughtOutDist', label: 'Avg dist at death "caught out" threshold (units)', kind: 'number' },
+                                { key: 'spreadBad', label: 'Spread σ "fragmented" threshold (units)', kind: 'number' },
+                                { key: 'outnumberedRatio', label: 'Outnumbered chip when ratio < (0–1)', kind: 'number' },
+                                { key: 'tagRadius', label: 'Tag bubble radius (units)', kind: 'number' },
+                                { key: 'supportPreBombLeadSec', label: 'Support-died-before-bomb lead time (s)', kind: 'number' },
+                            ] as Array<{ key: keyof CommanderThresholds; label: string; kind: 'number' | 'bombFloor' }>).map(({ key, label, kind }) => {
+                                const current = commanderThresholds[key];
+                                return (
+                                    <div key={key} className="flex items-center gap-3 py-1.5">
+                                        <div className="flex-1 text-sm text-gray-200">{label}</div>
+                                        {kind === 'bombFloor' ? (
+                                            <input
+                                                type="text"
+                                                value={current === 'auto' ? 'auto' : String(current)}
+                                                onChange={(e) => {
+                                                    const v = e.target.value.trim();
+                                                    const next = v === 'auto' ? 'auto' : Number(v);
+                                                    if (next === 'auto' || Number.isFinite(next)) {
+                                                        setCommanderThresholds((prev) => ({ ...prev, bombFloor: next as number | 'auto' }));
+                                                    }
+                                                }}
+                                                className="w-32 bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-gray-100"
+                                            />
+                                        ) : (
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                value={current as number}
+                                                onChange={(e) => {
+                                                    const n = Number(e.target.value);
+                                                    if (Number.isFinite(n)) {
+                                                        setCommanderThresholds((prev) => ({ ...prev, [key]: n } as CommanderThresholds));
+                                                    }
+                                                }}
+                                                className="w-32 bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-gray-100"
+                                            />
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setCommanderThresholds((prev) => ({ ...prev, [key]: DEFAULT_COMMANDER_THRESHOLDS[key] } as CommanderThresholds))
+                                            }
+                                            className="text-[10px] uppercase tracking-wide text-gray-500 hover:text-gray-200"
+                                        >
+                                            Reset
+                                        </button>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </SettingsSection>
 
