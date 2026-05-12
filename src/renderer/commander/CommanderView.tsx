@@ -4,6 +4,7 @@ import { CommanderRollup } from './CommanderRollup';
 import { CommanderInsights } from './CommanderInsights';
 import { CommanderGrid } from './CommanderGrid';
 import { CommanderEmptyState } from './CommanderEmptyState';
+import { CommanderProcessingBanner } from './CommanderProcessingBanner';
 import { useCommanderFightData } from './hooks/useCommanderFightData';
 import { useCommanderRollup } from './hooks/useCommanderRollup';
 import { useCommanderThresholds } from './hooks/useCommanderThresholds';
@@ -19,10 +20,18 @@ export function CommanderView({ logs }: { logs: ILogData[] }) {
     [fight, thresholds],
   );
 
-  if (!fight) return <CommanderEmptyState status={status} />;
+  if (!fight) {
+    return (
+      <div className="flex flex-col p-4 overflow-auto">
+        <CommanderProcessingBanner logs={logs} />
+        <CommanderEmptyState status={status} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col p-4 overflow-auto">
+      <CommanderProcessingBanner logs={logs} />
       <CommanderRollup rollup={rollup} />
       <CommanderHeader
         fight={fight}
