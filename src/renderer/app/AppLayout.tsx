@@ -1,7 +1,8 @@
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BarChart3, Clock3, LayoutDashboard, Minus, RefreshCw, Settings as SettingsIcon, ShieldCheck, Square, X } from 'lucide-react';
+import { BarChart3, Clock3, LayoutDashboard, Minus, RefreshCw, Settings as SettingsIcon, Square, X } from 'lucide-react';
+import { CommanderIcon } from '../commander/CommanderIcon';
 import { Terminal as TerminalIcon } from 'lucide-react';
 import { SettingsView } from '../SettingsView';
 import { StatsView } from '../StatsView';
@@ -208,7 +209,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 {([
                     { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
                     { id: 'stats' as const, label: 'Stats', icon: BarChart3 },
-                    { id: 'commander' as const, label: 'Commander', icon: ShieldCheck },
+                    { id: 'commander' as const, label: 'Commander', icon: CommanderIcon },
                     { id: 'history' as const, label: 'History', icon: Clock3 },
                     { id: 'settings' as const, label: 'Settings', icon: SettingsIcon },
                 ]).map(({ id, label, icon: Icon }) => (

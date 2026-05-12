@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useContext, useMemo } from 'react';
 import { computeCommanderFightData } from '../../../shared/commanderMetrics';
 import type { DPSReportJSON } from '../../../shared/dpsReportTypes';
+import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 
 export interface CommanderRollup {
   fightCount: number;
@@ -15,10 +16,18 @@ export interface CommanderRollup {
 }
 
 export function useCommanderRollup(logs: ILogData[]): CommanderRollup | null {
+  const cache = useContext(DetailsCacheContext);
+
   return useMemo(() => {
-    const hydrated = logs.filter((l) => l.details != null);
+    const hydrated: DPSReportJSON[] = [];
+    for (const log of logs) {
+      const inline = log.details;
+      const cached = inline ?? cache?.peek(log.id);
+      if (cached) hydrated.push(cached as unknown as DPSReportJSON);
+    }
     if (hydrated.length === 0) return null;
-    const datas = hydrated.map((l) => computeCommanderFightData(l.details as unknown as DPSReportJSON));
+
+    const datas = hydrated.map((d) => computeCommanderFightData(d));
 
     const kills = datas.reduce((a, d) => a + d.outcome.kills, 0);
     const squadDeaths = datas.reduce((a, d) => a + d.outcome.squadDeaths, 0);
@@ -45,5 +54,5 @@ export function useCommanderRollup(logs: ILogData[]): CommanderRollup | null {
       outnumberedCount: outnumbered,
       alivePctSeries,
     };
-  }, [logs]);
+  }, [logs, cache]);
 }

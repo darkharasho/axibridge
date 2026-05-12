@@ -10,7 +10,7 @@ import { useCommanderThresholds } from './hooks/useCommanderThresholds';
 import { runAllDetectors } from './detectors';
 
 export function CommanderView({ logs }: { logs: ILogData[] }) {
-  const { fight, selectedFightId, availableFights, selectFight } = useCommanderFightData(logs);
+  const { fight, status, selectedFightId, availableFights, selectFight } = useCommanderFightData(logs);
   const rollup = useCommanderRollup(logs);
   const { thresholds } = useCommanderThresholds();
 
@@ -19,7 +19,7 @@ export function CommanderView({ logs }: { logs: ILogData[] }) {
     [fight, thresholds],
   );
 
-  if (!fight) return <CommanderEmptyState />;
+  if (!fight) return <CommanderEmptyState status={status} />;
 
   return (
     <div className="flex flex-col p-4 overflow-auto">
