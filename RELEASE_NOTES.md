@@ -8,4 +8,4 @@ The outgoing conditions table now has an **Avg/app** column showing how long eac
 
 Sortable in both the standard and dense views. The "All Conditions" aggregate uses weighted totals so the number isn't an average-of-averages.
 
-NOTE: dps.report's WvW JSON doesn't expose per-condition cleanse events on the enemy aggregate target, so this is a proxy for cleanse pressure, not a literal "% cleansed".
+NOTE: Elite Insights doesn't track cleanse events on enemy targets in its JSON output, so this is a proxy for cleanse pressure, not a literal "% cleansed".
