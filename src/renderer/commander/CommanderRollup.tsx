@@ -28,9 +28,18 @@ export function CommanderRollup({ rollup }: { rollup: CommanderRollup | null }) 
       <Item label="Avg duration" value={fmtMinSec(rollup.avgDurationSec)} sub="" />
       <Item label="Outnumbered" value={`${rollup.outnumberedCount} / ${rollup.fightCount}`} sub="" />
       <div className="flex flex-col gap-0.5">
-        <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Trend</div>
+        <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }} title="Squad alive % at the end of each fight, oldest → newest">
+          Squad alive % over fights
+        </div>
         {rollup.alivePctSeries.length >= 2 ? (
-          <Sparkline series={rollup.alivePctSeries} color="red" width={100} height={24} />
+          <div className="flex items-center gap-1.5">
+            <Sparkline series={rollup.alivePctSeries} color="red" width={80} height={20} />
+            <span className="text-[11px] font-mono" style={{ color: 'var(--text-secondary)' }}>
+              {Math.round(rollup.alivePctSeries[0] * 100)}%
+              <span style={{ color: 'var(--text-muted)' }}> → </span>
+              {Math.round(rollup.alivePctSeries[rollup.alivePctSeries.length - 1] * 100)}%
+            </span>
+          </div>
         ) : (
           <div className="text-[11px] italic" style={{ color: 'var(--text-muted)' }}>need 2+ fights</div>
         )}

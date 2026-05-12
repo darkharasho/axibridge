@@ -21,6 +21,6 @@ describe('CommanderInsights', () => {
 
   it('shows an empty-state line when one side has no findings', () => {
     render(<CommanderInsights findings={[fBad('only', 0.5)]} />);
-    expect(screen.getByText(/nothing notable yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/no standout wins this fight/i)).toBeInTheDocument();
   });
 });

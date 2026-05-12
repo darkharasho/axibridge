@@ -3,6 +3,7 @@ import { computeCommanderFightData } from '../../../shared/commanderMetrics';
 import type { CommanderFightData } from '../../../shared/commanderTypes';
 import type { DPSReportJSON } from '../../../shared/dpsReportTypes';
 import { useLogDetails } from '../../cache/useLogDetails';
+import { normalizeMapLabel } from '../../stats/utils/labelUtils';
 
 const LRU_LIMIT = 10;
 
@@ -76,7 +77,7 @@ export function useCommanderFightData(logs: ILogData[]): UseCommanderFightDataRe
           l.uploadTime
             ? new Date(l.uploadTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : '—'
-        } · ${l.fightName ?? l.fightLabel ?? 'Fight'}`,
+        } · ${normalizeMapLabel(l.fightName ?? l.fightLabel ?? 'Fight')}`,
       })),
     [candidates],
   );

@@ -18,20 +18,25 @@ function fight(cleansed: number, taken: number) {
 }
 
 describe('cleanseRaceWon detector', () => {
-  it('fires good when net positive', () => {
-    const f = detector(fight(200, 100), DEFAULT_COMMANDER_THRESHOLDS);
+  it('fires good when cleanses keep pace (>= 60% of conditions taken)', () => {
+    const f = detector(fight(150, 200), DEFAULT_COMMANDER_THRESHOLDS);
     expect(f).not.toBeNull();
     expect(f!.side).toBe('good');
-    expect(f!.evidence).toContain('+100');
+    expect(f!.evidence).toContain('75%');
   });
 
-  it('does not fire when net is zero', () => {
-    const f = detector(fight(100, 100), DEFAULT_COMMANDER_THRESHOLDS);
+  it('fires when net positive', () => {
+    const f = detector(fight(200, 100), DEFAULT_COMMANDER_THRESHOLDS);
+    expect(f!.side).toBe('good');
+  });
+
+  it('does not fire when cleanses lag well behind condi', () => {
+    const f = detector(fight(50, 200), DEFAULT_COMMANDER_THRESHOLDS);
     expect(f).toBeNull();
   });
 
-  it('does not fire when net negative', () => {
-    const f = detector(fight(50, 200), DEFAULT_COMMANDER_THRESHOLDS);
+  it('does not fire when sample is too small to be meaningful', () => {
+    const f = detector(fight(10, 10), DEFAULT_COMMANDER_THRESHOLDS);
     expect(f).toBeNull();
   });
 });

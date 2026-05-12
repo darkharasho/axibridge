@@ -14,6 +14,8 @@ import stripRaceLost from './stripRaceLost';
 import rallyRateHealthy from './rallyRateHealthy';
 import caughtOutDeaths from './caughtOutDeaths';
 import fragmentedAtBomb from './fragmentedAtBomb';
+import damageTradeFavorable from './damageTradeFavorable';
+import lowSquadCasualties from './lowSquadCasualties';
 
 const DETECTORS: Detector[] = [
   firstSquadDeathEarly,
@@ -28,6 +30,8 @@ const DETECTORS: Detector[] = [
   rallyRateHealthy,
   caughtOutDeaths,
   fragmentedAtBomb,
+  damageTradeFavorable,
+  lowSquadCasualties,
 ];
 
 export function runAllDetectors(

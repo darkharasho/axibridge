@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { CommanderFightData, VerdictChip } from '../../shared/commanderTypes';
+import { normalizeMapLabel } from '../stats/utils/labelUtils';
 
 interface CommanderHeaderProps {
   fight: CommanderFightData;
@@ -29,16 +31,6 @@ function fmtDuration(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-/** EI sets fightName to e.g. "World vs World - Green Alpine Borderlands" or
- *  "Detailed WvW - Green Alpine Borderlands". Strip the boilerplate prefix
- *  so the title is just the map. */
-function cleanMapName(raw: string): string {
-  return raw
-    .replace(/^Detailed WvW\s*-\s*/i, '')
-    .replace(/^World vs World\s*-\s*/i, '')
-    .trim() || 'WvW Fight';
-}
-
 export function CommanderHeader({ fight, availableFights, selectedFightId, onSelectFight }: CommanderHeaderProps) {
   const m = fight.matchup;
   return (
@@ -50,7 +42,7 @@ export function CommanderHeader({ fight, availableFights, selectedFightId, onSel
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-baseline gap-3 flex-wrap">
             <h2 className="text-lg font-semibold leading-none" style={{ color: 'var(--text-primary)' }}>
-              {cleanMapName(fight.map)}
+              {normalizeMapLabel(fight.map)}
             </h2>
             <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               {fmtTime(fight.startedAt)} · {fmtDuration(fight.duration)}
@@ -93,29 +85,79 @@ function FightSelector({
   options: Array<{ id: string; label: string }>;
   onChange: (id: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selected = options.find((o) => o.id === value) ?? options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener('mousedown', handler);
+    window.addEventListener('keydown', escClose);
+    function escClose(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    return () => {
+      window.removeEventListener('mousedown', handler);
+      window.removeEventListener('keydown', escClose);
+    };
+  }, [open]);
+
   return (
-    <div className="relative shrink-0">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none border text-xs rounded pl-2.5 pr-7 py-1.5 cursor-pointer transition-colors focus:outline-none"
+    <div ref={rootRef} className="relative shrink-0" style={{ minWidth: '200px' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-2 border text-xs rounded pl-2.5 pr-2 py-1.5 cursor-pointer transition-colors"
         style={{
           background: 'var(--bg-input)',
-          borderColor: 'var(--border-default)',
+          borderColor: open ? 'var(--brand-primary)' : 'var(--border-default)',
           color: 'var(--text-primary)',
-          minWidth: '180px',
         }}
-        onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--brand-primary)'; }}
-        onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
       >
-        {options.map((f) => (
-          <option key={f.id} value={f.id}>{f.label}</option>
-        ))}
-      </select>
-      <ChevronDown
-        className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
-        style={{ color: 'var(--text-secondary)' }}
-      />
+        <span className="truncate">{selected?.label}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          style={{ color: 'var(--text-secondary)' }}
+        />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-[calc(100%+4px)] z-20 max-h-72 overflow-y-auto border rounded shadow-lg"
+          style={{
+            background: 'var(--bg-card)',
+            borderColor: 'var(--border-default)',
+            boxShadow: 'var(--shadow-dropdown)',
+            minWidth: '100%',
+          }}
+        >
+          {options.map((opt) => {
+            const isSelected = opt.id === value;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => { onChange(opt.id); setOpen(false); }}
+                className="block w-full text-left text-xs px-2.5 py-1.5 transition-colors whitespace-nowrap"
+                style={{
+                  background: isSelected ? 'var(--accent-bg)' : 'transparent',
+                  color: isSelected ? 'var(--brand-primary)' : 'var(--text-primary)',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
