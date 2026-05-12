@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useMemo, useRef } from 'react';
 import { computeCommanderFightData } from '../../../shared/commanderMetrics';
 import type { DPSReportJSON } from '../../../shared/dpsReportTypes';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
@@ -15,42 +15,73 @@ export interface CommanderRollup {
   alivePctSeries: number[];
 }
 
+/** The minimal slice of CommanderFightData the rollup actually needs.
+ *  Computed once per log id and cached so repeated parent re-renders
+ *  don't re-run computeCommanderFightData on every cached log. */
+interface RollupContribution {
+  kills: number;
+  squadDeaths: number;
+  alivePct: number;
+  duration: number;
+  outnumbered: boolean;
+  startedAt: number;
+}
+
+function computeRollupContribution(details: DPSReportJSON): RollupContribution {
+  // We still go through computeCommanderFightData to keep parity with the
+  // per-fight view (same kills/deaths/alive accounting). The narrow return
+  // type documents what the rollup actually consumes; the per-second series
+  // and detector outputs are discarded.
+  const d = computeCommanderFightData(details);
+  return {
+    kills: d.outcome.kills,
+    squadDeaths: d.outcome.squadDeaths,
+    alivePct: d.survival.squadAliveAtEnd / Math.max(1, d.survival.squadTotal),
+    duration: d.duration,
+    outnumbered: d.matchup.effectiveRatio < 1,
+    startedAt: d.startedAt,
+  };
+}
+
 export function useCommanderRollup(logs: ILogData[]): CommanderRollup | null {
   const cache = useContext(DetailsCacheContext);
+  const contribCache = useRef<Map<string, RollupContribution>>(new Map());
 
   return useMemo(() => {
-    const hydrated: DPSReportJSON[] = [];
+    const contributions: RollupContribution[] = [];
     for (const log of logs) {
       const inline = log.details;
       const cached = inline ?? cache?.peek(log.id);
-      if (cached) hydrated.push(cached as unknown as DPSReportJSON);
+      if (!cached) continue;
+
+      let contrib = contribCache.current.get(log.id);
+      if (!contrib) {
+        contrib = computeRollupContribution(cached as unknown as DPSReportJSON);
+        contribCache.current.set(log.id, contrib);
+      }
+      contributions.push(contrib);
     }
-    if (hydrated.length === 0) return null;
+    if (contributions.length === 0) return null;
 
-    const datas = hydrated.map((d) => computeCommanderFightData(d));
-
-    const kills = datas.reduce((a, d) => a + d.outcome.kills, 0);
-    const squadDeaths = datas.reduce((a, d) => a + d.outcome.squadDeaths, 0);
-    const totalAlivePct = datas.reduce(
-      (a, d) => a + d.survival.squadAliveAtEnd / Math.max(1, d.survival.squadTotal),
-      0,
-    );
-    const totalDuration = datas.reduce((a, d) => a + d.duration, 0);
-    const outnumbered = datas.filter((d) => d.matchup.effectiveRatio < 1).length;
-    const alivePctSeries = datas.map(
-      (d) => d.survival.squadAliveAtEnd / Math.max(1, d.survival.squadTotal),
-    );
+    const kills = contributions.reduce((a, c) => a + c.kills, 0);
+    const squadDeaths = contributions.reduce((a, c) => a + c.squadDeaths, 0);
+    const totalAlivePct = contributions.reduce((a, c) => a + c.alivePct, 0);
+    const totalDuration = contributions.reduce((a, c) => a + c.duration, 0);
+    const outnumbered = contributions.filter((c) => c.outnumbered).length;
+    const alivePctSeries = contributions.map((c) => c.alivePct);
     const spanMs =
-      datas.length >= 2 ? datas[datas.length - 1].startedAt - datas[0].startedAt : 0;
+      contributions.length >= 2
+        ? contributions[contributions.length - 1].startedAt - contributions[0].startedAt
+        : 0;
 
     return {
-      fightCount: datas.length,
+      fightCount: contributions.length,
       spanMs,
       kills,
       squadDeaths,
       ratio: kills / Math.max(1, squadDeaths),
-      squadAliveAvgPct: totalAlivePct / datas.length,
-      avgDurationSec: totalDuration / datas.length,
+      squadAliveAvgPct: totalAlivePct / contributions.length,
+      avgDurationSec: totalDuration / contributions.length,
       outnumberedCount: outnumbered,
       alivePctSeries,
     };
