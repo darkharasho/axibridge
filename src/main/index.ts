@@ -1617,6 +1617,9 @@ if (!gotTheLock) {
                 store.set('disruptionMethod', settings.disruptionMethod);
                 discord?.setDisruptionMethod(settings.disruptionMethod);
             }
+            if ((settings as { commanderThresholds?: unknown }).commanderThresholds !== undefined) {
+                store.set('commanderThresholds', (settings as { commanderThresholds?: unknown }).commanderThresholds);
+            }
             if (settings.colorPalette !== undefined) {
                 store.set('colorPalette', settings.colorPalette);
             }

@@ -17,7 +17,7 @@ export function useAppNavigation({
     whatsNewVersion,
     logsCount,
 }: UseAppNavigationOptions) {
-    const [view, setView] = useState<'dashboard' | 'stats' | 'history' | 'settings'>('dashboard');
+    const [view, setView] = useState<'dashboard' | 'stats' | 'commander' | 'history' | 'settings'>('dashboard');
     const viewRef = useRef(view);
 
     const [whatsNewOpen, setWhatsNewOpen] = useState(false);

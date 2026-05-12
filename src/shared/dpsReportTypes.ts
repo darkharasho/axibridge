@@ -54,6 +54,7 @@ export interface Target {
     totalHealth: number;
     healthPercentBurned: number;
     enemyPlayer: boolean;
+    teamID?: number;
 }
 
 export interface Player {
@@ -68,7 +69,11 @@ export interface Player {
     dpsTargets?: StatsTarget[][];
     defenses: Defenses[];
     support: Support[];
-    rotation?: Array<{ id: number; skills?: number[] }>;
+    rotation?: Array<{
+        id: number;
+        /** Per-instance cast events for this skill. castTime is ms from fight start. */
+        skills?: Array<{ castTime: number; duration: number; timeGained?: number; quickness?: number }>;
+    }>;
     extHealingStats?: {
         outgoingHealingAllies?: { healing: number; downedHealing?: number }[][];
         totalHealingDist?: Array<Array<{
@@ -80,6 +85,10 @@ export interface Player {
             max: number;
             indirectHealing?: boolean;
         }>>;
+        /** Cumulative total outgoing healing per second (to all targets). Shape: [phase][time]. Diff to get per-second. */
+        healing1S?: number[][];
+        /** Cumulative healing received per second (from all sources). Shape: [phase][time]. Diff to get per-second. */
+        healingReceived1S?: number[][];
     };
     extBarrierStats?: {
         outgoingBarrierAllies?: { barrier: number }[][];
@@ -99,7 +108,7 @@ export interface Player {
     selfBuffsActive?: BuffGeneration[];
     groupBuffsActive?: BuffGeneration[];
     squadBuffsActive?: BuffGeneration[];
-    buffUptimes?: BuffUptimes[];
+    buffUptimes?: BuffUptimesEntry[];
     totalDamageDist?: TotalDamageDist[][];
     targetDamageDist?: TotalDamageDist[][][];
     totalDamageTaken?: TotalDamageTaken[][];
@@ -121,6 +130,8 @@ export interface Player {
     // Per-second cumulative damage arrays – shape: [phase][time] or [target][phase][time]
     damage1S?: number[][];
     targetDamage1S?: number[][][];
+    /** Cumulative incoming damage per second. Shape: [phase][time]. Diff adjacent entries to get per-second values. */
+    damageTaken1S?: number[][];
 }
 
 export interface StatsAll {
@@ -144,8 +155,14 @@ export interface Defenses {
     dodgeCount: number;
     interruptedCount: number;
     damageTaken: number;
-    boonStrips?: number; // Incoming strips often appear here or in support depending on parsing context, adding as optional
+    /** Boons stripped from this player by enemies. */
+    boonStrips?: number;
     boonStripsTime?: number;
+    /** Conditions cleansed from this player (by self or allies). */
+    conditionCleanses?: number;
+    conditionCleansesTime?: number;
+    /** Number of condition damage hits received. */
+    conditionDamageTakenCount?: number;
     receivedCrowdControl?: number;
     receivedCrowdControlDuration?: number;
 }
@@ -160,10 +177,25 @@ export interface BuffGeneration {
     buffData?: { generation?: number; wasted?: number }[];
 }
 
+/** @deprecated Use BuffUptimesEntry */
 export interface BuffUptimes {
     id: number;
     buffData: { uptime: number }[];
     statesPerSource: { [key: string]: number[][] };
+}
+
+/**
+ * Per-player per-buff entry in the `buffUptimes` array.
+ * `states` is an array of `[timeMs, stackCount]` pairs recording state-change
+ * events throughout the fight.  The value at any given millisecond is the last
+ * `stackCount` whose `timeMs` is ≤ the queried time.
+ */
+export interface BuffUptimesEntry {
+    id: number;
+    buffData: { uptime: number; presence?: number }[];
+    /** `[timeMs, stackCount]` state-change pairs, sorted by time ascending. */
+    states?: Array<[number, number]>;
+    statesPerSource?: { [key: string]: Array<[number, number]> };
 }
 
 export interface TotalDamageDist {

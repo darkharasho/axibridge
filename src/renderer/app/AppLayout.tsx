@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BarChart3, Clock3, LayoutDashboard, Minus, RefreshCw, Settings as SettingsIcon, Square, X } from 'lucide-react';
+import { CommanderIcon } from '../commander/CommanderIcon';
 import { Terminal as TerminalIcon } from 'lucide-react';
 import { SettingsView } from '../SettingsView';
 import { StatsView } from '../StatsView';
@@ -16,6 +17,7 @@ import { WhatsNewModal } from '../WhatsNewModal';
 import { FilePickerModal } from './FilePickerModal';
 import { WebUploadOverlay } from './WebUploadOverlay';
 import { FightReportHistoryView } from '../FightReportHistoryView';
+import { CommanderView } from '../commander/CommanderView';
 import { useParticleEffect, PRESETS } from '../particles';
 import { TRANSITION } from '../motion';
 
@@ -160,7 +162,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         aggregationDiagnostics,
     }), [computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics]);
 
-    const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'history' | 'settings') => {
+    const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'commander' | 'history' | 'settings') => {
         setActiveNavView(nextView);
         if (navSwitchRafRef.current !== null) {
             window.cancelAnimationFrame(navSwitchRafRef.current);
@@ -207,6 +209,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 {([
                     { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
                     { id: 'stats' as const, label: 'Stats', icon: BarChart3 },
+                    { id: 'commander' as const, label: 'Commander', icon: CommanderIcon },
                     { id: 'history' as const, label: 'History', icon: Clock3 },
                     { id: 'settings' as const, label: 'Settings', icon: SettingsIcon },
                 ]).map(({ id, label, icon: Icon }) => (
@@ -361,7 +364,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 onDismiss={handleEiBannerDismiss}
             />
 
-            <div className={`app-content relative z-10 max-w-none flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history') ? 'pt-4 px-4 pb-2 overflow-hidden' : 'p-4 overflow-hidden'}`} style={{ background: 'var(--bg-elevated)' }}>
+            <div className={`app-content relative z-10 max-w-none flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history' || view === 'commander') ? 'pt-4 px-4 pb-2 overflow-hidden' : 'p-4 overflow-hidden'}`} style={{ background: 'var(--bg-elevated)' }}>
 
                 {createPortal(
                     <WebUploadOverlay
@@ -417,6 +420,9 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     </StatsErrorBoundary>
                                 </div>
                             </div>
+                        )}
+                        {view === 'commander' && (
+                            <CommanderView logs={logsForStats} />
                         )}
                         {view === 'history' && (
                             <FightReportHistoryView />
