@@ -3,7 +3,7 @@ import type { Severity } from '../viz/ThresholdBar';
 
 interface MetricCardProps {
   label: string;
-  value: string;
+  value: ReactNode;
   description?: string;
   meta?: string;
   severity: Severity;

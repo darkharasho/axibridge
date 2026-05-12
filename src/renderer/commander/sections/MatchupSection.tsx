@@ -26,7 +26,15 @@ export function MatchupSection({ fight, thresholds }: { fight: CommanderFightDat
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
       <MetricCard
         label="Sq / Ally / Enemy"
-        value={`${m.squadCount}·${m.alliesCount}·${m.enemyCount}`}
+        value={
+          <span>
+            <span style={{ color: 'rgb(110, 231, 183)' }}>{m.squadCount}</span>
+            <span style={{ color: 'var(--text-muted)' }}>·</span>
+            <span style={{ color: 'rgb(252, 211, 77)' }}>{m.alliesCount}</span>
+            <span style={{ color: 'var(--text-muted)' }}>·</span>
+            <span style={{ color: 'rgb(253, 164, 175)' }}>{m.enemyCount}</span>
+          </span>
+        }
         description="Bodies on the field: your squad, pugs fighting with you, and enemies."
         meta={`peak enemy ${m.enemyPeak}`}
         severity={ratioSev}
