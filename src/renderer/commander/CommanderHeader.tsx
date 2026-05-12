@@ -125,7 +125,7 @@ function FightSelector({
       </button>
       {open && (
         <div
-          className="absolute right-0 top-[calc(100%+4px)] z-20 max-h-72 overflow-y-auto border rounded shadow-lg"
+          className="app-dropdown absolute right-0 top-[calc(100%+4px)] z-20 max-h-72 overflow-y-auto border rounded shadow-lg"
           style={{
             background: 'var(--bg-card)',
             borderColor: 'var(--border-default)',
