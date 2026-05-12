@@ -2585,12 +2585,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         )}
                                         <button
                                             type="button"
+                                            aria-label={`Reset ${label}`}
                                             onClick={() =>
                                                 setCommanderThresholds((prev) => ({ ...prev, [key]: DEFAULT_COMMANDER_THRESHOLDS[key] } as CommanderThresholds))
                                             }
                                             className="text-[10px] uppercase tracking-wide text-gray-500 hover:text-gray-200"
                                         >
-                                            Reset
+                                            Default
                                         </button>
                                     </div>
                                 );
