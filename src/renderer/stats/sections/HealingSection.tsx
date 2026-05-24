@@ -1,5 +1,5 @@
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, X, Columns, Users, HeartPulse } from 'lucide-react';
+import { Maximize2, X, Columns, Users, HeartPulse, AlertTriangle } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
@@ -44,6 +44,13 @@ export const HealingSection = ({
         renderProfessionIcon,
     });
     const isExpanded = expandedSection === 'healing-stats';
+    const playersWithoutAddon = stats.healingPlayers.filter((p: any) => p.hasHealAddon === false).length;
+    const PARTIAL_TOOLTIP = 'Partial value — this player did not have the arcdps heal addon loaded. The number reflects only heals that addon-equipped squadmates received from them (cross-referenced with cast events) plus combo/boon healing tracked natively. Heals delivered to other non-addon players are not counted.';
+    const PartialMarker = () => (
+        <span title={PARTIAL_TOOLTIP} className="inline-flex items-center">
+            <AlertTriangle className="w-3 h-3 shrink-0" style={{ color: 'rgba(245, 158, 11, 0.85)' }} aria-label="Partial data — no heal addon" />
+        </span>
+    );
     return (
     <div
         className={`${
@@ -60,6 +67,16 @@ export const HealingSection = ({
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
                 Healing Stats
             </h3>
+            {playersWithoutAddon > 0 && (
+                <span
+                    className="inline-flex items-center gap-1 text-[10px] font-medium"
+                    style={{ color: 'rgba(245, 158, 11, 0.75)' }}
+                    title={`${playersWithoutAddon} squad ${playersWithoutAddon === 1 ? 'member did' : 'members did'} not have the arcdps heal addon loaded. Their numbers are partial — only buff healing observed by addon-equipped squadmates is counted.`}
+                >
+                    <AlertTriangle className="w-3 h-3" />
+                    {playersWithoutAddon} partial
+                </span>
+            )}
             <div className="ml-auto flex items-center gap-2">
                 {!isExpanded && (() => {
                     const activeMetric = HEALING_METRICS.find((entry) => entry.id === activeHealingMetric) || HEALING_METRICS[0];
@@ -300,6 +317,7 @@ export const HealingSection = ({
                                             <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
                                             {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                             <span className="truncate">{entry.row.account}</span>
+                                            {entry.row.hasHealAddon === false && <PartialMarker />}
                                         </>
                                     ),
                                     values: entry.values
@@ -413,8 +431,9 @@ export const HealingSection = ({
                                                             {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                             <span className="truncate">{row.account}</span>
                                                         </div>
-                                                        <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                            {formatWithCommas(row.value, metric.decimals)}
+                                                        <div className="text-right font-mono inline-flex items-center justify-end gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                                                            <span>{formatWithCommas(row.value, metric.decimals)}</span>
+                                                            {row.hasHealAddon === false && <PartialMarker />}
                                                         </div>
                                                         <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                                                             {row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}

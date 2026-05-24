@@ -40,6 +40,7 @@ export interface PlayerStats {
     supportTotals: Record<string, number>;
     healingActiveMs: number;
     healingTotals: Record<string, number>;
+    hasHealAddon: boolean;
     profession: string;
     professions: Set<string>;
     professionList?: string[];
@@ -411,6 +412,7 @@ export interface PlayerAggregationAccumulators {
         professionList: string[];
         healingSkills: Map<string, PlayerHealingSkillEntry>;
         barrierSkills: Map<string, PlayerHealingSkillEntry>;
+        hasHealAddon: boolean;
     }>;
     outgoingCondiTotals: Record<string, any>;
     incomingCondiTotals: Record<string, any>;
@@ -614,6 +616,19 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         ? Number(Object.keys(details.skillMap).find((key) => details.skillMap?.[key]?.name === 'Battle Standard')?.replace(/^s/, ''))
         : null;
 
+    // Per-log set of character names running the arcdps heal addon, sourced from
+    // EI's `usedExtensions`. This is ground truth — empty extHealingStats are emitted
+    // for every player regardless of addon presence, so we can't infer from those.
+    const healAddonCharacters = new Set<string>();
+    const usedExtensions = Array.isArray((details as any).usedExtensions) ? (details as any).usedExtensions : [];
+    usedExtensions.forEach((ext: any) => {
+        if (ext?.name !== 'Healing Stats') return;
+        const running = Array.isArray(ext.runningExtension) ? ext.runningExtension : [];
+        running.forEach((charName: any) => {
+            if (typeof charName === 'string' && charName.length > 0) healAddonCharacters.add(charName);
+        });
+    });
+
     players.forEach((p, playerIndex) => {
         if (p.notInSquad) return;
         const identity = getPlayerIdentity(p, splitPlayersByClass);
@@ -625,7 +640,7 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 name, account: identity.accountLabel, characterNames: new Set<string>(), downContrib: 0, cleanses: 0, strips: 0, stab: 0, healing: 0, barrier: 0, cc: 0, interrupts: 0, logsJoined: 0,
                 totalDist: 0, distCount: 0, stackedLogCount: 0, dodges: 0, downs: 0, deaths: 0, totalFightMs: 0,
                 offenseTotals: {}, offenseRateWeights: {}, defenseActiveMs: 0, defenseTotals: {}, defenseMinionDamageTaken: {}, supportActiveMs: 0, supportTotals: {},
-                healingActiveMs: 0, healingTotals: {}, profession: identity.profession, professions: new Set(),
+                healingActiveMs: 0, healingTotals: {}, hasHealAddon: false, profession: identity.profession, professions: new Set(),
                 professionTimeMs: {}, squadActiveMs: 0, firstSeenFightTs: 0, lastSeenFightTs: 0, lastSeenFightDurationMs: 0, isCommander: false, damage: 0, dps: 0, revives: 0, outgoingConditions: {}, incomingConditions: {}, damageModTotals: {}, incomingDamageModTotals: {}
                 , roleClassification: { role: 'damage' as const, supportScore: 0, confidenceScore: 0, threshold: 0, factors: [] }
             });
@@ -1001,11 +1016,17 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 professionList: [playerProfession],
                 healingSkills: new Map(),
                 barrierSkills: new Map(),
+                hasHealAddon: false,
             };
             acc.healingBreakdownMap.set(healingPlayerKey, healingBd);
         }
         if (playerProfession && !healingBd.professionList.includes(playerProfession)) {
             healingBd.professionList.push(playerProfession);
+        }
+        if (typeof p.name === 'string' && healAddonCharacters.has(p.name)) {
+            healingBd.hasHealAddon = true;
+            const ps = acc.playerStats.get(healingPlayerKey);
+            if (ps) ps.hasHealAddon = true;
         }
         const pushHealingSkillEntry = (entry: any, skillMap: Map<string, PlayerHealingSkillEntry>, totalField: string) => {
             if (!entry?.id) return;

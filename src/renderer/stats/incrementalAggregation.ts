@@ -1434,7 +1434,8 @@ export class IncrementalAggregator {
             })),
             healingPlayers: Array.from(playerStats.values()).map(s => ({
                 account: s.account, profession: s.profession, professionList: s.professionList,
-                healingTotals: s.healingTotals, activeMs: s.healingActiveMs
+                healingTotals: s.healingTotals, activeMs: s.healingActiveMs,
+                hasHealAddon: s.hasHealAddon
             })),
             generalPlayers: Array.from(playerStats.values()).map(s => ({
                 account: s.account, profession: s.profession, professionList: s.professionList,

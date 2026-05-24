@@ -121,4 +121,5 @@ export interface PlayerHealingBreakdown {
     totalBarrier: number;
     healingSkills: PlayerHealingSkillEntry[];
     barrierSkills: PlayerHealingSkillEntry[];
+    hasHealAddon: boolean;
 }

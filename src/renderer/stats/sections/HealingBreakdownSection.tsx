@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Maximize2, X, ListTree } from 'lucide-react';
+import { Maximize2, X, ListTree, AlertTriangle } from 'lucide-react';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { InlineIconLabel } from '../ui/StatsViewShared';
@@ -44,6 +44,21 @@ export const HealingBreakdownSection = ({
         });
     }, [healingBreakdownPlayers, playerFilter, metricMode]);
 
+    const PARTIAL_TOOLTIP = 'Partial value — this player did not have the arcdps heal addon loaded. The number reflects only heals that addon-equipped squadmates received from them (cross-referenced with cast events) plus combo/boon healing tracked natively. Heals delivered to other non-addon players are not counted.';
+
+    const PartialMarker = ({ className = '' }: { className?: string }) => (
+        <AlertTriangle
+            className={`w-3 h-3 shrink-0 ${className}`}
+            style={{ color: 'rgba(245, 158, 11, 0.85)' }}
+            aria-label="Partial data — no heal addon"
+        />
+    );
+
+    const playersWithoutAddon = useMemo(
+        () => healingBreakdownPlayers.filter((player) => !player.hasHealAddon).length,
+        [healingBreakdownPlayers]
+    );
+
     const selectedPlayer = useMemo(() => {
         if (!selectedPlayerKey) return null;
         return filteredPlayers.find((player) => player.key === selectedPlayerKey) || null;
@@ -67,6 +82,16 @@ export const HealingBreakdownSection = ({
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <ListTree className="w-4 h-4 shrink-0" style={{ color: 'var(--section-healing)' }} />
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Healing Breakdown</h3>
+                {playersWithoutAddon > 0 && (
+                    <span
+                        className="inline-flex items-center gap-1 text-[10px] font-medium"
+                        style={{ color: 'rgba(245, 158, 11, 0.75)' }}
+                        title={`${playersWithoutAddon} squad ${playersWithoutAddon === 1 ? 'member did' : 'members did'} not have the arcdps heal addon loaded. Their numbers are partial — only buff healing observed by addon-equipped squadmates is counted.`}
+                    >
+                        <AlertTriangle className="w-3 h-3" />
+                        {playersWithoutAddon} partial
+                    </span>
+                )}
                 <div className="ml-auto flex items-center gap-2">
                     <PillToggleGroup
                         value={metricMode}
@@ -153,6 +178,9 @@ export const HealingBreakdownSection = ({
                                             <span className="text-[color:var(--text-muted)] font-mono">{idx + 1}</span>
                                             {renderProfessionIcon(entry.player.profession, entry.player.professionList, 'w-4 h-4')}
                                             <span className="truncate">{entry.player.displayName}</span>
+                                            {!entry.player.hasHealAddon && (
+                                                <span title={PARTIAL_TOOLTIP}><PartialMarker /></span>
+                                            )}
                                         </>
                                     ),
                                     values: entry.values
@@ -194,14 +222,17 @@ export const HealingBreakdownSection = ({
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between gap-2">
-                                                <div className="min-w-0">
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        {renderProfessionIcon(player.profession, player.professionList, 'w-3.5 h-3.5')}
-                                                        <div className="truncate min-w-0">{player.displayName}</div>
-                                                    </div>
+                                                <div className="min-w-0 flex items-center gap-2">
+                                                    {renderProfessionIcon(player.profession, player.professionList, 'w-3.5 h-3.5')}
+                                                    <div className="truncate min-w-0">{player.displayName}</div>
                                                 </div>
-                                                <div className="text-xs font-mono shrink-0" style={{ color: 'var(--text-secondary)' }}>
-                                                    {formatWithCommas(getPlayerTotal(player), 0)}
+                                                <div
+                                                    className="shrink-0 flex items-center justify-end gap-1.5 text-xs font-mono"
+                                                    style={{ color: 'var(--text-secondary)' }}
+                                                    title={!player.hasHealAddon ? PARTIAL_TOOLTIP : undefined}
+                                                >
+                                                    <span>{formatWithCommas(getPlayerTotal(player), 0)}</span>
+                                                    {!player.hasHealAddon && <PartialMarker />}
                                                 </div>
                                             </div>
                                         </button>
@@ -230,6 +261,9 @@ export const HealingBreakdownSection = ({
                                                         <span className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)] shrink-0">Skill Totals /</span>
                                                         {renderProfessionIcon(selectedPlayer.profession, selectedPlayer.professionList, 'w-4 h-4')}
                                                         <span className="truncate font-semibold">{selectedPlayer.displayName}</span>
+                                                        {!selectedPlayer.hasHealAddon && (
+                                                            <span title={PARTIAL_TOOLTIP}><PartialMarker /></span>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="text-xs text-[color:var(--text-secondary)] uppercase tracking-[0.18em]">
@@ -247,7 +281,7 @@ export const HealingBreakdownSection = ({
                                         </div>
                                         <div className="stats-table-shell__rows flex-1 min-h-0 overflow-y-auto">
                                             {skills.length === 0 ? (
-                                                <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
+                                                <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)] px-6 text-center">
                                                     No {modeLabel.toLowerCase()} skills for this player.
                                                 </div>
                                             ) : (

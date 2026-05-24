@@ -41,6 +41,7 @@ export function computeSpecialTables(
         professionList: string[];
         healingSkills: Map<string, PlayerHealingSkillEntry>;
         barrierSkills: Map<string, PlayerHealingSkillEntry>;
+        hasHealAddon: boolean;
     }>
 ) {
     const buildSpecialRows = (players: Map<string, {
@@ -143,6 +144,7 @@ export function computeSpecialTables(
                 totalBarrier: barrierSkills.reduce((sum, s) => sum + s.total, 0),
                 healingSkills,
                 barrierSkills,
+                hasHealAddon: entry.hasHealAddon,
             };
         })
         .sort((a, b) => a.displayName.localeCompare(b.displayName));
