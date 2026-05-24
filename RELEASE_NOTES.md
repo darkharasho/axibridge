@@ -1,11 +1,11 @@
 # Release Notes
 
-Version v2.7.1 — May 11, 2026
+Version v2.7.2 — May 23, 2026
 
-## Avg Uptime per Application (Outgoing Conditions)
+## Heal Addon Awareness
 
-The outgoing conditions table now has an **Avg/app** column showing how long each applied stack of a condition actually stuck on the target. It's the closest thing in logs to arcdps's in-game "duration avg" hover tooltip — lower than the skill's nominal duration means cleansing (or short-base-duration condi).
+The Healing Stats and Healing Breakdown sections now flag squad members who didn't have the arcdps heal addon loaded. You'll see a small amber alert next to their healing total and a tally at the top of each section ("N partial").
 
-Sortable in both the standard and dense views. The "All Conditions" aggregate uses weighted totals so the number isn't an average-of-averages.
+Hover the alert for the why: their number is real but only a slice — EI can reconstruct some healing from addon-equipped squadmates' incoming events, but heals delivered to other non-addon players go uncounted. So when you see a Druid with "low" healing and a partial marker, it's not that they did nothing — it's that the data is incomplete.
 
-NOTE: Elite Insights doesn't track cleanse events on enemy targets in its JSON output, so this is a proxy for cleanse pressure, not a literal "% cleansed".
+NOTE: This won't change anyone's actual healing output, just makes it clear when the number you're looking at is a lower bound vs. a full measurement.
