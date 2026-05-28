@@ -138,6 +138,15 @@ Themes (`WebTheme`) are defined in `src/shared/webThemes.ts` and used by both th
 - **E2E Electron**: Playwright against a built Electron app.
 - Test fixtures (`.zevtc` → `.json`) are generated with `npm run generate:fixtures` and live in `test-fixtures/`.
 
+### Code Search & Context Tools
+
+- **semgrep**: Use instead of grep for structural code patterns — finds all usages regardless of formatting. Examples:
+  - All IPC handlers: `semgrep --pattern 'ipcMain.handle($X, $_)' --lang ts src/`
+  - All usages of a type: `semgrep --pattern '$X: ILogData' --lang ts src/`
+  - Prefer semgrep over grep/ripgrep when the pattern is structural (function calls, type annotations, specific argument shapes) rather than plain text.
+- **repomix**: Pack the full repo into a single file for large-context tasks. Use before broad refactors, architecture reviews, or when providing full codebase context to an LLM:
+  - `repomix --output repomix-output.txt` (gitignored)
+
 ### Dev Tooling Notes
 
 - `NODE_OPTIONS=--max-old-space-size=6144` is set on all build/dev scripts because large log datasets can exhaust the default V8 heap.
