@@ -703,9 +703,10 @@ export class DiscordNotifier {
                         });
                         maxValueWidth = Math.max(1, maxValueWidth);
 
-                        // Discord embed inline field max width is ~25 chars in monospace
+                        // Discord embed inline field max width is ~23 chars in monospace
+                        // (narrower than the historical ~25 — Discord adjusted column widths)
                         // Format: "RR NAME... VALUE" where RR=rank (2 chars + 1 space)
-                        const MAX_LINE_WIDTH = 26
+                        const MAX_LINE_WIDTH = 23
                         const RANK_WIDTH = 3; // "10 " = 3 chars
                         const MIN_SEPARATOR = 1; // At least 1 space between name and value
                         const availableWidth = MAX_LINE_WIDTH - RANK_WIDTH - MIN_SEPARATOR;
@@ -714,33 +715,26 @@ export class DiscordNotifier {
                         let str = "";
                         for (let i = 0; i < maxTopRows; i += 1) {
                             const p = top[i];
-                            if (p) {
-                                const val = valFn(p);
-                                const shouldRenderValue = options?.allowZero
-                                    ? (
-                                        typeof val === 'number'
-                                            ? Number.isFinite(val)
-                                            : (typeof val === 'string' ? val !== '' : Boolean(val))
-                                    )
-                                    : (val > 0 || (typeof val === 'string' && val !== '0' && val !== ''));
-                                if (shouldRenderValue) {
-                                    const rank = (i + 1).toString().padEnd(2);
-                                    const fullName = p.name || p.character_name || p.account || 'Unknown';
-                                    const classToken = getClassToken(p);
-                                    const classCell = classToken
-                                        ? (classDisplay === 'emoji' ? `${classToken} ` : `[${classToken}] `)
-                                        : '';
-                                    const availableNameWidth = Math.max(0, nameWidth - classCell.length);
-                                    const trimmedName = fullName.substring(0, availableNameWidth).padEnd(availableNameWidth);
-                                    const name = `${classCell}${trimmedName}`.padEnd(nameWidth);
-                                    const vStr = formattedValues[i]?.padStart(maxValueWidth) || ''.padStart(maxValueWidth);
-                                    str += `${rank} ${name} ${vStr}\n`;
-                                    continue;
-                                }
-                            }
-                            const rank = '  ';
-                            const name = ''.padEnd(nameWidth);
-                            const vStr = ''.padStart(maxValueWidth);
+                            if (!p) break;
+                            const val = valFn(p);
+                            const shouldRenderValue = options?.allowZero
+                                ? (
+                                    typeof val === 'number'
+                                        ? Number.isFinite(val)
+                                        : (typeof val === 'string' ? val !== '' : Boolean(val))
+                                )
+                                : (val > 0 || (typeof val === 'string' && val !== '0' && val !== ''));
+                            if (!shouldRenderValue) continue;
+                            const rank = (i + 1).toString().padEnd(2);
+                            const fullName = p.name || p.character_name || p.account || 'Unknown';
+                            const classToken = getClassToken(p);
+                            const classCell = classToken
+                                ? (classDisplay === 'emoji' ? `${classToken} ` : `[${classToken}] `)
+                                : '';
+                            const availableNameWidth = Math.max(0, nameWidth - classCell.length);
+                            const trimmedName = fullName.substring(0, availableNameWidth).padEnd(availableNameWidth);
+                            const name = `${classCell}${trimmedName}`.padEnd(nameWidth);
+                            const vStr = formattedValues[i]?.padStart(maxValueWidth) || ''.padStart(maxValueWidth);
                             str += `${rank} ${name} ${vStr}\n`;
                         }
                         embedFields.push({
