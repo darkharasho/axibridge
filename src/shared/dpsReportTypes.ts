@@ -40,6 +40,14 @@ export interface DPSReportJSON {
         sizes?: [number, number];
         maps?: Array<{ url?: string }>;
     };
+    wvWMapData?: {
+        redTeamID?: number;
+        greenTeamID?: number;
+        blueTeamID?: number;
+        redShardID?: number;
+        greenShardID?: number;
+        blueShardID?: number;
+    };
     damageModMap?: Record<string, DamageModifierInfo>;
     personalDamageMods?: Record<string, number[]>;
 }
@@ -62,6 +70,7 @@ export interface Player {
     display_name: string;
     character_name: string;
     profession: string;
+    teamID?: number;
     elite_spec: number;
     group: number;
     dpsAll: StatsAll[];
