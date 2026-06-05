@@ -40,4 +40,16 @@ describe('computeMatchup team colors', () => {
     expect(colors[2767]).toBe('green');
     expect(m.squadColor).toBe('blue');
   });
+
+  it('returns null squadColor when squad players have no team id', () => {
+    const squad = [{ notInSquad: false, combatReplayData: { dead: [] }, statsAll: [{}] }] as unknown as Player[];
+    const json = {
+      ...base,
+      players: squad,
+      targets: [mkEnemy(707)],
+    } as unknown as DPSReportJSON;
+    const m = computeMatchup(json, squad, 200, 10);
+    expect(m.squadColor).toBeNull();
+    expect(m.enemyByTeam.find((t) => t.teamID === 707)?.color).toBe('red');
+  });
 });
