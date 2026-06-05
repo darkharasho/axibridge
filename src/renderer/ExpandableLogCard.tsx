@@ -12,6 +12,7 @@ import { getProfessionIconPath } from './classIconUtils';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { useLogDetails } from './cache/useLogDetails';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
+import { getWvwTeamColor, teamMapFromLog, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamColor } from '../shared/wvwTeams';
 
 // Track which logs have already played their arrival/success animations (survives virtualization remounts)
 const seenArrivalIds = new Set<string>();
@@ -335,6 +336,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     let enemyClassCounts: Array<{ profession: string; count: number }> = [];
     type TeamSummaryStats = {
         teamId: number;
+        color: WvwTeamColor;
         count: number;
         dmg: number;
         dps: number;
@@ -343,6 +345,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     };
     type TeamClassSummary = {
         teamId: number;
+        color: WvwTeamColor;
         classes: Array<{ profession: string; count: number }>;
     };
     let enemyTeamSummaryStats: TeamSummaryStats[] = [];
@@ -539,24 +542,26 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             });
         });
 
+        const wvwTeamMap = teamMapFromLog(details);
         enemyTeamSummaryStats = Array.from(new Set<number>([
             ...enemyTeamCountMap.keys(),
             ...enemyTeamDmgMap.keys(),
             ...enemyTeamDownsMap.keys(),
             ...enemyTeamKillsMap.keys()
         ]))
-            .sort((a, b) => a - b)
             .map((teamId) => {
                 const dmg = enemyTeamDmgMap.get(teamId) || 0;
                 return {
                     teamId,
+                    color: getWvwTeamColor(teamId, wvwTeamMap),
                     count: enemyTeamCountMap.get(teamId) || 0,
                     dmg,
                     dps: Math.round(dmg / durationSec),
                     downs: enemyTeamDownsMap.get(teamId) || 0,
                     kills: enemyTeamKillsMap.get(teamId) || 0
                 };
-            });
+            })
+            .sort((a, b) => WVW_TEAM_COLOR_ORDER.indexOf(a.color) - WVW_TEAM_COLOR_ORDER.indexOf(b.color));
 
         enemyTeamClassSummaries = enemyTeamSummaryStats.map((entry) => {
             const classCounts = enemyTeamClassMap.get(entry.teamId) || {};
@@ -564,7 +569,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 .filter(([, count]) => count > 0)
                 .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
                 .map(([profession, count]) => ({ profession, count }));
-            return { teamId: entry.teamId, classes };
+            return { teamId: entry.teamId, color: entry.color, classes };
         });
     }
 
@@ -1027,7 +1032,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     )}
                                     {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamSummaryStats.map((team) => (
                                         <div key={`expanded-team-summary-${team.teamId}`} className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
-                                            <h5 className="font-semibold text-red-400 mb-2 uppercase tracking-wider text-[10px]">{`Team ${team.teamId}`}</h5>
+                                            <h5 className="font-semibold mb-2 uppercase tracking-wider text-[10px]" style={{ color: WVW_TEAM_COLOR_META[team.color].hex }}>{`${WVW_TEAM_COLOR_META[team.color].label} team`}</h5>
                                             <div className="font-mono text-gray-300 space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{team.count}</span></div>
                                                 <div className="flex justify-between"><span>DMG:</span> <span>{team.dmg.toLocaleString()}</span></div>
@@ -1052,7 +1057,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     )}
                                     {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamClassSummaries.map((team) => (
                                         <div key={`expanded-team-classes-${team.teamId}`}>
-                                            {renderClassSummary(`Team ${team.teamId} Classes`, team.classes, 'text-red-400', true)}
+                                            {renderClassSummary(`${WVW_TEAM_COLOR_META[team.color].label} Classes`, team.classes, 'text-red-400', true)}
                                         </div>
                                     ))}
                                 </div>
