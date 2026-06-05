@@ -7,6 +7,8 @@ import { parseTimestamp } from '../utils/timestampUtils';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { getWvwTeamColor, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamColor } from '../../../shared/wvwTeams';
 
+const rowToColor = (row: any): WvwTeamColor => row?.color ?? getWvwTeamColor(Number(row?.teamId));
+
 type FightBreakdownSectionProps = {
     fightBreakdownTab: 'sizes' | 'outcomes' | 'damage' | 'barrier';
     setFightBreakdownTab: (value: 'sizes' | 'outcomes' | 'damage' | 'barrier') => void;
@@ -30,7 +32,7 @@ export const FightBreakdownSection = ({
             rows.forEach((entry: any) => {
                 const count = Number(entry?.count || 0);
                 if (!Number.isFinite(count) || count <= 0) return;
-                const color: WvwTeamColor = entry?.color ?? getWvwTeamColor(Number(entry?.teamId));
+                const color: WvwTeamColor = rowToColor(entry);
                 present.add(color);
             });
         });
@@ -167,7 +169,7 @@ export const FightBreakdownSection = ({
             teamColorColumns.forEach((color) => {
                 const rows = Array.isArray(fight.teamBreakdown) ? fight.teamBreakdown : [];
                 values[`team-${color}`] = rows.reduce((sum: number, row: any) => {
-                    const rowColor: WvwTeamColor = row?.color ?? getWvwTeamColor(Number(row?.teamId));
+                    const rowColor: WvwTeamColor = rowToColor(row);
                     return rowColor === color ? sum + Number(row?.count || 0) : sum;
                 }, 0);
             });
@@ -343,7 +345,7 @@ export const FightBreakdownSection = ({
                                                         teamColorColumns.map((color) => {
                                                             const rows = Array.isArray(fight.teamBreakdown) ? fight.teamBreakdown : [];
                                                             const total = rows.reduce((sum: number, row: any) => {
-                                                                const rowColor: WvwTeamColor = row?.color ?? getWvwTeamColor(Number(row?.teamId));
+                                                                const rowColor: WvwTeamColor = rowToColor(row);
                                                                 return rowColor === color ? sum + Number(row?.count || 0) : sum;
                                                             }, 0);
                                                             return (
