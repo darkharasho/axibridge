@@ -5,6 +5,7 @@ import { CountClassTooltip } from '../ui/StatsViewShared';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { parseTimestamp } from '../utils/timestampUtils';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { getWvwTeamColor, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamColor } from '../../../shared/wvwTeams';
 
 type FightBreakdownSectionProps = {
     fightBreakdownTab: 'sizes' | 'outcomes' | 'damage' | 'barrier';
@@ -20,24 +21,20 @@ export const FightBreakdownSection = ({
     const isExpanded = expandedSection === sectionId;
     const fights = Array.isArray(stats?.fightBreakdown) ? stats.fightBreakdown : [];
 
-    const teamColumnIds = useMemo(() => {
-        const totals = new Map<string, number>();
+    // Team columns are keyed by real color (Red/Green/Blue/Unknown) and ordered
+    // canonically. Same-color enemy teams across fights merge into one column.
+    const teamColorColumns = useMemo(() => {
+        const present = new Set<WvwTeamColor>();
         fights.forEach((fight: any) => {
             const rows = Array.isArray(fight?.teamBreakdown) ? fight.teamBreakdown : [];
             rows.forEach((entry: any) => {
-                const id = String(entry?.teamId ?? '').trim();
                 const count = Number(entry?.count || 0);
-                if (!id || !Number.isFinite(count) || count <= 0) return;
-                totals.set(id, (totals.get(id) || 0) + count);
+                if (!Number.isFinite(count) || count <= 0) return;
+                const color: WvwTeamColor = entry?.color ?? getWvwTeamColor(Number(entry?.teamId));
+                present.add(color);
             });
         });
-        return Array.from(totals.entries())
-            .sort((a, b) => {
-                const countDelta = b[1] - a[1];
-                if (countDelta !== 0) return countDelta;
-                return a[0].localeCompare(b[0], undefined, { numeric: true });
-            })
-            .map(([id]) => id);
+        return WVW_TEAM_COLOR_ORDER.filter((c) => present.has(c));
     }, [fights]);
 
     const formatReportLabel = (fight: any) => {
@@ -85,9 +82,9 @@ export const FightBreakdownSection = ({
             { id: 'squad', label: 'Squad', align: 'right' as const, minWidth: 72 },
             { id: 'allies', label: 'Allies', align: 'right' as const, minWidth: 72 },
             { id: 'enemies', label: 'Enemies', align: 'right' as const, minWidth: 72 },
-            ...teamColumnIds.map((teamId) => ({
-                id: `team-${teamId}`,
-                label: `Team ${teamId}`,
+            ...teamColorColumns.map((color) => ({
+                id: `team-${color}`,
+                label: WVW_TEAM_COLOR_META[color].label,
                 align: 'right' as const,
                 minWidth: 72
             })),
@@ -105,7 +102,7 @@ export const FightBreakdownSection = ({
             { id: 'barrierDelta', label: 'Barrier Delta', align: 'right' as const, minWidth: 98 }
         ];
         return base;
-    }, [teamColumnIds]);
+    }, [teamColorColumns]);
 
     const denseRows = useMemo(() => {
         return fights.map((fight: any, idx: number) => {
@@ -167,10 +164,12 @@ export const FightBreakdownSection = ({
                 )
             };
 
-            teamColumnIds.forEach((teamId) => {
+            teamColorColumns.forEach((color) => {
                 const rows = Array.isArray(fight.teamBreakdown) ? fight.teamBreakdown : [];
-                const entry = rows.find((row: any) => String(row?.teamId ?? '') === teamId);
-                values[`team-${teamId}`] = Number(entry?.count || 0);
+                values[`team-${color}`] = rows.reduce((sum: number, row: any) => {
+                    const rowColor: WvwTeamColor = row?.color ?? getWvwTeamColor(Number(row?.teamId));
+                    return rowColor === color ? sum + Number(row?.count || 0) : sum;
+                }, 0);
             });
 
             return {
@@ -184,7 +183,7 @@ export const FightBreakdownSection = ({
                 values
             };
         });
-    }, [fights, teamColumnIds]);
+    }, [fights, teamColorColumns]);
 
     return (
         <div
@@ -250,11 +249,11 @@ export const FightBreakdownSection = ({
                                                 <th className="text-right py-2 px-3">Squad</th>
                                                 <th className="text-right py-2 px-3">Allies</th>
                                                 <th className="text-right py-2 px-3">Enemies</th>
-                                                {teamColumnIds.length === 0 ? (
+                                                {teamColorColumns.length === 0 ? (
                                                     <th className="text-right py-2 px-3">Teams</th>
                                                 ) : (
-                                                    teamColumnIds.map((teamId) => (
-                                                        <th key={teamId} className="text-right py-2 px-3">{`Team ${teamId}`}</th>
+                                                    teamColorColumns.map((color) => (
+                                                        <th key={color} className="text-right py-2 px-3" style={{ color: WVW_TEAM_COLOR_META[color].hex }}>{WVW_TEAM_COLOR_META[color].label}</th>
                                                     ))
                                                 )}
                                             </>
@@ -338,15 +337,18 @@ export const FightBreakdownSection = ({
                                                             className="text-[color:var(--text-primary)]"
                                                         />
                                                     </td>
-                                                    {teamColumnIds.length === 0 ? (
+                                                    {teamColorColumns.length === 0 ? (
                                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">0</td>
                                                     ) : (
-                                                        teamColumnIds.map((teamId) => {
+                                                        teamColorColumns.map((color) => {
                                                             const rows = Array.isArray(fight.teamBreakdown) ? fight.teamBreakdown : [];
-                                                            const entry = rows.find((row: any) => String(row?.teamId ?? '') === teamId);
+                                                            const total = rows.reduce((sum: number, row: any) => {
+                                                                const rowColor: WvwTeamColor = row?.color ?? getWvwTeamColor(Number(row?.teamId));
+                                                                return rowColor === color ? sum + Number(row?.count || 0) : sum;
+                                                            }, 0);
                                                             return (
-                                                                <td key={teamId} className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">
-                                                                    {Number(entry?.count || 0)}
+                                                                <td key={color} className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">
+                                                                    {total}
                                                                 </td>
                                                             );
                                                         })

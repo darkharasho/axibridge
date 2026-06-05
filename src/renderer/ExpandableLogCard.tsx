@@ -605,7 +605,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         return '';
     };
 
-    const renderClassSummary = (title: string, counts: Array<{ profession: string; count: number }>, colorClass: string, compact?: boolean, fullHeight?: boolean) => {
+    const renderClassSummary = (title: string, counts: Array<{ profession: string; count: number }>, colorClass: string, compact?: boolean, fullHeight?: boolean, headerColorHex?: string) => {
         const isTile = Boolean(fullHeight);
         const isEnemy = title.toLowerCase().includes('enemy');
         const maxItems = isTile ? 20 : (isEnemy ? 30 : undefined);
@@ -642,7 +642,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             : `font-black ${colorClass} mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'}`;
         return (
             <div className={`rounded-[4px] ${compact ? 'p-3' : 'p-4'} shadow-lg ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
-                <h5 className={`${headerClass} border-b border-white/10 pb-2`}>{title}</h5>
+                <h5 className={`${headerClass} border-b border-white/10 pb-2`} style={headerColorHex ? { color: headerColorHex } : undefined}>{title}</h5>
                 {limitedCounts.length > 0 ? (
                     <div className={`grid grid-flow-col auto-cols-fr gap-2 font-mono text-gray-200 ${fullHeight ? 'text-base' : compact ? 'text-[11px]' : 'text-sm'}`}>
                         {columns.map((column, columnIndex) => (
@@ -1057,7 +1057,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     )}
                                     {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamClassSummaries.map((team) => (
                                         <div key={`expanded-team-classes-${team.teamId}`}>
-                                            {renderClassSummary(`${WVW_TEAM_COLOR_META[team.color].label} Classes`, team.classes, 'text-red-400', true)}
+                                            {renderClassSummary(`${WVW_TEAM_COLOR_META[team.color].label} Classes`, team.classes, 'text-red-400', true, undefined, WVW_TEAM_COLOR_META[team.color].hex)}
                                         </div>
                                     ))}
                                 </div>

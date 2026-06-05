@@ -54,6 +54,8 @@ export function computeMatchup(
   }
   const enemyByTeam = Array.from(teamMap.entries())
     .map(([teamID, count]) => ({ teamID, count, color: getWvwTeamColor(teamID, wvwMap) }))
+    // Kept in body-count order (largest first) so the proportional bar reads naturally;
+    // the Discord and per-log surfaces order teams by fixed color instead.
     .sort((a, b) => b.count - a.count);
 
   // Squad's own team color (from the first squad player that has a teamID).

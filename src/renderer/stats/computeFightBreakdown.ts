@@ -2,6 +2,7 @@ import { getFightDownsDeaths, getFightOutcome, resolveProfessionLabel } from './
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { formatDurationMs } from './utils/dashboardUtils';
+import { getWvwTeamColor, teamMapFromLog } from '../../shared/wvwTeams';
 
 const resolvePermalink = (details: any, log: any): string => {
     const direct = log?.permalink || details?.permalink;
@@ -43,6 +44,7 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
     const squadPlayers = players.filter((p: any) => !p.notInSquad);
     const allies = players.filter((p: any) => p.notInSquad);
     const targets = Array.isArray(details?.targets) ? details.targets : [];
+    const wvwTeamMap = teamMapFromLog(details);
     const enemyTargets = targets.filter((t: any) => !t.isFake);
     const summary = log?.dashboardSummary && typeof log.dashboardSummary === 'object'
         ? log.dashboardSummary
@@ -96,7 +98,7 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
             return a[0].localeCompare(b[0], undefined, { numeric: true });
         })
         .slice(0, 3)
-        .map(([teamId, count]) => ({ teamId, count }));
+        .map(([teamId, count]) => ({ teamId, count, color: getWvwTeamColor(Number(teamId), wvwTeamMap) }));
 
     const fullLabel = buildFightLabelV2({
         zone: details?.fightName || log?.fightName || log?.encounterName || `Fight ${fightIndex + 1}`,
