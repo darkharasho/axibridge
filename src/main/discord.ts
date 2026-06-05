@@ -30,6 +30,7 @@ import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../s
 import { Player } from '../shared/dpsReportTypes';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
+import { getWvwTeamColor, teamMapFromLog, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamMap } from '../shared/wvwTeams';
 
 const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/axibridge/main/public/img/AxiBridge-white.png';
 
@@ -140,7 +141,7 @@ const resolveTargetProfession = (target: any): string => {
     return '';
 };
 
-const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: number) => {
+const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: number, teamMap: WvwTeamMap | null) => {
     const allyTeamIds = new Set<number>();
     players.forEach((player: any) => {
         if (player?.notInSquad) return;
@@ -231,19 +232,22 @@ const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: 
         ...enemyTeamKillsMap.keys()
     ])).sort((a, b) => a - b);
 
-    return teamIds.map((teamId) => {
-        const dmg = enemyTeamDmgMap.get(teamId) || 0;
-        const classCounts = enemyTeamClassMap.get(teamId) || {};
-        return {
-            teamId,
-            count: enemyTeamCountMap.get(teamId) || 0,
-            dmg,
-            dps: Math.round(dmg / durationSec),
-            downs: enemyTeamDownsMap.get(teamId) || 0,
-            kills: enemyTeamKillsMap.get(teamId) || 0,
-            classCounts
-        };
-    });
+    return teamIds
+        .map((teamId) => {
+            const dmg = enemyTeamDmgMap.get(teamId) || 0;
+            const classCounts = enemyTeamClassMap.get(teamId) || {};
+            return {
+                teamId,
+                color: getWvwTeamColor(teamId, teamMap),
+                count: enemyTeamCountMap.get(teamId) || 0,
+                dmg,
+                dps: Math.round(dmg / durationSec),
+                downs: enemyTeamDownsMap.get(teamId) || 0,
+                kills: enemyTeamKillsMap.get(teamId) || 0,
+                classCounts
+            };
+        })
+        .sort((a, b) => WVW_TEAM_COLOR_ORDER.indexOf(a.color) - WVW_TEAM_COLOR_ORDER.indexOf(b.color));
 };
 
 export class DiscordNotifier {
@@ -414,7 +418,7 @@ export class DiscordNotifier {
                     let enemyDeaths = 0;
                     let enemyCount = 0;
                     const durationSec = jsonDetails.durationMS ? jsonDetails.durationMS / 1000 : 1;
-                    const enemyTeams = computeEnemyTeamBreakdown(players as any[], targets, durationSec || 1);
+                    const enemyTeams = computeEnemyTeamBreakdown(players as any[], targets, durationSec || 1, teamMapFromLog(jsonDetails));
 
                     // Count non-fake targets
                     targets.forEach((t: any) => {
@@ -516,7 +520,7 @@ export class DiscordNotifier {
                                     formatStatLine('Kills:', team.kills)
                                 ].join('\n');
                                 embedFields.push({
-                                    name: `Team ${team.teamId}:`,
+                                    name: `${WVW_TEAM_COLOR_META[team.color].label} team:`,
                                     value: `\`\`\`\n${teamSummaryLines}\n\`\`\``,
                                     inline: true
                                 });
@@ -614,7 +618,7 @@ export class DiscordNotifier {
                         if (splitEnemiesByTeam && enemyTeams.length > 0) {
                             enemyTeams.forEach((team) => {
                                 embedFields.push({
-                                    name: `Team ${team.teamId} Classes:`,
+                                    name: `${WVW_TEAM_COLOR_META[team.color].label} classes:`,
                                     value: `\`\`\`\n${formatClassLines(team.classCounts, true, undefined, true, 2)}\n\`\`\``,
                                     inline: true
                                 });
