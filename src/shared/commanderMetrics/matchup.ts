@@ -3,6 +3,7 @@
 import type { DPSReportJSON, Player } from '../dpsReportTypes';
 import type { CommanderFightData } from '../commanderTypes';
 import { KNOWN_PROFESSIONS, playerPosAt, dist2d, centroid } from './shared';
+import { getWvwTeamColor, teamMapFromLog } from '../wvwTeams';
 
 export function computeMatchup(
   json: DPSReportJSON,
@@ -42,8 +43,9 @@ export function computeMatchup(
     .map(([profession, count]) => ({ profession, count }))
     .sort((a, b) => b.count - a.count);
 
-  // Enemy split by teamID (WvW shows two opposing teams; if EI didn't tag teamID
-  // on this log, this stays empty and the UI hides the breakdown).
+  // Enemy split by teamID, resolved to real Red/Green/Blue colors. Prefer EI's
+  // authoritative wvWMapData; fall back to the fixed id-table for older logs.
+  const wvwMap = teamMapFromLog(json);
   const teamMap = new Map<number, number>();
   for (const t of enemyTargets) {
     if (typeof t.teamID === 'number') {
@@ -51,8 +53,13 @@ export function computeMatchup(
     }
   }
   const enemyByTeam = Array.from(teamMap.entries())
-    .map(([teamID, count]) => ({ teamID, count }))
+    .map(([teamID, count]) => ({ teamID, count, color: getWvwTeamColor(teamID, wvwMap) }))
     .sort((a, b) => b.count - a.count);
+
+  // Squad's own team color (from the first squad player that has a teamID).
+  const squadTeamId = squadPlayers.map((p) => p.teamID).find((id) => typeof id === 'number' && id > 0);
+  const squadColorResolved = squadTeamId !== undefined ? getWvwTeamColor(squadTeamId, wvwMap) : 'unknown';
+  const squadColor = squadColorResolved === 'unknown' ? null : squadColorResolved;
 
   // ---- timeOutnumberedSec ----
   // If there are no enemy targets, we cannot compute outnumbered status → 0.
@@ -123,6 +130,7 @@ export function computeMatchup(
     timeOutnumberedSec,
     enemyComp,
     enemyByTeam,
+    squadColor,
     inTagBubbleAtEngage,
   };
 }

@@ -1,5 +1,6 @@
 // src/shared/commanderTypes.ts
 import type { DPSReportJSON } from './dpsReportTypes';
+import type { WvwTeamColor } from './wvwTeams';
 
 export type VerdictChip =
   | 'wipe' | 'trade' | 'carry' | 'clean'
@@ -37,7 +38,8 @@ export interface CommanderFightData {
     effectiveRatio: number;            // (squad+allies)/enemyPeak
     timeOutnumberedSec: number;
     enemyComp: Array<{ profession: string; count: number }>;
-    enemyByTeam: Array<{ teamID: number; count: number }>;
+    enemyByTeam: Array<{ teamID: number; count: number; color: WvwTeamColor }>;
+    squadColor: WvwTeamColor | null;
     inTagBubbleAtEngage: number;
   };
 
