@@ -4,6 +4,7 @@ import { CompBars } from '../viz/CompBars';
 import { TagBubble } from '../viz/TagBubble';
 import type { CommanderFightData } from '../../../shared/commanderTypes';
 import type { CommanderThresholds } from '../../../shared/commanderThresholds';
+import { WVW_TEAM_COLOR_META, type WvwTeamColor } from '../../../shared/wvwTeams';
 
 function durStr(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -39,6 +40,11 @@ export function MatchupSection({ fight, thresholds }: { fight: CommanderFightDat
         meta={`peak enemy ${m.enemyPeak}`}
         severity={ratioSev}
       >
+        {m.squadColor && (
+          <div className="text-[10px] font-mono mb-0.5" style={{ color: WVW_TEAM_COLOR_META[m.squadColor].hex }}>
+            Your team: {WVW_TEAM_COLOR_META[m.squadColor].label}
+          </div>
+        )}
         {m.enemyByTeam.length >= 1 && <EnemyTeamSplit teams={m.enemyByTeam} />}
       </MetricCard>
       <MetricCard
@@ -81,32 +87,30 @@ export function MatchupSection({ fight, thresholds }: { fight: CommanderFightDat
   );
 }
 
-const TEAM_COLORS = ['rgb(248, 113, 113)', 'rgb(167, 139, 250)', 'rgb(96, 165, 250)'];
-
-function EnemyTeamSplit({ teams }: { teams: Array<{ teamID: number; count: number }> }) {
+function EnemyTeamSplit({ teams }: { teams: Array<{ teamID: number; count: number; color: WvwTeamColor }> }) {
   const total = Math.max(1, teams.reduce((a, t) => a + t.count, 0));
   return (
     <div className="flex flex-col gap-0.5" data-role="enemy-team-split">
       <div className="flex h-1.5 w-full overflow-hidden rounded-sm" style={{ background: 'var(--bg-card-inner)' }}>
-        {teams.map((t, i) => (
+        {teams.map((t) => (
           <div
             key={t.teamID}
             style={{
               width: `${(t.count / total) * 100}%`,
-              backgroundColor: TEAM_COLORS[i % TEAM_COLORS.length],
+              backgroundColor: WVW_TEAM_COLOR_META[t.color].hex,
             }}
           />
         ))}
       </div>
       <div className="flex justify-between text-[10px]">
-        {teams.map((t, i) => (
+        {teams.map((t) => (
           <span
             key={t.teamID}
             className="font-mono"
-            style={{ color: TEAM_COLORS[i % TEAM_COLORS.length] }}
+            style={{ color: WVW_TEAM_COLOR_META[t.color].hex }}
             title={`team ${t.teamID}`}
           >
-            T{String.fromCharCode(65 + i)} {t.count}
+            {WVW_TEAM_COLOR_META[t.color].label} {t.count}
           </span>
         ))}
       </div>
