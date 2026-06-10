@@ -42,4 +42,24 @@ describe('buildBoonLeaderboards', () => {
     const t: BoonTable[] = [{ id: 'b717', name: 'Protection', stacking: false, rows: [mkRow('A.1', 0)] }];
     expect(buildBoonLeaderboards(t)['b717']).toEqual([]);
   });
+
+  it('ties share a rank and the next distinct value uses competition ranking (1,1,3)', () => {
+    const t: BoonTable[] = [
+      { id: 'b1187', name: 'Quickness', stacking: false, rows: [
+        mkRow('A.1', 40000), mkRow('B.2', 40000), mkRow('C.3', 20000),
+      ] },
+    ];
+    const rows = buildBoonLeaderboards(t)['b1187'];
+    expect(rows.map((r) => r.rank)).toEqual([1, 1, 3]);
+  });
+
+  it('breaks value ties by account name ascending', () => {
+    const t: BoonTable[] = [
+      { id: 'b1187', name: 'Quickness', stacking: false, rows: [
+        mkRow('Zed.9', 40000), mkRow('Amy.1', 40000),
+      ] },
+    ];
+    const rows = buildBoonLeaderboards(t)['b1187'];
+    expect(rows.map((r) => r.account)).toEqual(['Amy.1', 'Zed.9']);
+  });
 });
