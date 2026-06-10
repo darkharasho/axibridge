@@ -1,4 +1,6 @@
-import { Activity, Ban, Crown, Crosshair, Flame, Hammer, HelpingHand, Shield, ShieldCheck, Sparkles, Star, Wind, Zap, Trophy } from 'lucide-react';
+import { Crown, Flame, ShieldCheck, Sparkles, Star, Trophy } from 'lucide-react';
+import { TOP_STATS_CATALOG, DEFAULT_ENABLED_TOP_STATS, type TopStatDef } from '../topStatsCatalog';
+import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { useStatsSharedContext } from '../StatsViewContext';
 
 type TopPlayersSectionProps = {
@@ -10,24 +12,21 @@ type TopPlayersSectionProps = {
     setExpandedLeader: (value: string | null | ((prev: string | null) => string | null)) => void;
     formatTopStatValue: (value: number) => string;
     isMvpStatEnabled: (name: string) => boolean;
+    enabledTopStats?: string[];
 };
 
-const colorClasses: Record<string, { bg: string; text: string }> = {
-    red: { bg: 'bg-red-500/20', text: 'text-red-400' },
-    yellow: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
-    green: { bg: 'bg-green-500/20', text: 'text-green-400' },
-    purple: { bg: 'bg-purple-500/20', text: 'text-purple-400' },
-    blue: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
-    pink: { bg: 'bg-pink-500/20', text: 'text-pink-400' },
-    cyan: { bg: 'bg-cyan-500/20', text: 'text-cyan-400' },
-    indigo: { bg: 'bg-indigo-500/20', text: 'text-indigo-400' },
-    orange: { bg: 'bg-orange-500/20', text: 'text-orange-400' }
-};
-
-const LeaderCard = ({ icon: Icon, title, data, color, unit = '', onClick, active, rows, formatValue, renderProfessionIcon }: any) => {
-    const classes = colorClasses[color] || colorClasses.blue;
+const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit = '', onClick, active, rows, formatValue, renderProfessionIcon }: any) => {
     const value = data?.value ?? 0;
     const displayValue = formatValue ? formatValue(value) : Math.round(value).toLocaleString();
+    const tint = accentColor || '#818cf8';
+    const containerStyle = isBoon
+        ? { borderColor: `${tint}66`, background: `${tint}0f` }
+        : undefined;
+    const iconWrapStyle = { color: tint };
+    const iconWrapBg = isBoon
+        ? `p-3 rounded-[var(--radius-md)] shrink-0 relative`
+        : `p-3 rounded-[var(--radius-md)] shrink-0`;
+
     return (
         <div
             role="button"
@@ -39,14 +38,23 @@ const LeaderCard = ({ icon: Icon, title, data, color, unit = '', onClick, active
                     onClick?.();
                 }
             }}
-            className={`border border-[color:var(--border-default)] rounded-[var(--radius-md)] p-4 flex flex-col gap-3 group cursor-pointer ${active ? 'ring-1 ring-white/20' : ''}`}
+            className={`border rounded-[var(--radius-md)] p-4 flex flex-col gap-3 group cursor-pointer relative ${active ? 'ring-1 ring-white/20' : ''}`}
+            style={containerStyle ?? { borderColor: 'var(--border-default)' }}
         >
+            {isBoon && (
+                <span className="absolute top-2 right-2 text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded border" style={{ color: tint, borderColor: `${tint}66`, background: `${tint}1a` }}>
+                    BOON
+                </span>
+            )}
             <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-[var(--radius-md)] ${classes.bg} ${classes.text} shrink-0`}>
-                    <Icon className="w-6 h-6" />
+                <div className={iconWrapBg} style={iconWrapStyle}>
+                    {isBoon
+                        ? <Gw2BoonIcon className="w-6 h-6" />
+                        : <Icon className="w-6 h-6" />
+                    }
                 </div>
                 <div className="min-w-0 flex-1">
-                    <div className="text-[color:var(--text-secondary)] text-xs font-bold uppercase tracking-wider truncate">{title}</div>
+                    <div data-testid="leader-card-title" className="text-[color:var(--text-secondary)] text-xs font-bold uppercase tracking-wider truncate">{title}</div>
                     <div className="text-2xl font-bold text-white mt-0.5 break-words">
                         {displayValue} <span className="text-sm font-normal text-[color:var(--text-secondary)]">{unit}</span>
                     </div>
@@ -119,6 +127,22 @@ const formatMvpPillValue = (value: unknown, formatTopStatValue: (n: number) => s
     return '--';
 };
 
+// Stat ids that get a "Total " prefix in non-rate mode
+const TOTAL_PREFIX_IDS = new Set([
+    'barrier', 'healing', 'dodges', 'strips', 'cleanses',
+    'cc', 'interrupts', 'ccAndInterrupts', 'stability',
+    'downedHealing', 'revives', 'dps', 'damage', 'participation',
+]);
+
+const getCardTitle = (def: TopStatDef, isPerSecond: boolean, isPerMinute: boolean): string => {
+    if (def.source.kind === 'boon') return def.label;
+    if (def.id === 'closestToTag') return 'Closest to Tag';
+    const titleSuffix = isPerSecond ? ' /s' : isPerMinute ? ' /m' : '';
+    const isRate = isPerSecond || isPerMinute;
+    const prefix = (!isRate && TOTAL_PREFIX_IDS.has(def.id)) ? 'Total ' : '';
+    return `${prefix}${def.label}${titleSuffix}`;
+};
+
 export const TopPlayersSection = ({
     showTopStats,
     showMvp,
@@ -127,7 +151,8 @@ export const TopPlayersSection = ({
     expandedLeader,
     setExpandedLeader,
     formatTopStatValue,
-    isMvpStatEnabled
+    isMvpStatEnabled,
+    enabledTopStats = DEFAULT_ENABLED_TOP_STATS,
 }: TopPlayersSectionProps) => {
     const { stats, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
     if (!showTopStats) return null;
@@ -139,6 +164,58 @@ export const TopPlayersSection = ({
     const defenseBronze = stats.defensiveBronze || stats.bronze;
     const offenseAvg = Number.isFinite(stats.offensiveAvgMvpScore) ? stats.offensiveAvgMvpScore : (stats.avgMvpScore || 0);
     const defenseAvg = Number.isFinite(stats.defensiveAvgMvpScore) ? stats.defensiveAvgMvpScore : (stats.avgMvpScore || 0);
+
+    const isPerSecond = topStatsMode === 'perSecond';
+    const isPerMinute = topStatsMode === 'perMinute';
+
+    // Pick the non-boon leaderboard source map based on rate mode
+    const topStatsLeaderboards = isPerSecond && stats.topStatsLeaderboardsPerSecond
+        ? stats.topStatsLeaderboardsPerSecond
+        : isPerMinute && stats.topStatsLeaderboardsPerMinute
+            ? stats.topStatsLeaderboardsPerMinute
+            : stats.leaderboards;
+
+    // Apply interruptMode override: remap which IDs are "effectively enabled"
+    // If user has 'cc' or 'interrupts' or 'ccAndInterrupts' enabled, interruptMode
+    // controls which of those actually renders.
+    const enabledSet = new Set(enabledTopStats);
+    const effectiveEnabled = new Set(enabledTopStats);
+
+    const hasCc = enabledSet.has('cc');
+    const hasInterrupts = enabledSet.has('interrupts');
+    const hasCcAndInterrupts = enabledSet.has('ccAndInterrupts');
+    const hasAnyInterruptStat = hasCc || hasInterrupts || hasCcAndInterrupts;
+
+    if (hasAnyInterruptStat) {
+        // Remove all three, then add back the correct one(s) based on interruptMode
+        effectiveEnabled.delete('cc');
+        effectiveEnabled.delete('interrupts');
+        effectiveEnabled.delete('ccAndInterrupts');
+        if (interruptMode === 'combined') {
+            effectiveEnabled.add('ccAndInterrupts');
+        } else if (interruptMode === 'separate') {
+            effectiveEnabled.add('cc');
+            effectiveEnabled.add('interrupts');
+        } else {
+            // ccOnly
+            effectiveEnabled.add('cc');
+        }
+    }
+
+    // Filter catalog to enabled defs in catalog order
+    const enabledDefs = TOP_STATS_CATALOG.filter((d) => effectiveEnabled.has(d.id));
+
+    const formatValue = (def: TopStatDef, value: number): string => {
+        if (def.source.kind === 'boon') {
+            if (def.unit === 'uptime') return `${formatWithCommas(value, 1)}%`;
+            return formatWithCommas(value, 1);
+        }
+        if ((isPerSecond || isPerMinute) && def.supportsRate) {
+            return formatWithCommas(value, 2);
+        }
+        return formatTopStatValue(value);
+    };
+
     return (
         <div>
             <div className="flex items-center gap-2 mb-3.5">
@@ -314,75 +391,61 @@ export const TopPlayersSection = ({
                 </div>
             )}
 
-            {(() => {
-                const isPerSecond = topStatsMode === 'perSecond';
-                const isPerMinute = topStatsMode === 'perMinute';
-                const topStatsData = isPerSecond && stats.topStatsPerSecond
-                    ? stats.topStatsPerSecond
-                    : isPerMinute && stats.topStatsPerMinute
-                        ? stats.topStatsPerMinute
-                        : stats;
-                const topStatsLeaderboards = isPerSecond && stats.topStatsLeaderboardsPerSecond
-                    ? stats.topStatsLeaderboardsPerSecond
-                    : isPerMinute && stats.topStatsLeaderboardsPerMinute
-                        ? stats.topStatsLeaderboardsPerMinute
-                        : stats.leaderboards;
-                const titlePrefix = (isPerSecond || isPerMinute) ? '' : 'Total ';
-                const titleSuffix = isPerSecond ? ' /s' : isPerMinute ? ' /m' : '';
-                const leaderCards = [
-                    { icon: HelpingHand, title: `Down Contribution${titleSuffix}`, data: topStatsData.maxDownContrib, color: 'red', statKey: 'downContrib', higherIsBetter: true },
-                    { icon: Shield, title: `${titlePrefix}Barrier${titleSuffix}`, data: topStatsData.maxBarrier, color: 'yellow', statKey: 'barrier', higherIsBetter: true },
-                    { icon: Activity, title: `${titlePrefix}Healing${titleSuffix}`, data: topStatsData.maxHealing, color: 'green', statKey: 'healing', higherIsBetter: true },
-                    { icon: Wind, title: `${titlePrefix}Dodges${titleSuffix}`, data: topStatsData.maxDodges, color: 'cyan', statKey: 'dodges', higherIsBetter: true },
-                    { icon: Zap, title: `${titlePrefix}Strips${titleSuffix}`, data: topStatsData.maxStrips, color: 'purple', statKey: 'strips', higherIsBetter: true },
-                    { icon: Flame, title: `${titlePrefix}Cleanses${titleSuffix}`, data: topStatsData.maxCleanses, color: 'blue', statKey: 'cleanses', higherIsBetter: true },
-                    ...(interruptMode === 'combined'
-                        ? [{ icon: Hammer, title: `${titlePrefix}CC + Interrupts${titleSuffix}`, data: topStatsData.maxCCAndInterrupts, color: 'pink', statKey: 'ccAndInterrupts', higherIsBetter: true }]
-                        : [{ icon: Hammer, title: `${titlePrefix}CC${titleSuffix}`, data: topStatsData.maxCC, color: 'pink', statKey: 'cc', higherIsBetter: true }]),
-                    ...(interruptMode === 'separate'
-                        ? [{ icon: Ban, title: `${titlePrefix}Interrupts${titleSuffix}`, data: topStatsData.maxInterrupts, color: 'orange', statKey: 'interrupts', higherIsBetter: true }]
-                        : []),
-                    { icon: ShieldCheck, title: `${titlePrefix}Stab Gen${titleSuffix}`, data: topStatsData.maxStab, color: 'cyan', statKey: 'stability', higherIsBetter: true },
-                    { icon: Crosshair, title: 'Closest to Tag', data: topStatsData.closestToTag, color: 'indigo', unit: 'dist', statKey: 'closestToTag', higherIsBetter: false }
-                ];
-                const formatValue = (value: number) => {
-                    if ((!isPerSecond && !isPerMinute) || !Number.isFinite(value)) {
-                        return formatTopStatValue(value);
-                    }
-                    return formatWithCommas(value, 2);
-                };
-                return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {leaderCards.map((card) => {
-                            const isActive = expandedLeader === 'all';
-                            const rows = normalizeLeaderboardRows(topStatsLeaderboards?.[card.statKey] || [], card.higherIsBetter);
-                            const topRow = rows[0];
-                            const cardData = topRow
-                                ? {
-                                    ...card.data,
-                                    value: Number(topRow.value || 0),
-                                    player: topRow.account || card.data?.player || '-',
-                                    count: topRow.count || card.data?.count || 0,
-                                    profession: topRow.profession || card.data?.profession || 'Unknown',
-                                    professionList: topRow.professionList || card.data?.professionList || []
-                                }
-                                : card.data;
-                            return (
-                                <LeaderCard
-                                    key={card.statKey}
-                                    {...card}
-                                    data={cardData}
-                                    active={isActive}
-                                    onClick={() => setExpandedLeader((prev) => (prev === 'all' ? null : 'all'))}
-                                    rows={rows}
-                                    formatValue={formatValue}
-                                    renderProfessionIcon={renderProfessionIcon}
-                                />
-                            );
-                        })}
-                    </div>
-                );
-            })()}
+            {enabledDefs.length === 0 ? (
+                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-8 text-center text-sm text-[color:var(--text-secondary)]">
+                    No top stats selected — enable some in Settings → Dashboard - Top Stats &amp; MVP.
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {enabledDefs.map((def) => {
+                        const isBoon = def.source.kind === 'boon';
+                        const isActive = expandedLeader === 'all';
+
+                        // Resolve raw leaderboard rows
+                        let sourceRows: any[] = [];
+                        if (def.source.kind === 'boon') {
+                            sourceRows = stats.boonLeaderboards?.[def.source.boonId] || [];
+                        } else {
+                            sourceRows = topStatsLeaderboards?.[def.source.key] || [];
+                        }
+
+                        const rows = normalizeLeaderboardRows(sourceRows, def.higherIsBetter);
+                        const topRow = rows[0];
+
+                        const cardData = topRow
+                            ? {
+                                value: Number(topRow.value ?? 0),
+                                player: topRow.account || '-',
+                                count: topRow.count || 0,
+                                profession: topRow.profession || 'Unknown',
+                                professionList: topRow.professionList || [],
+                            }
+                            : { value: 0, player: '-', count: 0, profession: 'Unknown', professionList: [] };
+
+                        const cardTitle = getCardTitle(def, isPerSecond, isPerMinute);
+                        const cardUnit = isBoon ? (def.unit || '') : (def.id === 'closestToTag' ? 'dist' : '');
+
+                        const fmtValue = (v: number) => formatValue(def, v);
+
+                        return (
+                            <LeaderCard
+                                key={def.id}
+                                icon={def.icon !== 'boon' ? def.icon : undefined}
+                                title={cardTitle}
+                                data={cardData}
+                                isBoon={isBoon}
+                                accentColor={def.color}
+                                unit={cardUnit}
+                                active={isActive}
+                                onClick={() => setExpandedLeader((prev) => (prev === 'all' ? null : 'all'))}
+                                rows={rows}
+                                formatValue={fmtValue}
+                                renderProfessionIcon={renderProfessionIcon}
+                            />
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 };
