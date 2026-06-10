@@ -7,6 +7,7 @@ import { formatTopStatValue, formatWithCommas } from './stats/utils/dashboardUti
 import { sanitizeWvwLabel, buildFightLabelV2, computeFightAvgPosition } from './stats/utils/labelUtils';
 import { parseTimestamp } from './stats/utils/timestampUtils';
 import { NON_DAMAGING_CONDITIONS } from './stats/statsMetrics';
+import { normalizeEnabledTopStats } from './stats/topStatsCatalog';
 import { StatsSharedContext } from './stats/StatsViewContext';
 import { StatsGroupContainer } from './stats/ui/StatsGroupContainer';
 import { SectionPanel } from './stats/ui/SectionPanel';
@@ -231,6 +232,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const showMvp = activeStatsViewSettings.showMvp;
     const roundCountStats = activeStatsViewSettings.roundCountStats;
     const topStatsMode = activeStatsViewSettings.topStatsMode || 'total';
+    const enabledTopStats = normalizeEnabledTopStats(activeStatsViewSettings.enabledTopStats);
     const [localTopSkillsMetric, setLocalTopSkillsMetric] = useState<IStatsViewSettings['topSkillsMetric']>(
         activeStatsViewSettings.topSkillsMetric || 'damage'
     );
@@ -4277,6 +4279,7 @@ type SpikeFight = {
                                     setExpandedLeader={setExpandedLeader}
                                     formatTopStatValue={formatTopStatValue}
                                     isMvpStatEnabled={isMvpStatEnabled}
+                                    enabledTopStats={enabledTopStats}
                                 />)}
                             </div>
 
@@ -4719,6 +4722,7 @@ type SpikeFight = {
                                 setExpandedLeader={setExpandedLeader}
                                 formatTopStatValue={formatTopStatValue}
                                 isMvpStatEnabled={isMvpStatEnabled}
+                                enabledTopStats={enabledTopStats}
                             /> },
                             { id: 'top-skills-outgoing', element: <TopSkillsSection
                                 topSkillsMetric={topSkillsMetric}
