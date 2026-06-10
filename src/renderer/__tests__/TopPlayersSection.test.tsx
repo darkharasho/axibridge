@@ -94,24 +94,24 @@ describe('TopPlayersSection', () => {
         }
     });
 
-    it('shows only CC card when interruptMode is ccOnly', () => {
-        renderSection({ stats: makeStatsWithInterrupts(), interruptMode: 'ccOnly', enabledTopStats: ['cc'] });
+    it('shows only the CC card when only cc is enabled', () => {
+        renderSection({ stats: makeStatsWithInterrupts(), enabledTopStats: ['cc'] });
 
         expect(screen.getByText('Total CC')).toBeInTheDocument();
         expect(screen.queryByText('Total Interrupts')).not.toBeInTheDocument();
         expect(screen.queryByText('Total CC + Interrupts')).not.toBeInTheDocument();
     });
 
-    it('shows CC and Interrupts as separate cards when interruptMode is separate', () => {
-        renderSection({ stats: makeStatsWithInterrupts(), interruptMode: 'separate', enabledTopStats: ['cc', 'interrupts'] });
+    it('shows CC and Interrupts as separate cards when both are enabled', () => {
+        renderSection({ stats: makeStatsWithInterrupts(), enabledTopStats: ['cc', 'interrupts'] });
 
         expect(screen.getByText('Total CC')).toBeInTheDocument();
         expect(screen.getByText('Total Interrupts')).toBeInTheDocument();
         expect(screen.queryByText('Total CC + Interrupts')).not.toBeInTheDocument();
     });
 
-    it('shows combined CC + Interrupts card when interruptMode is combined', () => {
-        renderSection({ stats: makeStatsWithInterrupts(), interruptMode: 'combined', enabledTopStats: ['ccAndInterrupts'] });
+    it('shows the combined CC + Interrupts card when ccAndInterrupts is enabled', () => {
+        renderSection({ stats: makeStatsWithInterrupts(), enabledTopStats: ['ccAndInterrupts'] });
 
         expect(screen.queryByText('Total CC')).not.toBeInTheDocument();
         expect(screen.queryByText('Total Interrupts')).not.toBeInTheDocument();
