@@ -14,7 +14,7 @@ import { getProfessionColor } from '../shared/professionUtils';
 import { ProofOfWorkModal } from './ui/ProofOfWorkModal';
 import { ParticleHover } from './particles';
 import { TOP_STATS_CATALOG, CATEGORY_ORDER, CATEGORY_META, DEFAULT_ENABLED_TOP_STATS, normalizeEnabledTopStats, type TopStatCategory } from './stats/topStatsCatalog';
-import { Gw2BoonIcon } from './ui/Gw2BoonIcon';
+import { BoonGlyph } from './ui/BoonGlyph';
 
 // Pure helpers — defined outside the component so they are never recreated on re-render.
 // Exported so they can be unit-tested independently.
@@ -2233,7 +2233,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         <div key={cat} className="mb-3.5 last:mb-0">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span style={{ color: meta.color }} className="inline-flex">
-                                                    {cat === 'boon' ? <Gw2BoonIcon className="w-3.5 h-3.5" /> : CatIcon ? <CatIcon className="w-3.5 h-3.5" /> : null}
+                                                    {cat === 'boon' ? <BoonGlyph className="w-3.5 h-3.5" /> : CatIcon ? <CatIcon className="w-3.5 h-3.5" /> : null}
                                                 </span>
                                                 <span className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: meta.color }}>{meta.label}</span>
                                                 <span className="flex-1 h-px bg-white/5" />
@@ -2260,7 +2260,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#0f1115" strokeWidth={4}><path d="M20 6L9 17l-5-5" /></svg>
                                                                 )}
                                                             </span>
-                                                            {def.category === 'boon' && <Gw2BoonIcon className="w-3 h-3" />}
+                                                            {def.category === 'boon' && <BoonGlyph className="w-3 h-3" />}
                                                             {def.label}
                                                         </button>
                                                     );

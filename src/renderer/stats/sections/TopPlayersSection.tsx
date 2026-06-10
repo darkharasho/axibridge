@@ -1,6 +1,6 @@
 import { Crown, Flame, ShieldCheck, Sparkles, Star, Trophy } from 'lucide-react';
 import { TOP_STATS_CATALOG, DEFAULT_ENABLED_TOP_STATS, type TopStatDef } from '../topStatsCatalog';
-import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
+import { BoonGlyph } from '../../ui/BoonGlyph';
 import { useStatsSharedContext } from '../StatsViewContext';
 
 type TopPlayersSectionProps = {
@@ -18,13 +18,7 @@ const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit
     const value = data?.value ?? 0;
     const displayValue = formatValue ? formatValue(value) : Math.round(value).toLocaleString();
     const tint = accentColor || '#818cf8';
-    const containerStyle = isBoon
-        ? { borderColor: `${tint}66`, background: `${tint}0f` }
-        : undefined;
     const iconWrapStyle = { color: tint };
-    const iconWrapBg = isBoon
-        ? `p-3 rounded-[var(--radius-md)] shrink-0 relative`
-        : `p-3 rounded-[var(--radius-md)] shrink-0`;
 
     return (
         <div
@@ -38,17 +32,12 @@ const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit
                 }
             }}
             className={`border rounded-[var(--radius-md)] p-4 flex flex-col gap-3 group cursor-pointer relative ${active ? 'ring-1 ring-white/20' : ''}`}
-            style={containerStyle ?? { borderColor: 'var(--border-default)' }}
+            style={{ borderColor: 'var(--border-default)' }}
         >
-            {isBoon && (
-                <span className="absolute top-2 right-2 text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded border" style={{ color: tint, borderColor: `${tint}66`, background: `${tint}1a` }}>
-                    BOON
-                </span>
-            )}
             <div className="flex items-center gap-4">
-                <div className={iconWrapBg} style={iconWrapStyle}>
+                <div className="p-3 rounded-[var(--radius-md)] shrink-0" style={iconWrapStyle}>
                     {isBoon
-                        ? <Gw2BoonIcon className="w-6 h-6" />
+                        ? <BoonGlyph className="w-6 h-6" />
                         : <Icon className="w-6 h-6" />
                     }
                 </div>

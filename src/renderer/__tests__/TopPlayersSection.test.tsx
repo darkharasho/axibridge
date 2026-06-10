@@ -127,10 +127,9 @@ describe('TopPlayersSection', () => {
         expect(titles.indexOf('Down Contribution')).toBeLessThan(titles.indexOf('Total Healing'));
     });
 
-    it('renders a boon card with BOON badge and unit', () => {
+    it('renders a boon card with its label and unit', () => {
         renderSection({ enabledTopStats: ['boon:quickness'] });
         expect(screen.getByText('Quickness')).toBeInTheDocument();
-        expect(screen.getByText('BOON')).toBeInTheDocument();
         expect(screen.getByText('uptime')).toBeInTheDocument();
     });
 
