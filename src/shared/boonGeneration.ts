@@ -350,6 +350,47 @@ export const buildBoonTables = (logs: Array<{ details?: any }>, splitPlayersByCl
     return { boonTables };
 };
 
+export interface BoonLeaderboardRow {
+  rank: number;
+  account: string;
+  profession: string;
+  professionList?: string[];
+  value: number;
+  count?: number;
+}
+
+// Ranks players by SQUAD boon generation output for each boon table.
+// Stacking boons (Might/Stability) => average stacks; others => uptime %.
+// Keyed by table.id (e.g. 'b740'), matching BOON_IDS in topStatsCatalog.
+export const buildBoonLeaderboards = (
+  tables: BoonTable[],
+): Record<string, BoonLeaderboardRow[]> => {
+  const result: Record<string, BoonLeaderboardRow[]> = {};
+  for (const table of tables) {
+    const ranked = table.rows
+      .map((row) => ({
+        account: row.account,
+        profession: row.profession,
+        professionList: row.professionList,
+        value: getBoonMetricValue(row, 'squadBuffs', table.stacking, 'uptime'),
+        count: row.numFights,
+      }))
+      .filter((r) => Number.isFinite(r.value) && r.value > 0)
+      .sort((a, b) => (b.value - a.value) || a.account.localeCompare(b.account));
+
+    let lastValue: number | null = null;
+    let lastRank = 0;
+    result[table.id] = ranked.map((row, index) => {
+      if (lastValue === null || row.value !== lastValue) {
+        lastRank = index + 1;
+        lastValue = row.value;
+      }
+      return { ...row, rank: lastRank };
+    });
+  }
+  return result;
+};
+
 export const getPlayerBoonGenerationMs = (
     player: any,
     category: Exclude<BoonCategory, 'totalBuffs'>,
