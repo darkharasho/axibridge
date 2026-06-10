@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeStatsSync as computeStatsAggregation } from '../stats/incrementalAggregation';
+import { DEFAULT_ENABLED_TOP_STATS } from '../stats/topStatsCatalog';
 
 /**
  * Builds a minimal valid log entry for a given set of player accounts.
@@ -62,7 +63,8 @@ describe('computeStatsAggregation (min participation threshold)', () => {
                 minParticipationPercent: 0,
                 boonBucketIntervalMs: 5000,
                 stackingBoonBucketIntervalMs: 5000,
-                interruptMode: 'ccOnly' as const
+                interruptMode: 'ccOnly' as const,
+                enabledTopStats: DEFAULT_ENABLED_TOP_STATS,
             }
         });
 
@@ -105,7 +107,8 @@ describe('computeStatsAggregation (min participation threshold)', () => {
                 minParticipationPercent: 80,
                 boonBucketIntervalMs: 5000,
                 stackingBoonBucketIntervalMs: 5000,
-                interruptMode: 'ccOnly' as const
+                interruptMode: 'ccOnly' as const,
+                enabledTopStats: DEFAULT_ENABLED_TOP_STATS,
             }
         });
 
@@ -158,7 +161,8 @@ describe('computeStatsAggregation (min participation threshold)', () => {
                 minParticipationPercent: 80,
                 boonBucketIntervalMs: 5000,
                 stackingBoonBucketIntervalMs: 5000,
-                interruptMode: 'ccOnly' as const
+                interruptMode: 'ccOnly' as const,
+                enabledTopStats: DEFAULT_ENABLED_TOP_STATS,
             }
         });
 

@@ -1,4 +1,5 @@
 import type { ColorPalette } from '../shared/webThemes';
+import { DEFAULT_ENABLED_TOP_STATS } from './stats/topStatsCatalog';
 
 export interface IWebhook {
     id: string;
@@ -85,6 +86,7 @@ export interface IStatsViewSettings {
     boonBucketIntervalMs: number;
     stackingBoonBucketIntervalMs: number;
     interruptMode: 'ccOnly' | 'separate' | 'combined';
+    enabledTopStats: string[];
 }
 
 export interface IDiscordEnemySplitSettings {
@@ -213,7 +215,8 @@ export const DEFAULT_STATS_VIEW_SETTINGS: IStatsViewSettings = {
     minParticipationPercent: 0,
     boonBucketIntervalMs: 5000,
     stackingBoonBucketIntervalMs: 5000,
-    interruptMode: 'separate'
+    interruptMode: 'separate',
+    enabledTopStats: DEFAULT_ENABLED_TOP_STATS,
 };
 
 export const DEFAULT_WEB_UPLOAD_STATE: IWebUploadState = {
