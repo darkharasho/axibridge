@@ -53,7 +53,7 @@ export const TOP_STATS_CATALOG: TopStatDef[] = [
   { id: 'revives', label: 'Revives', category: 'defense', color: CAT_COLOR.defense, icon: HelpingHand, higherIsBetter: true, source: lb('revives'), defaultOn: false, supportsRate: true },
   // Control
   { id: 'cc', label: 'CC', category: 'control', color: CAT_COLOR.control, icon: Hammer, higherIsBetter: true, source: lb('cc'), defaultOn: true, supportsRate: true },
-  { id: 'interrupts', label: 'Interrupts', category: 'control', color: '#fb923c', icon: Ban, higherIsBetter: true, source: lb('interrupts'), defaultOn: false, supportsRate: true },
+  { id: 'interrupts', label: 'Interrupts', category: 'control', color: '#fb923c', icon: Ban, higherIsBetter: true, source: lb('interrupts'), defaultOn: true, supportsRate: true },
   { id: 'ccAndInterrupts', label: 'CC + Interrupts', category: 'control', color: CAT_COLOR.control, icon: Hammer, higherIsBetter: true, source: lb('ccAndInterrupts'), defaultOn: false, supportsRate: true },
   // Utility
   { id: 'dodges', label: 'Dodges', category: 'utility', color: '#22d3ee', icon: Wind, higherIsBetter: true, source: lb('dodges'), defaultOn: true, supportsRate: true },

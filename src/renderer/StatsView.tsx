@@ -231,7 +231,6 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const showMvp = activeStatsViewSettings.showMvp;
     const roundCountStats = activeStatsViewSettings.roundCountStats;
     const topStatsMode = activeStatsViewSettings.topStatsMode || 'total';
-    const interruptMode = activeStatsViewSettings.interruptMode || 'ccOnly';
     const [localTopSkillsMetric, setLocalTopSkillsMetric] = useState<IStatsViewSettings['topSkillsMetric']>(
         activeStatsViewSettings.topSkillsMetric || 'damage'
     );
@@ -4274,7 +4273,6 @@ type SpikeFight = {
                                     showTopStats={showTopStats}
                                     showMvp={showMvp}
                                     topStatsMode={topStatsMode}
-                                    interruptMode={interruptMode}
                                     expandedLeader={expandedLeader}
                                     setExpandedLeader={setExpandedLeader}
                                     formatTopStatValue={formatTopStatValue}
@@ -4717,7 +4715,6 @@ type SpikeFight = {
                                 showTopStats={showTopStats}
                                 showMvp={showMvp}
                                 topStatsMode={topStatsMode}
-                                interruptMode={interruptMode}
                                 expandedLeader={expandedLeader}
                                 setExpandedLeader={setExpandedLeader}
                                 formatTopStatValue={formatTopStatValue}

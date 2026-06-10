@@ -47,7 +47,6 @@ const renderSection = (overrides: Record<string, any> = {}) => {
                 showTopStats={true}
                 showMvp={false}
                 topStatsMode={overrides.topStatsMode ?? 'total'}
-                interruptMode={overrides.interruptMode ?? 'ccOnly'}
                 expandedLeader={null}
                 setExpandedLeader={() => {}}
                 formatTopStatValue={(value: number) => `${Math.round(value)}u`}

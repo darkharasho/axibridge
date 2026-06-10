@@ -13,10 +13,10 @@ describe('topStatsCatalog', () => {
     expect([...cats].sort()).toEqual(['boon', 'control', 'defense', 'offense', 'utility']);
   });
 
-  it('default enabled set equals the legacy 9 cards', () => {
+  it('default enabled set equals the current default cards', () => {
     expect(DEFAULT_ENABLED_TOP_STATS).toEqual([
       'downContrib', 'healing', 'barrier', 'cleanses', 'strips',
-      'stability', 'cc', 'dodges', 'closestToTag',
+      'stability', 'cc', 'interrupts', 'dodges', 'closestToTag',
     ]);
   });
 

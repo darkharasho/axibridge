@@ -7,7 +7,6 @@ type TopPlayersSectionProps = {
     showTopStats: boolean;
     showMvp: boolean;
     topStatsMode: 'total' | 'perSecond' | 'perMinute';
-    interruptMode: 'ccOnly' | 'separate' | 'combined';
     expandedLeader: string | null;
     setExpandedLeader: (value: string | null | ((prev: string | null) => string | null)) => void;
     formatTopStatValue: (value: number) => string;
@@ -147,7 +146,6 @@ export const TopPlayersSection = ({
     showTopStats,
     showMvp,
     topStatsMode,
-    interruptMode,
     expandedLeader,
     setExpandedLeader,
     formatTopStatValue,
@@ -175,35 +173,9 @@ export const TopPlayersSection = ({
             ? stats.topStatsLeaderboardsPerMinute
             : stats.leaderboards;
 
-    // Apply interruptMode override: remap which IDs are "effectively enabled"
-    // If user has 'cc' or 'interrupts' or 'ccAndInterrupts' enabled, interruptMode
-    // controls which of those actually renders.
     const enabledSet = new Set(enabledTopStats);
-    const effectiveEnabled = new Set(enabledTopStats);
-
-    const hasCc = enabledSet.has('cc');
-    const hasInterrupts = enabledSet.has('interrupts');
-    const hasCcAndInterrupts = enabledSet.has('ccAndInterrupts');
-    const hasAnyInterruptStat = hasCc || hasInterrupts || hasCcAndInterrupts;
-
-    if (hasAnyInterruptStat) {
-        // Remove all three, then add back the correct one(s) based on interruptMode
-        effectiveEnabled.delete('cc');
-        effectiveEnabled.delete('interrupts');
-        effectiveEnabled.delete('ccAndInterrupts');
-        if (interruptMode === 'combined') {
-            effectiveEnabled.add('ccAndInterrupts');
-        } else if (interruptMode === 'separate') {
-            effectiveEnabled.add('cc');
-            effectiveEnabled.add('interrupts');
-        } else {
-            // ccOnly
-            effectiveEnabled.add('cc');
-        }
-    }
-
     // Filter catalog to enabled defs in catalog order
-    const enabledDefs = TOP_STATS_CATALOG.filter((d) => effectiveEnabled.has(d.id));
+    const enabledDefs = TOP_STATS_CATALOG.filter((d) => enabledSet.has(d.id));
 
     const formatValue = (def: TopStatDef, value: number): string => {
         if (def.source.kind === 'boon') {
