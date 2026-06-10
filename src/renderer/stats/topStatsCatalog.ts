@@ -1,7 +1,8 @@
 // src/renderer/stats/topStatsCatalog.ts
 import {
-  Activity, Ban, Crosshair, Crown, Flame, Hammer, HelpingHand, Heart,
-  Shield, ShieldCheck, Swords, Wind, Zap, type LucideIcon,
+  Activity, Axe, Ban, Bug, Crosshair, Crown, EyeOff, Flame, Footprints, Hammer,
+  HeartCrack, HelpingHand, Heart, Shield, ShieldAlert, ShieldCheck, ShieldHalf,
+  Skull, Swords, Target, Wind, Zap, type LucideIcon,
 } from 'lucide-react';
 
 export type TopStatCategory = 'offense' | 'defense' | 'control' | 'utility' | 'boon';
@@ -28,6 +29,7 @@ export const BOON_IDS = {
   might: 'b740', quickness: 'b1187', alacrity: 'b30328', fury: 'b725',
   protection: 'b717', resistance: 'b26980', resolution: 'b31484',
   stability: 'b1122', aegis: 'b873', regeneration: 'b718', swiftness: 'b719',
+  vigor: 'b726',
 } as const;
 
 const CAT_COLOR: Record<TopStatCategory, string> = {
@@ -43,6 +45,9 @@ export const TOP_STATS_CATALOG: TopStatDef[] = [
   { id: 'dps', label: 'DPS', category: 'offense', color: CAT_COLOR.offense, icon: Swords, higherIsBetter: true, source: lb('dps'), defaultOn: false, supportsRate: true },
   { id: 'damage', label: 'Damage', category: 'offense', color: CAT_COLOR.offense, icon: Flame, higherIsBetter: true, source: lb('damage'), defaultOn: false, supportsRate: true },
   { id: 'downContrib', label: 'Down Contribution', category: 'offense', color: '#f87171', icon: HelpingHand, higherIsBetter: true, source: lb('downContrib'), defaultOn: true, supportsRate: true },
+  { id: 'kills', label: 'Kills', category: 'offense', color: '#fb923c', icon: Swords, higherIsBetter: true, source: lb('kills'), defaultOn: false, supportsRate: false },
+  { id: 'enemyDowns', label: 'Enemy Downs', category: 'offense', color: '#fb923c', icon: Target, higherIsBetter: true, source: lb('enemyDowns'), defaultOn: false, supportsRate: false },
+  { id: 'condiDamage', label: 'Condition Damage', category: 'offense', color: '#f97316', icon: Bug, higherIsBetter: true, source: lb('condiDamage'), defaultOn: false, supportsRate: false },
   // Defense / Support
   { id: 'healing', label: 'Healing', category: 'defense', color: CAT_COLOR.defense, icon: Activity, higherIsBetter: true, source: lb('healing'), defaultOn: true, supportsRate: true },
   { id: 'downedHealing', label: 'Downed Healing', category: 'defense', color: CAT_COLOR.defense, icon: Heart, higherIsBetter: true, source: lb('downedHealing'), defaultOn: false, supportsRate: true },
@@ -51,10 +56,17 @@ export const TOP_STATS_CATALOG: TopStatDef[] = [
   { id: 'strips', label: 'Strips', category: 'defense', color: '#a78bfa', icon: Zap, higherIsBetter: true, source: lb('strips'), defaultOn: true, supportsRate: true },
   { id: 'stability', label: 'Stability Gen', category: 'defense', color: '#22d3ee', icon: ShieldCheck, higherIsBetter: true, source: lb('stability'), defaultOn: true, supportsRate: true },
   { id: 'revives', label: 'Revives', category: 'defense', color: CAT_COLOR.defense, icon: HelpingHand, higherIsBetter: true, source: lb('revives'), defaultOn: false, supportsRate: true },
+  { id: 'blocks', label: 'Blocks', category: 'defense', color: '#2dd4bf', icon: ShieldHalf, higherIsBetter: true, source: lb('blocks'), defaultOn: false, supportsRate: false },
+  { id: 'evades', label: 'Evades', category: 'defense', color: '#2dd4bf', icon: Footprints, higherIsBetter: true, source: lb('evades'), defaultOn: false, supportsRate: false },
+  { id: 'misses', label: 'Enemy Misses Forced', category: 'defense', color: '#2dd4bf', icon: EyeOff, higherIsBetter: true, source: lb('misses'), defaultOn: false, supportsRate: false },
+  { id: 'deaths', label: 'Fewest Deaths', category: 'defense', color: '#94a3b8', icon: Skull, higherIsBetter: false, source: lb('deaths'), defaultOn: false, supportsRate: false },
+  { id: 'downsTaken', label: 'Fewest Downs', category: 'defense', color: '#94a3b8', icon: HeartCrack, higherIsBetter: false, source: lb('downsTaken'), defaultOn: false, supportsRate: false },
+  { id: 'damageTaken', label: 'Least Damage Taken', category: 'defense', color: '#94a3b8', icon: ShieldAlert, higherIsBetter: false, source: lb('damageTaken'), defaultOn: false, supportsRate: false },
   // Control
   { id: 'cc', label: 'CC', category: 'control', color: CAT_COLOR.control, icon: Hammer, higherIsBetter: true, source: lb('cc'), defaultOn: true, supportsRate: true },
   { id: 'interrupts', label: 'Interrupts', category: 'control', color: '#fb923c', icon: Ban, higherIsBetter: true, source: lb('interrupts'), defaultOn: true, supportsRate: true },
   { id: 'ccAndInterrupts', label: 'CC + Interrupts', category: 'control', color: CAT_COLOR.control, icon: Hammer, higherIsBetter: true, source: lb('ccAndInterrupts'), defaultOn: false, supportsRate: true },
+  { id: 'breakbar', label: 'Breakbar Damage', category: 'control', color: '#f472b6', icon: Axe, higherIsBetter: true, source: lb('breakbar'), defaultOn: false, supportsRate: false },
   // Utility
   { id: 'dodges', label: 'Dodges', category: 'utility', color: '#22d3ee', icon: Wind, higherIsBetter: true, source: lb('dodges'), defaultOn: true, supportsRate: true },
   { id: 'closestToTag', label: 'Closest to Tag', category: 'utility', color: '#818cf8', icon: Crosshair, unit: 'dist', higherIsBetter: false, source: lb('closestToTag'), defaultOn: true, supportsRate: false },
@@ -71,6 +83,7 @@ export const TOP_STATS_CATALOG: TopStatDef[] = [
   { id: 'boon:aegis', label: 'Aegis', category: 'boon', color: CAT_COLOR.boon, icon: 'boon', unit: 'uptime', higherIsBetter: true, source: boon(BOON_IDS.aegis, false), defaultOn: false, supportsRate: false },
   { id: 'boon:regeneration', label: 'Regeneration', category: 'boon', color: CAT_COLOR.boon, icon: 'boon', unit: 'uptime', higherIsBetter: true, source: boon(BOON_IDS.regeneration, false), defaultOn: false, supportsRate: false },
   { id: 'boon:swiftness', label: 'Swiftness', category: 'boon', color: CAT_COLOR.boon, icon: 'boon', unit: 'uptime', higherIsBetter: true, source: boon(BOON_IDS.swiftness, false), defaultOn: false, supportsRate: false },
+  { id: 'boon:vigor', label: 'Vigor', category: 'boon', color: CAT_COLOR.boon, icon: 'boon', unit: 'uptime', higherIsBetter: true, source: boon(BOON_IDS.vigor, false), defaultOn: false, supportsRate: false },
 ];
 
 export const DEFAULT_ENABLED_TOP_STATS: string[] = TOP_STATS_CATALOG

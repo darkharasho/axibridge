@@ -1056,6 +1056,16 @@ export class IncrementalAggregator {
                 case 'damage': return s.damage;
                 case 'participation': return s.logsJoined;
                 case 'closestToTag': return (!s.isCommander && s.distCount > 0) ? s.totalDist / s.distCount : Number.POSITIVE_INFINITY;
+                case 'kills': return s.kills;
+                case 'enemyDowns': return s.enemyDowns;
+                case 'damageTaken': return s.damageTaken;
+                case 'breakbar': return s.breakbar;
+                case 'blocks': return s.blocks;
+                case 'evades': return s.evades;
+                case 'misses': return s.misses;
+                case 'deaths': return s.deaths;
+                case 'downsTaken': return s.downs;
+                case 'condiDamage': return Object.values(s.outgoingConditions).reduce((sum: number, c: any) => sum + (Number(c?.damage) || 0), 0);
                 default: return 0;
             }
         };
@@ -1080,7 +1090,17 @@ export class IncrementalAggregator {
             participation: createLB('participation', true),
             dps: createLB('dps', true),
             damage: createLB('damage', true),
-            closestToTag: createLB('closestToTag', false).filter(i => Number.isFinite(i.value))
+            closestToTag: createLB('closestToTag', false).filter(i => Number.isFinite(i.value)),
+            kills: createLB('kills', true),
+            enemyDowns: createLB('enemyDowns', true),
+            breakbar: createLB('breakbar', true),
+            condiDamage: createLB('condiDamage', true),
+            blocks: createLB('blocks', true),
+            evades: createLB('evades', true),
+            misses: createLB('misses', true),
+            deaths: createLB('deaths', false),
+            downsTaken: createLB('downsTaken', false),
+            damageTaken: createLB('damageTaken', false)
         };
 
         const statKeys = {

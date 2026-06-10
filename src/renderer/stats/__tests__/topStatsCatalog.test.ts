@@ -7,8 +7,8 @@ import {
 } from '../topStatsCatalog';
 
 describe('topStatsCatalog', () => {
-  it('has 27 entries across 5 categories', () => {
-    expect(TOP_STATS_CATALOG).toHaveLength(27);
+  it('has 38 entries across 5 categories', () => {
+    expect(TOP_STATS_CATALOG).toHaveLength(38);
     const cats = new Set(TOP_STATS_CATALOG.map((d) => d.category));
     expect([...cats].sort()).toEqual(['boon', 'control', 'defense', 'offense', 'utility']);
   });
