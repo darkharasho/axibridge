@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search } from 'lucide-react';
+import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, normalizeMvpWeights, IEiParserSettings, IEiStatus } from './global.d';
 import { DEFAULT_COMMANDER_THRESHOLDS, type CommanderThresholds } from '../shared/commanderThresholds';
 import { METRICS_SPEC } from '../shared/metricsSettings';
@@ -13,6 +13,8 @@ import { useStatsStore } from './stats/statsStore';
 import { getProfessionColor } from '../shared/professionUtils';
 import { ProofOfWorkModal } from './ui/ProofOfWorkModal';
 import { ParticleHover } from './particles';
+import { TOP_STATS_CATALOG, CATEGORY_ORDER, CATEGORY_META, DEFAULT_ENABLED_TOP_STATS, normalizeEnabledTopStats, type TopStatCategory } from './stats/topStatsCatalog';
+import { Gw2BoonIcon } from './ui/Gw2BoonIcon';
 
 // Pure helpers — defined outside the component so they are never recreated on re-render.
 // Exported so they can be unit-tested independently.
@@ -509,7 +511,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         const discordEnemySplitSettings = { ...DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, ...(settings.discordEnemySplitSettings || {}) };
         setSplitEnemiesByTeam(Boolean(settings.discordSplitEnemiesByTeam) || Boolean(discordEnemySplitSettings.image || discordEnemySplitSettings.embed || discordEnemySplitSettings.tiled));
         setMvpWeights(normalizeMvpWeights(settings.mvpWeights));
-        setStatsViewSettings({ ...DEFAULT_STATS_VIEW_SETTINGS, ...(settings.statsViewSettings || {}) });
+        setStatsViewSettings({
+            ...DEFAULT_STATS_VIEW_SETTINGS,
+            ...(settings.statsViewSettings || {}),
+            enabledTopStats: normalizeEnabledTopStats(settings.statsViewSettings?.enabledTopStats),
+        });
         if (settings.colorPalette && settings.colorPalette in PALETTES) {
             setColorPalette(settings.colorPalette);
         }
@@ -1226,6 +1232,20 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
     const updateInterruptMode = useCallback((mode: IStatsViewSettings['interruptMode']) => {
         setStatsViewSettings(prev => ({ ...prev, interruptMode: mode }));
+    }, []);
+
+    const toggleTopStat = useCallback((id: string) => {
+        setStatsViewSettings((prev) => {
+            const current = normalizeEnabledTopStats(prev.enabledTopStats);
+            const next = current.includes(id)
+                ? current.filter((x) => x !== id)
+                : [...current, id];
+            return { ...prev, enabledTopStats: next };
+        });
+    }, []);
+
+    const resetTopStats = useCallback(() => {
+        setStatsViewSettings((prev) => ({ ...prev, enabledTopStats: [...DEFAULT_ENABLED_TOP_STATS] }));
     }, []);
 
     const updateMaxTopRows = useCallback((value: number) => {
@@ -2195,6 +2215,60 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     ))}
                                 </div>
                                 <div className="text-xs text-gray-500 mt-1">Applies to Top Stats cards and breakdown.</div>
+                            </div>
+                            <div className="py-3 border-t border-white/5">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="text-sm font-medium text-gray-200">Top Stats Cards</div>
+                                    <div className="text-xs text-gray-500">
+                                        {normalizeEnabledTopStats(statsViewSettings.enabledTopStats).length} of {TOP_STATS_CATALOG.length} enabled
+                                        <button type="button" onClick={resetTopStats} className="ml-2 text-blue-300 hover:text-blue-200">Reset to defaults</button>
+                                    </div>
+                                </div>
+                                {CATEGORY_ORDER.map((cat: TopStatCategory) => {
+                                    const meta = CATEGORY_META[cat];
+                                    const defs = TOP_STATS_CATALOG.filter((d) => d.category === cat);
+                                    const enabled = new Set(normalizeEnabledTopStats(statsViewSettings.enabledTopStats));
+                                    const CatIcon = cat === 'offense' ? Swords : cat === 'defense' ? Shield : cat === 'control' ? Hammer : cat === 'utility' ? Wind : null;
+                                    return (
+                                        <div key={cat} className="mb-3.5 last:mb-0">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span style={{ color: meta.color }} className="inline-flex">
+                                                    {cat === 'boon' ? <Gw2BoonIcon className="w-3.5 h-3.5" /> : CatIcon ? <CatIcon className="w-3.5 h-3.5" /> : null}
+                                                </span>
+                                                <span className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: meta.color }}>{meta.label}</span>
+                                                <span className="flex-1 h-px bg-white/5" />
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {defs.map((def) => {
+                                                    const on = enabled.has(def.id);
+                                                    return (
+                                                        <button
+                                                            key={def.id}
+                                                            type="button"
+                                                            onClick={() => toggleTopStat(def.id)}
+                                                            aria-pressed={on}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors"
+                                                            style={on
+                                                                ? { color: meta.color, background: `${meta.color}1f`, borderColor: `${meta.color}66` }
+                                                                : { color: '#6b7280', background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }}
+                                                        >
+                                                            <span
+                                                                className="w-3 h-3 rounded-sm inline-flex items-center justify-center border"
+                                                                style={{ borderColor: on ? meta.color : 'rgba(255,255,255,0.18)', background: on ? meta.color : 'transparent' }}
+                                                            >
+                                                                {on && (
+                                                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#0f1115" strokeWidth={4}><path d="M20 6L9 17l-5-5" /></svg>
+                                                                )}
+                                                            </span>
+                                                            {def.category === 'boon' && <Gw2BoonIcon className="w-3 h-3" />}
+                                                            {def.label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                             <div className="py-3 border-t border-white/5">
                                 <div className="text-sm font-medium text-gray-200 mb-2">Interrupt Display</div>

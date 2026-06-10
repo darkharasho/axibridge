@@ -501,6 +501,35 @@ describe('SettingsView', () => {
     });
 
     // -----------------------------------------------------------------------
+    // Top Stats Cards chip-grid picker
+    // -----------------------------------------------------------------------
+
+    describe('Top Stats Cards picker', () => {
+        it('toggles a top stat card chip', async () => {
+            renderSettings();
+            await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
+
+            // Use aria-pressed attribute to distinguish chip buttons from navigation buttons
+            const dpsChips = await screen.findAllByRole('button', { name: /^DPS$/i });
+            const dpsChip = dpsChips.find((btn) => btn.hasAttribute('aria-pressed'))!;
+            expect(dpsChip).toHaveAttribute('aria-pressed', 'false'); // DPS is default-off
+            fireEvent.click(dpsChip);
+            expect(dpsChip).toHaveAttribute('aria-pressed', 'true');
+        });
+
+        it('reset to defaults marks Down Contribution enabled', async () => {
+            renderSettings();
+            await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
+
+            const reset = await screen.findByRole('button', { name: /Reset to defaults/i });
+            fireEvent.click(reset);
+            const dcButtons = screen.getAllByRole('button', { name: /Down Contribution/i });
+            const dc = dcButtons.find((btn) => btn.hasAttribute('aria-pressed'))!;
+            expect(dc).toHaveAttribute('aria-pressed', 'true');
+        });
+    });
+
+    // -----------------------------------------------------------------------
     // MVP Weighting
     // -----------------------------------------------------------------------
 
