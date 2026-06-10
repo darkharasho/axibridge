@@ -5,7 +5,7 @@ import { formatDurationMs } from './utils/dashboardUtils';
 import { getProfessionColor } from '../../shared/professionUtils';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { resolveMapName } from './utils/labelUtils';
-import { buildBoonTables } from '../../shared/boonGeneration';
+import { buildBoonTables, buildBoonLeaderboards } from '../../shared/boonGeneration';
 
 import {
     createPlayerAggregationAccumulators,
@@ -816,6 +816,7 @@ export class IncrementalAggregator {
 
         // 4. Build boon tables from stored log data
         const { boonTables } = buildBoonTables(this.boonTableLogs, this.splitPlayersByClass);
+        const boonLeaderboards = buildBoonLeaderboards(boonTables);
 
         // 5. Sort and build timeline/map data
         // Sort ALL logs by fight order for timeline
@@ -1415,7 +1416,7 @@ export class IncrementalAggregator {
             playerSkillBreakdowns,
             healingBreakdownPlayers,
             topSkillsMetric: this.topSkillsMetric,
-            mapData, timelineData, boonTables, boonTimeline, boonUptimeTimeline, stabPerformanceDrilldown, incomingDamagePerSecondByFightId,
+            mapData, timelineData, boonTables, boonLeaderboards, boonTimeline, boonUptimeTimeline, stabPerformanceDrilldown, incomingDamagePerSecondByFightId,
             offensePlayers: Array.from(playerStats.values()).map(s => ({
                 account: s.account, profession: s.profession, professionList: s.professionList,
                 offenseTotals: s.offenseTotals, offenseRateWeights: s.offenseRateWeights, totalFightMs: s.totalFightMs
