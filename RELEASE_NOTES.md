@@ -1,15 +1,23 @@
 # Release Notes
 
-Version v2.7.4 — June 6, 2026
+Version v2.8.0 — June 10, 2026
 
-## WvW Team Colors
+## Customizable Top Stats
 
-WvW fights now show real team colors throughout the app — no more generic "Enemy 1 / Enemy 2" labels. The Matchup section renders each team's actual color (Red, Blue, Green) alongside your squad's color. Per-log enemy team rows in the log card are labeled by color, and Discord embeds include the real team color in the embed header.
+The Top Stats cards on the dashboard used to be a fixed set. Now you pick which ones show. Head to Settings → Dashboard - Top Stats & MVP and you'll find a new "Top Stats Cards" picker — toggle any card on or off, grouped by category.
 
-## Fight Breakdown Color-Keyed Columns
+Your dashboard looks exactly the same until you change something: the defaults are the same cards you've always had.
 
-The Fight Breakdown table now color-keys each enemy team column using that team's actual WvW color, making it much easier to tell teams apart at a glance without counting columns.
+## Way More Stats to Choose From
 
-## Fixes
+There are 38 cards to choose from now, including a bunch that were never available before:
 
-- Fixed the player classification hover tooltip in dev settings being invisible in dark glass mode — it now has a solid background regardless of theme.
+- **Boons** — rank your squad's top Might, Quickness, Alacrity, Stability, Fury, Protection, and the rest by how much they actually pump out (average stacks for Might/Stability, uptime % for the others).
+- **Offense** — DPS, Damage, Kills, Enemy Downs, Condition Damage.
+- **Control** — Breakbar Damage, plus Interrupts and CC split out separately.
+- **Survival** — Fewest Deaths, Fewest Downs, Least Damage Taken (lowest wins, like Closest to Tag), plus Blocks, Evades, and Enemy Misses Forced.
+- **Support** — Downed Healing and Revives.
+
+Every card still expands to the full leaderboard when you click it.
+
+NOTE: New cards are off by default — turn on whatever you want from the picker.
