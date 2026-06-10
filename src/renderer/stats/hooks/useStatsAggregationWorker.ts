@@ -164,6 +164,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         delete stripped.roundCountStats;
         delete stripped.showTopStats;
         delete stripped.interruptMode;
+        delete stripped.enabledTopStats;
         const nextKey = JSON.stringify(stripped);
         if (aggregationSettingsKeyRef.current !== nextKey) {
             aggregationSettingsKeyRef.current = nextKey;
