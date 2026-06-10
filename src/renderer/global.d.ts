@@ -1,5 +1,4 @@
 import type { ColorPalette } from '../shared/webThemes';
-import { DEFAULT_ENABLED_TOP_STATS } from './stats/topStatsCatalog';
 
 export interface IWebhook {
     id: string;
@@ -216,7 +215,14 @@ export const DEFAULT_STATS_VIEW_SETTINGS: IStatsViewSettings = {
     boonBucketIntervalMs: 5000,
     stackingBoonBucketIntervalMs: 5000,
     interruptMode: 'separate',
-    enabledTopStats: DEFAULT_ENABLED_TOP_STATS,
+    // Keep in sync with DEFAULT_ENABLED_TOP_STATS in stats/topStatsCatalog.ts
+    // (a unit test enforces this). Inlined as plain strings so this module does
+    // not import the catalog, which pulls in lucide-react and breaks the
+    // require-less TS sandbox used by the audit scripts.
+    enabledTopStats: [
+        'downContrib', 'healing', 'barrier', 'cleanses', 'strips',
+        'stability', 'cc', 'interrupts', 'dodges', 'closestToTag',
+    ],
 };
 
 export const DEFAULT_WEB_UPLOAD_STATE: IWebUploadState = {

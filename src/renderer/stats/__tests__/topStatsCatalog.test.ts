@@ -5,6 +5,7 @@ import {
   DEFAULT_ENABLED_TOP_STATS,
   normalizeEnabledTopStats,
 } from '../topStatsCatalog';
+import { DEFAULT_STATS_VIEW_SETTINGS } from '../../global.d';
 
 describe('topStatsCatalog', () => {
   it('has 38 entries across 5 categories', () => {
@@ -26,6 +27,12 @@ describe('topStatsCatalog', () => {
       expect(def, id).toBeTruthy();
       expect(def!.defaultOn).toBe(true);
     }
+  });
+
+  it('DEFAULT_STATS_VIEW_SETTINGS.enabledTopStats stays in sync with the catalog defaults', () => {
+    // global.d.ts inlines this list (to avoid importing the lucide-bearing
+    // catalog); this guards against the two drifting apart.
+    expect(DEFAULT_STATS_VIEW_SETTINGS.enabledTopStats).toEqual(DEFAULT_ENABLED_TOP_STATS);
   });
 
   it('all ids are unique', () => {
