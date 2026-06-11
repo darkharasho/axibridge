@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS,
-    DEFAULT_GLASS_SURFACES, DEFAULT_GLASSMORPHIC, DEFAULT_PARTICLES_ENABLED, DEFAULT_MVP_WEIGHTS,
-    DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeights, normalizeMvpWeights,
+    DEFAULT_GLASS_SURFACES, DEFAULT_GLASSMORPHIC, DEFAULT_PARTICLES_ENABLED, DEFAULT_MVP_WEIGHT_PROFILES,
+    DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeightProfiles,
     IStatsViewSettings,
 } from '../../global.d';
+import { normalizeMvpWeightProfiles } from '../../stats/mvpWeightProfiles';
 import { Webhook } from '../../WebhookModal';
 import { PALETTES, type ColorPalette } from '../../../shared/webThemes';
 
@@ -16,7 +17,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [logDirectory, setLogDirectory] = useState<string | null>(null);
     const [notificationType, setNotificationType] = useState<'embed'>('embed');
     const [embedStatSettings, setEmbedStatSettings] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
-    const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
+    const [mvpWeights, setMvpWeights] = useState<IMvpWeightProfiles>(DEFAULT_MVP_WEIGHT_PROFILES);
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
@@ -68,8 +69,8 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             if (settings.embedStatSettings) {
                 setEmbedStatSettings({ ...DEFAULT_EMBED_STATS, ...settings.embedStatSettings });
             }
-            if (settings.mvpWeights) {
-                setMvpWeights(normalizeMvpWeights(settings.mvpWeights));
+            if (settings.mvpWeightProfiles || settings.mvpWeights) {
+                setMvpWeights(normalizeMvpWeightProfiles(settings.mvpWeightProfiles ?? settings.mvpWeights));
             }
             if (settings.statsViewSettings) {
                 setStatsViewSettings({ ...DEFAULT_STATS_VIEW_SETTINGS, ...settings.statsViewSettings });

@@ -1,5 +1,5 @@
 import { startTransition, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { DisruptionMethod, IMvpWeights, IStatsViewSettings } from '../../global.d';
+import type { DisruptionMethod, IMvpWeightProfiles, IStatsViewSettings } from '../../global.d';
 import { IncrementalAggregator, computeStatsSync } from '../incrementalAggregation';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import type { DetailsCache } from '../../cache/DetailsCache';
@@ -7,7 +7,7 @@ import type { DetailsCache } from '../../cache/DetailsCache';
 interface UseStatsAggregationProps {
     logs: any[];
     precomputedStats?: any;
-    mvpWeights?: IMvpWeights;
+    mvpWeights?: IMvpWeightProfiles;
     statsViewSettings?: IStatsViewSettings;
     disruptionMethod?: DisruptionMethod;
     detailsCache?: DetailsCache | null;

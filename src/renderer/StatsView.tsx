@@ -22,7 +22,7 @@ import { useSkillCharts } from './stats/hooks/useSkillCharts';
 import { getProfessionColor, PROFESSION_COLORS } from '../shared/professionUtils';
 import { getProfessionIconPath } from './classIconUtils';
 import { BoonCategory, BoonMetric, formatBoonMetricDisplay, getBoonMetricValue } from '../shared/boonGeneration';
-import { DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IMvpWeights, IStatsViewSettings, IWebUploadState, normalizeMvpWeights } from './global.d';
+import { DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IMvpWeightProfiles, IMvpWeights, IStatsViewSettings, IWebUploadState, normalizeMvpWeights } from './global.d';
 import type { PlayerSkillBreakdown, PlayerSkillDamageEntry, SkillUsageSummary } from './stats/statsTypes';
 import { getDefaultConditionIcon, normalizeConditionLabel } from '../shared/conditionsMetrics';
 import { DetailsCacheContext } from './cache/DetailsCacheContext';
@@ -85,7 +85,7 @@ import { computeHealEffectivenessData } from './stats/computeHealEffectivenessDa
 interface StatsViewProps {
     logs: ILogData[];
     onBack: () => void;
-    mvpWeights?: IMvpWeights;
+    mvpWeights?: IMvpWeightProfiles;
     statsViewSettings?: IStatsViewSettings;
     onStatsViewSettingsChange?: (settings: IStatsViewSettings) => void;
     webUploadState?: IWebUploadState;

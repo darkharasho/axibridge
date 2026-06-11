@@ -283,6 +283,7 @@ export interface IElectronAPI {
         closeBehavior: 'minimize' | 'quit';
         embedStatSettings: IEmbedStatSettings;
         mvpWeights: IMvpWeights;
+        mvpWeightProfiles?: IMvpWeightProfiles;
         statsViewSettings: IStatsViewSettings;
         disruptionMethod: DisruptionMethod;
         commanderThresholds?: Partial<import('../shared/commanderThresholds').CommanderThresholds>;

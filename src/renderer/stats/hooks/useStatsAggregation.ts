@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { computeStatsSync } from '../incrementalAggregation';
-import type { DisruptionMethod, IMvpWeights, IStatsViewSettings } from '../../global.d';
+import type { DisruptionMethod, IMvpWeightProfiles, IStatsViewSettings } from '../../global.d';
 
 interface UseStatsAggregationProps {
     logs: any[];
     precomputedStats?: any;
-    mvpWeights?: IMvpWeights;
+    mvpWeights?: IMvpWeightProfiles;
     statsViewSettings?: IStatsViewSettings;
     disruptionMethod?: DisruptionMethod;
 }
