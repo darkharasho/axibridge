@@ -61,8 +61,8 @@ const SETTINGS_SECTIONS = [
     { id: 'embed-top', label: 'Embed Top Stats' },
     { id: 'help-updates', label: 'Help & Updates' },
     { id: 'dashboard-stats', label: 'Dashboard Stats' },
-    { id: 'boon-uptime-resolution', label: 'Boon Uptime' },
     { id: 'mvp-weighting', label: 'MVP Weighting' },
+    { id: 'boon-uptime-resolution', label: 'Boon Uptime' },
     { id: 'commander-thresholds', label: 'Commander Thresholds' },
     { id: 'parser-settings', label: 'Parser Settings' },
     { id: 'close-behavior', label: 'Close Behavior' },
@@ -1233,6 +1233,32 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         setStatsViewSettings(prev => ({ ...prev, topStatsMode: mode }));
     }, []);
 
+    // Inline boon ranking metric pills, rendered on the BOONS category header in
+    // both the Dashboard Top Stats Cards list and the MVP Weighting list.
+    const renderBoonMetricToggle = (color: string) => (
+        <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-gray-500 uppercase tracking-wide">Rank by</span>
+            {([
+                { id: 'average', label: 'Gen/Sec' },
+                { id: 'uptime', label: 'Uptime' },
+                { id: 'total', label: 'Count' },
+            ] as const).map((opt) => {
+                const active = (statsViewSettings.mvpBoonMetric || 'uptime') === opt.id;
+                return (
+                    <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => updateStatsViewSettingValue('mvpBoonMetric', opt.id)}
+                        className={`px-2 py-0.5 rounded-md text-[10.5px] font-semibold border transition-colors ${active ? '' : 'border-white/10 text-gray-400 hover:text-gray-200'}`}
+                        style={active ? { color, background: `${color}1f`, borderColor: `${color}66` } : undefined}
+                    >
+                        {opt.label}
+                    </button>
+                );
+            })}
+        </div>
+    );
+
     const updateInterruptMode = useCallback((mode: IStatsViewSettings['interruptMode']) => {
         setStatsViewSettings(prev => ({ ...prev, interruptMode: mode }));
     }, []);
@@ -2250,6 +2276,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 </span>
                                                 <span className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: meta.color }}>{meta.label}</span>
                                                 <span className="flex-1 h-px bg-white/5" />
+                                                {cat === 'boon' && renderBoonMetricToggle(meta.color)}
                                             </div>
                                             <div className="flex flex-wrap gap-2">
                                                 {defs.map((def) => {
@@ -2454,6 +2481,56 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         </div>
                     </SettingsSection>
 
+                    {/* MVP Weighting Section */}
+                    <SettingsSection title="MVP Weighting" icon={BarChart3} delay={0.18} sectionId="mvp-weighting" hidden={settingsSearchHidden.has('mvp-weighting')}>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex gap-2">
+                                {(['offensive', 'defensive', 'general'] as const).map((b) => (
+                                    <button
+                                        key={b}
+                                        type="button"
+                                        onClick={() => setMvpBucket(b)}
+                                        className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors ${mvpBucket === b ? 'bg-blue-500/20 text-blue-200 border-blue-500/40' : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'}`}
+                                    >
+                                        {b === 'offensive' ? 'Offensive' : b === 'defensive' ? 'Defensive' : 'General'}
+                                        {b === 'general' && <span className="opacity-60 font-normal"> (both)</span>}
+                                    </button>
+                                ))}
+                            </div>
+                            <button type="button" onClick={resetMvpProfiles} className="text-xs text-blue-300 hover:text-blue-200">Reset to defaults</button>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-3">Weight any stat toward this MVP. 0 = ignored. Offensive &amp; Defensive also include the General weights.</p>
+                        {CATEGORY_ORDER.map((cat: TopStatCategory) => {
+                            const meta = CATEGORY_META[cat];
+                            const defs = TOP_STATS_CATALOG.filter((d) => d.category === cat);
+                            return (
+                                <div key={cat} className="mb-3.5 last:mb-0">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }} />
+                                        <span className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: meta.color }}>{meta.label}</span>
+                                        <span className="flex-1 h-px bg-white/5" />
+                                        {cat === 'boon' && renderBoonMetricToggle(meta.color)}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {defs.map((def) => {
+                                            const w = mvpWeights[mvpBucket][def.id] || 0;
+                                            const on = w > 0;
+                                            return (
+                                                <div key={def.id} className="inline-flex items-center rounded-lg border overflow-hidden"
+                                                    style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+                                                    <span className="pl-2.5 pr-1 py-1 text-xs font-semibold" style={{ color: on ? meta.color : '#6b7280' }}>{def.label}</span>
+                                                    <button type="button" aria-label={`decrease ${def.label}`} onClick={() => setMvpWeight(mvpBucket, def.id, w - 0.05)} className="w-5 h-6 text-sm leading-none" style={{ color: on ? meta.color : '#4b5563' }}>−</button>
+                                                    <span className="min-w-[30px] text-center text-xs font-bold tabular-nums" style={{ color: on ? meta.color : '#4b5563' }}>{w.toFixed(2)}</span>
+                                                    <button type="button" aria-label={`increase ${def.label}`} onClick={() => setMvpWeight(mvpBucket, def.id, w + 0.05)} className="w-5 h-6 text-sm leading-none pr-1" style={{ color: on ? meta.color : '#9ca3af' }}>+</button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </SettingsSection>
+
                     <SettingsSection title="Boon Uptime Resolution" icon={BarChart3} delay={0.19} sectionId="boon-uptime-resolution" hidden={settingsSearchHidden.has('boon-uptime-resolution')}>
                         <p className="text-sm text-gray-400 mb-4">
                             Control the bucket interval used for boon uptime timeline charts. Finer resolution reveals short coverage gaps but increases data size.
@@ -2508,55 +2585,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <div className="text-xs text-gray-500 mt-1">Default: 5s — stacking boons fluctuate constantly so coarser buckets are fine.</div>
                             </div>
                         </div>
-                    </SettingsSection>
-
-                    {/* Close Behavior Section */}
-                    <SettingsSection title="MVP Weighting" icon={BarChart3} delay={0.18} sectionId="mvp-weighting" hidden={settingsSearchHidden.has('mvp-weighting')}>
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex gap-2">
-                                {(['offensive', 'defensive', 'general'] as const).map((b) => (
-                                    <button
-                                        key={b}
-                                        type="button"
-                                        onClick={() => setMvpBucket(b)}
-                                        className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors ${mvpBucket === b ? 'bg-blue-500/20 text-blue-200 border-blue-500/40' : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'}`}
-                                    >
-                                        {b === 'offensive' ? 'Offensive' : b === 'defensive' ? 'Defensive' : 'General'}
-                                        {b === 'general' && <span className="opacity-60 font-normal"> (both)</span>}
-                                    </button>
-                                ))}
-                            </div>
-                            <button type="button" onClick={resetMvpProfiles} className="text-xs text-blue-300 hover:text-blue-200">Reset to defaults</button>
-                        </div>
-                        <p className="text-xs text-gray-500 mb-3">Weight any stat toward this MVP. 0 = ignored. Offensive &amp; Defensive also include the General weights.</p>
-                        {CATEGORY_ORDER.map((cat: TopStatCategory) => {
-                            const meta = CATEGORY_META[cat];
-                            const defs = TOP_STATS_CATALOG.filter((d) => d.category === cat);
-                            return (
-                                <div key={cat} className="mb-3.5 last:mb-0">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }} />
-                                        <span className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: meta.color }}>{meta.label}</span>
-                                        <span className="flex-1 h-px bg-white/5" />
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {defs.map((def) => {
-                                            const w = mvpWeights[mvpBucket][def.id] || 0;
-                                            const on = w > 0;
-                                            return (
-                                                <div key={def.id} className="inline-flex items-center rounded-lg border overflow-hidden"
-                                                    style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
-                                                    <span className="pl-2.5 pr-1 py-1 text-xs font-semibold" style={{ color: on ? meta.color : '#6b7280' }}>{def.label}</span>
-                                                    <button type="button" aria-label={`decrease ${def.label}`} onClick={() => setMvpWeight(mvpBucket, def.id, w - 0.05)} className="w-5 h-6 text-sm leading-none" style={{ color: on ? meta.color : '#4b5563' }}>−</button>
-                                                    <span className="min-w-[30px] text-center text-xs font-bold tabular-nums" style={{ color: on ? meta.color : '#4b5563' }}>{w.toFixed(2)}</span>
-                                                    <button type="button" aria-label={`increase ${def.label}`} onClick={() => setMvpWeight(mvpBucket, def.id, w + 0.05)} className="w-5 h-6 text-sm leading-none pr-1" style={{ color: on ? meta.color : '#9ca3af' }}>+</button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            );
-                        })}
                     </SettingsSection>
 
                     {/* Commander Thresholds Section */}

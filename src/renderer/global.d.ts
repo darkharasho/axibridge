@@ -86,6 +86,8 @@ export interface IStatsViewSettings {
     stackingBoonBucketIntervalMs: number;
     interruptMode: 'ccOnly' | 'separate' | 'combined';
     enabledTopStats: string[];
+    // How boons are scored in MVP weighting: 'average' (gen/sec), 'uptime' (%/avg stacks), or 'total' (total gen, "count").
+    mvpBoonMetric: 'total' | 'average' | 'uptime';
 }
 
 export interface IDiscordEnemySplitSettings {
@@ -230,6 +232,7 @@ export const DEFAULT_STATS_VIEW_SETTINGS: IStatsViewSettings = {
     boonBucketIntervalMs: 5000,
     stackingBoonBucketIntervalMs: 5000,
     interruptMode: 'separate',
+    mvpBoonMetric: 'uptime',
     // Keep in sync with DEFAULT_ENABLED_TOP_STATS in stats/topStatsCatalog.ts
     // (a unit test enforces this). Inlined as plain strings so this module does
     // not import the catalog, which pulls in lucide-react and breaks the

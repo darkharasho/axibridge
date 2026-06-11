@@ -53,6 +53,25 @@ describe('buildBoonLeaderboards', () => {
     expect(rows.map((r) => r.rank)).toEqual([1, 1, 3]);
   });
 
+  it("metric 'average' scores by gen/sec (generationMs/activeTimeMs)", () => {
+    // 40000/10000 = 4 gen/sec; no denom/percentage applied
+    const lbs = buildBoonLeaderboards(tables, 'average');
+    expect(lbs['b1187'][0].value).toBeCloseTo(4, 5);
+    expect(lbs['b1187'].map((r) => r.account)).toEqual(['A.1', 'B.2']);
+  });
+
+  it("metric 'total' scores by total generation seconds (generationMs/1000, i.e. count)", () => {
+    // 40000ms => 40s
+    const lbs = buildBoonLeaderboards(tables, 'total');
+    expect(lbs['b1187'][0].value).toBeCloseTo(40, 5);
+    expect(lbs['b1187'][1].value).toBeCloseTo(20, 5);
+  });
+
+  it("defaults to 'uptime' when no metric is passed", () => {
+    expect(buildBoonLeaderboards(tables)['b1187'][0].value)
+      .toBeCloseTo(buildBoonLeaderboards(tables, 'uptime')['b1187'][0].value, 5);
+  });
+
   it('breaks value ties by account name ascending', () => {
     const t: BoonTable[] = [
       { id: 'b1187', name: 'Quickness', stacking: false, rows: [

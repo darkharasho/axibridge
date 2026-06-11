@@ -817,7 +817,7 @@ export class IncrementalAggregator {
 
         // 4. Build boon tables from stored log data
         const { boonTables } = buildBoonTables(this.boonTableLogs, this.splitPlayersByClass);
-        const boonLeaderboards = buildBoonLeaderboards(boonTables);
+        const boonLeaderboards = buildBoonLeaderboards(boonTables, this.activeStatsViewSettings.mvpBoonMetric || 'uptime');
 
         // 5. Sort and build timeline/map data
         // Sort ALL logs by fight order for timeline

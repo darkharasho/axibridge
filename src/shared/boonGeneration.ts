@@ -360,10 +360,12 @@ export interface BoonLeaderboardRow {
 }
 
 // Ranks players by SQUAD boon generation output for each boon table.
-// Stacking boons (Might/Stability) => average stacks; others => uptime %.
+// `metric` selects the scored value: 'uptime' (stacking => avg stacks, else uptime %),
+// 'average' (gen/sec), or 'total' (total generation seconds, i.e. "count").
 // Keyed by table.id (e.g. 'b740'), matching BOON_IDS in topStatsCatalog.
 export const buildBoonLeaderboards = (
   tables: BoonTable[],
+  metric: BoonMetric = 'uptime',
 ): Record<string, BoonLeaderboardRow[]> => {
   const result: Record<string, BoonLeaderboardRow[]> = {};
   for (const table of tables) {
@@ -372,7 +374,7 @@ export const buildBoonLeaderboards = (
         account: row.account,
         profession: row.profession,
         professionList: row.professionList,
-        value: getBoonMetricValue(row, 'squadBuffs', table.stacking, 'uptime'),
+        value: getBoonMetricValue(row, 'squadBuffs', table.stacking, metric),
         count: row.numFights,
       }))
       .filter((r) => Number.isFinite(r.value) && r.value > 0)
