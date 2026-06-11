@@ -177,6 +177,21 @@ export const DEFAULT_MVP_WEIGHTS: IMvpWeights = {
     defensiveDodging: 0.4
 };
 
+export interface IMvpWeightProfiles {
+    general: Record<string, number>;
+    offensive: Record<string, number>;
+    defensive: Record<string, number>;
+}
+
+// Keep in sync with the catalog-derived value in stats/mvpWeightProfiles.ts
+// (a unit test enforces this). Inlined as plain data so global.d.ts does not
+// import the lucide-bearing catalog (which breaks the audit TS sandbox).
+export const DEFAULT_MVP_WEIGHT_PROFILES: IMvpWeightProfiles = {
+    offensive: { downContrib: 1, dps: 0.2, damage: 0.2 },
+    general: { strips: 1, cc: 0.7, closestToTag: 0.7, participation: 0.7, dodges: 0.4 },
+    defensive: { healing: 1, downedHealing: 0.7, cleanses: 1, stability: 1, revives: 0.7 },
+};
+
 export const normalizeMvpWeights = (weights: unknown): IMvpWeights => {
     const input = (weights && typeof weights === 'object') ? (weights as Partial<IMvpWeights> & LegacyMvpWeights) : {};
     const toNum = (value: unknown, fallback: number) => {
