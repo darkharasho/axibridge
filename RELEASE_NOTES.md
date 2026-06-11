@@ -1,15 +1,21 @@
 # Release Notes
 
-Version v2.9.0 — June 10, 2026
+Version v2.9.1 — June 10, 2026
 
-## Custom MVP Weighting
+## Bulk Imports No Longer Freeze the App
 
-MVP scoring used to use a fixed handful of stats. Now you decide what counts. In Settings → MVP Weighting you'll find tabs for **Offensive**, **Defensive**, and **General** (which feeds both) — and under each, every stat from the dashboard catalog with its own weight dial. Crank Quickness output for your support MVP, reward Kills on offense, factor in Fewest Deaths, whatever fits how you play. 0 means a stat is ignored.
+Adding a big batch of logs used to grind the whole app to a halt — every status update was quietly re-sending every log's combat data to the stats engine, which could block the UI for seconds at a time, over and over. The stats engine now remembers what it already has and only receives what actually changed, and it recalculates a couple of times per bulk instead of constantly. Importing a full raid night should feel dramatically smoother.
 
-Nothing changes until you touch it: the defaults are exactly the weights MVP used before, and your existing settings carry over automatically.
+## "All Reports" Loads Instantly
 
-## Way More to Weigh
+The All Reports page used to download and crunch every single report in your browser before showing anything — easily 20+ seconds (and hundreds of MB) once you had a few weeks of reports. The app now publishes a small pre-computed summary alongside your reports, so the page loads in under a second no matter how many reports you have.
 
-The same ~38 stats you can show as Top Stats cards are now all available for MVP scoring — boons (Might, Quickness, Alacrity, Stability…), Kills, Enemy Downs, Condition Damage, Breakbar, Blocks, Evades, and the "fewest is best" survival stats (Deaths, Downs, Damage Taken) which correctly reward the lowest number.
+NOTE: This kicks in after your next web report upload, which also backfills your existing reports automatically.
 
-NOTE: New stats start at weight 0 — dial up whatever you want from the picker.
+## Smaller, Faster Web Reports
+
+Combat replay data (often two-thirds of a report's size) is now always kept out of the main report file and loaded only when you open the replay tab — including for setups without R2 storage. This also fixes replay data silently going missing if an R2 upload failed mid-publish.
+
+## QoL Improvements
+
+- Uploads no longer stall the app while the upload cache does housekeeping — the cleanup sweep now runs occasionally instead of on every single log.
