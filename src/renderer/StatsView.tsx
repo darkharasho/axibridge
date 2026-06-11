@@ -22,7 +22,7 @@ import { useSkillCharts } from './stats/hooks/useSkillCharts';
 import { getProfessionColor, PROFESSION_COLORS } from '../shared/professionUtils';
 import { getProfessionIconPath } from './classIconUtils';
 import { BoonCategory, BoonMetric, formatBoonMetricDisplay, getBoonMetricValue } from '../shared/boonGeneration';
-import { DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IMvpWeightProfiles, IMvpWeights, IStatsViewSettings, IWebUploadState, normalizeMvpWeights } from './global.d';
+import { DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod, IMvpWeightProfiles, IStatsViewSettings, IWebUploadState } from './global.d';
 import type { PlayerSkillBreakdown, PlayerSkillDamageEntry, SkillUsageSummary } from './stats/statsTypes';
 import { getDefaultConditionIcon, normalizeConditionLabel } from '../shared/conditionsMetrics';
 import { DetailsCacheContext } from './cache/DetailsCacheContext';
@@ -225,7 +225,6 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         return () => cancelAnimationFrame(id);
     }, [sectionsDeferred]);
 
-    const activeMvpWeights = normalizeMvpWeights(mvpWeights || DEFAULT_MVP_WEIGHTS);
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
     const activeWebUploadState = webUploadState || DEFAULT_WEB_UPLOAD_STATE;
     const showTopStats = activeStatsViewSettings.showTopStats;
@@ -764,26 +763,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         onWebUpload
     });
 
-    const mvpStatWeightKeys: Record<string, keyof IMvpWeights> = {
-        'Down Contribution': 'offensiveDownContribution',
-        'Strips': 'generalStrips',
-        'CC': 'generalCc',
-        'DPS': 'offensiveDps',
-        'Damage': 'offensiveDamage',
-        'Healing': 'defensiveHealing',
-        'Downed Healing': 'defensiveDownedHealing',
-        'Cleanses': 'defensiveCleanses',
-        'Stability': 'defensiveStability',
-        'Revives': 'defensiveRevives',
-        'Distance to Tag': 'generalDistanceToTag',
-        'Participation': 'generalParticipation',
-        'Dodging': 'generalDodging'
-    };
-    const isMvpStatEnabled = (name: string) => {
-        const key = mvpStatWeightKeys[name];
-        if (!key) return true;
-        return activeMvpWeights[key] > 0;
-    };
+    // MVP pills are built only from weighted stats (the scoring `contribs`), so all are shown.
+    const isMvpStatEnabled = (_name: string) => true;
 
     const [expandedLeader, setExpandedLeader] = useState<string | null>(null);
     const [activeBoonTab, setActiveBoonTab] = useState<string | null>(null);
