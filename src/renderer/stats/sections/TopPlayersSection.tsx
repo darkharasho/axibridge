@@ -1,5 +1,6 @@
 import { Crown, Flame, ShieldCheck, Sparkles, Star, Trophy } from 'lucide-react';
 import { TOP_STATS_CATALOG, DEFAULT_ENABLED_TOP_STATS, type TopStatDef } from '../topStatsCatalog';
+import { TOP_STAT_ICONS } from '../topStatIcons';
 import { BoonGlyph } from '../../ui/BoonGlyph';
 import { useStatsSharedContext } from '../StatsViewContext';
 
@@ -391,7 +392,7 @@ export const TopPlayersSection = ({
                         return (
                             <LeaderCard
                                 key={def.id}
-                                icon={def.icon !== 'boon' ? def.icon : undefined}
+                                icon={def.icon !== 'boon' ? TOP_STAT_ICONS[def.icon] : undefined}
                                 title={cardTitle}
                                 data={cardData}
                                 isBoon={isBoon}
