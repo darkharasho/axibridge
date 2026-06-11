@@ -1,23 +1,15 @@
 # Release Notes
 
-Version v2.8.0 — June 10, 2026
+Version v2.9.0 — June 10, 2026
 
-## Customizable Top Stats
+## Custom MVP Weighting
 
-The Top Stats cards on the dashboard used to be a fixed set. Now you pick which ones show. Head to Settings → Dashboard - Top Stats & MVP and you'll find a new "Top Stats Cards" picker — toggle any card on or off, grouped by category.
+MVP scoring used to use a fixed handful of stats. Now you decide what counts. In Settings → MVP Weighting you'll find tabs for **Offensive**, **Defensive**, and **General** (which feeds both) — and under each, every stat from the dashboard catalog with its own weight dial. Crank Quickness output for your support MVP, reward Kills on offense, factor in Fewest Deaths, whatever fits how you play. 0 means a stat is ignored.
 
-Your dashboard looks exactly the same until you change something: the defaults are the same cards you've always had.
+Nothing changes until you touch it: the defaults are exactly the weights MVP used before, and your existing settings carry over automatically.
 
-## Way More Stats to Choose From
+## Way More to Weigh
 
-There are 38 cards to choose from now, including a bunch that were never available before:
+The same ~38 stats you can show as Top Stats cards are now all available for MVP scoring — boons (Might, Quickness, Alacrity, Stability…), Kills, Enemy Downs, Condition Damage, Breakbar, Blocks, Evades, and the "fewest is best" survival stats (Deaths, Downs, Damage Taken) which correctly reward the lowest number.
 
-- **Boons** — rank your squad's top Might, Quickness, Alacrity, Stability, Fury, Protection, and the rest by how much they actually pump out (average stacks for Might/Stability, uptime % for the others).
-- **Offense** — DPS, Damage, Kills, Enemy Downs, Condition Damage.
-- **Control** — Breakbar Damage, plus Interrupts and CC split out separately.
-- **Survival** — Fewest Deaths, Fewest Downs, Least Damage Taken (lowest wins, like Closest to Tag), plus Blocks, Evades, and Enemy Misses Forced.
-- **Support** — Downed Healing and Revives.
-
-Every card still expands to the full leaderboard when you click it.
-
-NOTE: New cards are off by default — turn on whatever you want from the picker.
+NOTE: New stats start at weight 0 — dial up whatever you want from the picker.
