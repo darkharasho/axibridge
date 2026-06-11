@@ -52,6 +52,144 @@ type RollupReportPayload = {
     };
 };
 
+export type { RollupReportPayload };
+
+/**
+ * Precomputed rollup file published alongside the reports (reports/rollup.json).
+ * `sources` holds the minimal per-report projection that buildRollupData needs,
+ * so the rollup can be incrementally rebuilt at publish time — and the viewer
+ * can merge in legacy reports that predate this file without refetching the rest.
+ */
+export interface RollupSourcesFile {
+    version: number;
+    sources: RollupReportPayload[];
+    rollup: RollupData;
+}
+
+export const ROLLUP_SOURCES_VERSION = 1;
+
+/**
+ * Project a full report payload down to the minimal fields buildRollupData reads.
+ * Commander rows in particular carry ~50 fields the rollup ignores; dropping them
+ * takes a typical source from ~360KB to ~8KB.
+ */
+export const extractRollupSource = (payload: RollupReportPayload): RollupReportPayload => {
+    const meta = payload?.meta || {};
+    const commanderRows = Array.isArray(payload?.stats?.commanderStats?.rows)
+        ? payload.stats!.commanderStats!.rows!
+        : [];
+    const attendanceRows = Array.isArray(payload?.stats?.attendanceData)
+        ? payload.stats!.attendanceData!
+        : [];
+    return {
+        meta: {
+            id: meta.id,
+            dateStart: meta.dateStart,
+            dateEnd: meta.dateEnd,
+            generatedAt: meta.generatedAt
+        },
+        stats: {
+            commanderStats: {
+                rows: commanderRows.map((row: any) => ({
+                    key: row?.key,
+                    account: row?.account,
+                    characterNames: Array.isArray(row?.characterNames) ? row.characterNames : [],
+                    profession: row?.profession,
+                    fights: row?.fights,
+                    kills: row?.kills,
+                    downs: row?.downs,
+                    commanderDeaths: row?.commanderDeaths,
+                    alliesDead: row?.alliesDead,
+                    wins: row?.wins,
+                    losses: row?.losses
+                }))
+            },
+            attendanceData: attendanceRows.map((row: any) => ({
+                account: row?.account,
+                characterNames: Array.isArray(row?.characterNames) ? row.characterNames : [],
+                combatTimeMs: row?.combatTimeMs,
+                squadTimeMs: row?.squadTimeMs,
+                classTimes: (Array.isArray(row?.classTimes) ? row.classTimes : []).map((entry: any) => ({
+                    profession: entry?.profession,
+                    timeMs: entry?.timeMs
+                }))
+            }))
+        }
+    };
+};
+
+/**
+ * Build the rollup.json contents for a publish: merge the just-published
+ * report's source into the existing sources, backfill missing reports via the
+ * caller-provided loader, drop sources for reports no longer in the index, and
+ * recompute the aggregate. Pure aside from the injected loader.
+ */
+export const updateRollupSourcesForPublish = (options: {
+    existingSources: RollupReportPayload[];
+    currentReport: RollupReportPayload;
+    validIds: string[];
+    loadLocalReport?: (id: string) => RollupReportPayload | null;
+}): RollupSourcesFile => {
+    const { existingSources, currentReport, validIds, loadLocalReport } = options;
+    const sourcesById = new Map<string, RollupReportPayload>();
+    existingSources.forEach((source) => {
+        const id = String(source?.meta?.id || '').trim();
+        if (id) sourcesById.set(id, source);
+    });
+    const currentId = String(currentReport?.meta?.id || '').trim();
+    if (currentId) {
+        sourcesById.set(currentId, extractRollupSource(currentReport));
+    }
+    const validIdSet = new Set(validIds.map((id) => String(id || '').trim()).filter(Boolean));
+    if (loadLocalReport) {
+        for (const id of validIdSet) {
+            if (sourcesById.has(id)) continue;
+            const localReport = loadLocalReport(id);
+            if (localReport) {
+                sourcesById.set(id, extractRollupSource(localReport));
+            }
+        }
+    }
+    const sources = Array.from(sourcesById.entries())
+        .filter(([id]) => validIdSet.has(id))
+        .map(([, source]) => source);
+    return {
+        version: ROLLUP_SOURCES_VERSION,
+        sources,
+        rollup: buildRollupData(sources)
+    };
+};
+
+/**
+ * Build the rollup.json contents after deleting reports: drop their sources
+ * and recompute the aggregate.
+ */
+export const removeRollupSources = (file: RollupSourcesFile, deletedIds: string[]): RollupSourcesFile => {
+    const deleted = new Set(deletedIds.map((id) => String(id || '').trim()).filter(Boolean));
+    const sources = file.sources.filter(
+        (source) => !deleted.has(String(source?.meta?.id || '').trim())
+    );
+    return {
+        version: ROLLUP_SOURCES_VERSION,
+        sources,
+        rollup: buildRollupData(sources)
+    };
+};
+
+/**
+ * Parse a fetched/stored rollup.json defensively. Returns null when the file is
+ * absent, a different version, or structurally invalid — callers fall back to
+ * rebuilding from full report payloads.
+ */
+export const parseRollupSourcesFile = (data: unknown): RollupSourcesFile | null => {
+    const candidate = data as RollupSourcesFile | null;
+    if (!candidate || typeof candidate !== 'object') return null;
+    if (candidate.version !== ROLLUP_SOURCES_VERSION) return null;
+    if (!Array.isArray(candidate.sources)) return null;
+    if (!candidate.rollup || typeof candidate.rollup !== 'object') return null;
+    return candidate;
+};
+
 type CommanderAccumulator = {
     account: string;
     characterNames: Set<string>;

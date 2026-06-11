@@ -5,6 +5,12 @@ import https from 'node:https';
 import { createHash, createHmac } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import log from 'electron-log';
+import {
+    parseRollupSourcesFile,
+    removeRollupSources,
+    updateRollupSourcesForPublish,
+    type RollupReportPayload
+} from '../../web/rollup';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
@@ -181,6 +187,16 @@ const getGithubFile = async (owner: string, repo: string, filePath: string, bran
     if (resp.status === 404) return null;
     if (resp.status >= 300) {
         throw new Error(`GitHub API error (${resp.status}) loading ${filePath}`);
+    }
+    return resp.data;
+};
+
+const getGithubBlob = async (owner: string, repo: string, blobSha: string, token: string) => {
+    // Unlike the contents API, the blob API has no 1MB read limit.
+    const resp = await githubApiRequest('GET', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/git/blobs/${encodeGitPath(blobSha)}`, token);
+    if (resp.status === 404) return null;
+    if (resp.status >= 300) {
+        throw new Error(`GitHub API error (${resp.status}) loading blob ${blobSha}`);
     }
     return resp.data;
 };
@@ -1212,6 +1228,33 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 { path: withPagesPath(pagesPath, 'reports/index.json'), sha: indexBlob.sha }
             ];
 
+            // Keep the precomputed rollup consistent: drop sources for deleted reports.
+            try {
+                const rollupRepoPath = withPagesPath(pagesPath, 'reports/rollup.json');
+                const rollupEntry = treeEntries.find(
+                    (entry: any) => entry?.path === rollupRepoPath && entry?.type === 'blob' && entry?.sha
+                );
+                if (rollupEntry) {
+                    const blob = await getGithubBlob(owner, repo, rollupEntry.sha, token);
+                    const parsed = blob?.content
+                        ? parseRollupSourcesFile(JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8')))
+                        : null;
+                    if (parsed) {
+                        const rollupFile = removeRollupSources(parsed, ids);
+                        const rollupBlob = await createGithubBlob(
+                            owner,
+                            repo,
+                            token,
+                            Buffer.from(JSON.stringify(rollupFile), 'utf8').toString('base64'),
+                            rollupRepoPath
+                        );
+                        commitEntries.push({ path: rollupRepoPath, sha: rollupBlob.sha });
+                    }
+                }
+            } catch (err) {
+                log.warn('[Main] Failed to update rollup.json after delete (non-blocking):', err);
+            }
+
             const newTree = await createGithubTree(owner, repo, token, baseTreeSha, commitEntries);
             const commitMessage = `Delete ${ids.length} report${ids.length === 1 ? '' : 's'}`;
             const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, headSha);
@@ -1617,18 +1660,19 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 }
             }
             let sourceStats: Record<string, any> = payload.stats || {};
+            // Replay data dominates report.json size (often 2/3 of the payload), so it is
+            // always split out and lazy-loaded by the viewer: uploaded to R2 when configured,
+            // otherwise hosted on Pages next to report.json.
             let replayBuffer: Buffer | null = null;
-            if (r2Config) {
-                const rawReplayFights = Array.isArray(sourceStats.replayFights) ? sourceStats.replayFights : [];
-                if (rawReplayFights.length > 0) {
-                    replayBuffer = Buffer.from(JSON.stringify({ replayFights: rawReplayFights }), 'utf8');
-                    sourceStats = { ...sourceStats };
-                    delete sourceStats.replayFights;
-                    log.info(`[Main] R2 configured — ${rawReplayFights.length} replay fight(s) found (${formatBytes(replayBuffer.length)}), will upload to R2.`);
-                } else {
-                    log.info('[Main] R2 configured but no replay fights found in stats — skipping R2 upload. Enable Combat Replay in Parser Settings and re-process logs.');
-                    sendWebUploadStatus('Packaging', 'R2 configured — no replay data found (Combat Replay may be disabled in Parser Settings)', 39);
-                }
+            const rawReplayFights = Array.isArray(sourceStats.replayFights) ? sourceStats.replayFights : [];
+            if (rawReplayFights.length > 0) {
+                replayBuffer = Buffer.from(JSON.stringify({ replayFights: rawReplayFights }), 'utf8');
+                sourceStats = { ...sourceStats };
+                delete sourceStats.replayFights;
+                log.info(`[Main] ${rawReplayFights.length} replay fight(s) found (${formatBytes(replayBuffer.length)}) — splitting out of report.json.`);
+            } else if (r2Config) {
+                log.info('[Main] R2 configured but no replay fights found in stats — skipping R2 upload. Enable Combat Replay in Parser Settings and re-process logs.');
+                sendWebUploadStatus('Packaging', 'R2 configured — no replay data found (Combat Replay may be disabled in Parser Settings)', 39);
             }
 
             const builtReport = buildWebReportPayload(
@@ -1639,24 +1683,42 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 glassmorphicValue
             );
 
-            if (r2Config && replayBuffer) {
-                sendWebUploadStatus('Uploading', 'Uploading replay data to R2...', 38);
-                const r2Key = `reports/${reportMeta.id}/replay.json`;
-                const r2Result = await r2PutObject(r2Key, replayBuffer, 'application/json', r2Config);
-                if (r2Result.success && r2Result.url) {
-                    (builtReport.payload.stats as any).replayDataUrl = r2Result.url;
-                    builtReport.jsonBuffer = Buffer.from(JSON.stringify(builtReport.payload), 'utf8');
-                    log.info(`[Main] R2 replay upload succeeded: ${r2Result.url} (${formatBytes(replayBuffer.length)})`);
-                } else {
-                    log.warn(`[Main] R2 replay upload failed: ${r2Result.error}`);
-                    sendWebUploadStatus('Warning', `R2 upload failed: ${r2Result.error}`, 39);
+            let replayHostedOnPages = false;
+            if (replayBuffer) {
+                let r2Url: string | null = null;
+                if (r2Config) {
+                    sendWebUploadStatus('Uploading', 'Uploading replay data to R2...', 38);
+                    const r2Key = `reports/${reportMeta.id}/replay.json`;
+                    const r2Result = await r2PutObject(r2Key, replayBuffer, 'application/json', r2Config);
+                    if (r2Result.success && r2Result.url) {
+                        r2Url = r2Result.url;
+                        log.info(`[Main] R2 replay upload succeeded: ${r2Result.url} (${formatBytes(replayBuffer.length)})`);
+                    } else {
+                        log.warn(`[Main] R2 replay upload failed: ${r2Result.error} — falling back to Pages-hosted replay.json.`);
+                        sendWebUploadStatus('Warning', `R2 upload failed: ${r2Result.error}`, 39);
+                    }
                 }
+                if (r2Url) {
+                    (builtReport.payload.stats as any).replayDataUrl = r2Url;
+                } else {
+                    // No R2 (or upload failed): publish replay.json to Pages alongside report.json.
+                    replayHostedOnPages = true;
+                    const pagesReplayUrl = baseUrl
+                        ? `${baseUrl.replace(/\/$/, '')}/reports/${reportMeta.id}/replay.json`
+                        : `reports/${reportMeta.id}/replay.json`;
+                    (builtReport.payload.stats as any).replayDataUrl = pagesReplayUrl;
+                }
+                builtReport.jsonBuffer = Buffer.from(JSON.stringify(builtReport.payload), 'utf8');
             }
 
             sendWebUploadStatus('Packaging', 'Preparing report bundle...', 40);
             const stagingRoot = path.join(app.getPath('userData'), 'web-report-staging', reportMeta.id);
             fs.rmSync(stagingRoot, { recursive: true, force: true });
             fs.mkdirSync(stagingRoot, { recursive: true });
+            if (replayBuffer && replayHostedOnPages) {
+                // Lands in reports/<id>/replay.json via the staging-dir upload below.
+                fs.writeFileSync(path.join(stagingRoot, 'replay.json'), replayBuffer);
+            }
             if (builtReport.trimmedSections.length > 0) {
                 console.warn(
                     `[Main] Web report ${reportMeta.id} trimmed for GitHub upload: ${builtReport.trimmedSections.join(', ')} ` +
@@ -1800,6 +1862,49 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
 
             const indexBuffer = Buffer.from(JSON.stringify(indexPayload, null, 2));
             queueFile(withPagesPath(pagesPath, 'reports/index.json'), indexBuffer);
+
+            // Maintain the precomputed rollup (reports/rollup.json) so the All Reports
+            // view loads one small file instead of every report.json. Non-blocking:
+            // the viewer falls back to per-report fetches when this file is stale or absent.
+            try {
+                const rollupRepoPath = withPagesPath(pagesPath, 'reports/rollup.json');
+                let existingSources: RollupReportPayload[] = [];
+                const existingRollupSha = treeMap.get(rollupRepoPath);
+                if (existingRollupSha) {
+                    try {
+                        const blob = await getGithubBlob(owner, repo, existingRollupSha, token);
+                        if (blob?.content) {
+                            const parsed = parseRollupSourcesFile(
+                                JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8'))
+                            );
+                            if (parsed) existingSources = parsed.sources;
+                        }
+                    } catch (err) {
+                        log.warn('[Main] Could not read existing rollup.json, rebuilding from scratch:', err);
+                    }
+                }
+                // Backfill reports published before rollup.json existed from local staging copies.
+                const stagingParent = path.join(app.getPath('userData'), 'web-report-staging');
+                const loadLocalReport = (id: string): RollupReportPayload | null => {
+                    const localReportPath = path.join(stagingParent, id, 'report.json');
+                    if (!fs.existsSync(localReportPath)) return null;
+                    try {
+                        return JSON.parse(fs.readFileSync(localReportPath, 'utf8'));
+                    } catch {
+                        // Unreadable local copy — the viewer fetches this report directly instead.
+                        return null;
+                    }
+                };
+                const rollupFile = updateRollupSourcesForPublish({
+                    existingSources,
+                    currentReport: builtReport.payload as RollupReportPayload,
+                    validIds: mergedEntries.map((entry: any) => String(entry?.id || '')),
+                    loadLocalReport
+                });
+                queueFile(rollupRepoPath, Buffer.from(JSON.stringify(rollupFile), 'utf8'));
+            } catch (err) {
+                log.warn('[Main] Failed to build precomputed rollup (non-blocking):', err);
+            }
             const deleteEntries: Array<{ path: string; sha: null }> = [];
             ['theme.json', 'ui-theme.json'].forEach((legacyFile) => {
                 const repoPath = withPagesPath(pagesPath, legacyFile);

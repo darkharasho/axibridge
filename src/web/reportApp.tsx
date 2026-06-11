@@ -16,7 +16,7 @@ import { Gw2BoonIcon } from '../renderer/ui/Gw2BoonIcon';
 import { Gw2DamMitIcon } from '../renderer/ui/Gw2DamMitIcon';
 import { Gw2FuryIcon } from '../renderer/ui/Gw2FuryIcon';
 import { Gw2SigilIcon } from '../renderer/ui/Gw2SigilIcon';
-import { buildRollupData, RollupData } from './rollup';
+import { buildRollupData, parseRollupSourcesFile, RollupData } from './rollup';
 import type { ReportPayload, ReportIndexEntry } from '../shared/reportTypes';
 import { normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
 import {
@@ -958,9 +958,9 @@ export function ReportApp() {
         setRollupError(null);
         setRollupRequestedCount(index.length);
 
-        const loadRollup = async () => {
+        const fetchReportPayloads = async (entries: Array<{ id: string }>) => {
             const loadedReports: ReportPayload[] = [];
-            await Promise.all(index.map(async (entry) => {
+            await Promise.all(entries.map(async (entry) => {
                 try {
                     const response = await fetch(`${basePath}reports/${entry.id}/report.json`, { cache: 'no-store' });
                     if (!response.ok) return;
@@ -971,6 +971,40 @@ export function ReportApp() {
                     // Skip individual reports so one broken payload does not kill the rollup.
                 }
             }));
+            return loadedReports;
+        };
+
+        const loadRollup = async () => {
+            // Preferred path: a single small precomputed file published by the app
+            // (reports/rollup.json) instead of downloading every report.json.
+            try {
+                const response = await fetch(`${basePath}reports/rollup.json`, { cache: 'no-store' });
+                if (response.ok) {
+                    const parsed = parseRollupSourcesFile(await response.json());
+                    if (parsed && isMounted) {
+                        const coveredIds = new Set(
+                            parsed.sources.map((source) => String(source?.meta?.id || '').trim()).filter(Boolean)
+                        );
+                        const missingEntries = index.filter((entry) => entry?.id && !coveredIds.has(String(entry.id)));
+                        if (missingEntries.length === 0) {
+                            setRollupData(parsed.rollup);
+                            setRollupLoading(false);
+                            return;
+                        }
+                        // Reports published before rollup.json existed: fetch only those
+                        // and merge with the precomputed sources.
+                        const legacyReports = await fetchReportPayloads(missingEntries);
+                        if (!isMounted) return;
+                        setRollupData(buildRollupData([...parsed.sources, ...legacyReports]));
+                        setRollupLoading(false);
+                        return;
+                    }
+                }
+            } catch {
+                // Fall through to the legacy fetch-everything path.
+            }
+
+            const loadedReports = await fetchReportPayloads(index);
             if (!isMounted) return;
             const nextRollup = buildRollupData(loadedReports);
             setRollupData(nextRollup);

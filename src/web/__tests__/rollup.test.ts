@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildRollupData } from '../rollup';
+import {
+    buildRollupData,
+    extractRollupSource,
+    parseRollupSourcesFile,
+    removeRollupSources,
+    ROLLUP_SOURCES_VERSION,
+    updateRollupSourcesForPublish
+} from '../rollup';
 
 describe('buildRollupData', () => {
     it('aggregates across unique raids and collapses duplicate uploads of the same raid', () => {
@@ -262,5 +269,178 @@ describe('buildRollupData', () => {
         expect(rollup.raidsSkippedMissingRequiredData).toBe(1);
         expect(rollup.playerRows).toHaveLength(0);
         expect(rollup.commanderRows).toHaveLength(0);
+    });
+});
+
+describe('extractRollupSource', () => {
+    const fullPayload = {
+        meta: {
+            id: 'report-1',
+            title: 'Friday Raid',
+            dateStart: '2026-02-01T00:00:00Z',
+            dateEnd: '2026-02-01T03:00:00Z',
+            generatedAt: '2026-02-01T03:05:00Z',
+            commanders: ['tag.1234']
+        },
+        stats: {
+            commanderStats: {
+                rows: [
+                    {
+                        account: 'tag.1234',
+                        characterNames: ['Commander One'],
+                        profession: 'Guardian',
+                        fights: 3,
+                        kills: 12,
+                        downs: 18,
+                        commanderDeaths: 2,
+                        alliesDead: 6,
+                        wins: 2,
+                        losses: 1,
+                        // Fields the rollup ignores — must be stripped by extraction.
+                        incomingSkillBreakdown: [{ huge: 'data' }],
+                        fightsData: [{ more: 'data' }],
+                        damageTaken: 123456
+                    }
+                ]
+            },
+            attendanceData: [
+                {
+                    account: 'player.1234',
+                    characterNames: ['Player One'],
+                    classTimes: [{ profession: 'Guardian', timeMs: 1800000, extra: 'dropped' }],
+                    combatTimeMs: 1800000,
+                    squadTimeMs: 2700000
+                }
+            ],
+            // Heavy sections that must not survive extraction.
+            replayFights: [{ big: 'blob' }],
+            boonTimeline: [{ big: 'blob' }]
+        }
+    };
+
+    it('produces a rollup identical to the full payload', () => {
+        const fromFull = buildRollupData([fullPayload]);
+        const fromExtracted = buildRollupData([extractRollupSource(fullPayload)]);
+        expect(fromExtracted).toEqual(fromFull);
+    });
+
+    it('strips heavy sections and unused row fields', () => {
+        const source = extractRollupSource(fullPayload);
+        expect((source.stats as any).replayFights).toBeUndefined();
+        expect((source.stats as any).boonTimeline).toBeUndefined();
+        const commanderRow = source.stats!.commanderStats!.rows![0] as any;
+        expect(commanderRow.incomingSkillBreakdown).toBeUndefined();
+        expect(commanderRow.fightsData).toBeUndefined();
+        expect(commanderRow.kills).toBe(12);
+        const attendanceRow = source.stats!.attendanceData![0] as any;
+        expect(attendanceRow.classTimes[0].extra).toBeUndefined();
+        expect(attendanceRow.classTimes[0].timeMs).toBe(1800000);
+    });
+
+    it('tolerates payloads with missing stats', () => {
+        const source = extractRollupSource({ meta: { id: 'empty' } });
+        expect(source.meta?.id).toBe('empty');
+        expect(source.stats?.commanderStats?.rows).toEqual([]);
+        expect(source.stats?.attendanceData).toEqual([]);
+    });
+});
+
+describe('parseRollupSourcesFile', () => {
+    it('accepts a well-formed file', () => {
+        const file = {
+            version: ROLLUP_SOURCES_VERSION,
+            sources: [extractRollupSource({ meta: { id: 'a' } })],
+            rollup: buildRollupData([])
+        };
+        expect(parseRollupSourcesFile(file)).toEqual(file);
+    });
+
+    it('rejects wrong versions, malformed shapes, and non-objects', () => {
+        expect(parseRollupSourcesFile(null)).toBeNull();
+        expect(parseRollupSourcesFile('nope')).toBeNull();
+        expect(parseRollupSourcesFile({ version: 999, sources: [], rollup: buildRollupData([]) })).toBeNull();
+        expect(parseRollupSourcesFile({ version: ROLLUP_SOURCES_VERSION, sources: 'bad', rollup: buildRollupData([]) })).toBeNull();
+        expect(parseRollupSourcesFile({ version: ROLLUP_SOURCES_VERSION, sources: [] })).toBeNull();
+    });
+});
+
+describe('updateRollupSourcesForPublish', () => {
+    const report = (id: string, generatedAt = '2026-02-01T03:05:00Z') => ({
+        meta: { id, dateStart: `${id}-start`, dateEnd: `${id}-end`, generatedAt },
+        stats: {
+            commanderStats: { rows: [{ account: `${id}.cmd`, fights: 1, kills: 1, alliesDead: 1, characterNames: [], profession: 'Guardian' }] },
+            attendanceData: [{ account: `${id}.player`, combatTimeMs: 1000, squadTimeMs: 2000, characterNames: [], classTimes: [] }],
+            replayFights: [{ big: 'blob' }]
+        }
+    });
+
+    it('merges the current report into existing sources and recomputes the rollup', () => {
+        const existing = [extractRollupSource(report('old'))];
+        const file = updateRollupSourcesForPublish({
+            existingSources: existing,
+            currentReport: report('new'),
+            validIds: ['old', 'new']
+        });
+        expect(file.version).toBe(ROLLUP_SOURCES_VERSION);
+        expect(file.sources.map((s) => s.meta?.id).sort()).toEqual(['new', 'old']);
+        expect(file.rollup.sourceReports).toBe(2);
+        // The stored source must be the minimal projection, not the full payload.
+        expect((file.sources.find((s) => s.meta?.id === 'new')?.stats as any).replayFights).toBeUndefined();
+    });
+
+    it('replaces a re-published report rather than duplicating it', () => {
+        const existing = [extractRollupSource(report('a', '2026-02-01T03:00:00Z'))];
+        const file = updateRollupSourcesForPublish({
+            existingSources: existing,
+            currentReport: report('a', '2026-02-01T04:00:00Z'),
+            validIds: ['a']
+        });
+        expect(file.sources).toHaveLength(1);
+        expect(file.sources[0].meta?.generatedAt).toBe('2026-02-01T04:00:00Z');
+    });
+
+    it('backfills missing reports via the loader and skips unreadable ones', () => {
+        const loaded: string[] = [];
+        const file = updateRollupSourcesForPublish({
+            existingSources: [],
+            currentReport: report('new'),
+            validIds: ['new', 'legacy', 'broken'],
+            loadLocalReport: (id) => {
+                loaded.push(id);
+                return id === 'legacy' ? report('legacy') : null;
+            }
+        });
+        expect(loaded.sort()).toEqual(['broken', 'legacy']);
+        expect(file.sources.map((s) => s.meta?.id).sort()).toEqual(['legacy', 'new']);
+    });
+
+    it('drops sources for reports no longer in the index', () => {
+        const existing = [extractRollupSource(report('kept')), extractRollupSource(report('deleted'))];
+        const file = updateRollupSourcesForPublish({
+            existingSources: existing,
+            currentReport: report('new'),
+            validIds: ['kept', 'new']
+        });
+        expect(file.sources.map((s) => s.meta?.id).sort()).toEqual(['kept', 'new']);
+    });
+});
+
+describe('removeRollupSources', () => {
+    it('removes deleted ids and recomputes the rollup', () => {
+        const source = (id: string) => extractRollupSource({
+            meta: { id, dateStart: `${id}-s`, dateEnd: `${id}-e`, generatedAt: '2026-02-01T03:05:00Z' },
+            stats: {
+                commanderStats: { rows: [{ account: `${id}.cmd`, fights: 1, characterNames: [], profession: 'Guardian' }] },
+                attendanceData: [{ account: `${id}.p`, combatTimeMs: 1, squadTimeMs: 1, characterNames: [], classTimes: [] }]
+            }
+        });
+        const file = {
+            version: ROLLUP_SOURCES_VERSION,
+            sources: [source('a'), source('b')],
+            rollup: buildRollupData([])
+        };
+        const updated = removeRollupSources(file, ['a']);
+        expect(updated.sources.map((s) => s.meta?.id)).toEqual(['b']);
+        expect(updated.rollup.sourceReports).toBe(1);
     });
 });
