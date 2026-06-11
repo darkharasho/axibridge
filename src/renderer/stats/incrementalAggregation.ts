@@ -1,6 +1,7 @@
 
-import type { DisruptionMethod, IMvpWeights, IStatsViewSettings } from '../global.d';
-import { DEFAULT_DISRUPTION_METHOD, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, normalizeMvpWeights } from '../global.d';
+import type { DisruptionMethod, IMvpWeightProfiles, IStatsViewSettings } from '../global.d';
+import { DEFAULT_DISRUPTION_METHOD, DEFAULT_STATS_VIEW_SETTINGS } from '../global.d';
+import { normalizeMvpWeightProfiles, buildMvpMetrics } from './mvpWeightProfiles';
 import { formatDurationMs } from './utils/dashboardUtils';
 import { getProfessionColor } from '../../shared/professionUtils';
 import { resolveFightTimestamp } from './utils/timestampUtils';
@@ -232,7 +233,7 @@ function collectKillEvents(movement: any): ReplayKillEvent[] {
 
 export interface IncrementalAggregatorOptions {
     precomputedStats?: any;
-    mvpWeights?: IMvpWeights;
+    mvpWeights?: IMvpWeightProfiles | unknown; // carries profiles; legacy/undefined tolerated by the normalizer
     statsViewSettings?: IStatsViewSettings;
     disruptionMethod?: DisruptionMethod;
     includePlayerSkillMap?: boolean;
@@ -489,7 +490,7 @@ export class IncrementalAggregator {
 
     // Settings
     private activeStatsViewSettings: IStatsViewSettings;
-    private activeMvpWeights: IMvpWeights;
+    private activeMvpProfiles: IMvpWeightProfiles;
     private method: DisruptionMethod;
     private splitPlayersByClass: boolean;
     private minParticipationPercent: number;
@@ -545,7 +546,7 @@ export class IncrementalAggregator {
         this.options = options;
 
         this.activeStatsViewSettings = options.statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
-        this.activeMvpWeights = normalizeMvpWeights(options.mvpWeights || DEFAULT_MVP_WEIGHTS);
+        this.activeMvpProfiles = normalizeMvpWeightProfiles(options.mvpWeights);
         this.method = options.disruptionMethod || DEFAULT_DISRUPTION_METHOD;
         this.splitPlayersByClass = Boolean(this.activeStatsViewSettings.splitPlayersByClass);
         this.minParticipationPercent = this.activeStatsViewSettings.minParticipationPercent ?? 0;
@@ -1242,45 +1243,9 @@ export class IncrementalAggregator {
                 return rankMap;
             };
 
-            const offensiveMetrics: Array<{
-                name: string;
-                weight: number;
-                leaderboard: any[];
-                getter: (s: PlayerStats) => number;
-                higher?: boolean;
-            }> = [
-                { name: 'Down Contribution', weight: this.activeMvpWeights.offensiveDownContribution, leaderboard: leaderboards.downContrib, getter: (s) => s.downContrib },
-                { name: 'DPS', weight: this.activeMvpWeights.offensiveDps, leaderboard: leaderboards.dps, getter: (s) => s.dps },
-                { name: 'Damage', weight: this.activeMvpWeights.offensiveDamage, leaderboard: leaderboards.damage, getter: (s) => s.damage }
-            ];
-
-            const generalMetrics: Array<{
-                name: string;
-                weight: number;
-                leaderboard: any[];
-                getter: (s: PlayerStats) => number;
-                higher?: boolean;
-            }> = [
-                { name: 'Strips', weight: this.activeMvpWeights.generalStrips, leaderboard: leaderboards.strips, getter: (s) => s.strips },
-                { name: 'CC', weight: this.activeMvpWeights.generalCc, leaderboard: leaderboards.cc, getter: (s) => s.cc },
-                { name: 'Distance to Tag', weight: this.activeMvpWeights.generalDistanceToTag, leaderboard: leaderboards.closestToTag, getter: (s) => getVal(s, 'closestToTag'), higher: false },
-                { name: 'Participation', weight: this.activeMvpWeights.generalParticipation, leaderboard: leaderboards.participation, getter: (s) => s.logsJoined },
-                { name: 'Dodging', weight: this.activeMvpWeights.generalDodging, leaderboard: leaderboards.dodges, getter: (s) => s.dodges }
-            ];
-
-            const defensiveMetrics: Array<{
-                name: string;
-                weight: number;
-                leaderboard: any[];
-                getter: (s: PlayerStats) => number;
-                higher?: boolean;
-            }> = [
-                { name: 'Healing', weight: this.activeMvpWeights.defensiveHealing, leaderboard: leaderboards.healing, getter: (s) => s.healing },
-                { name: 'Downed Healing', weight: this.activeMvpWeights.defensiveDownedHealing, leaderboard: leaderboards.downedHealing, getter: (s) => s.healingTotals['downedHealing'] || 0 },
-                { name: 'Cleanses', weight: this.activeMvpWeights.defensiveCleanses, leaderboard: leaderboards.cleanses, getter: (s) => s.cleanses },
-                { name: 'Stability', weight: this.activeMvpWeights.defensiveStability, leaderboard: leaderboards.stability, getter: (s) => s.stab },
-                { name: 'Revives', weight: this.activeMvpWeights.defensiveRevives, leaderboard: leaderboards.revives, getter: (s) => s.revives }
-            ];
+            const offensiveMetrics = buildMvpMetrics(this.activeMvpProfiles.offensive, leaderboards as any, boonLeaderboards, getVal);
+            const generalMetrics = buildMvpMetrics(this.activeMvpProfiles.general, leaderboards as any, boonLeaderboards, getVal);
+            const defensiveMetrics = buildMvpMetrics(this.activeMvpProfiles.defensive, leaderboards as any, boonLeaderboards, getVal);
 
             const computeCategoryScores = (metrics: typeof offensiveMetrics, pool?: typeof leaderboardEntries) => {
                 const scores: any[] = [];
@@ -1784,7 +1749,7 @@ export const computeStatsSync = ({
 }: {
     logs: any[];
     precomputedStats?: any;
-    mvpWeights?: IMvpWeights;
+    mvpWeights?: IMvpWeightProfiles | unknown;
     statsViewSettings?: IStatsViewSettings;
     disruptionMethod?: DisruptionMethod;
     includePlayerSkillMap?: boolean;
