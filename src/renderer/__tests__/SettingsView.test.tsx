@@ -561,9 +561,12 @@ describe('SettingsView', () => {
             renderSettings();
             await screen.findByRole('heading', { name: /MVP Weighting/i });
 
-            const inc = await screen.findByRole('button', { name: /increase Down Contribution/i });
-            fireEvent.click(inc); // Down Contribution defaults to 1.00 (clamped), stays 1.00
-            expect(screen.getAllByText('1.00').length).toBeGreaterThan(0);
+            const section = document.getElementById('mvp-weighting')!;
+            // Kills defaults to 0 (off) in the Offensive bucket; one click → 0.05
+            const inc = await within(section).findByRole('button', { name: /increase Kills/i });
+            expect(within(section).queryByText('0.05')).toBeNull();
+            fireEvent.click(inc);
+            expect(within(section).getAllByText('0.05').length).toBeGreaterThan(0);
         });
 
         it('switches MVP buckets to Defensive', async () => {

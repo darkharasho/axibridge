@@ -769,7 +769,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             tiled: splitEnemiesByTeam
         },
         discordSplitEnemiesByTeam: splitEnemiesByTeam,
-        mvpWeights,
+        mvpWeightProfiles: mvpWeights,
         statsViewSettings,
         disruptionMethod,
         commanderThresholds,
