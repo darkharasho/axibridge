@@ -77,6 +77,31 @@ export const removeDpsReportCacheEntry = (index: Record<string, DpsReportCacheEn
 };
 
 /**
+ * The full prune sweep stats every entry's details file on disk (fs.existsSync
+ * per entry) and a changed index triggers a synchronous rewrite of the whole
+ * electron-store config — far too expensive to run on every upload during bulk
+ * ingestion (it runs on the main process thread that serves all IPC).
+ *
+ * Stale detailsPath entries are individually self-healing: loadDpsReportCacheEntry
+ * already nulls the path when the file read fails. The sweep is pure housekeeping,
+ * so it runs at most once per interval.
+ */
+const PRUNE_SWEEP_INTERVAL_MS = 10 * 60 * 1000;
+let lastPruneSweepAt = 0;
+
+/** Test hook — reset the prune throttle so sweeps run again immediately. */
+export const resetDpsReportCachePruneThrottle = () => {
+    lastPruneSweepAt = 0;
+};
+
+const shouldRunPruneSweep = (): boolean => {
+    const now = Date.now();
+    if (now - lastPruneSweepAt < PRUNE_SWEEP_INTERVAL_MS) return false;
+    lastPruneSweepAt = now;
+    return true;
+};
+
+/**
  * Sweep an in-memory index for invalid or stale-file entries.
  * Mutates `index` in place. Returns `true` if any changes were made.
  * Pure (no store I/O).
@@ -175,7 +200,7 @@ export const invalidateDpsReportCacheEntry = (store: StoreAdapter, hash: string,
 
 export const loadDpsReportCacheEntry = async (store: StoreAdapter, hash: string) => {
     const index = loadDpsReportCacheIndex(store);
-    let changed = pruneDpsReportCacheIndex(index);
+    let changed = shouldRunPruneSweep() ? pruneDpsReportCacheIndex(index) : false;
     if (changed) saveDpsReportCacheIndex(store, index);
 
     const entry = index[hash];
@@ -250,7 +275,7 @@ export const saveDpsReportCacheEntry = async (
     }
 
     index[hash] = entry;
-    pruneDpsReportCacheIndex(index);
+    if (shouldRunPruneSweep()) pruneDpsReportCacheIndex(index);
     saveDpsReportCacheIndex(store, index);
 };
 
