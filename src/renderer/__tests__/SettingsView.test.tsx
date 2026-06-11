@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import {
     SettingsView,
@@ -7,7 +7,8 @@ import {
     formatWeight,
     extractHeadingText,
 } from '../SettingsView';
-import { DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS } from '../global.d';
+import { DEFAULT_EMBED_STATS } from '../global.d';
+import { DEFAULT_MVP_WEIGHT_PROFILES } from '../global.d';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -521,7 +522,9 @@ describe('SettingsView', () => {
             renderSettings();
             await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
 
-            const reset = await screen.findByRole('button', { name: /Reset to defaults/i });
+            // Two "Reset to defaults" buttons exist (dashboard-stats + MVP); scope to dashboard section
+            const dashboardSection = document.getElementById('dashboard-stats')!;
+            const reset = within(dashboardSection).getByRole('button', { name: /Reset to defaults/i });
             fireEvent.click(reset);
             const dcButtons = screen.getAllByRole('button', { name: /Down Contribution/i });
             const dc = dcButtons.find((btn) => btn.hasAttribute('aria-pressed'))!;
@@ -534,21 +537,42 @@ describe('SettingsView', () => {
     // -----------------------------------------------------------------------
 
     describe('MVP Weighting', () => {
-        it('Reset button restores all weights to DEFAULT_MVP_WEIGHTS', async () => {
+        it('Reset to defaults button restores all profiles to DEFAULT_MVP_WEIGHT_PROFILES', async () => {
             const { mock, callbacks } = renderSettings(
                 {},
-                { mvpWeights: { ...DEFAULT_MVP_WEIGHTS, offensiveDps: 0.05 } },
+                { mvpWeightProfiles: { general: {}, offensive: { dps: 0.05 }, defensive: {} } },
             );
             await waitForLoad(mock);
             await screen.findByRole('heading', { name: /MVP Weighting/i });
 
-            fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+            const mvpSection = document.getElementById('mvp-weighting')!;
+            fireEvent.click(within(mvpSection).getByRole('button', { name: /Reset to defaults/i }));
 
             await waitFor(() => {
                 expect(callbacks.onMvpWeightsSaved).toHaveBeenCalledWith(
-                    expect.objectContaining({ offensiveDps: DEFAULT_MVP_WEIGHTS.offensiveDps }),
+                    expect.objectContaining({
+                        offensive: expect.objectContaining({ downContrib: DEFAULT_MVP_WEIGHT_PROFILES.offensive.downContrib }),
+                    }),
                 );
             }, { timeout: 1000 });
+        });
+
+        it('increments an MVP weight via the stepper', async () => {
+            renderSettings();
+            await screen.findByRole('heading', { name: /MVP Weighting/i });
+
+            const inc = await screen.findByRole('button', { name: /increase Down Contribution/i });
+            fireEvent.click(inc); // Down Contribution defaults to 1.00 (clamped), stays 1.00
+            expect(screen.getAllByText('1.00').length).toBeGreaterThan(0);
+        });
+
+        it('switches MVP buckets to Defensive', async () => {
+            renderSettings();
+            await screen.findByRole('heading', { name: /MVP Weighting/i });
+
+            const defensiveTab = await screen.findByRole('button', { name: /^Defensive$/i });
+            fireEvent.click(defensiveTab);
+            expect(await screen.findByRole('button', { name: /increase Healing/i })).toBeInTheDocument();
         });
     });
 

@@ -1,7 +1,8 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind } from 'lucide-react';
-import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHTS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeights, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, normalizeMvpWeights, IEiParserSettings, IEiStatus } from './global.d';
+import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IEiParserSettings, IEiStatus } from './global.d';
+import { normalizeMvpWeightProfiles } from './stats/mvpWeightProfiles';
 import { DEFAULT_COMMANDER_THRESHOLDS, type CommanderThresholds } from '../shared/commanderThresholds';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { PALETTES, type ColorPalette, DEFAULT_PALETTE_ID } from '../shared/webThemes';
@@ -106,7 +107,7 @@ interface SettingsViewProps {
     onParserSettingsFocusConsumed?: (trigger: number) => void;
     howToTrigger?: number;
     onHowToConsumed?: (trigger: number) => void;
-    onMvpWeightsSaved?: (weights: IMvpWeights) => void;
+    onMvpWeightsSaved?: (weights: IMvpWeightProfiles) => void;
     onStatsViewSettingsSaved?: (settings: IStatsViewSettings) => void;
     onDisruptionMethodSaved?: (method: DisruptionMethod) => void;
     onColorPaletteSaved?: (palette: ColorPalette) => void;
@@ -204,7 +205,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
     const [embedStats, setEmbedStats] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
     const [splitEnemiesByTeam, setSplitEnemiesByTeam] = useState<boolean>(false);
-    const [mvpWeights, setMvpWeights] = useState<IMvpWeights>(DEFAULT_MVP_WEIGHTS);
+    const [mvpWeights, setMvpWeights] = useState<IMvpWeightProfiles>(DEFAULT_MVP_WEIGHT_PROFILES);
+    const [mvpBucket, setMvpBucket] = useState<keyof IMvpWeightProfiles>('offensive');
     const [statsViewSettings, setStatsViewSettings] = useState<IStatsViewSettings>(DEFAULT_STATS_VIEW_SETTINGS);
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [commanderThresholds, setCommanderThresholds] = useState<CommanderThresholds>(DEFAULT_COMMANDER_THRESHOLDS);
@@ -510,7 +512,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         setEmbedStats({ ...DEFAULT_EMBED_STATS, ...(settings.embedStatSettings || {}) });
         const discordEnemySplitSettings = { ...DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, ...(settings.discordEnemySplitSettings || {}) };
         setSplitEnemiesByTeam(Boolean(settings.discordSplitEnemiesByTeam) || Boolean(discordEnemySplitSettings.image || discordEnemySplitSettings.embed || discordEnemySplitSettings.tiled));
-        setMvpWeights(normalizeMvpWeights(settings.mvpWeights));
+        setMvpWeights(normalizeMvpWeightProfiles(settings.mvpWeightProfiles ?? settings.mvpWeights));
         setStatsViewSettings({
             ...DEFAULT_STATS_VIEW_SETTINGS,
             ...(settings.statsViewSettings || {}),
@@ -902,7 +904,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 tiled: splitEnemiesByTeam
             },
             discordSplitEnemiesByTeam: splitEnemiesByTeam,
-            mvpWeights: mvpWeights,
+            mvpWeightProfiles: mvpWeights,
             statsViewSettings: statsViewSettings,
             disruptionMethod: disruptionMethod,
             commanderThresholds: commanderThresholds,
@@ -1253,10 +1255,20 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         setEmbedStats(prev => ({ ...prev, maxTopListRows: clamped }));
     }, []);
 
-    const updateMvpWeight = useCallback((key: keyof IMvpWeights, value: number) => {
-        const clamped = Math.min(1, Math.max(0, Math.round(value / 0.05) * 0.05));
-        setMvpWeights(prev => ({ ...prev, [key]: clamped }));
+    const setMvpWeight = useCallback((bucket: keyof IMvpWeightProfiles, id: string, weight: number) => {
+        const w = Math.max(0, Math.min(1, Math.round(weight * 20) / 20)); // 0..1, step 0.05
+        setMvpWeights((prev) => {
+            const nextBucket = { ...prev[bucket] };
+            if (w > 0) nextBucket[id] = w; else delete nextBucket[id];
+            return { ...prev, [bucket]: nextBucket };
+        });
     }, []);
+
+    const resetMvpProfiles = useCallback(() => setMvpWeights({
+        general: { ...DEFAULT_MVP_WEIGHT_PROFILES.general },
+        offensive: { ...DEFAULT_MVP_WEIGHT_PROFILES.offensive },
+        defensive: { ...DEFAULT_MVP_WEIGHT_PROFILES.defensive },
+    }), []);
 
     const updateClassDisplay = useCallback((value: IEmbedStatSettings['classDisplay']) => {
         setEmbedStats(prev => ({ ...prev, classDisplay: value }));
@@ -2499,101 +2511,51 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     {/* Close Behavior Section */}
                     <SettingsSection title="MVP Weighting" icon={BarChart3} delay={0.18} sectionId="mvp-weighting" hidden={settingsSearchHidden.has('mvp-weighting')}>
-                        <div className="flex items-center justify-between mb-4">
-                            <p className="text-sm text-gray-400">
-                                Offensive and Defensive MVP use separate scoring weights. 0 disables a stat.
-                            </p>
-                            <button
-                                onClick={() => setMvpWeights(DEFAULT_MVP_WEIGHTS)}
-                                className="text-xs font-semibold text-blue-300 hover:text-blue-200 transition-colors"
-                            >
-                                Reset
-                            </button>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex gap-2">
+                                {(['offensive', 'defensive', 'general'] as const).map((b) => (
+                                    <button
+                                        key={b}
+                                        type="button"
+                                        onClick={() => setMvpBucket(b)}
+                                        className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors ${mvpBucket === b ? 'bg-blue-500/20 text-blue-200 border-blue-500/40' : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'}`}
+                                    >
+                                        {b === 'offensive' ? 'Offensive' : b === 'defensive' ? 'Defensive' : 'General'}
+                                        {b === 'general' && <span className="opacity-60 font-normal"> (both)</span>}
+                                    </button>
+                                ))}
+                            </div>
+                            <button type="button" onClick={resetMvpProfiles} className="text-xs text-blue-300 hover:text-blue-200">Reset to defaults</button>
                         </div>
-                        <div className="space-y-5">
-                            <div>
-                                <div className="text-xs font-semibold uppercase tracking-widest text-sky-300 mb-2">General MVP (Applied to Both)</div>
-                                <div className="space-y-2">
-                                    {([
-                                        { key: 'generalStrips', label: 'Strips' },
-                                        { key: 'generalCc', label: 'CC' },
-                                        { key: 'generalDistanceToTag', label: 'Distance to Tag' },
-                                        { key: 'generalParticipation', label: 'Participation' },
-                                        { key: 'generalDodging', label: 'Dodging' }
-                                    ] as Array<{ key: keyof IMvpWeights; label: string }>).map(item => (
-                                        <div key={item.key} className="flex items-center gap-3 py-2">
-                                            <div className="flex-1 text-sm text-gray-200">{item.label}</div>
-                                            <input
-                                                type="range"
-                                                min={0}
-                                                max={1}
-                                                step={0.05}
-                                                value={mvpWeights[item.key]}
-                                                onChange={(e) => updateMvpWeight(item.key, Number(e.target.value))}
-                                                className="flex-1 accent-blue-400"
-                                            />
-                                            <div className="w-12 text-right text-xs text-gray-300 font-mono">
-                                                {formatWeight(mvpWeights[item.key])}
-                                            </div>
-                                        </div>
-                                    ))}
+                        <p className="text-xs text-gray-500 mb-3">Weight any stat toward this MVP. 0 = ignored. Offensive &amp; Defensive also include the General weights.</p>
+                        {CATEGORY_ORDER.map((cat: TopStatCategory) => {
+                            const meta = CATEGORY_META[cat];
+                            const defs = TOP_STATS_CATALOG.filter((d) => d.category === cat);
+                            return (
+                                <div key={cat} className="mb-3.5 last:mb-0">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }} />
+                                        <span className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: meta.color }}>{meta.label}</span>
+                                        <span className="flex-1 h-px bg-white/5" />
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {defs.map((def) => {
+                                            const w = mvpWeights[mvpBucket][def.id] || 0;
+                                            const on = w > 0;
+                                            return (
+                                                <div key={def.id} className="inline-flex items-center rounded-lg border overflow-hidden"
+                                                    style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+                                                    <span className="pl-2.5 pr-1 py-1 text-xs font-semibold" style={{ color: on ? meta.color : '#6b7280' }}>{def.label}</span>
+                                                    <button type="button" aria-label={`decrease ${def.label}`} onClick={() => setMvpWeight(mvpBucket, def.id, w - 0.05)} className="w-5 h-6 text-sm leading-none" style={{ color: on ? meta.color : '#4b5563' }}>−</button>
+                                                    <span className="min-w-[30px] text-center text-xs font-bold tabular-nums" style={{ color: on ? meta.color : '#4b5563' }}>{w.toFixed(2)}</span>
+                                                    <button type="button" aria-label={`increase ${def.label}`} onClick={() => setMvpWeight(mvpBucket, def.id, w + 0.05)} className="w-5 h-6 text-sm leading-none pr-1" style={{ color: on ? meta.color : '#9ca3af' }}>+</button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <div className="text-xs font-semibold uppercase tracking-widest text-orange-300 mb-2">Offensive MVP</div>
-                                <div className="space-y-2">
-                                    {([
-                                        { key: 'offensiveDownContribution', label: 'Down Contribution' },
-                                        { key: 'offensiveDps', label: 'DPS' },
-                                        { key: 'offensiveDamage', label: 'Damage' }
-                                    ] as Array<{ key: keyof IMvpWeights; label: string }>).map(item => (
-                                        <div key={item.key} className="flex items-center gap-3 py-2">
-                                            <div className="flex-1 text-sm text-gray-200">{item.label}</div>
-                                            <input
-                                                type="range"
-                                                min={0}
-                                                max={1}
-                                                step={0.05}
-                                                value={mvpWeights[item.key]}
-                                                onChange={(e) => updateMvpWeight(item.key, Number(e.target.value))}
-                                                className="flex-1 accent-blue-400"
-                                            />
-                                            <div className="w-12 text-right text-xs text-gray-300 font-mono">
-                                                {formatWeight(mvpWeights[item.key])}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-xs font-semibold uppercase tracking-widest text-emerald-300 mb-2">Defensive MVP</div>
-                                <div className="space-y-2">
-                                    {([
-                                        { key: 'defensiveHealing', label: 'Healing' },
-                                        { key: 'defensiveDownedHealing', label: 'Downed Healing' },
-                                        { key: 'defensiveCleanses', label: 'Cleanses' },
-                                        { key: 'defensiveStability', label: 'Stability' },
-                                        { key: 'defensiveRevives', label: 'Revives' }
-                                    ] as Array<{ key: keyof IMvpWeights; label: string }>).map(item => (
-                                        <div key={item.key} className="flex items-center gap-3 py-2">
-                                            <div className="flex-1 text-sm text-gray-200">{item.label}</div>
-                                            <input
-                                                type="range"
-                                                min={0}
-                                                max={1}
-                                                step={0.05}
-                                                value={mvpWeights[item.key]}
-                                                onChange={(e) => updateMvpWeight(item.key, Number(e.target.value))}
-                                                className="flex-1 accent-blue-400"
-                                            />
-                                            <div className="w-12 text-right text-xs text-gray-300 font-mono">
-                                                {formatWeight(mvpWeights[item.key])}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+                            );
+                        })}
                     </SettingsSection>
 
                     {/* Commander Thresholds Section */}
