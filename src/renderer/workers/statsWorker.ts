@@ -1,4 +1,5 @@
 import { IncrementalAggregator } from '../stats/incrementalAggregation';
+import { buildReplayKey, createReplayElisionState, elideUnchangedReplayFights } from './replayTransfer';
 
 let aggregator: IncrementalAggregator | null = null;
 let computeId = 0;
@@ -8,6 +9,15 @@ let expectedLogCount = 0;
 let droppedLogMessages = 0;
 let ingestedLogCount = 0;
 let lastProgressPostAt = 0;
+let ingestedLogIds: string[] = [];
+let currentPreciseReplay: boolean | undefined = undefined;
+// Survives resets on purpose: tracks the replay payload last posted to the main
+// thread so identical payloads (same logs, same preciseReplay) are not re-cloned.
+const replayElisionState = createReplayElisionState();
+// Survives resets on purpose: log payloads received from the main thread, keyed
+// by log identity. Restarts re-send unchanged logs as tiny `ref` messages instead
+// of multi-MB structured clones; the main thread bounds this store via 'forget'.
+const payloadStore = new Map<string, any>();
 
 const hasMismatchedToken = (data: any) =>
     typeof data?.token === 'number' && data.token !== currentToken;
@@ -56,7 +66,7 @@ const stripTransferHeavySkillRows = (result: any) => {
     };
 };
 
-const computeAndPost = () => {
+const computeAndPost = (skipReplay = false) => {
     if (!aggregator) return;
     computeId += 1;
     const flushId = pendingFlushId;
@@ -86,6 +96,20 @@ const computeAndPost = () => {
         return;
     }
     const transferStripStats = stripTransferHeavySkillRows(result);
+    let replayElided = false;
+    if (skipReplay && Array.isArray(result?.stats?.replayFights) && result.stats.replayFights.length > 0) {
+        // Mid-bulk flush: drop the replay payload without recording it as posted,
+        // so the settling flush transfers it in full.
+        delete result.stats.replayFights;
+        result.stats.replayFightsElided = true;
+        replayElided = true;
+    } else {
+        replayElided = elideUnchangedReplayFights(
+            result,
+            buildReplayKey(ingestedLogIds, currentPreciseReplay),
+            replayElisionState
+        );
+    }
     const computeMs = Math.max(0, performance.now() - computeStartedAt);
     const stats = result?.stats;
     (self as any).postMessage({
@@ -102,6 +126,7 @@ const computeAndPost = () => {
             expectedLogCount,
             droppedLogMessages,
             transferStripStats,
+            replayElided,
             counts: {
                 playerSkillBreakdowns: Array.isArray(stats?.playerSkillBreakdowns) ? stats.playerSkillBreakdowns.length : 0,
                 spikeFights: Array.isArray(stats?.spikeDamage?.fights) ? stats.spikeDamage.fights.length : 0,
@@ -116,6 +141,8 @@ self.onmessage = (event: MessageEvent) => {
     if (data?.type === 'reset') {
         aggregator = new IncrementalAggregator();
         ingestedLogCount = 0;
+        ingestedLogIds = [];
+        currentPreciseReplay = undefined;
         if (typeof data.token === 'number') {
             currentToken = data.token;
         }
@@ -124,6 +151,19 @@ self.onmessage = (event: MessageEvent) => {
         lastProgressPostAt = 0;
         pendingFlushId = null;
         return;
+    }
+    if (data?.type === 'forget') {
+        // Cache-coherence message — must apply regardless of token.
+        const keys = Array.isArray(data.keys) ? data.keys : [];
+        keys.forEach((key: unknown) => {
+            if (typeof key === 'string') payloadStore.delete(key);
+        });
+        return;
+    }
+    // Store full log payloads even when the token is stale: the main thread's
+    // sent-map assumes every keyed payload it posted is in the store.
+    if (data?.type === 'log' && typeof data.key === 'string' && data.payload !== undefined) {
+        payloadStore.set(data.key, data.payload);
     }
     if (hasMismatchedToken(data)) return;
     if (data?.type === 'settings') {
@@ -135,6 +175,8 @@ self.onmessage = (event: MessageEvent) => {
             preciseReplay: data.payload?.preciseReplay,
         });
         ingestedLogCount = 0;
+        ingestedLogIds = [];
+        currentPreciseReplay = Boolean(data.payload?.preciseReplay);
         return;
     }
     if (data?.type === 'log') {
@@ -145,8 +187,20 @@ self.onmessage = (event: MessageEvent) => {
             droppedLogMessages += 1;
             return;
         }
-        aggregator.ingestLog(data.payload);
+        let payload = data.payload;
+        if (payload === undefined && typeof data.ref === 'string') {
+            payload = payloadStore.get(data.ref);
+            if (payload === undefined) {
+                // Protocol guarantees refs are only sent for stored keys; treat a
+                // miss as a dropped message rather than ingesting a hole silently.
+                droppedLogMessages += 1;
+                console.error('[StatsWorker] Missing cached payload for ref:', data.ref);
+                return;
+            }
+        }
+        aggregator.ingestLog(payload);
         ingestedLogCount += 1;
+        ingestedLogIds.push(String(payload?.filePath || payload?.id || `idx-${ingestedLogCount}`));
         // Throttle progress messages to avoid flooding the main thread with
         // renders. Post at most every 250ms, but always post the final one.
         const now = performance.now();
@@ -166,6 +220,6 @@ self.onmessage = (event: MessageEvent) => {
         if (typeof data.flushId === 'number') {
             pendingFlushId = data.flushId;
         }
-        computeAndPost();
+        computeAndPost(data.skipReplay === true);
     }
 };

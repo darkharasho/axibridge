@@ -1,6 +1,7 @@
 import { startTransition, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { DisruptionMethod, IMvpWeightProfiles, IStatsViewSettings } from '../../global.d';
 import { IncrementalAggregator, computeStatsSync } from '../incrementalAggregation';
+import { reinjectElidedReplayFights } from '../../workers/replayTransfer';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import type { DetailsCache } from '../../cache/DetailsCache';
 
@@ -50,6 +51,26 @@ export interface AggregationDiagnosticsState {
 
 const DETAILS_TOP_LEVEL_DENY = ['phases', 'logErrors'];
 const PLAYER_DENY = ['targetBreakbarDamage1S', 'squadBuffVolumesActive'];
+
+// Max log payloads retained in the worker's ref-cache. Worker restarts re-send
+// unchanged logs as key references instead of multi-MB structured clones; this
+// bounds the worker-side memory for those retained payloads.
+const WORKER_PAYLOAD_CACHE_LIMIT = 80;
+
+/** True while a log is still uploading/parsing or waiting on details — i.e. its
+ *  aggregation input will change again soon. */
+export const isLogPendingIngestion = (log: any): boolean => {
+    const status = log?.status;
+    const detailsStatus = log?.detailsStatus;
+    return status === 'queued'
+        || status === 'pending'
+        || status === 'uploading'
+        || status === 'retrying'
+        || status === 'parsing'
+        || status === 'calculating'
+        || detailsStatus === 'available'
+        || detailsStatus === 'loading';
+};
 
 /** Strip fields not needed by stats aggregation before structured-cloning to the worker. */
 export const pruneDetailsForWorker = (details: any): any => {
@@ -102,11 +123,19 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const lastStreamProgressUpdateRef = useRef(0);
     const streamSessionRef = useRef(0);
     const prunedLogCacheRef = useRef<Map<string, { sourceLog: any; sourceDetails: WeakRef<object> | null; pruned: any }>>(new Map());
+    // Payloads already transferred to the current worker, keyed by log identity
+    // (insertion order = LRU). Holds the same object refs as prunedLogCacheRef,
+    // so this adds no renderer memory; the worker retains its cloned copy.
+    const sentPayloadsRef = useRef<Map<string, any>>(new Map());
     const aggregationSettingsKeyRef = useRef<string>('');
     const aggregationSettingsRef = useRef<IStatsViewSettings | undefined>(undefined);
     const lastFallbackComputeKeyRef = useRef('');
     const lastSettledSettingsKeyRef = useRef<string>('');
     const expectedLogCountRef = useRef(0);
+    // Last full replayFights payload received from the worker. The worker elides
+    // the payload when it is byte-identical to the previous post (same logs,
+    // same preciseReplay) — reinject it here so consumers always see a full result.
+    const lastReplayFightsRef = useRef<any[] | null>(null);
     const [aggregationProgress, setAggregationProgress] = useState<AggregationProgressState>({
         active: false,
         phase: 'idle',
@@ -192,6 +221,9 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         if (!shouldUseWorker) return;
         if (!workerRef.current) {
             workerRef.current = new Worker(new URL('../../workers/statsWorker.ts', import.meta.url), { type: 'module' });
+            // Fresh worker = empty worker-side payload store; never send refs for
+            // payloads transferred to a previous worker instance.
+            sentPayloadsRef.current.clear();
             workerRef.current.onmessage = (event) => {
                 if (event.data?.type === 'progress') {
                     const incomingToken = typeof event.data.token === 'number' ? event.data.token : null;
@@ -211,6 +243,10 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     return;
                 }
                 if (event.data?.type === 'result') {
+                    // Track/reinject replay payloads even for stale-token results: the worker's
+                    // elision state assumes every posted payload was received, so a dropped
+                    // result must still update the local copy.
+                    lastReplayFightsRef.current = reinjectElidedReplayFights(event.data.result, lastReplayFightsRef.current);
                     const incomingToken = typeof event.data.token === 'number' ? event.data.token : null;
                     if (incomingToken !== null && incomingToken !== activeTokenRef.current) {
                         return;
@@ -425,11 +461,28 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     const logId = log?.id || log?.filePath;
                     // peek is synchronous — details were pre-fetched into LRU by prefetchAndStep
                     const details = detailsCache && logId ? detailsCache.peek(logId) : null;
-                    workerRef.current.postMessage({
-                        type: 'log',
-                        token: activeToken,
-                        payload: getPrunedLogForWorker(log, details, index)
-                    });
+                    const payload = getPrunedLogForWorker(log, details, index);
+                    const payloadKey = String(log?.filePath || log?.id || `idx-${index}`);
+                    const sent = sentPayloadsRef.current;
+                    if (sent.get(payloadKey) === payload) {
+                        // Unchanged since last transfer — the worker still holds it.
+                        sent.delete(payloadKey);
+                        sent.set(payloadKey, payload); // LRU promote
+                        workerRef.current.postMessage({ type: 'log', token: activeToken, ref: payloadKey });
+                    } else {
+                        sent.delete(payloadKey);
+                        sent.set(payloadKey, payload);
+                        const evictedKeys: string[] = [];
+                        while (sent.size > WORKER_PAYLOAD_CACHE_LIMIT) {
+                            const oldestKey = sent.keys().next().value as string;
+                            sent.delete(oldestKey);
+                            evictedKeys.push(oldestKey);
+                        }
+                        if (evictedKeys.length > 0) {
+                            workerRef.current.postMessage({ type: 'forget', keys: evictedKeys });
+                        }
+                        workerRef.current.postMessage({ type: 'log', token: activeToken, key: payloadKey, payload });
+                    }
                     index += 1;
                     processed += 1;
                 }
@@ -438,7 +491,10 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     prefetchAndStep();
                 } else {
                     publishProgress('computing', true);
-                    workerRef.current.postMessage({ type: 'flush', token: activeToken });
+                    // Mid-bulk results are transient (more logs/details are coming);
+                    // skip the heavy replay transfer until the set settles.
+                    const skipReplay = logs.some(isLogPendingIngestion);
+                    workerRef.current.postMessage({ type: 'flush', token: activeToken, skipReplay });
                 }
             };
             lastStreamProgressUpdateRef.current = 0;

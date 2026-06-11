@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
+import { isLogPendingIngestion } from '../../stats/hooks/useStatsAggregationWorker';
 
 interface UseLogsForStatsOptions {
     logs: ILogData[];
@@ -99,15 +100,26 @@ export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
     // produces a new logsForStats reference → restarts the worker → the worker
     // never settles → calculating logs never promote to success.
     // 400ms matches the base branch's debounce window.
+    //
+    // During bulk ingestion (many logs still uploading or awaiting details) every
+    // publish restarts the aggregation worker, which re-streams every log's
+    // details — multi-MB structured clones on the UI thread. Stretch the window
+    // while churn is high so restarts happen a few times per bulk instead of
+    // every 400ms; the trailing publish after the last change always fires.
     const publishTimerRef = useRef<number | null>(null);
     useEffect(() => {
         if (publishTimerRef.current !== null) {
             window.clearTimeout(publishTimerRef.current);
         }
+        const pendingCount = logs.reduce(
+            (count, log) => (isLogPendingIngestion(log) ? count + 1 : count),
+            0
+        );
+        const debounceMs = pendingCount > 3 ? 2500 : 400;
         publishTimerRef.current = window.setTimeout(() => {
             publishTimerRef.current = null;
             publishLogsForStats(logsRef.current);
-        }, 400);
+        }, debounceMs);
     }, [logs, publishLogsForStats]);
 
     useEffect(() => {
