@@ -1,14 +1,16 @@
 {
     "name": "axibridge",
     "private": true,
-    "version": "2.9.2",
+    "version": "2.10.0",
     "description": "AxiBridge - Guild Wars 2 arcDPS Log Uploader",
     "author": {
         "name": "darkharasho",
         "email": "mstephens@example.com"
     },
     "license": "GPL-3.0-only",
-    "workspaces": ["packages/*"],
+    "workspaces": [
+        "packages/*"
+    ],
     "main": "dist-electron/main/index.js",
     "scripts": {
         "sync:metrics-spec": "node scripts/sync-metrics-spec.mjs",
