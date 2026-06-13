@@ -1,6 +1,8 @@
 
 export type { ReplayFightPayload, ReplayDpsSample, ReplayKillEvent,
     DamageSpikeEvent, RallyEvent, TargetFocusSample } from './map/replayTypes';
+export type { PlayerSkillDamageEntry, PlayerHealingSkillEntry } from '@axiapps/bridge-metrics/aggregationTypes';
+import type { PlayerSkillDamageEntry, PlayerHealingSkillEntry } from '@axiapps/bridge-metrics/aggregationTypes';
 
 export interface SkillUsagePlayer {
     key: string;
@@ -38,18 +40,6 @@ export interface SkillUsageSummary {
     players: SkillUsagePlayer[];
     skillOptions: SkillOption[];
     resUtilitySkills?: Array<{ id: string; name: string; icon?: string }>;
-}
-
-export interface PlayerSkillDamageEntry {
-    id: string;
-    name: string;
-    icon?: string;
-    damage: number;
-    downContribution: number;
-    hits: number;
-    casts: number;
-    min: number;
-    max: number;
 }
 
 export interface PlayerSkillBreakdown {
@@ -100,15 +90,6 @@ export interface ApmSpecBucket {
     totalProcCasts: number;
     skills: ApmSkillEntry[];
     skillMap: Map<string, ApmSkillEntry>;
-}
-
-export interface PlayerHealingSkillEntry {
-    id: string;
-    name: string;
-    icon?: string;
-    total: number;
-    hits: number;
-    max: number;
 }
 
 export interface PlayerHealingBreakdown {

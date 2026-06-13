@@ -1,5 +1,3 @@
-import { RES_UTILITY_IDS, RES_UTILITY_NAME_MATCHES } from '../statsMetrics';
-
 /** Fast comma-separated number formatting (avoids toLocaleString overhead). */
 function insertCommas(intPart: string): string {
     const len = intPart.length;
@@ -28,14 +26,7 @@ function fastFormatInt(value: number): string {
     return `${sign}${insertCommas(String(abs))}`;
 }
 
-export const isResUtilitySkill = (id: number, skillMap: Record<string, { name?: string }> | undefined) => {
-    if (RES_UTILITY_IDS.has(id)) {
-        return true;
-    }
-    const entry = skillMap?.[`s${id}`] || skillMap?.[`${id}`];
-    const name = entry?.name?.toLowerCase() || '';
-    return RES_UTILITY_NAME_MATCHES.some((match) => name.includes(match));
-};
+export { isResUtilitySkill } from '@axiapps/bridge-metrics/resUtility';
 
 export const isAutoAttackName = (name: string) => {
     const lowered = name.toLowerCase();

@@ -1,21 +1,7 @@
 import { BoonTable } from '../../shared/boonGeneration';
+import type { PlayerRoleClassification, RoleClassificationFactor } from '@axiapps/bridge-metrics/roles';
 
-export interface RoleClassificationFactor {
-    metric: string;
-    value: number;
-    median: number;
-    ratio: number;
-    weight: number;
-    contribution: number;
-}
-
-export interface PlayerRoleClassification {
-    role: 'support' | 'damage';
-    supportScore: number;
-    confidenceScore: number;
-    threshold: number;
-    factors: RoleClassificationFactor[];
-}
+export type { PlayerRoleClassification, RoleClassificationFactor };
 
 /** Metric weights for support score calculation. Positive = support indicator, negative = damage indicator. */
 const WEIGHTS = {
