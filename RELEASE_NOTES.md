@@ -1,11 +1,22 @@
 # Release Notes
 
-Version v2.9.2 — June 11, 2026
+Version v2.10.0 — June 13, 2026
 
-## Pick How Boons Are Ranked
+## Headless mode for services
+- You can run the bridge without a BrowserWindow (headless).  
+- If you open a second window later, it will attach to the running headless services.  
+- Great for automation or server-style usage when you don’t need a UI.
 
-Boon leaderboards always ranked players by uptime — now you can choose. A new "Rank by" toggle on the Boons header lets you rank by Gen/Sec, Uptime, or Count (total generation), and it applies to both the boon Top Stats cards and MVP scoring. You'll find it in Settings on the Boons row under Dashboard Stats and MVP Weighting — it's one shared setting, so changing it in either place updates both.
+## Expanded metrics and reporting
+- New at-a-glance metrics: report-level run summaries, per-player aggregates, and run-set comparisons.  
+- These let you compare runs side-by-side and spot trends more quickly.  
+- NOTE: These metrics show up with new uploads; existing reports won’t retroactively gain them.
+
+## Under-the-hood improvements
+- Core player aggregation and the rollup builder moved into the shared bridge-metrics package.  
+- Shared metric extractors are now in the bridge-metrics workspace package.  
+- These changes are mostly behind the scenes but set the stage for faster, more reliable metrics work.
 
 ## QoL Improvements
-
-- Moved the MVP Weighting settings section up next to Dashboard Stats so the two stat-tuning panels sit together.
+- Trimmed fixtures to streamline Setup and testing.  
+- Reduced some internal test tooling and doc path clutter for a cleaner project surface.
