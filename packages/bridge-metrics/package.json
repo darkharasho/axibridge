@@ -1,0 +1,23 @@
+{
+    "name": "@axiapps/bridge-metrics",
+    "version": "0.1.0",
+    "private": true,
+    "description": "AxiBridge report aggregation core: player aggregation, rollup builder, metric extractors",
+    "license": "GPL-3.0-only",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+        "./*": { "types": "./dist/*.d.ts", "default": "./dist/*.js" }
+    },
+    "typesVersions": { "*": { "*": ["dist/*"] } },
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "prepare": "tsc -p tsconfig.json",
+        "test": "vitest run --maxWorkers=2"
+    },
+    "devDependencies": {
+        "typescript": "^5.2.2",
+        "vitest": "^4.0.17"
+    }
+}

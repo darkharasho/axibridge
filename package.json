@@ -8,6 +8,7 @@
         "email": "mstephens@example.com"
     },
     "license": "GPL-3.0-only",
+    "workspaces": ["packages/*"],
     "main": "dist-electron/main/index.js",
     "scripts": {
         "sync:metrics-spec": "node scripts/sync-metrics-spec.mjs",
