@@ -26,6 +26,9 @@
         "./boonGeneration": { "types": "./dist/boonGeneration.d.ts", "import": "./dist/boonGeneration.js", "require": "./dist/boonGeneration.cjs" },
         "./constants": { "types": "./dist/constants.d.ts", "import": "./dist/constants.js", "require": "./dist/constants.cjs" }
     },
+    "typesVersions": {
+        "*": { "*": ["dist/*.d.ts"] }
+    },
     "files": ["dist"],
     "publishConfig": { "access": "public" },
     "scripts": {
