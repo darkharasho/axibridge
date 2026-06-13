@@ -33,6 +33,7 @@
     "publishConfig": { "access": "public" },
     "scripts": {
         "build": "tsup",
+        "prepare": "tsup",
         "prepublishOnly": "tsup",
         "test": "vitest run --maxWorkers=2"
     },
