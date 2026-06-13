@@ -1,22 +1,40 @@
 {
     "name": "@axiapps/bridge-metrics",
     "version": "0.1.0",
-    "private": true,
+    "type": "module",
     "description": "AxiBridge report aggregation core: player aggregation, rollup builder, metric extractors",
     "license": "GPL-3.0-only",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
-        ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
-        "./*": { "types": "./dist/*.d.ts", "default": "./dist/*.js" }
+        ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "require": "./dist/index.cjs" },
+        "./dpsReportTypes": { "types": "./dist/dpsReportTypes.d.ts", "import": "./dist/dpsReportTypes.js", "require": "./dist/dpsReportTypes.cjs" },
+        "./metricsSettings": { "types": "./dist/metricsSettings.d.ts", "import": "./dist/metricsSettings.js", "require": "./dist/metricsSettings.cjs" },
+        "./dashboardMetrics": { "types": "./dist/dashboardMetrics.d.ts", "import": "./dist/dashboardMetrics.js", "require": "./dist/dashboardMetrics.cjs" },
+        "./combatMetrics": { "types": "./dist/combatMetrics.d.ts", "import": "./dist/combatMetrics.js", "require": "./dist/combatMetrics.cjs" },
+        "./conditionsMetrics": { "types": "./dist/conditionsMetrics.d.ts", "import": "./dist/conditionsMetrics.js", "require": "./dist/conditionsMetrics.cjs" },
+        "./professionUtils": { "types": "./dist/professionUtils.d.ts", "import": "./dist/professionUtils.js", "require": "./dist/professionUtils.cjs" },
+        "./computePlayerAggregation": { "types": "./dist/computePlayerAggregation.d.ts", "import": "./dist/computePlayerAggregation.js", "require": "./dist/computePlayerAggregation.cjs" },
+        "./rollup": { "types": "./dist/rollup.d.ts", "import": "./dist/rollup.js", "require": "./dist/rollup.cjs" },
+        "./aggregationTypes": { "types": "./dist/aggregationTypes.d.ts", "import": "./dist/aggregationTypes.js", "require": "./dist/aggregationTypes.cjs" },
+        "./roles": { "types": "./dist/roles.d.ts", "import": "./dist/roles.js", "require": "./dist/roles.cjs" },
+        "./resUtility": { "types": "./dist/resUtility.d.ts", "import": "./dist/resUtility.js", "require": "./dist/resUtility.cjs" },
+        "./timestampUtils": { "types": "./dist/timestampUtils.d.ts", "import": "./dist/timestampUtils.js", "require": "./dist/timestampUtils.cjs" },
+        "./reportMetrics": { "types": "./dist/reportMetrics.d.ts", "import": "./dist/reportMetrics.js", "require": "./dist/reportMetrics.cjs" },
+        "./statsMetrics": { "types": "./dist/statsMetrics.d.ts", "import": "./dist/statsMetrics.js", "require": "./dist/statsMetrics.cjs" },
+        "./boonGeneration": { "types": "./dist/boonGeneration.d.ts", "import": "./dist/boonGeneration.js", "require": "./dist/boonGeneration.cjs" },
+        "./constants": { "types": "./dist/constants.d.ts", "import": "./dist/constants.js", "require": "./dist/constants.cjs" }
     },
-    "typesVersions": { "*": { "*": ["dist/*"] } },
+    "files": ["dist"],
+    "publishConfig": { "access": "public" },
     "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "prepare": "tsc -p tsconfig.json",
+        "build": "tsup",
+        "prepublishOnly": "tsup",
         "test": "vitest run --maxWorkers=2"
     },
     "devDependencies": {
+        "tsup": "^8.5.1",
         "typescript": "^5.2.2",
         "vitest": "^4.0.17"
     }
