@@ -78,6 +78,9 @@ import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers } from './handlers/githubHandlers';
 import { registerEiHandlers } from './handlers/eiHandlers';
 import { EiManager, DEFAULT_EI_SETTINGS, EiParserSettings } from './eiParser';
+import { parseCliFlags } from './cliFlags';
+
+const cliFlags = parseCliFlags(process.argv);
 
 /** Compute the landmark-aware fight label from pruned EI details (safe to call with null). */
 function buildFightLabelFromDetails(details: any): string | undefined {
@@ -1131,6 +1134,79 @@ function createTray() {
     });
 }
 
+let servicesInitialized = false;
+
+function initServices() {
+    if (servicesInitialized) return;
+    servicesInitialized = true;
+
+    watcher = new LogWatcher();
+    uploader = new Uploader();
+    discord = new DiscordNotifier();
+
+    eiManager = new EiManager(app.getPath('userData'));
+    const savedEiSettings = store.get('eiParserSettings') as EiParserSettings | undefined;
+    if (savedEiSettings) {
+        eiManager.setSettings({ ...DEFAULT_EI_SETTINGS, ...savedEiSettings });
+    }
+
+    // Initialize Discord config
+    const webhookUrl = store.get('discordWebhookUrl');
+    if (webhookUrl && typeof webhookUrl === 'string') {
+        discord.setWebhookUrl(webhookUrl);
+    }
+
+    // Initialize embed stat settings
+    const embedStatSettings = store.get('embedStatSettings');
+    if (embedStatSettings) {
+        discord.setEmbedStatSettings(embedStatSettings as any);
+    }
+    const disruptionMethod = store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD) as DisruptionMethod;
+    discord.setDisruptionMethod(disruptionMethod);
+
+    // Initialize dps.report token
+    const dpsReportToken = store.get('dpsReportToken');
+    if (dpsReportToken && typeof dpsReportToken === 'string') {
+        uploader.setUserToken(dpsReportToken);
+    }
+
+    watcher.on('log-detected', async (filePath: string) => {
+        await processLogFile(filePath);
+    });
+
+    // Headless: auto-manage EI without a window to wait for did-finish-load
+    if (cliFlags.headless) {
+        const autoManageEi = store.get('autoManageEi', true);
+        if (autoManageEi) {
+            const runAutoManage = async () => {
+                try {
+                    eiManager!.setProgressCallback((progress) => {
+                        win?.webContents.send('ei:download-progress', progress);
+                    });
+                    if (!eiManager!.isInstalled()) {
+                        win?.webContents.send('ei:status-changed', { installed: false, version: null, updateAvailable: null, installing: true, error: null });
+                        await eiManager!.install();
+                        const status = { ...eiManager!.getStatus(), installing: false, error: null };
+                        win?.webContents.send('ei:status-changed', status);
+                    } else {
+                        const updateVersion = await eiManager!.checkForUpdate();
+                        if (updateVersion) {
+                            win?.webContents.send('ei:status-changed', { ...eiManager!.getStatus(), updateAvailable: updateVersion, installing: true, error: null });
+                            await eiManager!.installCli();
+                            const status = { ...eiManager!.getStatus(), installing: false, error: null };
+                            win?.webContents.send('ei:status-changed', status);
+                        }
+                    }
+                } catch (err: any) {
+                    const status = { ...eiManager!.getStatus(), installing: false, error: err?.message || 'Auto-manage failed' };
+                    win?.webContents.send('ei:status-changed', status);
+                }
+            };
+            setTimeout(runAutoManage, 2000);
+        }
+    }
+}
+
 function createWindow() {
     const bounds = store.get('windowBounds') as { width: number, height: number } | undefined;
 
@@ -1187,20 +1263,11 @@ function createWindow() {
         }
     });
 
-    watcher = new LogWatcher();
-    uploader = new Uploader();
-    discord = new DiscordNotifier();
-
-    eiManager = new EiManager(app.getPath('userData'));
-    const savedEiSettings = store.get('eiParserSettings') as EiParserSettings | undefined;
-    if (savedEiSettings) {
-        eiManager.setSettings({ ...DEFAULT_EI_SETTINGS, ...savedEiSettings });
-    }
+    initServices();
 
     // Auto-manage EI: install if missing, update if outdated
     const autoManageEi = store.get('autoManageEi', true);
     if (autoManageEi) {
-        // Run after window loads so IPC events reach the renderer
         const runAutoManage = async () => {
             try {
                 eiManager!.setProgressCallback((progress) => {
@@ -1225,35 +1292,11 @@ function createWindow() {
                 win?.webContents.send('ei:status-changed', status);
             }
         };
-        // Delay slightly to ensure renderer has mounted and listeners are attached
+        // Run after window loads so IPC events reach the renderer
         win.webContents.on('did-finish-load', () => {
             setTimeout(runAutoManage, 2000);
         });
     }
-
-    // Initialize Discord config
-    const webhookUrl = store.get('discordWebhookUrl');
-    if (webhookUrl && typeof webhookUrl === 'string') {
-        discord.setWebhookUrl(webhookUrl);
-    }
-
-    // Initialize embed stat settings
-    const embedStatSettings = store.get('embedStatSettings');
-    if (embedStatSettings) {
-        discord.setEmbedStatSettings(embedStatSettings as any);
-    }
-    const disruptionMethod = store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD) as DisruptionMethod;
-    discord.setDisruptionMethod(disruptionMethod);
-
-    // Initialize dps.report token
-    const dpsReportToken = store.get('dpsReportToken');
-    if (dpsReportToken && typeof dpsReportToken === 'string') {
-        uploader.setUserToken(dpsReportToken);
-    }
-
-    watcher.on('log-detected', async (filePath: string) => {
-        await processLogFile(filePath);
-    });
 
     win.webContents.on('did-finish-load', () => {
         win?.webContents.send('main-process-message', (new Date).toLocaleString())
@@ -1396,11 +1439,14 @@ if (!gotTheLock) {
 } else {
     // This is the first/primary instance
     app.on('second-instance', (_event, commandLine, _workingDirectory) => {
-        // Someone tried to run a second instance, focus our window instead
+        const secondWantsWindow = !parseCliFlags(commandLine).headless;
         if (win) {
             if (win.isMinimized()) win.restore();
             win.show();
             win.focus();
+        } else if (secondWantsWindow) {
+            // Primary instance is headless — attach a window to it.
+            createWindow();
         }
     });
 
@@ -1414,7 +1460,12 @@ if (!gotTheLock) {
         migrateLegacySettings();
         migrateLegacyInstallName();
         migrateArcBridgeInstallName();
-        createWindow();
+        if (cliFlags.headless) {
+            log.info('[Main] Starting in headless mode — watcher/uploader/publisher only.');
+            initServices();
+        } else {
+            createWindow();
+        }
         createTray();
 
         nativeTheme.on('updated', () => {

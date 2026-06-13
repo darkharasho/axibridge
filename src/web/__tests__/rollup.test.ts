@@ -163,6 +163,20 @@ describe('buildRollupData', () => {
             squadTimeMs: 145 * 60 * 1000
         });
         expect(rollup.playerRows[0].lastSeenTs).toBe(new Date('2026-02-02T03:00:00Z').getTime());
+
+        // Per-class report counts, sorted by runs desc then name. The duplicate
+        // upload of the first raid counts Guardian once, not twice.
+        expect(rollup.commanderRows[0].professionBreakdown).toEqual([
+            { profession: 'Firebrand', runs: 1 },
+            { profession: 'Guardian', runs: 1 }
+        ]);
+        expect(rollup.playerRows[0].professionBreakdown).toEqual([
+            { profession: 'Firebrand', runs: 1 },
+            { profession: 'Guardian', runs: 1 }
+        ]);
+        expect(rollup.playerRows[1].professionBreakdown).toEqual([
+            { profession: 'Mesmer', runs: 1 }
+        ]);
     });
 
     it('counts attendance once when the same raid is uploaded multiple times', () => {
