@@ -1,8 +1,8 @@
 {
-  "specVersion": "unknown",
+  "specVersion": "v5",
   "method": "count",
   "source": "test-fixtures/boon/20260417-192501.json",
-  "generatedAt": "2026-04-18T09:01:48.435Z",
+  "generatedAt": "2026-06-13T08:56:05.995Z",
   "metrics": [
     {
       "name": "F I B B S",

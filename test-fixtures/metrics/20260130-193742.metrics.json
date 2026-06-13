@@ -1,8 +1,8 @@
 {
-  "specVersion": "unknown",
+  "specVersion": "v5",
   "method": "count",
   "source": "test-fixtures/boon/20260130-193742.json",
-  "generatedAt": "2026-04-06T02:02:48.890Z",
+  "generatedAt": "2026-06-13T08:56:05.543Z",
   "metrics": [
     {
       "name": "Shaia Atra",

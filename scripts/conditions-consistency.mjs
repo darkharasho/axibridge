@@ -13,6 +13,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import ts from 'typescript';
+import { createRequire } from 'node:module';
+
+// ESM has no implicit `require`; the sandbox loader falls back to it to resolve
+// node_modules packages (the src/shared/*Metrics.ts re-export shims now point at
+// @axiapps/bridge-metrics). Without this, loading those shims throws.
+const require = createRequire(import.meta.url);
 
 const cwd = process.cwd();
 const args = process.argv.slice(2);
