@@ -6,7 +6,7 @@ independently from any third-party implementation while staying consistent
 with EI JSON inputs. It also records the exact fields and aggregation rules
 so the stats dashboard, Discord, and cards produce identical values.
 
-Spec version: `v5` (see `src/shared/metrics-methods.json`).
+Spec version: `v5` (see `packages/bridge-metrics/src/metrics-methods.json`).
 
 ## Input Contract (EI JSON)
 
@@ -49,7 +49,7 @@ If any of these are missing, the metric falls back to `0` as defined below.
 ## Crowd Control & Strips Methodology
 
 The app supports three user-selectable methodologies (default: `count`),
-configured in `src/shared/metrics-methods.json`:
+configured in `packages/bridge-metrics/src/metrics-methods.json`:
 
 1. **Count Events** (`count`)  
    Uses EI summary counts for CC/strips. Best for stable, comparable totals.

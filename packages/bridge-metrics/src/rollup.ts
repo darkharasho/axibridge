@@ -1,7 +1,13 @@
+export interface RollupProfessionUsage {
+    profession: string;
+    runs: number;
+}
+
 export interface RollupCommanderRow {
     account: string;
     characterNames: string[];
     profession: string;
+    professionBreakdown: RollupProfessionUsage[];
     runs: number;
     fightsLed: number;
     kills: number;
@@ -18,6 +24,7 @@ export interface RollupPlayerRow {
     account: string;
     characterNames: string[];
     profession: string;
+    professionBreakdown: RollupProfessionUsage[];
     runs: number;
     combatTimeMs: number;
     squadTimeMs: number;
@@ -209,6 +216,7 @@ type PlayerAccumulator = {
     account: string;
     characterNames: Set<string>;
     professionTimeMs: Record<string, number>;
+    professionRuns: Record<string, number>;
     runs: number;
     combatTimeMs: number;
     squadTimeMs: number;
@@ -272,6 +280,16 @@ const chooseMostCommonProfession = (professionCounts: Record<string, number>, fa
         });
     return entries[0]?.[0] || fallback;
 };
+
+const buildProfessionBreakdown = (professionRuns: Record<string, number>): RollupProfessionUsage[] =>
+    Object.entries(professionRuns)
+        .filter(([profession, runs]) => profession && runs > 0)
+        .sort((a, b) => {
+            const delta = b[1] - a[1];
+            if (delta !== 0) return delta;
+            return a[0].localeCompare(b[0]);
+        })
+        .map(([profession, runs]) => ({ profession, runs }));
 
 export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
     const uniqueRaidKeys = new Set<string>();
@@ -368,6 +386,7 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
                 account,
                 characterNames: new Set<string>(),
                 professionTimeMs: {},
+                professionRuns: {},
                 runs: 0,
                 combatTimeMs: 0,
                 squadTimeMs: 0,
@@ -386,11 +405,16 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
             }
 
             const classTimes = Array.isArray(row?.classTimes) ? row.classTimes : [];
+            const professionsThisRun = new Set<string>();
             classTimes.forEach((classRow: any) => {
                 const profession = String(classRow?.profession || '').trim();
                 if (!profession || profession === 'Unknown') return;
-                existing.professionTimeMs[profession] = (existing.professionTimeMs[profession] || 0)
-                    + Math.max(0, toFiniteNumber(classRow?.timeMs));
+                const timeMs = Math.max(0, toFiniteNumber(classRow?.timeMs));
+                existing.professionTimeMs[profession] = (existing.professionTimeMs[profession] || 0) + timeMs;
+                if (timeMs > 0) professionsThisRun.add(profession);
+            });
+            professionsThisRun.forEach((profession) => {
+                existing.professionRuns[profession] = (existing.professionRuns[profession] || 0) + 1;
             });
 
             players.set(account, existing);
@@ -447,6 +471,7 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
                 account: entry.account,
                 characterNames: Array.from(entry.characterNames.values()).sort((a, b) => a.localeCompare(b)),
                 profession: chooseMostCommonProfession(entry.professionCounts),
+                professionBreakdown: buildProfessionBreakdown(entry.professionCounts),
                 runs: entry.runs,
                 fightsLed: entry.fightsLed,
                 kills: entry.kills,
@@ -471,6 +496,7 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
             account: entry.account,
             characterNames: Array.from(entry.characterNames.values()).sort((a, b) => a.localeCompare(b)),
             profession: choosePrimaryProfession(entry.professionTimeMs),
+            professionBreakdown: buildProfessionBreakdown(entry.professionRuns),
             runs: entry.runs,
             combatTimeMs: entry.combatTimeMs,
             squadTimeMs: entry.squadTimeMs,

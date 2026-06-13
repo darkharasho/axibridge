@@ -1,4 +1,4 @@
-import { CSSProperties, useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { CSSProperties, MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
 import { PALETTES, type ColorPalette } from '../shared/webThemes';
 import { readPaletteFromReport } from './paletteReader';
@@ -16,7 +16,8 @@ import { Gw2BoonIcon } from '../renderer/ui/Gw2BoonIcon';
 import { Gw2DamMitIcon } from '../renderer/ui/Gw2DamMitIcon';
 import { Gw2FuryIcon } from '../renderer/ui/Gw2FuryIcon';
 import { Gw2SigilIcon } from '../renderer/ui/Gw2SigilIcon';
-import { buildRollupData, parseRollupSourcesFile, RollupData } from './rollup';
+import { buildRollupData, parseRollupSourcesFile, RollupData, RollupProfessionUsage } from './rollup';
+import { getProfessionColor } from '../shared/professionUtils';
 import type { ReportPayload, ReportIndexEntry } from '../shared/reportTypes';
 import { normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
 import {
@@ -215,6 +216,11 @@ export function ReportApp() {
     const [playerProfessionFilter, setPlayerProfessionFilter] = useState('all');
     const [commanderMinRunsFilter, setCommanderMinRunsFilter] = useState('1');
     const [playerMinRunsFilter, setPlayerMinRunsFilter] = useState('1');
+    const [professionTooltip, setProfessionTooltip] = useState<{
+        x: number;
+        y: number;
+        entries: RollupProfessionUsage[];
+    } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [reportPathHint, setReportPathHint] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -821,7 +827,50 @@ export function ReportApp() {
         backgroundColor: 'var(--bg-card)',
         borderColor: 'var(--border-default)'
     };
-    const rollupTableHeaderStyle: CSSProperties = { backgroundColor: 'var(--bg-card)' };
+    // Sticky table headers need an opaque base: --bg-card is a translucent glass
+    // tint in glass/glassmorphic modes, so layer it over a solid dark fallback to
+    // keep scrolled rows from showing through.
+    const rollupTableHeaderStyle: CSSProperties = {
+        backgroundColor: '#0c0f16',
+        backgroundImage: 'linear-gradient(var(--bg-card), var(--bg-card))'
+    };
+    const showProfessionTooltip = (event: ReactMouseEvent<HTMLElement>, entries?: RollupProfessionUsage[]) => {
+        if (!entries || entries.length === 0) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        setProfessionTooltip({
+            x: Math.min(rect.left, window.innerWidth - 240),
+            y: rect.bottom + 6,
+            entries
+        });
+    };
+    const hideProfessionTooltip = () => setProfessionTooltip(null);
+    const professionTooltipPane = professionTooltip && (
+        <div
+            className="fixed z-50 pointer-events-none rounded-xl border border-white/10 px-3.5 py-2.5 text-xs shadow-2xl"
+            style={{
+                left: professionTooltip.x,
+                top: professionTooltip.y,
+                backgroundColor: '#0c0f16',
+                backgroundImage: 'linear-gradient(var(--bg-card), var(--bg-card))'
+            }}
+        >
+            <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1.5">Classes Played</div>
+            <div className="space-y-1">
+                {professionTooltip.entries.map((entry) => (
+                    <div key={entry.profession} className="flex items-center justify-between gap-6">
+                        <span className="flex items-center gap-2 text-white">
+                            <span
+                                className="inline-block w-2 h-2 rounded-full"
+                                style={{ backgroundColor: getProfessionColor(entry.profession) }}
+                            />
+                            {entry.profession}
+                        </span>
+                        <span className="text-gray-400">{entry.runs} report{entry.runs === 1 ? '' : 's'}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 
     useEffect(() => {
         let isMounted = true;
@@ -987,7 +1036,10 @@ export function ReportApp() {
                         );
                         const missingEntries = index.filter((entry) => entry?.id && !coveredIds.has(String(entry.id)));
                         if (missingEntries.length === 0) {
-                            setRollupData(parsed.rollup);
+                            // Rebuild from the (tiny) sources rather than trusting the
+                            // precomputed aggregate, so rollup.json files published by
+                            // older app versions still get newly added fields.
+                            setRollupData(buildRollupData(parsed.sources));
                             setRollupLoading(false);
                             return;
                         }
@@ -2006,7 +2058,15 @@ export function ReportApp() {
                                                                                 {row.characterNames.length > 0 ? row.characterNames.join(', ') : 'No character names recorded'}
                                                                             </div>
                                                                         </td>
-                                                                        <td className="py-3 pr-4 text-gray-300">{row.profession || '--'}</td>
+                                                                        <td className="py-3 pr-4 text-gray-300">
+                                                                            <span
+                                                                                className="cursor-help underline decoration-dotted decoration-white/30 underline-offset-4"
+                                                                                onMouseEnter={(event) => showProfessionTooltip(event, row.professionBreakdown)}
+                                                                                onMouseLeave={hideProfessionTooltip}
+                                                                            >
+                                                                                {row.profession || '--'}
+                                                                            </span>
+                                                                        </td>
                                                                         <td className="py-3 pr-4 text-right text-white">{row.runs}</td>
                                                                         <td className="py-3 pr-4 text-right text-white">{row.fightsLed}</td>
                                                                         <td className="py-3 pr-4 text-right text-white">{formatRatio(row.kdr)}</td>
@@ -2101,7 +2161,15 @@ export function ReportApp() {
                                                                             <div className="text-xs text-gray-400 mt-1">{row.characterNames.join(', ')}</div>
                                                                         )}
                                                                     </td>
-                                                                    <td className="py-3 pr-4 text-gray-300">{row.profession || '--'}</td>
+                                                                    <td className="py-3 pr-4 text-gray-300">
+                                                                        <span
+                                                                            className="cursor-help underline decoration-dotted decoration-white/30 underline-offset-4"
+                                                                            onMouseEnter={(event) => showProfessionTooltip(event, row.professionBreakdown)}
+                                                                            onMouseLeave={hideProfessionTooltip}
+                                                                        >
+                                                                            {row.profession || '--'}
+                                                                        </span>
+                                                                    </td>
                                                                     <td className="py-3 pr-4 text-right text-white">{row.runs}</td>
                                                                     <td className="py-3 pr-4 text-right text-white">{formatHoursLabel(row.combatTimeMs)}</td>
                                                                     <td className="py-3 pr-4 text-right text-white">{formatHoursLabel(row.squadTimeMs)}</td>
@@ -2131,6 +2199,7 @@ export function ReportApp() {
                         {legalNoticePane}
                     </div>
                 </div>
+                {professionTooltipPane}
                 {proofOfWorkModal}
             </div>
         );
