@@ -121,7 +121,7 @@
             "provider": "github",
             "owner": "darkharasho",
             "repo": "axibridge",
-            "releaseType": "draft"
+            "releaseType": "release"
         },
         "files": [
             "dist-electron/**/*",
