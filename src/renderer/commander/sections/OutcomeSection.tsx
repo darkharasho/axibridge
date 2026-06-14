@@ -12,7 +12,7 @@ function fmtBigNum(n: number): string {
 
 export function OutcomeSection({ fight }: { fight: CommanderFightData; thresholds: CommanderThresholds }) {
   const o = fight.outcome;
-  const tradeSev: 'green' | 'yellow' | 'red' = o.netTrade > 0 ? 'green' : o.netTrade === 0 ? 'yellow' : 'red';
+  const tradeSev: 'green' | 'yellow' | 'red' = o.netTrade >= 1 ? 'green' : o.netTrade >= 0.66 ? 'yellow' : 'red';
   const dmgSev: 'green' | 'yellow' | 'red' = o.damageOutInRatio >= 1.2 ? 'green' : o.damageOutInRatio >= 0.8 ? 'yellow' : 'red';
 
   return (
@@ -41,10 +41,10 @@ export function OutcomeSection({ fight }: { fight: CommanderFightData; threshold
         <StackedCountBar alive={0} dead={o.allyDeaths} />
       </MetricCard>
       <MetricCard
-        label="Net trade"
-        value={`${o.netTrade >= 0 ? '+' : ''}${o.netTrade}`}
-        description="Kills minus squad deaths — positive means you won the bodycount."
-        meta="kills − squad deaths"
+        label="Kill trade"
+        value={`${o.netTrade.toFixed(2)}×`}
+        description="Kills per squad death — over 1× means you won the bodycount."
+        meta="kills ÷ squad deaths"
         severity={tradeSev}
       />
       <MetricCard
