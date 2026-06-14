@@ -269,6 +269,40 @@ body.glass-surfaces.web-report #report-list-container {
   backdrop-filter: blur(12px);
 }
 
+/* Web report: replace per-frame backdrop-filter blur with a static
+   translucent fill. backdrop-filter re-blurs the scrolling backdrop every
+   frame on the GPU compositor (cheap on a dGPU, brutal on an iGPU — shows up
+   as constant GPU wattage during scroll). A solid fill keeps the frosted-panel
+   look at ~zero per-frame cost. Scoped to the web report only; the desktop
+   app's glass surfaces are untouched. Higher specificity (3 classes) + the
+   !important on the utility re-enables below beats the rules above and at
+   lines ~1540. */
+body.web-report.glass-surfaces .glass-card,
+body.web-report.glass-surfaces [data-surface="card"],
+body.web-report.glass-surfaces .stats-group-container,
+body.web-report.glass-surfaces #report-list-container,
+body.web-report.glass-surfaces .report-nav-sidebar,
+body.web-report.glass-surfaces .backdrop-blur-xl,
+body.web-report.glass-surfaces .backdrop-blur-lg,
+body.web-report.glass-surfaces .backdrop-blur-md,
+body.web-report.glass-surfaces .backdrop-blur-sm {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Bump opacity slightly to compensate for the lost blur so panels still read
+   as distinct frosted surfaces rather than near-transparent tint. */
+body.web-report.glass-surfaces .glass-card,
+body.web-report.glass-surfaces [data-surface="card"] {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+body.web-report.glass-surfaces #report-list-container {
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+body.web-report.glass-surfaces .report-nav-sidebar {
+  background: rgba(15, 18, 25, 0.9) !important;
+}
+
 /* Disable glass effects during bulk upload for performance */
 body.bulk-uploading.glass-surfaces .stats-view,
 body.bulk-uploading.glass-surfaces .app-shell {
