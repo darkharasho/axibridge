@@ -100,7 +100,7 @@ export const SquadDamageComparisonSection = () => {
                                         const point = payload?.[0]?.payload;
                                         if (!point) return null;
                                         return (
-                                            <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', padding: '10px 12px', fontSize: '12px' }}>
+                                            <div style={{ backgroundColor: 'rgba(15, 18, 25, 0.97)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', padding: '10px 12px', fontSize: '12px' }}>
                                                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
                                                     {point.fullLabel}{' '}
                                                     {point.isWin === true && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>W</span>}
