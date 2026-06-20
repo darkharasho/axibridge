@@ -5,6 +5,8 @@ import { getMapTiles, hasTileData } from '../../../shared/wvwTiles';
 import { WVW_LANDMARKS } from '../../../shared/wvwLandmarks';
 import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { getProfessionIconPath } from '../../classIconUtils';
+import { getMapOutline } from '../../../shared/mapOutlines';
+import { MapOutlineLayer } from './MapOutlineLayer';
 import commanderTagRaw from '../../../../public/svg/commander_tag.svg?raw';
 const COMMANDER_TAG_URI = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(commanderTagRaw)))}`;
 
@@ -327,6 +329,11 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                             <image href={selectedFight.mapImageUrl} x={0} y={0} width={mapWidth} height={mapHeight} />
                                         )
                                     }
+                                    <MapOutlineLayer
+                                        outlineUrl={selectedFight.mapKey ? getMapOutline(selectedFight.mapKey) : undefined}
+                                        mapWidth={mapWidth}
+                                        mapHeight={mapHeight}
+                                    />
                                     <HeatmapLayer raster={heatmap} mapWidth={mapWidth} mapHeight={mapHeight} mode={layers.heatmap} />
                                     {selectedFight.mapKey && (WVW_LANDMARKS[selectedFight.mapKey] ?? []).map(lm => (
                                         <g key={lm.name} opacity={0.55}>

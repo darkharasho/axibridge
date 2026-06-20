@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface MapOutlineLayerProps {
     /** Base64 SVG data URI of the map outline, or undefined when no outline exists for the map. */
     outlineUrl: string | undefined;
