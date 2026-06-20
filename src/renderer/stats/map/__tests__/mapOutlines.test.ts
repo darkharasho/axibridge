@@ -21,4 +21,10 @@ describe('getMapOutline', () => {
         const uri = getMapOutline(WvwMap.EternalBattlegrounds);
         expect(uri).toMatch(/^data:image\/svg\+xml;base64,/);
     });
+
+    it('resolves alpine for both green and blue, and desert for red', () => {
+        expect(getMapOutline(WvwMap.GreenBorderlands)).toMatch(/^data:image\/svg\+xml;base64,/);
+        expect(getMapOutline(WvwMap.GreenBorderlands)).toBe(getMapOutline(WvwMap.BlueBorderlands));
+        expect(getMapOutline(WvwMap.RedBorderlands)).toMatch(/^data:image\/svg\+xml;base64,/);
+    });
 });
