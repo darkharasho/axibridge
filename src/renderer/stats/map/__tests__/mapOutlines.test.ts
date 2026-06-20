@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mapOutlineFileName, getMapOutline } from '../mapOutlines';
-import { WvwMap } from '../wvwLandmarks';
+import { WvwMap } from '../../../../shared/wvwLandmarks';
 
 describe('mapOutlineFileName', () => {
     it('maps each WvW map to its outline asset base name', () => {

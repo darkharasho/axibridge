@@ -1,10 +1,10 @@
-import { WvwMap } from './wvwLandmarks';
+import { WvwMap } from '../../../shared/wvwLandmarks';
 
 // Outline SVGs are imported as raw text and encoded as base64 data URIs. URL-based
 // SVG <image> hrefs fail in Electron's renderer, so data URIs are required (same
 // approach as classIconUtils.ts / commander_tag.svg). The glob is eager so bundling
 // works for both the desktop (dist-react) and web report (dist-web) builds.
-const outlineModules = import.meta.glob<string>('./mapOutlines/*.svg', {
+const outlineModules = import.meta.glob<string>('../../../shared/mapOutlines/*.svg', {
     eager: true,
     query: '?raw',
     import: 'default',

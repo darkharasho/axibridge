@@ -5,7 +5,7 @@ import { getMapTiles, hasTileData } from '../../../shared/wvwTiles';
 import { WVW_LANDMARKS } from '../../../shared/wvwLandmarks';
 import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { getProfessionIconPath } from '../../classIconUtils';
-import { getMapOutline } from '../../../shared/mapOutlines';
+import { getMapOutline } from './mapOutlines';
 import { MapOutlineLayer } from './MapOutlineLayer';
 import commanderTagRaw from '../../../../public/svg/commander_tag.svg?raw';
 const COMMANDER_TAG_URI = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(commanderTagRaw)))}`;
