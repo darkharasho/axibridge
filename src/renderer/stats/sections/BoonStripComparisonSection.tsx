@@ -113,7 +113,9 @@ export const BoonStripComparisonSection = () => {
                                 />
                                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" />
                                 <Tooltip
-                                    cursor={{ fill: 'var(--accent-bg-strong)' }}
+                                    // Solid slate so the hover band stays visible on
+                                    // any theme (matches the glass --bg-hover override).
+                                    cursor={{ fill: 'rgba(148, 163, 184, 0.45)' }}
                                     content={({ payload }: any) => {
                                         const point = payload?.[0]?.payload as BoonStripPoint | undefined;
                                         if (!point) return null;
