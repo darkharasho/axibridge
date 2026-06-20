@@ -38,6 +38,7 @@ import { DamageModifiersSection } from './stats/sections/DamageModifiersSection'
 import { ConditionsSection } from './stats/sections/ConditionsSection';
 import { BoonOutputSection } from './stats/sections/BoonOutputSection';
 import { DefenseSection } from './stats/sections/DefenseSection';
+import { BoonStripComparisonSection } from './stats/sections/BoonStripComparisonSection';
 import { DamageMitigationSection } from './stats/sections/DamageMitigationSection';
 import { SupportSection } from './stats/sections/SupportSection';
 import { HealingSection } from './stats/sections/HealingSection';
@@ -4468,6 +4469,8 @@ type SpikeFight = {
                                 setDefenseViewMode={setDefenseViewMode}
                             />)}
 
+                            {renderSectionWrap(<BoonStripComparisonSection />)}
+
                             {renderSectionWrap(<DamageModifiersSection
                                 search={incomingDamageModSearch}
                                 setSearch={setIncomingDamageModSearch}
@@ -4950,6 +4953,7 @@ type SpikeFight = {
                                 damageMitigationScope={damageMitigationScope}
                                 setDamageMitigationScope={setDamageMitigationScope}
                             /> },
+                            { id: 'boon-strip-comparison', element: <BoonStripComparisonSection /> },
                             { id: 'boon-output', element: <BoonOutputSection
                                 activeBoonCategory={activeBoonCategory}
                                 setActiveBoonCategory={(val: string) => setActiveBoonCategory(val as BoonCategory)}
