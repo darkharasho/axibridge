@@ -33,6 +33,7 @@ interface StatsStoreState {
         targetFocusLines: boolean;
         damagePulses: boolean;
         heatmap: 'off' | 'deaths' | 'time' | 'damage-taken';
+        outline: 'off' | 'standard' | 'high' | 'max';
     };
     replaySpotlightParty: number | null;
 
@@ -48,8 +49,9 @@ interface StatsStoreState {
     setReplayFollowTarget: (target: string | null) => void;
     setReplaySelectedParty: (party: number) => void;
     resetReplayViewport: () => void;
-    setReplayLayer: (key: keyof Omit<StatsStoreState['replayLayers'], 'heatmap'>, value: boolean) => void;
+    setReplayLayer: (key: keyof Omit<StatsStoreState['replayLayers'], 'heatmap' | 'outline'>, value: boolean) => void;
     setReplayHeatmapMode: (mode: StatsStoreState['replayLayers']['heatmap']) => void;
+    setReplayOutlineMode: (mode: StatsStoreState['replayLayers']['outline']) => void;
     setReplaySpotlightParty: (party: number | null) => void;
     resetReplayLayers: () => void;
 }
@@ -82,6 +84,7 @@ const initialState = {
         targetFocusLines: false,
         damagePulses: false,
         heatmap: 'off' as const,
+        outline: 'standard' as const,
     },
     replaySpotlightParty: null,
 };
@@ -125,6 +128,9 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
     setReplayHeatmapMode: (mode) => set((state) => ({
         replayLayers: { ...state.replayLayers, heatmap: mode },
     })),
+    setReplayOutlineMode: (mode) => set((state) => ({
+        replayLayers: { ...state.replayLayers, outline: mode },
+    })),
     setReplaySpotlightParty: (party) => set({
         replaySpotlightParty: party === null || !Number.isFinite(party)
             ? null
@@ -138,6 +144,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
             squadHealthStrip: false, partyHulls: false, phases: false,
             rallyRings: false, targetFocusLines: false, damagePulses: false,
             heatmap: 'off',
+            outline: 'standard',
         },
         replaySpotlightParty: null,
     })),
