@@ -11,3 +11,4 @@ export * from './roles';
 export { isResUtilitySkill } from './resUtility';
 export { resolveFightTimestamp, parseTimestamp as parseFightTimestamp } from './timestampUtils';
 export * from './reportMetrics';
+export * from './positioning';

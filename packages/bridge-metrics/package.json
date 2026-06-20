@@ -1,6 +1,6 @@
 {
     "name": "@axiapps/bridge-metrics",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "type": "module",
     "description": "AxiBridge report aggregation core: player aggregation, rollup builder, metric extractors",
     "license": "GPL-3.0-only",
