@@ -28,3 +28,47 @@ describe('ingestLogFightBreakdown team colors', () => {
         expect(byId['707']).toBe('green');
     });
 });
+
+describe('ingestLogFightBreakdown boon strips & generation', () => {
+    const mkBoonLog = () => ({
+        filePath: 'f1',
+        details: {
+            durationMS: 10000,
+            players: [
+                {
+                    notInSquad: false, teamID: 50, dpsAll: [{ damage: 0 }], statsAll: [{}],
+                    support: [{ boonStrips: 12 }],
+                    defenses: [{ boonStrips: 5 }],
+                    squadBuffVolumes: [
+                        { id: 740, buffVolumeData: [{ outgoing: 3 }, { outgoing: 2 }] },
+                        { id: 717, buffVolumeData: [{ outgoing: 4 }] },
+                    ],
+                },
+                {
+                    notInSquad: false, teamID: 50, dpsAll: [{ damage: 0 }], statsAll: [{}],
+                    support: [{ boonStrips: 8 }],
+                    defenses: [{ boonStrips: 1 }],
+                    // no squadBuffVolumes → contributes 0 generation
+                },
+            ],
+            targets: [],
+        },
+    });
+
+    it('sums outgoing strips, incoming strips, and boons generated across the squad', () => {
+        const fb = ingestLogFightBreakdown(mkBoonLog(), 0);
+        expect(fb.totalOutgoingStrips).toBe(20); // 12 + 8
+        expect(fb.totalIncomingStrips).toBe(6);  // 5 + 1
+        expect(fb.totalBoonsGenerated).toBe(9);  // (3+2+4) + 0
+    });
+
+    it('defaults to 0 when support/defenses/squadBuffVolumes are absent', () => {
+        const fb = ingestLogFightBreakdown({
+            filePath: 'f2',
+            details: { durationMS: 1000, players: [{ notInSquad: false, dpsAll: [{ damage: 0 }] }], targets: [] },
+        }, 0);
+        expect(fb.totalOutgoingStrips).toBe(0);
+        expect(fb.totalIncomingStrips).toBe(0);
+        expect(fb.totalBoonsGenerated).toBe(0);
+    });
+});
