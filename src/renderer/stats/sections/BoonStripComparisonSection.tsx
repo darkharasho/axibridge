@@ -5,7 +5,7 @@ import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { Eraser, Maximize2, X } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 
-export type BoonStripMode = 'strips' | 'generation';
+export type BoonStripMode = 'strips' | 'applied';
 
 export type BoonStripPoint = {
     index: number;
@@ -20,8 +20,8 @@ export type BoonStripPoint = {
 export const buildBoonStripChartData = (fights: any[], mode: BoonStripMode): BoonStripPoint[] => {
     const list = Array.isArray(fights) ? fights : [];
     return list.map((fight: any, idx: number) => {
-        const outgoing = mode === 'generation'
-            ? Number(fight?.totalBoonsGenerated || 0)
+        const outgoing = mode === 'applied'
+            ? Number(fight?.totalBoonsApplied || 0)
             : Number(fight?.totalOutgoingStrips || 0);
         return {
             index: idx,
@@ -37,7 +37,7 @@ export const buildBoonStripChartData = (fights: any[], mode: BoonStripMode): Boo
 
 const MODE_OPTIONS: Array<{ value: BoonStripMode; label: string }> = [
     { value: 'strips', label: 'Outgoing Strips' },
-    { value: 'generation', label: 'Boon Generation' },
+    { value: 'applied', label: 'Boons Applied' },
 ];
 
 export const BoonStripComparisonSection = () => {
@@ -60,7 +60,7 @@ export const BoonStripComparisonSection = () => {
         return Math.max(1, ...chartData.map((d) => Math.max(Math.abs(d.outgoing), Math.abs(d.incoming))));
     }, [chartData]);
 
-    const outgoingLabel = mode === 'generation' ? 'Boons Generated' : 'Outgoing Strips';
+    const outgoingLabel = mode === 'applied' ? 'Boons Applied' : 'Outgoing Strips';
 
     return (
         <div
@@ -113,7 +113,7 @@ export const BoonStripComparisonSection = () => {
                                 />
                                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" />
                                 <Tooltip
-                                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                                    cursor={{ fill: 'var(--accent-bg-strong)' }}
                                     content={({ payload }: any) => {
                                         const point = payload?.[0]?.payload as BoonStripPoint | undefined;
                                         if (!point) return null;

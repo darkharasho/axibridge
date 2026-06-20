@@ -114,6 +114,27 @@ const PLAYER_DENY = [
 ];
 
 /**
+ * Count boon applications from a `boonsStates` timeline — an array of
+ * `[timestamp, activeBoonCount]` pairs. Each increase in the active-boon count
+ * is one application; expirations (decreases) are ignored. This is the boon-side
+ * analogue of how outgoing condition applications are counted, and gives a raw
+ * integer count comparable to boon-strip counts.
+ * Pure — no I/O.
+ */
+export const countBoonApplications = (boonsStates: any): number => {
+    if (!Array.isArray(boonsStates) || boonsStates.length === 0) return 0;
+    let applied = 0;
+    let prev: number | null = null;
+    for (const entry of boonsStates) {
+        const value = Number(Array.isArray(entry) ? entry[1] : NaN);
+        if (!Number.isFinite(value)) continue;
+        if (prev !== null && value > prev) applied += value - prev;
+        prev = value;
+    }
+    return applied;
+};
+
+/**
  * Strip fields not needed by the stats pipeline from a full EI JSON payload.
  * Reduces memory footprint and IPC transfer size.
  * Pure — no I/O, no side effects.
@@ -122,7 +143,13 @@ export const pruneDetailsForStats = (details: any): any => {
     if (!details || typeof details !== 'object') return details;
     const pruned: any = omit(details, TOP_LEVEL_DENY);
     if (Array.isArray(pruned.players)) {
-        pruned.players = pruned.players.map((player: any) => omit(player, PLAYER_DENY));
+        // Precompute the boon-application count before the heavy `boonsStates`
+        // timeline is stripped, so the stats pipeline gets the count without the
+        // per-log memory/IPC cost of the full timeline.
+        pruned.players = pruned.players.map((player: any) => ({
+            ...omit(player, PLAYER_DENY),
+            boonsAppliedCount: countBoonApplications(player?.boonsStates),
+        }));
     }
     if (Array.isArray(pruned.targets)) {
         pruned.targets = pruned.targets.map((target: any) => {
