@@ -331,11 +331,14 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         )
                                     }
                                     <MapOutlineLayer
-                                        outlineUrl={selectedFight.mapKey ? getMapOutline(selectedFight.mapKey) : undefined}
+                                        outlineUrl={selectedFight.mapKey && layers.outline !== 'off'
+                                            ? getMapOutline(selectedFight.mapKey, layers.outline)
+                                            : undefined}
                                         mapWidth={mapWidth}
                                         mapHeight={mapHeight}
                                         offsetX={outlineOffsetX}
                                         offsetY={outlineOffsetY}
+                                        opacity={1}
                                     />
                                     <HeatmapLayer raster={heatmap} mapWidth={mapWidth} mapHeight={mapHeight} mode={layers.heatmap} />
                                     {selectedFight.mapKey && (WVW_LANDMARKS[selectedFight.mapKey] ?? []).map(lm => (
