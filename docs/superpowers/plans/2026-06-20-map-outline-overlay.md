@@ -8,6 +8,16 @@
 
 **Tech Stack:** TypeScript, React, Vite (`import.meta.glob` raw asset inlining), Node (`.mjs` dev script), ImageMagick 7 (`magick`), Inkscape 1.4.4 (Flatpak `org.inkscape.Inkscape`), vitest + @testing-library/react.
 
+> **Implementation note (post-execution):** Two pipeline steps in Task 2 changed
+> during execution (user-approved) — the tracer is **potrace** (via its npm lib), not
+> the Inkscape CLI (Inkscape 1.4 `object-trace` only traces the page border headlessly);
+> and pre-processing is **Canny edge detection**, not a brightness threshold (the dark
+> maps lose all detail under a brightness cut). Also, the `mapOutlines` lookup module
+> lives at `src/renderer/stats/map/mapOutlines.ts` (not `src/shared`) because it uses
+> Vite-only `import.meta.glob`; and the overlay honours each map's tile `pixelOffset`
+> via `getMapPixelOffset`. See the design spec and `scripts/build-map-outline.mjs` for
+> the authoritative pipeline.
+
 ## Global Constraints
 
 - Outline alignment relies on tracing a raster composited at the map's **reference `pixelSize`** from `src/shared/wvwTiles.ts` (EBG `[716,750]`, Green/Blue BL `[523,750]`, Red BL `[750,750]`). The traced SVG's `viewBox` MUST equal `0 0 <pw> <ph>` for that map.

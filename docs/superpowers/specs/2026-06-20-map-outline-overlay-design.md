@@ -64,37 +64,34 @@ draws each tile into a `pw × ph` canvas at its `{x, y, width, height}` (clippin
 grid-snapped tiles to the map extent), and writes `<map>-source.png`. This guarantees
 the trace source matches the tile coordinate space pixel-for-pixel.
 
-**Step B — Pre-threshold with ImageMagick.**
-`object-trace` in Inkscape 1.4 has no per-call threshold flag (it reads trace params
-from preferences). To make the trace robust and parameter-stable, pre-process the
-composite into a clean high-contrast bitmap: grayscale → level/threshold → despeckle.
-ImageMagick 7 (`magick`) is available on the dev box. This yields a near-1-bit image
-where the default brightness-cutoff trace produces clean lines.
+**Step B — Edge-detect with ImageMagick.**
+A brightness threshold was the original plan, but the WvW maps are uniformly dark, so
+a brightness cut wipes out the detail (the thresholded image is nearly all black). The
+features we want are *boundaries* — cliffs, water edges, walls, roads — so we use Canny
+edge detection instead: `magick composite.png -colorspace Gray -blur 0x0.6
+-canny 0x1+10%+30% -negate <map>-threshold.png`. This yields clean black feature
+outlines on white. ImageMagick 7 (`magick`) is on the dev box.
 
-**Step C — Trace headlessly with the Inkscape CLI.**
-Inkscape is installed as a Flatpak: `org.inkscape.Inkscape` version **1.4.4**. Invoke:
+**Step C — Trace with potrace.**
+The original plan used Inkscape's headless CLI, but Inkscape 1.4's `object-trace`
+action only traces the page border in headless mode (a known limitation; confirmed by
+experiment). We instead drive **potrace** — the exact tracing engine Inkscape's Trace
+Bitmap wraps — via its npm library (a `devDependency`, used only by the dev script):
 
 ```
-flatpak run --filesystem=<work-dir> org.inkscape.Inkscape \
-  <map>-threshold.png \
-  --actions="select-all; object-trace; ..." \
-  --export-type=svg \
-  --export-filename=<map>-outline.svg
+potrace.trace(threshold, { threshold: 128, turdSize: 4, optTolerance: 0.4,
+  color: '#000000', background: 'transparent' }, cb)
 ```
 
-`object-trace` (confirmed present in `--action-list`) performs the headless Trace
-Bitmap using preference params. The script:
-  - removes the embedded source `<image>` so only traced paths remain,
-  - sets the document `viewBox` to `0 0 <pw> <ph>` (matching the map's reference
-    `pixelSize`),
-  - exports a plain SVG.
+The script then normalises the SVG header to `width/height/viewBox="0 0 <pw> <ph>"`
+(matching the map's reference `pixelSize`) and writes the committed asset. potrace
+already emits paths in input-pixel coordinates (= `pw × ph`), so no `<image>` stripping
+is needed and coordinates land in the right space directly.
 
-The `--filesystem=<work-dir>` override is required because the Flatpak sandbox cannot
-read arbitrary host paths by default.
-
-> Tuning note: thresholds and despeckle radius are tuned per map by eye during
-> proof-of-concept; once dialed in they are committed as script constants so
-> regeneration is deterministic.
+> Tuning note: `turdSize` (speck removal) and `optTolerance` (curve simplification),
+> plus the Canny hysteresis thresholds, are tuned per map by eye during
+> proof-of-concept; once dialed in they live as script constants so regeneration is
+> deterministic.
 
 **Proof-of-concept first:** Build and validate the full pipeline on **EBG only**
 before generating the other maps. There are realistically three distinct drawings:
@@ -102,33 +99,50 @@ EBG, Alpine BL (Green + Blue share the layout), Desert BL (Red).
 
 ### 2. Shared Asset Lookup
 
-- Outline SVGs live in a shared location (e.g. `src/shared/mapOutlines/`), one per
-  distinct map, keyed by the `WvwMap` enum already used throughout.
-- A small helper `getMapOutline(map: WvwMap): string | undefined` returns the bundled
-  asset URL (Vite resolves the import for both `dist-react` and `dist-web` builds), or
-  `undefined` for maps without an outline yet.
-- Green and Blue borderlands map to the same Alpine asset.
+- Outline SVGs live in `src/shared/mapOutlines/`, one per distinct map, keyed by the
+  `WvwMap` enum already used throughout.
+- The lookup module itself lives at `src/renderer/stats/map/mapOutlines.ts` (NOT in
+  `src/shared`): it uses Vite-only `import.meta.glob`, and `src/shared` is also compiled
+  by the electron-main `tsc`, which cannot handle `import.meta`. This matches the repo
+  convention set by `src/renderer/classIconUtils.ts`.
+- `getMapOutline(map: WvwMap): string | undefined` returns a **base64 data URI**
+  (`data:image/svg+xml;base64,…`), not a file URL — URL-based SVG `<image>` hrefs fail
+  in Electron's renderer, so the SVGs are inlined via eager `import.meta.glob('…/*.svg',
+  { query: '?raw' })` and base64-encoded (same pattern as `classIconUtils`). Works for
+  both `dist-react` and `dist-web`. Returns `undefined` for maps without an outline yet.
+- A companion pure helper `mapOutlineFileName(map)` resolves the asset base name;
+  Green and Blue borderlands map to the same `alpine-outline` asset.
 
 ### 3. Render Layer
 
-In `ReplayView.tsx`, inside the existing `translate/scale` group, immediately after
-the tile images and before the landmarks layer:
+A small presentational component `MapOutlineLayer` (in `src/renderer/stats/map/`,
+modelled on the sibling `HeatmapLayer`) renders the overlay or `null`:
 
 ```jsx
-{outlineUrl && (
-  <image
-    href={outlineUrl}
-    x={0} y={0}
-    width={mapWidth} height={mapHeight}
-    preserveAspectRatio="none"
-    opacity={0.7}
-  />
-)}
+function MapOutlineLayer({ outlineUrl, mapWidth, mapHeight, offsetX = 0, offsetY = 0, opacity = 0.7 }) {
+  if (!outlineUrl) return null;
+  return <image href={outlineUrl} x={offsetX} y={offsetY}
+    width={mapWidth} height={mapHeight} preserveAspectRatio="none" opacity={opacity} />;
+}
 ```
 
-`outlineUrl = selectedFight.mapKey ? getMapOutline(selectedFight.mapKey) : undefined`.
-No viewport math — the layer inherits the group transform, so it pans and zooms with
-the tiles and player dots automatically. Identical code path serves desktop and web.
+In `ReplayView.tsx`, inside the existing `translate/scale` group, immediately after the
+tile images and before the heatmap/landmarks layer:
+
+```jsx
+<MapOutlineLayer
+  outlineUrl={selectedFight.mapKey ? getMapOutline(selectedFight.mapKey) : undefined}
+  mapWidth={mapWidth} mapHeight={mapHeight}
+  offsetX={outlineOffsetX} offsetY={outlineOffsetY}
+/>
+```
+
+`outlineOffsetX/Y` come from `getMapPixelOffset(mapKey, mapWidth, mapHeight)`, which
+mirrors the calibration offset `getMapTiles` applies to the tiles (EBG's `pixelOffset`
+is `[-14, 20]`; the borderlands are `[0, 0]`). Without this, the EBG outline — traced
+from an un-offset composite — would sit ~14/20px off from the offset-positioned tiles.
+No other viewport math: the layer inherits the group transform, so it pans and zooms
+with the tiles and player dots automatically. Identical code path serves desktop and web.
 
 ## Data Flow
 
