@@ -484,14 +484,9 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--bg-elevated)', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
                         <button
                             type="button"
+                            className="replay-ctrl-btn"
                             aria-label={playhead.playing ? 'Pause' : 'Play'}
                             onClick={() => setReplayPlayhead({ playing: !playhead.playing })}
-                            style={{
-                                width: 28, height: 28, borderRadius: 6, flexShrink: 0,
-                                background: 'var(--bg-hover)', border: '1px solid var(--border-default)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: 'var(--text-secondary)', cursor: 'pointer',
-                            }}
                         >
                             {playhead.playing ? <Pause size={14} /> : <Play size={14} />}
                         </button>
@@ -500,14 +495,9 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                 <button
                                     key={s}
                                     type="button"
+                                    className="replay-speed-pill"
+                                    aria-pressed={playhead.speed === s}
                                     onClick={() => setReplayPlayhead({ speed: s })}
-                                    style={{
-                                        padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600,
-                                        background: playhead.speed === s ? 'var(--status-info-bg)' : 'var(--bg-hover)',
-                                        border: `1px solid ${playhead.speed === s ? 'var(--status-info-border)' : 'var(--border-subtle)'}`,
-                                        color: playhead.speed === s ? 'var(--status-info)' : 'var(--text-muted)',
-                                        cursor: 'pointer',
-                                    }}
                                 >
                                     {s}×
                                 </button>
