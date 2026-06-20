@@ -5,7 +5,7 @@ import { getMapTiles, hasTileData, getMapPixelOffset } from '../../../shared/wvw
 import { WVW_LANDMARKS } from '../../../shared/wvwLandmarks';
 import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { getProfessionIconPath } from '../../classIconUtils';
-import { getMapOutline } from './mapOutlines';
+import { getMapOutlineSvg } from './mapOutlines';
 import { MapOutlineLayer } from './MapOutlineLayer';
 import commanderTagRaw from '../../../../public/svg/commander_tag.svg?raw';
 const COMMANDER_TAG_URI = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(commanderTagRaw)))}`;
@@ -331,8 +331,8 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         )
                                     }
                                     <MapOutlineLayer
-                                        outlineUrl={selectedFight.mapKey && layers.outline !== 'off'
-                                            ? getMapOutline(selectedFight.mapKey, layers.outline)
+                                        svg={selectedFight.mapKey && layers.outline !== 'off'
+                                            ? getMapOutlineSvg(selectedFight.mapKey, layers.outline)
                                             : undefined}
                                         mapWidth={mapWidth}
                                         mapHeight={mapHeight}

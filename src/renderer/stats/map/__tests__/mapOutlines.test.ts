@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapOutlineFileName, getMapOutline } from '../mapOutlines';
+import { mapOutlineFileName, getMapOutlineSvg, parseOutlineSvg } from '../mapOutlines';
 import { WvwMap } from '../../../../shared/wvwLandmarks';
 
 describe('mapOutlineFileName', () => {
@@ -16,17 +16,42 @@ describe('mapOutlineFileName', () => {
     });
 });
 
-describe('getMapOutline', () => {
-    it('returns a base64 SVG data URI for each bundled (map, level)', () => {
+describe('parseOutlineSvg', () => {
+    it('extracts viewBox dimensions and inner markup for inlining', () => {
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="716" height="750" viewBox="0 0 716 750"><path d="M0 0" fill="#000"/></svg>';
+        const parsed = parseOutlineSvg(svg);
+        expect(parsed).not.toBeNull();
+        expect(parsed!.width).toBe(716);
+        expect(parsed!.height).toBe(750);
+        expect(parsed!.inner).toBe('<path d="M0 0" fill="#000"/>');
+    });
+
+    it('falls back to width/height attributes when viewBox is absent', () => {
+        const svg = '<svg width="400" height="300"><path d="M1 1"/></svg>';
+        const parsed = parseOutlineSvg(svg);
+        expect(parsed!.width).toBe(400);
+        expect(parsed!.height).toBe(300);
+    });
+
+    it('returns null for missing or malformed input', () => {
+        expect(parseOutlineSvg(undefined)).toBeNull();
+        expect(parseOutlineSvg('')).toBeNull();
+        expect(parseOutlineSvg('<div>not svg</div>')).toBeNull();
+        expect(parseOutlineSvg('<svg viewBox="0 0 0 0"><path/></svg>')).toBeNull();
+    });
+});
+
+describe('getMapOutlineSvg', () => {
+    it('returns raw inlineable SVG markup (not a data URI) for each bundled (map, level)', () => {
         for (const level of ['standard', 'high', 'max'] as const) {
-            expect(getMapOutline(WvwMap.EternalBattlegrounds, level)).toMatch(/^data:image\/svg\+xml;base64,/);
-            expect(getMapOutline(WvwMap.GreenBorderlands, level)).toMatch(/^data:image\/svg\+xml;base64,/);
-            expect(getMapOutline(WvwMap.RedBorderlands, level)).toMatch(/^data:image\/svg\+xml;base64,/);
+            const svg = getMapOutlineSvg(WvwMap.EternalBattlegrounds, level);
+            expect(svg).toMatch(/^<svg/);
+            expect(parseOutlineSvg(svg)).not.toBeNull();
         }
     });
 
     it('resolves alpine for both green and blue', () => {
-        expect(getMapOutline(WvwMap.GreenBorderlands, 'standard'))
-            .toBe(getMapOutline(WvwMap.BlueBorderlands, 'standard'));
+        expect(getMapOutlineSvg(WvwMap.GreenBorderlands, 'standard'))
+            .toBe(getMapOutlineSvg(WvwMap.BlueBorderlands, 'standard'));
     });
 });
