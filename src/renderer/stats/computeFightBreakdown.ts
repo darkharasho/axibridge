@@ -135,17 +135,9 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
         totalIncomingDamage: totalIncoming,
         totalOutgoingStrips: squadPlayers.reduce((sum: number, p: any) => sum + (p.support?.[0]?.boonStrips || 0), 0),
         totalIncomingStrips: squadPlayers.reduce((sum: number, p: any) => sum + (p.defenses?.[0]?.boonStrips || 0), 0),
-        totalBoonsGenerated: squadPlayers.reduce((sum: number, p: any) => {
-            const volumes = Array.isArray(p.squadBuffVolumes) ? p.squadBuffVolumes : [];
-            let playerTotal = 0;
-            volumes.forEach((vol: any) => {
-                const data = Array.isArray(vol?.buffVolumeData) ? vol.buffVolumeData : [];
-                data.forEach((entry: any) => {
-                    playerTotal += Number(entry?.outgoing || 0);
-                });
-            });
-            return sum + playerTotal;
-        }, 0),
+        // Raw count of boons applied to the squad this fight (precomputed per
+        // player by pruneDetailsForStats from the boonsStates timeline).
+        totalBoonsApplied: squadPlayers.reduce((sum: number, p: any) => sum + (Number(p.boonsAppliedCount) || 0), 0),
         incomingBarrierAbsorbed: squadPlayers.reduce((sum: number, p: any) => sum + (p.defenses?.[0]?.damageBarrier || 0), 0),
         outgoingBarrierAbsorbed: squadPlayers.reduce((sum: number, p: any) => {
             const outgoingBarrier = p.extBarrierStats?.outgoingBarrier;

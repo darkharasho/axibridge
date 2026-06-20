@@ -3,11 +3,29 @@ import {
     resolveTimestampSeconds,
     resolveDetailsUploadTime,
     pruneDetailsForStats,
+    countBoonApplications,
     buildDashboardSummaryFromDetails,
     buildManifestEntry,
     hasUsableFightDetails,
     isDetailsPermalinkNotFound,
 } from '../detailsProcessing';
+
+// ─── countBoonApplications ────────────────────────────────────────────────────
+
+describe('countBoonApplications', () => {
+    it('sums the positive deltas of a [time, activeBoons] timeline', () => {
+        // boons go 0→3 (apply 3), 3→2 (one expires), 2→5 (apply 3) = 6 applications
+        const states: Array<[number, number]> = [[0, 0], [100, 3], [200, 2], [300, 5]];
+        expect(countBoonApplications(states)).toBe(6);
+    });
+
+    it('returns 0 for missing / empty / malformed input', () => {
+        expect(countBoonApplications(undefined)).toBe(0);
+        expect(countBoonApplications(null)).toBe(0);
+        expect(countBoonApplications([])).toBe(0);
+        expect(countBoonApplications([[0, 4]])).toBe(0); // single point, no delta
+    });
+});
 
 // ─── resolveTimestampSeconds ──────────────────────────────────────────────────
 
@@ -140,6 +158,19 @@ describe('pruneDetailsForStats', () => {
         expect(p.profession).toBe('Guardian');
         expect(p.dpsAll).toBeDefined();
         expect(p.__secret__).toBe('keep me');
+    });
+
+    it('attaches boonsAppliedCount from boonsStates and still strips the heavy timeline', () => {
+        const player = {
+            name: 'Booner',
+            notInSquad: false,
+            // 0→3 (apply 3), 3→5 (apply 2) = 5 applications
+            boonsStates: [[0, 0], [100, 3], [200, 5]],
+        };
+        const pruned = pruneDetailsForStats({ players: [player], targets: [] });
+        const p = pruned.players[0];
+        expect(p.boonsAppliedCount).toBe(5);
+        expect(p.boonsStates).toBeUndefined(); // heavy timeline still pruned
     });
 
     it('passes through all target fields', () => {
