@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { computeStatsSync } from '../incrementalAggregation';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
+import { isReplayElided } from '../../workers/replayTransfer';
 
 interface UseStatsUploadsProps {
     logs: any[];
@@ -126,6 +127,8 @@ export const useStatsUploads = ({
             skillUsageData,
             statsViewSettings: activeStatsViewSettings,
         };
+        // Never publish the transient elision marker as report content.
+        delete (baseStats as any).replayFightsElided;
         if (Array.isArray(baseStats.fightDiffMode) && baseStats.fightDiffMode.length > 0) {
             return baseStats;
         }
@@ -153,6 +156,15 @@ export const useStatsUploads = ({
     const runWebUpload = async (repoFullName?: string) => {
         if (embedded) return;
         if (!onWebUpload) return;
+        // Replay data is dropped from in-flight worker results and only settles on
+        // the final flush. Uploading before then publishes a report with no combat
+        // replay (replay.json 404). Defer until the aggregation settles. The web
+        // upload action is also disabled in the UI while this is true, so this is a
+        // belt-and-suspenders guard.
+        if (isReplayElided(stats)) {
+            console.warn('[StatsView] Web upload deferred: combat replay data is still computing. Wait for stats to finish, then upload again.');
+            return;
+        }
         try {
             const meta = buildReportMeta();
             const uploadStats = buildReportStats();
