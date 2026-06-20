@@ -3,6 +3,7 @@ import {
     buildReplayKey,
     createReplayElisionState,
     elideUnchangedReplayFights,
+    isReplayElided,
     reinjectElidedReplayFights
 } from '../replayTransfer';
 
@@ -69,9 +70,35 @@ describe('replay transfer elision', () => {
     it('tolerates malformed results and missing previous copies', () => {
         expect(reinjectElidedReplayFights(null, null)).toBeNull();
         expect(reinjectElidedReplayFights({ stats: null }, null)).toBeNull();
-        const elided: any = { stats: { replayFightsElided: true } };
+    });
+
+    it('keeps the elided marker when there is no previous copy to reinject', () => {
+        // The worker elided replayFights (e.g. a mid-stream flush) but the main
+        // thread has never received a full copy yet. We must NOT erase the marker:
+        // an elided-and-unrestored result is "replay not yet available", which is
+        // different from "this report genuinely has no replay". Consumers (the web
+        // upload) rely on the marker to avoid publishing a replay-less report.
+        const elided: any = { stats: { replayFightsElided: true, otherSection: {} } };
         expect(reinjectElidedReplayFights(elided, null)).toBeNull();
-        expect(elided.stats.replayFightsElided).toBeUndefined();
+        expect(elided.stats.replayFightsElided).toBe(true);
         expect(elided.stats.replayFights).toBeUndefined();
+    });
+
+    it('clears the marker once a full copy becomes available to reinject', () => {
+        const fights = [{ fight: 1 }];
+        const elided: any = { stats: { replayFightsElided: true } };
+        reinjectElidedReplayFights(elided, fights);
+        expect(elided.stats.replayFightsElided).toBeUndefined();
+        expect(elided.stats.replayFights).toBe(fights);
+    });
+
+    describe('isReplayElided', () => {
+        it('is true only when an unrestored elided marker remains', () => {
+            expect(isReplayElided({ replayFightsElided: true })).toBe(true);
+            expect(isReplayElided({ replayFights: [{ fight: 1 }] })).toBe(false);
+            expect(isReplayElided({})).toBe(false);
+            expect(isReplayElided(null)).toBe(false);
+            expect(isReplayElided(undefined)).toBe(false);
+        });
     });
 });

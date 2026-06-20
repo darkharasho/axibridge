@@ -54,11 +54,25 @@ export const reinjectElidedReplayFights = (result: any, previousReplayFights: an
     const stats = result?.stats;
     if (!stats || typeof stats !== 'object') return previousReplayFights;
     if (stats.replayFightsElided) {
-        delete stats.replayFightsElided;
         if (Array.isArray(previousReplayFights)) {
+            // We hold a full copy — restore it and clear the marker.
+            delete stats.replayFightsElided;
             stats.replayFights = previousReplayFights;
         }
+        // Otherwise keep the marker set: the worker dropped replayFights before we
+        // ever received a full copy (e.g. a mid-stream flush), so this result has
+        // no replay data *yet*. Leaving the marker lets consumers distinguish
+        // "replay not available yet" from "report genuinely has no replay" and
+        // avoid publishing a replay-less web report. See isReplayElided().
         return previousReplayFights;
     }
     return Array.isArray(stats.replayFights) ? stats.replayFights : previousReplayFights;
 };
+
+/**
+ * True when a result still carries an unrestored elision marker — i.e. its
+ * replay payload was dropped in transit and never reinjected, so replay data is
+ * not yet available. Used to defer the web upload until replay settles.
+ */
+export const isReplayElided = (stats: any): boolean =>
+    Boolean(stats && typeof stats === 'object' && stats.replayFightsElided);

@@ -17,6 +17,7 @@ import { useStatsStore } from './stats/statsStore';
 import { useLazyGroups } from './stats/hooks/useLazyGroups';
 import { useStatsUploads } from './stats/hooks/useStatsUploads';
 import { useStatsAggregationWorker, type AggregationDiagnosticsState, type AggregationProgressState } from './stats/hooks/useStatsAggregationWorker';
+import { isReplayElided } from './workers/replayTransfer';
 import { useApmStats } from './stats/hooks/useApmStats';
 import { useSkillCharts } from './stats/hooks/useSkillCharts';
 import { getProfessionColor, PROFESSION_COLORS } from '../shared/professionUtils';
@@ -466,7 +467,14 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         };
     }, [showDissolveLoading]);
 
-    const statsActionsDisabled = false;
+    // Block the web upload until combat replay data settles. While the worker is
+    // still streaming/computing, intermediate results have their replay payload
+    // elided (replayFightsElided), and uploading then publishes a replay-less
+    // report (replay.json 404). Re-enables once the final flush restores replay.
+    const replaySettling = isReplayElided(stats);
+    const aggregationBusy = Boolean(aggregationProgress?.active)
+        && (aggregationProgress?.phase === 'streaming' || aggregationProgress?.phase === 'computing');
+    const statsActionsDisabled = replaySettling || aggregationBusy;
 
     const renderSectionWrap = (children: React.ReactNode) => (
         <div className="stats-section-wrap">
