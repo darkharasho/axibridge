@@ -29,6 +29,13 @@ const HEATMAP_OPTIONS: { value: 'off' | 'deaths' | 'time' | 'damage-taken'; labe
     { value: 'damage-taken', label: 'Damage taken', title: 'Heatmap showing where the squad received the most incoming damage' },
 ];
 
+const OUTLINE_OPTIONS: { value: 'off' | 'standard' | 'high' | 'max'; label: string; title: string }[] = [
+    { value: 'off', label: 'Off', title: 'No map outline overlay' },
+    { value: 'standard', label: 'Standard', title: 'Balanced black outline of terrain and structures' },
+    { value: 'high', label: 'High detail', title: 'Captures more structure and terrain edges (busier)' },
+    { value: 'max', label: 'Max detail', title: 'Densest outline — most edges, busiest terrain' },
+];
+
 interface LayersPanelProps {
     open: boolean;
     onToggle: () => void;
@@ -38,6 +45,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
     const layers = useStatsStore(state => state.replayLayers);
     const setReplayLayer = useStatsStore(state => state.setReplayLayer);
     const setReplayHeatmapMode = useStatsStore(state => state.setReplayHeatmapMode);
+    const setReplayOutlineMode = useStatsStore(state => state.setReplayOutlineMode);
 
     if (!open) {
         return (
@@ -119,6 +127,16 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                                value={opt.value}
                                checked={layers.heatmap === opt.value}
                                onChange={() => setReplayHeatmapMode(opt.value)} />
+                        <span>{opt.label}</span>
+                    </label>
+                ))}
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 12, marginBottom: 6 }}>Outline</div>
+                {OUTLINE_OPTIONS.map(opt => (
+                    <label key={opt.value} title={opt.title} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-primary)', padding: '3px 0', cursor: 'pointer' }}>
+                        <input type="radio" name="replay-outline"
+                               value={opt.value}
+                               checked={layers.outline === opt.value}
+                               onChange={() => setReplayOutlineMode(opt.value)} />
                         <span>{opt.label}</span>
                     </label>
                 ))}

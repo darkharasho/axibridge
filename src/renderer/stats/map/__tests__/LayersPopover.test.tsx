@@ -36,3 +36,22 @@ describe('LayersPanel', () => {
         expect(useStatsStore.getState().replayLayers.heatmap).toBe('deaths');
     });
 });
+
+describe('LayersPanel — outline section', () => {
+    beforeEach(() => {
+        useStatsStore.setState((useStatsStore as any).getInitialState());
+    });
+
+    it('renders the four outline options and selects standard by default', () => {
+        render(<LayersPanel open onToggle={() => {}} />);
+        expect(screen.getByLabelText('Off', { selector: 'input[name="replay-outline"]' })).toBeTruthy();
+        const standard = screen.getByLabelText('Standard', { selector: 'input[name="replay-outline"]' }) as HTMLInputElement;
+        expect(standard.checked).toBe(true);
+    });
+
+    it('switching to High detail updates the store', () => {
+        render(<LayersPanel open onToggle={() => {}} />);
+        fireEvent.click(screen.getByLabelText('High detail', { selector: 'input[name="replay-outline"]' }));
+        expect(useStatsStore.getState().replayLayers.outline).toBe('high');
+    });
+});

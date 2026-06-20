@@ -59,4 +59,21 @@ describe('statsStore — replay layers + spotlight', () => {
         expect(l.heatmap).toBe('off');
         expect(useStatsStore.getState().replaySpotlightParty).toBeNull();
     });
+
+    it('defaults outline detail to standard', () => {
+        expect(useStatsStore.getState().replayLayers.outline).toBe('standard');
+    });
+
+    it('setReplayOutlineMode updates the outline level', () => {
+        useStatsStore.getState().setReplayOutlineMode('high');
+        expect(useStatsStore.getState().replayLayers.outline).toBe('high');
+        useStatsStore.getState().setReplayOutlineMode('off');
+        expect(useStatsStore.getState().replayLayers.outline).toBe('off');
+    });
+
+    it('resetReplayLayers restores outline to standard', () => {
+        useStatsStore.getState().setReplayOutlineMode('max');
+        useStatsStore.getState().resetReplayLayers();
+        expect(useStatsStore.getState().replayLayers.outline).toBe('standard');
+    });
 });
