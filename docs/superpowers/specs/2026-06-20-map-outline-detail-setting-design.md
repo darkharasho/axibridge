@@ -74,7 +74,9 @@ There are 3 maps (EBG, Alpine = Green+Blue, Desert = Red) × 3 levels = **9 SVGs
 - Add `outline: 'off' | OutlineLevel` to `replayLayers` (default `'standard'`).
 - Add `setReplayOutlineMode(mode)` action mirroring `setReplayHeatmapMode`.
 - Include `outline: 'standard'` in the reset defaults block.
-- Persistence identical to existing `replayLayers` fields.
+- Lives in the store like the other `replayLayers` fields: in-memory for the session,
+  resets to the default on app restart (same as `heatmap` — there is no persist
+  middleware).
 
 ### 4. UI (`src/renderer/stats/map/LayersPopover.tsx`)
 
@@ -92,7 +94,7 @@ There are 3 maps (EBG, Alpine = Green+Blue, Desert = Red) × 3 levels = **9 SVGs
 ## Data Flow
 
 1. Dev bakes 3 levels × 3 maps → commits 9 SVGs.
-2. User picks a level in the Layers panel → `replayLayers.outline` updates (persisted).
+2. User picks a level in the Layers panel → `replayLayers.outline` updates (session state).
 3. `ReplayView` resolves the variant for the current map + level and renders it (or
    nothing when `off`).
 
