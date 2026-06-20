@@ -24,4 +24,26 @@ describe('MapOutlineLayer', () => {
         expect(img?.getAttribute('preserveAspectRatio')).toBe('none');
         expect(img?.getAttribute('opacity')).toBe('0.7');
     });
+
+    it('defaults to x=0 y=0 when no offset props are provided', () => {
+        const { container } = render(
+            <svg viewBox="0 0 716 750">
+                <MapOutlineLayer outlineUrl="data:image/svg+xml;base64,AAAA" mapWidth={716} mapHeight={750} />
+            </svg>
+        );
+        const img = container.querySelector('image');
+        expect(img?.getAttribute('x')).toBe('0');
+        expect(img?.getAttribute('y')).toBe('0');
+    });
+
+    it('applies offsetX and offsetY to the image position', () => {
+        const { container } = render(
+            <svg viewBox="0 0 716 750">
+                <MapOutlineLayer outlineUrl="data:image/svg+xml;base64,AAAA" mapWidth={716} mapHeight={750} offsetX={-14} offsetY={20} />
+            </svg>
+        );
+        const img = container.querySelector('image');
+        expect(img?.getAttribute('x')).toBe('-14');
+        expect(img?.getAttribute('y')).toBe('20');
+    });
 });

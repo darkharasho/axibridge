@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pause, Play, Maximize2, Minimize2, Plus, Minus, RotateCcw, X, Crosshair } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
-import { getMapTiles, hasTileData } from '../../../shared/wvwTiles';
+import { getMapTiles, hasTileData, getMapPixelOffset } from '../../../shared/wvwTiles';
 import { WVW_LANDMARKS } from '../../../shared/wvwLandmarks';
 import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { getProfessionIconPath } from '../../classIconUtils';
@@ -108,6 +108,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
     const mapSize = selectedFight?.mapSize ?? [600, 600];
     const [mapWidth, mapHeight] = mapSize;
+    const [outlineOffsetX, outlineOffsetY] = selectedFight?.mapKey ? getMapPixelOffset(selectedFight.mapKey, mapWidth, mapHeight) : [0, 0];
     const viewport = useReplayViewport({ mapWidth, mapHeight, containerWidth: mapWidth, containerHeight: mapHeight });
 
     const { centerOn, attachWheelZoom, attachPanDrag, screenToSvg } = viewport;
@@ -333,6 +334,8 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         outlineUrl={selectedFight.mapKey ? getMapOutline(selectedFight.mapKey) : undefined}
                                         mapWidth={mapWidth}
                                         mapHeight={mapHeight}
+                                        offsetX={outlineOffsetX}
+                                        offsetY={outlineOffsetY}
                                     />
                                     <HeatmapLayer raster={heatmap} mapWidth={mapWidth} mapHeight={mapHeight} mode={layers.heatmap} />
                                     {selectedFight.mapKey && (WVW_LANDMARKS[selectedFight.mapKey] ?? []).map(lm => (

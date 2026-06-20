@@ -98,9 +98,15 @@ export function getMapTiles(map: WvwMap, tileZoom: number, renderWidth?: number,
     return tiles;
 }
 
-/** Returns the calibrated reference pixel size [width, height] for a WvW map, or undefined if untiled. */
-export function getMapReferenceSize(map: WvwMap): [number, number] | undefined {
-    return WVW_TILE_DATA[map]?.pixelSize;
+/** Returns the calibration pixel offset [x, y] for a WvW map, scaled to the render size
+ *  exactly as getMapTiles applies it. [0, 0] for untiled maps or maps with no offset. */
+export function getMapPixelOffset(map: WvwMap, renderWidth?: number, renderHeight?: number): [number, number] {
+    const data = WVW_TILE_DATA[map];
+    if (!data) return [0, 0];
+    const [refW, refH] = data.pixelSize;
+    const pw = renderWidth ?? refW;
+    const ph = renderHeight ?? refH;
+    return [pw / refW * data.pixelOffset[0], ph / refH * data.pixelOffset[1]];
 }
 
 export function hasTileData(map: WvwMap): boolean {
