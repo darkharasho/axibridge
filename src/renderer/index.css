@@ -217,9 +217,12 @@ body.glass-surfaces .app-shell,
 body.glass-surfaces.web-report {
   --bg-card-inner: rgba(255, 255, 255, 0.05);
   --bg-input: rgba(255, 255, 255, 0.04);
-  /* Glass surfaces are translucent, so a low-alpha hover tint reads as nothing.
-     Use a solid slate fill so hover states stay clearly visible under glass. */
-  --bg-hover: rgba(148, 163, 184, 0.45);
+  /* NOTE: do not raise this to a solid fill — under glass, several components
+     (fight-picker buttons, section header buttons, party cards) use --bg-hover
+     as a *resting* background, so a solid value turns them into solid blocks.
+     Make individual hover states solid at the call site instead (see the chart
+     cursor in BoonStripComparisonSection). */
+  --bg-hover: rgba(255, 255, 255, 0.07);
 }
 
 body.glass-surfaces .stats-view [data-surface="card"],

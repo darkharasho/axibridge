@@ -90,6 +90,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const squadPanelRef = useRef<HTMLDivElement>(null);
     const pickerOverlayRef = useRef<HTMLDivElement>(null);
+    const layersPanelRef = useRef<HTMLDivElement>(null);
     const draggedRef = useRef(false);
     // Stable ref so the drag handler can read followMember without being recreated.
     const followMemberRef = useRef<SquadMemberMovement | null>(null);
@@ -142,6 +143,14 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
         el.addEventListener('wheel', stop, { passive: true });
         return () => el.removeEventListener('wheel', stop);
     }, [pickerCollapsed]);
+    // Same for the left layers panel — otherwise wheel scrolling it zooms the map.
+    useEffect(() => {
+        const el = layersPanelRef.current;
+        if (!el) return;
+        const stop = (e: WheelEvent) => e.stopPropagation();
+        el.addEventListener('wheel', stop, { passive: true });
+        return () => el.removeEventListener('wheel', stop);
+    }, [layersOpen]);
 
     // Fractional poll position — used for smooth lerped rendering.
     // Integer floor is used for array indexing (trails, hit detection).
@@ -466,8 +475,9 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                 )}
                             </div>
                         )}
-                        {/* Layers panel — overlays on the left */}
-                        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, zIndex: 20, display: 'flex', alignItems: 'stretch' }}>
+                        {/* Layers panel — overlays on the left. Native wheel listener stops
+                             propagation so scrolling the panel doesn't zoom the map beneath it. */}
+                        <div ref={layersPanelRef} style={{ position: 'absolute', top: 0, left: 0, bottom: 0, zIndex: 20, display: 'flex', alignItems: 'stretch' }}>
                             <LayersPanel open={layersOpen} onToggle={() => setLayersOpen(v => !v)} />
                         </div>
                         {/* Squad panel — overlays on the right of the map. Native wheel listener
