@@ -1,0 +1,24 @@
+import { describe, expect, it } from 'vitest';
+import { mapOutlineFileName, getMapOutline } from '../mapOutlines';
+import { WvwMap } from '../wvwLandmarks';
+
+describe('mapOutlineFileName', () => {
+    it('maps each WvW map to its outline asset base name', () => {
+        expect(mapOutlineFileName(WvwMap.EternalBattlegrounds)).toBe('eternalbattlegrounds-outline');
+        expect(mapOutlineFileName(WvwMap.GreenBorderlands)).toBe('alpine-outline');
+        expect(mapOutlineFileName(WvwMap.BlueBorderlands)).toBe('alpine-outline');
+        expect(mapOutlineFileName(WvwMap.RedBorderlands)).toBe('desert-outline');
+    });
+
+    it('shares one asset between green and blue (Alpine) borderlands', () => {
+        expect(mapOutlineFileName(WvwMap.GreenBorderlands))
+            .toBe(mapOutlineFileName(WvwMap.BlueBorderlands));
+    });
+});
+
+describe('getMapOutline', () => {
+    it('returns a base64 SVG data URI for a bundled map (EBG)', () => {
+        const uri = getMapOutline(WvwMap.EternalBattlegrounds);
+        expect(uri).toMatch(/^data:image\/svg\+xml;base64,/);
+    });
+});
