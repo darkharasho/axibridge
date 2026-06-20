@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pause, Play, Maximize2, Minimize2, Plus, Minus, RotateCcw, X, Crosshair } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
-import { getMapTiles, hasTileData } from '../../../shared/wvwTiles';
+import { getMapTiles, hasTileData, getMapPixelOffset } from '../../../shared/wvwTiles';
 import { WVW_LANDMARKS } from '../../../shared/wvwLandmarks';
 import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { getProfessionIconPath } from '../../classIconUtils';
+import { getMapOutline } from './mapOutlines';
+import { MapOutlineLayer } from './MapOutlineLayer';
 import commanderTagRaw from '../../../../public/svg/commander_tag.svg?raw';
 const COMMANDER_TAG_URI = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(commanderTagRaw)))}`;
 
@@ -106,6 +108,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
     const mapSize = selectedFight?.mapSize ?? [600, 600];
     const [mapWidth, mapHeight] = mapSize;
+    const [outlineOffsetX, outlineOffsetY] = selectedFight?.mapKey ? getMapPixelOffset(selectedFight.mapKey, mapWidth, mapHeight) : [0, 0];
     const viewport = useReplayViewport({ mapWidth, mapHeight, containerWidth: mapWidth, containerHeight: mapHeight });
 
     const { centerOn, attachWheelZoom, attachPanDrag, screenToSvg } = viewport;
@@ -327,6 +330,13 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                             <image href={selectedFight.mapImageUrl} x={0} y={0} width={mapWidth} height={mapHeight} />
                                         )
                                     }
+                                    <MapOutlineLayer
+                                        outlineUrl={selectedFight.mapKey ? getMapOutline(selectedFight.mapKey) : undefined}
+                                        mapWidth={mapWidth}
+                                        mapHeight={mapHeight}
+                                        offsetX={outlineOffsetX}
+                                        offsetY={outlineOffsetY}
+                                    />
                                     <HeatmapLayer raster={heatmap} mapWidth={mapWidth} mapHeight={mapHeight} mode={layers.heatmap} />
                                     {selectedFight.mapKey && (WVW_LANDMARKS[selectedFight.mapKey] ?? []).map(lm => (
                                         <g key={lm.name} opacity={0.55}>
@@ -474,14 +484,9 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--bg-elevated)', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
                         <button
                             type="button"
+                            className="replay-ctrl-btn"
                             aria-label={playhead.playing ? 'Pause' : 'Play'}
                             onClick={() => setReplayPlayhead({ playing: !playhead.playing })}
-                            style={{
-                                width: 28, height: 28, borderRadius: 6, flexShrink: 0,
-                                background: 'var(--bg-hover)', border: '1px solid var(--border-default)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: 'var(--text-secondary)', cursor: 'pointer',
-                            }}
                         >
                             {playhead.playing ? <Pause size={14} /> : <Play size={14} />}
                         </button>
@@ -490,14 +495,9 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                 <button
                                     key={s}
                                     type="button"
+                                    className="replay-speed-pill"
+                                    aria-pressed={playhead.speed === s}
                                     onClick={() => setReplayPlayhead({ speed: s })}
-                                    style={{
-                                        padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600,
-                                        background: playhead.speed === s ? 'var(--status-info-bg)' : 'var(--bg-hover)',
-                                        border: `1px solid ${playhead.speed === s ? 'var(--status-info-border)' : 'var(--border-subtle)'}`,
-                                        color: playhead.speed === s ? 'var(--status-info)' : 'var(--text-muted)',
-                                        cursor: 'pointer',
-                                    }}
                                 >
                                     {s}×
                                 </button>

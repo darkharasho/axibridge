@@ -14,6 +14,7 @@
   "main": "dist-electron/main/index.js",
   "scripts": {
     "sync:metrics-spec": "node scripts/sync-metrics-spec.mjs",
+    "build:map-outline": "node scripts/build-map-outline.mjs",
     "dev": "concurrently \"npm run dev:electron\" \"npm run dev:react\"",
     "dev:react": "cross-env NODE_OPTIONS=--max-old-space-size=6144 vite",
     "dev:electron": "cross-env NODE_OPTIONS=--max-old-space-size=6144 wait-on tcp:5173 && tsc -p electron/tsconfig.json && electron .",
@@ -103,6 +104,7 @@
     "eslint-plugin-react-refresh": "^0.4.4",
     "jsdom": "^27.4.0",
     "postcss": "^8.4.31",
+    "potrace": "^2.1.8",
     "serve": "^14.2.6",
     "tailwindcss": "^3.3.5",
     "typescript": "^5.2.2",

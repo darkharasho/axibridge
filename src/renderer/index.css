@@ -1773,6 +1773,53 @@ body.web-report {
   color: #ffcc80;
 }
 
+/* Replay control bar — play + speed buttons.
+   These use a subtle resting surface and reserve the (glass-solid) --bg-hover
+   tint for actual :hover. Previously they used --bg-hover as their resting
+   background, which reads as a clunky solid slate block under the glass theme. */
+.replay-ctrl-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.replay-ctrl-btn:hover {
+  background: var(--bg-hover);
+}
+
+.replay-speed-pill {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.replay-speed-pill:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.replay-speed-pill[aria-pressed='true'] {
+  background: var(--status-info-bg);
+  border-color: var(--status-info-border);
+  color: var(--status-info);
+}
+
+.term-number {
+  color: #ffcc80;
+}
+
 .term-key {
   color: #90caf9;
 }
