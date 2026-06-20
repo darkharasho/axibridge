@@ -4469,8 +4469,6 @@ type SpikeFight = {
                                 setDefenseViewMode={setDefenseViewMode}
                             />)}
 
-                            {renderSectionWrap(<BoonStripComparisonSection />)}
-
                             {renderSectionWrap(<DamageModifiersSection
                                 search={incomingDamageModSearch}
                                 setSearch={setIncomingDamageModSearch}
@@ -4520,6 +4518,8 @@ type SpikeFight = {
                                 damageMitigationScope={damageMitigationScope}
                                 setDamageMitigationScope={setDamageMitigationScope}
                             />)}
+
+                            {renderSectionWrap(<BoonStripComparisonSection />)}
 
                             {renderSectionWrap(<SupportSection
                                 supportSearch={supportSearch}
