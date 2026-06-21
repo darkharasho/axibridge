@@ -19,7 +19,7 @@ import { Gw2SigilIcon } from '../renderer/ui/Gw2SigilIcon';
 import { buildRollupData, parseRollupSourcesFile, RollupData, RollupProfessionUsage } from './rollup';
 import { getProfessionColor } from '../shared/professionUtils';
 import type { ReportPayload, ReportIndexEntry } from '../shared/reportTypes';
-import { normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
+import { expandIconIndex, normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
 import {
     ShieldCheck,
     Shield,
@@ -920,26 +920,7 @@ export function ReportApp() {
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
             .then((data) => {
                 if (!isMounted) return;
-                const normalized = normalizeTopDownContribution(normalizeCommanderDistance(data));
-                // Expand icon index: replace numeric icon references with their URL strings.
-                const iconIndex: string[] | undefined = normalized?.stats?.iconIndex;
-                if (Array.isArray(iconIndex) && iconIndex.length > 0) {
-                    const walk = (obj: any) => {
-                        if (!obj || typeof obj !== 'object') return;
-                        if (Array.isArray(obj)) { for (const item of obj) walk(item); return; }
-                        for (const key of Object.keys(obj)) {
-                            const val = obj[key];
-                            if (key === 'icon' && typeof val === 'number') {
-                                const url = iconIndex[val];
-                                if (url !== undefined) obj[key] = url;
-                            } else if (val && typeof val === 'object') {
-                                walk(val);
-                            }
-                        }
-                    };
-                    walk(normalized.stats);
-                    delete normalized.stats.iconIndex;
-                }
+                const normalized = expandIconIndex(normalizeTopDownContribution(normalizeCommanderDistance(data)));
                 setReport(normalized);
                 applyPaletteFromReport(normalized);
             });
