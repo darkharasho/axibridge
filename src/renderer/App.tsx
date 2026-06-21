@@ -658,7 +658,7 @@ function App() {
         return cleanup;
     }, [setLogsDeferred]);
 
-    const appIconPath = `${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg`;
+    const appIconPath = `${import.meta.env.BASE_URL || './'}svg/axibridge-glyph.svg`;
     const axibridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;
     const isDev = import.meta.env.DEV;
     const [copyPathsFlash, setCopyPathsFlash] = useState(false);

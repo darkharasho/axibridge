@@ -32,7 +32,7 @@ const STEPS = [
 
 export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughModalProps) {
     if (!isOpen) return null;
-    const appIconPath = `${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg`;
+    const appIconPath = `${import.meta.env.BASE_URL || './'}svg/axibridge-glyph.svg`;
     const axibridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;
 
     return (
