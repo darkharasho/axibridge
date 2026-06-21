@@ -1,7 +1,7 @@
 # Release Notes
 
-Version v2.11.1 — June 20, 2026
+Version v2.11.2 — June 20, 2026
 
 ## Fixes
 
-- Fixed broken skill, boon, and condition icons when opening a saved report in the History tab. They were showing up as broken/empty images; now they load correctly. This only affected reports viewed from History — the live stats view was never impacted.
+- Fixed the "N partial" warning icon missing next to the Healing and Healing Breakdown headers in Chrome. The little amber triangle was getting collapsed away by Chrome (the text stayed, the icon vanished); it now shows up properly.
