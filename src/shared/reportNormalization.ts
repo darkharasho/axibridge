@@ -47,8 +47,37 @@ export const normalizeTopDownContribution = (payload: ReportPayload): ReportPayl
 };
 
 /**
+ * Expand the icon index. The web report build deduplicates every `icon` URL into
+ * `stats.iconIndex[]` and replaces each occurrence with its numeric index to shrink
+ * report.json. Consumers that render a built report (the web viewer and the in-app
+ * history tab) must reverse that so `<img src>` receives real URLs again — an
+ * unexpanded numeric icon renders as a broken image.
+ */
+export const expandIconIndex = (payload: ReportPayload): ReportPayload => {
+    const stats: any = payload?.stats;
+    const iconIndex: string[] | undefined = stats?.iconIndex;
+    if (!stats || !Array.isArray(iconIndex) || iconIndex.length === 0) return payload;
+    const walk = (obj: any) => {
+        if (!obj || typeof obj !== 'object') return;
+        if (Array.isArray(obj)) { for (const item of obj) walk(item); return; }
+        for (const key of Object.keys(obj)) {
+            const val = obj[key];
+            if (key === 'icon' && typeof val === 'number') {
+                const url = iconIndex[val];
+                if (url !== undefined) obj[key] = url;
+            } else if (val && typeof val === 'object') {
+                walk(val);
+            }
+        }
+    };
+    walk(stats);
+    delete stats.iconIndex;
+    return payload;
+};
+
+/**
  * Apply all normalization passes to a report payload.
  */
 export const normalizeReportPayload = (payload: ReportPayload): ReportPayload => {
-    return normalizeTopDownContribution(normalizeCommanderDistance(payload));
+    return expandIconIndex(normalizeTopDownContribution(normalizeCommanderDistance(payload)));
 };
