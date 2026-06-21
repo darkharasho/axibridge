@@ -88,7 +88,7 @@ export const HealingBreakdownSection = ({
                         style={{ color: 'rgba(245, 158, 11, 0.75)' }}
                         title={`${playersWithoutAddon} squad ${playersWithoutAddon === 1 ? 'member did' : 'members did'} not have the arcdps heal addon loaded. Their numbers are partial — only buff healing observed by addon-equipped squadmates is counted.`}
                     >
-                        <AlertTriangle className="w-3 h-3" />
+                        <AlertTriangle className="w-3 h-3 shrink-0" />
                         {playersWithoutAddon} partial
                     </span>
                 )}
