@@ -1,5 +1,10 @@
 # Release Notes
 
+Version v2.11.3 — June 21, 2026
+
+## New app icon
+AxiBridge has a new duotone **share** mark, part of a suite-wide icon refresh. Updated installer/taskbar icon and in-app logo. No functional changes in this release.
+
 Version v2.11.2 — June 20, 2026
 
 ## Fixes
