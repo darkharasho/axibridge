@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
-import readline from 'node:readline/promises';
 
 const exec = (cmd) => execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: process.env }).trim();
 
@@ -265,18 +264,7 @@ const finalNotes = `# Release Notes\n\n${newSection.trim()}\n`;
 fs.writeFileSync(releaseNotesPath, finalNotes, 'utf8');
 console.log(`Release notes written to ${releaseNotesPath}`);
 
-const shouldPrompt = Boolean(process.stdin.isTTY && process.stdout.isTTY && !process.env.RELEASE_NOTES_AUTO_APPROVE);
-if (shouldPrompt) {
-    console.log('\nPlease review the release notes before continuing.');
-    console.log(`Open ${releaseNotesPath} to confirm the patch notes look good.`);
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await rl.question('Approve release notes and continue? (y/N): ');
-    rl.close();
-    if (!/^y(es)?$/i.test(answer.trim())) {
-        console.log('Release notes not approved. Aborting build.');
-        process.exit(1);
-    }
-}
+// Release notes are written automatically — no interactive approval gate.
 
 try {
     const status = exec('git status --porcelain');
