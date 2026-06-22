@@ -162,7 +162,7 @@ jobs:
               'url': release_url,
               'description': notes or 'A new version of AxiBridge is available!',
               'color': 0xF59E0B,
-              'thumbnail': {'url': 'https://raw.githubusercontent.com/darkharasho/axibridge/main/public/img/AxiBridge-white.png'},
+              'thumbnail': {'url': 'https://raw.githubusercontent.com/darkharasho/axibridge/main/build/icon.png'},
               'footer': {'text': 'AxiBridge Release'},
           }
 
