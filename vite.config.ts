@@ -6,7 +6,7 @@ export default defineConfig({
     plugins: [react()],
     base: './', // Important for Electron to find assets
     server: {
-        port: 5173,
+        port: 5177,
         strictPort: true,
         watch: {
             // Local web report generation writes here; ignore to avoid HMR loops in Electron dev.

@@ -16,7 +16,7 @@
         "sync:metrics-spec": "node scripts/sync-metrics-spec.mjs",
         "dev": "concurrently \"npm run dev:electron\" \"npm run dev:react\"",
         "dev:react": "cross-env NODE_OPTIONS=--max-old-space-size=6144 vite",
-        "dev:electron": "cross-env NODE_OPTIONS=--max-old-space-size=6144 wait-on tcp:5173 && tsc -p electron/tsconfig.json && electron .",
+        "dev:electron": "cross-env NODE_OPTIONS=--max-old-space-size=6144 wait-on tcp:5177 && tsc -p electron/tsconfig.json && electron .",
         "clean": "rm -rf dist-electron dist-react dist-web dist_out",
         "build": "npm run clean && npm run sync:metrics-spec && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build --config vite.web.config.ts && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc -p electron/tsconfig.json",
         "typecheck": "cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc --noEmit && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc -p electron/tsconfig.json --noEmit",

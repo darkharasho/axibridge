@@ -397,7 +397,7 @@ const updateGlobalManifest = async (details: any, filePath: string) => {
     }
 };
 const GITHUB_PROTOCOL = 'axibridge';
-const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
+const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5177';
 
 const getUploadRetryQueuePayload = (): UploadRetryQueuePayload =>
     buildUploadRetryQueuePayloadRaw(loadUploadRetryQueue(), loadUploadRetryState(), resolvedRetryCount);
