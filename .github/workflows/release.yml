@@ -122,9 +122,21 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
-          if [ -f RELEASE_NOTES.md ]; then
-            gh release edit "$tag" --notes-file RELEASE_NOTES.md
+
+          # Extract just this tag's section from RELEASE_NOTES.md.
+          notes=$(awk -v ver="$tag" '
+            /^Version v[0-9]/ { capture = ($2 == ver) ? 1 : 0; next }
+            capture { print }
+          ' RELEASE_NOTES.md)
+
+          # Fail loudly if there is no section for this tag, so a release is
+          # never published with empty or stale notes.
+          if [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]; then
+            echo "::error::No RELEASE_NOTES.md section found for $tag. Add a 'Version $tag — <date>' entry and re-run." >&2
+            exit 1
           fi
+
+          gh release edit "$tag" --notes "$notes"
 
       - name: Publish release
         env:
