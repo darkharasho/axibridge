@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, X, Columns, Users, Swords } from 'lucide-react';
+import { Maximize2, X, Columns, Users, Swords, ChevronDown, ChevronRight } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -8,6 +9,10 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { OFFENSE_METRICS } from '../statsMetrics';
+import { MetricDistributionCard } from '../components/MetricDistributionCard';
+
+// Metrics where lower is better (negatively oriented)
+const OFFENSE_LOWER_IS_BETTER = new Set(['glanceRate', 'missed', 'evaded', 'blocked', 'invulned', 'againstDownedDamage']);
 
 type OffenseSectionProps = {
     offenseSearch: string;
@@ -16,6 +21,7 @@ type OffenseSectionProps = {
     setActiveOffenseStat: (value: string) => void;
     offenseViewMode: 'total' | 'per1s' | 'per60s';
     setOffenseViewMode: (value: 'total' | 'per1s' | 'per60s') => void;
+    noEgoMode?: boolean;
 };
 
 export const OffenseSection = ({
@@ -24,7 +30,8 @@ export const OffenseSection = ({
     activeOffenseStat,
     setActiveOffenseStat,
     offenseViewMode,
-    setOffenseViewMode
+    setOffenseViewMode,
+    noEgoMode = false,
 }: OffenseSectionProps) => {
     const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const {
@@ -45,6 +52,192 @@ export const OffenseSection = ({
         renderProfessionIcon,
     });
     const isExpanded = expandedSection === 'offense-detailed';
+    const [detailOpen, setDetailOpen] = useState(false);
+
+    // ── No Ego mode: one MetricDistributionCard per OFFENSE_METRICS entry ──
+    if (noEgoMode && stats.offensePlayers.length > 0) {
+        const totalSeconds = (row: any) => Math.max(1, (row.totalFightMs || 0) / 1000);
+        const totalValue = (row: any, metricEntry: typeof OFFENSE_METRICS[number]) => {
+            if (metricEntry.id === 'downContributionPercent') {
+                const downContribution = row.offenseTotals?.downContribution || 0;
+                const totalDamage = row.offenseTotals?.damage || 0;
+                return totalDamage > 0 ? (downContribution / totalDamage) * 100 : 0;
+            }
+            if (metricEntry.isRate) {
+                const denom = row.offenseRateWeights?.[metricEntry.id] || 0;
+                const numer = row.offenseTotals?.[metricEntry.id] || 0;
+                return denom > 0 ? (numer / denom) * 100 : 0;
+            }
+            return row.offenseTotals?.[metricEntry.id] || 0;
+        };
+        const resolvedValue = (row: any, metricEntry: typeof OFFENSE_METRICS[number]) => {
+            const total = totalValue(row, metricEntry);
+            if (metricEntry.isPercent || metricEntry.isRate) return total;
+            if (offenseViewMode === 'per1s') return total / totalSeconds(row);
+            if (offenseViewMode === 'per60s') return (total * 60) / totalSeconds(row);
+            return total;
+        };
+        return (
+            <div>
+                <div className="flex flex-wrap items-center gap-2 mb-3.5">
+                    <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                        Offense Detailed
+                    </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {OFFENSE_METRICS.map((metricEntry) => {
+                        const players = stats.offensePlayers.map((row: any) => ({
+                            account: row.account,
+                            value: resolvedValue(row, metricEntry),
+                            profession: row.profession,
+                            professionList: row.professionList,
+                        }));
+                        const higherIsBetter = !OFFENSE_LOWER_IS_BETTER.has(metricEntry.id);
+                        const makeFormatValue = () => (val: number) => {
+                            const decimals = roundCountStats && !metricEntry.isPercent && offenseViewMode === 'total' ? 0 : 2;
+                            const formatted = formatWithCommas(val, decimals);
+                            return metricEntry.isPercent ? `${formatted}%` : formatted;
+                        };
+                        return (
+                            <MetricDistributionCard
+                                key={metricEntry.id}
+                                title={metricEntry.label}
+                                accentColor="var(--section-offense)"
+                                higherIsBetter={higherIsBetter}
+                                players={players}
+                                formatValue={makeFormatValue()}
+                                renderProfessionIcon={renderProfessionIcon}
+                            />
+                        );
+                    })}
+                </div>
+                <div className="mt-4">
+                    <button
+                        type="button"
+                        aria-expanded={detailOpen}
+                        onClick={() => setDetailOpen((v) => !v)}
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-[var(--radius-md)]"
+                        style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-hover)' }}
+                    >
+                        {detailOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                        Per-player detail
+                    </button>
+                    {detailOpen && (
+                        <div className="mt-3">
+                            <StatsTableLayout
+                                expanded={false}
+                                sidebarClassName="pr-3 flex flex-col overflow-y-auto"
+                                sidebarStyle={undefined}
+                                contentClassName="overflow-hidden"
+                                contentStyle={undefined}
+                                sidebar={
+                                    <>
+                                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Offensive Tabs</div>
+                                        <input
+                                            value={offenseSearch}
+                                            onChange={(e) => setOffenseSearch(e.target.value)}
+                                            placeholder="Search..."
+                                            className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
+                                            style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                                        />
+                                        <div className={sidebarListClass}>
+                                            {filteredOffenseMetrics.map((metric) => (
+                                                <button
+                                                    key={metric.id}
+                                                    onClick={() => setActiveOffenseStat(metric.id)}
+                                                    className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeOffenseStat === metric.id
+                                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
+                                                        }`}
+                                                    style={activeOffenseStat !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
+                                                >
+                                                    {metric.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                }
+                                content={
+                                    <>
+                                        {(() => {
+                                            const metric = OFFENSE_METRICS.find((entry) => entry.id === activeOffenseStat) || OFFENSE_METRICS[0];
+                                            const tsec = (row: any) => Math.max(1, (row.totalFightMs || 0) / 1000);
+                                            const tval = (row: any) => {
+                                                if (metric.id === 'downContributionPercent') {
+                                                    const dc = row.offenseTotals?.downContribution || 0;
+                                                    const td = row.offenseTotals?.damage || 0;
+                                                    return td > 0 ? (dc / td) * 100 : 0;
+                                                }
+                                                if (metric.isRate) {
+                                                    const denom = row.offenseRateWeights?.[metric.id] || 0;
+                                                    const numer = row.offenseTotals?.[metric.id] || 0;
+                                                    return denom > 0 ? (numer / denom) * 100 : 0;
+                                                }
+                                                return row.offenseTotals?.[metric.id] || 0;
+                                            };
+                                            const fmtVal = (val: number) => {
+                                                const decimals = roundCountStats && !metric.isPercent && offenseViewMode === 'total' ? 0 : 2;
+                                                const formatted = formatWithCommas(val, decimals);
+                                                return metric.isPercent ? `${formatted}%` : formatted;
+                                            };
+                                            const rows = [...stats.offensePlayers]
+                                                .map((row: any) => ({
+                                                    ...row,
+                                                    total: tval(row),
+                                                    per1s: metric.isPercent || metric.isRate ? tval(row) : tval(row) / tsec(row),
+                                                    per60s: metric.isPercent || metric.isRate ? tval(row) : (tval(row) * 60) / tsec(row)
+                                                }))
+                                                .sort((a, b) => {
+                                                    const aVal = Number(offenseViewMode === 'total' ? a.total : offenseViewMode === 'per1s' ? a.per1s : a.per60s);
+                                                    const bVal = Number(offenseViewMode === 'total' ? b.total : offenseViewMode === 'per1s' ? b.per1s : b.per60s);
+                                                    return bVal - aVal || a.account.localeCompare(b.account);
+                                                });
+                                            return (
+                                                <StatsTableShell
+                                                    expanded={false}
+                                                    animationKey={`noego-${activeOffenseStat}-${offenseViewMode}`}
+                                                    header={null}
+                                                    columns={
+                                                        <div className="grid grid-cols-[1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
+                                                            <div>Player</div>
+                                                            <div className="text-right">
+                                                                {offenseViewMode === 'total' ? 'Total' : offenseViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
+                                                            </div>
+                                                            <div className="text-right">Fight Time</div>
+                                                        </div>
+                                                    }
+                                                    rows={
+                                                        <>
+                                                            {rows.map((row: any, idx: number) => (
+                                                                <div key={`noego-${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
+                                                                    <div className="flex items-center gap-2 min-w-0">
+                                                                        {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                                        <span className="truncate">{row.account}</span>
+                                                                    </div>
+                                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
+                                                                        {fmtVal(offenseViewMode === 'total' ? row.total : offenseViewMode === 'per1s' ? row.per1s : row.per60s)}
+                                                                    </div>
+                                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
+                                                                        {row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '-'}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    }
+                                                />
+                                            );
+                                        })()}
+                                    </>
+                                }
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
     return (
     <div
         className={`${

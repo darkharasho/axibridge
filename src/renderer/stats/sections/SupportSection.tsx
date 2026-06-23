@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, X, Columns, Users } from 'lucide-react';
+import { Maximize2, X, Columns, Users, ChevronDown, ChevronRight } from 'lucide-react';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
@@ -9,6 +10,7 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { SUPPORT_METRICS } from '../statsMetrics';
+import { MetricDistributionCard } from '../components/MetricDistributionCard';
 
 type SupportSectionProps = {
     supportSearch: string;
@@ -19,6 +21,7 @@ type SupportSectionProps = {
     setSupportViewMode: (value: 'total' | 'per1s' | 'per60s') => void;
     cleanseScope: 'all' | 'squad';
     setCleanseScope: (value: 'all' | 'squad') => void;
+    noEgoMode?: boolean;
 };
 
 export const SupportSection = ({
@@ -29,7 +32,8 @@ export const SupportSection = ({
     supportViewMode,
     setSupportViewMode,
     cleanseScope,
-    setCleanseScope
+    setCleanseScope,
+    noEgoMode = false,
 }: SupportSectionProps) => {
     const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const {
@@ -50,6 +54,176 @@ export const SupportSection = ({
         renderProfessionIcon,
     });
     const isExpanded = expandedSection === 'support-detailed';
+    const [detailOpen, setDetailOpen] = useState(false);
+
+    // ── No Ego mode: one MetricDistributionCard per SUPPORT_METRICS entry ──
+    if (noEgoMode && stats.supportPlayers.length > 0) {
+        const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
+        const resolveSupportTotalForMetric = (row: any, metricId: string) => {
+            if (metricId === 'condiCleanse') {
+                const squad = row.supportTotals?.condiCleanse || 0;
+                const self = row.supportTotals?.condiCleanseSelf || 0;
+                return cleanseScope === 'all' ? squad + self : squad;
+            }
+            return row.supportTotals?.[metricId] || 0;
+        };
+        const resolvedValue = (row: any, metricEntry: typeof SUPPORT_METRICS[number]) => {
+            const total = resolveSupportTotalForMetric(row, metricEntry.id);
+            if (supportViewMode === 'per1s') return total / totalSeconds(row);
+            if (supportViewMode === 'per60s') return (total * 60) / totalSeconds(row);
+            return total;
+        };
+        return (
+            <div>
+                <div className="flex flex-wrap items-center gap-2 mb-3.5">
+                    <span className="flex shrink-0" style={{ color: 'var(--section-support)' }}><SupportPlusIcon className="w-4 h-4" /></span>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                        Support Detailed
+                    </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {SUPPORT_METRICS.map((metricEntry) => {
+                        const players = stats.supportPlayers.map((row: any) => ({
+                            account: row.account,
+                            value: resolvedValue(row, metricEntry),
+                            profession: row.profession,
+                            professionList: row.professionList,
+                        }));
+                        const makeFormatValue = () => (val: number) => {
+                            const decimals = metricEntry.isTime
+                                ? 1
+                                : (roundCountStats && supportViewMode === 'total' ? 0 : 2);
+                            return formatWithCommas(val, decimals);
+                        };
+                        return (
+                            <MetricDistributionCard
+                                key={metricEntry.id}
+                                title={metricEntry.label}
+                                accentColor="var(--section-support)"
+                                higherIsBetter={true}
+                                players={players}
+                                formatValue={makeFormatValue()}
+                                renderProfessionIcon={renderProfessionIcon}
+                            />
+                        );
+                    })}
+                </div>
+                <div className="mt-4">
+                    <button
+                        type="button"
+                        aria-expanded={detailOpen}
+                        onClick={() => setDetailOpen((v) => !v)}
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-[var(--radius-md)]"
+                        style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-hover)' }}
+                    >
+                        {detailOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                        Per-player detail
+                    </button>
+                    {detailOpen && (
+                        <div className="mt-3">
+                            <StatsTableLayout
+                                expanded={false}
+                                sidebarClassName="pr-3 flex flex-col overflow-y-auto"
+                                sidebarStyle={undefined}
+                                contentClassName="overflow-hidden"
+                                contentStyle={undefined}
+                                sidebar={
+                                    <>
+                                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Support Tabs</div>
+                                        <input
+                                            value={supportSearch}
+                                            onChange={(e) => setSupportSearch(e.target.value)}
+                                            placeholder="Search..."
+                                            className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
+                                            style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                                        />
+                                        <div className={sidebarListClass}>
+                                            {filteredSupportMetrics.map((metric) => (
+                                                <button
+                                                    key={metric.id}
+                                                    onClick={() => setActiveSupportStat(metric.id)}
+                                                    className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeSupportStat === metric.id
+                                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
+                                                        }`}
+                                                    style={activeSupportStat !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
+                                                >
+                                                    {metric.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                }
+                                content={
+                                    <>
+                                        {(() => {
+                                            const metric = SUPPORT_METRICS.find((entry) => entry.id === activeSupportStat) || SUPPORT_METRICS[0];
+                                            const resolveSupportTotal = (row: any) => {
+                                                if (metric.id === 'condiCleanse') {
+                                                    const squad = row.supportTotals?.condiCleanse || 0;
+                                                    const self = row.supportTotals?.condiCleanseSelf || 0;
+                                                    return cleanseScope === 'all' ? squad + self : squad;
+                                                }
+                                                return row.supportTotals?.[metric.id] || 0;
+                                            };
+                                            const tsec = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
+                                            const rows = [...stats.supportPlayers]
+                                                .map((row: any) => ({
+                                                    ...row,
+                                                    total: resolveSupportTotal(row),
+                                                    per1s: resolveSupportTotal(row) / tsec(row),
+                                                    per60s: (resolveSupportTotal(row) * 60) / tsec(row)
+                                                }))
+                                                .sort((a, b) => {
+                                                    const aVal = Number(supportViewMode === 'total' ? a.total : supportViewMode === 'per1s' ? a.per1s : a.per60s);
+                                                    const bVal = Number(supportViewMode === 'total' ? b.total : supportViewMode === 'per1s' ? b.per1s : b.per60s);
+                                                    return bVal - aVal || a.account.localeCompare(b.account);
+                                                });
+                                            return (
+                                                <StatsTableShell
+                                                    expanded={false}
+                                                    animationKey={`noego-support-${activeSupportStat}-${supportViewMode}`}
+                                                    header={null}
+                                                    columns={
+                                                        <div className="grid grid-cols-[1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
+                                                            <div>Player</div>
+                                                            <div className="text-right">
+                                                                {supportViewMode === 'total' ? 'Total' : supportViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
+                                                            </div>
+                                                            <div className="text-right">Fight Time</div>
+                                                        </div>
+                                                    }
+                                                    rows={
+                                                        <>
+                                                            {rows.map((row: any, idx: number) => (
+                                                                <div key={`noego-support-${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
+                                                                    <div className="flex items-center gap-2 min-w-0">
+                                                                        {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                                        <span className="truncate">{row.account}</span>
+                                                                    </div>
+                                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
+                                                                        {formatWithCommas(supportViewMode === 'total' ? row.total : supportViewMode === 'per1s' ? row.per1s : row.per60s, metric.isTime ? 1 : (roundCountStats && supportViewMode === 'total' ? 0 : 2))}
+                                                                    </div>
+                                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
+                                                                        {row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    }
+                                                />
+                                            );
+                                        })()}
+                                    </>
+                                }
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
     return (
     <div
         className={`${

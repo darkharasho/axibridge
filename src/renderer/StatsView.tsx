@@ -4370,6 +4370,7 @@ type SpikeFight = {
                                 setActiveOffenseStat={setActiveOffenseStat}
                                 offenseViewMode={offenseViewMode}
                                 setOffenseViewMode={setOffenseViewMode}
+                                noEgoMode={noEgoMode}
                             />)}
 
                             {renderSectionWrap(<DamageModifiersSection
@@ -4478,6 +4479,7 @@ type SpikeFight = {
                                 setActiveDefenseStat={setActiveDefenseStat}
                                 defenseViewMode={defenseViewMode}
                                 setDefenseViewMode={setDefenseViewMode}
+                                noEgoMode={noEgoMode}
                             />)}
 
                             {renderSectionWrap(<DamageModifiersSection
@@ -4541,6 +4543,7 @@ type SpikeFight = {
                                 setSupportViewMode={setSupportViewMode}
                                 cleanseScope={cleanseScope}
                                 setCleanseScope={setCleanseScope}
+                                noEgoMode={noEgoMode}
                             />)}
 
                             {renderSectionWrap(<HealingSection
@@ -4804,6 +4807,7 @@ type SpikeFight = {
                                 setActiveOffenseStat={setActiveOffenseStat}
                                 offenseViewMode={offenseViewMode}
                                 setOffenseViewMode={setOffenseViewMode}
+                                noEgoMode={noEgoMode}
                             /> },
                             { id: 'damage-modifiers', element: <DamageModifiersSection
                                 search={damageModSearch}
@@ -4917,6 +4921,7 @@ type SpikeFight = {
                                 setActiveDefenseStat={setActiveDefenseStat}
                                 defenseViewMode={defenseViewMode}
                                 setDefenseViewMode={setDefenseViewMode}
+                                noEgoMode={noEgoMode}
                             /> },
                             { id: 'incoming-damage-modifiers', element: <DamageModifiersSection
                                 search={incomingDamageModSearch}
@@ -5067,6 +5072,7 @@ type SpikeFight = {
                                 setSupportViewMode={setSupportViewMode}
                                 cleanseScope={cleanseScope}
                                 setCleanseScope={setCleanseScope}
+                                noEgoMode={noEgoMode}
                             /> },
                             { id: 'healing-stats', element: <HealingSection
                                 activeHealingMetric={activeHealingMetric}
