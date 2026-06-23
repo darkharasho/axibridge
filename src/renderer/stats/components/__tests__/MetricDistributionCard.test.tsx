@@ -35,7 +35,7 @@ describe('MetricDistributionCard', () => {
     const callouts = screen.getByTestId('metric-card-outliers');
     expect(callouts).toHaveTextContent('LowGuy');
     // No "MVP"/"top"/crown language anywhere
-    expect(screen.queryByText(/MVP|top performer|#1/i)).toBeNull();
+    expect(screen.queryByText(/\bMVP\b|top performer|#1|crown|\bbest\b|elite|winner|podium|champion/i)).toBeNull();
   });
 
   it('shows a quiet consistent-squad note when there are no outliers', () => {
