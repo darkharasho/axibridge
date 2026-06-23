@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, X, Columns, Users, Shield, ChevronDown, ChevronRight } from 'lucide-react';
+import { Maximize2, X, Columns, Users, Shield } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -9,8 +9,7 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { DEFENSE_METRICS } from '../statsMetrics';
-import { MetricDistributionCard } from '../components/MetricDistributionCard';
-import type { RoleClassificationEntry } from '../statsTypes';
+import { NoEgoMetricSection } from './NoEgoMetricSection';
 
 // For defense, lower damage taken / fewer downs = better; higher blocks/evades = better
 const DEFENSE_HIGHER_IS_BETTER = new Set([
@@ -83,177 +82,35 @@ export const DefenseSection = ({
 
     // ── No Ego mode: sidebar + one large MetricDistributionCard for active metric ──
     if (noEgoMode && stats.defensePlayers.length > 0) {
-        const roleByAccount = new Map<string, 'support' | 'damage'>(
-          ((stats.roleClassifications as RoleClassificationEntry[] | undefined) ?? [])
-            .filter((r): r is RoleClassificationEntry => !!r && (r.role === 'support' || r.role === 'damage'))
-            .map((r) => [String(r.account), r.role] as [string, 'support' | 'damage']),
-        );
-        const roleOf = (account: string): 'support' | 'damage' | undefined =>
-          roleByAccount.get(account) ?? roleByAccount.get(String(account).split('::')[0]);
-        const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
-        const resolvedValue = (row: any, metricEntry: typeof DEFENSE_METRICS[number]) => {
-            const total = row.defenseTotals?.[metricEntry.id] || 0;
-            const isPercent = (metricEntry as any).isPercent;
-            if (isPercent) return total;
-            if (defenseViewMode === 'per1s') return total / totalSeconds(row);
-            if (defenseViewMode === 'per60s') return (total * 60) / totalSeconds(row);
-            return total;
-        };
-        const activeMetric = DEFENSE_METRICS.find((e) => e.id === activeDefenseStat) || DEFENSE_METRICS[0];
-        const activePlayers = stats.defensePlayers.map((row: any) => ({
-            account: row.account,
-            value: resolvedValue(row, activeMetric),
-            profession: row.profession,
-            professionList: row.professionList,
-            role: roleOf(row.account),
-        }));
-        const activeHigherIsBetter = DEFENSE_HIGHER_IS_BETTER.has(activeMetric.id);
-        const activeFormatValue = (val: number) => {
-            const isPercent = (activeMetric as any).isPercent;
-            const decimals = roundCountStats && !isPercent && defenseViewMode === 'total' ? 0 : 2;
-            const formatted = formatWithCommas(val, decimals);
-            return isPercent ? `${formatted}%` : formatted;
-        };
         return (
-            <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-3.5">
-                    <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
-                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
-                            Defense Detailed
-                        </h3>
-                    </div>
-                    <PillToggleGroup
-                        value={defenseViewMode}
-                        onChange={setDefenseViewMode}
-                        options={[
-                            { value: 'total', label: 'Total' },
-                            { value: 'per1s', label: 'Stat/1s' },
-                            { value: 'per60s', label: 'Stat/60s' }
-                        ]}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
-                    />
-                </div>
-                <StatsTableLayout
-                    expanded={false}
-                    sidebarClassName="pr-3 flex flex-col overflow-y-auto"
-                    sidebarStyle={undefined}
-                    contentClassName="overflow-hidden"
-                    contentStyle={undefined}
-                    sidebar={
-                        <>
-                            <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Defensive Tabs</div>
-                            <input
-                                value={defenseSearch}
-                                onChange={(e) => setDefenseSearch(e.target.value)}
-                                placeholder="Search..."
-                                className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
-                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
-                            />
-                            <div className={sidebarListClass}>
-                                {filteredDefenseMetrics.map((metric) => (
-                                    <button
-                                        key={metric.id}
-                                        onClick={() => setActiveDefenseStat(metric.id)}
-                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeDefenseStat === metric.id
-                                            ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                            : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
-                                            }`}
-                                        style={activeDefenseStat !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
-                                    >
-                                        {metric.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </>
-                    }
-                    content={
-                        <div className="flex flex-col gap-4">
-                            <MetricDistributionCard
-                                large
-                                roleAware
-                                title={activeMetric.label}
-                                accentColor="var(--section-defense)"
-                                higherIsBetter={activeHigherIsBetter}
-                                players={activePlayers}
-                                formatValue={activeFormatValue}
-                                renderProfessionIcon={renderProfessionIcon}
-                            />
-                            <div>
-                                <button
-                                    type="button"
-                                    aria-expanded={detailOpen}
-                                    onClick={() => setDetailOpen((v) => !v)}
-                                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-[var(--radius-md)]"
-                                    style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-hover)' }}
-                                >
-                                    {detailOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                                    Per-player detail
-                                </button>
-                                {detailOpen && (
-                                    <div className="mt-3">
-                                        {(() => {
-                                            const metric = activeMetric;
-                                            const tsec = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
-                                            const sourceRows = [...stats.defensePlayers];
-                                            const effectiveRows = isMinionDamageMetric(metric.id)
-                                                ? getMinionRows(sourceRows, minionDamageMode)
-                                                : sourceRows;
-                                            const rows = [...effectiveRows]
-                                                .map((row: any) => ({
-                                                    ...row,
-                                                    total: row.defenseTotals?.[metric.id] || 0,
-                                                    per1s: (row.defenseTotals?.[metric.id] || 0) / tsec(row),
-                                                    per60s: ((row.defenseTotals?.[metric.id] || 0) * 60) / tsec(row)
-                                                }))
-                                                .sort((a, b) => {
-                                                    const aVal = Number(defenseViewMode === 'total' ? a.total : defenseViewMode === 'per1s' ? a.per1s : a.per60s);
-                                                    const bVal = Number(defenseViewMode === 'total' ? b.total : defenseViewMode === 'per1s' ? b.per1s : b.per60s);
-                                                    return bVal - aVal || a.account.localeCompare(b.account);
-                                                });
-                                            return (
-                                                <StatsTableShell
-                                                    expanded={false}
-                                                    animationKey={`noego-defense-${activeDefenseStat}-${defenseViewMode}`}
-                                                    header={null}
-                                                    columns={
-                                                        <div className="grid grid-cols-[1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                            <div>Player</div>
-                                                            <div className="text-right">
-                                                                {defenseViewMode === 'total' ? 'Total' : defenseViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
-                                                            </div>
-                                                            <div className="text-right">Fight Time</div>
-                                                        </div>
-                                                    }
-                                                    rows={
-                                                        <>
-                                                            {rows.map((row: any, idx: number) => (
-                                                                <div key={`noego-defense-${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
-                                                                    <div className="flex items-center gap-2 min-w-0">
-                                                                        {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                                        <span className="truncate">{row.account}</span>
-                                                                    </div>
-                                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                        {formatWithCommas(defenseViewMode === 'total' ? row.total : defenseViewMode === 'per1s' ? row.per1s : row.per60s, roundCountStats && defenseViewMode === 'total' ? 0 : 2)}
-                                                                    </div>
-                                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                        {row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </>
-                                                    }
-                                                />
-                                            );
-                                        })()}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    }
-                />
-            </div>
+            <NoEgoMetricSection
+                title="Defense Detailed"
+                icon={<Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />}
+                accentColor="var(--section-defense)"
+                sidebarLabel="Defensive Tabs"
+                metrics={DEFENSE_METRICS}
+                filteredMetrics={filteredDefenseMetrics}
+                players={stats.defensePlayers}
+                roleClassifications={stats.roleClassifications}
+                activeStatId={activeDefenseStat}
+                setActiveStatId={setActiveDefenseStat}
+                search={defenseSearch}
+                setSearch={setDefenseSearch}
+                viewMode={defenseViewMode}
+                setViewMode={setDefenseViewMode}
+                detailOpen={detailOpen}
+                setDetailOpen={setDetailOpen}
+                higherIsBetter={(m) => DEFENSE_HIGHER_IS_BETTER.has(m.id)}
+                resolveTotal={(row, m) => row.defenseTotals?.[m.id] || 0}
+                isRateOrPercent={(m) => !!(m as any).isPercent}
+                fightTimeMs={(row) => row.activeMs || 0}
+                formatValue={(m, val) => {
+                    const isPercent = (m as any).isPercent;
+                    const decimals = roundCountStats && !isPercent && defenseViewMode === 'total' ? 0 : 2;
+                    const formatted = formatWithCommas(val, decimals);
+                    return isPercent ? `${formatted}%` : formatted;
+                }}
+            />
         );
     }
 

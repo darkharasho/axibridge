@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, X, Columns, Users, Swords, ChevronDown, ChevronRight } from 'lucide-react';
+import { Maximize2, X, Columns, Users, Swords } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -9,8 +9,7 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { OFFENSE_METRICS } from '../statsMetrics';
-import { MetricDistributionCard } from '../components/MetricDistributionCard';
-import type { RoleClassificationEntry } from '../statsTypes';
+import { NoEgoMetricSection } from './NoEgoMetricSection';
 
 // Metrics where lower is better (negatively oriented — your offense being negated)
 const OFFENSE_LOWER_IS_BETTER = new Set(['glanceRate', 'missed', 'evaded', 'blocked', 'invulned']);
@@ -57,14 +56,6 @@ export const OffenseSection = ({
 
     // ── No Ego mode: sidebar + one large MetricDistributionCard for active metric ──
     if (noEgoMode && stats.offensePlayers.length > 0) {
-        const roleByAccount = new Map<string, 'support' | 'damage'>(
-          ((stats.roleClassifications as RoleClassificationEntry[] | undefined) ?? [])
-            .filter((r): r is RoleClassificationEntry => !!r && (r.role === 'support' || r.role === 'damage'))
-            .map((r) => [String(r.account), r.role] as [string, 'support' | 'damage']),
-        );
-        const roleOf = (account: string): 'support' | 'damage' | undefined =>
-          roleByAccount.get(account) ?? roleByAccount.get(String(account).split('::')[0]);
-        const totalSeconds = (row: any) => Math.max(1, (row.totalFightMs || 0) / 1000);
         const totalValue = (row: any, metricEntry: typeof OFFENSE_METRICS[number]) => {
             if (metricEntry.id === 'downContributionPercent') {
                 const downContribution = row.offenseTotals?.downContribution || 0;
@@ -78,169 +69,34 @@ export const OffenseSection = ({
             }
             return row.offenseTotals?.[metricEntry.id] || 0;
         };
-        const resolvedValue = (row: any, metricEntry: typeof OFFENSE_METRICS[number]) => {
-            const total = totalValue(row, metricEntry);
-            if (metricEntry.isPercent || metricEntry.isRate) return total;
-            if (offenseViewMode === 'per1s') return total / totalSeconds(row);
-            if (offenseViewMode === 'per60s') return (total * 60) / totalSeconds(row);
-            return total;
-        };
-        const activeMetric = OFFENSE_METRICS.find((e) => e.id === activeOffenseStat) || OFFENSE_METRICS[0];
-        const activePlayers = stats.offensePlayers.map((row: any) => ({
-            account: row.account,
-            value: resolvedValue(row, activeMetric),
-            profession: row.profession,
-            professionList: row.professionList,
-            role: roleOf(row.account),
-        }));
-        const activeHigherIsBetter = !OFFENSE_LOWER_IS_BETTER.has(activeMetric.id);
-        const activeFormatValue = (val: number) => {
-            const decimals = roundCountStats && !activeMetric.isPercent && offenseViewMode === 'total' ? 0 : 2;
-            const formatted = formatWithCommas(val, decimals);
-            return activeMetric.isPercent ? `${formatted}%` : formatted;
-        };
         return (
-            <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-3.5">
-                    <div className="flex items-center gap-2">
-                        <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
-                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
-                            Offense Detailed
-                        </h3>
-                    </div>
-                    <PillToggleGroup
-                        value={offenseViewMode}
-                        onChange={setOffenseViewMode}
-                        options={[
-                            { value: 'total', label: 'Total' },
-                            { value: 'per1s', label: 'Stat/1s' },
-                            { value: 'per60s', label: 'Stat/60s' }
-                        ]}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
-                    />
-                </div>
-                <StatsTableLayout
-                    expanded={false}
-                    sidebarClassName="pr-3 flex flex-col overflow-y-auto"
-                    sidebarStyle={undefined}
-                    contentClassName="overflow-hidden"
-                    contentStyle={undefined}
-                    sidebar={
-                        <>
-                            <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Offensive Tabs</div>
-                            <input
-                                value={offenseSearch}
-                                onChange={(e) => setOffenseSearch(e.target.value)}
-                                placeholder="Search..."
-                                className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
-                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
-                            />
-                            <div className={sidebarListClass}>
-                                {filteredOffenseMetrics.map((metric) => (
-                                    <button
-                                        key={metric.id}
-                                        onClick={() => setActiveOffenseStat(metric.id)}
-                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeOffenseStat === metric.id
-                                            ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                            : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
-                                            }`}
-                                        style={activeOffenseStat !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
-                                    >
-                                        {metric.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </>
-                    }
-                    content={
-                        <div className="flex flex-col gap-4">
-                            <MetricDistributionCard
-                                large
-                                roleAware
-                                title={activeMetric.label}
-                                accentColor="var(--section-offense)"
-                                higherIsBetter={activeHigherIsBetter}
-                                players={activePlayers}
-                                formatValue={activeFormatValue}
-                                renderProfessionIcon={renderProfessionIcon}
-                            />
-                            <div>
-                                <button
-                                    type="button"
-                                    aria-expanded={detailOpen}
-                                    onClick={() => setDetailOpen((v) => !v)}
-                                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-[var(--radius-md)]"
-                                    style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-hover)' }}
-                                >
-                                    {detailOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                                    Per-player detail
-                                </button>
-                                {detailOpen && (
-                                    <div className="mt-3">
-                                        {(() => {
-                                            const metric = activeMetric;
-                                            const tsec = (row: any) => Math.max(1, (row.totalFightMs || 0) / 1000);
-                                            const tval = (row: any) => totalValue(row, metric);
-                                            const fmtVal = (val: number) => {
-                                                const decimals = roundCountStats && !metric.isPercent && offenseViewMode === 'total' ? 0 : 2;
-                                                const formatted = formatWithCommas(val, decimals);
-                                                return metric.isPercent ? `${formatted}%` : formatted;
-                                            };
-                                            const rows = [...stats.offensePlayers]
-                                                .map((row: any) => ({
-                                                    ...row,
-                                                    total: tval(row),
-                                                    per1s: metric.isPercent || metric.isRate ? tval(row) : tval(row) / tsec(row),
-                                                    per60s: metric.isPercent || metric.isRate ? tval(row) : (tval(row) * 60) / tsec(row)
-                                                }))
-                                                .sort((a, b) => {
-                                                    const aVal = Number(offenseViewMode === 'total' ? a.total : offenseViewMode === 'per1s' ? a.per1s : a.per60s);
-                                                    const bVal = Number(offenseViewMode === 'total' ? b.total : offenseViewMode === 'per1s' ? b.per1s : b.per60s);
-                                                    return bVal - aVal || a.account.localeCompare(b.account);
-                                                });
-                                            return (
-                                                <StatsTableShell
-                                                    expanded={false}
-                                                    animationKey={`noego-${activeOffenseStat}-${offenseViewMode}`}
-                                                    header={null}
-                                                    columns={
-                                                        <div className="grid grid-cols-[1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                            <div>Player</div>
-                                                            <div className="text-right">
-                                                                {offenseViewMode === 'total' ? 'Total' : offenseViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
-                                                            </div>
-                                                            <div className="text-right">Fight Time</div>
-                                                        </div>
-                                                    }
-                                                    rows={
-                                                        <>
-                                                            {rows.map((row: any, idx: number) => (
-                                                                <div key={`noego-${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
-                                                                    <div className="flex items-center gap-2 min-w-0">
-                                                                        {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                                        <span className="truncate">{row.account}</span>
-                                                                    </div>
-                                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                        {fmtVal(offenseViewMode === 'total' ? row.total : offenseViewMode === 'per1s' ? row.per1s : row.per60s)}
-                                                                    </div>
-                                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                        {row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '-'}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </>
-                                                    }
-                                                />
-                                            );
-                                        })()}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    }
-                />
-            </div>
+            <NoEgoMetricSection
+                title="Offense Detailed"
+                icon={<Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />}
+                accentColor="var(--section-offense)"
+                sidebarLabel="Offensive Tabs"
+                metrics={OFFENSE_METRICS}
+                filteredMetrics={filteredOffenseMetrics}
+                players={stats.offensePlayers}
+                roleClassifications={stats.roleClassifications}
+                activeStatId={activeOffenseStat}
+                setActiveStatId={setActiveOffenseStat}
+                search={offenseSearch}
+                setSearch={setOffenseSearch}
+                viewMode={offenseViewMode}
+                setViewMode={setOffenseViewMode}
+                detailOpen={detailOpen}
+                setDetailOpen={setDetailOpen}
+                higherIsBetter={(m) => !OFFENSE_LOWER_IS_BETTER.has(m.id)}
+                resolveTotal={(row, m) => totalValue(row, m as typeof OFFENSE_METRICS[number])}
+                isRateOrPercent={(m) => !!(m as any).isPercent || !!(m as any).isRate}
+                fightTimeMs={(row) => row.totalFightMs || 0}
+                formatValue={(m, val) => {
+                    const decimals = roundCountStats && !(m as any).isPercent && offenseViewMode === 'total' ? 0 : 2;
+                    const formatted = formatWithCommas(val, decimals);
+                    return (m as any).isPercent ? `${formatted}%` : formatted;
+                }}
+            />
         );
     }
 
