@@ -2185,6 +2185,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         </p>
                         <div className="divide-y divide-white/5">
                             <Toggle
+                                enabled={statsViewSettings.noEgoMode}
+                                onChange={(v) => updateStatsViewSetting('noEgoMode', v)}
+                                label="No Ego mode"
+                                description="Hide MVP, rankings, and leaderboards. Show squad averages, spread, and areas to improve instead — across the app and web reports."
+                            />
+                            <Toggle
                                 enabled={statsViewSettings.showTopStats}
                                 onChange={(v) => updateStatsViewSetting('showTopStats', v)}
                                 label="Show Top Stats Section"

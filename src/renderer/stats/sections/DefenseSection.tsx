@@ -9,6 +9,12 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { DEFENSE_METRICS } from '../statsMetrics';
+import { NoEgoMetricSection } from './NoEgoMetricSection';
+
+// For defense, lower damage taken / fewer downs = better; higher blocks/evades = better
+const DEFENSE_HIGHER_IS_BETTER = new Set([
+    'damageBarrier', 'damageBarrierCount', 'blockedCount', 'evadedCount', 'missedCount', 'dodgeCount', 'invulnedCount'
+]);
 
 type DefenseSectionProps = {
     defenseSearch: string;
@@ -17,6 +23,7 @@ type DefenseSectionProps = {
     setActiveDefenseStat: (value: string) => void;
     defenseViewMode: 'total' | 'per1s' | 'per60s';
     setDefenseViewMode: (value: 'total' | 'per1s' | 'per60s') => void;
+    noEgoMode?: boolean;
 };
 
 export const DefenseSection = ({
@@ -25,7 +32,8 @@ export const DefenseSection = ({
     activeDefenseStat,
     setActiveDefenseStat,
     defenseViewMode,
-    setDefenseViewMode
+    setDefenseViewMode,
+    noEgoMode = false,
 }: DefenseSectionProps) => {
     const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const {
@@ -46,6 +54,7 @@ export const DefenseSection = ({
         renderProfessionIcon,
     });
     const [minionDamageMode, setMinionDamageMode] = useState<'combined' | 'separate'>('combined');
+    const [detailOpen, setDetailOpen] = useState(false);
     const isExpanded = expandedSection === 'defense-detailed';
     const isMinionDamageMetric = (id?: string) => id === 'minionDamageTaken';
     const getMinionRows = (rows: any[], mode: 'combined' | 'separate') => {
@@ -70,6 +79,42 @@ export const DefenseSection = ({
             }));
         });
     };
+
+    // ── No Ego mode: sidebar + one large MetricDistributionCard for active metric ──
+    if (noEgoMode && stats.defensePlayers.length > 0) {
+        return (
+            <NoEgoMetricSection
+                title="Defense Detailed"
+                icon={<Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />}
+                accentColor="var(--section-defense)"
+                sidebarLabel="Defensive Tabs"
+                keyPrefix="noego-defense"
+                metrics={DEFENSE_METRICS}
+                filteredMetrics={filteredDefenseMetrics}
+                players={stats.defensePlayers}
+                roleClassifications={stats.roleClassifications}
+                activeStatId={activeDefenseStat}
+                setActiveStatId={setActiveDefenseStat}
+                search={defenseSearch}
+                setSearch={setDefenseSearch}
+                viewMode={defenseViewMode}
+                setViewMode={setDefenseViewMode}
+                detailOpen={detailOpen}
+                setDetailOpen={setDetailOpen}
+                higherIsBetter={(m) => DEFENSE_HIGHER_IS_BETTER.has(m.id)}
+                resolveTotal={(row, m) => row.defenseTotals?.[m.id] || 0}
+                isRateOrPercent={(m) => !!(m as any).isPercent}
+                fightTimeMs={(row) => row.activeMs || 0}
+                formatValue={(m, val) => {
+                    const isPercent = (m as any).isPercent;
+                    const decimals = roundCountStats && !isPercent && defenseViewMode === 'total' ? 0 : 2;
+                    const formatted = formatWithCommas(val, decimals);
+                    return isPercent ? `${formatted}%` : formatted;
+                }}
+            />
+        );
+    }
+
     return (
     <div
         className={`${

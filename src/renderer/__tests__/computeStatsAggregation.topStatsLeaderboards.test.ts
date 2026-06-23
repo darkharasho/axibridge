@@ -60,6 +60,7 @@ const settings = {
     stackingBoonBucketIntervalMs: 5000,
     interruptMode: 'ccOnly' as const,
     mvpBoonMetric: 'uptime' as const,
+    noEgoMode: false,
     enabledTopStats: DEFAULT_ENABLED_TOP_STATS,
 };
 

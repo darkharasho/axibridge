@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
 import { Maximize2, X, Columns, Users } from 'lucide-react';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
@@ -9,6 +10,11 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { SUPPORT_METRICS } from '../statsMetrics';
+import { NoEgoMetricSection } from './NoEgoMetricSection';
+
+// All current support metrics are higher-is-better. Add metric ids here if any
+// lower-is-better metric is introduced (e.g. a "deaths taken" type metric).
+const SUPPORT_LOWER_IS_BETTER = new Set<string>([]);
 
 type SupportSectionProps = {
     supportSearch: string;
@@ -19,6 +25,7 @@ type SupportSectionProps = {
     setSupportViewMode: (value: 'total' | 'per1s' | 'per60s') => void;
     cleanseScope: 'all' | 'squad';
     setCleanseScope: (value: 'all' | 'squad') => void;
+    noEgoMode?: boolean;
 };
 
 export const SupportSection = ({
@@ -29,7 +36,8 @@ export const SupportSection = ({
     supportViewMode,
     setSupportViewMode,
     cleanseScope,
-    setCleanseScope
+    setCleanseScope,
+    noEgoMode = false,
 }: SupportSectionProps) => {
     const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const {
@@ -50,6 +58,51 @@ export const SupportSection = ({
         renderProfessionIcon,
     });
     const isExpanded = expandedSection === 'support-detailed';
+    const [detailOpen, setDetailOpen] = useState(false);
+
+    // ── No Ego mode: sidebar + one large MetricDistributionCard for active metric ──
+    if (noEgoMode && stats.supportPlayers.length > 0) {
+        const resolveSupportTotalForMetric = (row: any, metricId: string) => {
+            if (metricId === 'condiCleanse') {
+                const squad = row.supportTotals?.condiCleanse || 0;
+                const self = row.supportTotals?.condiCleanseSelf || 0;
+                return cleanseScope === 'all' ? squad + self : squad;
+            }
+            return row.supportTotals?.[metricId] || 0;
+        };
+        return (
+            <NoEgoMetricSection
+                title="Support Detailed"
+                icon={<span className="flex shrink-0" style={{ color: 'var(--section-support)' }}><SupportPlusIcon className="w-4 h-4" /></span>}
+                accentColor="var(--section-support)"
+                sidebarLabel="Support Tabs"
+                keyPrefix="noego-support"
+                metrics={SUPPORT_METRICS}
+                filteredMetrics={filteredSupportMetrics}
+                players={stats.supportPlayers}
+                roleClassifications={stats.roleClassifications}
+                activeStatId={activeSupportStat}
+                setActiveStatId={setActiveSupportStat}
+                search={supportSearch}
+                setSearch={setSupportSearch}
+                viewMode={supportViewMode}
+                setViewMode={setSupportViewMode}
+                detailOpen={detailOpen}
+                setDetailOpen={setDetailOpen}
+                higherIsBetter={(m) => !SUPPORT_LOWER_IS_BETTER.has(m.id)}
+                resolveTotal={(row, m) => resolveSupportTotalForMetric(row, m.id)}
+                isRateOrPercent={() => false}
+                fightTimeMs={(row) => row.activeMs || 0}
+                formatValue={(m, val) => {
+                    const decimals = (m as any).isTime
+                        ? 1
+                        : (roundCountStats && supportViewMode === 'total' ? 0 : 2);
+                    return formatWithCommas(val, decimals);
+                }}
+            />
+        );
+    }
+
     return (
     <div
         className={`${

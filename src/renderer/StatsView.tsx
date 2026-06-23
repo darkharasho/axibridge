@@ -229,8 +229,10 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
 
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
     const activeWebUploadState = webUploadState || DEFAULT_WEB_UPLOAD_STATE;
-    const showTopStats = activeStatsViewSettings.showTopStats;
-    const showMvp = activeStatsViewSettings.showMvp;
+    const noEgoMode = activeStatsViewSettings.noEgoMode === true;
+    // No Ego mode forces the squad-summary layout on and the MVP podium off.
+    const showTopStats = noEgoMode ? true : activeStatsViewSettings.showTopStats;
+    const showMvp = noEgoMode ? false : activeStatsViewSettings.showMvp;
     const roundCountStats = activeStatsViewSettings.roundCountStats;
     const topStatsMode = activeStatsViewSettings.topStatsMode || 'total';
     const enabledTopStats = normalizeEnabledTopStats(activeStatsViewSettings.enabledTopStats);
@@ -4270,10 +4272,11 @@ type SpikeFight = {
                                     formatTopStatValue={formatTopStatValue}
                                     isMvpStatEnabled={isMvpStatEnabled}
                                     enabledTopStats={enabledTopStats}
+                                    noEgoMode={noEgoMode}
                                 />)}
                             </div>
 
-                            {renderSectionWrap(<TopSkillsSection
+                            {!noEgoMode && renderSectionWrap(<TopSkillsSection
                                 topSkillsMetric={topSkillsMetric}
                                 onTopSkillsMetricChange={updateTopSkillsMetric}
                             />)}
@@ -4367,6 +4370,7 @@ type SpikeFight = {
                                 setActiveOffenseStat={setActiveOffenseStat}
                                 offenseViewMode={offenseViewMode}
                                 setOffenseViewMode={setOffenseViewMode}
+                                noEgoMode={noEgoMode}
                             />)}
 
                             {renderSectionWrap(<DamageModifiersSection
@@ -4475,6 +4479,7 @@ type SpikeFight = {
                                 setActiveDefenseStat={setActiveDefenseStat}
                                 defenseViewMode={defenseViewMode}
                                 setDefenseViewMode={setDefenseViewMode}
+                                noEgoMode={noEgoMode}
                             />)}
 
                             {renderSectionWrap(<DamageModifiersSection
@@ -4538,6 +4543,7 @@ type SpikeFight = {
                                 setSupportViewMode={setSupportViewMode}
                                 cleanseScope={cleanseScope}
                                 setCleanseScope={setCleanseScope}
+                                noEgoMode={noEgoMode}
                             />)}
 
                             {renderSectionWrap(<HealingSection
@@ -4715,11 +4721,12 @@ type SpikeFight = {
                                 formatTopStatValue={formatTopStatValue}
                                 isMvpStatEnabled={isMvpStatEnabled}
                                 enabledTopStats={enabledTopStats}
+                                noEgoMode={noEgoMode}
                             /> },
-                            { id: 'top-skills-outgoing', element: <TopSkillsSection
+                            ...(!noEgoMode ? [{ id: 'top-skills-outgoing', element: <TopSkillsSection
                                 topSkillsMetric={topSkillsMetric}
                                 onTopSkillsMetricChange={updateTopSkillsMetric}
-                            /> },
+                            /> }] : []),
                             { id: 'squad-composition', element: <SquadCompositionSection
                                 sortedSquadClassData={sortedSquadClassData}
                                 sortedEnemyClassData={sortedEnemyClassData}
@@ -4800,6 +4807,7 @@ type SpikeFight = {
                                 setActiveOffenseStat={setActiveOffenseStat}
                                 offenseViewMode={offenseViewMode}
                                 setOffenseViewMode={setOffenseViewMode}
+                                noEgoMode={noEgoMode}
                             /> },
                             { id: 'damage-modifiers', element: <DamageModifiersSection
                                 search={damageModSearch}
@@ -4913,6 +4921,7 @@ type SpikeFight = {
                                 setActiveDefenseStat={setActiveDefenseStat}
                                 defenseViewMode={defenseViewMode}
                                 setDefenseViewMode={setDefenseViewMode}
+                                noEgoMode={noEgoMode}
                             /> },
                             { id: 'incoming-damage-modifiers', element: <DamageModifiersSection
                                 search={incomingDamageModSearch}
@@ -5063,6 +5072,7 @@ type SpikeFight = {
                                 setSupportViewMode={setSupportViewMode}
                                 cleanseScope={cleanseScope}
                                 setCleanseScope={setCleanseScope}
+                                noEgoMode={noEgoMode}
                             /> },
                             { id: 'healing-stats', element: <HealingSection
                                 activeHealingMetric={activeHealingMetric}
@@ -5152,7 +5162,7 @@ type SpikeFight = {
                                 formatCastRateValue={formatCastRateValue}
                                 formatCastCountValue={formatCastCountValue}
                             /> },
-                            { id: 'player-comparison', element: <PlayerComparisonSection
+                            ...(!noEgoMode ? [{ id: 'player-comparison', element: <PlayerComparisonSection
                                 comparisonMode={comparisonMode}
                                 setComparisonMode={setComparisonMode}
                                 comparisonCategory={comparisonCategory}
@@ -5161,7 +5171,7 @@ type SpikeFight = {
                                 setPlayerAKey={setComparisonPlayerAKey}
                                 playerBKey={comparisonPlayerBKey}
                                 setPlayerBKey={setComparisonPlayerBKey}
-                            /> },
+                            /> }] : []),
                         ])}
                         {renderGroup('map', [
                             { id: 'replay', element: <div style={{ height: '88vh', minHeight: 500, maxHeight: 1000, display: 'flex', width: '100%' }}>{r2ReplayStatus === 'loading' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#9ca3af' }}>Loading replay data...</div> : r2ReplayStatus === 'error' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#fb7185' }}>Failed to load replay data.</div> : <ReplaySection fights={getReplayFights()} />}</div> },

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
 import { Maximize2, X, Columns, Users, Swords } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
@@ -8,6 +9,10 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { OFFENSE_METRICS } from '../statsMetrics';
+import { NoEgoMetricSection } from './NoEgoMetricSection';
+
+// Metrics where lower is better (negatively oriented — your offense being negated)
+const OFFENSE_LOWER_IS_BETTER = new Set(['glanceRate', 'missed', 'evaded', 'blocked', 'invulned']);
 
 type OffenseSectionProps = {
     offenseSearch: string;
@@ -16,6 +21,7 @@ type OffenseSectionProps = {
     setActiveOffenseStat: (value: string) => void;
     offenseViewMode: 'total' | 'per1s' | 'per60s';
     setOffenseViewMode: (value: 'total' | 'per1s' | 'per60s') => void;
+    noEgoMode?: boolean;
 };
 
 export const OffenseSection = ({
@@ -24,7 +30,8 @@ export const OffenseSection = ({
     activeOffenseStat,
     setActiveOffenseStat,
     offenseViewMode,
-    setOffenseViewMode
+    setOffenseViewMode,
+    noEgoMode = false,
 }: OffenseSectionProps) => {
     const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const {
@@ -45,6 +52,55 @@ export const OffenseSection = ({
         renderProfessionIcon,
     });
     const isExpanded = expandedSection === 'offense-detailed';
+    const [detailOpen, setDetailOpen] = useState(false);
+
+    // ── No Ego mode: sidebar + one large MetricDistributionCard for active metric ──
+    if (noEgoMode && stats.offensePlayers.length > 0) {
+        const totalValue = (row: any, metricEntry: typeof OFFENSE_METRICS[number]) => {
+            if (metricEntry.id === 'downContributionPercent') {
+                const downContribution = row.offenseTotals?.downContribution || 0;
+                const totalDamage = row.offenseTotals?.damage || 0;
+                return totalDamage > 0 ? (downContribution / totalDamage) * 100 : 0;
+            }
+            if (metricEntry.isRate) {
+                const denom = row.offenseRateWeights?.[metricEntry.id] || 0;
+                const numer = row.offenseTotals?.[metricEntry.id] || 0;
+                return denom > 0 ? (numer / denom) * 100 : 0;
+            }
+            return row.offenseTotals?.[metricEntry.id] || 0;
+        };
+        return (
+            <NoEgoMetricSection
+                title="Offense Detailed"
+                icon={<Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />}
+                accentColor="var(--section-offense)"
+                sidebarLabel="Offensive Tabs"
+                keyPrefix="noego-offense"
+                metrics={OFFENSE_METRICS}
+                filteredMetrics={filteredOffenseMetrics}
+                players={stats.offensePlayers}
+                roleClassifications={stats.roleClassifications}
+                activeStatId={activeOffenseStat}
+                setActiveStatId={setActiveOffenseStat}
+                search={offenseSearch}
+                setSearch={setOffenseSearch}
+                viewMode={offenseViewMode}
+                setViewMode={setOffenseViewMode}
+                detailOpen={detailOpen}
+                setDetailOpen={setDetailOpen}
+                higherIsBetter={(m) => !OFFENSE_LOWER_IS_BETTER.has(m.id)}
+                resolveTotal={(row, m) => totalValue(row, m as typeof OFFENSE_METRICS[number])}
+                isRateOrPercent={(m) => !!(m as any).isPercent || !!(m as any).isRate}
+                fightTimeMs={(row) => row.totalFightMs || 0}
+                formatValue={(m, val) => {
+                    const decimals = roundCountStats && !(m as any).isPercent && offenseViewMode === 'total' ? 0 : 2;
+                    const formatted = formatWithCommas(val, decimals);
+                    return (m as any).isPercent ? `${formatted}%` : formatted;
+                }}
+            />
+        );
+    }
+
     return (
     <div
         className={`${

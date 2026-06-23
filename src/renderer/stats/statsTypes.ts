@@ -104,3 +104,14 @@ export interface PlayerHealingBreakdown {
     barrierSkills: PlayerHealingSkillEntry[];
     hasHealAddon: boolean;
 }
+
+export interface RoleClassificationEntry {
+    account: string;
+    profession?: string;
+    professionList?: string[];
+    role: 'support' | 'damage';
+    supportScore?: number;
+    confidenceScore?: number;
+    threshold?: number;
+    factors?: unknown[];
+}
