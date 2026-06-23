@@ -10,6 +10,7 @@ export interface MetricDistributionCardProps {
   formatValue: (n: number) => string;
   unit?: string;
   roleAware?: boolean;
+  large?: boolean;
   renderProfessionIcon?: (
     profession: string,
     professionList: string[] | undefined,
@@ -25,6 +26,7 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
   formatValue,
   unit = '',
   roleAware = false,
+  large = false,
   renderProfessionIcon,
 }) => {
   const cohort = roleAware ? computeCohortStat(players, higherIsBetter) : null;
@@ -68,7 +70,7 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
         ) : (
           <div>
             <div className="text-[10px] uppercase tracking-wide text-[color:var(--text-muted)]">Avg</div>
-            <div data-testid="metric-card-mean" className="text-2xl font-bold text-white">
+            <div data-testid="metric-card-mean" className={`font-bold text-white ${large ? 'text-3xl' : 'text-2xl'}`}>
               {formatValue(s.mean)} <span className="text-sm font-normal text-[color:var(--text-secondary)]">{unit}</span>
             </div>
           </div>
@@ -88,7 +90,7 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
       </div>
 
       {/* Dot-plot: every player a neutral dot; σ band shaded; mean line. */}
-      <div className="relative h-8 mt-1">
+      <div data-testid="metric-card-plot" className={`relative ${large ? 'h-14' : 'h-8'} mt-1`}>
         <div
           className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full"
           style={{ left: `${bandLeft}%`, width: `${Math.max(0, bandRight - bandLeft)}%`, background: `${accentColor}22` }}
