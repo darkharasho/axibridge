@@ -62,6 +62,13 @@ export const SupportSection = ({
 
     // ── No Ego mode: one MetricDistributionCard per SUPPORT_METRICS entry ──
     if (noEgoMode && stats.supportPlayers.length > 0) {
+        const roleByAccount = new Map<string, 'support' | 'damage'>(
+          (Array.isArray((stats as any).roleClassifications) ? (stats as any).roleClassifications : [])
+            .filter((r: any) => r && (r.role === 'support' || r.role === 'damage'))
+            .map((r: any) => [String(r.account), r.role as 'support' | 'damage']),
+        );
+        const roleOf = (account: string): 'support' | 'damage' | undefined =>
+          roleByAccount.get(account) ?? roleByAccount.get(String(account).split('::')[0]);
         const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
         const resolveSupportTotalForMetric = (row: any, metricId: string) => {
             if (metricId === 'condiCleanse') {
@@ -92,6 +99,7 @@ export const SupportSection = ({
                             value: resolvedValue(row, metricEntry),
                             profession: row.profession,
                             professionList: row.professionList,
+                            role: roleOf(row.account),
                         }));
                         const makeFormatValue = () => (val: number) => {
                             const decimals = metricEntry.isTime
@@ -108,6 +116,7 @@ export const SupportSection = ({
                                 players={players}
                                 formatValue={makeFormatValue()}
                                 renderProfessionIcon={renderProfessionIcon}
+                                roleAware
                             />
                         );
                     })}

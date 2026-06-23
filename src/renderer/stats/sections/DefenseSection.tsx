@@ -82,6 +82,13 @@ export const DefenseSection = ({
 
     // ── No Ego mode: one MetricDistributionCard per DEFENSE_METRICS entry ──
     if (noEgoMode && stats.defensePlayers.length > 0) {
+        const roleByAccount = new Map<string, 'support' | 'damage'>(
+          (Array.isArray((stats as any).roleClassifications) ? (stats as any).roleClassifications : [])
+            .filter((r: any) => r && (r.role === 'support' || r.role === 'damage'))
+            .map((r: any) => [String(r.account), r.role as 'support' | 'damage']),
+        );
+        const roleOf = (account: string): 'support' | 'damage' | undefined =>
+          roleByAccount.get(account) ?? roleByAccount.get(String(account).split('::')[0]);
         const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
         const resolvedValue = (row: any, metricEntry: typeof DEFENSE_METRICS[number]) => {
             const total = row.defenseTotals?.[metricEntry.id] || 0;
@@ -106,6 +113,7 @@ export const DefenseSection = ({
                             value: resolvedValue(row, metricEntry),
                             profession: row.profession,
                             professionList: row.professionList,
+                            role: roleOf(row.account),
                         }));
                         const higherIsBetter = DEFENSE_HIGHER_IS_BETTER.has(metricEntry.id);
                         const makeFormatValue = () => (val: number) => {
@@ -123,6 +131,7 @@ export const DefenseSection = ({
                                 players={players}
                                 formatValue={makeFormatValue()}
                                 renderProfessionIcon={renderProfessionIcon}
+                                roleAware
                             />
                         );
                     })}
