@@ -116,11 +116,24 @@ export const DefenseSection = ({
         };
         return (
             <div>
-                <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                    <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
-                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
-                        Defense Detailed
-                    </h3>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3.5">
+                    <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
+                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                            Defense Detailed
+                        </h3>
+                    </div>
+                    <PillToggleGroup
+                        value={defenseViewMode}
+                        onChange={setDefenseViewMode}
+                        options={[
+                            { value: 'total', label: 'Total' },
+                            { value: 'per1s', label: 'Stat/1s' },
+                            { value: 'per60s', label: 'Stat/60s' }
+                        ]}
+                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                        inactiveClassName="text-[color:var(--text-secondary)]"
+                    />
                 </div>
                 <StatsTableLayout
                     expanded={false}

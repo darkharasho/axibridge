@@ -114,6 +114,9 @@ describe('OffenseSection — No Ego', () => {
         expect(document.querySelector('[data-testid="metric-card-plot"]')?.className).toContain('h-14');
         // The per-player detail expander still exists
         expect(screen.getByRole('button', { name: /per-player detail/i })).toBeInTheDocument();
+        // view-mode toggle present in No Ego mode
+        expect(screen.getByText('Stat/1s')).toBeInTheDocument();
+        expect(screen.getByText('Stat/60s')).toBeInTheDocument();
     });
 
     it('role-aware: support player is NOT an outlier on damage metric when roleAware is active', () => {

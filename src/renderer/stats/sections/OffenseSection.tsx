@@ -101,11 +101,24 @@ export const OffenseSection = ({
         };
         return (
             <div>
-                <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                    <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
-                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
-                        Offense Detailed
-                    </h3>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3.5">
+                    <div className="flex items-center gap-2">
+                        <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
+                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                            Offense Detailed
+                        </h3>
+                    </div>
+                    <PillToggleGroup
+                        value={offenseViewMode}
+                        onChange={setOffenseViewMode}
+                        options={[
+                            { value: 'total', label: 'Total' },
+                            { value: 'per1s', label: 'Stat/1s' },
+                            { value: 'per60s', label: 'Stat/60s' }
+                        ]}
+                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                        inactiveClassName="text-[color:var(--text-secondary)]"
+                    />
                 </div>
                 <StatsTableLayout
                     expanded={false}
