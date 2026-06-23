@@ -99,24 +99,25 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
           className="absolute top-0 bottom-0 w-px"
           style={{ left: `${pos(s.mean)}%`, background: 'var(--border-hover)' }}
         />
-        {s.players.map((p) => (
-          <div
-            key={p.account}
-            title={`${p.account}: ${formatValue(p.value)}`}
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
-            style={{
-              left: `${pos(p.value)}%`,
-              background: outlierKeys.has(p.account)
-                ? accentColor
-                : roleAware
-                  ? (roleOf.get(p.account) === 'support' ? '#22d3ee'
-                     : roleOf.get(p.account) === 'damage' ? '#fb923c'
-                     : 'var(--text-muted)')
-                  : 'var(--text-muted)',
-              outline: outlierKeys.has(p.account) ? `1px solid ${accentColor}` : 'none',
-            }}
-          />
-        ))}
+        {s.players.map((p) => {
+          const isOutlier = outlierKeys.has(p.account);
+          const roleColor = roleOf.get(p.account) === 'support' ? '#22d3ee'
+            : roleOf.get(p.account) === 'damage' ? '#fb923c'
+            : 'var(--text-muted)';
+          const fill = roleAware ? roleColor : (isOutlier ? accentColor : 'var(--text-muted)');
+          return (
+            <div
+              key={p.account}
+              title={`${p.account}: ${formatValue(p.value)}`}
+              className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full ${isOutlier ? 'w-3 h-3' : 'w-2 h-2'}`}
+              style={{
+                left: `${pos(p.value)}%`,
+                background: fill,
+                outline: isOutlier ? `2px solid ${accentColor}` : 'none',
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* Needs-improvement callouts (neutral language, low/bad end only) */}

@@ -54,6 +54,27 @@ describe('MetricDistributionCard — role-aware', () => {
     expect(outliers.textContent || '').toMatch(/σ/); // gap rendered with a sigma marker
   });
 
+  it('keeps role color on a flagged outlier dot (role-aware)', () => {
+    const squad = [
+      { account: 'S1', value: 100, role: 'support' as const },
+      { account: 'S2', value: 100, role: 'support' as const },
+      { account: 'S3', value: 100, role: 'support' as const },
+      { account: 'SLow', value: 0, role: 'support' as const },
+    ];
+    const { container } = render(
+      <MetricDistributionCard
+        title="Cleanses" accentColor="#60a5fa" higherIsBetter roleAware
+        players={squad} formatValue={(n) => String(Math.round(n))} />,
+    );
+    // The outlier dot for SLow is identified by its title attribute.
+    const dot = container.querySelector('[title^="SLow:"]') as HTMLElement;
+    expect(dot).toBeTruthy();
+    // Support role color is cyan (#22d3ee); it must remain the fill even though SLow is an outlier.
+    expect(dot.style.background).toMatch(/34,\s*211,\s*238|#22d3ee/i);
+    // And it is marked as an outlier via an outline.
+    expect(dot.style.outline).toContain('solid');
+  });
+
   it('falls back to current behavior when roleAware is false', () => {
     // With a single squad-wide baseline, the lone low player IS flagged.
     const squad = [
