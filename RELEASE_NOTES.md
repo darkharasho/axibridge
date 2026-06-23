@@ -1,5 +1,10 @@
 # Release Notes
 
+Version v2.11.4 — June 23, 2026
+
+## Release automation
+- Releases now publish atomically: installers and release notes are attached to a hidden draft, which is then flipped to public in a single step. This stops update announcements from briefly showing up with no notes ("No content."). No functional changes to the app itself.
+
 Version v2.11.3 — June 21, 2026
 
 ## New app icon
