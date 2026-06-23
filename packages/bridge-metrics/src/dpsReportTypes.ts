@@ -174,6 +174,12 @@ export interface Defenses {
     conditionDamageTakenCount?: number;
     receivedCrowdControl?: number;
     receivedCrowdControlDuration?: number;
+    /**
+     * Stun breaks performed by this player. EI v3.24+ emits these here (breaking a
+     * stun is a defensive event); older EI / dps.report emit them on `Support`.
+     */
+    stunBreak?: number;
+    removedStunDuration?: number;
 }
 
 export interface SquadBuffVolume {

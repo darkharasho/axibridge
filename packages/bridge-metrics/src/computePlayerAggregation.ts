@@ -180,6 +180,12 @@ export const resolveProfessionLabel = (name?: string) => {
 
 const supportTimeSanityFields = new Set(['boonStripsTime', 'condiCleanseTime', 'condiCleanseTimeSelf']);
 
+// EI v3.24 moved these from each player's `support[0]` to `defenses[0]` (breaking
+// a stun is a defensive event). Older EI versions / dps.report still emit them on
+// `support[0]`. We read from `defenses[0]` when it carries the field, falling back
+// to `support[0]` so both old and new logs aggregate correctly.
+const supportFieldsMovedToDefenses = new Set(['stunBreak', 'removedStunDuration']);
+
 const isBoon = (meta?: { classification?: string }) => {
     if (!meta?.classification) return true;
     return meta.classification === 'Boon';
@@ -884,7 +890,11 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         if (p.support?.[0]) {
             SUPPORT_METRICS.forEach(m => {
                 if (m.id === 'boonStrips') return; // handled below with disruption method
-                let val = Number((p.support![0] as any)[m.field!] ?? 0);
+                const defense = p.defenses?.[0] as any;
+                const source = supportFieldsMovedToDefenses.has(m.field!) && defense && m.field! in defense
+                    ? defense
+                    : (p.support![0] as any);
+                let val = Number(source[m.field!] ?? 0);
                 if (Number.isFinite(val)) {
                     if (supportTimeSanityFields.has(m.field!) && val > 999999) val = 0;
                     s.supportTotals[m.id] = (s.supportTotals[m.id] || 0) + val;

@@ -121,6 +121,10 @@ export interface Defenses {
     boonStripsTime?: number;
     receivedCrowdControl?: number;
     receivedCrowdControlDuration?: number;
+    // EI v3.24+ emits stun breaks here (breaking a stun is a defensive event);
+    // older EI / dps.report emit them on Support instead.
+    stunBreak?: number;
+    removedStunDuration?: number;
 }
 
 export interface SquadBuffVolume {
