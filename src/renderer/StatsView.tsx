@@ -229,8 +229,10 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
 
     const activeStatsViewSettings = statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS;
     const activeWebUploadState = webUploadState || DEFAULT_WEB_UPLOAD_STATE;
-    const showTopStats = activeStatsViewSettings.showTopStats;
-    const showMvp = activeStatsViewSettings.showMvp;
+    const noEgoMode = activeStatsViewSettings.noEgoMode === true;
+    // No Ego mode forces the squad-summary layout on and the MVP podium off.
+    const showTopStats = noEgoMode ? true : activeStatsViewSettings.showTopStats;
+    const showMvp = noEgoMode ? false : activeStatsViewSettings.showMvp;
     const roundCountStats = activeStatsViewSettings.roundCountStats;
     const topStatsMode = activeStatsViewSettings.topStatsMode || 'total';
     const enabledTopStats = normalizeEnabledTopStats(activeStatsViewSettings.enabledTopStats);
