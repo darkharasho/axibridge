@@ -92,7 +92,7 @@ const roleAwareCtx: any = {
 };
 
 describe('OffenseSection — No Ego', () => {
-    it('renders metric distribution cards and expander button', () => {
+    it('renders sidebar + single large card + expander button', () => {
         render(
             <StatsSharedContext.Provider value={ctx}>
                 <OffenseSection
@@ -106,12 +106,14 @@ describe('OffenseSection — No Ego', () => {
                 />
             </StatsSharedContext.Provider>,
         );
-        // At least one distribution card present
-        expect(screen.getAllByTestId('metric-card-mean').length).toBeGreaterThan(0);
-        // Full grid collapsed behind an expander
-        expect(
-            screen.getByRole('button', { name: /per-player detail|show detail|detailed/i }),
-        ).toBeInTheDocument();
+        // Sidebar metric selector is present
+        expect(screen.getByText('Offensive Tabs')).toBeInTheDocument();
+        // Exactly one large card (one mean readout) is shown for the active metric
+        expect(screen.getAllByTestId('metric-card-mean').length).toBe(1);
+        // The large dot-plot is rendered (h-14 from large prop)
+        expect(document.querySelector('[data-testid="metric-card-plot"]')?.className).toContain('h-14');
+        // The per-player detail expander still exists
+        expect(screen.getByRole('button', { name: /per-player detail/i })).toBeInTheDocument();
     });
 
     it('role-aware: support player is NOT an outlier on damage metric when roleAware is active', () => {
