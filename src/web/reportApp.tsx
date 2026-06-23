@@ -1974,6 +1974,10 @@ export function ReportApp() {
                                             </div>
                                             {rollupData.commanderRows.length === 0 ? (
                                                 <div className="text-sm text-gray-400">No commander data found yet.</div>
+                                            ) : rollupData.noEgoMode ? (
+                                                <div className="rounded-2xl border border-white/5 bg-black/25 px-5 py-6 text-sm text-gray-400" data-testid="rollup-no-ego-commanders">
+                                                    Individual rankings are hidden — No Ego Mode is enabled. {rollupData.commanderRows.length} commander{rollupData.commanderRows.length === 1 ? '' : 's'} contributed across {rollupData.uniqueRaids} raid{rollupData.uniqueRaids === 1 ? '' : 's'}.
+                                                </div>
                                             ) : (
                                                 <div className="rounded-2xl border border-white/5 bg-black/25 overflow-hidden">
                                                     <div className="border-b border-white/5 px-3 py-3 sm:px-4">
@@ -2083,6 +2087,10 @@ export function ReportApp() {
                                             </div>
                                             {rollupData.playerRows.length === 0 ? (
                                                 <div className="text-sm text-gray-400">No attendance data found yet.</div>
+                                            ) : rollupData.noEgoMode ? (
+                                                <div className="rounded-2xl border border-white/5 bg-black/25 px-5 py-6 text-sm text-gray-400" data-testid="rollup-no-ego-players">
+                                                    Individual rankings are hidden — No Ego Mode is enabled. {rollupData.playerRows.length} player{rollupData.playerRows.length === 1 ? '' : 's'} attended across {rollupData.uniqueRaids} raid{rollupData.uniqueRaids === 1 ? '' : 's'}.
+                                                </div>
                                             ) : (
                                                 <div className="rounded-2xl border border-white/5 bg-black/25 overflow-hidden">
                                                     <div className="border-b border-white/5 px-3 py-3 sm:px-4">

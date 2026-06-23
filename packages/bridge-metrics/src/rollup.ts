@@ -42,6 +42,8 @@ export interface RollupData {
     reportsMissingCommanderDetails: number;
     reportsWithAttendanceDetails: number;
     reportsMissingAttendanceDetails: number;
+    /** True when the majority of source reports had No Ego Mode enabled. */
+    noEgoMode: boolean;
 }
 
 type RollupReportPayload = {
@@ -56,6 +58,7 @@ type RollupReportPayload = {
     stats?: {
         commanderStats?: { rows?: any[] };
         attendanceData?: any[];
+        statsViewSettings?: { noEgoMode?: boolean };
     };
 };
 
@@ -88,6 +91,8 @@ export const extractRollupSource = (payload: RollupReportPayload): RollupReportP
     const attendanceRows = Array.isArray(payload?.stats?.attendanceData)
         ? payload.stats!.attendanceData!
         : [];
+    const rawSettings = payload?.stats?.statsViewSettings;
+    const statsViewSettings = rawSettings ? { noEgoMode: Boolean(rawSettings.noEgoMode) } : undefined;
     return {
         meta: {
             id: meta.id,
@@ -96,6 +101,7 @@ export const extractRollupSource = (payload: RollupReportPayload): RollupReportP
             generatedAt: meta.generatedAt
         },
         stats: {
+            ...(statsViewSettings ? { statsViewSettings } : {}),
             commanderStats: {
                 rows: commanderRows.map((row: any) => ({
                     key: row?.key,
@@ -509,6 +515,12 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
             return a.account.localeCompare(b.account);
         });
 
+    // Determine noEgoMode via majority vote across all source reports that declare the setting.
+    // Reports without statsViewSettings are treated as neutral (not counted either way).
+    const reportsWithSetting = reports.filter((r) => r?.stats?.statsViewSettings !== undefined);
+    const noEgoCount = reportsWithSetting.filter((r) => r.stats?.statsViewSettings?.noEgoMode === true).length;
+    const noEgoMode = reportsWithSetting.length > 0 && noEgoCount > reportsWithSetting.length / 2;
+
     return {
         commanderRows,
         playerRows,
@@ -519,6 +531,7 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
         reportsWithCommanderDetails,
         reportsMissingCommanderDetails,
         reportsWithAttendanceDetails,
-        reportsMissingAttendanceDetails
+        reportsMissingAttendanceDetails,
+        noEgoMode
     };
 };
