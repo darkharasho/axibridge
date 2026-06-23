@@ -10,6 +10,7 @@ import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { DEFENSE_METRICS } from '../statsMetrics';
 import { MetricDistributionCard } from '../components/MetricDistributionCard';
+import type { RoleClassificationEntry } from '../statsTypes';
 
 // For defense, lower damage taken / fewer downs = better; higher blocks/evades = better
 const DEFENSE_HIGHER_IS_BETTER = new Set([
@@ -83,9 +84,9 @@ export const DefenseSection = ({
     // ── No Ego mode: sidebar + one large MetricDistributionCard for active metric ──
     if (noEgoMode && stats.defensePlayers.length > 0) {
         const roleByAccount = new Map<string, 'support' | 'damage'>(
-          (Array.isArray((stats as any).roleClassifications) ? (stats as any).roleClassifications : [])
-            .filter((r: any) => r && (r.role === 'support' || r.role === 'damage'))
-            .map((r: any) => [String(r.account), r.role as 'support' | 'damage']),
+          ((stats.roleClassifications as RoleClassificationEntry[] | undefined) ?? [])
+            .filter((r): r is RoleClassificationEntry => !!r && (r.role === 'support' || r.role === 'damage'))
+            .map((r) => [String(r.account), r.role] as [string, 'support' | 'damage']),
         );
         const roleOf = (account: string): 'support' | 'damage' | undefined =>
           roleByAccount.get(account) ?? roleByAccount.get(String(account).split('::')[0]);

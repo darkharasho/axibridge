@@ -10,6 +10,7 @@ import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { OFFENSE_METRICS } from '../statsMetrics';
 import { MetricDistributionCard } from '../components/MetricDistributionCard';
+import type { RoleClassificationEntry } from '../statsTypes';
 
 // Metrics where lower is better (negatively oriented — your offense being negated)
 const OFFENSE_LOWER_IS_BETTER = new Set(['glanceRate', 'missed', 'evaded', 'blocked', 'invulned']);
@@ -57,9 +58,9 @@ export const OffenseSection = ({
     // ── No Ego mode: sidebar + one large MetricDistributionCard for active metric ──
     if (noEgoMode && stats.offensePlayers.length > 0) {
         const roleByAccount = new Map<string, 'support' | 'damage'>(
-          (Array.isArray((stats as any).roleClassifications) ? (stats as any).roleClassifications : [])
-            .filter((r: any) => r && (r.role === 'support' || r.role === 'damage'))
-            .map((r: any) => [String(r.account), r.role as 'support' | 'damage']),
+          ((stats.roleClassifications as RoleClassificationEntry[] | undefined) ?? [])
+            .filter((r): r is RoleClassificationEntry => !!r && (r.role === 'support' || r.role === 'damage'))
+            .map((r) => [String(r.account), r.role] as [string, 'support' | 'damage']),
         );
         const roleOf = (account: string): 'support' | 'damage' | undefined =>
           roleByAccount.get(account) ?? roleByAccount.get(String(account).split('::')[0]);

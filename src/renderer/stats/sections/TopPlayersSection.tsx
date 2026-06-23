@@ -4,6 +4,7 @@ import { TOP_STAT_ICONS } from '../topStatIcons';
 import { BoonGlyph } from '../../ui/BoonGlyph';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { MetricDistributionCard } from '../components/MetricDistributionCard';
+import type { RoleClassificationEntry } from '../statsTypes';
 
 type TopPlayersSectionProps = {
     showTopStats: boolean;
@@ -183,9 +184,9 @@ export const TopPlayersSection = ({
 
     if (noEgoMode) {
         const roleByAccount = new Map<string, 'support' | 'damage'>(
-            (Array.isArray((stats as any).roleClassifications) ? (stats as any).roleClassifications : [])
-                .filter((r: any) => r && (r.role === 'support' || r.role === 'damage'))
-                .map((r: any) => [String(r.account), r.role as 'support' | 'damage']),
+            ((stats.roleClassifications as RoleClassificationEntry[] | undefined) ?? [])
+                .filter((r): r is RoleClassificationEntry => !!r && (r.role === 'support' || r.role === 'damage'))
+                .map((r) => [String(r.account), r.role] as [string, 'support' | 'damage']),
         );
         const roleOf = (account: string): 'support' | 'damage' | undefined =>
             roleByAccount.get(account) ?? roleByAccount.get(String(account).split('::')[0]);
