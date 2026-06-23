@@ -60,7 +60,7 @@ export const SupportSection = ({
     const isExpanded = expandedSection === 'support-detailed';
     const [detailOpen, setDetailOpen] = useState(false);
 
-    // ── No Ego mode: one MetricDistributionCard per SUPPORT_METRICS entry ──
+    // ── No Ego mode: sidebar + one large MetricDistributionCard for active metric ──
     if (noEgoMode && stats.supportPlayers.length > 0) {
         const roleByAccount = new Map<string, 'support' | 'damage'>(
           (Array.isArray((stats as any).roleClassifications) ? (stats as any).roleClassifications : [])
@@ -84,6 +84,21 @@ export const SupportSection = ({
             if (supportViewMode === 'per60s') return (total * 60) / totalSeconds(row);
             return total;
         };
+        const activeMetric = SUPPORT_METRICS.find((e) => e.id === activeSupportStat) || SUPPORT_METRICS[0];
+        const activePlayers = stats.supportPlayers.map((row: any) => ({
+            account: row.account,
+            value: resolvedValue(row, activeMetric),
+            profession: row.profession,
+            professionList: row.professionList,
+            role: roleOf(row.account),
+        }));
+        const activeHigherIsBetter = !SUPPORT_LOWER_IS_BETTER.has(activeMetric.id);
+        const activeFormatValue = (val: number) => {
+            const decimals = activeMetric.isTime
+                ? 1
+                : (roundCountStats && supportViewMode === 'total' ? 0 : 2);
+            return formatWithCommas(val, decimals);
+        };
         return (
             <div>
                 <div className="flex flex-wrap items-center gap-2 mb-3.5">
@@ -92,93 +107,67 @@ export const SupportSection = ({
                         Support Detailed
                     </h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {SUPPORT_METRICS.map((metricEntry) => {
-                        const players = stats.supportPlayers.map((row: any) => ({
-                            account: row.account,
-                            value: resolvedValue(row, metricEntry),
-                            profession: row.profession,
-                            professionList: row.professionList,
-                            role: roleOf(row.account),
-                        }));
-                        const makeFormatValue = () => (val: number) => {
-                            const decimals = metricEntry.isTime
-                                ? 1
-                                : (roundCountStats && supportViewMode === 'total' ? 0 : 2);
-                            return formatWithCommas(val, decimals);
-                        };
-                        return (
-                            <MetricDistributionCard
-                                key={metricEntry.id}
-                                title={metricEntry.label}
-                                accentColor="var(--section-support)"
-                                higherIsBetter={!SUPPORT_LOWER_IS_BETTER.has(metricEntry.id)}
-                                players={players}
-                                formatValue={makeFormatValue()}
-                                renderProfessionIcon={renderProfessionIcon}
-                                roleAware
+                <StatsTableLayout
+                    expanded={false}
+                    sidebarClassName="pr-3 flex flex-col overflow-y-auto"
+                    sidebarStyle={undefined}
+                    contentClassName="overflow-hidden"
+                    contentStyle={undefined}
+                    sidebar={
+                        <>
+                            <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Support Tabs</div>
+                            <input
+                                value={supportSearch}
+                                onChange={(e) => setSupportSearch(e.target.value)}
+                                placeholder="Search..."
+                                className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
+                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
                             />
-                        );
-                    })}
-                </div>
-                <div className="mt-4">
-                    <button
-                        type="button"
-                        aria-expanded={detailOpen}
-                        onClick={() => setDetailOpen((v) => !v)}
-                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-[var(--radius-md)]"
-                        style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-hover)' }}
-                    >
-                        {detailOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                        Per-player detail
-                    </button>
-                    {detailOpen && (
-                        <div className="mt-3">
-                            <StatsTableLayout
-                                expanded={false}
-                                sidebarClassName="pr-3 flex flex-col overflow-y-auto"
-                                sidebarStyle={undefined}
-                                contentClassName="overflow-hidden"
-                                contentStyle={undefined}
-                                sidebar={
-                                    <>
-                                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Support Tabs</div>
-                                        <input
-                                            value={supportSearch}
-                                            onChange={(e) => setSupportSearch(e.target.value)}
-                                            placeholder="Search..."
-                                            className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
-                                            style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
-                                        />
-                                        <div className={sidebarListClass}>
-                                            {filteredSupportMetrics.map((metric) => (
-                                                <button
-                                                    key={metric.id}
-                                                    onClick={() => setActiveSupportStat(metric.id)}
-                                                    className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeSupportStat === metric.id
-                                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
-                                                        }`}
-                                                    style={activeSupportStat !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
-                                                >
-                                                    {metric.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </>
-                                }
-                                content={
-                                    <>
+                            <div className={sidebarListClass}>
+                                {filteredSupportMetrics.map((metric) => (
+                                    <button
+                                        key={metric.id}
+                                        onClick={() => setActiveSupportStat(metric.id)}
+                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeSupportStat === metric.id
+                                            ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
+                                            : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
+                                            }`}
+                                        style={activeSupportStat !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
+                                    >
+                                        {metric.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    }
+                    content={
+                        <div className="flex flex-col gap-4">
+                            <MetricDistributionCard
+                                large
+                                roleAware
+                                title={activeMetric.label}
+                                accentColor="var(--section-support)"
+                                higherIsBetter={activeHigherIsBetter}
+                                players={activePlayers}
+                                formatValue={activeFormatValue}
+                                renderProfessionIcon={renderProfessionIcon}
+                            />
+                            <div>
+                                <button
+                                    type="button"
+                                    aria-expanded={detailOpen}
+                                    onClick={() => setDetailOpen((v) => !v)}
+                                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-[var(--radius-md)]"
+                                    style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-hover)' }}
+                                >
+                                    {detailOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                                    Per-player detail
+                                </button>
+                                {detailOpen && (
+                                    <div className="mt-3">
                                         {(() => {
-                                            const metric = SUPPORT_METRICS.find((entry) => entry.id === activeSupportStat) || SUPPORT_METRICS[0];
-                                            const resolveSupportTotal = (row: any) => {
-                                                if (metric.id === 'condiCleanse') {
-                                                    const squad = row.supportTotals?.condiCleanse || 0;
-                                                    const self = row.supportTotals?.condiCleanseSelf || 0;
-                                                    return cleanseScope === 'all' ? squad + self : squad;
-                                                }
-                                                return row.supportTotals?.[metric.id] || 0;
-                                            };
+                                            const metric = activeMetric;
+                                            const resolveSupportTotal = (row: any) => resolveSupportTotalForMetric(row, metric.id);
                                             const tsec = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
                                             const rows = [...stats.supportPlayers]
                                                 .map((row: any) => ({
@@ -227,12 +216,12 @@ export const SupportSection = ({
                                                 />
                                             );
                                         })()}
-                                    </>
-                                }
-                            />
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    )}
-                </div>
+                    }
+                />
             </div>
         );
     }
