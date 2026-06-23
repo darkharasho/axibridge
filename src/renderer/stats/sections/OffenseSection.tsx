@@ -11,8 +11,8 @@ import { useStatsSharedContext } from '../StatsViewContext';
 import { OFFENSE_METRICS } from '../statsMetrics';
 import { MetricDistributionCard } from '../components/MetricDistributionCard';
 
-// Metrics where lower is better (negatively oriented)
-const OFFENSE_LOWER_IS_BETTER = new Set(['glanceRate', 'missed', 'evaded', 'blocked', 'invulned', 'againstDownedDamage']);
+// Metrics where lower is better (negatively oriented — your offense being negated)
+const OFFENSE_LOWER_IS_BETTER = new Set(['glanceRate', 'missed', 'evaded', 'blocked', 'invulned']);
 
 type OffenseSectionProps = {
     offenseSearch: string;

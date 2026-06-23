@@ -12,6 +12,10 @@ import { useStatsSharedContext } from '../StatsViewContext';
 import { SUPPORT_METRICS } from '../statsMetrics';
 import { MetricDistributionCard } from '../components/MetricDistributionCard';
 
+// All current support metrics are higher-is-better. Add metric ids here if any
+// lower-is-better metric is introduced (e.g. a "deaths taken" type metric).
+const SUPPORT_LOWER_IS_BETTER = new Set<string>([]);
+
 type SupportSectionProps = {
     supportSearch: string;
     setSupportSearch: (value: string) => void;
@@ -100,7 +104,7 @@ export const SupportSection = ({
                                 key={metricEntry.id}
                                 title={metricEntry.label}
                                 accentColor="var(--section-support)"
-                                higherIsBetter={true}
+                                higherIsBetter={!SUPPORT_LOWER_IS_BETTER.has(metricEntry.id)}
                                 players={players}
                                 formatValue={makeFormatValue()}
                                 renderProfessionIcon={renderProfessionIcon}
