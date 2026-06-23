@@ -3,6 +3,7 @@ import { TOP_STATS_CATALOG, DEFAULT_ENABLED_TOP_STATS, type TopStatDef } from '.
 import { TOP_STAT_ICONS } from '../topStatIcons';
 import { BoonGlyph } from '../../ui/BoonGlyph';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { MetricDistributionCard } from '../components/MetricDistributionCard';
 
 type TopPlayersSectionProps = {
     showTopStats: boolean;
@@ -13,6 +14,7 @@ type TopPlayersSectionProps = {
     formatTopStatValue: (value: number) => string;
     isMvpStatEnabled: (name: string) => boolean;
     enabledTopStats?: string[];
+    noEgoMode?: boolean;
 };
 
 const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit = '', onClick, active, rows, formatValue, renderProfessionIcon }: any) => {
@@ -141,6 +143,7 @@ export const TopPlayersSection = ({
     formatTopStatValue,
     isMvpStatEnabled,
     enabledTopStats = DEFAULT_ENABLED_TOP_STATS,
+    noEgoMode = false,
 }: TopPlayersSectionProps) => {
     const { stats, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
     if (!showTopStats) return null;
@@ -177,6 +180,45 @@ export const TopPlayersSection = ({
         }
         return formatTopStatValue(value);
     };
+
+    if (noEgoMode) {
+        return (
+            <div data-testid="squad-summary">
+                <div className="flex items-center gap-2 mb-3.5">
+                    <Trophy className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                        Squad Summary
+                    </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {enabledDefs.map((def) => {
+                        const rows =
+                            def.source.kind === 'boon'
+                                ? (stats.boonLeaderboards?.[def.source.boonId] ?? [])
+                                : (topStatsLeaderboards?.[def.source.key] ?? []);
+                        const players = (Array.isArray(rows) ? rows : []).map((r: any) => ({
+                            account: r.account,
+                            value: Number(r.value ?? 0),
+                            profession: r.profession,
+                            professionList: r.professionList,
+                        }));
+                        return (
+                            <MetricDistributionCard
+                                key={def.id}
+                                title={getCardTitle(def, isPerSecond, isPerMinute)}
+                                accentColor={def.color}
+                                higherIsBetter={def.higherIsBetter}
+                                players={players}
+                                unit={def.unit ?? ''}
+                                formatValue={(n) => formatValue(def, n)}
+                                renderProfessionIcon={renderProfessionIcon}
+                            />
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div>

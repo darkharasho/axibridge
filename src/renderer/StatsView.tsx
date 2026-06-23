@@ -4272,6 +4272,7 @@ type SpikeFight = {
                                     formatTopStatValue={formatTopStatValue}
                                     isMvpStatEnabled={isMvpStatEnabled}
                                     enabledTopStats={enabledTopStats}
+                                    noEgoMode={noEgoMode}
                                 />)}
                             </div>
 
@@ -4717,6 +4718,7 @@ type SpikeFight = {
                                 formatTopStatValue={formatTopStatValue}
                                 isMvpStatEnabled={isMvpStatEnabled}
                                 enabledTopStats={enabledTopStats}
+                                noEgoMode={noEgoMode}
                             /> },
                             { id: 'top-skills-outgoing', element: <TopSkillsSection
                                 topSkillsMetric={topSkillsMetric}
