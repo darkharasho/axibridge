@@ -47,3 +47,71 @@ export function computeSquadStat(
 
   return { mean, stdDev, min, max, count, players: sorted, needsImprovementOutliers };
 }
+
+export type PlayerRole = 'support' | 'damage';
+
+export interface CohortStatPlayer extends SquadStatPlayer {
+  role?: PlayerRole;
+}
+
+export interface CohortOutlier extends SquadStatPlayer {
+  role?: PlayerRole;
+  baseline: 'support' | 'damage' | 'squad';
+  sigmaGap: number;
+}
+
+export interface CohortStatSummary {
+  support?: SquadStatSummary;
+  damage?: SquadStatSummary;
+  squad: SquadStatSummary;
+  needsImprovementOutliers: CohortOutlier[];
+}
+
+export function computeCohortStat(
+  players: CohortStatPlayer[],
+  higherIsBetter: boolean,
+  sigmaThreshold = 1.5,
+  minCohortSize = 3,
+): CohortStatSummary {
+  const valid = (Array.isArray(players) ? players : [])
+    .map((p) => ({ ...p, value: Number(p?.value) }))
+    .filter((p) => Number.isFinite(p.value));
+
+  const squad = computeSquadStat(valid, higherIsBetter, sigmaThreshold);
+  const supportPlayers = valid.filter((p) => p.role === 'support');
+  const damagePlayers = valid.filter((p) => p.role === 'damage');
+  const support = supportPlayers.length >= minCohortSize
+    ? computeSquadStat(supportPlayers, higherIsBetter, sigmaThreshold)
+    : undefined;
+  const damage = damagePlayers.length >= minCohortSize
+    ? computeSquadStat(damagePlayers, higherIsBetter, sigmaThreshold)
+    : undefined;
+
+  const baselineFor = (role?: PlayerRole): { summary: SquadStatSummary; label: 'support' | 'damage' | 'squad' } => {
+    if (role === 'support' && support) return { summary: support, label: 'support' };
+    if (role === 'damage' && damage) return { summary: damage, label: 'damage' };
+    return { summary: squad, label: 'squad' };
+  };
+
+  const needsImprovementOutliers: CohortOutlier[] = [];
+  for (const p of valid) {
+    const { summary, label } = baselineFor(p.role);
+    if (summary.stdDev <= 0) continue;
+    const diff = higherIsBetter ? summary.mean - p.value : p.value - summary.mean;
+    const sigmaGap = diff / summary.stdDev;
+    if (sigmaGap >= sigmaThreshold) {
+      needsImprovementOutliers.push({
+        account: p.account,
+        value: p.value,
+        profession: p.profession,
+        professionList: p.professionList,
+        role: p.role,
+        baseline: label,
+        sigmaGap,
+      });
+    }
+  }
+  needsImprovementOutliers.sort((a, b) => b.sigmaGap - a.sigmaGap);
+
+  return { support, damage, squad, needsImprovementOutliers };
+}
