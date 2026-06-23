@@ -13,11 +13,11 @@ const makeDefensePlayer = (account: string, damageBarrier: number) => ({
     defenseRateWeights: {},
 });
 
-// Role-aware fixture: 10 damage players tightly clustered at high damageBarrier (10000),
+// Role-aware fixture: 9 damage players at high damageBarrier (10000) + 1 at 1500 (DmgLow.9999),
 // and 3 support players tightly clustered at very low damageBarrier (100).
-// Squad math: 13 players, mean = (10*10000 + 3*100)/13 ≈ 7715, σ ≈ 4171
-// cutoff (mean - 1.5σ) ≈ 7715 - 6257 ≈ 1458. Support players at 100 are < 1458 → FLAGGED squad-wide.
-// With roleAware: support cohort has stdDev=0 → NOT flagged within cohort.
+// Damage cohort math: mean = (9*10000 + 1500)/10 = 9150, σ ≈ 2549.
+// cutoff (mean - 1.5σ) ≈ 9150 - 3824 ≈ 5326. DmgLow.9999 at 1500 < 5326 → FLAGGED within damage cohort.
+// Support cohort: stdDev=0 → NOT flagged within cohort.
 const roleAwarePlayers = [
     makeDefensePlayer('Damage1.1111', 10000),
     makeDefensePlayer('Damage2.2222', 10000),
@@ -28,7 +28,7 @@ const roleAwarePlayers = [
     makeDefensePlayer('Damage7.7777', 10000),
     makeDefensePlayer('Damage8.8888', 10000),
     makeDefensePlayer('Damage9.9999', 10000),
-    makeDefensePlayer('Damage10.0001', 10000),
+    makeDefensePlayer('DmgLow.9999', 1500),
     makeDefensePlayer('Support1.6666', 100),
     makeDefensePlayer('Support2.7777', 100),
     makeDefensePlayer('Support3.8888', 100),
@@ -44,7 +44,7 @@ const roleClassifications = [
     { account: 'Damage7.7777', role: 'damage' },
     { account: 'Damage8.8888', role: 'damage' },
     { account: 'Damage9.9999', role: 'damage' },
-    { account: 'Damage10.0001', role: 'damage' },
+    { account: 'DmgLow.9999', role: 'damage' },
     { account: 'Support1.6666', role: 'support' },
     { account: 'Support2.7777', role: 'support' },
     { account: 'Support3.8888', role: 'support' },
@@ -107,6 +107,9 @@ describe('DefenseSection — No Ego', () => {
 
         const outlierEls = screen.queryAllByTestId('metric-card-outliers');
         const outlierText = outlierEls.map((el) => el.textContent).join(' ');
+        // POSITIVE: DmgLow.9999 is ~3σ below the damage cohort mean → must appear as outlier
+        expect(outlierText).toContain('DmgLow.9999');
+        // NEGATIVE: support players judged within their own zero-variance cohort → NOT flagged
         expect(outlierText).not.toContain('Support1.6666');
         expect(outlierText).not.toContain('Support2.7777');
         expect(outlierText).not.toContain('Support3.8888');

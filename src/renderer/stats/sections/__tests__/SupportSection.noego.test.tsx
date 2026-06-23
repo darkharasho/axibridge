@@ -6,6 +6,16 @@ import { StatsSharedContext } from '../../StatsViewContext';
 // condiCleanse: uses supportTotals.condiCleanse (squad) + supportTotals.condiCleanseSelf (self)
 // cleanseScope='all' → squad + self; 'squad' → squad only
 // We use cleanseScope='squad' so value = row.supportTotals.condiCleanse directly.
+const makeDamagePlayer = (account: string, condiCleanse: number) => ({
+    account,
+    profession: 'Guardian',
+    professionList: ['Guardian'],
+    totalFightMs: 120000,
+    activeMs: 120000,
+    supportTotals: { condiCleanse, condiCleanseSelf: 0 },
+    supportRateWeights: {},
+});
+
 const makeSupportPlayer = (account: string, condiCleanse: number) => ({
     account,
     profession: 'Druid',
@@ -16,22 +26,22 @@ const makeSupportPlayer = (account: string, condiCleanse: number) => ({
     supportRateWeights: {},
 });
 
-// Role-aware fixture: 10 damage players tightly clustered at high condiCleanse (10000),
+// Role-aware fixture: 9 damage players at high condiCleanse (10000) + 1 at 1500 (DmgLow.9999),
 // and 3 support players tightly clustered at very low condiCleanse (100).
-// Squad math: mean ≈ 7715, σ ≈ 4171, cutoff (mean - 1.5σ) ≈ 1458.
-// Support players at 100 are < 1458 → FLAGGED squad-wide.
-// With roleAware: support cohort has stdDev=0 → NOT flagged within cohort.
+// Damage cohort math: mean = (9*10000 + 1500)/10 = 9150, σ ≈ 2549.
+// cutoff (mean - 1.5σ) ≈ 9150 - 3824 ≈ 5326. DmgLow.9999 at 1500 < 5326 → FLAGGED within damage cohort.
+// Support cohort: stdDev=0 → NOT flagged within cohort.
 const roleAwarePlayers = [
-    makeSupportPlayer('Damage1.1111', 10000),
-    makeSupportPlayer('Damage2.2222', 10000),
-    makeSupportPlayer('Damage3.3333', 10000),
-    makeSupportPlayer('Damage4.4444', 10000),
-    makeSupportPlayer('Damage5.5555', 10000),
-    makeSupportPlayer('Damage6.6666', 10000),
-    makeSupportPlayer('Damage7.7777', 10000),
-    makeSupportPlayer('Damage8.8888', 10000),
-    makeSupportPlayer('Damage9.9999', 10000),
-    makeSupportPlayer('Damage10.0001', 10000),
+    makeDamagePlayer('Damage1.1111', 10000),
+    makeDamagePlayer('Damage2.2222', 10000),
+    makeDamagePlayer('Damage3.3333', 10000),
+    makeDamagePlayer('Damage4.4444', 10000),
+    makeDamagePlayer('Damage5.5555', 10000),
+    makeDamagePlayer('Damage6.6666', 10000),
+    makeDamagePlayer('Damage7.7777', 10000),
+    makeDamagePlayer('Damage8.8888', 10000),
+    makeDamagePlayer('Damage9.9999', 10000),
+    makeDamagePlayer('DmgLow.9999', 1500),
     makeSupportPlayer('Support1.6666', 100),
     makeSupportPlayer('Support2.7777', 100),
     makeSupportPlayer('Support3.8888', 100),
@@ -47,7 +57,7 @@ const roleClassifications = [
     { account: 'Damage7.7777', role: 'damage' },
     { account: 'Damage8.8888', role: 'damage' },
     { account: 'Damage9.9999', role: 'damage' },
-    { account: 'Damage10.0001', role: 'damage' },
+    { account: 'DmgLow.9999', role: 'damage' },
     { account: 'Support1.6666', role: 'support' },
     { account: 'Support2.7777', role: 'support' },
     { account: 'Support3.8888', role: 'support' },
@@ -114,6 +124,9 @@ describe('SupportSection — No Ego', () => {
 
         const outlierEls = screen.queryAllByTestId('metric-card-outliers');
         const outlierText = outlierEls.map((el) => el.textContent).join(' ');
+        // POSITIVE: DmgLow.9999 is ~3σ below the damage cohort mean → must appear as outlier
+        expect(outlierText).toContain('DmgLow.9999');
+        // NEGATIVE: support players judged within their own zero-variance cohort → NOT flagged
         expect(outlierText).not.toContain('Support1.6666');
         expect(outlierText).not.toContain('Support2.7777');
         expect(outlierText).not.toContain('Support3.8888');
