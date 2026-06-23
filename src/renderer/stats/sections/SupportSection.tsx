@@ -76,6 +76,7 @@ export const SupportSection = ({
                 icon={<span className="flex shrink-0" style={{ color: 'var(--section-support)' }}><SupportPlusIcon className="w-4 h-4" /></span>}
                 accentColor="var(--section-support)"
                 sidebarLabel="Support Tabs"
+                keyPrefix="noego-support"
                 metrics={SUPPORT_METRICS}
                 filteredMetrics={filteredSupportMetrics}
                 players={stats.supportPlayers}

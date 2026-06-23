@@ -75,6 +75,7 @@ export const OffenseSection = ({
                 icon={<Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />}
                 accentColor="var(--section-offense)"
                 sidebarLabel="Offensive Tabs"
+                keyPrefix="noego-offense"
                 metrics={OFFENSE_METRICS}
                 filteredMetrics={filteredOffenseMetrics}
                 players={stats.offensePlayers}

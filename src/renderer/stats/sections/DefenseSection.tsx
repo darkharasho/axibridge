@@ -88,6 +88,7 @@ export const DefenseSection = ({
                 icon={<Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />}
                 accentColor="var(--section-defense)"
                 sidebarLabel="Defensive Tabs"
+                keyPrefix="noego-defense"
                 metrics={DEFENSE_METRICS}
                 filteredMetrics={filteredDefenseMetrics}
                 players={stats.defensePlayers}
