@@ -182,6 +182,14 @@ export const TopPlayersSection = ({
     };
 
     if (noEgoMode) {
+        const roleByAccount = new Map<string, 'support' | 'damage'>(
+            (Array.isArray((stats as any).roleClassifications) ? (stats as any).roleClassifications : [])
+                .filter((r: any) => r && (r.role === 'support' || r.role === 'damage'))
+                .map((r: any) => [String(r.account), r.role as 'support' | 'damage']),
+        );
+        const roleOf = (account: string): 'support' | 'damage' | undefined =>
+            roleByAccount.get(account) ?? roleByAccount.get(String(account).split('::')[0]);
+
         return (
             <div data-testid="squad-summary">
                 <div className="flex items-center gap-2 mb-3.5">
@@ -201,6 +209,7 @@ export const TopPlayersSection = ({
                             value: Number(r.value ?? 0),
                             profession: r.profession,
                             professionList: r.professionList,
+                            role: roleOf(r.account),
                         }));
                         return (
                             <MetricDistributionCard
@@ -210,6 +219,7 @@ export const TopPlayersSection = ({
                                 higherIsBetter={def.higherIsBetter}
                                 players={players}
                                 unit={def.unit ?? ''}
+                                roleAware
                                 formatValue={(n) => formatValue(def, n)}
                                 renderProfessionIcon={renderProfessionIcon}
                             />

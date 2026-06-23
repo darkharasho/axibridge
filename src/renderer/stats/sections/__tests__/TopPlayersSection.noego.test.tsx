@@ -49,4 +49,40 @@ describe('TopPlayersSection — No Ego', () => {
     renderWith({ ...base, noEgoMode: false });
     expect(screen.queryByTestId('squad-summary')).toBeNull();
   });
+
+  it('does not flag a support player on a damage-style leaderboard (role-aware)', () => {
+    const ctxRole: any = {
+      stats: {
+        leaderboards: {
+          downContrib: [
+            { account: 'D1', value: 40, profession: 'Guardian' },
+            { account: 'D2', value: 42, profession: 'Guardian' },
+            { account: 'D3', value: 44, profession: 'Guardian' },
+            { account: 'D4', value: 46, profession: 'Guardian' },
+            { account: 'D5', value: 48, profession: 'Guardian' },
+            { account: 'Healer1', value: 3, profession: 'Druid' },
+            { account: 'Healer2', value: 4, profession: 'Druid' },
+            { account: 'Healer3', value: 5, profession: 'Druid' },
+            { account: 'Healer4', value: 4, profession: 'Druid' },
+          ],
+        },
+        roleClassifications: [
+          { account: 'D1', role: 'damage' }, { account: 'D2', role: 'damage' },
+          { account: 'D3', role: 'damage' }, { account: 'D4', role: 'damage' },
+          { account: 'D5', role: 'damage' },
+          { account: 'Healer1', role: 'support' }, { account: 'Healer2', role: 'support' },
+          { account: 'Healer3', role: 'support' }, { account: 'Healer4', role: 'support' },
+        ],
+      },
+      formatWithCommas: (n: number) => String(n),
+      renderProfessionIcon: () => null,
+    };
+    render(
+      <StatsSharedContext.Provider value={ctxRole}>
+        <TopPlayersSection {...base} noEgoMode enabledTopStats={['downContrib']} />
+      </StatsSharedContext.Provider>,
+    );
+    const outliers = screen.getByTestId('metric-card-outliers');
+    expect(outliers).not.toHaveTextContent('Healer1');
+  });
 });
