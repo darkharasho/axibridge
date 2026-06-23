@@ -71,7 +71,7 @@ describe('NoEgoRollup', () => {
 
         // MetricDistributionCard renders metric-card-mean elements inside
         const meanEls = commanderSection.querySelectorAll('[data-testid="metric-card-mean"]');
-        expect(meanEls.length).toBeGreaterThanOrEqual(1);
+        expect(meanEls.length).toBe(5);
     });
 
     it('renders rollup-no-ego-players container with MetricDistributionCard mean values', () => {
@@ -81,7 +81,7 @@ describe('NoEgoRollup', () => {
         expect(playerSection).toBeInTheDocument();
 
         const meanEls = playerSection.querySelectorAll('[data-testid="metric-card-mean"]');
-        expect(meanEls.length).toBeGreaterThanOrEqual(1);
+        expect(meanEls.length).toBe(2);
     });
 
     it('renders both sections when both row arrays are populated', () => {
