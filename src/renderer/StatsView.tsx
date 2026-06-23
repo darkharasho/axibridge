@@ -4276,7 +4276,7 @@ type SpikeFight = {
                                 />)}
                             </div>
 
-                            {renderSectionWrap(<TopSkillsSection
+                            {!noEgoMode && renderSectionWrap(<TopSkillsSection
                                 topSkillsMetric={topSkillsMetric}
                                 onTopSkillsMetricChange={updateTopSkillsMetric}
                             />)}
@@ -4723,10 +4723,10 @@ type SpikeFight = {
                                 enabledTopStats={enabledTopStats}
                                 noEgoMode={noEgoMode}
                             /> },
-                            { id: 'top-skills-outgoing', element: <TopSkillsSection
+                            ...(!noEgoMode ? [{ id: 'top-skills-outgoing', element: <TopSkillsSection
                                 topSkillsMetric={topSkillsMetric}
                                 onTopSkillsMetricChange={updateTopSkillsMetric}
-                            /> },
+                            /> }] : []),
                             { id: 'squad-composition', element: <SquadCompositionSection
                                 sortedSquadClassData={sortedSquadClassData}
                                 sortedEnemyClassData={sortedEnemyClassData}
@@ -5162,7 +5162,7 @@ type SpikeFight = {
                                 formatCastRateValue={formatCastRateValue}
                                 formatCastCountValue={formatCastCountValue}
                             /> },
-                            { id: 'player-comparison', element: <PlayerComparisonSection
+                            ...(!noEgoMode ? [{ id: 'player-comparison', element: <PlayerComparisonSection
                                 comparisonMode={comparisonMode}
                                 setComparisonMode={setComparisonMode}
                                 comparisonCategory={comparisonCategory}
@@ -5171,7 +5171,7 @@ type SpikeFight = {
                                 setPlayerAKey={setComparisonPlayerAKey}
                                 playerBKey={comparisonPlayerBKey}
                                 setPlayerBKey={setComparisonPlayerBKey}
-                            /> },
+                            /> }] : []),
                         ])}
                         {renderGroup('map', [
                             { id: 'replay', element: <div style={{ height: '88vh', minHeight: 500, maxHeight: 1000, display: 'flex', width: '100%' }}>{r2ReplayStatus === 'loading' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#9ca3af' }}>Loading replay data...</div> : r2ReplayStatus === 'error' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#fb7185' }}>Failed to load replay data.</div> : <ReplaySection fights={getReplayFights()} />}</div> },
