@@ -16,8 +16,10 @@ import { Gw2BoonIcon } from '../renderer/ui/Gw2BoonIcon';
 import { Gw2DamMitIcon } from '../renderer/ui/Gw2DamMitIcon';
 import { Gw2FuryIcon } from '../renderer/ui/Gw2FuryIcon';
 import { Gw2SigilIcon } from '../renderer/ui/Gw2SigilIcon';
-import { buildRollupData, parseRollupSourcesFile, RollupData, RollupProfessionUsage } from './rollup';
+import { buildRollupData, parseRollupSourcesFile, RollupData, RollupProfessionUsage, RollupCommanderRow, RollupPlayerRow } from './rollup';
 import { getProfessionColor } from '../shared/professionUtils';
+import { MetricDistributionCard } from '../renderer/stats/components/MetricDistributionCard';
+import type { SquadStatPlayer } from '../shared/squadStats';
 import type { ReportPayload, ReportIndexEntry } from '../shared/reportTypes';
 import { expandIconIndex, normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
 import {
@@ -201,6 +203,122 @@ const BorderlandsPie = ({ value }: { value: number | null | undefined }) => {
         </svg>
     );
 };
+
+// ── No Ego Rollup ──────────────────────────────────────────────────────────────
+// Exported for unit tests. Renders MetricDistributionCard grids instead of
+// ranked tables when noEgoMode is true.
+export interface NoEgoRollupProps {
+    commanderRows: RollupCommanderRow[];
+    playerRows: RollupPlayerRow[];
+}
+
+export function NoEgoRollup({ commanderRows, playerRows }: NoEgoRollupProps) {
+    const fmtInt = (n: number) => Math.round(n).toString();
+    const fmtDecimal1 = (n: number) => n.toFixed(1);
+    const fmtDecimal2 = (n: number) => n.toFixed(2);
+
+    const commanderCards: Array<{
+        title: string;
+        players: SquadStatPlayer[];
+        higherIsBetter: boolean;
+        formatValue: (n: number) => string;
+        unit?: string;
+    }> = [
+        {
+            title: 'Raids Led',
+            players: commanderRows.map((r) => ({ account: r.account, value: r.runs, profession: r.profession })),
+            higherIsBetter: true,
+            formatValue: fmtInt,
+        },
+        {
+            title: 'Fights Led',
+            players: commanderRows.map((r) => ({ account: r.account, value: r.fightsLed, profession: r.profession })),
+            higherIsBetter: true,
+            formatValue: fmtInt,
+        },
+        {
+            title: 'Kills',
+            players: commanderRows.map((r) => ({ account: r.account, value: r.kills, profession: r.profession })),
+            higherIsBetter: true,
+            formatValue: fmtInt,
+        },
+        {
+            title: 'Commander Deaths',
+            players: commanderRows.map((r) => ({ account: r.account, value: r.commanderDeaths, profession: r.profession })),
+            higherIsBetter: false,
+            formatValue: fmtInt,
+        },
+        {
+            title: 'KDR',
+            players: commanderRows.map((r) => ({ account: r.account, value: r.kdr, profession: r.profession })),
+            higherIsBetter: true,
+            formatValue: fmtDecimal2,
+        },
+    ];
+
+    const playerCards: Array<{
+        title: string;
+        players: SquadStatPlayer[];
+        higherIsBetter: boolean;
+        formatValue: (n: number) => string;
+        unit?: string;
+    }> = [
+        {
+            title: 'Raids Attended',
+            players: playerRows.map((r) => ({ account: r.account, value: r.runs, profession: r.profession })),
+            higherIsBetter: true,
+            formatValue: fmtInt,
+        },
+        {
+            title: 'Combat Time',
+            players: playerRows.map((r) => ({ account: r.account, value: r.combatTimeMs / 60000, profession: r.profession })),
+            higherIsBetter: true,
+            formatValue: fmtDecimal1,
+            unit: 'min',
+        },
+    ];
+
+    return (
+        <>
+            {commanderRows.length > 0 && (
+                <div
+                    data-testid="rollup-no-ego-commanders"
+                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+                >
+                    {commanderCards.map((card) => (
+                        <MetricDistributionCard
+                            key={card.title}
+                            title={card.title}
+                            accentColor="#fb923c"
+                            higherIsBetter={card.higherIsBetter}
+                            players={card.players}
+                            formatValue={card.formatValue}
+                            unit={card.unit}
+                        />
+                    ))}
+                </div>
+            )}
+            {playerRows.length > 0 && (
+                <div
+                    data-testid="rollup-no-ego-players"
+                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+                >
+                    {playerCards.map((card) => (
+                        <MetricDistributionCard
+                            key={card.title}
+                            title={card.title}
+                            accentColor="#34d399"
+                            higherIsBetter={card.higherIsBetter}
+                            players={card.players}
+                            formatValue={card.formatValue}
+                            unit={card.unit}
+                        />
+                    ))}
+                </div>
+            )}
+        </>
+    );
+}
 
 export function ReportApp() {
     const initialSearchParams = useMemo(() => new URLSearchParams(window.location.search), []);
@@ -1975,9 +2093,7 @@ export function ReportApp() {
                                             {rollupData.commanderRows.length === 0 ? (
                                                 <div className="text-sm text-gray-400">No commander data found yet.</div>
                                             ) : rollupData.noEgoMode ? (
-                                                <div className="rounded-2xl border border-white/5 bg-black/25 px-5 py-6 text-sm text-gray-400" data-testid="rollup-no-ego-commanders">
-                                                    Individual rankings are hidden — No Ego Mode is enabled. {rollupData.commanderRows.length} commander{rollupData.commanderRows.length === 1 ? '' : 's'} contributed across {rollupData.uniqueRaids} raid{rollupData.uniqueRaids === 1 ? '' : 's'}.
-                                                </div>
+                                                <NoEgoRollup commanderRows={rollupData.commanderRows} playerRows={[]} />
                                             ) : (
                                                 <div className="rounded-2xl border border-white/5 bg-black/25 overflow-hidden">
                                                     <div className="border-b border-white/5 px-3 py-3 sm:px-4">
@@ -2088,9 +2204,7 @@ export function ReportApp() {
                                             {rollupData.playerRows.length === 0 ? (
                                                 <div className="text-sm text-gray-400">No attendance data found yet.</div>
                                             ) : rollupData.noEgoMode ? (
-                                                <div className="rounded-2xl border border-white/5 bg-black/25 px-5 py-6 text-sm text-gray-400" data-testid="rollup-no-ego-players">
-                                                    Individual rankings are hidden — No Ego Mode is enabled. {rollupData.playerRows.length} player{rollupData.playerRows.length === 1 ? '' : 's'} attended across {rollupData.uniqueRaids} raid{rollupData.uniqueRaids === 1 ? '' : 's'}.
-                                                </div>
+                                                <NoEgoRollup commanderRows={[]} playerRows={rollupData.playerRows} />
                                             ) : (
                                                 <div className="rounded-2xl border border-white/5 bg-black/25 overflow-hidden">
                                                     <div className="border-b border-white/5 px-3 py-3 sm:px-4">
