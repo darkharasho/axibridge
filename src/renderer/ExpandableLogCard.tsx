@@ -3,7 +3,7 @@ import { useParticleEffect, PRESETS } from './particles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EASE, DURATION } from './motion';
 import { ChevronDown, ChevronUp, ExternalLink, Trash2 } from 'lucide-react';
-import { getPlayerDamage, getPlayerDps, getPlayerDownsTaken, getPlayerDeaths, getPlayerDamageTaken, getPlayerDodges, getPlayerMissed, getPlayerBlocked, getPlayerEvaded, getPlayerResurrects, getTargetStatTotal } from '../shared/dashboardMetrics';
+import { getPlayerDamage, getPlayerDps, getPlayerDownsTaken, getPlayerDeaths, getPlayerDamageTaken, getPlayerDodges, getPlayerMissed, getPlayerBlocked, getPlayerEvaded, getPlayerResurrects, getPlayerDistanceToTag, getTargetStatTotal } from '../shared/dashboardMetrics';
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeIncomingDisruptions as getIncomingDisruptions, computeDownContribution as getPlayerDownContribution, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl, computeSquadBarrier as getPlayerSquadBarrier, computeSquadHealing as getPlayerSquadHealing } from '../shared/combatMetrics';
 import { Player } from '../shared/dpsReportTypes';
 import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DisruptionMethod, IEmbedStatSettings } from './global.d';
@@ -573,15 +573,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         });
     }
 
-    const getDistanceToTag = (p: any) => {
-        const stats = p.statsAll?.[0];
-        const distToCom = stats?.distToCom;
-        if (distToCom !== undefined && distToCom !== null) {
-            return distToCom;
-        }
-        const stackDist = stats?.stackDist;
-        return stackDist || 0;
-    };
+    const getDistanceToTag = (p: any) => getPlayerDistanceToTag(p);
     const getResurrects = (p: any) => p.support?.[0]?.resurrects || 0;
     const getBreakbarDamage = (p: any) => p.dpsAll?.[0]?.breakbarDamage || 0;
     const getDamageTaken = (p: any) => p.defenses?.[0]?.damageTaken || 0;

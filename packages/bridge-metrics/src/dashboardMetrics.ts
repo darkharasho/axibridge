@@ -21,10 +21,21 @@ export const getPlayerStrips = (player: Player, method: DisruptionMethod = DEFAU
 export const getPlayerResurrects = (player: Player) =>
     player.support?.[0]?.resurrects || 0;
 
+// EI emits `statsAll[0].distToCom` (distance to commander) with a sentinel when the
+// squad has no commander: older EI used the string "Infinity", EI v3.24 switched to
+// the number -1. Either must be treated as "no commander distance" so callers fall
+// back to `stackDist`. A real commander distance is a finite number >= 0 (the
+// commander's own distToCom is a legitimate 0).
+export const resolveCommanderDistance = (distToCom: unknown): number | null => {
+    if (typeof distToCom !== 'number') return null; // undefined / null / "Infinity"
+    if (!Number.isFinite(distToCom) || distToCom < 0) return null; // -1 sentinel / Infinity
+    return distToCom;
+};
+
 export const getPlayerDistanceToTag = (player: Player) => {
     const stats = player.statsAll?.[0];
-    const distToCom = stats?.distToCom;
-    if (distToCom !== undefined && distToCom !== null) {
+    const distToCom = resolveCommanderDistance(stats?.distToCom);
+    if (distToCom !== null) {
         return distToCom;
     }
     return stats?.stackDist || 0;

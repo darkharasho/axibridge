@@ -7,6 +7,8 @@
  * has no log details at render time — can still draw party overlays.
  */
 
+import { resolveCommanderDistance } from '@axiapps/bridge-metrics';
+
 export type StabPerfPlayerData = {
     group: number;
     displayName: string;
@@ -179,7 +181,9 @@ export function ingestLogStabPerformance(log: any, acc: StabPerfAccumulator): vo
     squadPlayers.forEach((player: any) => {
         const playerAccount = String(player?.account || player?.name || 'Unknown');
         const group = Number(player?.group || 0);
-        const fallbackDist = Number((player as any)?.statsAll?.[0]?.distToCom || (player as any)?.statsAll?.[0]?.stackDist || 0);
+        const distStats = (player as any)?.statsAll?.[0];
+        const cmdDist = resolveCommanderDistance(distStats?.distToCom);
+        const fallbackDist = cmdDist !== null ? cmdDist : Number(distStats?.stackDist || 0);
         const stacks = computeStabStacks(player, bucketCount).map(round1);
         const deaths = computeDeaths(player, bucketCount);
         const distances = computeDistances(player, cmdPositions, cmdOffset, pollingRate, inchesToPixel, fallbackDist, bucketCount).map(round0);

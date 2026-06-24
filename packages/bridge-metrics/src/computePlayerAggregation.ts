@@ -1,5 +1,5 @@
 
-import { getPlayerCleanses, getPlayerStrips, getPlayerOutgoingInterrupts, getPlayerDamageTaken, getPlayerBreakbarDamage, getPlayerBlocked, getPlayerEvaded, getPlayerMissed, getTargetStatTotal } from './dashboardMetrics';
+import { getPlayerCleanses, getPlayerStrips, getPlayerOutgoingInterrupts, getPlayerDamageTaken, getPlayerBreakbarDamage, getPlayerBlocked, getPlayerEvaded, getPlayerMissed, getTargetStatTotal, resolveCommanderDistance } from './dashboardMetrics';
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeDownContribution as getPlayerDownContribution, computeSquadHealing as getPlayerSquadHealing, computeSquadBarrier as getPlayerSquadBarrier, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl } from './combatMetrics';
 import { Player } from './dpsReportTypes';
 import { DisruptionMethod } from './metricsSettings';
@@ -571,7 +571,8 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
 
     const getDistanceToTag = (p: any) => {
         const stats = p.statsAll?.[0];
-        if (stats?.distToCom !== undefined && stats?.distToCom !== 'Infinity') return Math.round(Number(stats.distToCom));
+        const commanderDist = resolveCommanderDistance(stats?.distToCom);
+        if (commanderDist !== null) return Math.round(commanderDist);
         if (stats?.stackDist !== undefined) return Math.round(Number(stats.stackDist)) || 0;
         if (p.hasCommanderTag) return 0;
 

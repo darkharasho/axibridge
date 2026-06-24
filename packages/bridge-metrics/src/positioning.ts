@@ -1,4 +1,6 @@
 // src/positioning.ts
+import { resolveCommanderDistance } from './dashboardMetrics'
+
 export type ReplayDegree = 'full' | 'coarse' | 'none'
 
 type AnyPlayer = { notInSquad?: boolean; hasCommanderTag?: boolean; account?: string; profession?: string
@@ -123,7 +125,7 @@ export function classifyDegree(report: ParsedReport): ReplayDegree {
   const commander = squad.find((p) => p?.hasCommanderTag)
   const tagPositions = commander?.combatReplayData?.positions ?? []
   if (commander && tagPositions.length > 0 && (meta.pollingRate ?? 0) > 0 && (meta.inchToPixel ?? 0) > 0) return 'full'
-  if (squad.some((p) => typeof p?.statsAll?.[0]?.distToCom === 'number')) return 'coarse'
+  if (squad.some((p) => resolveCommanderDistance(p?.statsAll?.[0]?.distToCom) !== null)) return 'coarse'
   return 'none'
 }
 
@@ -196,8 +198,8 @@ export function computePositioning(report: ParsedReport): PositioningSummary {
     for (const p of squad) {
       const account = p?.account
       if (!account) continue
-      const distToCom = p?.statsAll?.[0]?.distToCom
-      if (typeof distToCom !== 'number') continue
+      const distToCom = resolveCommanderDistance(p?.statsAll?.[0]?.distToCom)
+      if (distToCom === null) continue
       perPlayer.push({ account, avgDistToTag: distToCom, peakDistToTag: distToCom })
     }
     perPlayer.sort((a, b) => b.peakDistToTag - a.peakDistToTag)
