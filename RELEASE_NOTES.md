@@ -1,9 +1,9 @@
 # Release Notes
 
-Version v2.12.1 — June 23, 2026
+Version v2.12.2 — June 24, 2026
 
-## Stun Breaks Are Back
+## Fixed: "Closest to Tag" Broken on Commander-less Fights
 
-Stun Breaks and Removed Stun Duration in Support Detailed were showing 0.00 for everyone. The latest Elite Insights moved where it reports those numbers, and the app was still looking in the old spot.
+Elite Insights v3.24 changed how it reports distance when there's no commander in the squad — it now emits `-1` instead of the old string `"Infinity"`. AxiBridge was treating that `-1` as a real distance value, so "Closest to Tag" would show broken (near-zero) stats on fights without a commander tag.
 
-Fixed — the values show up correctly again. This applies to new logs going forward; older reports already in your history will keep whatever they had.
+Both sentinels are now handled correctly. Commander-less fights fall back to stack distance as intended, and fights with a real commander tag continue to work as before.
