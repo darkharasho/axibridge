@@ -37,7 +37,10 @@ const boon = (boonId: string, stacking: boolean): TopStatSource => ({ kind: 'boo
 
 export const TOP_STATS_CATALOG: TopStatDef[] = [
   // Offense
-  { id: 'dps', label: 'DPS', category: 'offense', color: CAT_COLOR.offense, icon: 'Swords', higherIsBetter: true, source: lb('dps'), defaultOn: false, supportsRate: true },
+  // DPS is already a rate (total damage / total fight time), so it reads the same in
+  // every mode — supportsRate:false keeps the card from showing a "DPS /s" title.
+  // Use the Damage stat with the per-second toggle for a damage-rate over time.
+  { id: 'dps', label: 'DPS', category: 'offense', color: CAT_COLOR.offense, icon: 'Swords', higherIsBetter: true, source: lb('dps'), defaultOn: false, supportsRate: false },
   { id: 'damage', label: 'Damage', category: 'offense', color: CAT_COLOR.offense, icon: 'Flame', higherIsBetter: true, source: lb('damage'), defaultOn: false, supportsRate: true },
   { id: 'downContrib', label: 'Down Contribution', category: 'offense', color: '#f87171', icon: 'HelpingHand', higherIsBetter: true, source: lb('downContrib'), defaultOn: true, supportsRate: true },
   { id: 'kills', label: 'Kills', category: 'offense', color: '#fb923c', icon: 'Swords', higherIsBetter: true, source: lb('kills'), defaultOn: false, supportsRate: false },

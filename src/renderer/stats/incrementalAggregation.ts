@@ -1053,7 +1053,10 @@ export class IncrementalAggregator {
                 case 'stability': return s.stab;
                 case 'revives': return s.revives;
                 case 'downedHealing': return s.healingTotals['downedHealing'] || 0;
-                case 'dps': return s.dps;
+                // DPS is a rate: aggregate as total damage / total fight time across
+                // all fights. (s.dps is a sum of per-fight DPS rates — meaningless to
+                // surface directly; that produced the inflated "Total DPS" number.)
+                case 'dps': return s.totalFightMs > 0 ? s.damage / (s.totalFightMs / 1000) : 0;
                 case 'damage': return s.damage;
                 case 'participation': return s.logsJoined;
                 case 'closestToTag': return (!s.isCommander && s.distCount > 0) ? s.totalDist / s.distCount : Number.POSITIVE_INFINITY;
@@ -1115,6 +1118,10 @@ export class IncrementalAggregator {
             interrupts: 'interrupts',
             ccAndInterrupts: 'ccAndInterrupts',
             stability: 'stability',
+            // dps/damage are needed so the per-second/per-minute top-stat CARDS have
+            // data (Damage /1s == DPS). Without these the cards showed 0 / "No data".
+            dps: 'dps',
+            damage: 'damage',
             closestToTag: 'closestToTag'
         } as const;
 
@@ -1158,13 +1165,16 @@ export class IncrementalAggregator {
 
         const perSecondLeaderboards: Record<string, any[]> = {};
         const perMinuteLeaderboards: Record<string, any[]> = {};
+        // closestToTag is a distance and dps is already a rate (damage/time): both
+        // read the same value regardless of the per-second/per-minute mode.
+        const isAlreadyRate = (k: string) => k === 'closestToTag' || k === 'dps';
         const getPerSecondVal = (s: PlayerStats, k: string) => {
-            if (k === 'closestToTag') return getVal(s, k);
+            if (isAlreadyRate(k)) return getVal(s, k);
             const seconds = Math.max(1, (s.totalFightMs || 0) / 1000);
             return getVal(s, k) / seconds;
         };
         const getPerMinuteVal = (s: PlayerStats, k: string) => {
-            if (k === 'closestToTag') return getVal(s, k);
+            if (isAlreadyRate(k)) return getVal(s, k);
             return getPerSecondVal(s, k) * 60;
         };
         Object.values(statKeys).forEach((k) => {
