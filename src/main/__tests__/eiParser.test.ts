@@ -121,6 +121,21 @@ describe('generateEiConf', () => {
         expect(conf).toContain('SaveAtOut=False');
         expect(conf).toContain('OutLocation=/my/output/dir');
     });
+
+    // EI v3.24 only emits the distToCom/stackDist distance-to-tag scalars when
+    // combat replay is parsed (older EI computed them for free). So we always
+    // parse replay to keep "Closest to Tag" working; the `parseCombatReplay`
+    // setting instead controls whether the heavy position arrays are RETAINED
+    // after parse (see pruneDetailsForStats). The EI flag is therefore forced on.
+    it('always parses combat replay even when the setting is off', () => {
+        const conf = generateEiConf({ ...DEFAULT_EI_SETTINGS, parseCombatReplay: false }, '/tmp/out');
+        expect(conf).toContain('ParseCombatReplay=True');
+    });
+
+    it('parses combat replay when the setting is on', () => {
+        const conf = generateEiConf({ ...DEFAULT_EI_SETTINGS, parseCombatReplay: true }, '/tmp/out');
+        expect(conf).toContain('ParseCombatReplay=True');
+    });
 });
 
 describe('isNewerVersion', () => {

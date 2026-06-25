@@ -79,7 +79,7 @@ export const FightPicker: React.FC<FightPickerProps> = ({ fights, onSelect }) =>
                     No replay data available
                 </div>
                 <div style={{ fontSize: 12, maxWidth: 340, lineHeight: 1.6 }}>
-                    Enable <strong style={{ color: 'var(--text-primary, #e2e8f0)' }}>Combat Replay</strong> in{' '}
+                    Enable <strong style={{ color: 'var(--text-primary, #e2e8f0)' }}>Detailed Combat Replay</strong> in{' '}
                     <code style={{ fontSize: 11, background: 'rgba(255,255,255,0.07)', padding: '1px 5px', borderRadius: 3 }}>Settings</code>
                     {' › '}
                     <code style={{ fontSize: 11, background: 'rgba(255,255,255,0.07)', padding: '1px 5px', borderRadius: 3 }}>EI Parser</code>

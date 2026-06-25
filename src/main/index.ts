@@ -230,6 +230,14 @@ let watcher: LogWatcher | null = null
 let uploader: Uploader | null = null
 let discord: DiscordNotifier | null = null
 let eiManager: EiManager | null = null
+
+// We always parse combat replay (EI v3.24+ only emits the distToCom/stackDist
+// distance scalars when it does), but only RETAIN the heavy position arrays when
+// the user's `parseCombatReplay` setting is on. Off = coarse mode: keep the
+// scalars (Closest to Tag still works), drop positions to keep payloads small.
+const statsPruneOptions = (): { keepReplayPositions: boolean } => ({
+    keepReplayPositions: Boolean(eiManager?.getSettings().parseCombatReplay),
+});
 let autoUpdateRetryAttempts = 0;
 let autoUpdateRetryTimer: NodeJS.Timeout | null = null;
 let resolvedRetryCount = 0;
@@ -471,7 +479,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             }
 
             const hasUsableDetails = Boolean(jsonDetails && !jsonDetails.error && hasUsableFightDetails(jsonDetails));
-            const prunedDetails = hasUsableDetails ? pruneDetailsForStats(jsonDetails) : null;
+            const prunedDetails = hasUsableDetails ? pruneDetailsForStats(jsonDetails, statsPruneOptions()) : null;
             jsonDetails = null; // Release full JSON for GC
 
             const playerCount = Array.isArray(prunedDetails?.players) ? prunedDetails.players.length : undefined;
@@ -540,11 +548,15 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
 
     // If we have a full cache hit (permalink + usable details), use it directly
     // regardless of EI availability — no need to re-parse or re-upload.
-    // Exception: when local EI is installed with parseCombatReplay enabled, treat
-    // the cache as stale if it lacks combatReplayMetaData. Without this, fights
-    // first parsed before replay was enabled would never re-acquire replay data.
-    const eiReplayEnabled = Boolean(eiManager?.isInstalled() && eiManager.getSettings().parseCombatReplay);
-    const cachedDetailsLackReplay = eiReplayEnabled
+    // Exception: when local EI is installed, treat the cache as stale if it lacks
+    // combatReplayMetaData. We now always parse replay (EI v3.24+ only emits the
+    // distToCom/stackDist distance scalars when it does), so a cache without
+    // combatReplayMetaData was produced by the old replay-off path and has
+    // distToCom/stackDist == 0 — i.e. Closest to Tag stuck at 0. Re-parsing heals
+    // those histories. (Independent of the parseCombatReplay retention setting,
+    // which only controls whether positions are kept.)
+    const eiInstalled = Boolean(eiManager?.isInstalled());
+    const cachedDetailsLackReplay = eiInstalled
         && cached?.jsonDetails
         && !cached.jsonDetails.combatReplayMetaData;
     const cachedHasUsableDetails = Boolean(
@@ -587,7 +599,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 eiJson = attachConditionMetrics(eiJson);
             }
             const hasUsableDetails = Boolean(eiJson && !eiJson.error && hasUsableFightDetails(eiJson));
-            const prunedDetails = hasUsableDetails ? pruneDetailsForStats(eiJson) : null;
+            const prunedDetails = hasUsableDetails ? pruneDetailsForStats(eiJson, statsPruneOptions()) : null;
             eiJson = null; // Release full JSON for GC
 
             const playerCount = Array.isArray(prunedDetails?.players) ? prunedDetails.players.length : undefined;
@@ -801,7 +813,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 || (hasJsonPayload && !hasUsableDetails);
             // Prune immediately after enrichment so the full JSON can be GC'd.
             // Discord embeds only read fields that survive pruning.
-            const prunedDetails = hasUsableDetails ? pruneDetailsForStats(jsonDetails) : null;
+            const prunedDetails = hasUsableDetails ? pruneDetailsForStats(jsonDetails, statsPruneOptions()) : null;
             // Release full JSON reference — pruned version is sufficient for all
             // downstream consumers (disk cache, Discord, in-memory cache, IPC).
             jsonDetails = null;

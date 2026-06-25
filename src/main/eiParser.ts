@@ -53,7 +53,11 @@ export function generateEiConf(settings: EiParserSettings, outLocation: string):
         `DetailledWvW=${boolToConf(settings.detailledWvW)}`,
         `RawTimelineArrays=${boolToConf(settings.rawTimelineArrays)}`,
         `ComputeDamageModifiers=${boolToConf(settings.computeDamageModifiers)}`,
-        `ParseCombatReplay=${boolToConf(settings.parseCombatReplay)}`,
+        // Always parse combat replay: EI v3.24+ only emits the distToCom/stackDist
+        // distance-to-tag scalars when replay is parsed (older EI computed them for
+        // free). The `parseCombatReplay` setting instead controls whether the heavy
+        // position arrays are RETAINED post-parse — see pruneDetailsForStats.
+        `ParseCombatReplay=True`,
         `ParsePhases=${boolToConf(settings.parsePhases)}`,
         `SingleThreaded=${boolToConf(settings.singleThreaded)}`,
         `SkipFailedTries=${boolToConf(settings.skipFailedTries)}`,

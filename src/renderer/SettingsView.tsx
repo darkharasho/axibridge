@@ -2877,7 +2877,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             onChange={(v) => saveEiSetting('saveOutHTML', v)}
                                         />
                                         <Toggle
-                                            label="Combat Replay (required for Map Replay)"
+                                            label="Detailed Combat Replay (required for Map Replay)"
                                             enabled={eiSettings.parseCombatReplay}
                                             onChange={(v) => saveEiSetting('parseCombatReplay', v)}
                                         />

@@ -159,7 +159,11 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
                     const refreshed = await fetchDetailsFromPermalinkWithRetry(permalink);
                     if (!refreshed.details) return refreshed;
                     attachConditionMetrics(refreshed.details);
-                    const resolved = pruneDetailsForStats(refreshed.details);
+                    // Retain combat-replay positions only when the user's
+                    // parseCombatReplay setting is on; otherwise keep just the
+                    // coarse statsAll distance scalars (see pruneDetailsForStats).
+                    const keepReplayPositions = Boolean(store.get('eiParserSettings')?.parseCombatReplay);
+                    const resolved = pruneDetailsForStats(refreshed.details, { keepReplayPositions });
                     setBulkLogDetails(filePath, resolved);
                     const knownHash = getKnownFileHash(filePath);
                     if (knownHash) {

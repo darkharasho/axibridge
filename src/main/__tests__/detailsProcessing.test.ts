@@ -213,6 +213,50 @@ describe('pruneDetailsForStats', () => {
         expect(crd.extra).toBeUndefined();
     });
 
+    // EI v3.24 requires combat-replay parsing to emit distToCom/stackDist, so we
+    // always parse replay — but the `parseCombatReplay` setting controls whether
+    // the heavy position arrays are kept. keepReplayPositions=false retains the
+    // coarse statsAll scalars (and combatReplayMetaData as a "has-scalars" marker)
+    // while dropping per-actor positions, matching the old low-cost behavior.
+    describe('combat replay position retention', () => {
+        const makeDetails = () => ({
+            combatReplayMetaData: { inchToPixel: 0.01, pollingRate: 150 },
+            players: [{
+                name: 'Alice',
+                statsAll: [{ distToCom: 188, stackDist: 1266 }],
+                combatReplayData: { start: 0, down: [], dead: [], positions: [[1, 2], [3, 4]] },
+            }],
+            targets: [{
+                id: 1,
+                combatReplayData: [{ start: 0, down: 100, dead: 200, positions: [[5, 6]] }],
+            }],
+        });
+
+        it('keeps positions and metadata by default', () => {
+            const pruned = pruneDetailsForStats(makeDetails());
+            expect(pruned.combatReplayMetaData).toBeDefined();
+            expect(pruned.players[0].combatReplayData.positions).toEqual([[1, 2], [3, 4]]);
+            expect(pruned.targets[0].combatReplayData[0].positions).toEqual([[5, 6]]);
+        });
+
+        it('keeps positions when keepReplayPositions=true', () => {
+            const pruned = pruneDetailsForStats(makeDetails(), { keepReplayPositions: true });
+            expect(pruned.players[0].combatReplayData.positions).toEqual([[1, 2], [3, 4]]);
+        });
+
+        it('drops positions but keeps statsAll scalars and metadata when keepReplayPositions=false', () => {
+            const pruned = pruneDetailsForStats(makeDetails(), { keepReplayPositions: false });
+            // Coarse distance scalars survive — Closest to Tag still works.
+            expect(pruned.players[0].statsAll[0].distToCom).toBe(188);
+            expect(pruned.players[0].statsAll[0].stackDist).toBe(1266);
+            // Marker that the log was parsed with replay (so cache isn't treated stale).
+            expect(pruned.combatReplayMetaData).toBeDefined();
+            // Heavy position arrays are gone.
+            expect(pruned.players[0].combatReplayData?.positions).toBeUndefined();
+            expect(pruned.targets[0].combatReplayData?.[0]?.positions).toBeUndefined();
+        });
+    });
+
     it('handles missing players / targets arrays gracefully', () => {
         const pruned = pruneDetailsForStats({ fightName: 'Test' });
         expect(pruned.players).toBeUndefined();

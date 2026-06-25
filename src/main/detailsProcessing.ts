@@ -71,10 +71,13 @@ const omit = (obj: any, keys: string[]): any => {
     return out;
 };
 
-const pruneCombatReplayData = (value: any): any => {
+const pruneCombatReplayData = (value: any, keepPositions: boolean): any => {
+    const fields = keepPositions
+        ? ['start', 'down', 'dead', 'positions']
+        : ['start', 'down', 'dead'];
     const pruneEntry = (entry: any) => {
         if (!entry || typeof entry !== 'object') return null;
-        return pick(entry, ['start', 'down', 'dead', 'positions']);
+        return pick(entry, fields);
     };
     if (Array.isArray(value)) {
         return value
@@ -134,27 +137,49 @@ export const countBoonApplications = (boonsStates: any): number => {
     return applied;
 };
 
+export interface PruneDetailsOptions {
+    /**
+     * Whether to retain per-actor combat-replay `positions` arrays (the dominant
+     * payload). EI v3.24+ only emits the distToCom/stackDist distance scalars when
+     * replay is parsed, so we always parse it — but when the user's
+     * `parseCombatReplay` setting is off we drop the positions here, keeping only
+     * the coarse statsAll scalars (and `combatReplayMetaData` as a marker that the
+     * log was parsed with replay). Defaults to true (keep everything).
+     */
+    keepReplayPositions?: boolean;
+}
+
 /**
  * Strip fields not needed by the stats pipeline from a full EI JSON payload.
  * Reduces memory footprint and IPC transfer size.
  * Pure — no I/O, no side effects.
  */
-export const pruneDetailsForStats = (details: any): any => {
+export const pruneDetailsForStats = (details: any, options: PruneDetailsOptions = {}): any => {
     if (!details || typeof details !== 'object') return details;
+    const keepReplayPositions = options.keepReplayPositions !== false;
     const pruned: any = omit(details, TOP_LEVEL_DENY);
     if (Array.isArray(pruned.players)) {
         // Precompute the boon-application count before the heavy `boonsStates`
         // timeline is stripped, so the stats pipeline gets the count without the
         // per-log memory/IPC cost of the full timeline.
-        pruned.players = pruned.players.map((player: any) => ({
-            ...omit(player, PLAYER_DENY),
-            boonsAppliedCount: countBoonApplications(player?.boonsStates),
-        }));
+        pruned.players = pruned.players.map((player: any) => {
+            const out: any = {
+                ...omit(player, PLAYER_DENY),
+                boonsAppliedCount: countBoonApplications(player?.boonsStates),
+            };
+            // Drop the heavy per-player replay positions in coarse mode. The
+            // distToCom/stackDist scalars in statsAll are untouched, so Closest to
+            // Tag still resolves (just without precise per-tick distance).
+            if (!keepReplayPositions && out.combatReplayData) {
+                delete out.combatReplayData;
+            }
+            return out;
+        });
     }
     if (Array.isArray(pruned.targets)) {
         pruned.targets = pruned.targets.map((target: any) => {
             const out = { ...target };
-            out.combatReplayData = pruneCombatReplayData(target?.combatReplayData);
+            out.combatReplayData = pruneCombatReplayData(target?.combatReplayData, keepReplayPositions);
             return out;
         });
     }
