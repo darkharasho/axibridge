@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { SupportSection } from '../SupportSection';
 import { StatsSharedContext } from '../../StatsViewContext';
 
@@ -101,8 +101,14 @@ describe('SupportSection — No Ego', () => {
         );
         // One mean readout for the active metric
         expect(screen.getAllByTestId('metric-card-mean').length).toBe(1);
-        // Per-player detail expander exists
-        expect(screen.getByRole('button', { name: /per-player detail/i })).toBeInTheDocument();
+        // No visible "Per-player detail" button; table hidden until secret gesture
+        expect(screen.queryByRole('button', { name: /per-player detail/i })).toBeNull();
+        expect(screen.queryByText('Fight Time')).toBeNull();
+        const secretIcon = screen.getByTestId('noego-secret-icon');
+        fireEvent.click(secretIcon);
+        fireEvent.click(secretIcon);
+        fireEvent.click(secretIcon);
+        expect(screen.getByText('Fight Time')).toBeInTheDocument();
     });
 
     it('role-aware: support players are NOT outliers on condiCleanse (higher-is-better) when roleAware is active', () => {
