@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { OffenseSection } from '../OffenseSection';
 import { StatsSharedContext } from '../../StatsViewContext';
 
@@ -97,7 +97,7 @@ const roleAwareCtx: any = {
 };
 
 describe('OffenseSection — No Ego', () => {
-    it('renders sidebar + single large card + expander button', () => {
+    it('renders sidebar + single large card, hides per-player table behind secret gesture', () => {
         render(
             <StatsSharedContext.Provider value={ctx}>
                 <OffenseSection
@@ -117,11 +117,27 @@ describe('OffenseSection — No Ego', () => {
         expect(screen.getAllByTestId('metric-card-mean').length).toBe(1);
         // The large dot-plot is rendered (h-14 from large prop)
         expect(document.querySelector('[data-testid="metric-card-plot"]')?.className).toContain('h-14');
-        // The per-player detail expander still exists
-        expect(screen.getByRole('button', { name: /per-player detail/i })).toBeInTheDocument();
         // view-mode toggle present in No Ego mode
         expect(screen.getByText('Stat/1s')).toBeInTheDocument();
         expect(screen.getByText('Stat/60s')).toBeInTheDocument();
+
+        // No visible "Per-player detail" button exists
+        expect(screen.queryByRole('button', { name: /per-player detail/i })).toBeNull();
+        // Per-player detail table is hidden on mount (unique "Fight Time" column header absent)
+        expect(screen.queryByText('Fight Time')).toBeNull();
+
+        // Secret gesture: 3 rapid clicks on the section icon reveal the table
+        const secretIcon = screen.getByTestId('noego-secret-icon');
+        fireEvent.click(secretIcon);
+        fireEvent.click(secretIcon);
+        fireEvent.click(secretIcon);
+        expect(screen.getByText('Fight Time')).toBeInTheDocument();
+
+        // 3 more clicks hide it again
+        fireEvent.click(secretIcon);
+        fireEvent.click(secretIcon);
+        fireEvent.click(secretIcon);
+        expect(screen.queryByText('Fight Time')).toBeNull();
     });
 
     it('role-aware: support player is NOT an outlier on damage metric when roleAware is active', () => {

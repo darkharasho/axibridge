@@ -1,5 +1,4 @@
 import React from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
@@ -63,6 +62,19 @@ export const NoEgoMetricSection: React.FC<NoEgoMetricSectionProps> = ({
 }) => {
     const { renderProfessionIcon, sidebarListClass } = useStatsSharedContext();
 
+    const clickTimesRef = React.useRef<number[]>([]);
+    const handleSecretIconClick = () => {
+        const now = performance.now();
+        const recent = clickTimesRef.current.filter((t) => now - t < 600);
+        recent.push(now);
+        if (recent.length >= 3) {
+            clickTimesRef.current = [];
+            setDetailOpen((v) => !v);
+        } else {
+            clickTimesRef.current = recent;
+        }
+    };
+
     const roleByAccount = new Map<string, 'support' | 'damage'>(
         ((roleClassifications as RoleClassificationEntry[] | undefined) ?? [])
             .filter((r): r is RoleClassificationEntry => !!r && (r.role === 'support' || r.role === 'damage'))
@@ -97,7 +109,9 @@ export const NoEgoMetricSection: React.FC<NoEgoMetricSectionProps> = ({
         <div>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3.5">
                 <div className="flex items-center gap-2">
-                    {icon}
+                    <span data-testid="noego-secret-icon" onClick={handleSecretIconClick}>
+                        {icon}
+                    </span>
                     <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
                         {title}
                     </h3>
@@ -162,16 +176,6 @@ export const NoEgoMetricSection: React.FC<NoEgoMetricSectionProps> = ({
                             />
                         )}
                         <div>
-                            <button
-                                type="button"
-                                aria-expanded={detailOpen}
-                                onClick={() => setDetailOpen((v) => !v)}
-                                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-[var(--radius-md)]"
-                                style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-hover)' }}
-                            >
-                                {detailOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                                Per-player detail
-                            </button>
                             {detailOpen && activeMetric && (
                                 <div className="mt-3">
                                     {(() => {
