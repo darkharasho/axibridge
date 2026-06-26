@@ -16,6 +16,7 @@ const makeContextValue = (stats: any) => ({
     formatWithCommas: (value: number) => String(value),
     renderProfessionIcon: () => null,
     roundCountStats: false,
+    mvpBoonMetric: 'uptime' as const,
     expandedPortalRef: { current: null },
 });
 

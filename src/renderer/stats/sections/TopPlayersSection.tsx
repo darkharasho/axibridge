@@ -126,6 +126,18 @@ const TOTAL_PREFIX_IDS = new Set([
     'downedHealing', 'revives', 'dps', 'damage', 'participation',
 ]);
 
+type BoonMetric = 'total' | 'average' | 'uptime';
+
+// The boon `unit` baked into the catalog assumes 'uptime' scoring. The displayed
+// unit and whether the value is a percentage both depend on the active
+// mvpBoonMetric, so derive them here instead of trusting def.unit.
+const boonUnitInfo = (stacking: boolean, metric: BoonMetric): { unit: string; isPercent: boolean } => {
+    if (metric === 'average') return { unit: 'gen/sec', isPercent: false };
+    if (metric === 'total') return { unit: 'total gen', isPercent: false };
+    // uptime: stacking boons report average stacks, others report uptime %
+    return stacking ? { unit: 'avg stacks', isPercent: false } : { unit: 'uptime', isPercent: true };
+};
+
 const getCardTitle = (def: TopStatDef, isPerSecond: boolean, isPerMinute: boolean): string => {
     if (def.source.kind === 'boon') return def.label;
     if (def.id === 'closestToTag') return 'Closest to Tag';
@@ -146,7 +158,7 @@ export const TopPlayersSection = ({
     enabledTopStats = DEFAULT_ENABLED_TOP_STATS,
     noEgoMode = false,
 }: TopPlayersSectionProps) => {
-    const { stats, formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
+    const { stats, formatWithCommas, renderProfessionIcon, mvpBoonMetric } = useStatsSharedContext();
     if (!showTopStats) return null;
     const offenseMvp = stats.offensiveMvp || stats.mvp;
     const offenseSilver = stats.offensiveSilver || stats.silver;
@@ -173,7 +185,8 @@ export const TopPlayersSection = ({
 
     const formatValue = (def: TopStatDef, value: number): string => {
         if (def.source.kind === 'boon') {
-            if (def.unit === 'uptime') return `${formatWithCommas(value, 1)}%`;
+            const { isPercent } = boonUnitInfo(def.source.stacking, mvpBoonMetric);
+            if (isPercent) return `${formatWithCommas(value, 1)}%`;
             return formatWithCommas(value, 1);
         }
         if ((isPerSecond || isPerMinute) && def.supportsRate) {
@@ -219,7 +232,7 @@ export const TopPlayersSection = ({
                                 accentColor={def.color}
                                 higherIsBetter={def.higherIsBetter}
                                 players={players}
-                                unit={def.unit ?? ''}
+                                unit={def.source.kind === 'boon' ? boonUnitInfo(def.source.stacking, mvpBoonMetric).unit : (def.unit ?? '')}
                                 roleAware
                                 formatValue={(n) => formatValue(def, n)}
                                 renderProfessionIcon={renderProfessionIcon}
@@ -438,7 +451,9 @@ export const TopPlayersSection = ({
                             : { value: 0, player: '-', count: 0, profession: 'Unknown', professionList: [] };
 
                         const cardTitle = getCardTitle(def, isPerSecond, isPerMinute);
-                        const cardUnit = isBoon ? (def.unit || '') : (def.id === 'closestToTag' ? 'dist' : '');
+                        const cardUnit = isBoon && def.source.kind === 'boon'
+                            ? boonUnitInfo(def.source.stacking, mvpBoonMetric).unit
+                            : (def.id === 'closestToTag' ? 'dist' : '');
 
                         const fmtValue = (v: number) => formatValue(def, v);
 

@@ -13,6 +13,9 @@ export interface StatsSharedContextValue {
     formatWithCommas: (value: number, decimals: number) => string;
     renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => JSX.Element | null;
     roundCountStats: boolean;
+    /** How boon leaderboard values are scored/displayed: 'uptime' (%/avg stacks),
+     *  'average' (gen/sec), or 'total' (total generation, "count"). */
+    mvpBoonMetric: 'total' | 'average' | 'uptime';
     /** Portal target at the StatsView root level — sections portal their expanded
      *  content here so `position: fixed` escapes ancestor transforms/filters. */
     expandedPortalRef: RefObject<HTMLDivElement | null>;

@@ -4110,10 +4110,12 @@ type SpikeFight = {
         formatWithCommas,
         renderProfessionIcon,
         roundCountStats,
+        mvpBoonMetric: activeStatsViewSettings.mvpBoonMetric || 'uptime',
         expandedPortalRef,
     }), [safeStats, expandedSection, expandedSectionClosing, openExpandedSection,
         closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass,
-        formatWithCommas, renderProfessionIcon, roundCountStats]);
+        formatWithCommas, renderProfessionIcon, roundCountStats,
+        activeStatsViewSettings.mvpBoonMetric]);
     const canUploadWeb = useMemo(() => {
         const total = Number((safeStats as any).total || 0);
         if (Number.isFinite(total) && total > 0) return true;

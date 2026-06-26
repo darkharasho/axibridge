@@ -4,7 +4,12 @@ import { TopPlayersSection } from '../stats/sections/TopPlayersSection';
 import { StatsSharedContext } from '../stats/StatsViewContext';
 import { DEFAULT_ENABLED_TOP_STATS } from '../stats/topStatsCatalog';
 
-const makeContextValue = (stats: any, formatWithCommas: (value: number, decimals: number) => string, renderProfessionIcon: (...args: any[]) => null) => ({
+const makeContextValue = (
+    stats: any,
+    formatWithCommas: (value: number, decimals: number) => string,
+    renderProfessionIcon: (...args: any[]) => null,
+    mvpBoonMetric: 'total' | 'average' | 'uptime' = 'uptime',
+) => ({
     stats,
     expandedSection: null,
     expandedSectionClosing: false,
@@ -17,6 +22,7 @@ const makeContextValue = (stats: any, formatWithCommas: (value: number, decimals
     formatWithCommas,
     renderProfessionIcon,
     roundCountStats: false,
+    mvpBoonMetric,
     expandedPortalRef: { current: null },
 });
 
@@ -42,7 +48,7 @@ const renderSection = (overrides: Record<string, any> = {}) => {
     const stats = overrides.stats ?? makeBaseStats();
     const enabledTopStats = overrides.enabledTopStats ?? DEFAULT_ENABLED_TOP_STATS;
     render(
-        <StatsSharedContext.Provider value={makeContextValue(stats, (v: number) => `${Math.round(v)}u`, () => null)}>
+        <StatsSharedContext.Provider value={makeContextValue(stats, (v: number, d: number) => v.toFixed(d), () => null, overrides.mvpBoonMetric)}>
             <TopPlayersSection
                 showTopStats={true}
                 showMvp={false}
@@ -127,10 +133,29 @@ describe('TopPlayersSection', () => {
         expect(titles.indexOf('Down Contribution')).toBeLessThan(titles.indexOf('Total Healing'));
     });
 
-    it('renders a boon card with its label and unit', () => {
-        renderSection({ enabledTopStats: ['boon:quickness'] });
+    it('renders a boon card with its label and uptime unit in uptime mode', () => {
+        renderSection({ enabledTopStats: ['boon:quickness'], mvpBoonMetric: 'uptime' });
         expect(screen.getByText('Quickness')).toBeInTheDocument();
         expect(screen.getByText('uptime')).toBeInTheDocument();
+        // uptime is a percentage
+        expect(screen.getByText('74.0%')).toBeInTheDocument();
+    });
+
+    it('shows the count unit without a percent when mvpBoonMetric is total', () => {
+        renderSection({ enabledTopStats: ['boon:quickness'], mvpBoonMetric: 'total' });
+        expect(screen.getByText('Quickness')).toBeInTheDocument();
+        expect(screen.getByText('total gen')).toBeInTheDocument();
+        expect(screen.queryByText('uptime')).not.toBeInTheDocument();
+        // total gen is not a percentage
+        expect(screen.getByText('74.0')).toBeInTheDocument();
+        expect(screen.queryByText('74.0%')).not.toBeInTheDocument();
+    });
+
+    it('shows the gen/sec unit without a percent when mvpBoonMetric is average', () => {
+        renderSection({ enabledTopStats: ['boon:quickness'], mvpBoonMetric: 'average' });
+        expect(screen.getByText('gen/sec')).toBeInTheDocument();
+        expect(screen.queryByText('uptime')).not.toBeInTheDocument();
+        expect(screen.queryByText('74.0%')).not.toBeInTheDocument();
     });
 
     it('shows placeholder when no stats are enabled', () => {
