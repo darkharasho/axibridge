@@ -1,9 +1,6 @@
 # Release Notes
 
-Version v2.12.4 — June 24, 2026
+Version v2.12.5 — June 26, 2026
 
 ## Fixes
-
-**Total DPS** was showing an inflated number — it was summing each fight's DPS rate instead of computing aggregate DPS (total damage divided by total fight time). That's fixed now.
-
-The **Damage** and **DPS** stat cards also showed "0 / No data" when switching to per-second (/1s) or per-minute (/60s) views. Those views now display the correct values — Damage /1s matches DPS, and Damage /60s scales accordingly.
+- Top stats boon cards now respect your Boon Metric setting. Picking **Count** or **Gen/Sec** previously still labeled the card "uptime" and tacked a `%` onto a number that wasn't a percentage. Cards now show the right label (uptime / avg stacks / gen/sec / total gen) and only add `%` when the value actually is one.
