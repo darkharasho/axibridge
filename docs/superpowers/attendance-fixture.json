@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "generatedAt": "2026-02-09T00:00:00Z",
+  "raids": [
+    { "id": "r3", "date": "2026-02-08T01:00:00Z", "attendees": [
+      { "account": "Eternal.1842", "combatTimeMs": 0, "squadTimeMs": 7200000 },
+      { "account": "Aldous.7781", "combatTimeMs": 5400000, "squadTimeMs": 7200000 } ] },
+    { "id": "r2", "date": "2026-02-05T01:00:00Z", "attendees": [
+      { "account": "Aldous.7781", "combatTimeMs": 5000000, "squadTimeMs": 7000000 } ] },
+    { "id": "r1", "date": "2026-02-01T01:00:00Z", "attendees": [
+      { "account": "Eternal.1842", "combatTimeMs": 4000000, "squadTimeMs": 6000000 },
+      { "account": "Aldous.7781", "combatTimeMs": 5000000, "squadTimeMs": 6000000 } ] }
+  ]
+}

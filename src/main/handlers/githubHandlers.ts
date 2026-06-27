@@ -11,6 +11,7 @@ import {
     updateRollupSourcesForPublish,
     type RollupReportPayload
 } from '../../web/rollup';
+import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
@@ -1255,6 +1256,34 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 log.warn('[Main] Failed to update rollup.json after delete (non-blocking):', err);
             }
 
+            // Keep the attendance history consistent: drop raids for deleted reports.
+            try {
+                const attendanceRepoPath = withPagesPath(pagesPath, 'reports/attendance.json');
+                const attendanceEntry = treeEntries.find(
+                    (entry: any) => entry?.path === attendanceRepoPath && entry?.type === 'blob' && entry?.sha
+                );
+                if (attendanceEntry) {
+                    const blob = await getGithubBlob(owner, repo, attendanceEntry.sha, token);
+                    const parsed = blob?.content
+                        ? parseAttendanceFile(JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8')))
+                        : null;
+                    if (parsed) {
+                        const deletedSet = new Set(ids.map((id: any) => String(id || '').trim()));
+                        const keptRaids = parsed.raids.filter((r) => !deletedSet.has(String(r.id).trim()));
+                        const attendanceBlob = await createGithubBlob(
+                            owner,
+                            repo,
+                            token,
+                            Buffer.from(JSON.stringify({ ...parsed, raids: keptRaids }), 'utf8').toString('base64'),
+                            attendanceRepoPath
+                        );
+                        commitEntries.push({ path: attendanceRepoPath, sha: attendanceBlob.sha });
+                    }
+                }
+            } catch (err) {
+                log.warn('[Main] Failed to update attendance.json after delete (non-blocking):', err);
+            }
+
             const newTree = await createGithubTree(owner, repo, token, baseTreeSha, commitEntries);
             const commitMessage = `Delete ${ids.length} report${ids.length === 1 ? '' : 's'}`;
             const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, headSha);
@@ -1905,6 +1934,38 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             } catch (err) {
                 log.warn('[Main] Failed to build precomputed rollup (non-blocking):', err);
             }
+
+            // Maintain the first-class attendance history (reports/attendance.json)
+            // so the roster's retention radar gets real per-raid time-series.
+            // Non-blocking: a failure here must not abort the publish.
+            try {
+                const attendanceRepoPath = withPagesPath(pagesPath, 'reports/attendance.json');
+                let existingRaids: AttendanceRaid[] = [];
+                const existingAttendanceSha = treeMap.get(attendanceRepoPath);
+                if (existingAttendanceSha) {
+                    try {
+                        const blob = await getGithubBlob(owner, repo, existingAttendanceSha, token);
+                        if (blob?.content) {
+                            const parsed = parseAttendanceFile(
+                                JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8'))
+                            );
+                            if (parsed) existingRaids = parsed.raids;
+                        }
+                    } catch (err) {
+                        log.warn('[Main] Could not read existing attendance.json, rebuilding:', err);
+                    }
+                }
+                const attendanceFile = updateAttendanceForPublish({
+                    existingRaids,
+                    currentReport: builtReport.payload as RollupReportPayload,
+                    validIds: mergedEntries.map((entry: any) => String(entry?.id || '')),
+                    generatedAt: new Date().toISOString()
+                });
+                queueFile(attendanceRepoPath, Buffer.from(JSON.stringify(attendanceFile), 'utf8'));
+            } catch (err) {
+                log.warn('[Main] Failed to build attendance history (non-blocking):', err);
+            }
+
             const deleteEntries: Array<{ path: string; sha: null }> = [];
             ['theme.json', 'ui-theme.json'].forEach((legacyFile) => {
                 const repoPath = withPagesPath(pagesPath, legacyFile);
