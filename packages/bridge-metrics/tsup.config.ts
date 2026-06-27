@@ -14,6 +14,7 @@ export default defineConfig({
         professionUtils: 'src/professionUtils.ts',
         computePlayerAggregation: 'src/computePlayerAggregation.ts',
         rollup: 'src/rollup.ts',
+        attendance: 'src/attendance.ts',
         aggregationTypes: 'src/aggregationTypes.ts',
         roles: 'src/roles.ts',
         resUtility: 'src/resUtility.ts',

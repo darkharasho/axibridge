@@ -17,6 +17,7 @@
         "./professionUtils": { "types": "./dist/professionUtils.d.ts", "import": "./dist/professionUtils.js", "require": "./dist/professionUtils.cjs" },
         "./computePlayerAggregation": { "types": "./dist/computePlayerAggregation.d.ts", "import": "./dist/computePlayerAggregation.js", "require": "./dist/computePlayerAggregation.cjs" },
         "./rollup": { "types": "./dist/rollup.d.ts", "import": "./dist/rollup.js", "require": "./dist/rollup.cjs" },
+        "./attendance": { "types": "./dist/attendance.d.ts", "import": "./dist/attendance.js", "require": "./dist/attendance.cjs" },
         "./aggregationTypes": { "types": "./dist/aggregationTypes.d.ts", "import": "./dist/aggregationTypes.js", "require": "./dist/aggregationTypes.cjs" },
         "./roles": { "types": "./dist/roles.d.ts", "import": "./dist/roles.js", "require": "./dist/roles.cjs" },
         "./resUtility": { "types": "./dist/resUtility.d.ts", "import": "./dist/resUtility.js", "require": "./dist/resUtility.cjs" },
