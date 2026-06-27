@@ -1,6 +1,7 @@
 # Release Notes
 
-Version v2.12.5 — June 26, 2026
+Version v2.13.0 — June 27, 2026
 
-## Fixes
-- Top stats boon cards now respect your Boon Metric setting. Picking **Count** or **Gen/Sec** previously still labeled the card "uptime" and tacked a `%` onto a number that wasn't a percentage. Cards now show the right label (uptime / avg stacks / gen/sec / total gen) and only add `%` when the value actually is one.
+## New
+
+- **Per-raid attendance history for the roster's Retention radar.** Published reports now include a new `reports/attendance.json` artifact — a per-raid log of who attended, with combat and squad time per player. This is what powers AxiRoster's new **Retention** view, which ranks members by churn risk from real attendance trends. The first publish after updating reconstructs the **full** history from your locally stored reports, so the radar has data to work with immediately rather than accruing one raid at a time. The file is published in the same push as `rollup.json` and is pruned automatically when reports are deleted.
