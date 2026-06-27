@@ -56,6 +56,33 @@ describe('updateAttendanceForPublish', () => {
     expect(file.raids).toHaveLength(1);
     expect(file.raids[0].attendees).toHaveLength(2);
   });
+  it('backfills valid raids missing from history via loadLocalReport (first-publish full history)', () => {
+    const localById: Record<string, ReturnType<typeof report>> = {
+      '1': report('1', ['A.1']),
+      '2': report('2', ['B.2'])
+    };
+    const file = updateAttendanceForPublish({
+      existingRaids: [], // attendance.json didn't exist yet
+      currentReport: report('3', ['C.3']),
+      validIds: ['1', '2', '3'],
+      generatedAt: 'now',
+      loadLocalReport: (id) => localById[id] ?? null
+    });
+    // current ('3') + backfilled '1' and '2', sorted date desc
+    expect(file.raids.map((r) => r.id)).toEqual(['3', '2', '1']);
+  });
+  it('does not call loadLocalReport for ids already present, and skips ids with no local copy', () => {
+    const file = updateAttendanceForPublish({
+      existingRaids: [buildAttendanceRaid(report('1', ['A.1']))!],
+      currentReport: report('2', ['B.2']),
+      validIds: ['1', '2', '9'], // '9' has no local copy
+      generatedAt: 'now',
+      loadLocalReport: (id) => (id === '9' ? null : report(id, ['Z.9']))
+    });
+    expect(file.raids.map((r) => r.id)).toEqual(['2', '1']) // '9' skipped (no local), '1' kept from existing
+    // '1' kept its original single attendee (loadLocalReport NOT consulted for present ids)
+    expect(file.raids.find((r) => r.id === '1')!.attendees.map((a) => a.account)).toEqual(['A.1'])
+  });
 });
 
 describe('parseAttendanceFile', () => {

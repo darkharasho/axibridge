@@ -1955,11 +1955,24 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                         log.warn('[Main] Could not read existing attendance.json, rebuilding:', err);
                     }
                 }
+                // Backfill raids predating attendance.json from local staging copies,
+                // so the first publish reconstructs the full history (mirrors rollup).
+                const attendanceStagingParent = path.join(app.getPath('userData'), 'web-report-staging');
+                const loadLocalAttendanceReport = (id: string): RollupReportPayload | null => {
+                    const localReportPath = path.join(attendanceStagingParent, id, 'report.json');
+                    if (!fs.existsSync(localReportPath)) return null;
+                    try {
+                        return JSON.parse(fs.readFileSync(localReportPath, 'utf8'));
+                    } catch {
+                        return null;
+                    }
+                };
                 const attendanceFile = updateAttendanceForPublish({
                     existingRaids,
                     currentReport: builtReport.payload as RollupReportPayload,
                     validIds: mergedEntries.map((entry: any) => String(entry?.id || '')),
-                    generatedAt: new Date().toISOString()
+                    generatedAt: new Date().toISOString(),
+                    loadLocalReport: loadLocalAttendanceReport
                 });
                 queueFile(attendanceRepoPath, Buffer.from(JSON.stringify(attendanceFile), 'utf8'));
             } catch (err) {

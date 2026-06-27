@@ -46,15 +46,17 @@ export const buildAttendanceRaid = (payload: RollupReportPayload): AttendanceRai
     return { id, date, attendees };
 };
 
-/** Merge the just-published raid into the existing history, prune to valid
- *  (non-deleted) ids, and sort most-recent-first. */
+/** Merge the just-published raid into the existing history, backfill raids that
+ *  predate attendance.json from local report copies, prune to valid (non-deleted)
+ *  ids, and sort most-recent-first. */
 export const updateAttendanceForPublish = (options: {
     existingRaids: AttendanceRaid[];
     currentReport: RollupReportPayload;
     validIds: string[];
     generatedAt: string;
+    loadLocalReport?: (id: string) => RollupReportPayload | null;
 }): AttendanceFile => {
-    const { existingRaids, currentReport, validIds, generatedAt } = options;
+    const { existingRaids, currentReport, validIds, generatedAt, loadLocalReport } = options;
     const byId = new Map<string, AttendanceRaid>();
     for (const raid of existingRaids) {
         const id = String(raid?.id || '').trim();
@@ -63,6 +65,17 @@ export const updateAttendanceForPublish = (options: {
     const current = buildAttendanceRaid(currentReport);
     if (current) byId.set(current.id, current);
     const validIdSet = new Set(validIds.map((id) => String(id || '').trim()).filter(Boolean));
+    // Backfill raids published before attendance.json existed from local report
+    // copies, so the first publish reconstructs the full history (mirrors rollup).
+    if (loadLocalReport) {
+        for (const id of validIdSet) {
+            if (byId.has(id)) continue;
+            const localReport = loadLocalReport(id);
+            if (!localReport) continue;
+            const raid = buildAttendanceRaid(localReport);
+            if (raid) byId.set(raid.id, raid);
+        }
+    }
     const raids = Array.from(byId.entries())
         .filter(([id]) => validIdSet.has(id))
         .map(([, raid]) => raid)
