@@ -386,8 +386,15 @@ Implementation: `src/shared/dashboardMetrics.ts` (getPlayerDeaths, getPlayerDown
 
 ## Dodges / Misses / Blocks / Evades (Taken)
 
-`dodges = defenses[0].dodgeCount`  
+`dodges = defenses[0].dodgeCount + vindicatorDeathDropCasts`  
 `missed = defenses[0].missedCount`  
+
+Vindicator's dodge is the "Death Drop" skill (id 62730). Its endurance cost
+varies by trait (100 for Forerunner of Death, 50 for Saint of zu Heltzer — the
+latter common on WvW heal builds), but each cast is exactly one dodge either way.
+Elite Insights does not tally Death Drop in `defenses[0].dodgeCount` (it stays 0
+for Vindicators), so we recover the count 1:1 from the player's rotation.
+
 `blocked = defenses[0].blockedCount`  
 `evaded = defenses[0].evadedCount`
 

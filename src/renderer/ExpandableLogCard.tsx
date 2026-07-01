@@ -578,7 +578,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const getBreakbarDamage = (p: any) => p.dpsAll?.[0]?.breakbarDamage || 0;
     const getDamageTaken = (p: any) => p.defenses?.[0]?.damageTaken || 0;
     const getDeaths = (p: any) => p.defenses?.[0]?.deadCount || 0;
-    const getDodges = (p: any) => p.defenses?.[0]?.dodgeCount || 0;
+    const getDodges = (p: any) => getPlayerDodges(p);
 
     const clampTopRows = (value: number) => Math.min(10, Math.max(1, Math.floor(value)));
     const maxTopRows = clampTopRows(settings.maxTopListRows ?? 5);

@@ -1,5 +1,5 @@
 
-import { getPlayerCleanses, getPlayerStrips, getPlayerOutgoingInterrupts, getPlayerDamageTaken, getPlayerBreakbarDamage, getPlayerBlocked, getPlayerEvaded, getPlayerMissed, getTargetStatTotal, resolveCommanderDistance } from './dashboardMetrics';
+import { getPlayerCleanses, getPlayerStrips, getPlayerOutgoingInterrupts, getPlayerDamageTaken, getPlayerBreakbarDamage, getPlayerBlocked, getPlayerEvaded, getPlayerMissed, getTargetStatTotal, resolveCommanderDistance, getVindicatorDodgeCasts } from './dashboardMetrics';
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeDownContribution as getPlayerDownContribution, computeSquadHealing as getPlayerSquadHealing, computeSquadBarrier as getPlayerSquadBarrier, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl } from './combatMetrics';
 import { Player } from './dpsReportTypes';
 import { DisruptionMethod } from './metricsSettings';
@@ -688,7 +688,7 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             s.stackedLogCount++;
         }
         if (p.defenses?.[0]) {
-            s.dodges += p.defenses[0].dodgeCount || 0;
+            s.dodges += (p.defenses[0].dodgeCount || 0) + getVindicatorDodgeCasts(p);
             s.downs += p.defenses[0].downCount || 0;
             s.deaths += p.defenses[0].deadCount || 0;
         }

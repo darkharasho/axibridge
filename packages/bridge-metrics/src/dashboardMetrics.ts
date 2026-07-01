@@ -50,8 +50,20 @@ export const getPlayerDamageTaken = (player: Player) =>
 export const getPlayerDeaths = (player: Player) =>
     player.defenses?.[0]?.deadCount || 0;
 
+// Vindicator's dodge is the "Death Drop" skill (id 62730). Its endurance cost
+// varies by trait (100 for Forerunner of Death, 50 for Saint of zu Heltzer), but
+// each cast is exactly one dodge either way. Elite Insights does not tally Death
+// Drop in defenses.dodgeCount (it stays 0 for Vindicators), so we recover the
+// count 1:1 from the cast rotation.
+export const VINDICATOR_DODGE_SKILL_ID = 62730;
+
+export const getVindicatorDodgeCasts = (player: Player): number => {
+    const rot = player.rotation?.find((r) => r.id === VINDICATOR_DODGE_SKILL_ID);
+    return rot?.skills?.length || 0;
+};
+
 export const getPlayerDodges = (player: Player) =>
-    player.defenses?.[0]?.dodgeCount || 0;
+    (player.defenses?.[0]?.dodgeCount || 0) + getVindicatorDodgeCasts(player);
 
 export const getPlayerMissed = (player: Player) =>
     player.defenses?.[0]?.missedCount || 0;
