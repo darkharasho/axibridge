@@ -50,6 +50,40 @@ describe('TopPlayersSection — No Ego', () => {
     expect(screen.queryByTestId('squad-summary')).toBeNull();
   });
 
+  it('renders non-rate stats (kills) from totals in per-minute mode instead of an empty card', () => {
+    // Per-minute leaderboard maps only carry rate-capable stats, so `kills` is
+    // absent from topStatsLeaderboardsPerMinute. The card must fall back to the
+    // total leaderboard (value 7) and NOT append a "/m" suffix to the title.
+    const ctxRate: any = {
+      stats: {
+        leaderboards: {
+          kills: [
+            { account: 'Killer', value: 7, profession: 'Guardian' },
+            { account: 'B', value: 2, profession: 'Guardian' },
+          ],
+        },
+        topStatsLeaderboardsPerMinute: {}, // kills key intentionally missing
+      },
+      formatWithCommas: (n: number) => String(n),
+      renderProfessionIcon: () => null,
+    };
+    render(
+      <StatsSharedContext.Provider value={ctxRate}>
+        <TopPlayersSection
+          {...base}
+          topStatsMode={'perMinute'}
+          noEgoMode={false}
+          enabledTopStats={['kills']}
+        />
+      </StatsSharedContext.Provider>,
+    );
+    const title = screen.getByTestId('leader-card-title');
+    expect(title).toHaveTextContent('Kills');
+    expect(title).not.toHaveTextContent('/m');
+    expect(screen.getByText('7')).toBeInTheDocument();
+    expect(screen.getByText('Killer')).toBeInTheDocument();
+  });
+
   it('does not flag a support player on a damage-style leaderboard (role-aware)', () => {
     // Fixture: 10 damage players tightly at 45, 4 supports at 3/4/5/6.
     // Squad mean ≈ 33.4, squad σ ≈ 18.3 → Healer1 (3) is ≈1.66σ below mean (WOULD be flagged squad-wide).

@@ -141,8 +141,10 @@ const boonUnitInfo = (stacking: boolean, metric: BoonMetric): { unit: string; is
 const getCardTitle = (def: TopStatDef, isPerSecond: boolean, isPerMinute: boolean): string => {
     if (def.source.kind === 'boon') return def.label;
     if (def.id === 'closestToTag') return 'Closest to Tag';
-    const titleSuffix = isPerSecond ? ' /s' : isPerMinute ? ' /m' : '';
-    const isRate = isPerSecond || isPerMinute;
+    // Only rate-capable stats get a "/s" or "/m" suffix. Non-rate stats (kills,
+    // enemyDowns, etc.) always show their total, so they must not be relabeled.
+    const isRate = (isPerSecond || isPerMinute) && def.supportsRate;
+    const titleSuffix = !isRate ? '' : isPerSecond ? ' /s' : ' /m';
     const prefix = (!isRate && TOTAL_PREFIX_IDS.has(def.id)) ? 'Total ' : '';
     return `${prefix}${def.label}${titleSuffix}`;
 };
@@ -178,6 +180,13 @@ export const TopPlayersSection = ({
         : isPerMinute && stats.topStatsLeaderboardsPerMinute
             ? stats.topStatsLeaderboardsPerMinute
             : stats.leaderboards;
+
+    // The per-second/per-minute leaderboard maps only contain rate-capable stats.
+    // Non-rate stats (kills, enemyDowns, blocks, deaths, …) have no per-rate entry,
+    // so read their totals directly instead of rendering an empty (0 / dashes) card.
+    const isRateMode = isPerSecond || isPerMinute;
+    const leaderboardsForDef = (def: TopStatDef) =>
+        isRateMode && !def.supportsRate ? stats.leaderboards : topStatsLeaderboards;
 
     const enabledSet = new Set(enabledTopStats);
     // Filter catalog to enabled defs in catalog order
@@ -217,7 +226,7 @@ export const TopPlayersSection = ({
                         const rows =
                             def.source.kind === 'boon'
                                 ? (stats.boonLeaderboards?.[def.source.boonId] ?? [])
-                                : (topStatsLeaderboards?.[def.source.key] ?? []);
+                                : (leaderboardsForDef(def)?.[def.source.key] ?? []);
                         const players = (Array.isArray(rows) ? rows : []).map((r: any) => ({
                             account: r.account,
                             value: Number(r.value ?? 0),
@@ -434,7 +443,7 @@ export const TopPlayersSection = ({
                         if (def.source.kind === 'boon') {
                             sourceRows = stats.boonLeaderboards?.[def.source.boonId] || [];
                         } else {
-                            sourceRows = topStatsLeaderboards?.[def.source.key] || [];
+                            sourceRows = leaderboardsForDef(def)?.[def.source.key] || [];
                         }
 
                         const rows = normalizeLeaderboardRows(sourceRows, def.higherIsBetter);
