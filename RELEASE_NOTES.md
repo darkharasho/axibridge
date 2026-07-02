@@ -1,9 +1,7 @@
 # Release Notes
 
-Version v2.13.2 — July 1, 2026
+Version v2.13.3 — July 1, 2026
 
 ## Fixes
 
-- Vindicator dodges now count. Their dodge (Death Drop) isn't tracked the same way as every other class, so it was showing up as zero across the stats dashboard, log cards, and Discord summaries. Now every dodge is counted, whether they're running the DPS or heal variant.
-
-NOTE: This applies to logs going forward. Older reports keep whatever they were computed with.
+- Kills, Enemy Downs, and other count-based top-stat cards no longer read 0 with blank rows when you switch the dashboard to per-minute or per-second mode. They now show their real totals, and their titles drop the misleading "/m" and "/s" suffixes since those stats aren't rates.
