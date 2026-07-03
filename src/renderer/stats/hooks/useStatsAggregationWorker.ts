@@ -146,6 +146,9 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     });
     const [aggregationDiagnostics, setAggregationDiagnostics] = useState<AggregationDiagnosticsState | null>(null);
     const workerAggregationStartedAtRef = useRef(0);
+    // Guards the stuck-elided-replay recovery flush so it fires at most once per
+    // settle (keyed by the settled completedAt), preventing a flush loop.
+    const replayRecoveryCompletedAtRef = useRef(0);
     const clearStreamTimer = () => {
         if (streamTimerRef.current !== null) {
             window.clearTimeout(streamTimerRef.current);
@@ -340,6 +343,36 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             workerRef.current = null;
         };
     }, [workerFailed, shouldUseWorker]);
+
+    // Recovery for a permanently-elided replay payload. The worker elides
+    // replayFights whenever it believes the main thread already holds an identical
+    // copy — but a settling flush that ran with skipReplay (because a log's details
+    // were still pending) sets the elision marker without ever delivering a full
+    // copy. If the pending state later resolves without triggering a fresh
+    // re-stream, aggregation settles with the marker stuck on, `isReplayElided`
+    // stays true, and the web upload is disabled forever ("Stats are still
+    // loading") even though nothing is computing. Detect that terminal state and
+    // force the worker to re-send replay in full.
+    useEffect(() => {
+        if (workerFailed || typeof Worker === 'undefined' || !shouldUseWorker) return;
+        if (!workerRef.current) return;
+        if (aggregationProgress.phase !== 'settled') return;
+        const resultStats = (result as any)?.stats;
+        if (!resultStats?.replayFightsElided) return;
+        // A log still settling will produce its own re-stream (and a non-skip
+        // final flush) — don't race it; only recover when the set has quiesced.
+        if (logs.some(isLogPendingIngestion)) return;
+        const completedAt = Number(aggregationProgress.completedAt || 0);
+        if (replayRecoveryCompletedAtRef.current === completedAt) return;
+        replayRecoveryCompletedAtRef.current = completedAt;
+        // Clear the worker's elision key, then flush: the aggregator still holds
+        // all logs, so this recomputes with skipReplay=false and transfers the full
+        // replayFights payload, which the main thread reinjects and un-marks.
+        const flushId = Date.now();
+        pendingFlushIdRef.current = flushId;
+        workerRef.current.postMessage({ type: 'resetReplayElision' });
+        workerRef.current.postMessage({ type: 'flush', flushId, token: activeTokenRef.current });
+    }, [result, aggregationProgress, logs, workerFailed, shouldUseWorker]);
 
     useEffect(() => {
         if (!workerRef.current || workerFailed || !shouldUseWorker) return;

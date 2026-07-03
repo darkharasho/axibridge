@@ -152,6 +152,14 @@ self.onmessage = (event: MessageEvent) => {
         pendingFlushId = null;
         return;
     }
+    if (data?.type === 'resetReplayElision') {
+        // Recovery path: the main thread is stuck with an elided replay payload it
+        // never received in full (e.g. the settling flush ran with skipReplay while
+        // a log's details were still pending). Clear the tracked key so the next
+        // flush re-transfers replayFights in full instead of eliding again.
+        replayElisionState.lastKey = '';
+        return;
+    }
     if (data?.type === 'forget') {
         // Cache-coherence message — must apply regardless of token.
         const keys = Array.isArray(data.keys) ? data.keys : [];
