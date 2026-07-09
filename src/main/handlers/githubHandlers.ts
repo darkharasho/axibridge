@@ -371,13 +371,49 @@ const createGithubRepo = async (owner: string, repo: string, token: string, auth
     return resp.data;
 };
 
-const ensureGithubPages = async (owner: string, repo: string, branch: string, token: string) => {
+// A brand-new repository with no commits has no branches, so the target branch
+// does not exist. GitHub rejects both enabling Pages and updating refs against
+// such a repo with a 409 Conflict ("Git Repository is empty"). GET on a ref
+// returns 404 (no such ref) or 409 (empty repo) in that state.
+const branchExists = async (owner: string, repo: string, branch: string, token: string) => {
+    const resp = await githubApiRequest('GET', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/git/ref/heads/${encodeGitPath(branch)}`, token);
+    if (resp.status === 200) return true;
+    if (resp.status === 404 || resp.status === 409) return false;
+    throw new Error(`GitHub API error (${resp.status}) checking branch ${branch}`);
+};
+
+// Seed an empty repository with a first commit so the target branch exists.
+// The Contents API works on an empty repo and creates the branch as a side
+// effect, unlike the git-data endpoints which require an existing ref.
+const seedEmptyGithubRepo = async (owner: string, repo: string, branch: string, token: string) => {
+    const content = Buffer.from(
+        '# AxiBridge Reports\n\nThis repository hosts AxiBridge web reports.\n'
+    ).toString('base64');
+    const resp = await githubApiRequest('PUT', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/contents/README.md`, token, {
+        message: 'Initialize repository for AxiBridge',
+        content,
+        branch
+    });
+    if (resp.status >= 300) {
+        const detail = typeof resp.data?.message === 'string' ? resp.data.message : 'Unknown error';
+        throw new Error(`GitHub API error (${resp.status}) initializing repository: ${detail}`);
+    }
+    return resp.data;
+};
+
+export const ensureGithubPages = async (owner: string, repo: string, branch: string, token: string) => {
     const pagesResp = await githubApiRequest('GET', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/pages`, token);
     if (pagesResp.status === 200) {
         return pagesResp.data;
     }
     if (pagesResp.status !== 404) {
         throw new Error(`GitHub API error (${pagesResp.status}) checking Pages`);
+    }
+    // Pages can only be enabled once the source branch exists. An empty repo has
+    // no branch yet, which otherwise surfaces as a confusing 409 on the POST
+    // below — seed a first commit so the branch is present.
+    if (!(await branchExists(owner, repo, branch, token))) {
+        await seedEmptyGithubRepo(owner, repo, branch, token);
     }
     const createResp = await githubApiRequest('POST', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/pages`, token, {
         source: { branch, path: '/' }
