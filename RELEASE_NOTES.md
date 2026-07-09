@@ -1,7 +1,7 @@
 # Release Notes
 
-Version v2.13.4 — July 2, 2026
+Version v2.13.5 — July 8, 2026
 
 ## Fixes
 
-- Fixed the web upload button getting stuck grayed out with "Stats are still loading" even when nothing was actually calculating. This could happen when a log's details finished loading at just the wrong moment, leaving the combat replay data marked as unavailable for good. The app now catches that state and quietly finishes the replay so you can upload again.
+- Fixed the "409" error when picking a brand-new, empty GitHub repo for web reports. If the repo has no commits yet, AxiBridge now seeds it with a first commit so GitHub Pages can actually turn on. Flipping the repo between private and public was never the problem — an empty repo was.
