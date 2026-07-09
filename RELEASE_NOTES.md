@@ -1,7 +1,7 @@
 # Release Notes
 
-Version v2.13.5 — July 8, 2026
+Version v2.13.6 — July 8, 2026
 
 ## Fixes
 
-- Fixed the "409" error when picking a brand-new, empty GitHub repo for web reports. If the repo has no commits yet, AxiBridge now seeds it with a first commit so GitHub Pages can actually turn on. Flipping the repo between private and public was never the problem — an empty repo was.
+- Fixed the Linux app icon in your menu/launcher breaking after an update. Because each version's AppImage has a different filename, updating left the launcher pointing at the old, deleted file — so clicking it did nothing. AxiBridge now fixes its own launcher entry every time it starts, so the menu shortcut keeps working across updates.
