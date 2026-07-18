@@ -5,12 +5,12 @@ export const TRACKED_REPLAY_BUFF_IDS: Set<number> = new Set([
     725,   // Fury
     1187,  // Quickness
     30328, // Alacrity
-    873,   // Aegis
+    743,   // Aegis
     1122,  // Stability
     718,   // Regeneration
     717,   // Protection
     26980, // Resistance
-    31484, // Resolution
+    873,   // Resolution (EI reuses the old Retaliation id 873; 31484 is not emitted)
     719,   // Swiftness
     726,   // Vigor
 ]);

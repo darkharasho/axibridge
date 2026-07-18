@@ -19,11 +19,13 @@ export interface TopStatDef {
   supportsRate: boolean;  // per-second/per-minute applies
 }
 
-// GW2 boon skill ids (see src/shared/replayBuffs.ts)
+// GW2 boon skill ids (see src/shared/replayBuffs.ts).
+// NOTE: Elite Insights emits Resolution under buff id 873 (the old Retaliation
+// slot it replaced) and Aegis under 743. 31484 is not present in EI output.
 export const BOON_IDS = {
   might: 'b740', quickness: 'b1187', alacrity: 'b30328', fury: 'b725',
-  protection: 'b717', resistance: 'b26980', resolution: 'b31484',
-  stability: 'b1122', aegis: 'b873', regeneration: 'b718', swiftness: 'b719',
+  protection: 'b717', resistance: 'b26980', resolution: 'b873',
+  stability: 'b1122', aegis: 'b743', regeneration: 'b718', swiftness: 'b719',
   vigor: 'b726',
 } as const;
 
