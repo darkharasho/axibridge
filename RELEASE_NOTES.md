@@ -1,7 +1,7 @@
 # Release Notes
 
-Version v2.13.7 — July 17, 2026
+Version v2.13.8 — July 18, 2026
 
 ## Fixes
 
-- Fixed "Upload to Web" getting stuck disabled with "Stats are still loading" even when nothing was actually processing. This mostly hit logs coming in through the log watcher, and could also show up for every log right after restarting the app. The dashboard was missing the moment a log finished settling, so it kept waiting forever — it now catches it and re-enables the upload on its own.
+- Resolution generation shows up in reports again. It was reading from the wrong buff ID and always came back empty ("No data available" / 0 gen). As a side effect the Aegis card was quietly showing Resolution's numbers instead of its own — both are fixed now, on the stat cards and the replay timeline.
