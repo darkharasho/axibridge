@@ -1,7 +1,7 @@
 # Release Notes
 
-Version v2.13.6 — July 8, 2026
+Version v2.13.7 — July 17, 2026
 
 ## Fixes
 
-- Fixed the Linux app icon in your menu/launcher breaking after an update. Because each version's AppImage has a different filename, updating left the launcher pointing at the old, deleted file — so clicking it did nothing. AxiBridge now fixes its own launcher entry every time it starts, so the menu shortcut keeps working across updates.
+- Fixed "Upload to Web" getting stuck disabled with "Stats are still loading" even when nothing was actually processing. This mostly hit logs coming in through the log watcher, and could also show up for every log right after restarting the app. The dashboard was missing the moment a log finished settling, so it kept waiting forever — it now catches it and re-enables the upload on its own.
