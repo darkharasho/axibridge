@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
 import { useLogsForStats } from '../useLogsForStats';
 import { isLogPendingIngestion } from '../../../stats/hooks/useStatsAggregationWorker';
+import { DetailsCacheContext } from '../../../cache/DetailsCacheContext';
 
 const makeLog = (id: string, status: string, detailsStatus = 'idle'): any => ({
     id,
@@ -61,6 +63,58 @@ describe('useLogsForStats adaptive debounce', () => {
             vi.advanceTimersByTime(2200);
         });
         expect(result.current.logsForStats).toHaveLength(5);
+    });
+
+    // Regression: once a log's details object is in the cache, the snapshot key
+    // ignored status/detailsStatus — so a later status-only settle (watcher log
+    // flipping calculating→success, or a restored log flipping available→loaded
+    // after hydration) never republished. logsForStats then reported the log as
+    // pending-ingestion forever, which kept replay elided and the web upload
+    // disabled even though nothing was computing.
+    it('republishes when a details-cached log settles via a status-only change', () => {
+        const details = { players: [] };
+        const cache = { peek: (id: string) => (id === 'a' ? details : null) } as any;
+        const wrapper = ({ children }: { children: ReactNode }) =>
+            createElement(DetailsCacheContext.Provider, { value: cache }, children);
+        const { result, rerender } = renderHook(({ logs }) => useLogsForStats({ logs }), {
+            initialProps: { logs: [] as any[] },
+            wrapper
+        });
+        const calculating = makeLog('a', 'calculating', 'loaded');
+        rerender({ logs: [calculating] });
+        act(() => {
+            vi.advanceTimersByTime(450);
+        });
+        expect(result.current.logsForStats[0].status).toBe('calculating');
+        rerender({ logs: [{ ...calculating, status: 'success' }] });
+        act(() => {
+            vi.advanceTimersByTime(450);
+        });
+        expect(result.current.logsForStats[0].status).toBe('success');
+        expect(result.current.logsForStats.some(isLogPendingIngestion)).toBe(false);
+    });
+
+    it('republishes when a restored log finishes details hydration', () => {
+        const details = { players: [] };
+        const cache = { peek: (id: string) => (id === 'a' ? details : null) } as any;
+        const wrapper = ({ children }: { children: ReactNode }) =>
+            createElement(DetailsCacheContext.Provider, { value: cache }, children);
+        const { result, rerender } = renderHook(({ logs }) => useLogsForStats({ logs }), {
+            initialProps: { logs: [] as any[] },
+            wrapper
+        });
+        // Restored-from-disk shape: status success, details on disk but not yet hydrated.
+        const restored = makeLog('a', 'success', 'available');
+        rerender({ logs: [restored] });
+        act(() => {
+            vi.advanceTimersByTime(450);
+        });
+        expect(result.current.logsForStats.some(isLogPendingIngestion)).toBe(true);
+        rerender({ logs: [{ ...restored, detailsStatus: 'loaded' }] });
+        act(() => {
+            vi.advanceTimersByTime(450);
+        });
+        expect(result.current.logsForStats.some(isLogPendingIngestion)).toBe(false);
     });
 
     it('keeps the fast window when only a few logs are pending', () => {

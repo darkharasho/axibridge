@@ -38,7 +38,13 @@ export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
             const successValue = (details as any)?.success;
             const successToken = successValue === true ? '1' : successValue === false ? '0' : 'u';
             const r2 = log?.replayDataUrl ? '1' : '0';
-            key += `|${identifier}:${detailsId}:${logId}:${uploadTime}:${successToken}:${permalink}:${r2}`;
+            // The aggregation worker derives skipReplay from isLogPendingIngestion,
+            // so two snapshots that differ only in pending-ness must not share a
+            // key: a status-only settle (calculating→success, available→loaded)
+            // has to republish, or the final skipReplay=false flush never runs and
+            // the web upload stays disabled on a stale "pending" snapshot.
+            const pendingToken = isLogPendingIngestion(log) ? 'p' : 's';
+            key += `|${identifier}:${detailsId}:${logId}:${uploadTime}:${successToken}:${permalink}:${r2}:${pendingToken}`;
         });
         return key;
     }, [getStatsObjectId, detailsCache]);
