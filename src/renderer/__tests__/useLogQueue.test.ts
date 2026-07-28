@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRef, useState } from 'react';
-import { normalizeQueuedLogStatus, useLogQueue } from '../app/hooks/useLogQueue';
+import { canPromoteCalculatingLog, normalizeQueuedLogStatus, useLogQueue } from '../app/hooks/useLogQueue';
 
 describe('normalizeQueuedLogStatus', () => {
     it('keeps pending detail fetches in calculating', () => {
@@ -53,6 +53,45 @@ describe('normalizeQueuedLogStatus', () => {
 
         expect(result.status).toBe('success');
         expect(result.detailsStatus).toBe('unavailable');
+    });
+});
+
+describe('canPromoteCalculatingLog', () => {
+    const log = (detailsStatus: ILogData['detailsStatus']): ILogData => ({
+        id: 'log-1',
+        filePath: 'one.zevtc',
+        status: 'calculating',
+        detailsStatus,
+    } as ILogData);
+    const missCache = { peek: () => undefined };
+    const hitCache = { peek: () => ({ players: [] }) };
+
+    it('promotes a loaded log even when its details were evicted from the LRU', () => {
+        // Regression: worker re-streams evict LRU entries (capacity 15), so the
+        // peek-only gate left loaded logs stuck in calculating forever — keeping
+        // isLogPendingIngestion true, forcing skipReplay on every flush, and
+        // permanently disabling the web upload.
+        expect(canPromoteCalculatingLog(log('loaded'), missCache)).toBe(true);
+    });
+
+    it('promotes a loaded log when the cache is unavailable', () => {
+        expect(canPromoteCalculatingLog(log('loaded'), null)).toBe(true);
+    });
+
+    it('promotes when details will never arrive', () => {
+        expect(canPromoteCalculatingLog(log('exhausted'), missCache)).toBe(true);
+        expect(canPromoteCalculatingLog(log('unavailable'), missCache)).toBe(true);
+    });
+
+    it('promotes on an LRU hit regardless of detailsStatus', () => {
+        expect(canPromoteCalculatingLog(log('available'), hitCache)).toBe(true);
+        expect(canPromoteCalculatingLog(log('idle'), hitCache)).toBe(true);
+    });
+
+    it('keeps waiting while details are still pending and not cached', () => {
+        expect(canPromoteCalculatingLog(log('available'), missCache)).toBe(false);
+        expect(canPromoteCalculatingLog(log('loading'), missCache)).toBe(false);
+        expect(canPromoteCalculatingLog(log('idle'), missCache)).toBe(false);
     });
 });
 

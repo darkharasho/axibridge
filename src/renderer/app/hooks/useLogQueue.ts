@@ -17,6 +17,21 @@ export const normalizeQueuedLogStatus = (candidate: ILogData): ILogData => {
     return candidate;
 };
 
+/** Whether a 'calculating' log may be promoted to 'success'. Details count as
+ *  available when detailsStatus is 'loaded' — they were write-through cached, so
+ *  the aggregation worker can read them via LRU→IndexedDB even after the
+ *  in-memory LRU evicted them. A peek-only check here left loaded logs stuck in
+ *  'calculating' after eviction, which kept isLogPendingIngestion true forever
+ *  and permanently disabled the web upload (skipReplay on every flush). */
+export const canPromoteCalculatingLog = (
+    log: ILogData,
+    detailsCache: { peek(logId: string): any } | null
+): boolean => {
+    const ds = log.detailsStatus || 'idle';
+    if (ds === 'loaded' || ds === 'exhausted' || ds === 'unavailable') return true;
+    return Boolean(detailsCache?.peek(log.id));
+};
+
 export function useLogQueue(
     setLogs: React.Dispatch<React.SetStateAction<ILogData[]>>,
     bulkUploadModeRef: React.MutableRefObject<boolean>

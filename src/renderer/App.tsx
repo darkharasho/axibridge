@@ -16,7 +16,7 @@ import { useSettings } from './app/hooks/useSettings';
 import { useUploadRetryQueue } from './app/hooks/useUploadRetryQueue';
 import { useAppNavigation } from './app/hooks/useAppNavigation';
 
-import { useLogQueue } from './app/hooks/useLogQueue';
+import { canPromoteCalculatingLog, useLogQueue } from './app/hooks/useLogQueue';
 import { useDetailsHydration } from './app/hooks/useDetailsHydration';
 import { useUploadListeners } from './app/hooks/useUploadListeners';
 import { extractDroppedLogFiles } from './app/utils/droppedFiles';
@@ -349,12 +349,9 @@ function App() {
             let changed = false;
             const next = currentLogs.map<ILogData>((log) => {
                 if (log.status === 'calculating') {
-                    // Only promote if details are in cache (worker used them)
-                    // or details will never arrive.
-                    const hasDetails = Boolean(detailsCacheRef.current?.peek(log.id));
-                    const ds = log.detailsStatus || 'idle';
-                    const detailsWontArrive = ds === 'exhausted' || ds === 'unavailable';
-                    if (!hasDetails && !detailsWontArrive) {
+                    // Only promote if details are locally available (worker can
+                    // read them) or will never arrive.
+                    if (!canPromoteCalculatingLog(log, detailsCacheRef.current)) {
                         return log;
                     }
                     changed = true;
@@ -429,10 +426,7 @@ function App() {
                     const id = String(entry?.filePath || entry?.id || '');
                     if (!id || !ingestedIds.has(id)) return entry;
                     // Only promote if details were available for the worker to use
-                    const hasDetails = Boolean(detailsCacheRef.current?.peek(entry.id));
-                    const ds = entry.detailsStatus || 'idle';
-                    const detailsWontArrive = ds === 'exhausted' || ds === 'unavailable';
-                    if (!hasDetails && !detailsWontArrive) return entry;
+                    if (!canPromoteCalculatingLog(entry, detailsCacheRef.current)) return entry;
                     changed = true;
                     return { ...entry, status: 'success' as const };
                 });
@@ -444,10 +438,7 @@ function App() {
                 let changed = false;
                 const next = currentLogs.map((entry) => {
                     if (entry.status !== 'calculating') return entry;
-                    const hasDetails = Boolean(detailsCacheRef.current?.peek(entry.id));
-                    const ds = entry.detailsStatus || 'idle';
-                    const detailsWontArrive = ds === 'exhausted' || ds === 'unavailable';
-                    if (!hasDetails && !detailsWontArrive) return entry;
+                    if (!canPromoteCalculatingLog(entry, detailsCacheRef.current)) return entry;
                     changed = true;
                     return { ...entry, status: 'success' as const };
                 });
