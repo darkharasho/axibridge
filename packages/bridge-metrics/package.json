@@ -25,7 +25,8 @@
         "./reportMetrics": { "types": "./dist/reportMetrics.d.ts", "import": "./dist/reportMetrics.js", "require": "./dist/reportMetrics.cjs" },
         "./statsMetrics": { "types": "./dist/statsMetrics.d.ts", "import": "./dist/statsMetrics.js", "require": "./dist/statsMetrics.cjs" },
         "./boonGeneration": { "types": "./dist/boonGeneration.d.ts", "import": "./dist/boonGeneration.js", "require": "./dist/boonGeneration.cjs" },
-        "./constants": { "types": "./dist/constants.d.ts", "import": "./dist/constants.js", "require": "./dist/constants.cjs" }
+        "./constants": { "types": "./dist/constants.d.ts", "import": "./dist/constants.js", "require": "./dist/constants.cjs" },
+        "./playerIdentity": { "types": "./dist/playerIdentity.d.ts", "import": "./dist/playerIdentity.js", "require": "./dist/playerIdentity.cjs" }
     },
     "typesVersions": {
         "*": { "*": ["dist/*.d.ts"] }

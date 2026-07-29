@@ -22,7 +22,8 @@ export default defineConfig({
         reportMetrics: 'src/reportMetrics.ts',
         statsMetrics: 'src/statsMetrics.ts',
         boonGeneration: 'src/boonGeneration.ts',
-        constants: 'src/constants.ts'
+        constants: 'src/constants.ts',
+        playerIdentity: 'src/playerIdentity.ts'
     },
     format: ['esm', 'cjs'],
     outExtension: ({ format }) => ({ js: format === 'cjs' ? '.cjs' : '.js' }),
