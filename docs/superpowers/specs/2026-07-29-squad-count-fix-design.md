@@ -87,10 +87,13 @@ definition. Typing follows existing conventions in the package. Unit tests live 
 | `src/renderer/stats/computeFightBreakdown.ts` (~L75, L117) | Per-fight `squadCount` and per-fight class counts |
 | `packages/bridge-metrics/src/computePlayerAggregation.ts` (~L672) | Per-log seen-set keyed by the aggregation identity key: `logsJoined` increments once per identity per log; `stackedLogCount` increments once per identity per log when any of that identity's entries is stacked (dist ≤ 600). All other accumulators keep running per entry |
 
-Downstream fixed transitively (no direct change): `computeCommanderStats`
-(`totalSquadCount` accumulates the per-fight `squadCount` input), `attendance.json`
-(projects from `logsJoined`), `avgSquadSize`, timeline display, web report
-`report.json`.
+Downstream fixed transitively (no direct change): `attendance.json` (projects
+from `logsJoined`), timeline display, web report `report.json`. Two claims in
+the original design proved wrong during implementation and needed direct
+fixes: `avgSquadSize` is accumulated independently in
+`computePlayerAggregation.ts` (`totalSquadSizeAccum`, deduped in Task 6), and
+`computeCommanderStats.ts` computes its own per-fight squad count in
+`ingestLogCommanderStats` (deduped in follow-up Task 6b).
 
 The `logsJoined`/`stackedLogCount` dedup uses the same identity key as the
 aggregation rows (`getPlayerIdentity(...).key`), so split-by-class mode keeps

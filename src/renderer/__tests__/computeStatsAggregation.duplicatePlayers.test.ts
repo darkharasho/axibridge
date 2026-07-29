@@ -18,7 +18,7 @@ const squadEntry = (account: string, name: string, profession: string, over: any
 const buildLog21Roster = () => {
     const players: any[] = [];
     for (let i = 0; i < 40; i++) {
-        players.push(squadEntry(`Member.${1000 + i}`, `Squaddie ${i}`, 'Guardian'));
+        players.push(squadEntry(`Member.${1000 + i}`, `Squaddie ${i}`, 'Guardian', i === 0 ? { hasCommanderTag: true } : {}));
     }
     // Dash.8715: 5 entries (relog + build swaps)
     players.push(squadEntry('Dash.8715', 'Celeana S', 'Thief', { activeTimes: [30000] }));
@@ -80,5 +80,12 @@ describe('computeStatsAggregation (duplicate player entries)', () => {
         const participation = stats.leaderboards?.participation || [];
         const dupRow = participation.find((row: any) => row.account === 'Dash.8715');
         expect(dupRow?.value).toBe(1);
+    });
+
+    it('commander avg squad size counts distinct people', () => {
+        const { stats } = computeStatsAggregation({ logs: logs as any[] });
+        const rows = stats.commanderStats?.rows || [];
+        expect(rows).toHaveLength(1);
+        expect(rows[0].avgSquadSize).toBe(43);
     });
 });

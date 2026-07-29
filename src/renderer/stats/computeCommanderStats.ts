@@ -3,6 +3,7 @@ import { resolveFightTimestamp } from './utils/timestampUtils';
 import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { formatDurationMs } from './utils/dashboardUtils';
 import { resolveProfessionLabel } from './computePlayerAggregation';
+import { partitionSquadPlayers } from '../../shared/playerIdentity';
 
 const isBoon = (meta?: { classification?: string }) => {
     if (!meta?.classification) return true;
@@ -451,7 +452,7 @@ export function ingestLogCommanderStats(log: any, idx: number, commanders: Map<s
         : 1;
     const timestamp = resolveFightTimestamp(details, log);
     const mapName = resolveMapName(details, log);
-    const squadCount = squadPlayers.length;
+    const squadCount = partitionSquadPlayers(players).squadPrimaries.length;
     const enemyCount = Array.isArray(details?.targets)
         ? details.targets.filter((target: any) => !target?.isFake).length
         : 0;

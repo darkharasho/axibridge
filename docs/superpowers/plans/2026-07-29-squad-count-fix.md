@@ -760,7 +760,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `partitionSquadPlayers` from `../../shared/playerIdentity`.
-- Produces: `stats.timelineData[i].squadCount/friendlyCount`, `stats.avgSquadSize`, `stats.fightBreakdown[i].squadCount/allyCount/squadClassCountsFight/allyClassCountsFight`, and commander `avgSquadSize` (fed by the per-fight `squadCount`) all reflect distinct people.
+- Produces: `stats.timelineData[i].squadCount/friendlyCount`, `stats.avgSquadSize`, `stats.fightBreakdown[i].squadCount/allyCount/squadClassCountsFight/allyClassCountsFight`, and commander `avgSquadSize` (its own count in `ingestLogCommanderStats` — corrected in follow-up Task 6b; the original "fed by the per-fight squadCount" claim was wrong) all reflect distinct people.
 
 - [ ] **Step 1: Write the failing end-to-end test**
 
