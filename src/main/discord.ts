@@ -27,6 +27,7 @@ import {
 } from '../shared/combatMetrics';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../shared/professionUtils';
+import { partitionSquadPlayers } from '../shared/playerIdentity';
 import { Player } from '../shared/dpsReportTypes';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
@@ -365,6 +366,8 @@ export class DiscordNotifier {
                     let totalStripsMissed = 0;
                     let totalStripsBlocked = 0;
 
+                    const { squadPrimaries, pugPrimaries } = partitionSquadPlayers(players);
+
                     const squadClassCounts: { [key: string]: number } = {};
                     const enemyClassCounts: { [key: string]: number } = {};
 
@@ -404,11 +407,11 @@ export class DiscordNotifier {
                         totalStripsTaken += pStats.strips.total;
                         totalStripsMissed += pStats.strips.missed;
                         totalStripsBlocked += pStats.strips.blocked;
+                    });
 
-                        if (isSquad) {
-                            const prof = p.profession || 'Unknown';
-                            squadClassCounts[prof] = (squadClassCounts[prof] || 0) + 1;
-                        }
+                    squadPrimaries.forEach((p: any) => {
+                        const prof = p.profession || 'Unknown';
+                        squadClassCounts[prof] = (squadClassCounts[prof] || 0) + 1;
                     });
 
                     // Calculate Enemy (Target) Stats - how many times WE downed/killed them
@@ -425,11 +428,11 @@ export class DiscordNotifier {
                         if (!t.isFake) enemyCount++;
                     });
                     if (enemyCount === 0) {
-                        enemyCount = players.filter((p: any) => p.notInSquad).length;
+                        enemyCount = pugPrimaries.length;
                     }
 
                     const fromPlayers: Record<string, number> = {};
-                    const enemyPlayers = players.filter((p: any) => p.notInSquad);
+                    const enemyPlayers = pugPrimaries;
                     enemyPlayers.forEach((p: any) => {
                         const prof = String(p?.profession || '').trim();
                         if (!prof) return;
@@ -488,13 +491,10 @@ export class DiscordNotifier {
                         return `${paddedLabel}${value}`;
                     };
 
-                    const squadPlayers = players.filter((p: any) => !p.notInSquad);
-                    const nonSquadPlayers = players.filter((p: any) => p.notInSquad);
-
                     // Squad Summary (conditionally shown)
                     if (settings.showSquadSummary) {
                         const squadSummaryLines = [
-                            formatStatLine('Count:', nonSquadPlayers.length > 0 ? `${squadPlayers.length} (+${nonSquadPlayers.length})` : squadPlayers.length),
+                            formatStatLine('Count:', pugPrimaries.length > 0 ? `${squadPrimaries.length} (+${pugPrimaries.length})` : squadPrimaries.length),
                             formatStatLine('DMG:', fmtInt(squadDmg)),
                             formatStatLine('DPS:', fmtInt(squadDps)),
                             formatStatLine('Downs:', squadDowns),
