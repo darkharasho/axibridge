@@ -355,6 +355,41 @@ describe('buildDashboardSummaryFromDetails', () => {
         expect(buildDashboardSummaryFromDetails({ players: [], targets: [{ isFake: false }] }).hasTargets).toBe(true);
         expect(buildDashboardSummaryFromDetails({ players: [], targets: [] }).hasTargets).toBe(false);
     });
+
+    it('counts duplicate squad entries for one account as one person', () => {
+        const summary = buildDashboardSummaryFromDetails({
+            players: [
+                { account: 'Dup.1234', name: 'Char A', profession: 'Specter', notInSquad: false, activeTimes: [45000], defenses: [{ downCount: 1, deadCount: 1 }] },
+                { account: 'Dup.1234', name: 'Char A', profession: 'Daredevil', notInSquad: false, activeTimes: [15000], defenses: [{ downCount: 0, deadCount: 1 }] },
+                { account: 'Solo.5678', name: 'Char B', profession: 'Guardian', notInSquad: false, activeTimes: [60000], defenses: [{ downCount: 0, deadCount: 0 }] }
+            ],
+            targets: []
+        });
+        expect(summary.squadCount).toBe(2);
+        // deaths keep summing every entry — each is a real time-slice
+        expect(summary.squadDeaths).toBe(2);
+    });
+
+    it('reports 43 (+4) for a Log-21-shaped roster (43 people across 51 squad entries)', () => {
+        const players: any[] = [];
+        for (let i = 0; i < 40; i++) {
+            players.push({ account: `Member.${1000 + i}`, name: `Squaddie ${i}`, profession: 'Guardian', notInSquad: false, activeTimes: [60000], defenses: [{ downCount: 0, deadCount: 0 }] });
+        }
+        for (let i = 0; i < 5; i++) {
+            players.push({ account: 'Dash.8715', name: 'Celeana S', profession: 'Thief', notInSquad: false, activeTimes: [5000 + i], defenses: [{ downCount: 0, deadCount: 0 }] });
+        }
+        for (let i = 0; i < 3; i++) {
+            players.push({ account: 'Tangella.4031', name: 'Tanggella', profession: 'Ranger', notInSquad: false, activeTimes: [10000 + i], defenses: [{ downCount: 0, deadCount: 0 }] });
+        }
+        for (let i = 0; i < 3; i++) {
+            players.push({ account: 'Ayumi Anime.1426', name: 'Bàe Suzy', profession: 'Ranger', notInSquad: false, activeTimes: [12000 + i], defenses: [{ downCount: 0, deadCount: 0 }] });
+        }
+        for (let i = 0; i < 4; i++) {
+            players.push({ account: `Pug.${2000 + i}`, name: `Pug ${i}`, profession: 'Necromancer', notInSquad: true, activeTimes: [60000], defenses: [{ downCount: 0, deadCount: 0 }] });
+        }
+        const summary = buildDashboardSummaryFromDetails({ players, targets: [] });
+        expect(summary.squadCount).toBe(43);
+    });
 });
 
 // ─── buildManifestEntry ───────────────────────────────────────────────────────
@@ -396,6 +431,19 @@ describe('buildManifestEntry', () => {
     it('resolves uploadTime via resolveDetailsUploadTime', () => {
         const entry = buildManifestEntry({ uploadTime: 1700000000 }, '/f', 0);
         expect(entry.uploadTime).toBe(1700000000);
+    });
+
+    it('dedupes manifest squad/non-squad counts but keeps raw playerCount', () => {
+        const entry = buildManifestEntry({
+            players: [
+                { account: 'Dup.1234', name: 'Char A', notInSquad: false },
+                { account: 'Dup.1234', name: 'Char A', notInSquad: false },
+                { account: 'Pug.9999', name: 'Char C', notInSquad: true }
+            ]
+        }, '/tmp/log.zevtc', 0);
+        expect(entry.playerCount).toBe(3);
+        expect(entry.squadCount).toBe(1);
+        expect(entry.nonSquadCount).toBe(1);
     });
 });
 

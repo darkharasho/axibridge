@@ -6,6 +6,7 @@
 
 import { computeOutgoingConditions } from '../shared/conditionsMetrics';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
+import { partitionSquadPlayers } from '../shared/playerIdentity';
 
 // ─── Timestamp helpers ────────────────────────────────────────────────────────
 
@@ -205,7 +206,7 @@ export type DashboardSummary = {
 export const buildDashboardSummaryFromDetails = (details: any): DashboardSummary => {
     const players: any[] = Array.isArray(details?.players) ? details.players : [];
     const targets: any[] = Array.isArray(details?.targets) ? details.targets : [];
-    let squadCount = 0;
+    const squadCount = partitionSquadPlayers(players).squadPrimaries.length;
     let enemyCount = 0;
     let squadDownsDeaths = 0;
     let enemyDownsDeaths = 0;
@@ -214,7 +215,6 @@ export const buildDashboardSummaryFromDetails = (details: any): DashboardSummary
 
     players.forEach((player) => {
         if (player?.notInSquad) return;
-        squadCount += 1;
         const defenses = player?.defenses?.[0];
         if (defenses) {
             const downCount = Number(defenses.downCount || 0);
@@ -257,8 +257,9 @@ export const buildDashboardSummaryFromDetails = (details: any): DashboardSummary
  */
 export const buildManifestEntry = (details: any, filePath: string, index: number) => {
     const players: any[] = Array.isArray(details?.players) ? details.players : [];
-    const squadCount = players.filter((p) => !p?.notInSquad).length;
-    const nonSquadCount = players.filter((p) => p?.notInSquad).length;
+    const { squadPrimaries, pugPrimaries } = partitionSquadPlayers(players);
+    const squadCount = squadPrimaries.length;
+    const nonSquadCount = pugPrimaries.length;
     return {
         id: details?.id || `dev-log-${index + 1}`,
         filePath,
