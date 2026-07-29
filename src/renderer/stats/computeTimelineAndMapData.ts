@@ -3,6 +3,7 @@ import { computeBoonTimeline } from './computeBoonTimeline';
 import { computeBoonUptimeTimeline } from './computeBoonUptimeTimeline';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { resolveMapName } from './utils/labelUtils';
+import { partitionSquadPlayers } from '../../shared/playerIdentity';
 
 const hasDetailedRoster = (log: any) => {
     const players = Array.isArray(log?.details?.players) ? log.details.players : [];
@@ -119,13 +120,13 @@ export function computeTimelineAndMapData(logs: any[], validLogs: any[], splitPl
             const summary = log?.dashboardSummary && typeof log.dashboardSummary === 'object'
                 ? log.dashboardSummary
                 : null;
-            const squadPlayers = players.filter((p: any) => !p.notInSquad);
+            const { squadPrimaries, pugPrimaries } = partitionSquadPlayers(players);
             const enemyTargets = targets.filter((t: any) => !t.isFake);
             const summarySquadCount = Math.max(0, Number(summary?.squadCount || 0));
             const summaryEnemyCount = Math.max(0, Number(summary?.enemyCount || 0));
-            const squadCount = squadPlayers.length > 0 ? squadPlayers.length : summarySquadCount;
+            const squadCount = squadPrimaries.length > 0 ? squadPrimaries.length : summarySquadCount;
             const enemies = enemyTargets.length > 0 ? enemyTargets.length : summaryEnemyCount;
-            const friendlyCount = players.length > 0 ? players.length : squadCount;
+            const friendlyCount = players.length > 0 ? squadPrimaries.length + pugPrimaries.length : squadCount;
             return {
                 timestamp: resolveFightTimestamp(details, log),
                 squadCount,

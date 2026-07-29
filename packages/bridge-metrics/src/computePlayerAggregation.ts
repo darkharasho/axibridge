@@ -10,6 +10,7 @@ import { PlayerSkillDamageEntry, PlayerHealingSkillEntry } from './aggregationTy
 import { PROFESSION_COLORS } from './professionUtils';
 import { resolveFightTimestamp } from './timestampUtils';
 import { PlayerRoleClassification } from './roles';
+import { partitionSquadPlayers } from './playerIdentity';
 
 export interface PlayerStats {
     name: string;
@@ -610,7 +611,10 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         return playerDistToTag;
     };
 
-    acc.totalSquadSizeAccum += squadPlayers.length;
+    // Distinct people, not entries: relogs/build-swaps/subgroup moves emit a
+    // new players[] entry for the same person and must not inflate the
+    // average squad size (see partitionSquadPlayers doc comment).
+    acc.totalSquadSizeAccum += partitionSquadPlayers(players).squadPrimaries.length;
     acc.totalEnemiesAccum += targets.filter((t: any) => !t.isFake).length;
 
     applyStabilityGeneration(players, { durationMS: details.durationMS, buffMap: details.buffMap });

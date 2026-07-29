@@ -3,6 +3,7 @@ import { resolveFightTimestamp } from './utils/timestampUtils';
 import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { formatDurationMs } from './utils/dashboardUtils';
 import { getWvwTeamColor, teamMapFromLog } from '../../shared/wvwTeams';
+import { partitionSquadPlayers } from '../../shared/playerIdentity';
 
 const resolvePermalink = (details: any, log: any): string => {
     const direct = log?.permalink || details?.permalink;
@@ -42,7 +43,7 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
     const details = log?.details;
     const players = Array.isArray(details?.players) ? details.players : [];
     const squadPlayers = players.filter((p: any) => !p.notInSquad);
-    const allies = players.filter((p: any) => p.notInSquad);
+    const { squadPrimaries, pugPrimaries } = partitionSquadPlayers(players);
     const targets = Array.isArray(details?.targets) ? details.targets : [];
     const wvwTeamMap = teamMapFromLog(details);
     const enemyTargets = targets.filter((t: any) => !t.isFake);
@@ -72,8 +73,8 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
         });
         return counts;
     };
-    const squadClassCountsFight = countProfessions(squadPlayers, (p) => p?.profession || p?.name);
-    const allyClassCountsFight = countProfessions(allies, (p) => p?.profession || p?.name);
+    const squadClassCountsFight = countProfessions(squadPrimaries, (p) => p?.profession || p?.name);
+    const allyClassCountsFight = countProfessions(pugPrimaries, (p) => p?.profession || p?.name);
     const enemyClassCounts = countProfessions(enemyTargets, (t) => t?.profession || t?.name || t?.id);
     const alliedTeamIds = new Set<string>();
     squadPlayers.forEach((player: any) => {
@@ -114,8 +115,8 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
         mapName,
         duration: resolveFightDurationLabel(details, log),
         isWin,
-        squadCount: squadPlayers.length > 0 ? squadPlayers.length : Math.max(0, Number(summary?.squadCount || 0)),
-        allyCount: allies.length,
+        squadCount: squadPrimaries.length > 0 ? squadPrimaries.length : Math.max(0, Number(summary?.squadCount || 0)),
+        allyCount: pugPrimaries.length,
         enemyCount: enemyTargets.length > 0 ? enemyTargets.length : Math.max(0, Number(summary?.enemyCount || 0)),
         teamBreakdown,
         alliesDown: squadPlayers.reduce((sum: number, p: any) => sum + (p.defenses?.[0]?.downCount || 0), 0),
