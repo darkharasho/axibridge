@@ -8,6 +8,7 @@ import { applySquadStabilityGeneration as applyStabilityGeneration, computeIncom
 import { Player } from '../shared/dpsReportTypes';
 import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DisruptionMethod, IEmbedStatSettings } from './global.d';
 import { getProfessionAbbrev, getProfessionEmoji } from '../shared/professionUtils';
+import { partitionSquadPlayers } from '../shared/playerIdentity';
 import { getProfessionIconPath } from './classIconUtils';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { useLogDetails } from './cache/useLogDetails';
@@ -41,12 +42,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const shouldComputeDetails = isExpanded;
     const allPlayers: Player[] = Array.isArray(details.players) ? details.players : [];
     const allTargets = Array.isArray(details.targets) ? details.targets : [];
-    let squadPlayerCount = 0;
-    let nonSquadPlayerCount = 0;
-    allPlayers.forEach((player: any) => {
-        if (player?.notInSquad) nonSquadPlayerCount += 1;
-        else squadPlayerCount += 1;
-    });
+    const { squadPrimaries, pugPrimaries } = partitionSquadPlayers(allPlayers);
     const players: Player[] = shouldComputeDetails ? allPlayers : [];
     const targets = shouldComputeDetails ? allTargets : [];
     const settings = embedStatSettings || DEFAULT_EMBED_STATS;
@@ -103,8 +99,8 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     : 'success';
     const isCancellable = Boolean(detailsNotReady && !isExpanded && onCancel && (isQueued || isPending || isParsing || isUploading || isRetrying));
     const canRemove = Boolean(onRemove && !isCancellable);
-    const squadDisplayCount = shouldComputeDetails ? squadPlayers.length : squadPlayerCount;
-    const nonSquadDisplayCount = shouldComputeDetails ? nonSquadPlayers.length : nonSquadPlayerCount;
+    const squadDisplayCount = squadPrimaries.length;
+    const nonSquadDisplayCount = pugPrimaries.length;
     const [relativeNow, setRelativeNow] = useState(() => Date.now());
     useEffect(() => {
         const timer = window.setInterval(() => {
@@ -391,7 +387,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             if (!t.isFake) enemyCount++;
         });
         if (enemyCount === 0) {
-            enemyCount = nonSquadPlayers.length;
+            enemyCount = pugPrimaries.length;
         }
 
         // Aggregate downed/killed from statsTargets
@@ -405,10 +401,10 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         const durationSec = (details.durationMS || 0) / 1000 || 1;
         enemyDps = Math.round(totalDmgTaken / durationSec);
 
-        squadClassCounts = buildClassCounts(squadPlayers);
+        squadClassCounts = buildClassCounts(squadPrimaries);
         enemyClassCounts = (() => {
             const fromPlayers: Record<string, number> = {};
-            nonSquadPlayers.forEach((p: any) => {
+            pugPrimaries.forEach((p: any) => {
                 const prof = String(p?.profession || '').trim();
                 if (prof) fromPlayers[prof] = (fromPlayers[prof] || 0) + 1;
             });
