@@ -643,6 +643,11 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         });
     });
 
+    // One increment per person per log: duplicate entries for the same
+    // identity (relog / build swap / subgroup move) must not inflate attendance.
+    const joinedIdentityKeys = new Set<string>();
+    const stackedIdentityKeys = new Set<string>();
+
     players.forEach((p, playerIndex) => {
         if (p.notInSquad) return;
         const identity = getPlayerIdentity(p, splitPlayersByClass);
@@ -669,7 +674,10 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             const activeMs = Array.isArray(p.activeTimes) && typeof p.activeTimes[0] === 'number' ? p.activeTimes[0] : details.durationMS || 0;
             s.professionTimeMs[p.profession] = (s.professionTimeMs[p.profession] || 0) + activeMs;
         }
-        s.logsJoined++;
+        if (!joinedIdentityKeys.has(key)) {
+            joinedIdentityKeys.add(key);
+            s.logsJoined++;
+        }
         s.downContrib += getPlayerDownContribution(p);
         s.cleanses += getPlayerCleanses(p);
         s.strips += getPlayerStrips(p, method);
@@ -684,7 +692,8 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             s.totalDist += dist;
             s.distCount++;
         }
-        if (dist <= 600) {
+        if (dist <= 600 && !stackedIdentityKeys.has(key)) {
+            stackedIdentityKeys.add(key);
             s.stackedLogCount++;
         }
         if (p.defenses?.[0]) {

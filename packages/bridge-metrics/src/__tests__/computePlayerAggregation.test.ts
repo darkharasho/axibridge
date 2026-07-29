@@ -44,3 +44,51 @@ describe('buildRollupData', () => {
         expect(rollup.uniqueRaids).toBe(1);
     });
 });
+
+describe('duplicate player entries (same account)', () => {
+    const dupPlayer = (profession: string, activeMs: number, over: any = {}) => ({
+        account: 'Dup.1234', name: 'Char A', profession, notInSquad: false,
+        activeTimes: [activeMs],
+        dpsAll: [{ damage: 1000 }],
+        defenses: [{ downCount: 0, deadCount: 0, damageTaken: 100, dodgeCount: 0 }],
+        statsAll: [{ distToCom: 100, saved: 0 }],
+        statsTargets: [[{ downed: 0, killed: 0 }]],
+        support: [{}],
+        rotation: [],
+        ...over
+    });
+    const dupLog = {
+        details: {
+            durationMS: 60000,
+            success: true,
+            players: [
+                dupPlayer('Guardian', 45000, { defenses: [{ downCount: 1, deadCount: 1, damageTaken: 100, dodgeCount: 0 }] }),
+                dupPlayer('Necromancer', 15000)
+            ],
+            targets: [],
+            skillMap: {},
+            buffMap: {}
+        }
+    };
+
+    it('credits one logsJoined and one stackedLogCount per person per log', () => {
+        const result = computePlayerAggregation({
+            validLogs: [dupLog], method: 'count', skillDamageSource: 'target', splitPlayersByClass: false
+        });
+        const row = result.playerStats.get('Dup.1234');
+        expect(row).toBeTruthy();
+        expect(row!.logsJoined).toBe(1);
+        expect(row!.stackedLogCount).toBe(1);
+        // stat sums still cover every entry (disjoint time-slices)
+        expect(row!.deaths).toBe(1);
+        expect(row!.downs).toBe(1);
+    });
+
+    it('keeps per-build rows counting their own participation when split by class', () => {
+        const result = computePlayerAggregation({
+            validLogs: [dupLog], method: 'count', skillDamageSource: 'target', splitPlayersByClass: true
+        });
+        expect(result.playerStats.get('Dup.1234::Guardian')!.logsJoined).toBe(1);
+        expect(result.playerStats.get('Dup.1234::Necromancer')!.logsJoined).toBe(1);
+    });
+});
