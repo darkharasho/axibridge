@@ -4,6 +4,7 @@ import type { DPSReportJSON, Player } from '../dpsReportTypes';
 import type { CommanderFightData } from '../commanderTypes';
 import { KNOWN_PROFESSIONS, playerPosAt, dist2d, centroid } from './shared';
 import { getWvwTeamColor, teamMapFromLog } from '../wvwTeams';
+import { partitionSquadPlayers, getPlayerAccountKey } from '../playerIdentity';
 
 export function computeMatchup(
   json: DPSReportJSON,
@@ -11,11 +12,15 @@ export function computeMatchup(
   pollingRate: number,
   durationSec: number,
 ): CommanderFightData['matchup'] {
-  // Squad members are players where notInSquad is not set (or false).
-  const squadCount = squadPlayers.length;
-
-  // Friendly off-group allies are players where notInSquad === true.
-  const alliesCount = json.players.filter(p => p.notInSquad === true).length;
+  // squadCount/alliesCount are DISTINCT-PERSON counts: arcdps emits a new
+  // players[] entry per agent instance, so one person who relogs/build-swaps/
+  // changes subgroup mid-fight can appear as several raw entries. `squadPlayers`
+  // itself is left untouched below — every downstream series/sum computation
+  // (alive-time, positions, stab uptime, etc.) must keep iterating every entry,
+  // since each entry is a real, disjoint time-slice of that player's fight.
+  const { squadPrimaries, pugPrimaries } = partitionSquadPlayers(json.players);
+  const squadCount = squadPrimaries.length;
+  const alliesCount = pugPrimaries.length;
 
   // Enemy players appear as individual Target entries where enemyPlayer === true.
   // NPC bosses/structures are filtered out by this flag.
@@ -105,22 +110,35 @@ export function computeMatchup(
 
   // ---- inTagBubbleAtEngage ----
   // Count squad players within 600u of squad centroid at t = min(2, durationSec).
+  // Position/centroid math stays entry-based (every tracked squadPlayers entry
+  // still contributes a point, unchanged). Only the final "how many are on tag"
+  // count is deduped by identity, so it stays comparable to the distinct-person
+  // squadCount it's reported against (MatchupSection's tagPct = this / squadCount).
   const TAG_RADIUS = 600;
   const framesPerSec = 1000 / pollingRate;
   const engageSec = Math.min(2, durationSec);
   const engagePts: [number, number][] = [];
+  const engagePtOwners: Player[] = [];
   for (const p of squadPlayers) {
     const pos = playerPosAt(p, engageSec, framesPerSec);
-    if (pos !== null) engagePts.push(pos);
+    if (pos !== null) {
+      engagePts.push(pos);
+      engagePtOwners.push(p);
+    }
   }
   const engageCentroid = centroid(engagePts);
   let inTagBubbleAtEngage = 0;
   if (engageCentroid !== null) {
-    for (const pos of engagePts) {
+    const onTagKeys = new Set<string>();
+    let onTagKeylessCount = 0;
+    engagePts.forEach((pos, i) => {
       if (dist2d(pos, engageCentroid) <= TAG_RADIUS) {
-        inTagBubbleAtEngage++;
+        const key = getPlayerAccountKey(engagePtOwners[i]);
+        if (key !== null) onTagKeys.add(key);
+        else onTagKeylessCount++;
       }
-    }
+    });
+    inTagBubbleAtEngage = onTagKeys.size + onTagKeylessCount;
   }
 
   return {

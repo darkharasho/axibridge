@@ -79,7 +79,9 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     // Treat the post-upload "success but details still loading" window as calculating,
     // so the badge stays amber/animated until the log is actually usable.
     const isCalculating = log.status === 'calculating' || (log.status === 'success' && detailsLoading);
-    const playerCount = allPlayers.length > 0 ? allPlayers.length : (log.playerCount ?? 0);
+    // Headline total must be distinct people, not raw players[] entries (one
+    // person can appear as several entries via relog/build swap/subgroup move).
+    const playerCount = allPlayers.length > 0 ? (squadPrimaries.length + pugPrimaries.length) : (log.playerCount ?? 0);
     const statusLabel = isQueued ? 'Queued'
         : isPending ? 'Pending'
             : isParsing ? 'Parsing log locally'
