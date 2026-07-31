@@ -33,7 +33,7 @@ import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { getWvwTeamColor, teamMapFromLog, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamMap } from '../shared/wvwTeams';
 
-const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/axibridge/main/public/img/AxiBridge-glyph.png';
+export const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/axibridge/main/public/img/AxiBridge-glyph.png';
 
 // Embed stat settings interface
 export interface IEmbedStatSettings {
