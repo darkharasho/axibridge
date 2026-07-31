@@ -1,3 +1,9 @@
+export interface ReportGuild {
+    id: string;
+    name: string | null;
+    tag: string | null;
+}
+
 export interface ReportMeta {
     id: string;
     title: string;
@@ -8,6 +14,7 @@ export interface ReportMeta {
     generatedAt: string;
     appVersion?: string;
     trimmedSections?: string[];
+    guild?: ReportGuild | null;
 }
 
 export interface ReportPayload {
@@ -23,6 +30,7 @@ export interface ReportIndexEntry {
     dateEnd: string;
     dateLabel: string;
     url: string;
+    guild?: ReportGuild | null;
     summary?: {
         borderlandsPct?: number | null;
         mapSlices?: Array<{ name: string; value: number; color: string }>;

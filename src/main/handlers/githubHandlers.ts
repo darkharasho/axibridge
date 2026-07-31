@@ -14,6 +14,7 @@ import {
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
 import { postReportToWebhooks, type ReportWebhookPostResult } from '../reportWebhooks';
 import type { IReportWebhook } from '../../shared/reportWebhooks';
+import { resolveGuild } from '../guildDirectory';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
@@ -1705,6 +1706,19 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 ...payload.meta,
                 appVersion: app.getVersion()
             };
+
+            // Stamp the session's dominant guild (detected renderer-side) with
+            // name/tag resolved via the GW2 API + permanent cache. Resolution
+            // failure stamps id-only; it must never fail or block the upload.
+            const detectedGuildId = typeof (reportMeta as any).guildId === 'string' ? (reportMeta as any).guildId.trim() : '';
+            if (detectedGuildId) {
+                const cachedDirectory = store.get('guildDirectory', {}) as Record<string, any>;
+                if (!cachedDirectory[detectedGuildId]) {
+                    sendWebUploadStatus('Preparing', 'Resolving guild name via GW2 API...', 12);
+                }
+                (reportMeta as any).guild = await resolveGuild(detectedGuildId, store as any);
+            }
+
             const paletteValue = (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue';
             const glassValue = !!store.get('glassSurfaces', false);
             const glassmorphicValue = !!store.get('glassmorphic', false);
@@ -1818,6 +1832,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 id: reportMeta.id,
                 title: reportMeta.title,
                 commanders: reportMeta.commanders || [],
+                guild: (reportMeta as any).guild ?? null,
                 dateStart: reportMeta.dateStart,
                 dateEnd: reportMeta.dateEnd,
                 dateLabel: reportMeta.dateLabel,
