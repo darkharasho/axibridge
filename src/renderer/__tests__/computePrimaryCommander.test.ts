@@ -33,4 +33,32 @@ describe('computePrimaryCommander', () => {
     it('falls back to account when name is missing', () => {
         expect(computePrimaryCommander([{ players: [{ account: 'Axi.1234', hasCommanderTag: true }] }])).toBe('Axi.1234');
     });
+
+    it('combines votes by account across logs with different character names', () => {
+        // Same account (X.1) under two different names: Axi Vale and Axi Alt.
+        // Should combine votes and return the first-seen name (Axi Vale).
+        const logs = [
+            { players: [{ name: 'Axi Vale', account: 'X.1', hasCommanderTag: true }] },
+            { players: [{ name: 'Axi Alt', account: 'X.1', hasCommanderTag: true }] },
+            { players: [{ name: 'Red', account: 'Y.2', hasCommanderTag: true }] },
+        ];
+        expect(computePrimaryCommander(logs)).toBe('Axi Vale');
+    });
+
+    it('counts same account once per log despite different names in that log', () => {
+        // One log with same account (X.1) under two different names.
+        // Should count as one vote for that log, not two.
+        const dupesWithDiffNames = {
+            players: [
+                { name: 'Axi Vale', account: 'X.1', hasCommanderTag: true },
+                { name: 'Axi Alt', account: 'X.1', hasCommanderTag: true },
+            ],
+        };
+        const logs = [
+            dupesWithDiffNames,
+            log('Red'),
+            log('Red'),
+        ];
+        expect(computePrimaryCommander(logs)).toBe('Red');
+    });
 });

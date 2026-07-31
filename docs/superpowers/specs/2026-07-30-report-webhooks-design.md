@@ -59,10 +59,11 @@ names the raid night. Rendering happens in main using main's locale/timezone
 
 `buildReportMeta()` in `src/renderer/stats/hooks/useStatsUploads.ts` gains
 `primaryCommander: string`. Extract a pure helper
-`computePrimaryCommander(detailsList): string` (testable): counts, per commander
-name, the number of logs in which that player had `hasCommanderTag` (squad members
-only, same guards as the existing loop); highest count wins, ties break
-alphabetically; `''` when no commander was seen. The existing `commanders` array
+`computePrimaryCommander(detailsList): string` (testable): votes are keyed by account
+(name fallback), one vote per key per log, and display names are the first-seen
+character name for each vote key. Filters: squad members only, `hasCommanderTag` required
+(same guards as the existing loop). Highest vote count wins, ties break alphabetically
+by display name; `''` when no commander was seen. The existing `commanders` array
 and `dateStart` already flow to main in the upload payload — no other meta changes.
 
 ## Posting (main)
