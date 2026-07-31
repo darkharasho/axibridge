@@ -1225,7 +1225,8 @@ export function ReportApp() {
         if (!term) return sortedIndex;
         return sortedIndex.filter((entry) => {
             const commanders = entry.commanders?.join(' ') || '';
-            const haystack = `${entry.title} ${commanders} ${entry.dateLabel}`.toLowerCase();
+            const guild = `${(entry as any).guild?.name || ''} ${(entry as any).guild?.tag || ''}`;
+            const haystack = `${entry.title} ${commanders} ${entry.dateLabel} ${guild}`.toLowerCase();
             return haystack.includes(term);
         });
     }, [sortedIndex, searchTerm]);
@@ -1861,7 +1862,18 @@ export function ReportApp() {
                                 )}
                                 <div className="min-w-0">
                                     <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Log Report</div></div>
-                                    <h1 className="text-2xl sm:text-3xl font-bold mt-1">{report.meta.title}</h1>
+                                    <h1 className="text-2xl sm:text-3xl font-bold mt-1 flex items-center gap-2 flex-wrap">
+                                        <span>{report.meta.title}</span>
+                                        {(report.meta as any).guild?.tag && (
+                                            <span
+                                                className="inline-flex items-center rounded-[4px] border px-2 py-0.5 text-sm font-semibold tracking-wide"
+                                                style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
+                                                title={(report.meta as any).guild.name || undefined}
+                                            >
+                                                [{(report.meta as any).guild.tag}]{(report.meta as any).guild.name ? ` ${(report.meta as any).guild.name}` : ''}
+                                            </span>
+                                        )}
+                                    </h1>
                                     <div className="text-xs sm:text-sm text-gray-400 mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
                                 </div>
                             </div>
@@ -2448,8 +2460,23 @@ export function ReportApp() {
                                             <div className="text-[11px] uppercase tracking-widest text-gray-400">
                                                 {entry.dateLabel}
                                             </div>
-                                            <div className="text-base sm:text-lg font-semibold mt-1 truncate">
-                                                {formatReportTitle(entry.dateStart)}
+                                            <div className="text-base sm:text-lg font-semibold mt-1 truncate flex items-center gap-2">
+                                                <span className="truncate">{formatReportTitle(entry.dateStart)}</span>
+                                                {(entry as any).guild?.tag && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            event.stopPropagation();
+                                                            setSearchTerm((entry as any).guild.tag);
+                                                        }}
+                                                        className="shrink-0 inline-flex items-center rounded-[4px] border px-1.5 py-0.5 text-[11px] font-semibold tracking-wide hover:border-[color:var(--accent-border)] transition-colors"
+                                                        style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
+                                                        title={`Search reports by ${(entry as any).guild.name || (entry as any).guild.tag}`}
+                                                    >
+                                                        [{(entry as any).guild.tag}]
+                                                    </button>
+                                                )}
                                             </div>
                                             <div className="text-xs text-gray-400 mt-1 flex items-center gap-2">
                                                 <Users className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
