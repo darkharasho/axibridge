@@ -320,6 +320,8 @@ export interface IElectronAPI {
         r2PreciseReplay?: boolean;
         r2ReplayUrls?: Record<string, string>;
         reportWebhooks?: IReportWebhook[];
+        reportWebhookSelection?: string[];
+        reportWebhookSeen?: string[];
     }>;
     clearDpsReportCache: () => Promise<{ success: boolean; clearedEntries?: number; error?: string }>;
     onClearDpsReportCacheProgress: (callback: (data: { stage?: string; message?: string; progress?: number; current?: number; total?: number }) => void) => () => void;
@@ -367,6 +369,8 @@ export interface IElectronAPI {
         r2PublicUrl?: string | null;
         r2PreciseReplay?: boolean;
         reportWebhooks?: IReportWebhook[];
+        reportWebhookSelection?: string[];
+        reportWebhookSeen?: string[];
     }) => void;
     openExternal: (url: string) => Promise<{ success: boolean, error?: string }>;
     openMobilePreview: (url: string) => Promise<{ success: boolean, error?: string }>;
@@ -408,7 +412,7 @@ export interface IElectronAPI {
     ensureGithubTemplate: () => Promise<{ success: boolean; updated?: boolean; error?: string }>;
     selectGithubLogo: () => Promise<string | null>;
     applyGithubLogo: (payload?: { logoPath?: string }) => Promise<{ success: boolean; updated?: boolean; error?: string }>;
-    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string; webhookResults?: Array<{ id: string; name: string; ok: boolean; error?: string }> }>;
+    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[] }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string; webhookResults?: Array<{ id: string; name: string; ok: boolean; error?: string }> }>;
     mockWebReport: (payload: { meta: any; stats: any }) => Promise<{ success: boolean; url?: string; error?: string }>;
     getGithubPagesBuildStatus: (payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; status?: string; updatedAt?: string; errorMessage?: string; error?: string }>;
     onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number }) => void) => () => void;

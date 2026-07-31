@@ -4,6 +4,13 @@ import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import { isReplayElided } from '../../workers/replayTransfer';
 import { computePrimaryCommander } from '../utils/computePrimaryCommander';
 import { computeDominantGuildId } from '../utils/computeDominantGuildId';
+import { computeInitialWebhookSelection } from '../utils/reportWebhookSelection';
+
+export interface PublishWebhookOption {
+    id: string;
+    name: string;
+    isForum: boolean;
+}
 
 interface UseStatsUploadsProps {
     logs: any[];
@@ -11,7 +18,7 @@ interface UseStatsUploadsProps {
     skillUsageData: any;
     activeStatsViewSettings: any;
     embedded: boolean;
-    onWebUpload?: (payload: { meta: any; stats: any; logIds?: string[]; repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<void> | void;
+    onWebUpload?: (payload: { meta: any; stats: any; logIds?: string[]; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[] }) => Promise<void> | void;
 }
 
 export const useStatsUploads = ({
@@ -32,6 +39,8 @@ export const useStatsUploads = ({
 
     const [webCopyStatus, setWebCopyStatus] = useState<'idle' | 'copied'>('idle');
     const [webUploadTargets, setWebUploadTargets] = useState<Array<{ fullName: string; label: string; isDefault: boolean }>>([]);
+    const [reportWebhooks, setReportWebhooks] = useState<PublishWebhookOption[]>([]);
+    const [initialWebhookSelection, setInitialWebhookSelection] = useState<string[]>([]);
 
     useEffect(() => {
         let cancelled = false;
@@ -43,6 +52,13 @@ export const useStatsUploads = ({
             try {
                 const settings = await window.electronAPI.getSettings();
                 if (cancelled) return;
+                const enabledHooks: PublishWebhookOption[] = (Array.isArray(settings?.reportWebhooks) ? settings.reportWebhooks : [])
+                    .filter((hook) => hook && hook.enabled && hook.url)
+                    .map((hook) => ({ id: String(hook.id), name: String(hook.name || ''), isForum: !!hook.isForum }));
+                setReportWebhooks(enabledHooks);
+                setInitialWebhookSelection(
+                    computeInitialWebhookSelection(enabledHooks, settings?.reportWebhookSelection ?? null, settings?.reportWebhookSeen ?? null)
+                );
                 const defaultFullName = settings?.githubRepoOwner && settings?.githubRepoName
                     ? `${settings.githubRepoOwner}/${settings.githubRepoName}`
                     : '';
@@ -159,7 +175,7 @@ export const useStatsUploads = ({
         return baseStats;
     };
 
-    const runWebUpload = async (repoFullName?: string) => {
+    const runWebUpload = async (repoFullName?: string, reportWebhookIds?: string[]) => {
         if (embedded) return;
         if (!onWebUpload) return;
         // Replay data is dropped from in-flight worker results and only settles on
@@ -176,24 +192,33 @@ export const useStatsUploads = ({
             const uploadStats = buildReportStats();
             const normalizedRepoFullName = typeof repoFullName === 'string' ? repoFullName.trim() : '';
             const repoParts = normalizedRepoFullName.split('/').map((part) => part.trim()).filter(Boolean);
+            // Persist the picker choice so the next publish pre-checks it; `seen`
+            // records which enabled hooks were offered, so newly-added ones default on.
+            if (Array.isArray(reportWebhookIds) && window.electronAPI?.saveSettings) {
+                window.electronAPI.saveSettings({
+                    reportWebhookSelection: reportWebhookIds,
+                    reportWebhookSeen: reportWebhooks.map((hook) => hook.id)
+                });
+            }
             await onWebUpload({
                 meta,
                 stats: uploadStats,
                 logIds: logs.map((l) => l.permalink).filter(Boolean),
                 ...(normalizedRepoFullName ? { repoFullName: normalizedRepoFullName } : {}),
-                ...(repoParts.length === 2 ? { repoOwner: repoParts[0], repoName: repoParts[1] } : {})
+                ...(repoParts.length === 2 ? { repoOwner: repoParts[0], repoName: repoParts[1] } : {}),
+                ...(Array.isArray(reportWebhookIds) ? { reportWebhookIds } : {})
             });
         } catch (err) {
             console.error('[StatsView] Web upload failed:', err);
         }
     };
 
-    const handleWebUpload = async () => {
-        await runWebUpload();
+    const handleWebUpload = async (reportWebhookIds?: string[]) => {
+        await runWebUpload(undefined, reportWebhookIds);
     };
 
-    const handleWebUploadToTarget = async (repoFullName: string) => {
-        await runWebUpload(repoFullName);
+    const handleWebUploadToTarget = async (repoFullName: string, reportWebhookIds?: string[]) => {
+        await runWebUpload(repoFullName, reportWebhookIds);
     };
 
     const handleDevMockUpload = async () => {
@@ -236,6 +261,8 @@ export const useStatsUploads = ({
         webCopyStatus,
         setWebCopyStatus,
         webUploadTargets,
+        reportWebhooks,
+        initialWebhookSelection,
         handleWebUpload,
         handleWebUploadToTarget,
         handleDevMockUpload

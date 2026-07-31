@@ -122,7 +122,7 @@ export function useWebUpload(opts?: {
         }, 2500);
     }, [webUploadState.stage]);
 
-    const handleWebUpload = useCallback(async (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; logIds?: string[] }) => {
+    const handleWebUpload = useCallback(async (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; logIds?: string[]; reportWebhookIds?: string[] }) => {
         if (!window.electronAPI?.uploadWebReport) {
             setWebUploadState((prev) => ({
                 ...prev,

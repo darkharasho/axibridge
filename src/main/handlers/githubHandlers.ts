@@ -13,7 +13,7 @@ import {
 } from '../../web/rollup';
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
 import { postReportToWebhooks, type ReportWebhookPostResult } from '../reportWebhooks';
-import type { IReportWebhook } from '../../shared/reportWebhooks';
+import { type IReportWebhook, selectReportWebhooks } from '../../shared/reportWebhooks';
 import { resolveGuild } from '../guildDirectory';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -1639,7 +1639,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         };
     });
 
-    ipcMain.handle('upload-web-report', async (_event, payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string }) => {
+    ipcMain.handle('upload-web-report', async (_event, payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[] }) => {
         try {
             if (!hasWebReportContent(payload)) {
                 return { success: false, error: 'Cannot upload an empty web report. Add at least one fight before publishing.' };
@@ -2099,8 +2099,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             // logged into the upload status feed but never fail the upload.
             let webhookResults: ReportWebhookPostResult[] = [];
             const rawReportWebhooks = store.get('reportWebhooks', []);
-            const reportWebhooks = (Array.isArray(rawReportWebhooks) ? rawReportWebhooks as IReportWebhook[] : [])
-                .filter((hook) => hook && hook.enabled && hook.url);
+            const allReportWebhooks = Array.isArray(rawReportWebhooks) ? rawReportWebhooks as IReportWebhook[] : [];
+            // The renderer sends the user's per-publish choice; absent → all enabled.
+            const reportWebhooks = selectReportWebhooks(allReportWebhooks, payload.reportWebhookIds);
             if (reportWebhooks.length > 0) {
                 sendWebUploadStatus('Posting', `Posting report link to ${reportWebhooks.length} Discord webhook${reportWebhooks.length === 1 ? '' : 's'}...`, 100);
                 webhookResults = await postReportToWebhooks({
