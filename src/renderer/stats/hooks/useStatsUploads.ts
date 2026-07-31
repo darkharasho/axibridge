@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { computeStatsSync } from '../incrementalAggregation';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import { isReplayElided } from '../../workers/replayTransfer';
+import { computePrimaryCommander } from '../utils/computePrimaryCommander';
 
 interface UseStatsUploadsProps {
     logs: any[];
@@ -77,9 +78,11 @@ export const useStatsUploads = ({
         let firstStart: Date | null = null;
         let lastEnd: Date | null = null;
 
+        const detailsList: any[] = [];
         logs.forEach((log) => {
             const details = (detailsCache && log?.id ? detailsCache.peek(log.id) : null) || log.details;
             if (!details) return;
+            detailsList.push(details);
             const timeStart = details.timeStartStd || details.timeStart || details.uploadTime || log.uploadTime;
             const timeEnd = details.timeEndStd || details.timeEnd || details.uploadTime || log.uploadTime;
             const startDate = timeStart ? new Date(timeStart) : null;
@@ -114,6 +117,7 @@ export const useStatsUploads = ({
             id: reportId,
             title: commanders.length ? commanders.join(', ') : 'Unknown Commander',
             commanders,
+            primaryCommander: computePrimaryCommander(detailsList),
             dateStart,
             dateEnd,
             dateLabel,
