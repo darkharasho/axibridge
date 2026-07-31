@@ -67,3 +67,4 @@ axibridge-settings.json
 arcbridge-settings.json.playwright-mcp/
 graphify-out/
 repomix-output.txt
+.playwright-mcp/
