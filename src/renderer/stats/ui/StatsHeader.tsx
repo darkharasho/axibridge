@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, Sparkles, Trophy, UploadCloud } from 'lucide-react';
+import { PublishWebhookPopover } from './PublishWebhookPopover';
+import type { PublishWebhookOption } from '../hooks/useStatsUploads';
 
 type StatsHeaderProps = {
     embedded: boolean;
@@ -10,9 +12,11 @@ type StatsHeaderProps = {
     devMockUploadState: { uploading: boolean };
     onDevMockUpload: () => void;
     uploadingWeb: boolean;
-    onWebUpload: () => void;
+    onWebUpload: (reportWebhookIds?: string[]) => void;
     uploadTargets?: Array<{ fullName: string; label: string; isDefault: boolean }>;
-    onWebUploadToTarget?: (repoFullName: string) => void;
+    onWebUploadToTarget?: (repoFullName: string, reportWebhookIds?: string[]) => void;
+    reportWebhooks?: PublishWebhookOption[];
+    initialWebhookSelection?: string[];
     canUploadWeb?: boolean;
     actionsDisabled?: boolean;
 };
@@ -28,6 +32,8 @@ export const StatsHeader = ({
     onWebUpload,
     uploadTargets = [],
     onWebUploadToTarget,
+    reportWebhooks = [],
+    initialWebhookSelection = [],
     canUploadWeb = true,
     actionsDisabled = false
 }: StatsHeaderProps) => {
@@ -36,8 +42,27 @@ export const StatsHeader = ({
         ? 'Stats are still loading. Actions will enable when the dashboard is ready.'
         : (!canUploadWeb ? 'Add at least one fight before uploading a web report.' : '');
     const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
+    const [publishOpen, setPublishOpen] = useState(false);
+    const [publishTarget, setPublishTarget] = useState<string | null>(null);
     const uploadMenuRef = useRef<HTMLDivElement | null>(null);
     const alternateUploadTargets = uploadTargets.filter((target) => !target.isDefault);
+
+    // Clicking upload opens the webhook picker; with no webhooks configured it
+    // publishes immediately (unchanged behavior). `target` is a repo full name for
+    // an alternate destination, or null for the default repo.
+    const startPublish = (target: string | null) => {
+        setUploadMenuOpen(false);
+        if (reportWebhooks.length === 0) {
+            if (target) onWebUploadToTarget?.(target); else onWebUpload();
+            return;
+        }
+        setPublishTarget(target);
+        setPublishOpen(true);
+    };
+    const confirmPublish = (ids: string[]) => {
+        setPublishOpen(false);
+        if (publishTarget) onWebUploadToTarget?.(publishTarget, ids); else onWebUpload(ids);
+    };
 
     useEffect(() => {
         if (!uploadMenuOpen) return;
@@ -58,10 +83,11 @@ export const StatsHeader = ({
     }, [uploadMenuOpen]);
 
     useEffect(() => {
-        if (uploadDisabled && uploadMenuOpen) {
-            setUploadMenuOpen(false);
+        if (uploadDisabled) {
+            if (uploadMenuOpen) setUploadMenuOpen(false);
+            if (publishOpen) setPublishOpen(false);
         }
-    }, [uploadDisabled, uploadMenuOpen]);
+    }, [uploadDisabled, uploadMenuOpen, publishOpen]);
 
     return (
         <motion.div
@@ -95,7 +121,7 @@ export const StatsHeader = ({
                 <div className="relative group" title={uploadDisabledReason} ref={uploadMenuRef}>
                     <div className="flex items-stretch">
                         <button
-                            onClick={onWebUpload}
+                            onClick={() => startPublish(null)}
                             disabled={uploadDisabled}
                             aria-disabled={uploadDisabled}
                             className={`stats-action-upload flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${alternateUploadTargets.length > 0 ? 'rounded-l-md rounded-r-none' : 'rounded-md'}`}
@@ -125,10 +151,7 @@ export const StatsHeader = ({
                                 <button
                                     key={target.fullName}
                                     type="button"
-                                    onClick={() => {
-                                        setUploadMenuOpen(false);
-                                        onWebUploadToTarget?.(target.fullName);
-                                    }}
+                                    onClick={() => startPublish(target.fullName)}
                                     className="block w-full rounded-sm px-3 py-2 text-left text-xs transition-colors"
                                     style={{ color: 'var(--text-primary)' }}
                                     onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
@@ -138,6 +161,14 @@ export const StatsHeader = ({
                                 </button>
                             ))}
                         </div>
+                    )}
+                    {publishOpen && !uploadDisabled && (
+                        <PublishWebhookPopover
+                            webhooks={reportWebhooks}
+                            initialSelection={initialWebhookSelection}
+                            onConfirm={confirmPublish}
+                            onCancel={() => setPublishOpen(false)}
+                        />
                     )}
                     {!canUploadWeb && !actionsDisabled && (
                         <div className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md px-2 py-1 text-[11px] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-hover)', color: 'var(--text-secondary)' }}>

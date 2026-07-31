@@ -762,6 +762,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         webCopyStatus,
         setWebCopyStatus,
         webUploadTargets,
+        reportWebhooks,
+        initialWebhookSelection,
         handleWebUpload,
         handleWebUploadToTarget,
         handleDevMockUpload
@@ -4163,6 +4165,8 @@ type SpikeFight = {
                 onWebUpload={handleWebUpload}
                 uploadTargets={webUploadTargets}
                 onWebUploadToTarget={handleWebUploadToTarget}
+                reportWebhooks={reportWebhooks}
+                initialWebhookSelection={initialWebhookSelection}
                 canUploadWeb={canUploadWeb}
                 actionsDisabled={statsActionsDisabled}
             />
