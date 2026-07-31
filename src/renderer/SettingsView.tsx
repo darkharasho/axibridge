@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IEiParserSettings, IEiStatus } from './global.d';
 import { normalizeMvpWeightProfiles } from './stats/mvpWeightProfiles';
+import { ReportWebhooksCard } from './ReportWebhooksCard';
+import type { IReportWebhook } from '../shared/reportWebhooks';
 import { DEFAULT_COMMANDER_THRESHOLDS, type CommanderThresholds } from '../shared/commanderThresholds';
 import { METRICS_SPEC } from '../shared/metricsSettings';
 import { PALETTES, type ColorPalette, DEFAULT_PALETTE_ID } from '../shared/webThemes';
@@ -204,6 +206,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
 export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
+    const [reportWebhooks, setReportWebhooks] = useState<IReportWebhook[]>([]);
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
     const [embedStats, setEmbedStats] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
     const [splitEnemiesByTeam, setSplitEnemiesByTeam] = useState<boolean>(false);
@@ -561,6 +564,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         setR2BucketName(settings.r2BucketName || '');
         setR2PublicUrl(settings.r2PublicUrl || '');
         setR2PreciseReplay(settings.r2PreciseReplay ?? false);
+        if (Array.isArray(settings.reportWebhooks)) {
+            setReportWebhooks(settings.reportWebhooks);
+        }
     };
 
     useEffect(() => {
@@ -1878,6 +1884,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 </div>
                             )}
                         </div>
+                        <ReportWebhooksCard
+                            reportWebhooks={reportWebhooks}
+                            onChange={(next) => {
+                                setReportWebhooks(next);
+                                window.electronAPI?.saveSettings?.({ reportWebhooks: next });
+                            }}
+                        />
                     </SettingsSection>
 
                     {/* Cloudflare R2 Replay Storage */}

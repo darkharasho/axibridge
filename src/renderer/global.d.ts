@@ -1,4 +1,5 @@
 import type { ColorPalette } from '../shared/webThemes';
+import type { IReportWebhook } from '../shared/reportWebhooks';
 
 export interface IWebhook {
     id: string;
@@ -318,6 +319,7 @@ export interface IElectronAPI {
         r2PublicUrl?: string | null;
         r2PreciseReplay?: boolean;
         r2ReplayUrls?: Record<string, string>;
+        reportWebhooks?: IReportWebhook[];
     }>;
     clearDpsReportCache: () => Promise<{ success: boolean; clearedEntries?: number; error?: string }>;
     onClearDpsReportCacheProgress: (callback: (data: { stage?: string; message?: string; progress?: number; current?: number; total?: number }) => void) => () => void;
@@ -364,6 +366,7 @@ export interface IElectronAPI {
         r2BucketName?: string | null;
         r2PublicUrl?: string | null;
         r2PreciseReplay?: boolean;
+        reportWebhooks?: IReportWebhook[];
     }) => void;
     openExternal: (url: string) => Promise<{ success: boolean, error?: string }>;
     openMobilePreview: (url: string) => Promise<{ success: boolean, error?: string }>;
