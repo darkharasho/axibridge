@@ -50,14 +50,8 @@ export async function postReportToWebhooks(opts: {
     const description = buildReportSummaryLine(opts.stats);
 
     for (const hook of opts.webhooks) {
-        const title = renderReportTitle(hook.titleTemplate, ctx);
-        const embed: any = {
-            title,
-            url: opts.url,
-            color: EMBED_COLOR,
-        };
-        if (description) embed.description = description;
-        if (opts.meta?.dateLabel) embed.footer = { text: String(opts.meta.dateLabel) };
+        let title = '';
+        let embed: any;
 
         const post = async (withThreadName: boolean) => {
             const body: any = {
@@ -84,6 +78,15 @@ export async function postReportToWebhooks(opts: {
 
         const label = hook.name || 'webhook';
         try {
+            title = renderReportTitle(hook.titleTemplate, ctx);
+            embed = {
+                title,
+                url: opts.url,
+                color: EMBED_COLOR,
+            };
+            if (description) embed.description = description;
+            if (opts.meta?.dateLabel) embed.footer = { text: String(opts.meta.dateLabel) };
+
             let attempt = await post(hook.isForum);
             // Forum self-heal: a 400 mentioning thread_name means the forum flag
             // is wrong in whichever direction we sent. Retry once flipped and

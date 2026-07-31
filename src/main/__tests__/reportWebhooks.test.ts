@@ -111,6 +111,23 @@ describe('postReportToWebhooks', () => {
         expect(onStatus).toHaveBeenCalledWith(expect.stringContaining('Second'));
     });
 
+    it('isolates a non-string titleTemplate without throwing and still posts the next webhook', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        const onStatus = vi.fn();
+        const badHook = hook({ id: 'bad', name: 'Bad', titleTemplate: 42 as unknown as string });
+        const goodHook = hook({ id: 'h2', name: 'Second' });
+        const results = await postReportToWebhooks({
+            webhooks: [badHook, goodHook], meta, stats, url: 'u', fetchImpl, onStatus,
+        });
+        expect(results[0]).toMatchObject({ id: 'bad', name: 'Bad', ok: false });
+        expect(results[0].error).toBeTruthy();
+        expect(results[1]).toEqual({ id: 'h2', name: 'Second', ok: true });
+        expect(onStatus).toHaveBeenCalledWith(expect.stringContaining('Bad'), true);
+        expect(fetchImpl).toHaveBeenCalledTimes(1);
+        const callArgs = fetchImpl.mock.calls[0] as any[];
+        expect(callArgs[0]).toBe(goodHook.url);
+    });
+
     it('survives a rejecting fetch', async () => {
         const fetchImpl = vi.fn().mockRejectedValue(new Error('offline'));
         const results = await postReportToWebhooks({

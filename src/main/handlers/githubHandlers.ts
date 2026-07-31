@@ -2083,7 +2083,8 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             // Post the report link to configured report webhooks. Failures are
             // logged into the upload status feed but never fail the upload.
             let webhookResults: ReportWebhookPostResult[] = [];
-            const reportWebhooks = (store.get('reportWebhooks', []) as IReportWebhook[])
+            const rawReportWebhooks = store.get('reportWebhooks', []);
+            const reportWebhooks = (Array.isArray(rawReportWebhooks) ? rawReportWebhooks as IReportWebhook[] : [])
                 .filter((hook) => hook && hook.enabled && hook.url);
             if (reportWebhooks.length > 0) {
                 sendWebUploadStatus('Posting', `Posting report link to ${reportWebhooks.length} Discord webhook${reportWebhooks.length === 1 ? '' : 's'}...`, 100);
