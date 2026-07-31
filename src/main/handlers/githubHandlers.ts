@@ -12,6 +12,8 @@ import {
     type RollupReportPayload
 } from '../../web/rollup';
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
+import { postReportToWebhooks, type ReportWebhookPostResult } from '../reportWebhooks';
+import type { IReportWebhook } from '../../shared/reportWebhooks';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
@@ -2077,7 +2079,27 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             }
 
             sendWebUploadStatus('Complete', 'Web report uploaded.', 100);
-            return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null };
+
+            // Post the report link to configured report webhooks. Failures are
+            // logged into the upload status feed but never fail the upload.
+            let webhookResults: ReportWebhookPostResult[] = [];
+            const reportWebhooks = (store.get('reportWebhooks', []) as IReportWebhook[])
+                .filter((hook) => hook && hook.enabled && hook.url);
+            if (reportWebhooks.length > 0) {
+                sendWebUploadStatus('Posting', `Posting report link to ${reportWebhooks.length} Discord webhook${reportWebhooks.length === 1 ? '' : 's'}...`, 100);
+                webhookResults = await postReportToWebhooks({
+                    webhooks: reportWebhooks,
+                    meta: payload.meta,
+                    stats: payload.stats,
+                    url: reportUrl,
+                    onStatus: (line: string, isWarn?: boolean) => sendWebUploadStatus(isWarn ? 'Warning' : 'Posting', line, 100),
+                    persistForumFlag: (id: string, isForum: boolean) => {
+                        const current = store.get('reportWebhooks', []) as IReportWebhook[];
+                        store.set('reportWebhooks', current.map((hook) => (hook.id === id ? { ...hook, isForum } : hook)));
+                    },
+                });
+            }
+            return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null, webhookResults };
         } catch (err: any) {
             const error = err?.message || 'Upload failed.';
             const errorDetail = err?.stack || String(err);
