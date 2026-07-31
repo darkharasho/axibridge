@@ -30,6 +30,14 @@ const resolveReportsIndexUrl = (settings: any): string | null => {
     return `https://${owner}.github.io/${repo}`;
 };
 
+export const matchesReportSearch = (entry: ReportIndexEntry, q: string): boolean => {
+    const title = (entry.title || '').toLowerCase();
+    const dateLabel = (entry.dateLabel || '').toLowerCase();
+    const commanders = (entry.commanders || []).join(' ').toLowerCase();
+    const guild = `${entry.guild?.name || ''} ${entry.guild?.tag || ''}`.toLowerCase();
+    return title.includes(q) || dateLabel.includes(q) || commanders.includes(q) || guild.includes(q);
+};
+
 const parseRepoFullName = (fullName: string): { owner: string; repo: string } | null => {
     const [owner, ...repoParts] = fullName.split('/');
     const repo = repoParts.join('/').trim();
@@ -228,12 +236,7 @@ export function FightReportHistoryView() {
         }
         const q = searchQuery.trim().toLowerCase();
         if (!q) return entries;
-        return entries.filter((entry) => {
-            const title = (entry.title || '').toLowerCase();
-            const dateLabel = (entry.dateLabel || '').toLowerCase();
-            const commanders = (entry.commanders || []).join(' ').toLowerCase();
-            return title.includes(q) || dateLabel.includes(q) || commanders.includes(q);
-        });
+        return entries.filter((entry) => matchesReportSearch(entry, q));
     }, [indexEntries, searchQuery, commanderFilter]);
 
     const fetchIndex = useCallback(async () => {
@@ -691,7 +694,23 @@ export function FightReportHistoryView() {
                                             <input type="checkbox" checked={selectedForDelete.has(entry.id)} readOnly className="accent-blue-500" />
                                         </div>
                                     )}
-                                    <div className="text-sm font-semibold pr-6" style={{ color: 'var(--text-primary)' }}>{entry.title}</div>
+                                    <div className="text-sm font-semibold pr-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                                        <span className="truncate">{entry.title}</span>
+                                        {entry.guild?.tag && (
+                                            <button
+                                                type="button"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setSearchQuery(entry.guild?.tag || '');
+                                                }}
+                                                className="shrink-0 inline-flex items-center rounded-[4px] border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors"
+                                                style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
+                                                title={`Search reports by ${entry.guild?.name || entry.guild?.tag}`}
+                                            >
+                                                [{entry.guild.tag}]
+                                            </button>
+                                        )}
+                                    </div>
                                     <div className="text-[11px] mt-1" style={{ color: 'var(--text-secondary)' }}>
                                         {entry.dateLabel || `${entry.dateStart} — ${entry.dateEnd}`}
                                     </div>
