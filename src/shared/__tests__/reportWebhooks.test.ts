@@ -3,7 +3,9 @@ import {
     DEFAULT_REPORT_TITLE_TEMPLATE,
     makeDefaultReportWebhook,
     renderReportTitle,
+    selectReportWebhooks,
 } from '../reportWebhooks';
+import type { IReportWebhook } from '../reportWebhooks';
 
 // 2026-07-30 is a Thursday. {date} renders as fixed zero-padded MM/DD/YY; the
 // weekday is still locale-formatted with the same Intl call the renderer uses.
@@ -40,6 +42,36 @@ describe('renderReportTitle', () => {
     it('falls back to Unknown when no commanders were seen', () => {
         const empty = { sessionStart, primaryCommander: '', commanders: [] as string[] };
         expect(renderReportTitle('{commander} / {commanders}', empty)).toBe('Unknown / Unknown');
+    });
+});
+
+describe('selectReportWebhooks', () => {
+    const hook = (over: Partial<IReportWebhook>): IReportWebhook => ({
+        id: 'x', name: '', url: 'https://d/1', enabled: true, isForum: false,
+        titleTemplate: DEFAULT_REPORT_TITLE_TEMPLATE, ...over,
+    });
+    const a = hook({ id: 'a' });
+    const b = hook({ id: 'b' });
+    const disabled = hook({ id: 'c', enabled: false });
+    const noUrl = hook({ id: 'd', url: '' });
+    const all = [a, b, disabled, noUrl];
+
+    it('returns all enabled hooks with a url when selection is absent (back-compat)', () => {
+        expect(selectReportWebhooks(all, undefined)).toEqual([a, b]);
+        expect(selectReportWebhooks(all, null)).toEqual([a, b]);
+    });
+
+    it('returns only selected enabled hooks', () => {
+        expect(selectReportWebhooks(all, ['a'])).toEqual([a]);
+        expect(selectReportWebhooks(all, ['a', 'b'])).toEqual([a, b]);
+    });
+
+    it('returns nothing when selection is empty (report-only)', () => {
+        expect(selectReportWebhooks(all, [])).toEqual([]);
+    });
+
+    it('never includes disabled or url-less hooks even when explicitly selected', () => {
+        expect(selectReportWebhooks(all, ['c', 'd'])).toEqual([]);
     });
 });
 

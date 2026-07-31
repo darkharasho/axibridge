@@ -25,6 +25,21 @@ export interface ReportTitleContext {
     commanders: string[];
 }
 
+/** The report webhooks a publish should post to. `selectedIds` is the user's
+ *  per-publish choice: an array narrows to those ids, [] means post to none
+ *  (report-only), and undefined/null falls back to every enabled hook (the
+ *  pre-selection behavior, kept for back-compat callers). Disabled and url-less
+ *  hooks are never eligible, even if explicitly selected. */
+export const selectReportWebhooks = (
+    webhooks: IReportWebhook[],
+    selectedIds?: string[] | null
+): IReportWebhook[] => {
+    const eligible = (webhooks || []).filter((hook) => hook && hook.enabled && hook.url);
+    if (selectedIds == null) return eligible;
+    const selected = new Set(selectedIds);
+    return eligible.filter((hook) => selected.has(hook.id));
+};
+
 export const renderReportTitle = (template: string, ctx: ReportTitleContext): string => {
     const effective = template && template.trim() ? template : DEFAULT_REPORT_TITLE_TEMPLATE;
     const pad = (value: number) => String(value).padStart(2, '0');
