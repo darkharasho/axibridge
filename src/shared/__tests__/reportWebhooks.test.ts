@@ -5,10 +5,10 @@ import {
     renderReportTitle,
 } from '../reportWebhooks';
 
-// 2026-07-30 is a Thursday. Locale-formatted parts are computed with the same
-// Intl calls the renderer uses so the assertions hold on any machine locale.
+// 2026-07-30 is a Thursday. {date} renders as fixed zero-padded MM/DD/YY; the
+// weekday is still locale-formatted with the same Intl call the renderer uses.
 const sessionStart = new Date(2026, 6, 30, 20, 15, 0);
-const expectedDate = sessionStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+const expectedDate = '07/30/26';
 const expectedDay = sessionStart.toLocaleDateString(undefined, { weekday: 'long' });
 
 const ctx = {

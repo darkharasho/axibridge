@@ -27,7 +27,8 @@ export interface ReportTitleContext {
 
 export const renderReportTitle = (template: string, ctx: ReportTitleContext): string => {
     const effective = template && template.trim() ? template : DEFAULT_REPORT_TITLE_TEMPLATE;
-    const date = ctx.sessionStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const pad = (value: number) => String(value).padStart(2, '0');
+    const date = `${pad(ctx.sessionStart.getMonth() + 1)}/${pad(ctx.sessionStart.getDate())}/${pad(ctx.sessionStart.getFullYear() % 100)}`;
     const dayOfWeek = ctx.sessionStart.toLocaleDateString(undefined, { weekday: 'long' });
     const commander = ctx.primaryCommander || 'Unknown';
     const commanders = ctx.commanders.length ? ctx.commanders.join(', ') : 'Unknown';
