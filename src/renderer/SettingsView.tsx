@@ -77,6 +77,7 @@ const IMPORT_SETTING_META: Array<{ key: string; label: string; description: stri
     { key: 'discordSplitEnemiesByTeam', label: 'Split Enemies by Team', description: 'Single toggle for all Discord notification types.', section: 'Discord' },
     { key: 'discordWebhookUrl', label: 'Discord Webhook URL', description: 'Legacy single webhook URL.', section: 'Discord' },
     { key: 'webhooks', label: 'Webhook List', description: 'Saved webhook entries.', section: 'Discord' },
+    { key: 'reportWebhooks', label: 'Report Webhooks', description: 'Webhooks that receive the web report link after upload.', section: 'Discord' },
     { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
     { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
     { key: 'colorPalette', label: 'Color Palette', description: 'Accent color palette for the UI.', section: 'App' },

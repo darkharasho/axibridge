@@ -148,6 +148,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
                 return Boolean(perType.image || perType.embed || perType.tiled);
             })()),
             webhooks: store.get('webhooks', []),
+            reportWebhooks: store.get('reportWebhooks', []),
             selectedWebhookId: store.get('selectedWebhookId', null),
             dpsReportToken: store.get('dpsReportToken', null),
             closeBehavior: store.get('closeBehavior', 'minimize'),
@@ -220,6 +221,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
                 return Boolean(perType.image || perType.embed || perType.tiled);
             })()),
             webhooks: store.get('webhooks', []),
+            reportWebhooks: store.get('reportWebhooks', []),
             selectedWebhookId: store.get('selectedWebhookId', null),
             dpsReportToken: store.get('dpsReportToken', null),
             closeBehavior: store.get('closeBehavior', 'minimize'),
