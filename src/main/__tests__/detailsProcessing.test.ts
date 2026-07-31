@@ -160,6 +160,14 @@ describe('pruneDetailsForStats', () => {
         expect(p.__secret__).toBe('keep me');
     });
 
+    it('keeps guildID on pruned players (feeds report guild detection)', () => {
+        const pruned = pruneDetailsForStats({
+            players: [{ name: 'A', guildID: 'g-1', dpsAll: [{ dps: 1 }] }],
+            targets: []
+        });
+        expect(pruned.players[0].guildID).toBe('g-1');
+    });
+
     it('attaches boonsAppliedCount from boonsStates and still strips the heavy timeline', () => {
         const player = {
             name: 'Booner',

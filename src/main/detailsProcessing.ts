@@ -107,7 +107,7 @@ const PLAYER_DENY = [
     // 1-second resolution time series not consumed by the stats pipeline
     'breakbarDamage1S', 'powerDamage1S',
     // Misc unused
-    'consumables', 'weaponSets', 'weapons', 'guildID',
+    'consumables', 'weaponSets', 'weapons',
     // Confirmed-unused damage/condition detail fields
     'targetConditionDamage1S',
     'damageModifiersTarget',

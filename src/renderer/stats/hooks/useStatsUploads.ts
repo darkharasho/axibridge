@@ -3,6 +3,7 @@ import { computeStatsSync } from '../incrementalAggregation';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import { isReplayElided } from '../../workers/replayTransfer';
 import { computePrimaryCommander } from '../utils/computePrimaryCommander';
+import { computeDominantGuildId } from '../utils/computeDominantGuildId';
 
 interface UseStatsUploadsProps {
     logs: any[];
@@ -118,6 +119,7 @@ export const useStatsUploads = ({
             title: commanders.length ? commanders.join(', ') : 'Unknown Commander',
             commanders,
             primaryCommander: computePrimaryCommander(detailsList),
+            guildId: computeDominantGuildId(detailsList),
             dateStart,
             dateEnd,
             dateLabel,
