@@ -1,18 +1,9 @@
 # Release Notes
 
-Version v2.13.10 — July 29, 2026
+Version v2.13.11 — July 30, 2026
 
-## Fixed: inflated squad and pug counts
+## Fixed: Upload to Web stuck disabled during live sessions
 
-Elite Insights writes a new player entry every time someone relogs, swaps builds, or changes subgroup mid-fight, and counts were treating each of those as a separate person. A 43-person squad could show up as "51 (+4)."
+If you played with the watch folder running, Upload to Web could grey out with "Stats are still loading" and never come back — even with the dashboard fully loaded and nothing computing. Logs that arrived mid-session could get wedged in a permanent "waiting on details" state that silently blocked the uploader (restarting the app was the only way out).
 
-Every player count in the app is now deduplicated by person:
-- Discord embeds
-- Log cards (headline number and class bars)
-- Stats timeline, fight breakdown, and average squad size
-- Commander view (squad/allies/on-tag %/outnumbered flag) and commander average squad size
-- Attendance and participation leaderboards — a build-swapper no longer racks up extra "logs joined" credit from a single fight
-
-Damage, deaths, and support totals are unchanged — those still sum every entry, since each one is real time played. Enemy counts are also unchanged; there's no way to dedupe anonymous players.
-
-NOTE: Already-published web reports keep their old numbers until you re-upload them.
+That state can't happen anymore: the button re-enables on its own once stats settle. Bulk imports were never affected.
