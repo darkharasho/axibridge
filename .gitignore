@@ -64,7 +64,7 @@ web/reports/
 dev/
 
 axibridge-settings.json
-arcbridge-settings.json.playwright-mcp/
+arcbridge-settings.json
 graphify-out/
 repomix-output.txt
 .playwright-mcp/
