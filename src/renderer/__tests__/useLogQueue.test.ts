@@ -156,4 +156,51 @@ describe('useLogQueue', () => {
         expect(merged.fightName).toBe('Detailed WvW - Eternal Battlegrounds');
         expect(merged.encounterDuration).toBe('0:43');
     });
+
+    it('does not downgrade prewarmed loaded details when upload-complete reports available', () => {
+        // Watcher flow (local EI, non-bulk): upload-status creates the entry,
+        // details-prewarm marks it loaded (details already in LRU+IDB), then
+        // upload-complete arrives carrying detailsStatus 'available'. The merge
+        // must not regress loaded → available: nothing re-hydrates a cache-hit
+        // log, so the regression left isLogPendingIngestion true forever and the
+        // web upload permanently disabled.
+        const { result } = renderQueue(false);
+
+        act(() => {
+            result.current.queueLogUpdate({
+                id: 'log-w',
+                filePath: 'watch.zevtc',
+                status: 'parsing',
+            } as unknown as ILogData);
+        });
+        act(() => {
+            vi.runAllTimers();
+        });
+
+        // details-prewarm handler (App.tsx) marks the log loaded via setLogsDeferred.
+        act(() => {
+            result.current.setLogsDeferred((logs) =>
+                logs.map((l) => (l.id === 'log-w' ? { ...l, detailsStatus: 'loaded' as const } : l))
+            );
+        });
+
+        // upload-complete then arrives with detailsStatus 'available'.
+        act(() => {
+            result.current.queueLogUpdate({
+                id: 'log-w',
+                filePath: 'watch.zevtc',
+                status: 'calculating',
+                detailsStatus: 'available',
+                playerCount: 30,
+            } as unknown as ILogData);
+        });
+        act(() => {
+            vi.runAllTimers();
+        });
+
+        expect(result.current.logs).toHaveLength(1);
+        expect(result.current.logs[0].detailsStatus).toBe('loaded');
+        // Status promotion still belongs to the aggregation pipeline.
+        expect(result.current.logs[0].status).toBe('calculating');
+    });
 });

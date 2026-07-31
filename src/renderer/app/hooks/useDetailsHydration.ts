@@ -1,6 +1,24 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { DetailsCache } from '../../cache/DetailsCache';
 
+/** Logs the hydration pass still needs to visit. 'available' always counts —
+ *  cache misses need a fetch, and cache hits need their mark flipped to
+ *  'loaded' (scheduleDetailsHydration does both). A cache-hit 'available' log
+ *  that never gets visited stays pending-ingestion forever, which forces
+ *  skipReplay on every aggregation flush and permanently disables the web
+ *  upload. */
+export const hasPendingDetailsHydration = (
+    logs: ILogData[],
+    detailsCache: { peek(logId: string): any } | null
+): boolean => logs.some((log) => {
+    const ds = log.detailsStatus || 'idle';
+    if (ds === 'available') return true;
+    if (detailsCache?.peek(log.id) || ds === 'loaded') return false;
+    if (ds === 'exhausted' || ds === 'unavailable') return false;
+    const status = log.status || 'queued';
+    return (status === 'success' || status === 'calculating' || status === 'discord') && Boolean(log.permalink);
+});
+
 export function useDetailsHydration({
     viewRef: _viewRef,
     logsRef,
@@ -128,9 +146,35 @@ export function useDetailsHydration({
                     if (aTime !== bTime) return aTime - bTime;
                     return (a.filePath || '').localeCompare(b.filePath || '');
                 });
-            const activePaths = new Set(rawCandidates.map((log) => String(log.filePath || '')));
+            // Exit the 'available' dead state for cache-resident logs. The
+            // fetch path below only runs on cache misses (or stale hits with a
+            // permalink), so an 'available' log whose details were prewarmed
+            // into the LRU would otherwise never transition to 'loaded' — it
+            // would stay pending-ingestion forever and keep the web upload
+            // disabled. Details are write-through cached, so residency alone
+            // proves the worker can read them.
+            const candidatePaths = new Set(rawCandidates.map((log) => String(log.filePath || '')));
+            const residentAvailablePaths = new Set<string>();
+            logsRef.current.forEach((log) => {
+                if ((log.detailsStatus || 'idle') !== 'available' || !log.filePath) return;
+                if (candidatePaths.has(String(log.filePath))) return;
+                if (!detailsCache?.peek(log.id)) return;
+                residentAvailablePaths.add(String(log.filePath));
+            });
+            if (residentAvailablePaths.size > 0) {
+                setLogsDeferred((currentLogs) => {
+                    let changed = false;
+                    const next = currentLogs.map((entry) => {
+                        if (!residentAvailablePaths.has(String(entry.filePath || ''))) return entry;
+                        if (entry.detailsStatus === 'loaded') return entry;
+                        changed = true;
+                        return { ...entry, detailsStatus: 'loaded' as const };
+                    });
+                    return changed ? next : currentLogs;
+                });
+            }
             detailsHydrationAttemptsRef.current.forEach((_attempts, filePath) => {
-                if (!activePaths.has(filePath)) {
+                if (!candidatePaths.has(filePath)) {
                     detailsHydrationAttemptsRef.current.delete(filePath);
                 }
             });

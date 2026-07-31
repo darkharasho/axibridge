@@ -17,7 +17,7 @@ import { useUploadRetryQueue } from './app/hooks/useUploadRetryQueue';
 import { useAppNavigation } from './app/hooks/useAppNavigation';
 
 import { canPromoteCalculatingLog, useLogQueue } from './app/hooks/useLogQueue';
-import { useDetailsHydration } from './app/hooks/useDetailsHydration';
+import { hasPendingDetailsHydration, useDetailsHydration } from './app/hooks/useDetailsHydration';
 import { useUploadListeners } from './app/hooks/useUploadListeners';
 import { extractDroppedLogFiles } from './app/utils/droppedFiles';
 import { DetailsCache } from './cache/DetailsCache';
@@ -483,15 +483,7 @@ function App() {
 
     useEffect(() => {
         if (bulkUploadMode) return;
-        const hasPendingDetailsHydration = logs.some((log) => {
-            const ds = log.detailsStatus || 'idle';
-            if (detailsCacheRef.current?.peek(log.id) || ds === 'loaded') return false;
-            if (ds === 'exhausted' || ds === 'unavailable') return false;
-            if (ds === 'available') return true;
-            const status = log.status || 'queued';
-            return (status === 'success' || status === 'calculating' || status === 'discord') && Boolean(log.permalink);
-        });
-        if (!hasPendingDetailsHydration) return;
+        if (!hasPendingDetailsHydration(logs, detailsCacheRef.current)) return;
         scheduleDetailsHydration(true);
     }, [bulkUploadMode, logs]);
 

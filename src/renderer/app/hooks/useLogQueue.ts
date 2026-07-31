@@ -76,7 +76,16 @@ export function useLogQueue(
                 const incoming = updatesByIdentity.get(identity);
                 if (!incoming) return existing;
                 consumed.add(identity);
-                const merged = normalizeIncomingStatus({ ...existing, ...incoming });
+                const combined = { ...existing, ...incoming };
+                // 'loaded' supersedes 'available': prewarmed details are already
+                // local (LRU + IDB write-through), and hydration skips cache
+                // hits, so letting upload-complete regress loaded → available
+                // strands the log as pending-ingestion forever (skipReplay on
+                // every flush → web upload permanently disabled).
+                if (existing.detailsStatus === 'loaded' && combined.detailsStatus === 'available') {
+                    combined.detailsStatus = 'loaded';
+                }
+                const merged = normalizeIncomingStatus(combined);
                 if (!hasLogChanges(existing, merged)) return existing;
                 changed = true;
                 return merged;
