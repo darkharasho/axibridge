@@ -49,4 +49,11 @@ describe('buildReplayFightPayload', () => {
         const payload = buildReplayFightPayload(basicFight, 0);
         expect(payload!.nearestLandmark).toBe('Bluebriar');
     });
+
+    it('threads sectorOwners from the log onto the payload (null when absent)', () => {
+        const withOwners = buildReplayFightPayload({ ...basicFight, sectorOwners: { 999: 'Red' } }, 0);
+        expect(withOwners?.sectorOwners).toEqual({ 999: 'Red' });
+        const without = buildReplayFightPayload(basicFight, 0);
+        expect(without?.sectorOwners).toBeNull();
+    });
 });

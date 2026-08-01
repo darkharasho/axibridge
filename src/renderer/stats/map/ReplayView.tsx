@@ -334,7 +334,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                             mapWidth={mapWidth}
                                             mapHeight={mapHeight}
                                             scale={viewport.scale}
-                                            sectorOwners={(selectedFight as { sectorOwners?: Record<number, import('../../../shared/wvwSectors').WvwOwner> }).sectorOwners}
+                                            sectorOwners={selectedFight.sectorOwners}
                                         />
                                     )}
                                     <HeatmapLayer raster={heatmap} mapWidth={mapWidth} mapHeight={mapHeight} mode={layers.heatmap} />

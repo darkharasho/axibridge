@@ -17,6 +17,7 @@ const mkFight = (members: SquadMemberMovement[]): ReplayFightPayload => ({
     movementData: { pollingRate: 1000, durationMs: 3000, inchToPixel: 1, members, boonIcons: {}, skillIcons: {} },
     dpsSamples: [], killEvents: [],
     damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
+    sectorOwners: null,
 });
 
 describe('SquadHealthStrip', () => {

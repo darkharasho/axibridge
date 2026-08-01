@@ -505,6 +505,7 @@ declare global {
             [key: string]: any;
         };
         replayDataUrl?: string | null;
+        sectorOwners?: Record<number, import('../shared/wvwSectors').WvwOwner>;
     }
 
     interface IPlayer {

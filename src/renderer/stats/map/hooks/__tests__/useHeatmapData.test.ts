@@ -18,6 +18,7 @@ const mkFight = (over: Partial<ReplayFightPayload>): ReplayFightPayload => ({
     movementData: { pollingRate: 1000, durationMs: 10_000, inchToPixel: 1, members: [], boonIcons: {}, skillIcons: {} },
     dpsSamples: [], killEvents: [],
     damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
+    sectorOwners: null,
     ...over,
 });
 

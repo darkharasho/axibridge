@@ -11,6 +11,7 @@ const makeFight = (duration = 60_000): ReplayFightPayload => ({
     movementData: { pollingRate: 300, durationMs: duration, inchToPixel: 1, members: [], boonIcons: {}, skillIcons: {} },
     dpsSamples: [{ timeMs: 0, squadDps: 0 }, { timeMs: 30_000, squadDps: 5000 }, { timeMs: 60_000, squadDps: 10_000 }],
     killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
+    sectorOwners: null,
 });
 
 describe('SyncedTimeline', () => {

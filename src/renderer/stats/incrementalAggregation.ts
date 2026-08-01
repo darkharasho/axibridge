@@ -188,6 +188,7 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
         mapKey,
         mapImageUrl: details?.combatReplayMetaData?.maps?.[0]?.url ?? null,
         mapSize: details?.combatReplayMetaData?.sizes ?? null,
+        sectorOwners: log?.sectorOwners ?? null,
         avgPosition,
         nearestLandmark: landmark,
         squadSize: squadMembers.length,

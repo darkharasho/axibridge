@@ -49,4 +49,5 @@ export interface ReplayFightPayload {
     damageSpikeEvents: DamageSpikeEvent[];
     rallyEvents: RallyEvent[];
     targetFocusSamples: TargetFocusSample[];
+    sectorOwners: Record<number, import('../../../shared/wvwSectors').WvwOwner> | null;
 }

@@ -19,6 +19,7 @@ import { useAppNavigation } from './app/hooks/useAppNavigation';
 import { canPromoteCalculatingLog, useLogQueue } from './app/hooks/useLogQueue';
 import { hasPendingDetailsHydration, useDetailsHydration } from './app/hooks/useDetailsHydration';
 import { useUploadListeners } from './app/hooks/useUploadListeners';
+import { useSectorOwners } from './app/hooks/useSectorOwners';
 import { extractDroppedLogFiles } from './app/utils/droppedFiles';
 import { DetailsCache } from './cache/DetailsCache';
 import { DetailsCacheProvider } from './cache/DetailsCacheContext';
@@ -613,6 +614,8 @@ function App() {
         pendingLogFlushTimerRef,
         pendingLogUpdatesRef,
     });
+
+    useSectorOwners(logs, setLogsDeferred);
 
     // Pre-warm: populate LRU + IDB so details survive LRU eviction on large sessions.
     // Also mark the log as loaded so useLogsForStats re-triggers aggregation after

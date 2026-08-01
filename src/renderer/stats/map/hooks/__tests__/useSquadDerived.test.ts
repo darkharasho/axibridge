@@ -20,6 +20,7 @@ const mkFight = (over: Partial<ReplayFightPayload>): ReplayFightPayload => ({
     },
     dpsSamples: [], killEvents: [],
     damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
+    sectorOwners: null,
     ...over,
 });
 

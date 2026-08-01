@@ -10,6 +10,7 @@ const makeFight = (id: string, label: string): ReplayFightPayload => ({
     nearestLandmark: null, squadSize: 20, kills: 5, deaths: 2,
     movementData: { pollingRate: 300, durationMs: 60_000, inchToPixel: 1, members: [], boonIcons: {}, skillIcons: {} },
     dpsSamples: [], killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
+    sectorOwners: null,
 });
 
 const fights = [makeFight('a', 'Fight A'), makeFight('b', 'Fight B'), makeFight('c', 'Fight C')];
