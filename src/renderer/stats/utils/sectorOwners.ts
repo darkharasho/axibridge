@@ -127,12 +127,28 @@ export async function fetchMatchSectorOwners(
     return Object.keys(owners).length ? owners : null;
 }
 
-/** Finished WvW logs uploaded within the match window that still need an ownership snapshot. */
+const ARCDPS_FILENAME_TS = /(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/;
+
+/**
+ * When a fight happened, in epoch ms. Prefers uploadTime, but rehydrated logs
+ * lose it (it lives on the details) — the arcdps filename timestamp
+ * (YYYYMMDD-HHMMSS, local time) is the reliable fallback. 0 when unknowable.
+ */
+function logFightTimeMs(log: ILogData): number {
+    if (typeof log.uploadTime === 'number' && log.uploadTime > 0) return log.uploadTime * 1000;
+    const match = ARCDPS_FILENAME_TS.exec(String(log.filePath || log.id || ''));
+    if (!match) return 0;
+    const [, y, mo, d, h, mi, s] = match;
+    const ms = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)).getTime();
+    return Number.isFinite(ms) ? ms : 0;
+}
+
+/** Finished WvW logs fought within the match window that still need an ownership snapshot. */
 export function pickSnapshotCandidates(logs: ILogData[], window: MatchWindow): ILogData[] {
     return logs.filter(log => {
         if (log.status !== 'success' || log.sectorOwners || !log.fightName) return false;
         if (!resolveMapFromZone(log.fightName)) return false;
-        const uploadedAtMs = (log.uploadTime ?? 0) * 1000;
-        return uploadedAtMs >= window.startMs && uploadedAtMs <= window.endMs;
+        const fightMs = logFightTimeMs(log);
+        return fightMs >= window.startMs && fightMs <= window.endMs;
     });
 }

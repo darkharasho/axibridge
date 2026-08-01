@@ -131,4 +131,17 @@ describe('pickSnapshotCandidates', () => {
         ] as unknown as ILogData[];
         expect(pickSnapshotCandidates(logs, window).map(l => l.id)).toEqual(['tonight']);
     });
+
+    it('falls back to the arcdps filename timestamp when uploadTime is missing (rehydrated logs)', () => {
+        // Filename timestamps are local time; build the window around the same
+        // local-time parse so the test is timezone-agnostic.
+        const fileMs = new Date(2026, 6, 31, 20, 10, 12).getTime();
+        const fileWindow = { startMs: fileMs - 24 * 3600 * 1000, endMs: fileMs + 24 * 3600 * 1000 };
+        const logs = [
+            { ...base, id: 'rehydrated', filePath: '/logs/20260731-201012.zevtc', status: 'success', fightName: 'Green Alpine Borderlands' },
+            { ...base, id: 'outside', filePath: '/logs/20260601-201012.zevtc', status: 'success', fightName: 'Green Alpine Borderlands' },
+            { ...base, id: 'unknowable', filePath: '/logs/whatever.zevtc', status: 'success', fightName: 'Green Alpine Borderlands' },
+        ] as unknown as ILogData[];
+        expect(pickSnapshotCandidates(logs, fileWindow).map(l => l.id)).toEqual(['rehydrated']);
+    });
 });

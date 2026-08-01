@@ -615,6 +615,7 @@ function App() {
         pendingLogUpdatesRef,
     });
 
+    // Zone-colour ownership snapshotting reads details via this LRU peek.
     const peekLogDetails = useCallback((log: ILogData) => {
         const cache = detailsCacheRef.current;
         if (!cache) return undefined;
