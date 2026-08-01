@@ -44,7 +44,12 @@ export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
             // has to republish, or the final skipReplay=false flush never runs and
             // the web upload stays disabled on a stale "pending" snapshot.
             const pendingToken = isLogPendingIngestion(log) ? 'p' : 's';
-            key += `|${identifier}:${detailsId}:${logId}:${uploadTime}:${successToken}:${permalink}:${r2}:${pendingToken}`;
+            // useSectorOwners patches log.sectorOwners asynchronously, well after
+            // this log was first published — without this token the key is
+            // unchanged, logsForStats never republishes, and the patched owners
+            // never reach aggregation (or the replay payload).
+            const ownersToken = log?.sectorOwners ? 'o' : '-';
+            key += `|${identifier}:${detailsId}:${logId}:${uploadTime}:${successToken}:${permalink}:${r2}:${pendingToken}:${ownersToken}`;
         });
         return key;
     }, [getStatsObjectId, detailsCache]);

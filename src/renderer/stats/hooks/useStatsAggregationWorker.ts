@@ -122,7 +122,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const streamIdleCallbackRef = useRef<number | null>(null);
     const lastStreamProgressUpdateRef = useRef(0);
     const streamSessionRef = useRef(0);
-    const prunedLogCacheRef = useRef<Map<string, { sourceLog: any; sourceDetails: WeakRef<object> | null; pruned: any }>>(new Map());
+    const prunedLogCacheRef = useRef<Map<string, { sourceLog: any; sourceDetails: WeakRef<object> | null; sourceOwners: any; pruned: any }>>(new Map());
     // Payloads already transferred to the current worker, keyed by log identity
     // (insertion order = LRU). Holds the same object refs as prunedLogCacheRef,
     // so this adds no renderer memory; the worker retains its cloned copy.
@@ -166,12 +166,18 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         const logWithDetails = details ? { ...log, details: pruneDetailsForWorker(details) } : log;
         const cacheKey = String(log?.filePath || log?.id || `idx-${index}`);
         const detailsRef = details && typeof details === 'object' ? details : null;
+        // useSectorOwners patches log.sectorOwners in place on the same details
+        // object identity (async ownership fetch resolves well after the log was
+        // first streamed) — validate the cache on owners identity too, or the
+        // stale pre-patch payload (or a `ref` message pointing the worker at it)
+        // is reused until the details object is LRU-evicted.
+        const owners = log?.sectorOwners ?? null;
         const cached = prunedLogCacheRef.current.get(cacheKey);
         if (cached) {
-            if (detailsRef && cached.sourceDetails?.deref() === detailsRef) {
+            if (detailsRef && cached.sourceDetails?.deref() === detailsRef && cached.sourceOwners === owners) {
                 return cached.pruned;
             }
-            if (!detailsRef && cached.sourceLog === logWithDetails) {
+            if (!detailsRef && cached.sourceLog === logWithDetails && cached.sourceOwners === owners) {
                 return cached.pruned;
             }
         }
@@ -179,6 +185,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         prunedLogCacheRef.current.set(cacheKey, {
             sourceLog: logWithDetails,
             sourceDetails: detailsRef ? new WeakRef(detailsRef) : null,
+            sourceOwners: owners,
             pruned
         });
         return pruned;

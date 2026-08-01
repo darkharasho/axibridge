@@ -94,6 +94,38 @@ describe('useLogsForStats adaptive debounce', () => {
         expect(result.current.logsForStats.some(isLogPendingIngestion)).toBe(false);
     });
 
+    // Regression: useSectorOwners patches log.sectorOwners asynchronously,
+    // often well after the log's details are already cached — mutating only
+    // the log wrapper, never the (unchanged) details object identity. When
+    // details are cached, buildStatsSnapshotKey excluded the log's own object
+    // identity entirely (logId is forced to 0), so without a dedicated owners
+    // token the key was identical before/after the patch, setLogsForStats
+    // bailed on its "same key" fast path, and the owners never republished —
+    // aggregation (and the replay payload) never saw them.
+    it('republishes when sectorOwners is patched onto a details-cached log', () => {
+        const details = { players: [] };
+        const cache = { peek: (id: string) => (id === 'a' ? details : null) } as any;
+        const wrapper = ({ children }: { children: ReactNode }) =>
+            createElement(DetailsCacheContext.Provider, { value: cache }, children);
+        const { result, rerender } = renderHook(({ logs }) => useLogsForStats({ logs }), {
+            initialProps: { logs: [] as any[] },
+            wrapper
+        });
+        const settled = makeLog('a', 'success', 'loaded');
+        rerender({ logs: [settled] });
+        act(() => {
+            vi.advanceTimersByTime(450);
+        });
+        expect(result.current.logsForStats[0].sectorOwners).toBeUndefined();
+        // Same details identity, same status/detailsStatus/uploadTime/permalink —
+        // only sectorOwners changes, exactly like useSectorOwners' in-place patch.
+        rerender({ logs: [{ ...settled, sectorOwners: { 999: 'Red' } }] });
+        act(() => {
+            vi.advanceTimersByTime(450);
+        });
+        expect(result.current.logsForStats[0].sectorOwners).toEqual({ 999: 'Red' });
+    });
+
     it('republishes when a restored log finishes details hydration', () => {
         const details = { players: [] };
         const cache = { peek: (id: string) => (id === 'a' ? details : null) } as any;
