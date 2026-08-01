@@ -2733,7 +2733,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         onChange={(e) => {
                                             const next = e.currentTarget.value || null;
                                             setWvwMatchId(next);
-                                            window.electronAPI.saveSettings({ wvwMatchId: next });
+                                            window.electronAPI?.saveSettings?.({ wvwMatchId: next });
                                         }}
                                         className="w-full appearance-none bg-black/50 border border-white/10 rounded-[4px] pl-3 pr-8 py-2 text-xs text-gray-200 focus:outline-none focus:border-cyan-400/50"
                                         aria-label="WvW match"

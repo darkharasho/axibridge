@@ -1,9 +1,24 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 afterEach(() => {
     cleanup();
+});
+
+// Default network stub: several components (e.g. SettingsView's WvW match
+// list) fetch live endpoints unconditionally on mount. Without a stub, every
+// test that mounts them makes a real network request. A plain (non-
+// vi.stubGlobal) reassignment before each test guarantees a clean default
+// regardless of test order; tests that need specific fetch behavior can
+// still override it with vi.stubGlobal('fetch', ...) + vi.unstubAllGlobals()
+// in their own afterEach — unstubAllGlobals restores to whatever was current
+// when that test's stub was applied, i.e. this default, so overrides always
+// win for their own test and never leak into the next one.
+beforeEach(() => {
+    globalThis.fetch = vi.fn().mockRejectedValue(
+        new Error('fetch is stubbed in tests; call vi.stubGlobal("fetch", ...) if this test needs a response')
+    );
 });
 
 const originalConsoleError = console.error.bind(console);
