@@ -2739,6 +2739,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         aria-label="WvW match"
                                     >
                                         <option value="">Off</option>
+                                        {wvwMatchId && !wvwMatchOptions.some(o => o.value === wvwMatchId) && (
+                                            <option value={wvwMatchId}>
+                                                {buildWvwMatchOptions([wvwMatchId])[0]?.label ?? wvwMatchId}
+                                            </option>
+                                        )}
                                         {wvwMatchOptions.map(o => (
                                             <option key={o.value} value={o.value}>{o.label}</option>
                                         ))}
