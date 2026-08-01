@@ -20,23 +20,34 @@ export function useSectorOwners(logs: ILogData[], setLogsDeferred: SetLogs): voi
 
         let cancelled = false;
         (async () => {
-            const settings = await window.electronAPI.getSettings();
-            const matchId = settings.wvwMatchId;
-            if (!matchId || cancelled) return;
-            for (const log of candidates) {
-                const mapKey = resolveMapFromZone(log.fightName ?? '');
-                if (!mapKey) continue;
-                inFlight.current.add(log.id);
-                const owners = await fetchMatchSectorOwners(matchId, mapKey);
-                inFlight.current.delete(log.id);
-                if (!owners || cancelled) continue;
-                setLogsDeferred(current => {
-                    const idx = current.findIndex(l => l.id === log.id);
-                    if (idx < 0 || current[idx].sectorOwners) return current;
-                    const updated = [...current];
-                    updated[idx] = { ...updated[idx], sectorOwners: owners };
-                    return updated;
-                });
+            try {
+                const settings = await window.electronAPI.getSettings();
+                const matchId = settings.wvwMatchId;
+                if (!matchId || cancelled) return;
+                for (const log of candidates) {
+                    const mapKey = resolveMapFromZone(log.fightName ?? '');
+                    if (!mapKey) continue;
+                    inFlight.current.add(log.id);
+                    try {
+                        const owners = await fetchMatchSectorOwners(matchId, mapKey);
+                        if (!owners || cancelled) continue;
+                        setLogsDeferred(current => {
+                            const idx = current.findIndex(l => l.id === log.id);
+                            if (idx < 0 || current[idx].sectorOwners) return current;
+                            const updated = [...current];
+                            updated[idx] = { ...updated[idx], sectorOwners: owners };
+                            return updated;
+                        });
+                    } finally {
+                        // Always release, even if the fetch rejected unexpectedly, so a
+                        // transient failure doesn't permanently block retries for this log.
+                        inFlight.current.delete(log.id);
+                    }
+                }
+            } catch {
+                // Ownership snapshotting is a best-effort visual layer. Any failure here
+                // (settings IPC, network, bad data) must stay a silent no-op rather than
+                // surface as an unhandled rejection or renderer error.
             }
         })();
         return () => { cancelled = true; };
