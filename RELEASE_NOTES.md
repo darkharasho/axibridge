@@ -1,9 +1,15 @@
 # Release Notes
 
-Version v2.14.1 — July 31, 2026
+Version v2.14.2 — August 1, 2026
 
-## Pick who hears about it when you publish
+## Zone Colours on the Replay Map
 
-"Upload to Web" now opens a small popover so you choose which Discord report webhooks get the link, instead of always posting to every one of them. It's pre-checked from whatever you picked last time, any webhook you add later defaults to on, and the publish button tells you exactly what it's about to do ("Publish · post to 2"). Uncheck everything to publish the report without posting to Discord at all. If you don't have any report webhooks set up, this is skipped entirely and publishing works like before. Your picks are remembered for next time.
+The map replay now outlines every sector in the colour of the team that owns it, using the real sector boundaries from the game. Each objective's zone gets its own complete outline, so shared borders show both teams' colours side by side — and objective dots and names are coloured by their owner too.
 
-Also fixed the popover rendering see-through under the glass themes.
+It's fully automatic: your match is detected from your squad's guilds, so there's nothing to set up. Any log from the current match week gets colours; last week's logs stay neutral instead of guessing. A "Zone borders" toggle in the replay Layers panel turns the outlines off if you want a clean map.
+
+NOTE: ownership is snapshotted around when the log is processed, so a sector that flips later in the night keeps the colour it had at snapshot time.
+
+## Fixes
+
+- Replay controls (fight picker, play/speed buttons, squad member cards) were grey-on-grey on glass themes — readable again.
