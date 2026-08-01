@@ -18,10 +18,14 @@ export const createReplayElisionState = (): ReplayElisionState => ({ lastKey: ''
 
 /**
  * Build the identity key for the current replay payload: the ordered ingested
- * log ids plus the preciseReplay flag (which changes replay payload contents).
+ * log ids plus the preciseReplay flag (which changes replay payload contents)
+ * plus the set of logs carrying a sector-ownership snapshot. Ownership arrives
+ * asynchronously after a log was first ingested — without it in the key, the
+ * owners-only re-aggregation posts a payload the elision check wrongly treats
+ * as identical, and the main thread reinjects the stale pre-owners fights.
  */
-export const buildReplayKey = (logIds: string[], preciseReplay: boolean | undefined): string =>
-    `${preciseReplay ? 'precise' : 'coarse'}|${logIds.join(',')}`;
+export const buildReplayKey = (logIds: string[], preciseReplay: boolean | undefined, ownedLogIds?: string[]): string =>
+    `${preciseReplay ? 'precise' : 'coarse'}|${logIds.join(',')}|owned:${(ownedLogIds ?? []).slice().sort().join(',')}`;
 
 /**
  * Worker side: if the replay payload is identical to the last one posted,

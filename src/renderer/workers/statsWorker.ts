@@ -10,6 +10,10 @@ let droppedLogMessages = 0;
 let ingestedLogCount = 0;
 let lastProgressPostAt = 0;
 let ingestedLogIds: string[] = [];
+// Ids of ingested logs that carried a sectorOwners snapshot — part of the
+// replay elision key, since ownership patches change payload contents without
+// changing the log set.
+let ingestedOwnedLogIds: string[] = [];
 let currentPreciseReplay: boolean | undefined = undefined;
 // Survives resets on purpose: tracks the replay payload last posted to the main
 // thread so identical payloads (same logs, same preciseReplay) are not re-cloned.
@@ -106,7 +110,7 @@ const computeAndPost = (skipReplay = false) => {
     } else {
         replayElided = elideUnchangedReplayFights(
             result,
-            buildReplayKey(ingestedLogIds, currentPreciseReplay),
+            buildReplayKey(ingestedLogIds, currentPreciseReplay, ingestedOwnedLogIds),
             replayElisionState
         );
     }
@@ -142,6 +146,7 @@ self.onmessage = (event: MessageEvent) => {
         aggregator = new IncrementalAggregator();
         ingestedLogCount = 0;
         ingestedLogIds = [];
+        ingestedOwnedLogIds = [];
         currentPreciseReplay = undefined;
         if (typeof data.token === 'number') {
             currentToken = data.token;
@@ -184,6 +189,7 @@ self.onmessage = (event: MessageEvent) => {
         });
         ingestedLogCount = 0;
         ingestedLogIds = [];
+        ingestedOwnedLogIds = [];
         currentPreciseReplay = Boolean(data.payload?.preciseReplay);
         return;
     }
@@ -208,7 +214,9 @@ self.onmessage = (event: MessageEvent) => {
         }
         aggregator.ingestLog(payload);
         ingestedLogCount += 1;
-        ingestedLogIds.push(String(payload?.filePath || payload?.id || `idx-${ingestedLogCount}`));
+        const ingestedId = String(payload?.filePath || payload?.id || `idx-${ingestedLogCount}`);
+        ingestedLogIds.push(ingestedId);
+        if (payload?.sectorOwners) ingestedOwnedLogIds.push(ingestedId);
         // Throttle progress messages to avoid flooding the main thread with
         // renders. Post at most every 250ms, but always post the final one.
         const now = performance.now();

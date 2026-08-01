@@ -37,6 +37,21 @@ describe('replay transfer elision', () => {
         expect(result2.stats.replayFights).toHaveLength(2);
     });
 
+    it('re-transfers when a log gains sector owners', () => {
+        const state = createReplayElisionState();
+        const logIds = ['a.zevtc', 'b.zevtc'];
+        expect(elideUnchangedReplayFights(makeResult([{ fight: 1 }]), buildReplayKey(logIds, false), state)).toBe(false);
+        // Same log set, but log a picked up an ownership snapshot → payload
+        // contents changed, must transfer in full instead of eliding.
+        expect(elideUnchangedReplayFights(makeResult([{ fight: 1 }]), buildReplayKey(logIds, false, ['a.zevtc']), state)).toBe(false);
+        // Identical owned set afterwards elides again.
+        expect(elideUnchangedReplayFights(makeResult([{ fight: 1 }]), buildReplayKey(logIds, false, ['a.zevtc']), state)).toBe(true);
+    });
+
+    it('builds the same key regardless of owned-id order', () => {
+        expect(buildReplayKey(['a', 'b'], false, ['b', 'a'])).toBe(buildReplayKey(['a', 'b'], false, ['a', 'b']));
+    });
+
     it('re-transfers when preciseReplay changes', () => {
         const state = createReplayElisionState();
         elideUnchangedReplayFights(makeResult([{ fight: 1 }]), buildReplayKey(['a'], false), state);
