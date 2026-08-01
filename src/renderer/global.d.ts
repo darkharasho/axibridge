@@ -311,6 +311,7 @@ export interface IElectronAPI {
         githubFavoriteRepos?: string[] | null;
         walkthroughSeen?: boolean;
         allowLocalJson?: boolean;
+        wvwMatchId?: string | null;
         eiAnnouncementDismissed?: boolean;
         r2AccountId?: string | null;
         r2AccessKeyId?: string | null;
@@ -360,6 +361,7 @@ export interface IElectronAPI {
         githubFavoriteRepos?: string[] | null;
         walkthroughSeen?: boolean;
         allowLocalJson?: boolean;
+        wvwMatchId?: string | null;
         forceDpsReportOnly?: boolean;
         eiAnnouncementDismissed?: boolean;
         r2AccountId?: string | null;

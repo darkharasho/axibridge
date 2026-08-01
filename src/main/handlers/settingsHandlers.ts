@@ -175,6 +175,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             githubFavoriteRepos: store.get('githubFavoriteRepos', []),
             walkthroughSeen: store.get('walkthroughSeen', false),
             allowLocalJson: store.get('allowLocalJson', false),
+            wvwMatchId: (store.get('wvwMatchId') as string | null) ?? null,
             r2AccountId: store.get('r2AccountId', null),
             r2AccessKeyId: store.get('r2AccessKeyId', null),
             r2SecretAccessKey: store.get('r2SecretAccessKey', null),
