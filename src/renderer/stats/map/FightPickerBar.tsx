@@ -38,7 +38,7 @@ export const FightPickerBar: React.FC<FightPickerBarProps> = ({ fights, collapse
             <button
                 type="button"
                 onClick={onToggle}
-                style={{ fontSize: 10, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, padding: '3px 7px', borderRadius: 4, border: '1px solid var(--border-subtle)', background: 'var(--bg-hover)', cursor: 'pointer' }}
+                style={{ fontSize: 10, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, padding: '3px 7px', borderRadius: 4, border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', cursor: 'pointer' }}
             >
                 {collapsed ? '▼ Show all fights' : '▲ Hide fights'}
             </button>
@@ -59,7 +59,7 @@ export const FightPickerBar: React.FC<FightPickerBarProps> = ({ fights, collapse
                     aria-label="Previous fight"
                     onClick={stepBack}
                     disabled={atFirst}
-                    style={{ width: 22, height: 22, borderRadius: 4, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)', fontSize: 10, color: atFirst ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: atFirst ? 'default' : 'pointer' }}
+                    style={{ width: 22, height: 22, borderRadius: 4, background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', fontSize: 10, color: atFirst ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: atFirst ? 'default' : 'pointer' }}
                 >◀</button>
                 <button
                     type="button"
@@ -67,7 +67,7 @@ export const FightPickerBar: React.FC<FightPickerBarProps> = ({ fights, collapse
                     aria-label="Next fight"
                     onClick={stepForward}
                     disabled={atLast}
-                    style={{ width: 22, height: 22, borderRadius: 4, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)', fontSize: 10, color: atLast ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: atLast ? 'default' : 'pointer' }}
+                    style={{ width: 22, height: 22, borderRadius: 4, background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', fontSize: 10, color: atLast ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: atLast ? 'default' : 'pointer' }}
                 >▶</button>
             </div>
         </div>

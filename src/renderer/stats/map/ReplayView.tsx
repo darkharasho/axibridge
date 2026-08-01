@@ -245,7 +245,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         <button
                                             type="button"
                                             onClick={() => setPickerCollapsed(true)}
-                                            style={{ fontSize: 11, color: 'var(--text-muted)', padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border-subtle)', background: 'var(--bg-hover)', cursor: 'pointer' }}
+                                            style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', cursor: 'pointer' }}
                                         >
                                             ✕ Close
                                         </button>
@@ -488,7 +488,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             onClick={() => setReplayPlayhead({ playing: !playhead.playing })}
                             style={{
                                 width: 28, height: 28, borderRadius: 6, flexShrink: 0,
-                                background: 'var(--bg-hover)', border: '1px solid var(--border-default)',
+                                background: 'var(--bg-input)', border: '1px solid var(--border-default)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 color: 'var(--text-secondary)', cursor: 'pointer',
                             }}
@@ -503,7 +503,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                     onClick={() => setReplayPlayhead({ speed: s })}
                                     style={{
                                         padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600,
-                                        background: playhead.speed === s ? 'var(--status-info-bg)' : 'var(--bg-hover)',
+                                        background: playhead.speed === s ? 'var(--status-info-bg)' : 'var(--bg-input)',
                                         border: `1px solid ${playhead.speed === s ? 'var(--status-info-border)' : 'var(--border-subtle)'}`,
                                         color: playhead.speed === s ? 'var(--status-info)' : 'var(--text-muted)',
                                         cursor: 'pointer',

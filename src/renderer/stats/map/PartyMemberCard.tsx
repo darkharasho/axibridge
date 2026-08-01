@@ -51,7 +51,7 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
             style={{
                 display: 'block', width: '100%', textAlign: 'left',
                 padding: '5px 8px', borderRadius: 4, margin: '1px 4px',
-                background: isFollowed ? 'var(--status-info-bg)' : 'var(--bg-hover)',
+                background: isFollowed ? 'var(--status-info-bg)' : 'var(--bg-input)',
                 border: `1px solid ${isFollowed ? 'var(--status-info)' : 'transparent'}`,
                 cursor: 'pointer',
             }}
