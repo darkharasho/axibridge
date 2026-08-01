@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { fetchMatchSectorOwners, pickSnapshotCandidates } from '../../stats/utils/sectorOwners';
+import { useEffect, useRef, useState } from 'react';
+import { fetchMatchSectorOwners, pickSnapshotCandidates, WVW_MATCH_SETTING_CHANGED_EVENT } from '../../stats/utils/sectorOwners';
 import { resolveMapFromZone } from '../../../shared/mapUtils';
 
 type SetLogs = (updater: (logs: ILogData[]) => ILogData[]) => void;
@@ -12,6 +12,15 @@ type SetLogs = (updater: (logs: ILogData[]) => ILogData[]) => void;
  */
 export function useSectorOwners(logs: ILogData[], setLogsDeferred: SetLogs): void {
     const inFlight = useRef<Set<string>>(new Set());
+    // Bumped when the wvwMatchId setting changes so already-processed logs get
+    // their snapshot immediately instead of waiting for the next logs change.
+    const [settingsBump, setSettingsBump] = useState(0);
+
+    useEffect(() => {
+        const onSettingChanged = () => setSettingsBump(b => b + 1);
+        window.addEventListener(WVW_MATCH_SETTING_CHANGED_EVENT, onSettingChanged);
+        return () => window.removeEventListener(WVW_MATCH_SETTING_CHANGED_EVENT, onSettingChanged);
+    }, []);
 
     useEffect(() => {
         const candidates = pickSnapshotCandidates(logs, Date.now())
@@ -51,5 +60,5 @@ export function useSectorOwners(logs: ILogData[], setLogsDeferred: SetLogs): voi
             }
         })();
         return () => { cancelled = true; };
-    }, [logs, setLogsDeferred]);
+    }, [logs, setLogsDeferred, settingsBump]);
 }

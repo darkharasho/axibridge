@@ -18,7 +18,7 @@ import { ProofOfWorkModal } from './ui/ProofOfWorkModal';
 import { ParticleHover } from './particles';
 import { TOP_STATS_CATALOG, CATEGORY_ORDER, CATEGORY_META, DEFAULT_ENABLED_TOP_STATS, normalizeEnabledTopStats, type TopStatCategory } from './stats/topStatsCatalog';
 import { BoonGlyph } from './ui/BoonGlyph';
-import { buildWvwMatchOptions } from './stats/utils/sectorOwners';
+import { buildWvwMatchOptions, WVW_MATCH_SETTING_CHANGED_EVENT } from './stats/utils/sectorOwners';
 
 // Pure helpers — defined outside the component so they are never recreated on re-render.
 // Exported so they can be unit-tested independently.
@@ -2734,6 +2734,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             const next = e.currentTarget.value || null;
                                             setWvwMatchId(next);
                                             window.electronAPI?.saveSettings?.({ wvwMatchId: next });
+                                            window.dispatchEvent(new Event(WVW_MATCH_SETTING_CHANGED_EVENT));
                                         }}
                                         className="w-full appearance-none bg-black/50 border border-white/10 rounded-[4px] pl-3 pr-8 py-2 text-xs text-gray-200 focus:outline-none focus:border-cyan-400/50"
                                         aria-label="WvW match"

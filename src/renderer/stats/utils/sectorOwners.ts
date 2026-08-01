@@ -7,6 +7,14 @@ import { resolveMapFromZone } from '../../../shared/mapUtils';
 
 const REGION_NAMES: Record<string, string> = { '1': 'NA', '2': 'EU' };
 
+/**
+ * Window event dispatched when the wvwMatchId setting changes, so
+ * useSectorOwners can re-evaluate existing logs without waiting for the next
+ * logs-array change (setting the match after tonight's logs were processed
+ * would otherwise stay neutral until another log arrived or an app restart).
+ */
+export const WVW_MATCH_SETTING_CHANGED_EVENT = 'axibridge:wvw-match-setting-changed';
+
 export function buildWvwMatchOptions(ids: string[]): { value: string; label: string }[] {
     return ids
         .map(id => {
