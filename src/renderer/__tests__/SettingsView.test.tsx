@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
     SettingsView,
     slugifyHeading,
@@ -227,47 +227,6 @@ describe('SettingsView', () => {
         });
     });
 
-    // -----------------------------------------------------------------------
-    // WvW match picker (replay zone colours)
-    // -----------------------------------------------------------------------
-
-    describe('WvW match picker', () => {
-        afterEach(() => {
-            vi.unstubAllGlobals();
-        });
-
-        it('keeps a saved wvwMatchId selected even if the match list fails to load', async () => {
-            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network unavailable')));
-
-            const { mock } = renderSettings({}, { wvwMatchId: '1-3' });
-            await waitForLoad(mock);
-
-            await waitFor(() => {
-                const select = screen.getByLabelText('WvW match') as HTMLSelectElement;
-                expect(select.value).toBe('1-3');
-            });
-            // The fallback option renders a human-readable label derived from the id,
-            // not just the raw "1-3" string.
-            expect(screen.getByRole('option', { name: 'NA — Tier 3' })).toBeInTheDocument();
-        });
-
-        it('has no fallback option once the real match list has loaded', async () => {
-            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-                json: () => Promise.resolve(['1-3', '2-1']),
-            }));
-
-            const { mock } = renderSettings({}, { wvwMatchId: '1-3' });
-            await waitForLoad(mock);
-
-            await waitFor(() => {
-                const select = screen.getByLabelText('WvW match') as HTMLSelectElement;
-                expect(select.value).toBe('1-3');
-            });
-            // Only one "NA — Tier 3" option should exist — the fallback must not
-            // duplicate an entry that the loaded options list already provides.
-            expect(screen.getAllByRole('option', { name: 'NA — Tier 3' })).toHaveLength(1);
-        });
-    });
 
     // -----------------------------------------------------------------------
     // Auto-save + callbacks (300 ms debounce)

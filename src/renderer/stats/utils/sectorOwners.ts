@@ -5,26 +5,6 @@ import { WvwMap } from '../../../shared/wvwLandmarks';
 import { OBJECTIVE_SECTORS, WVW_MAP_IDS, type WvwOwner } from '../../../shared/wvwSectors';
 import { resolveMapFromZone } from '../../../shared/mapUtils';
 
-const REGION_NAMES: Record<string, string> = { '1': 'NA', '2': 'EU' };
-
-/**
- * Window event dispatched when the wvwMatchId setting changes, so
- * useSectorOwners can re-evaluate existing logs without waiting for the next
- * logs-array change (setting the match after tonight's logs were processed
- * would otherwise stay neutral until another log arrived or an app restart).
- */
-export const WVW_MATCH_SETTING_CHANGED_EVENT = 'axibridge:wvw-match-setting-changed';
-
-export function buildWvwMatchOptions(ids: string[]): { value: string; label: string }[] {
-    return ids
-        .map(id => {
-            const m = /^([12])-(\d+)$/.exec(id);
-            return m ? { value: id, region: Number(m[1]), tier: Number(m[2]) } : null;
-        })
-        .filter((v): v is { value: string; region: number; tier: number } => v !== null)
-        .sort((a, b) => a.region - b.region || a.tier - b.tier)
-        .map(v => ({ value: v.value, label: `${REGION_NAMES[String(v.region)]} — Tier ${v.tier}` }));
-}
 
 const MATCH_CACHE_TTL_MS = 60 * 1000;
 const GUILD_MAP_CACHE_TTL_MS = 6 * 60 * 60 * 1000;

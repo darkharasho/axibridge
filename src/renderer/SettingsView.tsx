@@ -18,7 +18,6 @@ import { ProofOfWorkModal } from './ui/ProofOfWorkModal';
 import { ParticleHover } from './particles';
 import { TOP_STATS_CATALOG, CATEGORY_ORDER, CATEGORY_META, DEFAULT_ENABLED_TOP_STATS, normalizeEnabledTopStats, type TopStatCategory } from './stats/topStatsCatalog';
 import { BoonGlyph } from './ui/BoonGlyph';
-import { buildWvwMatchOptions, WVW_MATCH_SETTING_CHANGED_EVENT } from './stats/utils/sectorOwners';
 
 // Pure helpers — defined outside the component so they are never recreated on re-render.
 // Exported so they can be unit-tested independently.
@@ -221,8 +220,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [glassmorphic, setGlassmorphic] = useState(glassmorphicProp ?? false);
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
-    const [wvwMatchId, setWvwMatchId] = useState<string | null>(null);
-    const [wvwMatchOptions, setWvwMatchOptions] = useState<{ value: string; label: string }[]>([]);
     const [eiStatus, setEiStatus] = useState<IEiStatus>({ installed: false, version: null, updateAvailable: null, installing: false, error: null });
     const [eiSettings, setEiSettings] = useState<IEiParserSettings | null>(null);
     const [eiDownloadProgress, setEiDownloadProgress] = useState<{ percent: number; message: string } | null>(null);
@@ -541,7 +538,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (typeof settings.allowLocalJson === 'boolean') {
             setAllowLocalJson(settings.allowLocalJson);
         }
-        setWvwMatchId(settings.wvwMatchId ?? null);
         if (settings.disruptionMethod) {
             setDisruptionMethod(settings.disruptionMethod);
         }
@@ -584,11 +580,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             setHasLoaded(true);
         };
         loadSettings();
-
-        fetch('https://api.guildwars2.com/v2/wvw/matches')
-            .then(r => r.json())
-            .then(ids => setWvwMatchOptions(buildWvwMatchOptions(ids)))
-            .catch(() => {});
 
         if (window.electronAPI?.getEiStatus) {
             window.electronAPI.getEiStatus().then(setEiStatus);
@@ -2718,41 +2709,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 enabled={forceDpsReportOnly}
                                 onChange={(v) => setForceDpsReportOnly(v)}
                             />
-                        </div>
-
-                        {/* WvW match (replay zone colours) */}
-                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4">
-                            <div className="flex items-center justify-between gap-4">
-                                <div className="flex-1">
-                                    <div className="text-sm font-medium text-gray-200">WvW match (replay zone colours)</div>
-                                    <div className="text-xs text-gray-500 mt-0.5">Colours replay map sectors by owner. Auto detects your match from your squad's guilds each session; pick a region + tier to pin it manually.</div>
-                                </div>
-                                <div className="relative w-40 shrink-0">
-                                    <select
-                                        value={wvwMatchId ?? ''}
-                                        onChange={(e) => {
-                                            const next = e.currentTarget.value || null;
-                                            setWvwMatchId(next);
-                                            window.electronAPI?.saveSettings?.({ wvwMatchId: next });
-                                            window.dispatchEvent(new Event(WVW_MATCH_SETTING_CHANGED_EVENT));
-                                        }}
-                                        className="w-full appearance-none bg-black/50 border border-white/10 rounded-[4px] pl-3 pr-8 py-2 text-xs text-gray-200 focus:outline-none focus:border-cyan-400/50"
-                                        aria-label="WvW match"
-                                    >
-                                        <option value="">Auto — detect from your logs</option>
-                                        <option value="off">Off</option>
-                                        {wvwMatchId && wvwMatchId !== 'off' && !wvwMatchOptions.some(o => o.value === wvwMatchId) && (
-                                            <option value={wvwMatchId}>
-                                                {buildWvwMatchOptions([wvwMatchId])[0]?.label ?? wvwMatchId}
-                                            </option>
-                                        )}
-                                        {wvwMatchOptions.map(o => (
-                                            <option key={o.value} value={o.value}>{o.label}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
-                                </div>
-                            </div>
                         </div>
 
                         {/* EI Management */}

@@ -1,26 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
-import { collectSquadGuilds, detectWvwMatchId, fetchMatchSectorOwners, fetchMatchWindow, pickSnapshotCandidates, WVW_MATCH_SETTING_CHANGED_EVENT } from '../../stats/utils/sectorOwners';
+import { useEffect, useRef } from 'react';
+import { collectSquadGuilds, detectWvwMatchId, fetchMatchSectorOwners, fetchMatchWindow, pickSnapshotCandidates } from '../../stats/utils/sectorOwners';
+import { extractSquadGuilds } from '../../../shared/squadGuilds';
 import { resolveMapFromZone } from '../../../shared/mapUtils';
 
 type SetLogs = (updater: (logs: ILogData[]) => ILogData[]) => void;
+type PeekDetails = (log: ILogData) => any;
 
 /**
- * Snapshots WvW match ownership onto freshly processed logs so the replay can
- * colour sector outlines. No-op when the wvwMatchId setting is unset. Only
- * recent logs are snapshotted — rehydrated old sessions stay neutral rather
- * than getting colours from the wrong week.
+ * Snapshots WvW match ownership onto logs so the replay can colour sector
+ * outlines. Fully automatic: the match is detected from the squad's guilds
+ * (extracted at parse time, or backfilled here from cached details for logs
+ * parsed before extraction existed), and only logs uploaded within that
+ * match's live window are coloured — older logs stay neutral rather than
+ * getting colours from the wrong week.
  */
-export function useSectorOwners(logs: ILogData[], setLogsDeferred: SetLogs): void {
+export function useSectorOwners(logs: ILogData[], setLogsDeferred: SetLogs, peekDetails?: PeekDetails): void {
     const inFlight = useRef<Set<string>>(new Set());
-    // Bumped when the wvwMatchId setting changes so already-processed logs get
-    // their snapshot immediately instead of waiting for the next logs change.
-    const [settingsBump, setSettingsBump] = useState(0);
-
-    useEffect(() => {
-        const onSettingChanged = () => setSettingsBump(b => b + 1);
-        window.addEventListener(WVW_MATCH_SETTING_CHANGED_EVENT, onSettingChanged);
-        return () => window.removeEventListener(WVW_MATCH_SETTING_CHANGED_EVENT, onSettingChanged);
-    }, []);
 
     useEffect(() => {
         // Cheap pre-filter before any async work: is there any WvW log that
@@ -33,18 +28,29 @@ export function useSectorOwners(logs: ILogData[], setLogsDeferred: SetLogs): voi
         let cancelled = false;
         (async () => {
             try {
-                const settings = await window.electronAPI.getSettings();
-                const configured = settings.wvwMatchId;
-                if (configured === 'off' || cancelled) return;
-                let matchId = configured ?? null;
-                if (!matchId) {
-                    // Auto mode (the default): resolve the match from the squad's
-                    // guilds via the GW2 guild→team mapping.
-                    const guildIds = collectSquadGuilds(logs);
-                    if (!guildIds.length) return;
-                    matchId = await detectWvwMatchId(guildIds);
-                    if (!matchId || cancelled) return;
+                let guildIds = collectSquadGuilds(logs);
+                if (!guildIds.length && peekDetails) {
+                    // Backfill: logs parsed before guild extraction existed carry no
+                    // squadGuilds, but their cached details still hold player guildIDs.
+                    for (const log of logs) {
+                        if (log.status !== 'success' || log.squadGuilds) continue;
+                        const details = peekDetails(log);
+                        const extracted = details ? extractSquadGuilds(details) : undefined;
+                        if (!extracted?.length) continue;
+                        setLogsDeferred(current => {
+                            const idx = current.findIndex(l => l.id === log.id);
+                            if (idx < 0 || current[idx].squadGuilds) return current;
+                            const updated = [...current];
+                            updated[idx] = { ...updated[idx], squadGuilds: extracted };
+                            return updated;
+                        });
+                        guildIds = extracted;
+                        break;
+                    }
                 }
+                if (!guildIds.length || cancelled) return;
+                const matchId = await detectWvwMatchId(guildIds);
+                if (!matchId || cancelled) return;
                 const matchWindow = await fetchMatchWindow(matchId);
                 if (!matchWindow || cancelled) return;
                 const candidates = pickSnapshotCandidates(logs, matchWindow)
@@ -71,10 +77,10 @@ export function useSectorOwners(logs: ILogData[], setLogsDeferred: SetLogs): voi
                 }
             } catch {
                 // Ownership snapshotting is a best-effort visual layer. Any failure here
-                // (settings IPC, network, bad data) must stay a silent no-op rather than
-                // surface as an unhandled rejection or renderer error.
+                // (network, bad data) must stay a silent no-op rather than surface as an
+                // unhandled rejection or renderer error.
             }
         })();
         return () => { cancelled = true; };
-    }, [logs, setLogsDeferred, settingsBump]);
+    }, [logs, setLogsDeferred, peekDetails]);
 }

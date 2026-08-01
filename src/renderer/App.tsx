@@ -615,7 +615,12 @@ function App() {
         pendingLogUpdatesRef,
     });
 
-    useSectorOwners(logs, setLogsDeferred);
+    const peekLogDetails = useCallback((log: ILogData) => {
+        const cache = detailsCacheRef.current;
+        if (!cache) return undefined;
+        return (log.id ? cache.peek(log.id) : undefined) ?? (log.filePath ? cache.peek(log.filePath) : undefined);
+    }, []);
+    useSectorOwners(logs, setLogsDeferred, peekLogDetails);
 
     // Pre-warm: populate LRU + IDB so details survive LRU eviction on large sessions.
     // Also mark the log as loaded so useLogsForStats re-triggers aggregation after
