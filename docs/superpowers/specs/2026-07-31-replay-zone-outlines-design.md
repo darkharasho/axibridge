@@ -48,22 +48,25 @@ New script `scripts/generate-wvw-sectors.mjs` (run manually, output committed):
    `wvwTiles.ts` (including EBG's `[-14, 20]` offset). Round to 1 decimal.
 3. Emit per map: `sectors: { id, name, bounds: [x, y][] }[]` and
    `objectiveSectors: Record<objectiveId, sectorId>`.
-4. Spawn sectors: the home `Citadel` sector gets a baked `staticOwner` (the
-   borderland's home team) where unambiguous; enemy `Border` spawn sectors stay
-   neutral in v1 (the generator logs what it finds; calibrate during
-   implementation).
+4. Spawn sectors need no special casing: match data includes `Spawn`-type
+   objectives with real owners (verified live: `95-111 type Spawn owner
+   Green`), so spawn/citadel sectors are coloured through the same
+   objective→sector mapping. Sectors with no mapped objective stay neutral.
 
 Bundle cost ≈ 10–15 KB. No report.json growth from static data.
 
 ### Ownership snapshot (per log, at processing time)
 
-- Optional new setting **WvW team** in SettingsView: dropdown of current teams
-  (fetched from `/v2/wvw/matches` + team/world names), persisted by the main
-  process like other settings. Unset → feature still works, outlines neutral.
-- When a log finishes EI processing and the team is configured, the main process
-  fetches the current match (`/v2/wvw/matches?world=<id>`; implementation
-  verifies the exact endpoint shape for World-Restructuring team ids), takes the
-  log's map, and maps each objective's `owner` through `objectiveSectors` →
+- Optional new setting **WvW match** in SettingsView: a region + tier picker
+  (match ids `1-1`…`1-4` NA, `2-1`…`2-5` EU are stable across weeks; verified
+  live — there is no team-names endpoint, so a match picker beats a team
+  dropdown; the squad's own team identity is irrelevant to outline colours).
+  Unset → feature still works, outlines neutral. Known limitation: teams move
+  tiers weekly, so a stale tier gives cosmetically wrong colours until updated.
+- When a log finishes processing and a match is configured, fetch
+  `/v2/wvw/matches/<matchId>` (objectives carry `owner` for every type,
+  including Spawn — verified live), take the log's map, and map each
+  objective's `owner` through `objectiveSectors` →
   `sectorOwners: Record<sectorId, 'Red' | 'Blue' | 'Green'>` (~21 entries,
   ~200 B). Stored on `ILogData`, threaded into `ReplayFightPayload` by
   `buildReplayFightPayload`, and included in web report payloads (size budget:
