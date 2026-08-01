@@ -35,4 +35,13 @@ describe('LayersPanel', () => {
         fireEvent.click(screen.getByLabelText(/deaths/i));
         expect(useStatsStore.getState().replayLayers.heatmap).toBe('deaths');
     });
+
+    it('renders the Zone borders toggle checked by default and toggles the store', () => {
+        render(<Wrapper />);
+        fireEvent.click(screen.getByTitle(/show layers/i));
+        const checkbox = screen.getByRole('checkbox', { name: /zone borders/i });
+        expect((checkbox as HTMLInputElement).checked).toBe(true);
+        fireEvent.click(checkbox);
+        expect(useStatsStore.getState().replayLayers.zoneBorders).toBe(false);
+    });
 });

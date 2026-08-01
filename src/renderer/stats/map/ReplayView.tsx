@@ -9,6 +9,7 @@ import commanderTagRaw from '../../../../public/svg/commander_tag.svg?raw';
 const COMMANDER_TAG_URI = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(commanderTagRaw)))}`;
 
 import { HeatmapLayer } from './HeatmapLayer';
+import { SectorOutlineLayer } from './SectorOutlineLayer';
 import { SquadOverlay } from './SquadOverlay';
 import { SquadHealthStrip } from './SquadHealthStrip';
 import { LayersPanel } from './LayersPopover';
@@ -327,6 +328,15 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                             <image href={selectedFight.mapImageUrl} x={0} y={0} width={mapWidth} height={mapHeight} />
                                         )
                                     }
+                                    {layers.zoneBorders && selectedFight.mapKey && (
+                                        <SectorOutlineLayer
+                                            mapKey={selectedFight.mapKey}
+                                            mapWidth={mapWidth}
+                                            mapHeight={mapHeight}
+                                            scale={viewport.scale}
+                                            sectorOwners={(selectedFight as { sectorOwners?: Record<number, import('../../../shared/wvwSectors').WvwOwner> }).sectorOwners}
+                                        />
+                                    )}
                                     <HeatmapLayer raster={heatmap} mapWidth={mapWidth} mapHeight={mapHeight} mode={layers.heatmap} />
                                     {selectedFight.mapKey && (WVW_LANDMARKS[selectedFight.mapKey] ?? []).map(lm => (
                                         <g key={lm.name} opacity={0.55}>

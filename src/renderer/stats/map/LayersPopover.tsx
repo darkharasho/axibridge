@@ -1,6 +1,10 @@
 import React from 'react';
 import { useStatsStore } from '../statsStore';
 
+const MAP_TOGGLES: { key: 'zoneBorders'; label: string; title: string }[] = [
+    { key: 'zoneBorders', label: 'Zone borders', title: 'Outlines each map sector in its owning team\'s colour (neutral when ownership is unknown)' },
+];
+
 const SQUAD_TOGGLES: { key: 'centroidSpread' | 'tagRangeRings' | 'squadHealthStrip' | 'partyHulls'; label: string; title: string }[] = [
     { key: 'centroidSpread', label: 'Centroid + spread ring', title: 'Shows the squad\'s center of mass and a ring indicating how spread out the group is' },
     { key: 'tagRangeRings', label: 'Tag range rings (600 / 1200)', title: 'Draws circles at 600 and 1200 unit radius around the commander tag — useful for checking boon range' },
@@ -81,7 +85,16 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                 </button>
             </div>
             <div style={{ overflowY: 'auto', flex: 1, padding: '8px 10px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Squad overlay</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Map</div>
+                {MAP_TOGGLES.map(t => (
+                    <label key={t.key} title={t.title} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-primary)', padding: '3px 0', cursor: 'pointer' }}>
+                        <input type="checkbox"
+                               checked={layers[t.key]}
+                               onChange={e => setReplayLayer(t.key, e.currentTarget.checked)} />
+                        <span>{t.label}</span>
+                    </label>
+                ))}
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 12, marginBottom: 6 }}>Squad overlay</div>
                 {SQUAD_TOGGLES.map(t => (
                     <label key={t.key} title={t.title} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-primary)', padding: '3px 0', cursor: 'pointer' }}>
                         <input type="checkbox"

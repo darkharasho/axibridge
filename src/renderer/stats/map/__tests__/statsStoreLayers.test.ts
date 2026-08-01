@@ -59,4 +59,15 @@ describe('statsStore — replay layers + spotlight', () => {
         expect(l.heatmap).toBe('off');
         expect(useStatsStore.getState().replaySpotlightParty).toBeNull();
     });
+
+    it('defaults zoneBorders to true', () => {
+        expect(useStatsStore.getState().replayLayers.zoneBorders).toBe(true);
+    });
+
+    it('toggles zoneBorders via setReplayLayer and restores true on reset', () => {
+        useStatsStore.getState().setReplayLayer('zoneBorders', false);
+        expect(useStatsStore.getState().replayLayers.zoneBorders).toBe(false);
+        useStatsStore.getState().resetReplayLayers();
+        expect(useStatsStore.getState().replayLayers.zoneBorders).toBe(true);
+    });
 });

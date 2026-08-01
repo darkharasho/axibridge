@@ -24,6 +24,7 @@ interface StatsStoreState {
     replayViewport: { scale: number; tx: number; ty: number; followTarget: string | null };
     replaySelectedParty: number;
     replayLayers: {
+        zoneBorders: boolean;
         centroidSpread: boolean;
         tagRangeRings: boolean;
         squadHealthStrip: boolean;
@@ -73,6 +74,7 @@ const initialState = {
     replayViewport: { scale: 3, tx: 0, ty: 0, followTarget: null },
     replaySelectedParty: 0,
     replayLayers: {
+        zoneBorders: true,
         centroidSpread: false,
         tagRangeRings: false,
         squadHealthStrip: false,
@@ -134,6 +136,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
     }),
     resetReplayLayers: () => set(() => ({
         replayLayers: {
+            zoneBorders: true,
             centroidSpread: false, tagRangeRings: false,
             squadHealthStrip: false, partyHulls: false, phases: false,
             rallyRings: false, targetFocusLines: false, damagePulses: false,
