@@ -106,12 +106,42 @@ Implementation: `src/shared/dashboardMetrics.ts` (getPlayerStrips).
 
 ## Down Contribution
 
-Down contribution is the sum of `statsTargets[*][0].downContribution` across
-all targets for the player. When EI uses an aggregate "Enemy Players" target
-(common in WvW), `statsTargets.downContribution` is zero; in that case the
-value is computed from `totalDamageDist[*][*].downContribution` instead.
+Down contribution is read from EI output; AxiBridge does not compute it.
+Source order:
 
-Implementation: `src/shared/combatMetrics.ts` (computeDownContribution).
+1. `statsAll[0].downContribution` — preferred, authoritative total.
+   `statsTargets` only covers individually-tracked targets and under-reports
+   when damage goes to aggregate/unnamed targets.
+2. `totalDamageDist[*][*].downContribution` — fallback; covers all targets,
+   including the aggregate "Enemy Players" target common in WvW.
+3. `statsTargets[*][0].downContribution` summed across targets — last resort.
+
+Implementation: `@axiapps/bridge-metrics` `combatMetrics.ts`
+(computeDownContribution), re-exported via `src/shared/combatMetrics.ts`.
+
+### Definitional gap vs the arcdps live meter
+
+EI's definition is narrower than what the in-game arcdps meter tracks, so
+AxiBridge/EI values read systematically lower than what players see in game.
+This is definitional, not a bug — do not "fix" computeDownContribution to
+chase arcdps numbers.
+
+- Window: EI counts a hit only if the victim's last health update reads
+  ≤ 90%, they are not already downed, and they down before the next health
+  update above 90% (`IsDownedBeforeNext90` in EI). The live meter's window
+  is wider.
+- Burst edge: hits landing while the victim still reads > 90% contribute
+  nothing in EI — a one-shot down from full HP scores 0 down contribution.
+- Pets/minions: EI excludes minion damage entirely (actor-only gate in EI's
+  `OffensiveStatistics.cs`); the in-game meter includes it.
+- Downstate: EI never counts hits while the victim is downed.
+
+Exact parity with the meter is not reconstructible from modern logs: arcdps
+retired the `Last90BeforeDown` evtc event at build 20240529 (see EI's
+`ArcDPSBuilds`), so EI derives the window from periodic health-update
+events. EI also emits crowd-control and boon-strip down contribution fields
+(`appliedCrowdControlDownContribution`, `boonStripDownContribution`) under
+the same ≤ 90% rule; AxiBridge does not currently surface them.
 
 ## Squad Barrier and Squad Healing
 
