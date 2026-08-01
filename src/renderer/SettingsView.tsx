@@ -2725,7 +2725,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <div className="flex items-center justify-between gap-4">
                                 <div className="flex-1">
                                     <div className="text-sm font-medium text-gray-200">WvW match (replay zone colours)</div>
-                                    <div className="text-xs text-gray-500 mt-0.5">Your region + tier this week — used to colour replay map sectors by owner. Teams move tiers weekly.</div>
+                                    <div className="text-xs text-gray-500 mt-0.5">Colours replay map sectors by owner. Auto detects your match from your squad's guilds each session; pick a region + tier to pin it manually.</div>
                                 </div>
                                 <div className="relative w-40 shrink-0">
                                     <select
@@ -2739,8 +2739,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         className="w-full appearance-none bg-black/50 border border-white/10 rounded-[4px] pl-3 pr-8 py-2 text-xs text-gray-200 focus:outline-none focus:border-cyan-400/50"
                                         aria-label="WvW match"
                                     >
-                                        <option value="">Off</option>
-                                        {wvwMatchId && !wvwMatchOptions.some(o => o.value === wvwMatchId) && (
+                                        <option value="">Auto — detect from your logs</option>
+                                        <option value="off">Off</option>
+                                        {wvwMatchId && wvwMatchId !== 'off' && !wvwMatchOptions.some(o => o.value === wvwMatchId) && (
                                             <option value={wvwMatchId}>
                                                 {buildWvwMatchOptions([wvwMatchId])[0]?.label ?? wvwMatchId}
                                             </option>

@@ -27,6 +27,7 @@ export function buildWvwMatchOptions(ids: string[]): { value: string; label: str
 }
 
 const MATCH_CACHE_TTL_MS = 60 * 1000;
+const GUILD_MAP_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 export interface MatchWindow {
     startMs: number;
@@ -34,7 +35,13 @@ export interface MatchWindow {
 }
 
 let matchCache: { matchId: string; at: number; promise: Promise<unknown> } | null = null;
-export function __clearMatchCacheForTests(): void { matchCache = null; }
+const guildMapCache = new Map<string, { at: number; promise: Promise<Record<string, string> | null> }>();
+const overviewCache = new Map<string, { at: number; promise: Promise<string | null> }>();
+export function __clearMatchCacheForTests(): void {
+    matchCache = null;
+    guildMapCache.clear();
+    overviewCache.clear();
+}
 
 async function getMatch(matchId: string, fetchImpl: typeof fetch): Promise<unknown> {
     const now = Date.now();
@@ -46,6 +53,65 @@ async function getMatch(matchId: string, fetchImpl: typeof fetch): Promise<unkno
         .catch(() => null);
     matchCache = { matchId, at: now, promise };
     return promise;
+}
+
+function getGuildTeamMap(region: string, fetchImpl: typeof fetch): Promise<Record<string, string> | null> {
+    const now = Date.now();
+    const cached = guildMapCache.get(region);
+    if (cached && now - cached.at < GUILD_MAP_CACHE_TTL_MS) return cached.promise;
+    const promise = fetchImpl(`https://api.guildwars2.com/v2/wvw/guilds/${region}`)
+        .then(r => (r.ok ? r.json() : null))
+        .catch(() => null);
+    guildMapCache.set(region, { at: now, promise });
+    return promise;
+}
+
+function getOverviewMatchId(teamId: string, fetchImpl: typeof fetch): Promise<string | null> {
+    const now = Date.now();
+    const cached = overviewCache.get(teamId);
+    if (cached && now - cached.at < MATCH_CACHE_TTL_MS) return cached.promise;
+    const promise = fetchImpl(`https://api.guildwars2.com/v2/wvw/matches/overview?world=${teamId}`)
+        .then(r => (r.ok ? r.json() : null))
+        .then((overview: { id?: string } | null) => overview?.id ?? null)
+        .catch(() => null);
+    overviewCache.set(teamId, { at: now, promise });
+    return promise;
+}
+
+/**
+ * Zero-config match detection: squad guild ids → GW2's guild→team mapping
+ * (`/v2/wvw/guilds/{region}`) → team with the most guild votes → that team's
+ * current match. Self-corrects after weekly relinks since it re-resolves from
+ * live data. Returns null when no region knows any of the guilds.
+ */
+export async function detectWvwMatchId(guildIds: string[], fetchImpl: typeof fetch = fetch): Promise<string | null> {
+    const wanted = guildIds.map(id => id.toUpperCase());
+    for (const region of ['na', 'eu']) {
+        const map = await getGuildTeamMap(region, fetchImpl);
+        if (!map) continue;
+        const votes = new Map<string, number>();
+        for (const guildId of wanted) {
+            const teamId = map[guildId];
+            if (teamId) votes.set(teamId, (votes.get(teamId) ?? 0) + 1);
+        }
+        if (!votes.size) continue;
+        const topTeam = [...votes.entries()].sort((a, b) => b[1] - a[1])[0][0];
+        const matchId = await getOverviewMatchId(topTeam, fetchImpl);
+        if (matchId) return matchId;
+    }
+    return null;
+}
+
+/** Guild ids across successful logs, most common first — the auto-detect input. */
+export function collectSquadGuilds(logs: ILogData[]): string[] {
+    const counts = new Map<string, number>();
+    for (const log of logs) {
+        if (log.status !== 'success' || !Array.isArray(log.squadGuilds)) continue;
+        for (const guildId of log.squadGuilds) {
+            counts.set(guildId, (counts.get(guildId) ?? 0) + 1);
+        }
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([guildId]) => guildId);
 }
 
 /**

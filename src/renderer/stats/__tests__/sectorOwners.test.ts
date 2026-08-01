@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildWvwMatchOptions, fetchMatchSectorOwners, fetchMatchWindow, pickSnapshotCandidates, __clearMatchCacheForTests } from '../utils/sectorOwners';
+import { buildWvwMatchOptions, collectSquadGuilds, detectWvwMatchId, fetchMatchSectorOwners, fetchMatchWindow, pickSnapshotCandidates, __clearMatchCacheForTests } from '../utils/sectorOwners';
 import { WvwMap } from '../../../shared/wvwLandmarks';
 
 describe('buildWvwMatchOptions', () => {
@@ -74,6 +74,54 @@ describe('fetchMatchWindow', () => {
         __clearMatchCacheForTests();
         const noTimes = vi.fn(async () => ({ ok: true, json: async () => ({ maps: [] }) })) as unknown as typeof fetch;
         expect(await fetchMatchWindow('1-1', noTimes)).toBeNull();
+    });
+});
+
+describe('detectWvwMatchId', () => {
+    beforeEach(() => __clearMatchCacheForTests());
+
+    const guildsNa = { 'AAA-1': '11003', 'BBB-2': '11005' };
+    const guildsEu = { 'CCC-3': '12002' };
+    const routerFetch = () => vi.fn(async (url: string) => {
+        const body =
+            url.includes('/wvw/guilds/na') ? guildsNa :
+            url.includes('/wvw/guilds/eu') ? guildsEu :
+            url.includes('overview?world=11003') ? { id: '1-4' } :
+            url.includes('overview?world=12002') ? { id: '2-2' } :
+            null;
+        return { ok: body !== null, json: async () => body };
+    }) as unknown as typeof fetch;
+
+    it('resolves the NA match by majority guild vote, case-insensitively', async () => {
+        expect(await detectWvwMatchId(['aaa-1', 'AAA-1', 'BBB-2'], routerFetch())).toBe('1-4');
+    });
+
+    it('falls back to EU when no NA guild matches', async () => {
+        expect(await detectWvwMatchId(['CCC-3'], routerFetch())).toBe('2-2');
+    });
+
+    it('returns null when no region knows any of the guilds', async () => {
+        expect(await detectWvwMatchId(['ZZZ-9'], routerFetch())).toBeNull();
+    });
+
+    it('caches the guild-team map across detections', async () => {
+        const f = routerFetch();
+        await detectWvwMatchId(['AAA-1'], f);
+        await detectWvwMatchId(['AAA-1'], f);
+        const calls = (f as unknown as { mock: { calls: [string][] } }).mock.calls.map(c => String(c[0]));
+        expect(calls.filter(u => u.includes('/wvw/guilds/na')).length).toBe(1);
+    });
+});
+
+describe('collectSquadGuilds', () => {
+    it('aggregates guild votes across successful logs, most common first', () => {
+        const logs = [
+            { status: 'success', squadGuilds: ['G1', 'G2'] },
+            { status: 'success', squadGuilds: ['G2'] },
+            { status: 'uploading', squadGuilds: ['G3'] },
+            { status: 'success' },
+        ] as unknown as ILogData[];
+        expect(collectSquadGuilds(logs)).toEqual(['G2', 'G1']);
     });
 });
 

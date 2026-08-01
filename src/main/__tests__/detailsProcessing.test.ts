@@ -8,7 +8,34 @@ import {
     buildManifestEntry,
     hasUsableFightDetails,
     isDetailsPermalinkNotFound,
+    extractSquadGuilds,
 } from '../detailsProcessing';
+
+describe('extractSquadGuilds', () => {
+    const ZERO = '00000000-0000-0000-0000-000000000000';
+
+    it('returns squad guild ids by frequency, uppercased, capped at 3', () => {
+        const players = [
+            { account: 'a.1', guildID: 'aaa-1' },
+            { account: 'b.1', guildID: 'AAA-1' },
+            { account: 'c.1', guildID: 'BBB-2' },
+            { account: 'd.1', guildID: 'BBB-2' },
+            { account: 'e.1', guildID: 'BBB-2' },
+            { account: 'f.1', guildID: 'CCC-3' },
+            { account: 'g.1', guildID: 'DDD-4' },
+            { account: 'h.1', guildID: ZERO },
+            { account: 'i.1' },
+            { account: 'pug.1', guildID: 'EEE-5', notInSquad: true },
+        ];
+        expect(extractSquadGuilds({ players })).toEqual(['BBB-2', 'AAA-1', 'CCC-3']);
+    });
+
+    it('returns undefined when no squad player has a real guild', () => {
+        expect(extractSquadGuilds({ players: [{ account: 'a.1', guildID: ZERO }] })).toBeUndefined();
+        expect(extractSquadGuilds({ players: [] })).toBeUndefined();
+        expect(extractSquadGuilds({})).toBeUndefined();
+    });
+});
 
 // ─── countBoonApplications ────────────────────────────────────────────────────
 

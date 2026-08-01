@@ -34,6 +34,38 @@ describe('useSectorOwners settings re-trigger', () => {
         vi.unstubAllGlobals();
     });
 
+    it('auto-detects the match from squad guilds when no match is pinned', async () => {
+        let logs = makeLogs();
+        (logs[0] as any).squadGuilds = ['AAA-1'];
+        const setLogsDeferred = vi.fn((updater: (l: ILogData[]) => ILogData[]) => { logs = updater(logs); });
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+            const body =
+                url.includes('/wvw/guilds/na') ? { 'AAA-1': '11003' } :
+                url.includes('overview?world=11003') ? { id: '1-1' } :
+                url.includes('/wvw/matches/1-1') ? matchJson :
+                null;
+            return { ok: body !== null, json: async () => body };
+        }));
+
+        renderHook(() => useSectorOwners(logs, setLogsDeferred));
+
+        await waitFor(() => expect(logs[0].sectorOwners).toEqual({ 999: 'Red' }));
+    });
+
+    it('does nothing at all when the setting is explicitly off', async () => {
+        let logs = makeLogs();
+        (logs[0] as any).squadGuilds = ['AAA-1'];
+        const setLogsDeferred = vi.fn((updater: (l: ILogData[]) => ILogData[]) => { logs = updater(logs); });
+        (window as any).electronAPI.getSettings = vi.fn(async () => ({ wvwMatchId: 'off' }));
+
+        renderHook(() => useSectorOwners(logs, setLogsDeferred));
+
+        await waitFor(() => expect((window as any).electronAPI.getSettings).toHaveBeenCalled());
+        await new Promise(r => setTimeout(r, 50));
+        expect(globalThis.fetch).not.toHaveBeenCalled();
+        expect(logs[0].sectorOwners).toBeUndefined();
+    });
+
     it('does nothing while the match setting is unset, then recolours existing logs when it changes', async () => {
         let logs = makeLogs();
         const setLogsDeferred = vi.fn((updater: (l: ILogData[]) => ILogData[]) => { logs = updater(logs); });

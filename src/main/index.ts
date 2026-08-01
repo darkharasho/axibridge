@@ -34,6 +34,7 @@ import {
     resolveDetailsUploadTime,
     pruneDetailsForStats,
     buildDashboardSummaryFromDetails,
+    extractSquadGuilds,
     buildManifestEntry,
     attachConditionMetrics,
     hasUsableFightDetails,
@@ -484,6 +485,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
 
             const playerCount = Array.isArray(prunedDetails?.players) ? prunedDetails.players.length : undefined;
             const dashboardSummary = prunedDetails ? buildDashboardSummaryFromDetails(prunedDetails) : undefined;
+            const squadGuilds = prunedDetails ? extractSquadGuilds(prunedDetails) : undefined;
 
             if (prunedDetails) {
                 setBulkLogDetails(filePath, prunedDetails);
@@ -508,7 +510,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 status: hasUsableDetails ? 'calculating' : 'success',
                 detailsStatus: hasUsableDetails ? 'available' as const : 'idle' as const,
                 playerCount,
-                dashboardSummary
+                dashboardSummary,
+                squadGuilds
             });
             console.log(`[Main] Local JSON import complete: ${filePath} players=${playerCount ?? 'n/a'}`);
         } catch (jsonError: any) {
@@ -604,6 +607,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
 
             const playerCount = Array.isArray(prunedDetails?.players) ? prunedDetails.players.length : undefined;
             const dashboardSummary = prunedDetails ? buildDashboardSummaryFromDetails(prunedDetails) : undefined;
+            const squadGuilds = prunedDetails ? extractSquadGuilds(prunedDetails) : undefined;
             const detailsSummary = {
                 fightName: prunedDetails?.fightName,
                 fightLabel: buildFightLabelFromDetails(prunedDetails),
@@ -707,7 +711,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 status: hasUsableDetails ? 'calculating' : 'success',
                 detailsStatus: hasUsableDetails ? 'available' as const : 'idle' as const,
                 playerCount,
-                dashboardSummary
+                dashboardSummary,
+                squadGuilds
             });
             console.log(`[Main] upload-complete (EI): ${filePath} players=${playerCount ?? 'n/a'}`);
 
@@ -884,6 +889,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             const hasDetails = hasUsableDetails;
             const playerCount = Array.isArray(prunedDetails?.players) ? prunedDetails.players.length : undefined;
             const dashboardSummary = prunedDetails ? buildDashboardSummaryFromDetails(prunedDetails) : undefined;
+            const squadGuilds = prunedDetails ? extractSquadGuilds(prunedDetails) : undefined;
             const detailsSummary = {
                 fightName: prunedDetails?.fightName,
                 fightLabel: buildFightLabelFromDetails(prunedDetails),

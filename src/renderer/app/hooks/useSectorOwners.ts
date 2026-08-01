@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchMatchSectorOwners, fetchMatchWindow, pickSnapshotCandidates, WVW_MATCH_SETTING_CHANGED_EVENT } from '../../stats/utils/sectorOwners';
+import { collectSquadGuilds, detectWvwMatchId, fetchMatchSectorOwners, fetchMatchWindow, pickSnapshotCandidates, WVW_MATCH_SETTING_CHANGED_EVENT } from '../../stats/utils/sectorOwners';
 import { resolveMapFromZone } from '../../../shared/mapUtils';
 
 type SetLogs = (updater: (logs: ILogData[]) => ILogData[]) => void;
@@ -34,8 +34,17 @@ export function useSectorOwners(logs: ILogData[], setLogsDeferred: SetLogs): voi
         (async () => {
             try {
                 const settings = await window.electronAPI.getSettings();
-                const matchId = settings.wvwMatchId;
-                if (!matchId || cancelled) return;
+                const configured = settings.wvwMatchId;
+                if (configured === 'off' || cancelled) return;
+                let matchId = configured ?? null;
+                if (!matchId) {
+                    // Auto mode (the default): resolve the match from the squad's
+                    // guilds via the GW2 guild→team mapping.
+                    const guildIds = collectSquadGuilds(logs);
+                    if (!guildIds.length) return;
+                    matchId = await detectWvwMatchId(guildIds);
+                    if (!matchId || cancelled) return;
+                }
                 const matchWindow = await fetchMatchWindow(matchId);
                 if (!matchWindow || cancelled) return;
                 const candidates = pickSnapshotCandidates(logs, matchWindow)

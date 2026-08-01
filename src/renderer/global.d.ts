@@ -506,6 +506,7 @@ declare global {
         };
         replayDataUrl?: string | null;
         sectorOwners?: Record<number, import('../shared/wvwSectors').WvwOwner>;
+        squadGuilds?: string[];
     }
 
     interface IPlayer {
