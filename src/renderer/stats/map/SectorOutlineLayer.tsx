@@ -2,7 +2,7 @@ import React, { useId, useMemo } from 'react';
 import { WvwMap } from '../../../shared/wvwLandmarks';
 import { WVW_SECTORS, WVW_SECTOR_REF_SIZE, type WvwOwner } from '../../../shared/wvwSectors';
 
-const OWNER_COLORS: Record<Exclude<WvwOwner, 'Neutral'>, string> = {
+export const OWNER_COLORS: Record<Exclude<WvwOwner, 'Neutral'>, string> = {
     Red: '#ef4444',
     Blue: '#3b82f6',
     Green: '#22c55e',

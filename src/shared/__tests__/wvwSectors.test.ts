@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { WVW_SECTORS, WVW_MAP_IDS, WVW_SECTOR_REF_SIZE, OBJECTIVE_SECTORS } from '../wvwSectors';
+import { sectorIdAt } from '../sectorLookup';
 import { WvwMap } from '../wvwLandmarks';
 
 function pointInPolygon([px, py]: [number, number], poly: [number, number][]): boolean {
@@ -51,6 +52,12 @@ describe('wvwSectors generated data', () => {
             const apiMapId = Number(objId.split('-')[0]);
             expect(sectorIdsByApiMap.get(apiMapId)?.has(sectorId), `${objId} -> ${sectorId}`).toBe(true);
         }
+    });
+
+    it('sectorIdAt resolves the sector containing a landmark point', () => {
+        const dreadfallSector = WVW_SECTORS[WvwMap.GreenBorderlands].find(s => s.name === 'Dreadfall Bay');
+        expect(sectorIdAt(WvwMap.GreenBorderlands, 48, 435)).toBe(dreadfallSector?.id);
+        expect(sectorIdAt(WvwMap.GreenBorderlands, -100, -100)).toBeUndefined();
     });
 
     it('maps 95-33 (Dreadfall Bay keep objective) to the Dreadfall Bay sector', () => {
