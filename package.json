@@ -42,6 +42,7 @@
         "generate:conditions": "node scripts/conditions-audit.mjs --all --out test-fixtures/conditions",
         "generate:metrics": "node scripts/metrics-audit.mjs --all --out test-fixtures/metrics",
         "generate:fixtures": "for f in testdata/*.zevtc; do bash scripts/generate-json-fixture.sh \"$f\"; done",
+        "generate:wvw-sectors": "node scripts/generate-wvw-sectors.mjs",
         "prebuild:app:test": "cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build",
         "build:electron:test": "vite build && tsc -p electron/tsconfig.json",
         "test:unit": "vitest run",
