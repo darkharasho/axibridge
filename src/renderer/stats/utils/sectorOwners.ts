@@ -26,8 +26,12 @@ export function buildWvwMatchOptions(ids: string[]): { value: string; label: str
         .map(v => ({ value: v.value, label: `${REGION_NAMES[String(v.region)]} — Tier ${v.tier}` }));
 }
 
-export const SNAPSHOT_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 const MATCH_CACHE_TTL_MS = 60 * 1000;
+
+export interface MatchWindow {
+    startMs: number;
+    endMs: number;
+}
 
 let matchCache: { matchId: string; at: number; promise: Promise<unknown> } | null = null;
 export function __clearMatchCacheForTests(): void { matchCache = null; }
@@ -42,6 +46,23 @@ async function getMatch(matchId: string, fetchImpl: typeof fetch): Promise<unkno
         .catch(() => null);
     matchCache = { matchId, at: now, promise };
     return promise;
+}
+
+/**
+ * The configured match's live window. A log is snapshot-eligible when it was
+ * uploaded during this window — a fixed freshness cutoff (the original 2h
+ * guard) wrongly left a whole evening's raid neutral once the raid was a few
+ * hours past, while the real correctness boundary is "same match week".
+ */
+export async function fetchMatchWindow(
+    matchId: string,
+    fetchImpl: typeof fetch = fetch,
+): Promise<MatchWindow | null> {
+    const match = await getMatch(matchId, fetchImpl) as { start_time?: string; end_time?: string } | null;
+    const startMs = match?.start_time ? Date.parse(match.start_time) : NaN;
+    const endMs = match?.end_time ? Date.parse(match.end_time) : NaN;
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
+    return { startMs, endMs };
 }
 
 export async function fetchMatchSectorOwners(
@@ -60,12 +81,12 @@ export async function fetchMatchSectorOwners(
     return Object.keys(owners).length ? owners : null;
 }
 
-/** Fresh, finished WvW logs that still need an ownership snapshot. */
-export function pickSnapshotCandidates(logs: ILogData[], nowMs: number): ILogData[] {
+/** Finished WvW logs uploaded within the match window that still need an ownership snapshot. */
+export function pickSnapshotCandidates(logs: ILogData[], window: MatchWindow): ILogData[] {
     return logs.filter(log => {
         if (log.status !== 'success' || log.sectorOwners || !log.fightName) return false;
         if (!resolveMapFromZone(log.fightName)) return false;
         const uploadedAtMs = (log.uploadTime ?? 0) * 1000;
-        return uploadedAtMs > 0 && nowMs - uploadedAtMs < SNAPSHOT_MAX_AGE_MS;
+        return uploadedAtMs >= window.startMs && uploadedAtMs <= window.endMs;
     });
 }

@@ -3,8 +3,14 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { useSectorOwners } from '../useSectorOwners';
 import { WVW_MATCH_SETTING_CHANGED_EVENT, __clearMatchCacheForTests } from '../../../stats/utils/sectorOwners';
 
-const matchJson = { maps: [{ id: 95, objectives: [{ id: '95-33', owner: 'Red' }] }] };
+const matchJson = {
+    start_time: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
+    end_time: new Date(Date.now() + 4 * 24 * 3600 * 1000).toISOString(),
+    maps: [{ id: 95, objectives: [{ id: '95-33', owner: 'Red' }] }],
+};
 
+// 5h-old log: within the match window but outside the old fixed 2h freshness
+// guard — the exact "set the match after the raid ended" scenario.
 const makeLogs = () => ([{
     id: 'l1',
     permalink: '',
@@ -12,7 +18,7 @@ const makeLogs = () => ([{
     detailsStatus: 'loaded',
     status: 'success',
     fightName: 'Green Alpine Borderlands',
-    uploadTime: Date.now() / 1000,
+    uploadTime: Date.now() / 1000 - 5 * 3600,
 }] as unknown as ILogData[]);
 
 describe('useSectorOwners settings re-trigger', () => {

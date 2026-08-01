@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildWvwMatchOptions, fetchMatchSectorOwners, pickSnapshotCandidates, SNAPSHOT_MAX_AGE_MS, __clearMatchCacheForTests } from '../utils/sectorOwners';
+import { buildWvwMatchOptions, fetchMatchSectorOwners, fetchMatchWindow, pickSnapshotCandidates, __clearMatchCacheForTests } from '../utils/sectorOwners';
 import { WvwMap } from '../../../shared/wvwLandmarks';
 
 describe('buildWvwMatchOptions', () => {
@@ -17,6 +17,8 @@ describe('buildWvwMatchOptions', () => {
 });
 
 const matchJson = {
+    start_time: '2027-01-15T02:00:00Z',
+    end_time: '2027-01-22T01:58:00Z',
     maps: [
         { id: 95, objectives: [{ id: '95-33', owner: 'Red' }, { id: '95-53', owner: 'Green' }, { id: '95-9999', owner: 'Blue' }] },
         { id: 38, objectives: [{ id: '38-9', owner: 'Blue' }] },
@@ -48,18 +50,51 @@ describe('fetchMatchSectorOwners', () => {
     });
 });
 
+describe('fetchMatchWindow', () => {
+    beforeEach(() => __clearMatchCacheForTests());
+
+    it('parses the match start/end times', async () => {
+        const window = await fetchMatchWindow('1-1', okFetch());
+        expect(window).toEqual({
+            startMs: Date.parse('2027-01-15T02:00:00Z'),
+            endMs: Date.parse('2027-01-22T01:58:00Z'),
+        });
+    });
+
+    it('shares the cached match fetch with the owners lookup', async () => {
+        const f = okFetch();
+        await fetchMatchWindow('1-1', f);
+        await fetchMatchSectorOwners('1-1', WvwMap.GreenBorderlands, f);
+        expect((f as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(1);
+    });
+
+    it('returns null on fetch failure or missing times', async () => {
+        const failFetch = vi.fn(async () => ({ ok: false, json: async () => ({}) })) as unknown as typeof fetch;
+        expect(await fetchMatchWindow('1-1', failFetch)).toBeNull();
+        __clearMatchCacheForTests();
+        const noTimes = vi.fn(async () => ({ ok: true, json: async () => ({ maps: [] }) })) as unknown as typeof fetch;
+        expect(await fetchMatchWindow('1-1', noTimes)).toBeNull();
+    });
+});
+
 describe('pickSnapshotCandidates', () => {
-    const now = 1_800_000_000_000;
+    const startMs = Date.parse('2027-01-15T02:00:00Z');
+    const endMs = Date.parse('2027-01-22T01:58:00Z');
+    const window = { startMs, endMs };
+    const midMatch = (startMs + 3 * 24 * 3600 * 1000) / 1000;
     const base = { id: 'a', permalink: '', filePath: '/x.zevtc', detailsStatus: 'loaded' } as const;
 
-    it('picks recent successful WvW logs without owners', () => {
+    it('picks successful WvW logs without owners uploaded within the match window', () => {
         const logs = [
-            { ...base, id: 'fresh', status: 'success', fightName: 'Green Alpine Borderlands', uploadTime: now / 1000 - 600 },
-            { ...base, id: 'stale', status: 'success', fightName: 'Green Alpine Borderlands', uploadTime: now / 1000 - SNAPSHOT_MAX_AGE_MS / 1000 - 60 },
-            { ...base, id: 'has', status: 'success', fightName: 'Green Alpine Borderlands', uploadTime: now / 1000 - 600, sectorOwners: { 1: 'Red' } },
-            { ...base, id: 'notwvw', status: 'success', fightName: 'Edge of the Mists', uploadTime: now / 1000 - 600 },
-            { ...base, id: 'pending', status: 'uploading', fightName: 'Green Alpine Borderlands', uploadTime: now / 1000 - 600 },
+            // 5h-old log from earlier tonight — must still colour (regression:
+            // the old fixed 2h guard excluded a whole evening's raid).
+            { ...base, id: 'tonight', status: 'success', fightName: 'Green Alpine Borderlands', uploadTime: midMatch - 5 * 3600 },
+            { ...base, id: 'lastweek', status: 'success', fightName: 'Green Alpine Borderlands', uploadTime: startMs / 1000 - 3600 },
+            { ...base, id: 'nextweek', status: 'success', fightName: 'Green Alpine Borderlands', uploadTime: endMs / 1000 + 3600 },
+            { ...base, id: 'has', status: 'success', fightName: 'Green Alpine Borderlands', uploadTime: midMatch, sectorOwners: { 1: 'Red' } },
+            { ...base, id: 'notwvw', status: 'success', fightName: 'Edge of the Mists', uploadTime: midMatch },
+            { ...base, id: 'pending', status: 'uploading', fightName: 'Green Alpine Borderlands', uploadTime: midMatch },
         ] as unknown as ILogData[];
-        expect(pickSnapshotCandidates(logs, now).map(l => l.id)).toEqual(['fresh']);
+        expect(pickSnapshotCandidates(logs, window).map(l => l.id)).toEqual(['tonight']);
     });
 });

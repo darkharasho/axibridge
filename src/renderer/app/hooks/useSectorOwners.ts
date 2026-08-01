@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchMatchSectorOwners, pickSnapshotCandidates, WVW_MATCH_SETTING_CHANGED_EVENT } from '../../stats/utils/sectorOwners';
+import { fetchMatchSectorOwners, fetchMatchWindow, pickSnapshotCandidates, WVW_MATCH_SETTING_CHANGED_EVENT } from '../../stats/utils/sectorOwners';
 import { resolveMapFromZone } from '../../../shared/mapUtils';
 
 type SetLogs = (updater: (logs: ILogData[]) => ILogData[]) => void;
@@ -23,9 +23,12 @@ export function useSectorOwners(logs: ILogData[], setLogsDeferred: SetLogs): voi
     }, []);
 
     useEffect(() => {
-        const candidates = pickSnapshotCandidates(logs, Date.now())
-            .filter(log => !inFlight.current.has(log.id));
-        if (!candidates.length) return;
+        // Cheap pre-filter before any async work: is there any WvW log that
+        // could possibly need a snapshot? (The real time-window filter needs
+        // the match fetched first.)
+        const hasPotentialCandidates = logs.some(log =>
+            log.status === 'success' && !log.sectorOwners && log.fightName && resolveMapFromZone(log.fightName));
+        if (!hasPotentialCandidates) return;
 
         let cancelled = false;
         (async () => {
@@ -33,6 +36,10 @@ export function useSectorOwners(logs: ILogData[], setLogsDeferred: SetLogs): voi
                 const settings = await window.electronAPI.getSettings();
                 const matchId = settings.wvwMatchId;
                 if (!matchId || cancelled) return;
+                const matchWindow = await fetchMatchWindow(matchId);
+                if (!matchWindow || cancelled) return;
+                const candidates = pickSnapshotCandidates(logs, matchWindow)
+                    .filter(log => !inFlight.current.has(log.id));
                 for (const log of candidates) {
                     const mapKey = resolveMapFromZone(log.fightName ?? '');
                     if (!mapKey) continue;
