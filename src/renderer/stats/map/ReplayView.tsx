@@ -359,7 +359,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         const owner = landmarkOwners[lm.name];
                                         const ownerColor = owner ? OWNER_COLORS[owner] : null;
                                         return (
-                                            <g key={lm.name} opacity={ownerColor ? 0.9 : 0.55}>
+                                            <g key={lm.name} opacity={ownerColor ? 1 : 0.7}>
                                                 <circle cx={lm.x} cy={lm.y} r={6} fill={ownerColor ?? 'rgba(15,23,42,0.6)'} stroke="rgba(0,0,0,0.9)" strokeWidth={2.5} />
                                                 <circle cx={lm.x} cy={lm.y} r={6} fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth={1} />
                                                 <text x={lm.x + 8} y={lm.y + 3} fontSize={9} fill={ownerColor ?? 'white'} stroke="black" strokeWidth={2.5} paintOrder="stroke" strokeLinejoin="round">{lm.name}</text>
