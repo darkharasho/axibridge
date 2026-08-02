@@ -135,4 +135,43 @@ describe('postReportToWebhooks', () => {
         });
         expect(results[0]).toMatchObject({ id: 'h1', ok: false, error: 'offline' });
     });
+
+    it('renders account and guild tokens from meta', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        const richMeta = {
+            ...meta,
+            primaryCommanderAccount: 'Axi.1234',
+            guild: { id: 'G1', name: 'Axius Imperium', tag: 'AXI' },
+        };
+        await postReportToWebhooks({
+            webhooks: [hook({ titleTemplate: '[{guild_tag}] {guild} — {account}' })],
+            meta: richMeta, stats, url: 'u', fetchImpl,
+        });
+        const callArgs = fetchImpl.mock.calls[0] as any[];
+        const body = JSON.parse((callArgs[1] as RequestInit).body as string);
+        expect(body.embeds[0].title).toBe('[AXI] Axius Imperium — Axi.1234');
+    });
+
+    it('renders Unknown guild tokens when resolution failed (null name/tag)', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        const failedMeta = { ...meta, guild: { id: 'G1', name: null, tag: null } };
+        await postReportToWebhooks({
+            webhooks: [hook({ titleTemplate: '{guild}/{guild_tag}' })],
+            meta: failedMeta, stats, url: 'u', fetchImpl,
+        });
+        const callArgs = fetchImpl.mock.calls[0] as any[];
+        const body = JSON.parse((callArgs[1] as RequestInit).body as string);
+        expect(body.embeds[0].title).toBe('Unknown/Unknown');
+    });
+
+    it('renders Unknown for account and guild when meta lacks them entirely', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        await postReportToWebhooks({
+            webhooks: [hook({ titleTemplate: '{account} {guild} {guild_tag}' })],
+            meta, stats, url: 'u', fetchImpl,
+        });
+        const callArgs = fetchImpl.mock.calls[0] as any[];
+        const body = JSON.parse((callArgs[1] as RequestInit).body as string);
+        expect(body.embeds[0].title).toBe('Unknown Unknown Unknown');
+    });
 });
