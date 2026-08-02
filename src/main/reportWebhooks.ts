@@ -45,7 +45,10 @@ export async function postReportToWebhooks(opts: {
     const ctx = {
         sessionStart: Number.isNaN(parsedStart.getTime()) ? new Date() : parsedStart,
         primaryCommander: String(opts.meta?.primaryCommander || ''),
+        primaryCommanderAccount: String(opts.meta?.primaryCommanderAccount || ''),
         commanders: Array.isArray(opts.meta?.commanders) ? opts.meta.commanders.map(String) : [],
+        guildName: String(opts.meta?.guild?.name || ''),
+        guildTag: String(opts.meta?.guild?.tag || ''),
     };
     const description = buildReportSummaryLine(opts.stats);
 

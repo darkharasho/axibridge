@@ -2106,7 +2106,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 sendWebUploadStatus('Posting', `Posting report link to ${reportWebhooks.length} Discord webhook${reportWebhooks.length === 1 ? '' : 's'}...`, 100);
                 webhookResults = await postReportToWebhooks({
                     webhooks: reportWebhooks,
-                    meta: payload.meta,
+                    meta: reportMeta,
                     stats: payload.stats,
                     url: reportUrl,
                     onStatus: (line: string, isWarn?: boolean) => sendWebUploadStatus(isWarn ? 'Warning' : 'Posting', line, 100),

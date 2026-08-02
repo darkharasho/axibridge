@@ -19,10 +19,22 @@ const ctx = {
     commanders: ['Axi Vale', 'Red Tag'],
 };
 
+const fullCtx = {
+    ...ctx,
+    primaryCommanderAccount: 'Axi.1234',
+    guildName: 'Axius Imperium',
+    guildTag: 'AXI',
+};
+
 describe('renderReportTitle', () => {
     it('renders every placeholder', () => {
-        const out = renderReportTitle('{date} | {day_of_week} | {commander} | {commanders}', ctx);
-        expect(out).toBe(`${expectedDate} | ${expectedDay} | Axi Vale | Axi Vale, Red Tag`);
+        const out = renderReportTitle(
+            '{date} | {day_of_week} | {commander} | {commanders} | {account} | {guild} | {guild_tag}',
+            fullCtx
+        );
+        expect(out).toBe(
+            `${expectedDate} | ${expectedDay} | Axi Vale | Axi Vale, Red Tag | Axi.1234 | Axius Imperium | AXI`
+        );
     });
 
     it('renders the default template', () => {
@@ -42,6 +54,19 @@ describe('renderReportTitle', () => {
     it('falls back to Unknown when no commanders were seen', () => {
         const empty = { sessionStart, primaryCommander: '', commanders: [] as string[] };
         expect(renderReportTitle('{commander} / {commanders}', empty)).toBe('Unknown / Unknown');
+    });
+
+    it('composes a bracketed guild tag', () => {
+        expect(renderReportTitle('[{guild_tag}] {guild} — {account}', fullCtx))
+            .toBe('[AXI] Axius Imperium — Axi.1234');
+    });
+
+    it('falls back to Unknown when account and guild are missing or empty', () => {
+        expect(renderReportTitle('{account} / {guild} / {guild_tag}', ctx))
+            .toBe('Unknown / Unknown / Unknown');
+        const emptyStrings = { ...ctx, primaryCommanderAccount: '', guildName: '', guildTag: '' };
+        expect(renderReportTitle('{account} / {guild} / {guild_tag}', emptyStrings))
+            .toBe('Unknown / Unknown / Unknown');
     });
 });
 

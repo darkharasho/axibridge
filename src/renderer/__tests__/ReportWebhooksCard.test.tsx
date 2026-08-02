@@ -61,4 +61,17 @@ describe('ReportWebhooksCard', () => {
         fireEvent.click(screen.getByTitle(/remove webhook/i));
         expect(onChange).toHaveBeenCalledWith([]);
     });
+
+    it('previews account and guild tokens with sample values', () => {
+        render(<ReportWebhooksCard reportWebhooks={[entry({ titleTemplate: '[{guild_tag}] {guild} — {account}' })]} onChange={() => {}} />);
+        expect(screen.getByText(/\[AXI\] Axius Imperium — Axi\.1234/)).toBeTruthy();
+    });
+
+    it('lists the new placeholders in the hint', () => {
+        render(<ReportWebhooksCard reportWebhooks={[entry()]} onChange={() => {}} />);
+        const hint = screen.getByText(/placeholders:/i);
+        expect(hint.textContent).toContain('{account}');
+        expect(hint.textContent).toContain('{guild}');
+        expect(hint.textContent).toContain('{guild_tag}');
+    });
 });

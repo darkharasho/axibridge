@@ -23,6 +23,12 @@ export interface ReportTitleContext {
     sessionStart: Date;
     primaryCommander: string;
     commanders: string[];
+    /** Primary commander's GW2 account name (e.g. "Axi.1234"). */
+    primaryCommanderAccount?: string;
+    /** Squad's dominant guild, resolved via the GW2 API; absent/empty when unresolved. */
+    guildName?: string;
+    /** Raw tag without brackets so templates can write [{guild_tag}]. */
+    guildTag?: string;
 }
 
 /** The report webhooks a publish should post to. `selectedIds` is the user's
@@ -47,10 +53,16 @@ export const renderReportTitle = (template: string, ctx: ReportTitleContext): st
     const dayOfWeek = ctx.sessionStart.toLocaleDateString(undefined, { weekday: 'long' });
     const commander = ctx.primaryCommander || 'Unknown';
     const commanders = ctx.commanders.length ? ctx.commanders.join(', ') : 'Unknown';
+    const account = ctx.primaryCommanderAccount || 'Unknown';
+    const guildName = ctx.guildName || 'Unknown';
+    const guildTag = ctx.guildTag || 'Unknown';
     return effective
         .replaceAll('{date}', date)
         .replaceAll('{day_of_week}', dayOfWeek)
         .replaceAll('{commanders}', commanders)
         .replaceAll('{commander}', commander)
+        .replaceAll('{account}', account)
+        .replaceAll('{guild_tag}', guildTag)
+        .replaceAll('{guild}', guildName)
         .trim();
 };

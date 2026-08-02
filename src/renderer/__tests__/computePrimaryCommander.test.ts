@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computePrimaryCommander } from '../stats/utils/computePrimaryCommander';
+import { computePrimaryCommander, computePrimaryCommanderIdentity } from '../stats/utils/computePrimaryCommander';
 
 const log = (...commanders: string[]) => ({
     players: commanders.map((name) => ({ name, hasCommanderTag: true })),
@@ -60,5 +60,30 @@ describe('computePrimaryCommander', () => {
             log('Red'),
         ];
         expect(computePrimaryCommander(logs)).toBe('Red');
+    });
+});
+
+describe('computePrimaryCommanderIdentity', () => {
+    it('returns the winning commander name and account', () => {
+        const logs = [
+            { players: [{ name: 'Axi Vale', account: 'X.1', hasCommanderTag: true }] },
+            { players: [{ name: 'Axi Vale', account: 'X.1', hasCommanderTag: true }] },
+            { players: [{ name: 'Red', account: 'Y.2', hasCommanderTag: true }] },
+        ];
+        expect(computePrimaryCommanderIdentity(logs)).toEqual({ name: 'Axi Vale', account: 'X.1' });
+    });
+
+    it('returns empty strings when nobody tagged', () => {
+        expect(computePrimaryCommanderIdentity([])).toEqual({ name: '', account: '' });
+        expect(computePrimaryCommanderIdentity([{ players: [{ name: 'A' }] }])).toEqual({ name: '', account: '' });
+    });
+
+    it('returns an empty account when the winner has no account field', () => {
+        expect(computePrimaryCommanderIdentity([log('Axi')])).toEqual({ name: 'Axi', account: '' });
+    });
+
+    it('matches computePrimaryCommander for the name', () => {
+        const logs = [log('Zed'), log('Axi')];
+        expect(computePrimaryCommanderIdentity(logs).name).toBe(computePrimaryCommander(logs));
     });
 });

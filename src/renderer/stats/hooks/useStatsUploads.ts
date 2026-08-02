@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { computeStatsSync } from '../incrementalAggregation';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import { isReplayElided } from '../../workers/replayTransfer';
-import { computePrimaryCommander } from '../utils/computePrimaryCommander';
+import { computePrimaryCommanderIdentity } from '../utils/computePrimaryCommander';
 import { computeDominantGuildId } from '../utils/computeDominantGuildId';
 import { computeInitialWebhookSelection } from '../utils/reportWebhookSelection';
 
@@ -130,11 +130,14 @@ export const useStatsUploads = ({
         const pad = (value: number) => String(value).padStart(2, '0');
         const reportId = `${safeStart.getFullYear()}${pad(safeStart.getMonth() + 1)}${pad(safeStart.getDate())}-${pad(safeStart.getHours())}${pad(safeStart.getMinutes())}${pad(safeStart.getSeconds())}-${Math.random().toString(36).slice(2, 6)}`;
 
+        const commanderIdentity = computePrimaryCommanderIdentity(detailsList);
+
         return {
             id: reportId,
             title: commanders.length ? commanders.join(', ') : 'Unknown Commander',
             commanders,
-            primaryCommander: computePrimaryCommander(detailsList),
+            primaryCommander: commanderIdentity.name,
+            primaryCommanderAccount: commanderIdentity.account,
             guildId: computeDominantGuildId(detailsList),
             dateStart,
             dateEnd,

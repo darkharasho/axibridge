@@ -10,6 +10,9 @@ const PREVIEW_CTX = {
     sessionStart: new Date(),
     primaryCommander: 'Axi Vale',
     commanders: ['Axi Vale'],
+    primaryCommanderAccount: 'Axi.1234',
+    guildName: 'Axius Imperium',
+    guildTag: 'AXI',
 };
 
 const looksLikeDiscordWebhook = (url: string) =>
@@ -139,7 +142,7 @@ export function ReportWebhooksCard({
                             <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                                 Preview: {renderReportTitle(template, PREVIEW_CTX)}
                                 <span className="ml-2 opacity-70">
-                                    Placeholders: {'{date}'} {'{day_of_week}'} {'{commander}'} {'{commanders}'}
+                                    Placeholders: {'{date}'} {'{day_of_week}'} {'{commander}'} {'{commanders}'} {'{account}'} {'{guild}'} {'{guild_tag}'}
                                 </span>
                             </p>
                         </div>
