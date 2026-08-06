@@ -5,7 +5,20 @@ export interface IReportWebhook {
     enabled: boolean;
     isForum: boolean;
     titleTemplate: string;
+    forumTagIds?: string;
 }
+
+/** Discord allows at most 5 tags on a forum post. The parser itself does not
+ *  cap so the UI can warn about overflow; consumers slice to this. */
+export const MAX_FORUM_POST_TAGS = 5;
+
+/** Extracts snowflake-looking tag ids from free text: 15–21 digit runs
+ *  (snowflakes are 17–20 today; margin for drift), deduped, order preserved.
+ *  An over-long run yields nothing rather than splitting into bogus ids. */
+export const parseForumTagIds = (raw?: string): string[] => {
+    const matches = String(raw ?? '').match(/\d+/g) ?? [];
+    return [...new Set(matches.filter((id) => id.length >= 15 && id.length <= 21))];
+};
 
 export const DEFAULT_REPORT_TITLE_TEMPLATE = '{date} - {day_of_week} - {commander}';
 
@@ -16,6 +29,7 @@ export const makeDefaultReportWebhook = (id: string): IReportWebhook => ({
     enabled: true,
     isForum: false,
     titleTemplate: DEFAULT_REPORT_TITLE_TEMPLATE,
+    forumTagIds: '',
 });
 
 export interface ReportTitleContext {

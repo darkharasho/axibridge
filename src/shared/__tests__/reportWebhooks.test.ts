@@ -4,6 +4,8 @@ import {
     makeDefaultReportWebhook,
     renderReportTitle,
     selectReportWebhooks,
+    MAX_FORUM_POST_TAGS,
+    parseForumTagIds,
 } from '../reportWebhooks';
 import type { IReportWebhook } from '../reportWebhooks';
 
@@ -109,6 +111,42 @@ describe('makeDefaultReportWebhook', () => {
             enabled: true,
             isForum: false,
             titleTemplate: DEFAULT_REPORT_TITLE_TEMPLATE,
+            forumTagIds: '',
         });
+    });
+});
+
+describe('parseForumTagIds', () => {
+    it('parses comma, space, and newline separated ids', () => {
+        expect(parseForumTagIds('111111111111111111, 222222222222222222'))
+            .toEqual(['111111111111111111', '222222222222222222']);
+        expect(parseForumTagIds('111111111111111111 222222222222222222\n333333333333333333'))
+            .toEqual(['111111111111111111', '222222222222222222', '333333333333333333']);
+    });
+
+    it('extracts ids embedded in prose', () => {
+        expect(parseForumTagIds('WvW (111111111111111111) and PvE: 222222222222222222!'))
+            .toEqual(['111111111111111111', '222222222222222222']);
+    });
+
+    it('ignores short and over-long digit runs and empty input', () => {
+        expect(parseForumTagIds('tag 5, id 12345678901234')).toEqual([]); // 14 digits: too short
+        expect(parseForumTagIds('123456789012345678901234567890')).toEqual([]); // 30 digits: not split into bogus ids
+        expect(parseForumTagIds('')).toEqual([]);
+        expect(parseForumTagIds('   ')).toEqual([]);
+        expect(parseForumTagIds(undefined)).toEqual([]);
+    });
+
+    it('accepts 15- and 21-digit boundaries', () => {
+        expect(parseForumTagIds('123456789012345')).toEqual(['123456789012345']); // 15
+        expect(parseForumTagIds('123456789012345678901')).toEqual(['123456789012345678901']); // 21
+    });
+
+    it('dedupes preserving order and does not cap', () => {
+        const six = ['111111111111111111', '222222222222222222', '333333333333333333',
+            '444444444444444444', '555555555555555555', '666666666666666666'];
+        expect(parseForumTagIds([six[0], six[1], six[0], ...six.slice(2)].join(',')))
+            .toEqual(six);
+        expect(MAX_FORUM_POST_TAGS).toBe(5);
     });
 });

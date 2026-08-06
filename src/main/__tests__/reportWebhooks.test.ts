@@ -174,4 +174,116 @@ describe('postReportToWebhooks', () => {
         const body = JSON.parse((callArgs[1] as RequestInit).body as string);
         expect(body.embeds[0].title).toBe('Unknown Unknown Unknown');
     });
+
+    const TAG_A = '111111111111111111';
+    const TAG_B = '222222222222222222';
+
+    it('sends applied_tags for a forum hook with tag ids', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        await postReportToWebhooks({
+            webhooks: [hook({ isForum: true, forumTagIds: `${TAG_A}, ${TAG_B}` })],
+            meta, stats, url: 'u', fetchImpl,
+        });
+        expect(fetchImpl).toHaveBeenCalledTimes(1);
+        const body = JSON.parse(((fetchImpl.mock.calls[0] as any[])[1] as RequestInit).body as string);
+        expect(body.thread_name).toBe('Axi Vale');
+        expect(body.applied_tags).toEqual([TAG_A, TAG_B]);
+    });
+
+    it('never sends applied_tags for a non-forum hook even when the field is set', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        await postReportToWebhooks({
+            webhooks: [hook({ isForum: false, forumTagIds: TAG_A })],
+            meta, stats, url: 'u', fetchImpl,
+        });
+        const body = JSON.parse(((fetchImpl.mock.calls[0] as any[])[1] as RequestInit).body as string);
+        expect(body.thread_name).toBeUndefined();
+        expect(body.applied_tags).toBeUndefined();
+    });
+
+    it('omits the applied_tags key for legacy hooks and garbage-only text', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        const legacy = hook({ isForum: true });
+        delete (legacy as any).forumTagIds;
+        await postReportToWebhooks({
+            webhooks: [legacy, { ...hook({ isForum: true, forumTagIds: 'raid night 123' }), id: 'h2' }],
+            meta, stats, url: 'u', fetchImpl,
+        });
+        const first = JSON.parse(((fetchImpl.mock.calls[0] as any[])[1] as RequestInit).body as string);
+        const second = JSON.parse(((fetchImpl.mock.calls[1] as any[])[1] as RequestInit).body as string);
+        expect('applied_tags' in first).toBe(false);
+        expect('applied_tags' in second).toBe(false);
+    });
+
+    it('dedupes and caps applied_tags at 5', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        const six = ['111111111111111111', '222222222222222222', '333333333333333333',
+            '444444444444444444', '555555555555555555', '666666666666666666'];
+        const withDupe = [six[0], six[1], six[0], ...six.slice(2)].join(', ');
+        await postReportToWebhooks({
+            webhooks: [hook({ isForum: true, forumTagIds: withDupe })],
+            meta, stats, url: 'u', fetchImpl,
+        });
+        const body = JSON.parse(((fetchImpl.mock.calls[0] as any[])[1] as RequestInit).body as string);
+        expect(body.applied_tags).toEqual(six.slice(0, 5));
+    });
+
+    it('retries without tags when Discord rejects applied_tags', async () => {
+        const fetchImpl = vi.fn()
+            .mockResolvedValueOnce(errorResponse(400, '{"applied_tags": ["Unknown tag"]}'))
+            .mockResolvedValueOnce(okResponse);
+        const onStatus = vi.fn();
+        const results = await postReportToWebhooks({
+            webhooks: [hook({ isForum: true, forumTagIds: TAG_A })],
+            meta, stats, url: 'u', fetchImpl, onStatus,
+        });
+        expect(results[0]).toEqual({ id: 'h1', name: 'Guild', ok: true });
+        expect(fetchImpl).toHaveBeenCalledTimes(2);
+        const retryBody = JSON.parse(((fetchImpl.mock.calls[1] as any[])[1] as RequestInit).body as string);
+        expect(retryBody.thread_name).toBe('Axi Vale');
+        expect(retryBody.applied_tags).toBeUndefined();
+        expect(onStatus).toHaveBeenCalledWith(expect.stringContaining('without tags'), true);
+    });
+
+    it('flip-to-forum self-heal carries tags, then drops them on a tag 400', async () => {
+        const fetchImpl = vi.fn()
+            .mockResolvedValueOnce(errorResponse(400, '{"message": "Webhooks posted to forum channels must have a thread_name or thread_id"}'))
+            .mockResolvedValueOnce(errorResponse(400, '{"applied_tags": ["Unknown tag"]}'))
+            .mockResolvedValueOnce(okResponse);
+        const persistForumFlag = vi.fn();
+        const onStatus = vi.fn();
+        const results = await postReportToWebhooks({
+            webhooks: [hook({ isForum: false, forumTagIds: TAG_A })],
+            meta, stats, url: 'u', fetchImpl, persistForumFlag, onStatus,
+        });
+        expect(results[0].ok).toBe(true);
+        expect(fetchImpl).toHaveBeenCalledTimes(3);
+        const first = JSON.parse(((fetchImpl.mock.calls[0] as any[])[1] as RequestInit).body as string);
+        expect(first.thread_name).toBeUndefined();
+        expect(first.applied_tags).toBeUndefined();
+        const flipped = JSON.parse(((fetchImpl.mock.calls[1] as any[])[1] as RequestInit).body as string);
+        expect(flipped.thread_name).toBe('Axi Vale');
+        expect(flipped.applied_tags).toEqual([TAG_A]);
+        const third = JSON.parse(((fetchImpl.mock.calls[2] as any[])[1] as RequestInit).body as string);
+        expect(third.thread_name).toBe('Axi Vale');
+        expect(third.applied_tags).toBeUndefined();
+        expect(persistForumFlag).toHaveBeenCalledWith('h1', true);
+        expect(onStatus).toHaveBeenCalledWith(expect.stringContaining('without tags'), true);
+    });
+
+    it('flip-to-regular drops thread_name and tags together', async () => {
+        const fetchImpl = vi.fn()
+            .mockResolvedValueOnce(errorResponse(400, '{"thread_name": ["Thread name is not allowed in this channel"]}'))
+            .mockResolvedValueOnce(okResponse);
+        const persistForumFlag = vi.fn();
+        const results = await postReportToWebhooks({
+            webhooks: [hook({ isForum: true, forumTagIds: TAG_A })],
+            meta, stats, url: 'u', fetchImpl, persistForumFlag,
+        });
+        expect(results[0].ok).toBe(true);
+        const retryBody = JSON.parse(((fetchImpl.mock.calls[1] as any[])[1] as RequestInit).body as string);
+        expect(retryBody.thread_name).toBeUndefined();
+        expect(retryBody.applied_tags).toBeUndefined();
+        expect(persistForumFlag).toHaveBeenCalledWith('h1', false);
+    });
 });
