@@ -74,4 +74,60 @@ describe('ReportWebhooksCard', () => {
         expect(hint.textContent).toContain('{guild}');
         expect(hint.textContent).toContain('{guild_tag}');
     });
+
+    it('hides the tag ids field for regular channels', () => {
+        render(<ReportWebhooksCard reportWebhooks={[entry()]} onChange={() => {}} />);
+        expect(screen.queryByPlaceholderText(/forum tag ids/i)).toBeNull();
+    });
+
+    it('shows the tag ids field for forum channels and commits on blur', () => {
+        const onChange = vi.fn();
+        render(<ReportWebhooksCard reportWebhooks={[entry({ isForum: true })]} onChange={onChange} />);
+        const input = screen.getByPlaceholderText(/forum tag ids/i);
+        fireEvent.change(input, { target: { value: '111111111111111111' } });
+        expect(onChange).not.toHaveBeenCalled();
+        fireEvent.blur(input);
+        expect(onChange).toHaveBeenCalledWith([
+            expect.objectContaining({ id: 'w1', forumTagIds: '111111111111111111' }),
+        ]);
+    });
+
+    it('shows the parsed tag count', () => {
+        render(<ReportWebhooksCard
+            reportWebhooks={[entry({ isForum: true, forumTagIds: '111111111111111111 222222222222222222' })]}
+            onChange={() => {}}
+        />);
+        expect(screen.getByText(/2 tags will be applied/i)).toBeTruthy();
+    });
+
+    it('warns when the text parses to no ids', () => {
+        render(<ReportWebhooksCard
+            reportWebhooks={[entry({ isForum: true, forumTagIds: 'raid-night' })]}
+            onChange={() => {}}
+        />);
+        expect(screen.getByText(/no tag ids recognized/i)).toBeTruthy();
+    });
+
+    it('notes the 5-tag limit when more than 5 parse', () => {
+        const six = ['111111111111111111', '222222222222222222', '333333333333333333',
+            '444444444444444444', '555555555555555555', '666666666666666666'].join(', ');
+        render(<ReportWebhooksCard
+            reportWebhooks={[entry({ isForum: true, forumTagIds: six })]}
+            onChange={() => {}}
+        />);
+        expect(screen.getByText(/first 5 are used/i)).toBeTruthy();
+    });
+
+    it('mentions how to copy tag ids', () => {
+        render(<ReportWebhooksCard reportWebhooks={[entry({ isForum: true })]} onChange={() => {}} />);
+        expect(screen.getByText(/copy tag id/i)).toBeTruthy();
+    });
+
+    it('tolerates legacy hooks without the field', () => {
+        const legacy = entry({ isForum: true });
+        delete (legacy as any).forumTagIds;
+        render(<ReportWebhooksCard reportWebhooks={[legacy]} onChange={() => {}} />);
+        const input = screen.getByPlaceholderText(/forum tag ids/i) as HTMLInputElement;
+        expect(input.value).toBe('');
+    });
 });

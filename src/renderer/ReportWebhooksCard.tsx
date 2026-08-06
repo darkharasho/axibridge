@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import {
     IReportWebhook,
+    MAX_FORUM_POST_TAGS,
     makeDefaultReportWebhook,
+    parseForumTagIds,
     renderReportTitle,
 } from '../shared/reportWebhooks';
 
@@ -28,10 +30,10 @@ export function ReportWebhooksCard({
     // Local drafts so text fields commit on blur instead of per keystroke.
     const [drafts, setDrafts] = useState<Record<string, Partial<IReportWebhook>>>({});
 
-    const draftValue = (hook: IReportWebhook, key: 'name' | 'url' | 'titleTemplate') =>
-        (drafts[hook.id]?.[key] as string | undefined) ?? hook[key];
+    const draftValue = (hook: IReportWebhook, key: 'name' | 'url' | 'titleTemplate' | 'forumTagIds') =>
+        (drafts[hook.id]?.[key] as string | undefined) ?? hook[key] ?? '';
 
-    const setDraft = (id: string, key: 'name' | 'url' | 'titleTemplate', value: string) => {
+    const setDraft = (id: string, key: 'name' | 'url' | 'titleTemplate' | 'forumTagIds', value: string) => {
         setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], [key]: value } }));
     };
 
@@ -76,6 +78,8 @@ export function ReportWebhooksCard({
                 {reportWebhooks.map((hook) => {
                     const url = draftValue(hook, 'url');
                     const template = draftValue(hook, 'titleTemplate');
+                    const rawTags = draftValue(hook, 'forumTagIds');
+                    const parsedTags = parseForumTagIds(rawTags);
                     return (
                         <div key={hook.id} className="rounded-[4px] border p-3 space-y-2" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-subtle)' }}>
                             <div className="flex items-center gap-2">
@@ -145,6 +149,32 @@ export function ReportWebhooksCard({
                                     Placeholders: {'{date}'} {'{day_of_week}'} {'{commander}'} {'{commanders}'} {'{account}'} {'{guild}'} {'{guild_tag}'}
                                 </span>
                             </p>
+                            {hook.isForum && (
+                                <>
+                                    <input
+                                        type="text"
+                                        placeholder="Forum tag IDs, comma-separated (optional)"
+                                        value={rawTags}
+                                        onChange={(e) => setDraft(hook.id, 'forumTagIds', e.target.value)}
+                                        onBlur={() => commitDraft(hook)}
+                                        className="w-full rounded-[4px] border px-2 py-1.5 text-xs bg-transparent focus:outline-none font-mono"
+                                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    />
+                                    {rawTags.trim().length > 0 && parsedTags.length === 0 && (
+                                        <p className="text-[11px]" style={{ color: 'var(--status-warning, #fbbf24)' }}>
+                                            No tag IDs recognized — IDs are 17–20 digit numbers.
+                                        </p>
+                                    )}
+                                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                        {parsedTags.length > MAX_FORUM_POST_TAGS
+                                            ? `${parsedTags.length} tag IDs found — Discord allows 5 per post; the first 5 are used. `
+                                            : parsedTags.length > 0
+                                                ? `${parsedTags.length} tag${parsedTags.length === 1 ? '' : 's'} will be applied. `
+                                                : ''}
+                                        Get IDs in Discord: User Settings → Advanced → Developer Mode, then right-click a tag in the forum → Copy Tag ID.
+                                    </p>
+                                </>
+                            )}
                         </div>
                     );
                 })}
