@@ -1,4 +1,4 @@
-import { IReportWebhook, renderReportTitle } from '../shared/reportWebhooks';
+import { IReportWebhook, MAX_FORUM_POST_TAGS, parseForumTagIds, renderReportTitle } from '../shared/reportWebhooks';
 import { DISCORD_WEBHOOK_AVATAR_URL } from './discord';
 
 export interface ReportWebhookPostResult {
@@ -55,14 +55,18 @@ export async function postReportToWebhooks(opts: {
     for (const hook of opts.webhooks) {
         let title = '';
         let embed: any;
+        const tagIds = parseForumTagIds(hook.forumTagIds).slice(0, MAX_FORUM_POST_TAGS);
 
-        const post = async (withThreadName: boolean) => {
+        const post = async (withThreadName: boolean, withTags: boolean) => {
             const body: any = {
                 username: 'AxiBridge',
                 avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
                 embeds: [embed],
             };
-            if (withThreadName) body.thread_name = title.slice(0, 100);
+            if (withThreadName) {
+                body.thread_name = title.slice(0, 100);
+                if (withTags && tagIds.length > 0) body.applied_tags = tagIds;
+            }
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), POST_TIMEOUT_MS);
             try {
@@ -90,18 +94,31 @@ export async function postReportToWebhooks(opts: {
             if (description) embed.description = description;
             if (opts.meta?.dateLabel) embed.footer = { text: String(opts.meta.dateLabel) };
 
-            let attempt = await post(hook.isForum);
+            let usedForum = hook.isForum;
+            let droppedTags = false;
+            let attempt = await post(usedForum, true);
             // Forum self-heal: a 400 mentioning thread_name means the forum flag
             // is wrong in whichever direction we sent. Retry once flipped and
             // persist the corrected flag on success.
             if (!attempt.ok && attempt.status === 400 && /thread[_ ]?name/i.test(attempt.text)) {
-                const flipped = !hook.isForum;
-                attempt = await post(flipped);
-                if (attempt.ok) opts.persistForumFlag?.(hook.id, flipped);
+                usedForum = !usedForum;
+                attempt = await post(usedForum, true);
+            }
+            // Tag self-heal: a 400 mentioning applied_tags means a bad or deleted
+            // tag id. Drop tags so the report link still lands; the ids stay in
+            // settings for the user to fix.
+            if (!attempt.ok && attempt.status === 400 && /applied_tags/i.test(attempt.text)) {
+                droppedTags = true;
+                attempt = await post(usedForum, false);
             }
             if (attempt.ok) {
+                if (usedForum !== hook.isForum) opts.persistForumFlag?.(hook.id, usedForum);
                 results.push({ id: hook.id, name: hook.name, ok: true });
-                opts.onStatus?.(`Posted report to ${label}.`);
+                if (droppedTags) {
+                    opts.onStatus?.(`Posted to ${label} without tags — check its forum tag IDs.`, true);
+                } else {
+                    opts.onStatus?.(`Posted report to ${label}.`);
+                }
             } else {
                 const error = `HTTP ${attempt.status}${attempt.text ? `: ${attempt.text.slice(0, 120)}` : ''}`;
                 results.push({ id: hook.id, name: hook.name, ok: false, error });
