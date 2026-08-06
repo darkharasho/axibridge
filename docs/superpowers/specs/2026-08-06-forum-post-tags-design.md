@@ -25,16 +25,20 @@ Constraints that shape the design:
 
 ## Data model
 
-- `IReportWebhook.forumTagIds: string` — the raw text exactly as the user
-  typed it (no normalization on save). `makeDefaultReportWebhook` sets `''`.
+- `IReportWebhook.forumTagIds?: string` — the raw text exactly as the user
+  typed it (no normalization on save), typed optional because legacy
+  persisted hooks lack the field. `makeDefaultReportWebhook` sets `''`.
   Persistence is the existing whole-array pass-through, so legacy hooks
   simply lack the field; every consumer treats `undefined` as `''`. No
   migration.
 - `parseForumTagIds(raw?: string): string[]` in `src/shared/reportWebhooks.ts`:
-  `raw.match(/\d{15,21}/g)`, dedupe preserving order, cap at
-  `MAX_FORUM_POST_TAGS = 5`. Snowflakes are 17–20 digits today; the 15–21
-  window tolerates drift while ignoring stray short numbers in pasted text
-  (tag names, counts). Returns `[]` for undefined/empty/no matches.
+  `raw.match(/\d+/g)` filtered to 15–21 digit runs, deduped preserving
+  order, uncapped — consumers cap at `MAX_FORUM_POST_TAGS = 5` (posting
+  slices to 5; the UI uses the overflow to show its "first 5 are used"
+  note). Snowflakes are 17–20 digits today; the 15–21 window tolerates
+  drift while ignoring stray short numbers in pasted text (tag names,
+  counts), and an over-long digit run yields nothing rather than splitting
+  into bogus IDs. Returns `[]` for undefined/empty/no matches.
 
 ## Changes by file
 
@@ -113,8 +117,9 @@ Walked sequences:
 - existing thread_name/self-heal tests remain green.
 
 `src/shared/__tests__/reportWebhooks.test.ts` — `parseForumTagIds`: comma,
-space, and newline separators; IDs embedded in prose; short digit runs
-ignored; 15/21-digit boundaries; dedupe; cap at 5; `undefined`/`''` → `[]`.
+space, and newline separators; IDs embedded in prose; short and over-long
+digit runs ignored; 15/21-digit boundaries; dedupe; uncapped output;
+`undefined`/`''` → `[]`.
 
 `src/renderer/__tests__/ReportWebhooksCard.test.tsx` — field renders only
 when Forum channel is checked; value commits on blur; hint shows parsed
