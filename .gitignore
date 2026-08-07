@@ -14,6 +14,7 @@ dist-web/
 dist/
 dist_out/
 release/
+tile-work/
 
 # Dev web report build artifacts (copied from dist-web/ by dev upload)
 web/assets/

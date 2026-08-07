@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pause, Play, Maximize2, Minimize2, Plus, Minus, RotateCcw, X, Crosshair } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
-import { getMapTiles, hasTileData } from '../../../shared/wvwTiles';
+import { getTileLayers, hasTileData } from '../../../shared/wvwTiles';
 import { WVW_LANDMARKS } from '../../../shared/wvwLandmarks';
 import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { getProfessionIconPath } from '../../classIconUtils';
@@ -25,7 +25,7 @@ import { FullscreenPortal } from './FullscreenPortal';
 import { useReplayPlayback } from './hooks/useReplayPlayback';
 import { useReplayViewport } from './hooks/useReplayViewport';
 import { useMovementData } from './hooks/useMovementData';
-import { pickDefaultFightId, findClosestMember } from './replaySelectors';
+import { pickDefaultFightId, findClosestMember, orderMembersForRender } from './replaySelectors';
 import type { ReplayFightPayload } from './replayTypes';
 import type { SquadMemberMovement } from '../../../shared/movementData';
 
@@ -110,6 +110,25 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const mapSize = selectedFight?.mapSize ?? [600, 600];
     const [mapWidth, mapHeight] = mapSize;
     const viewport = useReplayViewport({ mapWidth, mapHeight, containerWidth: mapWidth, containerHeight: mapHeight });
+
+    // Panel CSS size feeds screen-aware tile zoom + culling. The container only
+    // mounts once a fight is selected, so the effect depends on selectedFight
+    // to (re)attach; it also re-observes on fullscreen toggle because the
+    // portal remounts the container node.
+    const [panelSize, setPanelSize] = useState<[number, number]>([0, 0]);
+    useEffect(() => {
+        if (!selectedFight) return;
+        const el = mapContainerRef.current;
+        if (!el) return;
+        const update = () => {
+            const rect = el.getBoundingClientRect();
+            setPanelSize(prev => prev[0] === rect.width && prev[1] === rect.height ? prev : [rect.width, rect.height]);
+        };
+        update();
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [fullscreen, selectedFight]);
 
     const { centerOn, attachWheelZoom, attachPanDrag, screenToSvg } = viewport;
     useEffect(() => {
@@ -338,8 +357,12 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                 </defs>
                                 <g transform={`translate(${viewport.tx} ${viewport.ty}) scale(${viewport.scale})`}>
                                     {selectedFight.mapKey && hasTileData(selectedFight.mapKey)
-                                        ? getMapTiles(selectedFight.mapKey, Math.min(7, Math.max(3, Math.floor(5 + Math.log2(viewport.scale)))), mapWidth, mapHeight).map((t, i) => (
-                                            <image key={i} href={t.url} x={t.x} y={t.y} width={t.width} height={t.height} preserveAspectRatio="none" />
+                                        ? getTileLayers(selectedFight.mapKey, mapWidth, mapHeight, viewport, panelSize[0], panelSize[1], (typeof window !== 'undefined' && window.devicePixelRatio) || 1).map(layer => (
+                                            <g key={layer.zoom}>
+                                                {layer.tiles.map(t => (
+                                                    <image key={t.url} href={t.url} x={t.x} y={t.y} width={t.width} height={t.height} preserveAspectRatio="none" />
+                                                ))}
+                                            </g>
                                         ))
                                         : selectedFight.mapImageUrl && (
                                             <image href={selectedFight.mapImageUrl} x={0} y={0} width={mapWidth} height={mapHeight} />
@@ -366,7 +389,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                             </g>
                                         );
                                     })}
-                                    {selectedFight.movementData.members.filter(m => m.inSquad || m.isEnemy).map(member => {
+                                    {orderMembersForRender(selectedFight.movementData.members.filter(m => m.inSquad || m.isEnemy)).map(member => {
                                         const pos = sampleAt(member, pollFrac);
                                         if (!pos) return null;
                                         const timeMs = playhead.timeMs;
