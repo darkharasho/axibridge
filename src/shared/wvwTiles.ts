@@ -204,6 +204,10 @@ export function getTileLayers(
         { zoom: coverageZoom, tiles: getMapTiles(map, coverageZoom, mapWidth, mapHeight) },
     ];
     if (detailZoom >= 8) {
+        // Not budget-checked: safe because it only renders when a z8/z9 layer
+        // already fit TILE_BUDGET over the same rect, and a z7 grid over that
+        // rect is ~1/4 the tile count (power-of-two nesting). If this condition
+        // ever changes, re-check the "≤ TILE_BUDGET per culled layer" criterion.
         layers.push({ zoom: MAX_TILE_ZOOM, tiles: getMapTiles(map, MAX_TILE_ZOOM, mapWidth, mapHeight, rect) });
     }
     if (detailZoom > 5) {

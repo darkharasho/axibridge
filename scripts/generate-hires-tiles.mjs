@@ -3,6 +3,10 @@
 //   npm run generate:hires-tiles -- [--map ebg] [--skip-z9] [--dry-run]
 // Requires realesrgan-ncnn-vulkan on PATH (or --binary /path/to/it):
 //   https://github.com/xinntao/Real-ESRGAN/releases (ncnn-vulkan build)
+// Before publishing tile-work/tiles, verify no interrupted-run leftovers:
+//   find tile-work -name '*.tmp*'   (must be empty)
+// Caching is existsSync-based; to regenerate from fresh source art (e.g.
+// if the game's map tiles ever change), delete tile-work/ first.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
