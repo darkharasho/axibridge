@@ -10,6 +10,7 @@ const CONTINENT_ID = 2;
 const FLOOR_ID = 3;
 export const MAX_TILE_ZOOM = 7;
 const TILE_SIZE = 256;
+export const HIRES_TILE_BASE = 'https://darkharasho.github.io/axibridge-map-tiles';
 
 // pixelOffset: shift applied to tile positions to align with EI's pixel coordinate space.
 // Derived from the difference between GW2 API-computed landmark positions and
@@ -51,7 +52,7 @@ export interface TileInfo {
  *                     Defaults to the calibrated pixelSize if omitted.
  * @param renderHeight Actual render height in EI pixel space.
  */
-export function getMapTiles(map: WvwMap, tileZoom: number, renderWidth?: number, renderHeight?: number): TileInfo[] {
+export function getMapTiles(map: WvwMap, tileZoom: number, renderWidth?: number, renderHeight?: number, visibleRect?: MapRect): TileInfo[] {
     const data = WVW_TILE_DATA[map];
     if (!data) return [];
 
@@ -74,24 +75,25 @@ export function getMapTiles(map: WvwMap, tileZoom: number, renderWidth?: number,
     const txMax = Math.floor((cx2 - 1) / tileSpan);
     const tyMax = Math.floor((cy2 - 1) / tileSpan);
 
+    const tileW = tileSpan / cw * pw;
+    const tileH = tileSpan / ch * ph;
+    // Synthetic zooms (> MAX_TILE_ZOOM) come from the AxiBridge hi-res pack.
+    const base = tileZoom > MAX_TILE_ZOOM ? HIRES_TILE_BASE : 'https://tiles.guildwars2.com';
+    // Culling bounds: visible rect expanded by one tile on all sides.
+    const bounds = visibleRect ? {
+        x0: visibleRect.x - tileW,
+        y0: visibleRect.y - tileH,
+        x1: visibleRect.x + visibleRect.width + tileW,
+        y1: visibleRect.y + visibleRect.height + tileH,
+    } : null;
+
     const tiles: TileInfo[] = [];
     for (let ty = tyMin; ty <= tyMax; ty++) {
         for (let tx = txMin; tx <= txMax; tx++) {
-            const tileCx = tx * tileSpan;
-            const tileCy = ty * tileSpan;
-
-            const px = (tileCx - cx1) / cw * pw + ox;
-            const py = (tileCy - cy1) / ch * ph + oy;
-            const tileW = tileSpan / cw * pw;
-            const tileH = tileSpan / ch * ph;
-
-            tiles.push({
-                url: `https://tiles.guildwars2.com/${CONTINENT_ID}/${FLOOR_ID}/${tileZoom}/${tx}/${ty}.jpg`,
-                x: px,
-                y: py,
-                width: tileW,
-                height: tileH,
-            });
+            const px = (tx * tileSpan - cx1) / cw * pw + ox;
+            const py = (ty * tileSpan - cy1) / ch * ph + oy;
+            if (bounds && (px + tileW < bounds.x0 || px > bounds.x1 || py + tileH < bounds.y0 || py > bounds.y1)) continue;
+            tiles.push({ url: `${base}/${CONTINENT_ID}/${FLOOR_ID}/${tileZoom}/${tx}/${ty}.jpg`, x: px, y: py, width: tileW, height: tileH });
         }
     }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_HIRES_ZOOM, pickTileZoom, visibleMapRect } from '../wvwTiles';
+import { MAX_HIRES_ZOOM, pickTileZoom, visibleMapRect, getMapTiles, HIRES_TILE_BASE, type MapRect } from '../wvwTiles';
 import { WvwMap } from '../wvwLandmarks';
 
 // EBG: continentRect width 3072 units rendered into 716 map units
@@ -78,5 +78,52 @@ describe('visibleMapRect', () => {
     it('returns the full map when the panel has no size yet', () => {
         expect(visibleMapRect(0, 0, 716, 750, { scale: 3, tx: 0, ty: 0 }))
             .toEqual({ x: 0, y: 0, width: 716, height: 750 });
+    });
+});
+
+describe('getMapTiles — URL routing and culling', () => {
+    it('returns the full EBG grid without a visible rect (unchanged behavior)', () => {
+        expect(getMapTiles(EBG, 7, 716, 750)).toHaveLength(169);
+        expect(getMapTiles(EBG, 5, 716, 750)).toHaveLength(16);
+    });
+
+    it('routes z ≤ 7 to the official service and z ≥ 8 to the hi-res host', () => {
+        const z7 = getMapTiles(EBG, 7, 716, 750);
+        expect(z7[0].url).toBe('https://tiles.guildwars2.com/2/3/7/34/49.jpg');
+        const z8 = getMapTiles(EBG, 8, 716, 750);
+        expect(z8).toHaveLength(625);
+        expect(z8[0].url).toBe(`${HIRES_TILE_BASE}/2/3/8/69/99.jpg`);
+        const z9 = getMapTiles(EBG, 9, 716, 750);
+        expect(z9).toHaveLength(2401);
+        expect(z9[0].url).toBe(`${HIRES_TILE_BASE}/2/3/9/139/199.jpg`);
+    });
+
+    it('culls to the visible rect plus a one-tile margin', () => {
+        const rect: MapRect = { x: 330, y: 350, width: 60, height: 60 };
+        const tiles = getMapTiles(EBG, 7, 716, 750, rect);
+        expect(tiles.length).toBeGreaterThan(0);
+        expect(tiles.length).toBeLessThan(169);
+        // Every returned tile overlaps the expanded rect (margin = 1 tile).
+        const tw = tiles[0].width, th = tiles[0].height;
+        for (const t of tiles) {
+            expect(t.x + t.width).toBeGreaterThanOrEqual(rect.x - tw);
+            expect(t.x).toBeLessThanOrEqual(rect.x + rect.width + tw);
+            expect(t.y + t.height).toBeGreaterThanOrEqual(rect.y - th);
+            expect(t.y).toBeLessThanOrEqual(rect.y + rect.height + th);
+        }
+        // The rect itself is fully covered: each corner falls inside a tile.
+        for (const [px, py] of [
+            [rect.x, rect.y], [rect.x + rect.width, rect.y],
+            [rect.x, rect.y + rect.height], [rect.x + rect.width, rect.y + rect.height],
+        ] as const) {
+            expect(tiles.some(t =>
+                px >= t.x && px <= t.x + t.width && py >= t.y && py <= t.y + t.height
+            )).toBe(true);
+        }
+    });
+
+    it('an off-map rect yields no tiles beyond the margin ring', () => {
+        const tiles = getMapTiles(EBG, 7, 716, 750, { x: -5000, y: -5000, width: 10, height: 10 });
+        expect(tiles).toHaveLength(0);
     });
 });
