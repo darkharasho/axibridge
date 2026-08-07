@@ -745,7 +745,7 @@ Create `scripts/generate-hires-tiles.mjs`:
 // Requires realesrgan-ncnn-vulkan on PATH (or --binary /path/to/it):
 //   https://github.com/xinntao/Real-ESRGAN/releases (ncnn-vulkan build)
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
@@ -799,7 +799,8 @@ async function download(plan) {
             if (!existsSync(j.file)) {
                 const res = await fetch(`${OFFICIAL}/7/${j.tx}/${j.ty}.jpg`);
                 if (!res.ok) throw new Error(`z7 ${j.tx}/${j.ty}: HTTP ${res.status}`);
-                writeFileSync(j.file, Buffer.from(await res.arrayBuffer()));
+                writeFileSync(`${j.file}.tmp`, Buffer.from(await res.arrayBuffer()));
+                renameSync(`${j.file}.tmp`, j.file);
                 await new Promise(r => setTimeout(r, 100));
             }
             if (++done % 50 === 0) console.log(`  ${plan.key}: ${done} z7 tiles`);
@@ -817,8 +818,11 @@ async function stitch(plan, dir) {
     for (let ty = plan.z7y.min; ty <= plan.z7y.max; ty++)
         for (let tx = plan.z7x.min; tx <= plan.z7x.max; tx++)
             composites.push({ input: path.join(dir, `${tx}_${ty}.jpg`), left: (tx - plan.z7x.min) * TILE, top: (ty - plan.z7y.min) * TILE });
+    // Temp + rename so an interrupted run can't leave a partial file that a
+    // resume treats as complete (applies to every writer in this script).
     await sharp({ create: { width: plan.cols * TILE, height: plan.rows * TILE, channels: 3, background: '#000' }, limitInputPixels: false })
-        .composite(composites).png().toFile(file);
+        .composite(composites).png().toFile(`${file}.tmp`);
+    renameSync(`${file}.tmp`, file);
     return file;
 }
 
@@ -826,7 +830,9 @@ function upscale2x(src, dst) {
     if (existsSync(dst)) return dst;
     mkdirSync(path.dirname(dst), { recursive: true });
     console.log(`  upscaling ${src} → ${dst} (this can take a while)`);
-    execFileSync(BINARY, ['-i', src, '-o', dst, '-s', '2', '-n', MODEL], { stdio: 'inherit' });
+    // .tmp.png (not .png.tmp): the binary infers output format from extension.
+    execFileSync(BINARY, ['-i', src, '-o', `${dst}.tmp.png`, '-s', '2', '-n', MODEL], { stdio: 'inherit' });
+    renameSync(`${dst}.tmp.png`, dst);
     return dst;
 }
 
@@ -849,7 +855,8 @@ async function slice(plan, image, zoom, unitPx) {
             if (existsSync(file)) continue;
             await sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } })
                 .extract({ left: (tx * span - originX) * unitPx, top: 0, width: TILE, height: TILE })
-                .jpeg({ quality: JPEG_QUALITY }).toFile(file);
+                .jpeg({ quality: JPEG_QUALITY }).toFile(`${file}.tmp`);
+            renameSync(`${file}.tmp`, file);
         }
         const row = ty - zy.min + 1;
         if (row % 8 === 0) console.log(`  ${plan.key} z${zoom}: row ${row}/${zy.max - zy.min + 1}`);
@@ -887,6 +894,13 @@ if (!flag('--skip-upscale')) {
 }
 console.log('\ndone');
 ```
+
+(Amended 2026-08-06 after task review — human ruled to fix: every writer
+(z7 download, stitch, upscale, slice) writes to a temp path and renames into
+place, so an interrupted run cannot leave truncated files that a resume
+treats as complete. The upscaler's temp is `.tmp.png` because the binary
+infers output format from the extension; the sharp writers set their format
+explicitly so a bare `.tmp` suffix is safe there.)
 
 - [ ] **Step 3: Verify with dry-run (no network, no GPU)**
 
