@@ -85,13 +85,27 @@ async function stitch(plan, dir) {
     return file;
 }
 
-function upscale2x(src, dst) {
+function upscaleNative4x(src, dst) {
     if (existsSync(dst)) return dst;
     mkdirSync(path.dirname(dst), { recursive: true });
     console.log(`  upscaling ${src} → ${dst} (this can take a while)`);
+    // realesrgan-x4plus only supports its native 4× — requesting -s 2 makes
+    // the ncnn build misassemble its internal tiles (content scrambles while
+    // dimensions stay correct). Upscale 4× once; derive 2× by downscaling.
     // .tmp.png (not .png.tmp): the binary infers output format from extension.
-    execFileSync(BINARY, ['-i', src, '-o', `${dst}.tmp.png`, '-s', '2', '-n', MODEL], { stdio: 'inherit' });
+    execFileSync(BINARY, ['-i', src, '-o', `${dst}.tmp.png`, '-s', '4', '-n', MODEL], { stdio: 'inherit' });
     renameSync(`${dst}.tmp.png`, dst);
+    return dst;
+}
+
+async function derive2x(src, dst) {
+    if (existsSync(dst)) return dst;
+    mkdirSync(path.dirname(dst), { recursive: true });
+    const meta = await sharp(src, { limitInputPixels: false }).metadata();
+    await sharp(src, { limitInputPixels: false })
+        .resize(Math.round(meta.width / 2), Math.round(meta.height / 2))
+        .png().toFile(`${dst}.tmp`);
+    renameSync(`${dst}.tmp`, dst);
     return dst;
 }
 
@@ -143,10 +157,10 @@ for (const plan of plans) {
     const dir = await download(plan);
     const stitched = await stitch(plan, dir);
     if (flag('--skip-upscale')) continue;
-    const up2 = upscale2x(stitched, path.join(WORK, 'up2', `${plan.key}.png`));
+    const up4 = upscaleNative4x(stitched, path.join(WORK, 'up4', `${plan.key}.png`));
+    const up2 = await derive2x(up4, path.join(WORK, 'up2', `${plan.key}.png`));
     await slice(plan, up2, 8, 2);
     if (!flag('--skip-z9')) {
-        const up4 = upscale2x(up2, path.join(WORK, 'up4', `${plan.key}.png`));
         await slice(plan, up4, 9, 4);
     }
 }
