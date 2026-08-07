@@ -95,22 +95,6 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     // Stable ref so the drag handler can read followMember without being recreated.
     const followMemberRef = useRef<SquadMemberMovement | null>(null);
 
-    // Panel CSS size feeds screen-aware tile zoom + culling. Re-observed on
-    // fullscreen toggle because the portal remounts the container node.
-    const [panelSize, setPanelSize] = useState<[number, number]>([0, 0]);
-    useEffect(() => {
-        const el = mapContainerRef.current;
-        if (!el) return;
-        const update = () => {
-            const rect = el.getBoundingClientRect();
-            setPanelSize(prev => prev[0] === rect.width && prev[1] === rect.height ? prev : [rect.width, rect.height]);
-        };
-        update();
-        const ro = new ResizeObserver(update);
-        ro.observe(el);
-        return () => ro.disconnect();
-    }, [fullscreen]);
-
     useEffect(() => {
         if (!selectedId && fights.length) {
             const def = pickDefaultFightId(fights);
@@ -126,6 +110,25 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const mapSize = selectedFight?.mapSize ?? [600, 600];
     const [mapWidth, mapHeight] = mapSize;
     const viewport = useReplayViewport({ mapWidth, mapHeight, containerWidth: mapWidth, containerHeight: mapHeight });
+
+    // Panel CSS size feeds screen-aware tile zoom + culling. The container only
+    // mounts once a fight is selected, so the effect depends on selectedFight
+    // to (re)attach; it also re-observes on fullscreen toggle because the
+    // portal remounts the container node.
+    const [panelSize, setPanelSize] = useState<[number, number]>([0, 0]);
+    useEffect(() => {
+        if (!selectedFight) return;
+        const el = mapContainerRef.current;
+        if (!el) return;
+        const update = () => {
+            const rect = el.getBoundingClientRect();
+            setPanelSize(prev => prev[0] === rect.width && prev[1] === rect.height ? prev : [rect.width, rect.height]);
+        };
+        update();
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [fullscreen, selectedFight]);
 
     const { centerOn, attachWheelZoom, attachPanDrag, screenToSvg } = viewport;
     useEffect(() => {
