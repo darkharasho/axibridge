@@ -24,10 +24,19 @@ glances at half; skills with zero connected hits excluded).
   `src/renderer/global.d.ts` (with `DEFAULT_EMBED_STATS`) and a copy in
   `src/main/discord.ts`. Additional stats (Resurrects, Kills, Deaths, …)
   default to `false`.
-- The mitigation math currently lives in renderer-only code
-  (`src/renderer/stats/incrementalAggregation.ts`) — nothing in
-  `src/shared/`, so `discord.ts` cannot reuse it today. Per the repo's
-  architecture rules, metric implementations belong in `src/shared/`.
+- The mitigation math lives in the published shared package
+  **`@axiapps/bridge-metrics`** (`src/renderer/stats/computePlayerAggregation.ts`
+  is a one-line re-export). The package ships dual CJS/ESM (`main:
+  ./dist/index.cjs`) and its root export exposes the full pipeline:
+  `createPlayerAggregationAccumulators` → `precomputeGlobalEnemySkillStats(log, acc)`
+  → `ingestLogPlayerData(log, acc, options)` → `finalizePlayerAggregation(acc)`,
+  filling `acc.damageMitigationPlayersMap` / `damageMitigationMinionsMap`
+  with rows carrying `mitigationTotals` (`totalMitigation`, `minMitigation`,
+  per-event counts). `log` is a `{ details }` wrapper around the EI JSON —
+  exactly what `discord.ts` holds per fight. The Electron main build is
+  CommonJS, so it can import the package directly.
+- Housekeeping: `package.json` declares `@axiapps/bridge-metrics: ^0.1.0`
+  but 0.2.0 is installed — the range gets corrected to `^0.2.0`.
 - The dashboard computes enemy skill averages across **all logs in the
   aggregation window**; a per-fight embed naturally uses a window of one
   log. Same formula, smaller window.
@@ -39,8 +48,9 @@ glances at half; skills with zero connected hits excluded).
    additional stats).
 2. One shared implementation of the mitigation math, used by both the
    dashboard aggregation and the embed builder — zero drift by construction.
-3. Dashboard numbers do not change at all (the extraction is a pure
-   refactor; the `npm run audit:*` scripts and existing suites prove it).
+3. Dashboard numbers and code paths do not change at all (nothing in the
+   renderer is modified; the `npm run audit:*` scripts and existing suites
+   stay green as the backstop).
 
 ## Non-Goals
 
@@ -53,23 +63,29 @@ glances at half; skills with zero connected hits excluded).
 
 ## Design
 
-### 1. Shared metric module — `src/shared/damageMitigation.ts`
+### 1. Reuse the `@axiapps/bridge-metrics` pipeline (no extraction)
 
-Extract the existing math from `incrementalAggregation.ts` into pure
-functions with no renderer/DOM/Node dependencies:
+**(Revised 2026-08-07 after exploration; original design called for
+extracting math into `src/shared/damageMitigation.ts` — unnecessary, the
+shared home already exists as the package.)**
 
-- Enemy skill-average accumulation: per skill id, gather `totalDamage`,
-  `connectedHits`, and `min` from `targets[*].totalDamageDist[0]` entries →
-  `avgDamage = Σdamage / Σhits`, `minDamage = avg(min)`, carrying
-  `connectedHits` so zero-hit skills can be excluded downstream.
-- Avoided-damage formula per skill:
-  `avoidCount = blocked + evaded + missed + invulned + interrupted`;
-  `avoid = glanced × avg/2 + avoidCount × avg` (and the min variant, kept
-  because the dashboard uses it).
+`discord.ts` imports the pipeline from `@axiapps/bridge-metrics` and runs it
+per fight when the mitigation stat is enabled:
 
-`incrementalAggregation.ts` delegates to these functions; its multi-log
-accumulation behavior and outputs are unchanged. Exact signatures are pinned
-during planning from the code being extracted — extraction, not invention.
+```
+const acc = createPlayerAggregationAccumulators();
+precomputeGlobalEnemySkillStats({ details: jsonDetails }, acc);
+ingestLogPlayerData({ details: jsonDetails }, acc, defaultOptions);
+finalizePlayerAggregation(acc);
+```
+
+then builds the top-10 from `acc.damageMitigationPlayersMap` plus each
+account's minion rows (summed per account — the metric's "Player + Minion"
+scope). `defaultOptions` mirrors the dashboard's defaults
+(`splitPlayersByClass: false`, default disruption method / skill damage
+source). Zero drift is structural: the embed executes the same code the
+dashboard does, with a window of one log (~23ms per fight, per existing
+profiling). `incrementalAggregation.ts` is not touched.
 
 ### 2. Embed stat — `src/main/discord.ts`
 
@@ -92,9 +108,10 @@ checkbox-list pattern.
 
 ### 4. Testing & docs
 
-- Unit tests (vitest) for `src/shared/damageMitigation.ts` against a real
-  EI JSON from `test-fixtures/` plus small synthetic cases for the edge
-  rules (glanced halving, zero-connected-hits exclusion).
+- Unit tests (vitest) for the embed-side mitigation list builder (pipeline
+  invocation + player/minion summing + sorting + row formatting) against a
+  real EI JSON from `test-fixtures/`, plus a synthetic case covering the
+  empty/no-enemy-data omission path.
 - `npm run audit:boons && npm run audit:metrics && npm run audit:conditions`
   and the full unit suite stay green — the no-drift proof for the
   extraction.
