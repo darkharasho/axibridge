@@ -166,3 +166,48 @@ export function visibleMapRect(
         height: (vy1 - vy0) / scale,
     };
 }
+
+// Cap on culled tiles per layer: keeps a wide view from fetching hundreds of
+// z9 tiles (~7 MB) when z8 is visually near-identical at that density.
+export const TILE_BUDGET = 140;
+
+export interface TileLayer { zoom: number; tiles: TileInfo[]; }
+
+/**
+ * Tile layers for the replay map, bottom to top:
+ *  1. full-extent coverage at min(chosen, 5) — the map is never blank
+ *  2. culled z7 official underlay when detail ≥ 8 — silent hi-res fallback
+ *  3. culled detail layer at the (budgeted) chosen zoom when > 5
+ */
+export function getTileLayers(
+    map: WvwMap,
+    mapWidth: number,
+    mapHeight: number,
+    viewport: TileViewportState,
+    panelWidth: number,
+    panelHeight: number,
+    dpr: number,
+): TileLayer[] {
+    if (!hasTileData(map)) return [];
+    const rect = visibleMapRect(panelWidth, panelHeight, mapWidth, mapHeight, viewport);
+    let detailZoom = pickTileZoom(map, mapWidth, panelWidth, viewport.scale, dpr);
+    let detailTiles: TileInfo[] = [];
+    if (detailZoom > 5) {
+        detailTiles = getMapTiles(map, detailZoom, mapWidth, mapHeight, rect);
+        while (detailZoom > 6 && detailTiles.length > TILE_BUDGET) {
+            detailZoom--;
+            detailTiles = getMapTiles(map, detailZoom, mapWidth, mapHeight, rect);
+        }
+    }
+    const coverageZoom = Math.min(detailZoom, 5);
+    const layers: TileLayer[] = [
+        { zoom: coverageZoom, tiles: getMapTiles(map, coverageZoom, mapWidth, mapHeight) },
+    ];
+    if (detailZoom >= 8) {
+        layers.push({ zoom: MAX_TILE_ZOOM, tiles: getMapTiles(map, MAX_TILE_ZOOM, mapWidth, mapHeight, rect) });
+    }
+    if (detailZoom > 5) {
+        layers.push({ zoom: detailZoom, tiles: detailTiles });
+    }
+    return layers;
+}

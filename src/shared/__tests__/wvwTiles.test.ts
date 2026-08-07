@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_HIRES_ZOOM, pickTileZoom, visibleMapRect, getMapTiles, HIRES_TILE_BASE, type MapRect } from '../wvwTiles';
+import { MAX_HIRES_ZOOM, pickTileZoom, visibleMapRect, getMapTiles, HIRES_TILE_BASE, getTileLayers, TILE_BUDGET, type MapRect } from '../wvwTiles';
 import { WvwMap } from '../wvwLandmarks';
 
 // EBG: continentRect width 3072 units rendered into 716 map units
@@ -125,5 +125,56 @@ describe('getMapTiles — URL routing and culling', () => {
     it('an off-map rect yields no tiles beyond the margin ring', () => {
         const tiles = getMapTiles(EBG, 7, 716, 750, { x: -5000, y: -5000, width: 10, height: 10 });
         expect(tiles).toHaveLength(0);
+    });
+});
+
+describe('getTileLayers', () => {
+    const identity = { scale: 1, tx: 0, ty: 0 };
+
+    it('returns [] for a map without tile data', () => {
+        expect(getTileLayers('Nope' as unknown as WvwMap, 716, 750, identity, 1432, 1500, 1)).toEqual([]);
+    });
+
+    it('collapses to a single full-extent layer when the chosen zoom ≤ 5', () => {
+        const layers = getTileLayers(EBG, 716, 750, identity, 716, 750, 1);
+        expect(layers.map(l => l.zoom)).toEqual([5]);
+        expect(layers[0].tiles).toHaveLength(16);
+    });
+
+    it('coverage + culled detail at a native zoom (no underlay)', () => {
+        // panel 1432, dpr 1, scale 2 → chosen 7; half the map visible →
+        // ~64 culled tiles, within budget.
+        const layers = getTileLayers(EBG, 716, 750, { scale: 2, tx: 0, ty: 0 }, 1432, 1500, 1);
+        expect(layers.map(l => l.zoom)).toEqual([5, 7]);
+        expect(layers[0].tiles).toHaveLength(16);
+        expect(layers[1].tiles.length).toBeLessThanOrEqual(TILE_BUDGET);
+    });
+
+    it('budget steps down when the whole map is visible (scale 1, hidpi)', () => {
+        // chosen 7, but the full 169-tile z7 grid exceeds TILE_BUDGET → z6.
+        const layers = getTileLayers(EBG, 716, 750, identity, 1432, 1500, 2);
+        expect(layers.map(l => l.zoom)).toEqual([5, 6]);
+    });
+
+    it('budget steps a wide z9 view down to z8 (default scale 3, hidpi)', () => {
+        // chosen would be 9 (Task 1 case) but ~most of the map is visible →
+        // z9 needs ~300 culled tiles > TILE_BUDGET → steps down to 8.
+        const layers = getTileLayers(EBG, 716, 750, { scale: 3, tx: 0, ty: 0 }, 1432, 1500, 2);
+        expect(layers.map(l => l.zoom)).toEqual([5, 7, 8]);
+        for (const l of layers.slice(1)) expect(l.tiles.length).toBeLessThanOrEqual(TILE_BUDGET);
+    });
+
+    it('deep zoom keeps z9 (small visible area fits the budget) with z7 underlay', () => {
+        const layers = getTileLayers(EBG, 716, 750, { scale: 10, tx: -3000, ty: -3200 }, 1432, 1500, 2);
+        expect(layers.map(l => l.zoom)).toEqual([5, 7, 9]);
+        for (const l of layers.slice(1)) expect(l.tiles.length).toBeLessThanOrEqual(TILE_BUDGET);
+    });
+
+    it('hi-res detail tiles come from the hi-res host, underlay from the official host', () => {
+        const layers = getTileLayers(EBG, 716, 750, { scale: 10, tx: -3000, ty: -3200 }, 1432, 1500, 2);
+        const underlay = layers.find(l => l.zoom === 7)!;
+        const detail = layers.find(l => l.zoom === 9)!;
+        expect(underlay.tiles[0].url).toContain('tiles.guildwars2.com');
+        expect(detail.tiles[0].url).toContain(HIRES_TILE_BASE);
     });
 });
