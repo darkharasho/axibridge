@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pause, Play, Maximize2, Minimize2, Plus, Minus, RotateCcw, X, Crosshair } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
-import { getMapTiles, hasTileData } from '../../../shared/wvwTiles';
+import { getTileLayers, hasTileData } from '../../../shared/wvwTiles';
 import { WVW_LANDMARKS } from '../../../shared/wvwLandmarks';
 import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { getProfessionIconPath } from '../../classIconUtils';
@@ -94,6 +94,22 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const draggedRef = useRef(false);
     // Stable ref so the drag handler can read followMember without being recreated.
     const followMemberRef = useRef<SquadMemberMovement | null>(null);
+
+    // Panel CSS size feeds screen-aware tile zoom + culling. Re-observed on
+    // fullscreen toggle because the portal remounts the container node.
+    const [panelSize, setPanelSize] = useState<[number, number]>([0, 0]);
+    useEffect(() => {
+        const el = mapContainerRef.current;
+        if (!el) return;
+        const update = () => {
+            const rect = el.getBoundingClientRect();
+            setPanelSize(prev => prev[0] === rect.width && prev[1] === rect.height ? prev : [rect.width, rect.height]);
+        };
+        update();
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [fullscreen]);
 
     useEffect(() => {
         if (!selectedId && fights.length) {
@@ -338,8 +354,12 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                 </defs>
                                 <g transform={`translate(${viewport.tx} ${viewport.ty}) scale(${viewport.scale})`}>
                                     {selectedFight.mapKey && hasTileData(selectedFight.mapKey)
-                                        ? getMapTiles(selectedFight.mapKey, Math.min(7, Math.max(3, Math.floor(5 + Math.log2(viewport.scale)))), mapWidth, mapHeight).map((t, i) => (
-                                            <image key={i} href={t.url} x={t.x} y={t.y} width={t.width} height={t.height} preserveAspectRatio="none" />
+                                        ? getTileLayers(selectedFight.mapKey, mapWidth, mapHeight, viewport, panelSize[0], panelSize[1], (typeof window !== 'undefined' && window.devicePixelRatio) || 1).map(layer => (
+                                            <g key={layer.zoom}>
+                                                {layer.tiles.map(t => (
+                                                    <image key={t.url} href={t.url} x={t.x} y={t.y} width={t.width} height={t.height} preserveAspectRatio="none" />
+                                                ))}
+                                            </g>
                                         ))
                                         : selectedFight.mapImageUrl && (
                                             <image href={selectedFight.mapImageUrl} x={0} y={0} width={mapWidth} height={mapHeight} />
