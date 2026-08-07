@@ -293,6 +293,14 @@ session numbers.
 
 Run: `npm run sync:metrics-spec` (copies to `docs/`).
 
+- [ ] **Step 1b: Sync the third defaults copy (added after Task 2 review)**
+
+`src/main/handlers/settingsHandlers.ts` holds a third, untyped
+`DEFAULT_EMBED_STATS` (electron-store fallback, ~lines 11-34) that
+historically tracks every embed-stat key. Add `showDamageMitigation: false,`
+after its `showDodges: false,` line. (Currently benign — all consumers
+spread a complete default first — but kept in sync by convention.)
+
 - [ ] **Step 2: Correct the dependency range**
 
 In `package.json`, change `"@axiapps/bridge-metrics": "^0.1.0"` to `"^0.2.0"` (0.2.0 is what's installed and what the lockfile pins). Run `npm install` and confirm `git diff package-lock.json` is empty or trivially updates the range metadata only.
