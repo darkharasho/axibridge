@@ -126,12 +126,16 @@ const plans = targets.map(planRegion);
 for (const p of plans) console.log(`${p.key}: z7 ${p.counts.z7} downloads → z8 ${p.counts.z8} tiles${flag('--skip-z9') ? '' : ` + z9 ${p.counts.z9} tiles`}`);
 if (flag('--dry-run')) process.exit(0);
 
-try { execFileSync(BINARY, ['-h'], { stdio: 'ignore' }); } catch {
-    if (!flag('--skip-upscale')) {
-        console.error(`Cannot run '${BINARY}'. Install realesrgan-ncnn-vulkan from`);
-        console.error('https://github.com/xinntao/Real-ESRGAN/releases and put it on PATH (or pass --binary).');
-        process.exit(1);
-    }
+let binaryOk = true;
+try { execFileSync(BINARY, ['-h'], { stdio: 'ignore' }); } catch (e) {
+    // The ncnn binary prints usage and exits non-zero on -h; a numeric
+    // status means it ran. Only a spawn failure (ENOENT etc.) means missing.
+    binaryOk = typeof e.status === 'number';
+}
+if (!binaryOk && !flag('--skip-upscale')) {
+    console.error(`Cannot run '${BINARY}'. Install realesrgan-ncnn-vulkan from`);
+    console.error('https://github.com/xinntao/Real-ESRGAN/releases and put it on PATH (or pass --binary).');
+    process.exit(1);
 }
 
 for (const plan of plans) {
