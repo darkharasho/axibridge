@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_HIRES_ZOOM, pickTileZoom } from '../wvwTiles';
+import { MAX_HIRES_ZOOM, pickTileZoom, visibleMapRect } from '../wvwTiles';
 import { WvwMap } from '../wvwLandmarks';
 
 // EBG: continentRect width 3072 units rendered into 716 map units
@@ -53,5 +53,30 @@ describe('pickTileZoom', () => {
 
     it('MAX_HIRES_ZOOM is 9 (ship gate in the hosting task may lower to 8)', () => {
         expect(MAX_HIRES_ZOOM).toBe(9);
+    });
+});
+
+describe('visibleMapRect', () => {
+    it('is the full map for a same-size panel at identity viewport', () => {
+        expect(visibleMapRect(700, 700, 700, 700, { scale: 1, tx: 0, ty: 0 }))
+            .toEqual({ x: 0, y: 0, width: 700, height: 700 });
+    });
+
+    it('accounts for slice cropping on a wide panel (vertical crop, centered)', () => {
+        // rs = max(1400/700, 700/700) = 2 → rendered 1400×1400, panel shows
+        // the middle 700 px vertically → viewBox y 175..525, x full.
+        expect(visibleMapRect(1400, 700, 700, 700, { scale: 1, tx: 0, ty: 0 }))
+            .toEqual({ x: 0, y: 175, width: 700, height: 350 });
+    });
+
+    it('inverts the pan/zoom transform', () => {
+        // scale 2 centered on the map center: v = m·2 − 350 → m = (v+350)/2.
+        expect(visibleMapRect(700, 700, 700, 700, { scale: 2, tx: -350, ty: -350 }))
+            .toEqual({ x: 175, y: 175, width: 350, height: 350 });
+    });
+
+    it('returns the full map when the panel has no size yet', () => {
+        expect(visibleMapRect(0, 0, 716, 750, { scale: 3, tx: 0, ty: 0 }))
+            .toEqual({ x: 0, y: 0, width: 716, height: 750 });
     });
 });

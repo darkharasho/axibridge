@@ -130,3 +130,37 @@ export function pickTileZoom(
     const zoom = MAX_TILE_ZOOM + Math.ceil(Math.log2(needed / nativeDensity));
     return Math.min(MAX_HIRES_ZOOM, Math.max(3, zoom));
 }
+
+export interface TileViewportState { scale: number; tx: number; ty: number; }
+export interface MapRect { x: number; y: number; width: number; height: number; }
+
+/**
+ * The map-unit rect currently visible in the panel, inverting both the
+ * preserveAspectRatio="xMidYMid slice" fit and the pan/zoom group transform
+ * (mirrors screenToSvg in useReplayViewport).
+ */
+export function visibleMapRect(
+    panelWidth: number,
+    panelHeight: number,
+    mapWidth: number,
+    mapHeight: number,
+    viewport: TileViewportState,
+): MapRect {
+    if (!(panelWidth > 0) || !(panelHeight > 0)) {
+        return { x: 0, y: 0, width: mapWidth, height: mapHeight };
+    }
+    const rs = Math.max(panelWidth / mapWidth, panelHeight / mapHeight);
+    const ox = (panelWidth - mapWidth * rs) / 2;
+    const oy = (panelHeight - mapHeight * rs) / 2;
+    const vx0 = (0 - ox) / rs;
+    const vy0 = (0 - oy) / rs;
+    const vx1 = (panelWidth - ox) / rs;
+    const vy1 = (panelHeight - oy) / rs;
+    const { scale, tx, ty } = viewport;
+    return {
+        x: (vx0 - tx) / scale,
+        y: (vy0 - ty) / scale,
+        width: (vx1 - vx0) / scale,
+        height: (vy1 - vy0) / scale,
+    };
+}
