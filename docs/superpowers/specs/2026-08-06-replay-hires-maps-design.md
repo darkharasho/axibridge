@@ -113,10 +113,15 @@ wide views cap at roughly 3.5 MB of tile fetches.
 - Stitch the region into one image **before** upscaling so tile borders get
   full context — avoids visible seams. (EBG stitched: 3072². If z9 memory is
   a concern, process in overlapping chunks and trim the margins.)
-- Upscale 2× with Real-ESRGAN (`realesrgan-ncnn-vulkan` prebuilt binary; the
-  script checks for it on PATH and prints install instructions if missing).
-- Slice into 256px tiles → z8. Repeat (upscale the 2× result again, slice) →
-  z9.
+- Upscale **4× in one native pass** with Real-ESRGAN
+  (`realesrgan-ncnn-vulkan` prebuilt binary; the script checks for it and
+  prints install instructions if missing). The `realesrgan-x4plus` model
+  only supports its native 4× — requesting `-s 2` makes the ncnn build
+  misassemble its internal tiles (verified empirically 2026-08-06: content
+  scrambled/shifted while output dimensions stay correct). The 2× level is
+  derived by downscaling the 4× output with sharp.
+- Slice 256px tiles: z8 from the derived 2× image, z9 from the native 4×
+  image.
 - Output layout mirrors the official service: `2/3/{z}/{x}/{y}.jpg`, JPEG
   quality ≈ 85. Expected total ~250–300 MB for all four maps, z8+z9.
 
