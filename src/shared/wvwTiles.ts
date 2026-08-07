@@ -8,13 +8,13 @@ interface WvwMapTileData {
 
 const CONTINENT_ID = 2;
 const FLOOR_ID = 3;
-const MAX_TILE_ZOOM = 7;
+export const MAX_TILE_ZOOM = 7;
 const TILE_SIZE = 256;
 
 // pixelOffset: shift applied to tile positions to align with EI's pixel coordinate space.
 // Derived from the difference between GW2 API-computed landmark positions and
 // manually calibrated EI-aligned positions.
-const WVW_TILE_DATA: Record<WvwMap, WvwMapTileData> = {
+export const WVW_TILE_DATA: Record<WvwMap, WvwMapTileData> = {
     [WvwMap.EternalBattlegrounds]: {
         continentRect: [[8958, 12798], [12030, 15870]],
         pixelSize: [716, 750],
@@ -100,4 +100,33 @@ export function getMapTiles(map: WvwMap, tileZoom: number, renderWidth?: number,
 
 export function hasTileData(map: WvwMap): boolean {
     return map in WVW_TILE_DATA;
+}
+
+export const MAX_HIRES_ZOOM = 9;
+
+/**
+ * Pick the lowest tile zoom whose art density meets what the screen shows,
+ * rounding UP (never a full level blurrier than needed).
+ *
+ * needed density  = (panelCssWidth / mapWidth) × viewportScale × dpr
+ *                   (device px per map unit)
+ * available at z  = (continentRectWidth / mapWidth) × 2^(z − MAX_TILE_ZOOM)
+ */
+export function pickTileZoom(
+    map: WvwMap,
+    mapWidth: number,
+    panelCssWidth: number,
+    viewportScale: number,
+    dpr: number,
+): number {
+    const data = WVW_TILE_DATA[map];
+    if (!data) return 5;
+    const [[cx1], [cx2]] = data.continentRect;
+    const nativeDensity = (cx2 - cx1) / mapWidth;
+    // Panel width is 0 on the first render before layout; assume 1 CSS px
+    // per map unit so the choice degrades to scale × dpr alone.
+    const panelW = panelCssWidth > 0 ? panelCssWidth : mapWidth;
+    const needed = (panelW / mapWidth) * viewportScale * (dpr > 0 ? dpr : 1);
+    const zoom = MAX_TILE_ZOOM + Math.ceil(Math.log2(needed / nativeDensity));
+    return Math.min(MAX_HIRES_ZOOM, Math.max(3, zoom));
 }
