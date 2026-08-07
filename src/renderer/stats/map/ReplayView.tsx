@@ -25,7 +25,7 @@ import { FullscreenPortal } from './FullscreenPortal';
 import { useReplayPlayback } from './hooks/useReplayPlayback';
 import { useReplayViewport } from './hooks/useReplayViewport';
 import { useMovementData } from './hooks/useMovementData';
-import { pickDefaultFightId, findClosestMember } from './replaySelectors';
+import { pickDefaultFightId, findClosestMember, orderMembersForRender } from './replaySelectors';
 import type { ReplayFightPayload } from './replayTypes';
 import type { SquadMemberMovement } from '../../../shared/movementData';
 
@@ -389,7 +389,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                             </g>
                                         );
                                     })}
-                                    {selectedFight.movementData.members.filter(m => m.inSquad || m.isEnemy).map(member => {
+                                    {orderMembersForRender(selectedFight.movementData.members.filter(m => m.inSquad || m.isEnemy)).map(member => {
                                         const pos = sampleAt(member, pollFrac);
                                         if (!pos) return null;
                                         const timeMs = playhead.timeMs;

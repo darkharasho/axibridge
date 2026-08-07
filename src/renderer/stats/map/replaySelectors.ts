@@ -42,3 +42,9 @@ export function findClosestMember(
     }
     return bestMember;
 }
+
+/** Stable-sort members so commanders render last — SVG paints in document
+ *  order, so the tag icon ends up above every other member icon. */
+export function orderMembersForRender<T extends { isCommander?: boolean }>(members: T[]): T[] {
+    return [...members].sort((a, b) => Number(!!a.isCommander) - Number(!!b.isCommander));
+}
