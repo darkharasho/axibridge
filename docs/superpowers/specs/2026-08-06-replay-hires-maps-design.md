@@ -26,8 +26,11 @@ view. The user wants visibly higher-resolution map art.
   panel this is exhausted around viewport scale 2 (hidpi) to 4 (1× display).
   `MAX_SCALE` is 50, so deep zoom is heavily upscaled mush today.
 - `getMapTiles()` (`src/shared/wvwTiles.ts`) returns **all** tiles covering a
-  map's continentRect — no viewport culling. At z7 EBG that is 144 `<image>`
-  elements regardless of what's visible.
+  map's continentRect — no viewport culling. At z7 EBG that is 169 `<image>`
+  elements (13×13; the rect is not tile-aligned) regardless of what's
+  visible.
+- The default replay viewport scale is 3 (`statsStore`), so the "default
+  view" is already 3× zoomed.
 - The web report re-exports the same component
   (`src/web/ReplayViewWeb.tsx` → `renderer/stats/map/ReplayView`), so one code
   path serves both the desktop app and published reports.
@@ -81,7 +84,7 @@ z9 (64 units).
 Tile rendering becomes up to three stacked layers inside the existing
 transform group:
 
-1. **Coverage layer** — full-extent z5 (36 tiles on EBG), never culled.
+1. **Coverage layer** — full-extent z5 (16 tiles on EBG), never culled.
    Cheap, browser-cached after first view; guarantees the map is never blank.
 2. **Native underlay** — culled z7 official tiles, rendered only when the
    chosen zoom is ≥ 8. This is the silent fallback if hi-res tiles 404 or the
@@ -92,6 +95,13 @@ transform group:
 
 No load-error tracking in JS: a failed `<image>` simply doesn't paint and the
 layer beneath shows through.
+
+The detail layer is additionally **tile-budgeted**: because the default
+viewport scale is 3, a pure round-up zoom choice can demand ~300 culled z9
+tiles (~7 MB) with most of the map visible. If the culled tile count at the
+chosen zoom exceeds `TILE_BUDGET` (140), the detail zoom steps down one
+level at a time until it fits. Deep zoom (small visible area) is unaffected;
+wide views cap at roughly 3.5 MB of tile fetches.
 
 ### 3. Hi-res tile pack generation (one-time script)
 
@@ -146,5 +156,12 @@ layer beneath shows through.
   sharper than current z7 upscaling.
 - With the hi-res host unreachable, the replay looks exactly like today — no
   holes or blanks.
-- Rendered tile `<image>` count stays bounded (~36 coverage + ≤ ~40 culled
-  per detail layer) at all zoom levels.
+- Rendered tile `<image>` count stays bounded (≤ 16 coverage +
+  ≤ `TILE_BUDGET` (140) per culled layer) at all zoom levels.
+
+## Addendum (2026-08-06): commander tag z-order
+
+Rider request, same branch: the commander tag icon must render **above** all
+other member icons in the replay. SVG paints in document order, so member
+rendering stable-sorts commanders last (pure helper in `replaySelectors.ts`,
+unit-tested). No other ordering changes.
