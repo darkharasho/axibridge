@@ -389,6 +389,7 @@ describe('SettingsView', () => {
                     showDamageTaken: true,
                     showDeaths: true,
                     showDodges: true,
+                    showDamageMitigation: true,
                 },
             });
             await screen.findByRole('heading', { name: /Discord Embed - Top Stats Lists/i });
