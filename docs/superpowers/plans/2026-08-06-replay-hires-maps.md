@@ -562,10 +562,13 @@ import { getTileLayers, hasTileData } from '../../../shared/wvwTiles';
 Next to the existing state hooks (after the `centeredOnFollow` state around line 89), add:
 
 ```tsx
-    // Panel CSS size feeds screen-aware tile zoom + culling. Re-observed on
-    // fullscreen toggle because the portal remounts the container node.
+    // Panel CSS size feeds screen-aware tile zoom + culling. The container
+    // div only mounts once a fight is selected, so the effect depends on
+    // selectedFight to (re)attach then; re-observed on fullscreen toggle
+    // because the portal remounts the container node.
     const [panelSize, setPanelSize] = useState<[number, number]>([0, 0]);
     useEffect(() => {
+        if (!selectedFight) return;
         const el = mapContainerRef.current;
         if (!el) return;
         const update = () => {
@@ -576,10 +579,16 @@ Next to the existing state hooks (after the `centeredOnFollow` state around line
         const ro = new ResizeObserver(update);
         ro.observe(el);
         return () => ro.disconnect();
-    }, [fullscreen]);
+    }, [fullscreen, selectedFight]);
 ```
 
-(This `useEffect` must run after `mapContainerRef` is declared; placing it with the other effects below the refs is fine. The test setup already mocks `ResizeObserver` — `src/renderer/test/setup.ts:71`.)
+(Amended 2026-08-06 after task review: the original `[fullscreen]`-only
+dependency never re-attached when the container mounted after default-fight
+selection, stranding `panelSize` at `[0,0]` on the mainline path — human
+ruled to fix. The block must be placed AFTER the `const selectedFight =
+useMovementData(...)` declaration — e.g. directly after the
+`useReplayViewport` call — or the inline dependency array hits the TDZ. The
+test setup already mocks `ResizeObserver` — `src/renderer/test/setup.ts:71`.)
 
 - [ ] **Step 3: Replace the tile render block**
 

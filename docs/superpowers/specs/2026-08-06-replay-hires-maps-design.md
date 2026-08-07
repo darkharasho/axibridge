@@ -69,9 +69,10 @@ in `src/shared/wvwTiles.ts`, replacing the inline formula in `ReplayView.tsx`.
 - Pick the smallest z whose available density ≥ needed (i.e. round **up**),
   clamped to `[3, MAX_HIRES_ZOOM]` where `MAX_HIRES_ZOOM` is a constant in
   `wvwTiles.ts`, initially 9 (the §5 ship gate may lower it to 8).
-- Panel CSS width is already tracked by the viewport hook; `dpr` is read live
-  (`window.devicePixelRatio`) so moving the window between monitors adapts on
-  the next render.
+- Panel CSS size is tracked with a ResizeObserver on the map container
+  (attached once a fight is selected, re-attached on fullscreen toggle);
+  `dpr` is read live (`window.devicePixelRatio`) so moving the window
+  between monitors adapts on the next render.
 
 ### 2. Viewport culling + layered rendering
 
