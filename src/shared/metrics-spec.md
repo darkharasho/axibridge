@@ -329,6 +329,14 @@ avoids log-count bias.
 4. Validate that minion names are normalized (`Juvenile` prefix removed).
 5. Compare against a single skill id first, then widen to all skills.
 
+### Discord Embed Variant
+
+The Discord fight embed's optional "Damage Mitigation" top list runs the
+same pipeline with a window of **one log** (that fight's own enemy skill
+averages), player scope only. Values therefore match what the dashboard
+would show for a single-fight aggregation of that log, not the multi-log
+session numbers.
+
 ## Conditions (Outgoing + Incoming)
 
 Outgoing condition totals are derived from `players[*].totalDamageDist[*]`

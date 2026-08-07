@@ -29,6 +29,7 @@ export const DEFAULT_EMBED_STATS = {
     showDamageTaken: false,
     showDeaths: false,
     showDodges: false,
+    showDamageMitigation: false,
     maxTopListRows: 10,
     classDisplay: 'off',
 };
