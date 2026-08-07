@@ -1,10 +1,13 @@
 # Release Notes
 
-Version v2.15.0 — August 6, 2026
+Version v2.16.0 — August 7, 2026
 
-## Forum Tags on Report Webhooks
+## Sharper Replay Maps
 
-Report webhooks flagged as a Discord forum channel can now carry tags:
-- New "Forum tag IDs" field appears on the webhook card once "Forum channel" is checked — paste tag IDs comma-separated, parsing is lenient about formatting.
-- The field tells you how many tags it recognized and warns if you've pasted more than Discord's 5-per-post limit (only the first 5 are used).
-- NOTE: If Discord rejects a tag ID (e.g. it was deleted), the report still posts — just without tags — and you'll see a status warning telling you to check that webhook's IDs.
+The replay map is no longer a blurry mess when you zoom into a fight. It now picks tile resolution based on your actual screen size and zoom level, and past the game's native detail it switches to a new AI-upscaled tile set — walls, gates, and terrain stay readable at zoom levels that used to be mush. Covers all four WvW maps, in both the desktop app and published web reports.
+
+NOTE: The extra-sharp tiles stream from the web. Without internet the replay just looks like it did before — no holes, no broken maps.
+
+## Commander Tag On Top
+
+The commander tag icon now always draws above other player icons, so the tag no longer gets buried under a pile of dots in a stacked fight.
