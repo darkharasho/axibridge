@@ -1349,6 +1349,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             showDamageTaken: enabled,
             showDeaths: enabled,
             showDodges: enabled,
+            showDamageMitigation: enabled,
         }));
     }, []);
 
@@ -1358,7 +1359,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         embedStats.showResurrects && embedStats.showDistanceToTag &&
         embedStats.showKills && embedStats.showDowns &&
         embedStats.showBreakbarDamage && embedStats.showDamageTaken &&
-        embedStats.showDeaths && embedStats.showDodges;
+        embedStats.showDeaths && embedStats.showDodges && embedStats.showDamageMitigation;
 
     metricsSpecHeadingCountsRef.current = new Map();
 
@@ -2157,6 +2158,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     onChange={(v) => updateEmbedStat('showDodges', v)}
                                     label="Dodges"
                                     description="Number of dodges performed"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDamageMitigation}
+                                    onChange={(v) => updateEmbedStat('showDamageMitigation', v)}
+                                    label="Damage Mitigation"
+                                    description="Estimated damage avoided via blocks, evades, misses, and invulns"
                                 />
                             </div>
                         </div>
