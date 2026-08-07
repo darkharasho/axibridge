@@ -32,6 +32,7 @@ import { Player } from '../shared/dpsReportTypes';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { getWvwTeamColor, teamMapFromLog, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamMap } from '../shared/wvwTeams';
+import { buildFightMitigationByAccount } from './embedMitigation';
 
 export const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/axibridge/main/public/img/AxiBridge-glyph.png';
 
@@ -57,6 +58,7 @@ export interface IEmbedStatSettings {
     showDamageTaken: boolean;
     showDeaths: boolean;
     showDodges: boolean;
+    showDamageMitigation: boolean;
     maxTopListRows: number;
     classDisplay: 'off' | 'short' | 'emoji';
 }
@@ -83,6 +85,7 @@ const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
     showDamageTaken: false,
     showDeaths: false,
     showDodges: false,
+    showDamageMitigation: false,
     maxTopListRows: 10,
     classDisplay: 'off',
 };
@@ -755,6 +758,13 @@ export class DiscordNotifier {
                     const getDeaths = (p: any) => getPlayerDeaths(p);
                     const getDodges = (p: any) => getPlayerDodges(p);
 
+                    // Runs the shared metrics pipeline on this one fight (~25ms);
+                    // skipped entirely when the stat is disabled.
+                    const mitigationByAccount = settings.showDamageMitigation
+                        ? buildFightMitigationByAccount(jsonDetails)
+                        : new Map<string, number>();
+                    const getMitigation = (p: any) => mitigationByAccount.get(p.account ?? p.name) || 0;
+
                     const topListItems: Array<{
                         enabled: boolean;
                         title: string;
@@ -872,6 +882,13 @@ export class DiscordNotifier {
                                 title: "Dodges",
                                 sortFn: (a: any, b: any) => getDodges(b) - getDodges(a),
                                 valFn: (p: any) => getDodges(p),
+                        fmtVal: (v: any) => fmtInt(v)
+                            },
+                            {
+                                enabled: settings.showDamageMitigation,
+                                title: "Damage Mitigation",
+                                sortFn: (a: any, b: any) => getMitigation(b) - getMitigation(a),
+                                valFn: (p: any) => getMitigation(p),
                         fmtVal: (v: any) => fmtInt(v)
                             }
                         ];
