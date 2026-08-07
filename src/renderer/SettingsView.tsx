@@ -2163,7 +2163,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     enabled={embedStats.showDamageMitigation}
                                     onChange={(v) => updateEmbedStat('showDamageMitigation', v)}
                                     label="Damage Mitigation"
-                                    description="Damage reduction and damage prevented"
+                                    description="Estimated damage avoided via blocks, evades, misses, and invulns"
                                 />
                             </div>
                         </div>

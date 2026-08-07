@@ -15,14 +15,20 @@ import {
 export function buildFightMitigationByAccount(jsonDetails: any): Map<string, number> {
     const result = new Map<string, number>();
     if (!jsonDetails) return result;
-    const acc = createPlayerAggregationAccumulators();
-    const log = { details: jsonDetails };
-    precomputeGlobalEnemySkillStats(log, acc);
-    ingestLogPlayerData(log, acc, { method: 'count', skillDamageSource: 'target', splitPlayersByClass: false });
-    finalizePlayerAggregation(acc);
-    for (const row of acc.damageMitigationPlayersMap.values()) {
-        const total = row?.mitigationTotals?.totalMitigation ?? 0;
-        if (total > 0) result.set(row.account || row.name, total);
+    if (!Array.isArray(jsonDetails.players)) return result;
+    try {
+        const acc = createPlayerAggregationAccumulators();
+        const log = { details: jsonDetails };
+        precomputeGlobalEnemySkillStats(log, acc);
+        ingestLogPlayerData(log, acc, { method: 'count', skillDamageSource: 'target', splitPlayersByClass: false });
+        finalizePlayerAggregation(acc);
+        for (const row of acc.damageMitigationPlayersMap.values()) {
+            const total = row?.mitigationTotals?.totalMitigation ?? 0;
+            if (total > 0) result.set(row.account || row.name, total);
+        }
+    } catch (err) {
+        console.warn('[Discord] damage mitigation computation failed; omitting stat', err);
+        return result;
     }
     return result;
 }

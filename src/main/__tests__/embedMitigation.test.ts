@@ -62,4 +62,8 @@ describe('buildFightMitigationByAccount', () => {
             expect(v).toBeGreaterThan(0);
         }
     });
+
+    it('returns an empty map (no throw) for EI shapes without a players array', () => {
+        expect(buildFightMitigationByAccount({ evtc: {} }).size).toBe(0);
+    });
 });

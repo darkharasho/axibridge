@@ -19,7 +19,7 @@
 - Pipeline options, verbatim: `{ method: 'count', skillDamageSource: 'target', splitPlayersByClass: false }` (the dashboard's defaults: `global.d.ts:139` DEFAULT_DISRUPTION_METHOD = 'count'; `incrementalAggregation.ts:555` topSkillDamageSource fallback 'target').
 - Player scope only — rows from `acc.damageMitigationPlayersMap`; minion rows are NOT summed in.
 - With the toggle off (default), posted embeds must be byte-identical to today's — the pipeline must not even run.
-- Main process must import from the package root `@axiapps/bridge-metrics` (its `main: ./dist/index.cjs` resolves under the electron tsconfig's `"module": "commonjs"`); do not import from `src/renderer/`.
+- Main process must import from the package root `@axiapps/bridge-metrics` (resolved via the type-only shim `src/main/bridgeMetricsRoot.d.ts` — TypeScript's default Node10 moduleResolution refuses main/types fallback for bare specifiers once a package declares an exports map); do not import from `src/renderer/`.
 - Commit messages: conventional (`feat:`, `docs:`, `chore:`).
 
 ---

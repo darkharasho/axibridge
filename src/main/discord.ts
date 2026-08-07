@@ -763,7 +763,7 @@ export class DiscordNotifier {
                     const mitigationByAccount = settings.showDamageMitigation
                         ? buildFightMitigationByAccount(jsonDetails)
                         : new Map<string, number>();
-                    const getMitigation = (p: any) => mitigationByAccount.get(p.account ?? p.name) || 0;
+                    const getMitigation = (p: any) => mitigationByAccount.get(p.account && p.account !== 'Unknown' ? p.account : p.name) || 0;
 
                     const topListItems: Array<{
                         enabled: boolean;

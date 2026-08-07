@@ -97,8 +97,10 @@ profiling). `incrementalAggregation.ts` is not touched.
   run the pipeline once (only when the stat is enabled), take the player
   rows' `mitigationTotals.totalMitigation` keyed by account, sort
   descending, respect `maxTopListRows`, format like the existing lists.
-- Fights with no usable enemy damage distribution produce an empty list and
-  the field is omitted, matching existing empty-list behavior.
+- Fights with no usable enemy damage distribution render an empty code
+  block, matching how every all-zero top list behaves today (e.g. Deaths
+  in a deathless fight); pipeline failures on malformed EI JSON degrade to
+  the same empty state without blocking the embed.
 
 ### 3. Settings UI — `src/renderer/SettingsView.tsx`
 
@@ -108,8 +110,8 @@ checkbox-list pattern.
 
 ### 4. Testing & docs
 
-- Unit tests (vitest) for the embed-side mitigation list builder (pipeline
-  invocation + player/minion summing + sorting + row formatting) against a
+- Unit tests (vitest) for the embed-side mitigation map builder (pipeline
+  invocation, keying, zero-total exclusion, malformed-input degradation) against a
   real EI JSON from `test-fixtures/`, plus a synthetic case covering the
   empty/no-enemy-data omission path.
 - `npm run audit:boons && npm run audit:metrics && npm run audit:conditions`
