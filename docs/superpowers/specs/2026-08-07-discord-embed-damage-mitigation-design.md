@@ -79,11 +79,13 @@ ingestLogPlayerData({ details: jsonDetails }, acc, defaultOptions);
 finalizePlayerAggregation(acc);
 ```
 
-then builds the top-10 from `acc.damageMitigationPlayersMap` plus each
-account's minion rows (summed per account — the metric's "Player + Minion"
-scope). `defaultOptions` mirrors the dashboard's defaults
-(`splitPlayersByClass: false`, default disruption method / skill damage
-source). Zero drift is structural: the embed executes the same code the
+then builds the top-10 from `acc.damageMitigationPlayersMap` — **player
+scope only**. (Self-review fix: the dashboard displays player and minion
+mitigation as separate toggled scopes with player as the default, so a
+summed list would break this spec's own success criterion of rank-parity
+with the dashboard; the embed mirrors the dashboard's default player
+scope.) `defaultOptions` mirrors the dashboard's defaults exactly:
+`{ method: 'count', skillDamageSource: 'target', splitPlayersByClass: false }`. Zero drift is structural: the embed executes the same code the
 dashboard does, with a window of one log (~23ms per fight, per existing
 profiling). `incrementalAggregation.ts` is not touched.
 
@@ -92,11 +94,9 @@ profiling). `incrementalAggregation.ts` is not touched.
 - `showDamageMitigation: boolean` added to both `IEmbedStatSettings`
   declarations and both `DEFAULT_EMBED_STATS` objects, default `false`.
 - New top-10 stat definition in the embed builder: for the fight's EI JSON,
-  build single-log enemy skill averages, compute each player's mitigation
-  **including minions** (player `totalDamageTaken[0]` + minions'
-  `totalDamageTakenDist[0]`, matching the metric's "Player + Minion"
-  scope), sort descending, respect `maxTopListRows`, format like the
-  existing lists (emoji-label style).
+  run the pipeline once (only when the stat is enabled), take the player
+  rows' `mitigationTotals.totalMitigation` keyed by account, sort
+  descending, respect `maxTopListRows`, format like the existing lists.
 - Fights with no usable enemy damage distribution produce an empty list and
   the field is omitted, matching existing empty-list behavior.
 
