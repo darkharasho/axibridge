@@ -42,6 +42,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
             { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon, description: 'Where the fights happened, by map.', keywords: ['maps', 'borderlands', 'ebg'] },
             { id: 'top-players', label: 'Top Players', icon: Trophy, description: 'Leaderboard of standout performances.', keywords: ['mvp', 'leaderboard', 'best'] },
             { id: 'top-skills-outgoing', label: 'Top Skills', icon: ArrowBigUp, description: 'Highest-impact outgoing skills across the squad.', keywords: ['skills used', 'damage skills'] },
+            // No standalone anchor yet — rendered inside TopSkillsSection today; Task 5 creates its own render entry.
             { id: 'top-skills-incoming', label: 'Top Incoming Skills', icon: ArrowBigUp, description: 'Enemy skills that hurt the squad the most.', keywords: ['skills taken', 'incoming skills', 'killed by'] },
         ],
     },

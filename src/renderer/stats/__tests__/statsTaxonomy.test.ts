@@ -6,8 +6,10 @@ import {
     resolveSectionTarget,
 } from '../statsTaxonomy';
 
-// Every id that StatsView renders today (from the old STATS_TOC_GROUPS +
-// rendered-but-unlisted sections). This list is the contract: ids are immutable.
+// Every section id in the taxonomy. All ids except 'data-map' and 'top-skills-incoming'
+// are rendered by StatsView today and are immutable deep-link anchors. 'data-map' is
+// new (Task 4 creates it); 'top-skills-incoming' currently renders as the second column
+// inside TopSkillsSection without its own anchor — Task 5 gives it an anchored render entry.
 const EXPECTED_SECTION_IDS = [
     // overview
     'data-map', 'overview', 'fight-breakdown', 'fight-diff-mode', 'timeline',
