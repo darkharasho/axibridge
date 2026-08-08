@@ -2807,12 +2807,20 @@ type SpikeFight = {
         },
         [embedded, isSectionVisibleFast, activeCategorySectionIds]
     );
-    // Data map directory: same visibility rules as the sections themselves, plus
-    // the noEgoMode omissions (see NO_EGO_HIDDEN_SECTION_IDS) since those render
+    // Data map directory: intentionally NOT `isSectionVisible` — in desktop mode
+    // that's scoped to the active category (activeCategorySectionIds), and the
+    // data map itself only renders while its host category ('overview') is
+    // active, so every other category's sections would always read as
+    // disallowed and the directory would only ever show one card. The data map
+    // needs a category-agnostic predicate in both modes: `isSectionVisibleFast`
+    // already is one (settings-based `sectionVisibility` prop when embedded,
+    // otherwise "allow everything" — which is also what desktop needs, since
+    // desktop never passes a `sectionVisibility` prop). Layer the noEgoMode
+    // omissions on top (see NO_EGO_HIDDEN_SECTION_IDS) since those render
     // entries don't exist at all while noEgoMode is on.
     const isDataMapSectionAllowed = useCallback(
-        (id: string) => isSectionVisible(id) && !(noEgoMode && NO_EGO_HIDDEN_SECTION_IDS.has(id)),
-        [isSectionVisible, noEgoMode]
+        (id: string) => isSectionVisibleFast(id) && !(noEgoMode && NO_EGO_HIDDEN_SECTION_IDS.has(id)),
+        [isSectionVisibleFast, noEgoMode]
     );
     const sectionClass = useCallback((id: string, base: string) => {
         const visible = isSectionVisible(id);
