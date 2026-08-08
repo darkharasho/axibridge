@@ -49,7 +49,7 @@ The registry moves to a dedicated module (`statsTaxonomy.ts`) where each categor
 
 ## 2. Navigation structure
 
-- A horizontal **category bar** (replacing the grouped sidebar TOC as primary nav) renders one page per category. Only the active category's sections mount — the existing `sectionVisibility`/active-group gating already works this way; this change removes the scroll facade rather than adding machinery.
+- A **category bar** — categories as the first-class nav level, rendered in each surface's existing nav rail/sheet position — replaces the grouped sidebar TOC as primary nav and renders one page per category. Only the active category's sections mount — the existing `sectionVisibility`/active-group gating already works this way; this change removes the scroll facade rather than adding machinery.
 - **Deleted:** placeholder-height store (`groupHeights` in `statsStore`), ResizeObserver height tracking in `useLazyGroups`, the global wheel-hijack in `useStatsNavigation`, and cross-group scroll tracking.
 - **Kept:** per-section anchor ids; smooth scroll-to-section and active-section tracking *within* the current category page (drives the subnav highlight); `stepSection` prev/next stepping (now within/across categories).
 - Within a category page, a slim **subnav** lists its sections (4–7 entries), reusing the current TOC item icons.
