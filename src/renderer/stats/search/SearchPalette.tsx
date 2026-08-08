@@ -72,7 +72,16 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
         activeRowRef.current?.scrollIntoView({ block: 'nearest' });
     }, [clampedActiveIdx]);
 
-    if (!open) return null;
+    // The flash keyframes must outlive the dialog. Selecting a result calls
+    // onSelect (useSearchJump's jumpToEntry), which only SCHEDULES the flash via
+    // requestAnimationFrame — then selectAt calls onClose() synchronously, which
+    // unmounts this component before that queued frame runs. If this <style> were
+    // gated on `open` too, its stylesheet rule would already be gone by the time
+    // the flash class is applied, and the highlight would silently never render.
+    // Render it unconditionally so it persists across open/close.
+    const flashStyle = <style>{FLASH_STYLE}</style>;
+
+    if (!open) return flashStyle;
 
     const selectAt = (idx: number) => {
         const entry = results[idx];
@@ -153,10 +162,13 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
 
     return (
         <div
-            className="fixed inset-0 z-[200] flex items-start justify-center px-4 pt-[12vh] bg-black/60"
+            // z-[10000]: must sit above FullscreenPortal's zIndex 9999 (replay's
+            // in-app fullscreen host), or Ctrl+K opens the palette invisibly
+            // underneath its opaque, click-intercepting background.
+            className="fixed inset-0 z-[10000] flex items-start justify-center px-4 pt-[12vh] bg-black/60"
             onClick={(e) => e.target === e.currentTarget && onClose()}
         >
-            <style>{FLASH_STYLE}</style>
+            {flashStyle}
             <div
                 className="w-full max-w-lg flex flex-col rounded-[4px] overflow-hidden"
                 style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)', maxHeight: '70vh' }}
