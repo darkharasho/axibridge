@@ -91,4 +91,20 @@ describe('IncrementalAggregator', () => {
             expect(event.shortLabel).toBe('F2');
         }
     });
+
+    it('exposes onTagReview rows aggregated from replay deaths', () => {
+        const logs = makeLogs(fixtureDeaths, fixture2);
+        const result = computeStatsSync({ logs });
+
+        const otr = result.stats.onTagReview;
+        expect(otr).toBeTruthy();
+        expect(Array.isArray(otr.rows)).toBe(true);
+        expect(otr.rows.length).toBeGreaterThan(0);
+        expect(otr.rows.reduce((s: number, r: any) => s + r.total, 0)).toBeGreaterThan(0);
+        for (const row of otr.rows) {
+            // Every death lands in exactly one distance bucket; After-Tag overlays.
+            expect(row.onTag + row.offTag + row.runBack).toBe(row.total);
+            expect(row.afterTag).toBeLessThanOrEqual(row.total);
+        }
+    });
 });
