@@ -105,6 +105,10 @@ interface StatsViewProps {
     /** Host override for where a search-palette selection's category activation goes.
      *  Desktop default (StatsView itself) writes directly to the shared stats store. */
     onRequestCategory?: (categoryId: string) => void;
+    /** Called once with a stable opener for the embedded search palette, so a host
+     *  chrome (e.g. the web report's header/mobile-nav magnifier buttons) can trigger
+     *  it without StatsView mounting a second palette or keydown listener. */
+    onSearchAvailable?: (open: () => void) => void;
     dashboardTitle?: string;
     statsDataProgress?: {
         active: boolean;
@@ -235,7 +239,7 @@ function resolveReplayFights(stats: any): any[] {
     });
 }
 
-export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
+export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
     useEffect(() => {
@@ -784,8 +788,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         // Filtered ONLY by noEgo exclusions — deliberately NOT by the embedded
         // sectionVisibility fn, which is "active group only" (jumping changes the
         // group; see NO_EGO_HIDDEN_SECTION_IDS above for why the data map uses the
-        // same exclusion set). Hosts that genuinely hide sections build their own
-        // palette index (web report task).
+        // same exclusion set). The web report (Task 9) reuses this same unfiltered
+        // index via onRequestCategory/onSearchAvailable rather than building its own.
         isSectionAllowed: (id) => !(noEgoMode && NO_EGO_HIDDEN_SECTION_IDS.has(id)),
     }), [safeStats.playerSkillBreakdowns, noEgoMode]);
     const requestCategory = onRequestCategory ?? ((categoryId: string) => useStatsStore.getState().setActiveCategory(categoryId));
@@ -797,6 +801,13 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
+    }, []);
+
+    // Register a stable opener with the host once, so external chrome (the web
+    // report's header/mobile-nav magnifier buttons) can open this same palette
+    // instead of mounting a second one with its own Ctrl/Cmd+K listener.
+    useEffect(() => {
+        onSearchAvailable?.(() => setSearchOpen(true));
     }, []);
 
     const {

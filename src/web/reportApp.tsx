@@ -1,5 +1,7 @@
-import { CSSProperties, MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { CSSProperties, MouseEvent as ReactMouseEvent, startTransition, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { StatsView } from '../renderer/StatsView';
+import { STATS_TOC_GROUPS } from '../renderer/stats/hooks/useStatsNavigation';
+import { resolveSectionTarget } from '../renderer/stats/statsTaxonomy';
 import { PALETTES, type ColorPalette } from '../shared/webThemes';
 import { readPaletteFromReport } from './paletteReader';
 import ReactMarkdown from 'react-markdown';
@@ -7,15 +9,7 @@ import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ProofOfWorkModal } from '../renderer/ui/ProofOfWorkModal';
-import { SupportPlusIcon } from '../renderer/ui/SupportPlusIcon';
-import { OffenseSwordIcon } from '../renderer/ui/OffenseSwordIcon';
 import { CommanderTagIcon } from '../renderer/ui/CommanderTagIcon';
-import { Gw2ApmIcon } from '../renderer/ui/Gw2ApmIcon';
-import { Gw2AegisIcon } from '../renderer/ui/Gw2AegisIcon';
-import { Gw2BoonIcon } from '../renderer/ui/Gw2BoonIcon';
-import { Gw2DamMitIcon } from '../renderer/ui/Gw2DamMitIcon';
-import { Gw2FuryIcon } from '../renderer/ui/Gw2FuryIcon';
-import { Gw2SigilIcon } from '../renderer/ui/Gw2SigilIcon';
 import { buildRollupData, parseRollupSourcesFile, RollupData, RollupProfessionUsage, RollupCommanderRow, RollupPlayerRow } from './rollup';
 import { getProfessionColor } from '../shared/professionUtils';
 import { MetricDistributionCard } from '../renderer/stats/components/MetricDistributionCard';
@@ -24,40 +18,15 @@ import type { ReportPayload, ReportIndexEntry } from '../shared/reportTypes';
 import { expandIconIndex, normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
 import {
     ShieldCheck,
-    Shield,
-    ShieldAlert,
     CalendarDays,
     Users,
     ExternalLink,
-    LayoutDashboard,
-    Trophy,
-    Swords,
-    Map as MapIcon,
-    Sparkles,
-    HeartPulse,
-    Waves,
-    Star,
-    Skull,
     PanelLeft,
-    Zap,
     ArrowLeft,
     ArrowUp,
-    ArrowBigUp,
-    Clock3,
-    FileText,
-    ListTree,
     BarChart3,
-    Keyboard,
-    Route,
-    Target,
     ChevronDown,
-    GitCompareArrows,
-    Flame,
-    ShieldMinus,
-    ArrowUpDown,
-    Crosshair,
-    Eraser,
-    Play
+    Search
 } from 'lucide-react';
 
 
@@ -360,21 +329,18 @@ export function ReportApp() {
     const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; section: string; hitId: number }>>([]);
     const [metricsSpecSearchFocused, setMetricsSpecSearchFocused] = useState(false);
     const [activeGroup, setActiveGroup] = useState('overview');
-    const [activeSectionId, setActiveSectionId] = useState<string>('kdr');
+    const [activeSectionId, setActiveSectionId] = useState<string>('overview');
     const [viewportWidth, setViewportWidth] = useState<number>(() => {
         if (typeof window === 'undefined') return 1280;
         return Math.max(0, Math.round(window.visualViewport?.width || window.innerWidth || 1280));
     });
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-        overview: true,
-        roster: false,
-        offense: false,
-        defense: false,
-        other: false
+        overview: true
     });
     const statsWrapperRef = useRef<HTMLDivElement | null>(null);
     const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
     const metricsSpecSearchRef = useRef<HTMLDivElement | null>(null);
+    const searchOpenRef = useRef<(() => void) | null>(null);
     const metricsSpecHighlightRef = useRef<number | null>(null);
     const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
     const pendingScrollIdRef = useRef<string | null>(null);
@@ -678,143 +644,11 @@ export function ReportApp() {
         };
     }, [proofOfWorkOpen, metricsSpecNav]);
 
-    const navGroups = useMemo(() => ([
-        {
-            id: 'overview',
-            label: 'Overview',
-            icon: LayoutDashboard,
-            sectionIds: [
-                'overview',
-                'kdr',
-                'fight-breakdown',
-                'top-players',
-                'top-skills-outgoing',
-                'top-skills-incoming',
-                'timeline',
-                'map-distribution',
-                'squad-composition'
-            ],
-            items: [
-                { id: 'kdr', label: 'KDR', icon: Trophy },
-                { id: 'fight-breakdown', label: 'Fight Breakdown', icon: Swords },
-                { id: 'top-players', label: 'Top Players', icon: Trophy },
-                { id: 'top-skills-outgoing', label: 'Top Skills', icon: ArrowBigUp },
-                { id: 'squad-composition', label: 'Classes', icon: Users },
-                { id: 'timeline', label: 'Squad vs Enemy Size', icon: Users },
-                { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon }
-            ]
-        },
-        {
-            id: 'commanders',
-            label: 'Commander Stats',
-            icon: CommanderTagIcon,
-            sectionIds: ['commander-stats', 'commander-push-timing', 'commander-target-conversion', 'commander-tag-movement', 'commander-tag-death-response'],
-            items: [
-                { id: 'commander-stats', label: 'Commander Stats', icon: CommanderTagIcon },
-                { id: 'commander-push-timing', label: 'Push Timing', icon: Clock3 },
-                { id: 'commander-target-conversion', label: 'Target Conversion', icon: Target },
-                { id: 'commander-tag-movement', label: 'Tag Movement', icon: Route },
-                { id: 'commander-tag-death-response', label: 'Tag Death Response', icon: Skull }
-            ]
-        },
-        {
-            id: 'squad-stats',
-            label: 'Squad Stats',
-            icon: Users,
-            sectionIds: ['squad-damage-comparison', 'squad-kill-pressure', 'heal-effectiveness', 'squad-tag-distance-deaths', 'on-tag-review', 'squad-distance-to-tag', 'squad-distance-to-tag-visual'],
-            items: [
-                { id: 'squad-damage-comparison', label: 'Damage Comparison', icon: ArrowUpDown },
-                { id: 'squad-kill-pressure', label: 'Kill Pressure', icon: Target },
-                { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves },
-                { id: 'squad-tag-distance-deaths', label: 'Tag Distance Deaths', icon: Crosshair },
-                { id: 'on-tag-review', label: 'On Tag Review', icon: Skull },
-                { id: 'squad-distance-to-tag', label: 'Distance to Tag', icon: Crosshair },
-                { id: 'squad-distance-to-tag-visual', label: 'Distance to Tag Visual', icon: Crosshair }
-            ]
-        },
-        {
-            id: 'roster',
-            label: 'Roster Intel',
-            icon: FileText,
-            sectionIds: ['attendance-ledger', 'squad-comp-fight', 'fight-comp'],
-            items: [
-                { id: 'attendance-ledger', label: 'Attendance', icon: FileText },
-                { id: 'squad-comp-fight', label: 'Squad Comp', icon: Users },
-                { id: 'fight-comp', label: 'Fight Comp', icon: Swords }
-            ]
-        },
-        {
-            id: 'offense',
-            label: 'Offensive Stats',
-            icon: Swords,
-            sectionIds: ['offense-detailed', 'damage-modifiers', 'player-breakdown', 'damage-breakdown', 'spike-damage', 'all-damage', 'strip-spikes', 'conditions-outgoing'],
-            items: [
-                { id: 'offense-detailed', label: 'Offense Detailed', icon: OffenseSwordIcon },
-                { id: 'damage-modifiers', label: 'Damage Modifiers', icon: Flame },
-                { id: 'player-breakdown', label: 'Player Breakdown', icon: ListTree },
-                { id: 'damage-breakdown', label: 'Damage Breakdown', icon: BarChart3 },
-                { id: 'spike-damage', label: 'Spike Damage', icon: Zap },
-                { id: 'all-damage', label: 'All Damage', icon: Flame },
-                { id: 'strip-spikes', label: 'Strip Spikes', icon: Eraser },
-                { id: 'conditions-outgoing', label: 'Conditions', icon: Skull }
-            ]
-        },
-        {
-            id: 'defense',
-            label: 'Defensive Stats',
-            icon: Shield,
-            sectionIds: ['defense-detailed', 'incoming-damage-modifiers', 'incoming-strike-damage', 'defense-mitigation', 'boon-output', 'all-boons', 'boon-timeline', 'boon-uptime', 'stab-performance', 'support-detailed', 'healing-stats', 'healing-breakdown'],
-            items: [
-                { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
-                { id: 'incoming-damage-modifiers', label: 'Incoming Damage Modifiers', icon: ShieldMinus },
-                { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert },
-                { id: 'defense-mitigation', label: 'Damage Mitigation', icon: Gw2DamMitIcon },
-                { id: 'boon-output', label: 'Boon Output', icon: Gw2BoonIcon },
-                { id: 'all-boons', label: 'All Boons', icon: Gw2BoonIcon },
-                { id: 'boon-timeline', label: 'Boon Timeline', icon: Gw2AegisIcon },
-                { id: 'boon-uptime', label: 'Boon Uptime', icon: Gw2FuryIcon },
-                { id: 'stab-performance', label: 'Stab Performance', icon: Shield },
-                { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
-                { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
-                { id: 'healing-breakdown', label: 'Healing Breakdown', icon: ListTree }
-            ]
-        },
-        {
-            id: 'other',
-            label: 'Other Metrics',
-            icon: Sparkles,
-            sectionIds: ['fight-diff-mode', 'special-buffs', 'sigil-relic-uptime', 'skill-usage', 'apm-stats', 'player-comparison'],
-            items: [
-                { id: 'fight-diff-mode', label: 'Fight Comparison', icon: GitCompareArrows },
-                { id: 'special-buffs', label: 'Special Buffs', icon: Star },
-                { id: 'sigil-relic-uptime', label: 'Sigil/Relic Uptime', icon: Gw2SigilIcon },
-                { id: 'skill-usage', label: 'Skill Usage', icon: Keyboard },
-                { id: 'apm-stats', label: 'APM Breakdown', icon: Gw2ApmIcon },
-                { id: 'player-comparison', label: 'Player Comparison', icon: Users }
-            ]
-        },
-        {
-            id: 'map',
-            label: 'Map',
-            icon: MapIcon,
-            sectionIds: ['replay'],
-            items: [
-                { id: 'replay', label: 'Replay', icon: Play }
-            ]
-        }
-    ]), []);
-    const navGroupByAnchor = useMemo(() => {
-        const map = new Map<string, string>();
-        navGroups.forEach((group) => {
-            map.set(group.id.toLowerCase(), group.id);
-            (group.sectionIds || []).forEach((id) => map.set(String(id).toLowerCase(), group.id));
-            (group.items || []).forEach((item) => map.set(String(item.id).toLowerCase(), group.id));
-        });
-        map.set('report-top', 'overview');
-        map.set('overview', 'overview');
-        map.set('kdr', 'overview');
-        return map;
-    }, [navGroups]);
+    // Derived from the shared taxonomy (Task 1/5) instead of a hand-duplicated
+    // literal — the web report picks up the same 10 categories as the desktop
+    // and History nav automatically. Historical web-only anchors ('kdr',
+    // 'report-top', old group ids) are handled by resolveSectionTarget below.
+    const navGroups = useMemo(() => STATS_TOC_GROUPS.map((g) => ({ ...g, sectionIds: [...g.sectionIds], items: [...g.items] })), []);
     const activeGroupDef = useMemo(
         () => navGroups.find((group) => group.id === activeGroup) || navGroups[0],
         [navGroups, activeGroup]
@@ -840,9 +674,11 @@ export function ReportApp() {
             }
             return true;
         }
+        // 'kdr' is a legacy alias (resolveSectionTarget maps it to the real
+        // 'overview' section id) — remapped defensively in case anything ever
+        // calls this with the raw legacy id directly.
         const targetId = id === 'kdr' ? 'overview' : id;
-        const resolvedId = (targetId === 'overview' && id !== 'kdr') ? 'report-top' : targetId;
-        const el = document.getElementById(resolvedId);
+        const el = document.getElementById(targetId);
         if (!el) return false;
         const isVisible = el.getAttribute('data-section-visible') !== 'false';
         if (!isVisible) return false;
@@ -850,7 +686,7 @@ export function ReportApp() {
         const rect = el.getBoundingClientRect();
         if (rect.height <= 0) return false;
         let extraOffset = 0;
-        if (resolvedId === 'stats-view-top') {
+        if (targetId === 'stats-view-top') {
             const reportTop = document.getElementById('report-top');
             if (reportTop) {
                 extraOffset = reportTop.getBoundingClientRect().height + 12;
@@ -859,7 +695,7 @@ export function ReportApp() {
         const targetTop = rect.top + window.scrollY - 12 - extraOffset;
         window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
         if (history.replaceState) {
-            history.replaceState(null, '', `#${resolvedId}`);
+            history.replaceState(null, '', `#${targetId}`);
         }
         return true;
     };
@@ -906,39 +742,31 @@ export function ReportApp() {
         const syncFromHash = () => {
             const raw = (window.location.hash || '').replace(/^#/, '').trim();
             if (!raw) return;
-            let anchor = raw;
-            try {
-                anchor = decodeURIComponent(raw);
-            } catch {
-                anchor = raw;
-            }
-            const normalizedAnchor = anchor.toLowerCase();
-            const nextGroup = navGroupByAnchor.get(normalizedAnchor);
-            if (!nextGroup) return;
-            setActiveGroup(nextGroup);
+            // Shared resolver (Task 1): understands every real section id, every
+            // category id, and the legacy aliases ('kdr', 'report-top', old group
+            // ids like 'commanders'/'squad-stats'/'roster'/'other'/'map').
+            const target = resolveSectionTarget(raw);
+            if (!target) return;
+            setActiveGroup(target.categoryId);
             setExpandedGroups(() => {
                 const next: Record<string, boolean> = {};
                 navGroups.forEach((group) => {
-                    next[group.id] = group.id === nextGroup;
+                    next[group.id] = group.id === target.categoryId;
                 });
                 return next;
             });
-            if (normalizedAnchor === 'report-top') {
-                setActiveSectionId('kdr');
-            } else {
-                const matchedGroup = navGroups.find((group) => group.id.toLowerCase() === normalizedAnchor);
-                setActiveSectionId(matchedGroup?.items?.[0]?.id || normalizedAnchor);
-            }
-            pendingScrollIdRef.current = normalizedAnchor === 'report-top'
-                ? 'kdr'
-                : normalizedAnchor;
+            setActiveSectionId(target.sectionId);
+            // 'report-top' means "scroll the page to the very top", which
+            // scrollToSection special-cases — keep that literal sentinel instead
+            // of resolving it to the overview section id.
+            pendingScrollIdRef.current = (raw.toLowerCase().replace(/^#/, '') === 'report-top') ? 'report-top' : target.sectionId;
         };
         syncFromHash();
         window.addEventListener('hashchange', syncFromHash);
         return () => {
             window.removeEventListener('hashchange', syncFromHash);
         };
-    }, [navGroupByAnchor, navGroups]);
+    }, [navGroups]);
     // All theming is now driven by CSS variables set by palette/glass body classes.
     const defaultLogoColor = 'var(--brand-primary)';
     const glassCardStyle: CSSProperties = {
@@ -1548,7 +1376,7 @@ export function ReportApp() {
             pendingScrollIdRef.current = null;
             setActiveGroup(groupId);
             const group = navGroups.find((entry) => entry.id === groupId);
-            setActiveSectionId(group?.items?.[0]?.id || 'kdr');
+            setActiveSectionId(group?.items?.[0]?.id || 'overview');
             animateGroupScrollToTop();
         };
         const handleGroupHeaderClick = (groupId: string) => {
@@ -1879,6 +1707,15 @@ export function ReportApp() {
                                 </div>
                             </div>
                             <button
+                                onClick={() => searchOpenRef.current?.()}
+                                title="Search (Ctrl+K)"
+                                aria-label="Search"
+                                className="flex px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2"
+                            >
+                                <Search className="w-4 h-4" />
+                                Search
+                            </button>
+                            <button
                                 onClick={() => setTocOpen(true)}
                                 className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2`}
                             >
@@ -1934,6 +1771,8 @@ export function ReportApp() {
                                 embedded
                                 sectionVisibility={sectionVisibilityFn}
                                 dashboardTitle={dashboardTitleText}
+                                onRequestCategory={(categoryId) => startTransition(() => setActiveGroup(categoryId))}
+                                onSearchAvailable={(open) => { searchOpenRef.current = open; }}
                             />
                         </div>
                     </div>
@@ -1956,6 +1795,13 @@ export function ReportApp() {
                         >
                             <PanelLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                             Contents
+                        </button>
+                        <button
+                            onClick={() => searchOpenRef.current?.()}
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                        >
+                            <Search className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                            Search
                         </button>
                         <button
                             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
