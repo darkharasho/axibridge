@@ -26,6 +26,7 @@ import { ingestLogCommanderStats } from './computeCommanderStats';
 import { ingestLogFightDiffMode } from './computeFightDiffMode';
 import { ingestLogTagDistanceDeaths } from './computeTagDistanceDeaths';
 import { ingestLogDistanceToTag, finalizeDistanceToTag, type DistanceToTagResult } from './computeDistanceToTag';
+import { ingestLogOnTagReview, finalizeOnTagReview, type OnTagReviewResult } from './computeOnTagReview';
 import { ingestLogHealEffectiveness } from './computeHealEffectivenessData';
 
 import { createSpikeDamageAccumulator, ingestLogSpikeDamage, finalizeSpikeDamage } from './computeSpikeDamageData';
@@ -294,6 +295,12 @@ interface StoredDistanceToTagContrib {
     contributions: any; // DistanceContribution[]
 }
 
+// Stored per-valid-log contributions from ingestLogOnTagReview
+interface StoredOnTagReviewContrib {
+    timestamp: number;
+    contributions: any; // OnTagReviewContribution[]
+}
+
 // Stored per-valid-log for incomingDamagePerSecond computation
 interface StoredIncomingDamageEntry {
     fightId: string;
@@ -516,6 +523,7 @@ export class IncrementalAggregator {
     private healEffectivenessResults: StoredHealEffectiveness[] = [];
     private tagDistanceDeathsResults: StoredTagDistanceDeaths[] = [];
     private distanceToTagContribs: StoredDistanceToTagContrib[] = [];
+    private onTagReviewContribs: StoredOnTagReviewContrib[] = [];
     private incomingDamageEntries: StoredIncomingDamageEntry[] = [];
     private squadCompEntries: StoredSquadComp[] = [];
 
@@ -700,6 +708,12 @@ export class IncrementalAggregator {
         this.distanceToTagContribs.push({
             timestamp,
             contributions: ingestLogDistanceToTag(log, idx),
+        });
+
+        // On Tag Review (per-player death classification)
+        this.onTagReviewContribs.push({
+            timestamp,
+            contributions: ingestLogOnTagReview(log, idx),
         });
 
         // 4. Accumulative functions
@@ -910,6 +924,13 @@ export class IncrementalAggregator {
         // Distance to tag — finalize from all collected contributions
         const distanceToTag: DistanceToTagResult = finalizeDistanceToTag(
             this.distanceToTagContribs.flatMap(s => s.contributions || [])
+        );
+
+        // On Tag Review — sort by timestamp so Off-Tag ranges list chronologically
+        const onTagReview: OnTagReviewResult = finalizeOnTagReview(
+            [...this.onTagReviewContribs]
+                .sort((a, b) => a.timestamp - b.timestamp)
+                .flatMap(s => s.contributions || [])
         );
 
         // Sort incomingDamagePerSecond entries by timestamp and build map
@@ -1475,6 +1496,7 @@ export class IncrementalAggregator {
             healEffectiveness,
             tagDistanceDeaths,
             distanceToTag,
+            onTagReview,
             specialTables,
             topStatsPerSecond,
             topStatsLeaderboardsPerSecond: perSecondLeaderboards,

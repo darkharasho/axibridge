@@ -68,12 +68,13 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
         id: 'squad-stats',
         label: 'Squad Stats',
         icon: Users,
-        sectionIds: ['squad-damage-comparison', 'squad-kill-pressure', 'heal-effectiveness', 'squad-tag-distance-deaths', 'squad-distance-to-tag', 'squad-distance-to-tag-visual'],
+        sectionIds: ['squad-damage-comparison', 'squad-kill-pressure', 'heal-effectiveness', 'squad-tag-distance-deaths', 'on-tag-review', 'squad-distance-to-tag', 'squad-distance-to-tag-visual'],
         items: [
             { id: 'squad-damage-comparison', label: 'Damage Comparison', icon: ArrowUpDown },
             { id: 'squad-kill-pressure', label: 'Kill Pressure', icon: Target },
             { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves },
             { id: 'squad-tag-distance-deaths', label: 'Tag Distance Deaths', icon: Crosshair },
+            { id: 'on-tag-review', label: 'On Tag Review', icon: Skull },
             { id: 'squad-distance-to-tag', label: 'Distance to Tag', icon: Crosshair },
             { id: 'squad-distance-to-tag-visual', label: 'Distance to Tag Visual', icon: Crosshair },
         ]

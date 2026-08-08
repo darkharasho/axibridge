@@ -73,7 +73,9 @@ import { SquadKillPressureSection } from './stats/sections/SquadKillPressureSect
 import { SquadTagDistanceDeathsSection } from './stats/sections/SquadTagDistanceDeathsSection';
 import { SquadDistanceToTagSection } from './stats/sections/SquadDistanceToTagSection';
 import { SquadDistanceToTagVisualSection } from './stats/sections/SquadDistanceToTagVisualSection';
+import { OnTagReviewSection } from './stats/sections/OnTagReviewSection';
 import type { DistanceToTagResult } from './stats/computeDistanceToTag';
+import type { OnTagReviewResult } from './stats/computeOnTagReview';
 import { PlayerComparisonSection } from './stats/sections/PlayerComparisonSection';
 import { ReplaySection } from './stats/sections/ReplaySection';
 import type { TagDistanceDeathFightSummary } from './stats/computeTagDistanceDeaths';
@@ -129,6 +131,7 @@ const ORDERED_SECTION_IDS = [
     'squad-kill-pressure',
     'heal-effectiveness',
     'squad-tag-distance-deaths',
+    'on-tag-review',
     'squad-distance-to-tag',
     'squad-distance-to-tag-visual',
     'attendance-ledger',
@@ -731,6 +734,11 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const distanceToTagResult: DistanceToTagResult = useMemo(() => {
         const v = (safeStats as any)?.distanceToTag;
         return v && Array.isArray(v.rows) ? v : { rows: [], commanderCount: 0 };
+    }, [safeStats]);
+
+    const onTagReviewResult: OnTagReviewResult = useMemo(() => {
+        const v = (safeStats as any)?.onTagReview;
+        return v && Array.isArray(v.rows) ? v : { rows: [], usableFightCount: 0 };
     }, [safeStats]);
 
     const [distanceToTagFilterEnabled, setDistanceToTagFilterEnabled] = useState(false);
@@ -4669,6 +4677,10 @@ type SpikeFight = {
                                 fights={tagDistanceDeathsData}
                             />)}
 
+                            {renderSectionWrap(<OnTagReviewSection
+                                result={onTagReviewResult}
+                            />)}
+
                             {renderSectionWrap(<SquadDistanceToTagSection
                                 result={distanceToTagResult}
                                 filterEnabled={distanceToTagFilterEnabled}
@@ -4775,6 +4787,9 @@ type SpikeFight = {
                             /> },
                             { id: 'squad-tag-distance-deaths', element: <SquadTagDistanceDeathsSection
                                 fights={tagDistanceDeathsData}
+                            /> },
+                            { id: 'on-tag-review', element: <OnTagReviewSection
+                                result={onTagReviewResult}
                             /> },
                             { id: 'squad-distance-to-tag', element: <SquadDistanceToTagSection
                                 result={distanceToTagResult}

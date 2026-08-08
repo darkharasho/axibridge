@@ -36,6 +36,7 @@ export const SECTION_ACCENT_COLORS: Record<string, string> = {
     'squad-kill-pressure': 'var(--section-offense)',
     'heal-effectiveness': 'var(--section-healing)',
     'squad-tag-distance-deaths': 'var(--section-defense)',
+    'on-tag-review': 'var(--section-defense)',
     'squad-distance-to-tag': 'var(--section-defense)',
     'squad-distance-to-tag-visual': 'var(--section-defense)',
     // Roster group
