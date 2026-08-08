@@ -173,6 +173,7 @@ export const PlayerBreakdownSection = ({
                                     ? playerSkillBreakdowns.map((player) => (
                                         <div key={player.key} className="space-y-1">
                                         <button
+                                            data-player-account={player.account}
                                             onClick={() => {
                                                 const switchedPlayer = activePlayerKey !== player.key;
                                                 if (switchedPlayer) {
@@ -525,6 +526,7 @@ export const PlayerBreakdownSection = ({
                                                     }))}
                                                     rows={rows.map((entry, idx) => ({
                                                         id: `${entry.player.key}-${idx}`,
+                                                        playerAccount: entry.player.account,
                                                         label: (
                                                             <>
                                                                 <span className="text-[color:var(--text-muted)] font-mono">{idx + 1}</span>
@@ -782,6 +784,7 @@ export const PlayerBreakdownSection = ({
                                                     }))}
                                                     rows={rows.map((entry, idx) => ({
                                                         id: `${entry.player.key}-${idx}`,
+                                                        playerAccount: entry.player.account,
                                                         label: (
                                                             <>
                                                                 <span className="text-[color:var(--text-muted)] font-mono">{idx + 1}</span>
@@ -852,7 +855,7 @@ export const PlayerBreakdownSection = ({
                                                         const damage = Number(skillEntry?.damage || 0);
                                                         const dps = player.totalFightMs > 0 ? damage / (player.totalFightMs / 1000) : 0;
                                                         return (
-                                                            <div key={`${activeClassBreakdown.profession}-${player.key}`} className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                                                            <div key={`${activeClassBreakdown.profession}-${player.key}`} data-player-account={player.account} className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                     {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4')}
                                                                     <div className="min-w-0">

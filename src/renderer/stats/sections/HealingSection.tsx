@@ -306,6 +306,7 @@ export const HealingSection = ({
                                 }}
                                 columns={selectedHealingColumns.map((metricEntry) => ({
                                     id: metricEntry.id,
+                                    metricKey: metricEntry.id,
                                     label: metricEntry.label,
                                     align: 'right',
                                     minWidth: 90
@@ -342,6 +343,7 @@ export const HealingSection = ({
                             {HEALING_METRICS.map((metric) => (
                                 <button
                                     key={metric.id}
+                                    data-metric-key={metric.id}
                                     onClick={() => setActiveHealingMetric(metric.id)}
                                     className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeHealingMetric === metric.id
                                         ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'

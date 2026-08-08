@@ -18,13 +18,86 @@ beforeEach(() => {
 // exercise the taxonomy's category -> section wiring. In embedded mode (used by
 // the other StatsView integration tests), every section renders unconditionally
 // regardless of category, which would make that loop a no-op.
+//
+// The five metric-home sections (and player-breakdown) gate their interactive
+// content on `stats.<x>Players.length > 0` / `playerSkillBreakdowns.length > 0` —
+// with none of those populated they fall back to a "No X stats available"
+// placeholder and render zero per-metric/per-player elements. IncrementalAggregator
+// only derives those arrays from ingested logs; when `precomputedStats` is passed
+// (as here, with `logs=[]`) and has no `fightBreakdown`, `enrichPrecomputedStats`
+// is an identity passthrough — so precomputedStats.offensePlayers etc. flow straight
+// through to `stats.offensePlayers` unchanged. That's what the fixture rows below
+// rely on, to exercise the data-metric-key/data-player-account tests further down.
+const FIXTURE_ACCOUNT = 'test.1234';
+const FIXTURE_PROFESSION = 'Guardian';
+const FIXTURE_PROFESSION_LIST = [FIXTURE_PROFESSION];
+const FIXTURE_SKILL = { id: 's1', name: 'Skill 1', damage: 10000, downContribution: 150 };
+
 function renderStatsViewWithFixtures() {
     const stats = {
         fightSummaries: [],
-        playerSkillBreakdowns: [],
+        playerSkillBreakdowns: [
+            {
+                key: `${FIXTURE_ACCOUNT}|${FIXTURE_PROFESSION}`,
+                account: FIXTURE_ACCOUNT,
+                displayName: FIXTURE_ACCOUNT,
+                profession: FIXTURE_PROFESSION,
+                professionList: FIXTURE_PROFESSION_LIST,
+                totalFightMs: 60000,
+                skills: [FIXTURE_SKILL],
+                skillMap: { s1: FIXTURE_SKILL },
+            },
+        ],
         apmBreakdowns: [],
         skillUsageBreakdowns: [],
         fightDiffMode: {},
+        offensePlayers: [
+            {
+                account: FIXTURE_ACCOUNT,
+                profession: FIXTURE_PROFESSION,
+                professionList: FIXTURE_PROFESSION_LIST,
+                offenseTotals: { downContribution: 500 },
+                offenseRateWeights: {},
+                totalFightMs: 60000,
+            },
+        ],
+        defensePlayers: [
+            {
+                account: FIXTURE_ACCOUNT,
+                profession: FIXTURE_PROFESSION,
+                professionList: FIXTURE_PROFESSION_LIST,
+                defenseTotals: { damageTaken: 1000 },
+                activeMs: 60000,
+            },
+        ],
+        damageMitigationPlayers: [
+            {
+                account: FIXTURE_ACCOUNT,
+                profession: FIXTURE_PROFESSION,
+                professionList: FIXTURE_PROFESSION_LIST,
+                mitigationTotals: { totalMitigation: 800 },
+                activeMs: 60000,
+            },
+        ],
+        supportPlayers: [
+            {
+                account: FIXTURE_ACCOUNT,
+                profession: FIXTURE_PROFESSION,
+                professionList: FIXTURE_PROFESSION_LIST,
+                supportTotals: { condiCleanse: 10 },
+                activeMs: 60000,
+            },
+        ],
+        healingPlayers: [
+            {
+                account: FIXTURE_ACCOUNT,
+                profession: FIXTURE_PROFESSION,
+                professionList: FIXTURE_PROFESSION_LIST,
+                healingTotals: { healing: 5000 },
+                activeMs: 60000,
+                hasHealAddon: true,
+            },
+        ],
     };
 
     return render(
@@ -113,5 +186,32 @@ describe('StatsView taxonomy integrity', () => {
         await screen.findByRole('dialog', { name: 'Search' });
         fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
         expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull();
+    });
+
+    it('exposes data-metric-key targets in the five metric-home sections', async () => {
+        const { container } = renderStatsViewWithFixtures();
+        const cases: Array<[string, string, string]> = [
+            ['offense', 'offense-detailed', 'downContribution'],
+            ['defense', 'defense-detailed', 'damageTaken'],
+            ['defense', 'defense-mitigation', 'totalMitigation'],
+            ['support-healing', 'support-detailed', 'condiCleanse'],
+            ['support-healing', 'healing-stats', 'healing'],
+        ];
+        for (const [categoryId, sectionId, metricId] of cases) {
+            useStatsStore.getState().setActiveCategory(categoryId);
+            await waitFor(() => {
+                const section = container.querySelector(`#${CSS.escape(sectionId)}`);
+                expect(section?.querySelector(`[data-metric-key="${metricId}"]`),
+                    `missing data-metric-key=${metricId} in #${sectionId}`).toBeTruthy();
+            });
+        }
+    });
+
+    it('exposes data-player-account rows in player breakdown', async () => {
+        const { container } = renderStatsViewWithFixtures();
+        useStatsStore.getState().setActiveCategory('players');
+        await waitFor(() => {
+            expect(container.querySelector('#player-breakdown [data-player-account]')).toBeTruthy();
+        });
     });
 });

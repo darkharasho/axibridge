@@ -337,6 +337,7 @@ export const SupportSection = ({
                                     }}
                                     columns={visibleSupportColumns.map((metric) => ({
                                         id: metric.id,
+                                        metricKey: metric.id,
                                         label: metric.label,
                                         align: 'right',
                                         minWidth: 90
@@ -384,6 +385,7 @@ export const SupportSection = ({
                                 return filteredSupportMetrics.map((metric) => (
                                     <button
                                         key={metric.id}
+                                        data-metric-key={metric.id}
                                         onClick={() => setActiveSupportStat(metric.id)}
                                         className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeSupportStat === metric.id
                                             ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'

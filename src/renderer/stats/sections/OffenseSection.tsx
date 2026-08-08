@@ -311,6 +311,7 @@ export const OffenseSection = ({
                                     }}
                                     columns={visibleOffenseMetrics.map((metricEntry) => ({
                                         id: metricEntry.id,
+                                        metricKey: metricEntry.id,
                                         label: metricEntry.label,
                                         align: 'right',
                                         minWidth: 90
@@ -358,6 +359,7 @@ export const OffenseSection = ({
                                 return filteredOffenseMetrics.map((metric) => (
                                     <button
                                         key={metric.id}
+                                        data-metric-key={metric.id}
                                         onClick={() => setActiveOffenseStat(metric.id)}
                                         className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeOffenseStat === metric.id
                                             ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'

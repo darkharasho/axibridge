@@ -148,6 +148,7 @@ export const NoEgoMetricSection: React.FC<NoEgoMetricSectionProps> = ({
                             {filteredMetrics.map((metric) => (
                                 <button
                                     key={metric.id}
+                                    data-metric-key={metric.id}
                                     onClick={() => setActiveStatId(metric.id)}
                                     className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeStatId === metric.id
                                         ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'

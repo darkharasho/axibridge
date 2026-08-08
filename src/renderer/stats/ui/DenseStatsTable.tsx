@@ -8,12 +8,24 @@ type DenseStatsColumn = {
     label: ReactNode;
     align?: 'left' | 'right';
     minWidth?: number;
+    /**
+     * Search-jump target key (metric `id` from OFFENSE_METRICS/DEFENSE_METRICS/etc).
+     * Only the five metric-home sections set this; other DenseStatsTable
+     * consumers (e.g. PlayerBreakdownSection's skill columns) omit it, so no
+     * attribute is rendered for them. See useSearchJump's data-metric-key selector.
+     */
+    metricKey?: string;
 };
 
 type DenseStatsRow = {
     id: string;
     label: ReactNode;
     values: Record<string, ReactNode>;
+    /**
+     * Search-jump target key (player account). Only PlayerBreakdownSection's
+     * per-player rows set this. See useSearchJump's data-player-account selector.
+     */
+    playerAccount?: string;
 };
 
 type DenseStatsTableProps = {
@@ -88,6 +100,7 @@ export const DenseStatsTable = ({
                             return (
                             <div
                                 key={column.id}
+                                data-metric-key={column.metricKey}
                                 className={`dense-table__head ${column.align === 'right' ? 'dense-table__cell--right' : ''} ${sortColumnId === column.id ? 'dense-table__head--active' : ''}`}
                                 style={column.minWidth ? { minWidth: column.minWidth } : undefined}
                             >
@@ -108,7 +121,7 @@ export const DenseStatsTable = ({
                             </div>
                         )})}
                         {rows.map((row) => (
-                            <div key={row.id} className="dense-table__row">
+                            <div key={row.id} data-player-account={row.playerAccount} className="dense-table__row">
                                 <div className="dense-table__cell dense-table__cell--label dense-table__cell--pinned">{row.label}</div>
                                 {columns.map((column) => (
                                     <div
