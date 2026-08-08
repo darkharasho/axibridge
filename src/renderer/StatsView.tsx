@@ -14,7 +14,6 @@ import { SectionPanel } from './stats/ui/SectionPanel';
 import { useStatsNavigation, STATS_TOC_GROUPS } from './stats/hooks/useStatsNavigation';
 import { GROUP_ACCENT_COLORS } from './stats/sectionColors';
 import { useStatsStore } from './stats/statsStore';
-import { useLazyGroups } from './stats/hooks/useLazyGroups';
 import { useStatsUploads } from './stats/hooks/useStatsUploads';
 import { useStatsAggregationWorker, type AggregationDiagnosticsState, type AggregationProgressState } from './stats/hooks/useStatsAggregationWorker';
 import { isReplayElided } from './workers/replayTransfer';
@@ -259,11 +258,6 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         [sectionVisibility]
     );
 
-    // Lazy group rendering — only used for non-embedded (desktop) path
-    const { activeNavGroup, groupResizeRef } = useLazyGroups(
-        STATS_TOC_GROUPS.map(g => ({ id: g.id, sectionIds: [...g.sectionIds] }))
-    );
-
     const detailsCache = useContext(DetailsCacheContext);
     const getDetails = (log: any): any => {
         if (detailsCache && log?.id) {
@@ -278,6 +272,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const storeResult = useStatsStore((s) => s.result);
     const storeProgress = useStatsStore((s) => s.progress);
     const storeDiagnostics = useStatsStore((s) => s.diagnostics);
+    const activeCategory = useStatsStore((s) => s.activeCategory);
 
     // For embedded consumers (web report, FightReportHistoryView), use the prop directly.
     // For the desktop path (non-embedded), prefer the store and fall back to the prop.
@@ -501,7 +496,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
                 );
             }
             return (
-                <div key={groupId} ref={groupResizeRef(groupId)}>
+                <div key={groupId}>
                     <StatsGroupContainer
                         groupId={groupId}
                         visible
@@ -523,7 +518,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
 
         // For non-embedded (desktop), only render the active group.
         // Inactive groups get a zero-height placeholder (measured heights used after first visit).
-        if (groupId !== activeNavGroup) {
+        if (groupId !== activeCategory) {
             return (
                 <div
                     key={groupId}
@@ -535,7 +530,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         }
 
         return (
-            <div key={groupId} ref={groupResizeRef(groupId)}>
+            <div key={groupId}>
                 <StatsGroupContainer
                     groupId={groupId}
                     visible
@@ -2786,20 +2781,20 @@ type SpikeFight = {
         return totals;
     }, [playerTotalsForSkill, playerMapByKey]);
 
-    // For non-embedded (desktop), sections in the active nav group are visible.
+    // For non-embedded (desktop), sections in the active category are visible.
     // The lazy group system handles mounting/unmounting entire groups.
     // For embedded, use the sectionVisibility prop as before.
-    const activeNavGroupSectionIds = useMemo(() => {
-        const group = STATS_TOC_GROUPS.find(g => g.id === activeNavGroup);
+    const activeCategorySectionIds = useMemo(() => {
+        const group = STATS_TOC_GROUPS.find(g => g.id === activeCategory);
         return new Set(group?.sectionIds ?? []);
-    }, [activeNavGroup]);
+    }, [activeCategory]);
 
     const isSectionVisible = useCallback(
         (id: string) => {
             if (embedded) return isSectionVisibleFast(id);
-            return activeNavGroupSectionIds.has(id);
+            return activeCategorySectionIds.has(id);
         },
-        [embedded, isSectionVisibleFast, activeNavGroupSectionIds]
+        [embedded, isSectionVisibleFast, activeCategorySectionIds]
     );
     const sectionClass = useCallback((id: string, base: string) => {
         const visible = isSectionVisible(id);
@@ -4235,7 +4230,7 @@ type SpikeFight = {
             )}
 
             {/* Replay: full-page experience — skip all section chrome */}
-            {!embedded && !sectionsDeferred && activeNavGroup === 'map' && (
+            {!embedded && !sectionsDeferred && activeCategory === 'map' && (
                 <div className="flex-1 min-h-0 flex" style={{ minHeight: 0 }}>
                     {r2ReplayStatus === 'error' ? (
                         <div className="flex flex-col items-center justify-center w-full gap-1">
@@ -4255,7 +4250,7 @@ type SpikeFight = {
                 </div>
             )}
 
-            {!sectionsDeferred && (embedded || activeNavGroup !== 'map') && (<div
+            {!sectionsDeferred && (embedded || activeCategory !== 'map') && (<div
                 className={`${embedded ? '' : 'flex-1 min-h-0 flex'} relative`}
             >
                 <div

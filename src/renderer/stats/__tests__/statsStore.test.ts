@@ -50,33 +50,20 @@ describe('useStatsStore — progress slice', () => {
     });
 });
 
-describe('useStatsStore — groupHeights slice', () => {
-    it('starts with empty groupHeights', () => {
-        expect(useStatsStore.getState().groupHeights).toEqual({});
+describe('useStatsStore — activeCategory slice', () => {
+    it('defaults activeCategory to "overview"', () => {
+        expect(useStatsStore.getState().activeCategory).toBe('overview');
     });
 
-    it('stores a group height', () => {
-        useStatsStore.getState().setGroupHeight('offense', 320);
-        expect(useStatsStore.getState().groupHeights['offense']).toBe(320);
+    it('updates activeCategory', () => {
+        useStatsStore.getState().setActiveCategory('offense');
+        expect(useStatsStore.getState().activeCategory).toBe('offense');
     });
 
-    it('preserves other group heights when setting one', () => {
-        useStatsStore.getState().setGroupHeight('offense', 320);
-        useStatsStore.getState().setGroupHeight('defense', 180);
-        const { groupHeights } = useStatsStore.getState();
-        expect(groupHeights['offense']).toBe(320);
-        expect(groupHeights['defense']).toBe(180);
-    });
-});
-
-describe('useStatsStore — activeNavGroup slice', () => {
-    it('defaults activeNavGroup to "overview"', () => {
-        expect(useStatsStore.getState().activeNavGroup).toBe('overview');
-    });
-
-    it('updates activeNavGroup', () => {
-        useStatsStore.getState().setActiveNavGroup('offense');
-        expect(useStatsStore.getState().activeNavGroup).toBe('offense');
+    it('defaults activeCategory to overview and updates it', () => {
+        expect(useStatsStore.getState().activeCategory).toBe('overview');
+        useStatsStore.getState().setActiveCategory('defense');
+        expect(useStatsStore.getState().activeCategory).toBe('defense');
     });
 });
 

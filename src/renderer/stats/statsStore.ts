@@ -17,8 +17,7 @@ interface StatsStoreState {
     inputsHash: string | null;
     progress: AggregationProgressState;
     diagnostics: AggregationDiagnosticsState | null;
-    groupHeights: Record<string, number>;
-    activeNavGroup: string;
+    activeCategory: string;
     selectedReplayFightId: string | null;
     replayPlayhead: { timeMs: number; playing: boolean; speed: number };
     replayViewport: { scale: number; tx: number; ty: number; followTarget: string | null };
@@ -40,8 +39,7 @@ interface StatsStoreState {
     setResult: (result: any, inputsHash: string) => void;
     setProgress: (progress: AggregationProgressState) => void;
     setDiagnostics: (diagnostics: AggregationDiagnosticsState | null) => void;
-    setGroupHeight: (groupId: string, height: number) => void;
-    setActiveNavGroup: (groupId: string) => void;
+    setActiveCategory: (categoryId: string) => void;
     clearResult: () => void;
     setSelectedReplayFight: (fightId: string | null) => void;
     setReplayPlayhead: (patch: Partial<{ timeMs: number; playing: boolean; speed: number }>) => void;
@@ -67,8 +65,7 @@ const initialState = {
         completedAt: 0,
     },
     diagnostics: null,
-    groupHeights: {},
-    activeNavGroup: 'overview',
+    activeCategory: 'overview',
     selectedReplayFightId: null,
     replayPlayhead: { timeMs: 0, playing: false, speed: 1 },
     replayViewport: { scale: 3, tx: 0, ty: 0, followTarget: null },
@@ -94,12 +91,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
     setResult: (result, inputsHash) => set({ result, inputsHash }),
     setProgress: (progress) => set({ progress }),
     setDiagnostics: (diagnostics) => set({ diagnostics }),
-    setGroupHeight: (groupId, height) =>
-        set((state) => {
-            if (state.groupHeights[groupId] === height) return state;
-            return { groupHeights: { ...state.groupHeights, [groupId]: height } };
-        }),
-    setActiveNavGroup: (groupId) => set({ activeNavGroup: groupId }),
+    setActiveCategory: (categoryId) => set({ activeCategory: categoryId }),
     clearResult: () => set({ result: null, inputsHash: null }),
     setSelectedReplayFight: (fightId) => set((state) => ({
         selectedReplayFightId: fightId,

@@ -24,8 +24,8 @@ export interface StatsNavSidebarProps {
 
 export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }: StatsNavSidebarProps) {
     const [activeNavId, setActiveNavId] = useState('overview');
-    const activeGroup = useStatsStore((s) => s.activeNavGroup);
-    const setActiveGroup = useStatsStore((s) => s.setActiveNavGroup);
+    const activeGroup = useStatsStore((s) => s.activeCategory);
+    const setActiveGroup = useStatsStore((s) => s.setActiveCategory);
     const [openGroup, setOpenGroup] = useState(activeGroup);
     const [isHovered, setIsHovered] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
