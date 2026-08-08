@@ -7,7 +7,7 @@ import { Terminal as TerminalIcon } from 'lucide-react';
 import { SettingsView } from '../SettingsView';
 import { StatsView } from '../StatsView';
 import { StatsErrorBoundary } from '../stats/StatsErrorBoundary';
-import { StatsNavSidebar } from '../stats/StatsNavSidebar';
+import { CategoryBar } from '../stats/CategoryBar';
 import { Terminal } from '../Terminal';
 import { UpdateErrorModal } from '../UpdateErrorModal';
 import { EiAnnouncementBanner } from '../EiAnnouncementBanner';
@@ -401,7 +401,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         )}
                         {view === 'stats' && (
                             <div className="flex-1 min-h-0 flex gap-3">
-                                <StatsNavSidebar />
+                                <CategoryBar />
                                 <div className="flex-1 min-h-0 flex flex-col">
                                     <StatsErrorBoundary>
                                         <StatsView

@@ -5,7 +5,7 @@ import { ParticleHover } from './particles';
 import type { ReportIndexEntry, ReportPayload } from '../shared/reportTypes';
 import { normalizeReportPayload } from '../shared/reportNormalization';
 import { StatsView } from './StatsView';
-import { StatsNavSidebar } from './stats/StatsNavSidebar';
+import { CategoryBar } from './stats/CategoryBar';
 import { useStatsStore } from './stats/statsStore';
 
 type HistoryRepoOption = {
@@ -157,7 +157,7 @@ export function FightReportHistoryView() {
         setSectionVisibility(() => fn);
     }, []);
     // Search-palette jump target for the embedded StatsView below. Routes through the
-    // same store StatsNavSidebar reads, so the sidebar's active-group highlight (and
+    // same store CategoryBar reads, so the bar's active-category highlight (and
     // the sectionVisibility it pushes down) follow a palette-driven category switch.
     const handleRequestCategory = useCallback((categoryId: string) => {
         useStatsStore.getState().setActiveCategory(categoryId);
@@ -454,7 +454,7 @@ export function FightReportHistoryView() {
                 const activeReport = tabs.find((t) => t.id === activeTab);
                 return activeReport ? (
                     <div className="flex-1 min-h-0 flex gap-3 px-4 pt-2 pb-2">
-                        <StatsNavSidebar onSectionVisibilityChange={handleSectionVisibilityChange} />
+                        <CategoryBar onSectionVisibilityChange={handleSectionVisibilityChange} />
                         <div className="flex-1 min-h-0 overflow-y-auto">
                             <StatsView
                                 logs={[]}

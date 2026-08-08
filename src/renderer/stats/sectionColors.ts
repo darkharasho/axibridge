@@ -3,15 +3,25 @@
  * Brand-primary groups use the CSS variable; semantic groups use fixed colors.
  */
 
-/** Group-level accent colors (for StatsGroupContainer left-edge border) */
+/**
+ * Category-level accent colors (for StatsGroupContainer left-edge border), keyed by
+ * the 10 STATS_CATEGORIES ids. Reuses the old group-id values where a category is a
+ * direct descendant of an old group (commanders→commander, squad-stats→squad-cohesion,
+ * the old catch-all "other"/"map" content→replay); overview/offense/defense/roster are
+ * unchanged. boons-strips/support-healing/players are new picks reusing existing
+ * section-accent palette colors rather than introducing new ones.
+ */
 export const GROUP_ACCENT_COLORS: Record<string, string> = {
     overview: 'var(--brand-primary)',
-    commanders: 'var(--brand-primary)',
-    'squad-stats': 'var(--section-offense)',
-    roster: 'var(--brand-primary)',
     offense: 'var(--section-offense)',
     defense: 'var(--section-defense)',
-    other: 'var(--brand-primary)',
+    'boons-strips': 'var(--section-boon)',
+    'support-healing': 'var(--section-support)',
+    'squad-cohesion': 'var(--section-offense)',
+    commander: 'var(--brand-primary)',
+    players: 'var(--section-mitigation)',
+    roster: 'var(--brand-primary)',
+    replay: 'var(--brand-primary)',
 };
 
 /** Section-level accent colors (for SectionPanel header dots) */

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
-import { STATS_TOC_GROUPS } from './hooks/useStatsNavigation';
+import { STATS_CATEGORIES } from './statsTaxonomy';
 import { useStatsStore } from './statsStore';
+import { SectionSubnav } from './SectionSubnav';
 
 const COLLAPSED_W = 72;
 const EXPANDED_W = 248;
@@ -17,16 +18,21 @@ const LAYOUT_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
 const LAYOUT_DUR = '280ms';
 const LAYOUT_T = `${LAYOUT_DUR} ${LAYOUT_EASE}`;
 
-export interface StatsNavSidebarProps {
+export interface CategoryBarProps {
     onSectionVisibilityChange?: (fn: (id: string) => boolean) => void;
-    onScrollToSection?: (id: string) => void;
+    isSectionAllowed?: (id: string) => boolean;
 }
 
-export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }: StatsNavSidebarProps) {
-    const [activeNavId, setActiveNavId] = useState('overview');
-    const activeGroup = useStatsStore((s) => s.activeCategory);
-    const setActiveGroup = useStatsStore((s) => s.setActiveCategory);
-    const [openGroup, setOpenGroup] = useState(activeGroup);
+/**
+ * Primary stats nav — replaces the old stats nav sidebar 1:1 in both mounts. Renders
+ * the ten top-level categories as a hover-expand rail (same shell/motion as before);
+ * the active category's SectionSubnav is always shown beneath it (no more open/closed
+ * accordion — the active category IS the open one).
+ */
+export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed }: CategoryBarProps) {
+    const activeCategory = useStatsStore((s) => s.activeCategory);
+    const setActiveCategory = useStatsStore((s) => s.setActiveCategory);
+    const [activeSectionId, setActiveSectionId] = useState('overview');
     const [isHovered, setIsHovered] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -39,45 +45,59 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
         return () => el.removeEventListener('wheel', stop);
     }, []);
 
-    const activeGroupDef = useMemo(
-        () => STATS_TOC_GROUPS.find((g) => g.id === activeGroup) || STATS_TOC_GROUPS[0],
-        [activeGroup]
+    // Categories where every section is disallowed (e.g. embedded/history contexts
+    // that don't have data for that category) are hidden entirely.
+    const visibleCategories = useMemo(() => {
+        if (!isSectionAllowed) return STATS_CATEGORIES;
+        return STATS_CATEGORIES.filter((category) => category.sections.some((s) => isSectionAllowed(s.id)));
+    }, [isSectionAllowed]);
+
+    const activeCategoryDef = useMemo(
+        () => STATS_CATEGORIES.find((c) => c.id === activeCategory) || STATS_CATEGORIES[0],
+        [activeCategory]
     );
 
-    // Push sectionVisibility up whenever activeGroupDef changes
+    // Push sectionVisibility up whenever the active category changes.
     useEffect(() => {
         if (!onSectionVisibilityChange) return;
-        const sectionIds = Array.isArray((activeGroupDef as any)?.sectionIds)
-            ? (activeGroupDef as any).sectionIds
-            : ((activeGroupDef as any)?.items || []).map((item: any) => item.id);
+        const sectionIds = activeCategoryDef.sections.map((s) => s.id);
         onSectionVisibilityChange((id: string) => sectionIds.includes(id));
-    }, [activeGroupDef, onSectionVisibilityChange]);
+    }, [activeCategoryDef, onSectionVisibilityChange]);
 
+    // Retry pattern copied from the old sidebar: the target section may not
+    // be mounted yet (category switch can unmount/remount sections), so poll a few
+    // animation frames until it shows up.
     const scrollToSection = useCallback((id: string) => {
-        if (!onScrollToSection) {
-            const targetId = id === 'kdr' ? 'overview' : id;
-            let attempts = 0;
-            const run = () => {
-                const container = document.getElementById('stats-dashboard-container');
-                const node = document.getElementById(targetId);
-                if (!(container instanceof HTMLElement) || !(node instanceof HTMLElement)) {
-                    if (attempts++ < 10) requestAnimationFrame(run);
-                    return;
-                }
-                node.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            };
-            requestAnimationFrame(run);
-            return;
-        }
-        onScrollToSection(id);
-    }, [onScrollToSection]);
+        let attempts = 0;
+        const run = () => {
+            const container = document.getElementById('stats-dashboard-container');
+            const node = document.getElementById(id);
+            if (!(container instanceof HTMLElement) || !(node instanceof HTMLElement)) {
+                if (attempts++ < 10) requestAnimationFrame(run);
+                return;
+            }
+            node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+        requestAnimationFrame(run);
+    }, []);
 
-    const handleItemClick = useCallback((groupId: string, itemId: string) => {
-        setOpenGroup(groupId);
-        setActiveGroup(groupId);
-        setActiveNavId(itemId);
-        requestAnimationFrame(() => scrollToSection(itemId));
-    }, [scrollToSection, setActiveGroup]);
+    const handleCategoryClick = useCallback((categoryId: string) => {
+        // Already active — its subnav is already showing, don't yank the scroll
+        // position back to the first section.
+        if (categoryId === activeCategory) return;
+        const category = STATS_CATEGORIES.find((c) => c.id === categoryId);
+        const targetId = category?.sections[0]?.id;
+        setActiveCategory(categoryId);
+        if (targetId) {
+            setActiveSectionId(targetId);
+            scrollToSection(targetId);
+        }
+    }, [activeCategory, scrollToSection, setActiveCategory]);
+
+    const handleSectionClick = useCallback((sectionId: string) => {
+        setActiveSectionId(sectionId);
+        scrollToSection(sectionId);
+    }, [scrollToSection]);
 
     const expanded = isHovered;
 
@@ -139,20 +159,18 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
                         </span>
                     </div>
 
-                    {/* Groups */}
-                    {STATS_TOC_GROUPS.map((group) => {
-                        const GroupIcon = group.icon as any;
-                        const isActiveGroup = group.id === activeGroupDef?.id;
-                        const isOpen = openGroup === group.id;
-                        const defaultTarget = group.sectionIds?.[0] || group.items[0]?.id || 'overview';
+                    {/* Categories */}
+                    {visibleCategories.map((category) => {
+                        const CategoryIcon = category.icon;
+                        const isActiveCategory = category.id === activeCategoryDef?.id;
 
                         return (
-                            <div key={group.id}>
-                                {/* Group button: padding/gap via CSS transition */}
+                            <div key={category.id}>
+                                {/* Category button: padding/gap via CSS transition */}
                                 <button
                                     type="button"
-                                    onClick={() => { if (expanded && isOpen) return; handleItemClick(group.id, defaultTarget); }}
-                                    className={`w-full h-9 flex items-center text-left rounded-sm ${isActiveGroup ? 'text-white' : 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
+                                    onClick={() => handleCategoryClick(category.id)}
+                                    className={`w-full h-9 flex items-center text-left rounded-sm ${isActiveCategory ? 'text-white' : 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
                                     style={{
                                         paddingLeft: expanded ? 12 : 20,
                                         paddingRight: expanded ? 12 : 20,
@@ -166,9 +184,9 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
                                         animate={{ scale: expanded ? 1.1 : 1 }}
                                         transition={FAST_SPRING}
                                     >
-                                        <GroupIcon className="w-3.5 h-3.5 text-[color:var(--brand-primary)]" />
+                                        <CategoryIcon className="w-3.5 h-3.5 text-[color:var(--brand-primary)]" />
                                     </motion.div>
-                                    {/* Group label: maxWidth/marginLeft via CSS, opacity/x via framer-motion (transform) */}
+                                    {/* Category label: maxWidth/marginLeft via CSS, opacity/x via framer-motion (transform) */}
                                     <motion.span
                                         className="text-[11px] leading-none font-semibold uppercase tracking-[0.18em] whitespace-nowrap overflow-hidden"
                                         style={{
@@ -182,9 +200,11 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
                                         }}
                                         transition={{ duration: 0.2 }}
                                     >
-                                        {group.label}
+                                        {category.label}
                                     </motion.span>
-                                    {/* Chevron: maxWidth via CSS, opacity/scale/rotate via framer-motion (composited) */}
+                                    {/* Chevron: maxWidth via CSS, opacity/scale/rotate via framer-motion (composited).
+                                        Points down for the active category (its subnav is showing below), sideways
+                                        for every other category (no accordion state to track anymore). */}
                                     <motion.span
                                         className="inline-flex ml-auto overflow-hidden"
                                         style={{
@@ -194,7 +214,7 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
                                         animate={{
                                             opacity: expanded ? 1 : 0,
                                             scale: expanded ? 1 : 0.75,
-                                            rotate: isOpen ? 0 : -90,
+                                            rotate: isActiveCategory ? 0 : -90,
                                         }}
                                         transition={FAST_SPRING}
                                     >
@@ -202,56 +222,15 @@ export function StatsNavSidebar({ onSectionVisibilityChange, onScrollToSection }
                                     </motion.span>
                                 </button>
 
-                                {/* Subnav items — only show when sidebar is expanded and group is open */}
-                                <AnimatePresence initial={false}>
-                                    {expanded && isOpen && (
-                                        <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                                            className="overflow-hidden"
-                                        >
-                                            <div className="pt-1.5 pb-1.5 px-2 space-y-0.5 rounded-[4px] border border-[color:var(--border-subtle)]">
-                                                {group.items.map((item, index) => {
-                                                    const ItemIcon = item.icon;
-                                                    const isActive = activeNavId === item.id;
-                                                    return (
-                                                        <motion.div
-                                                            key={item.id}
-                                                            initial={{ opacity: 0, x: -8 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            transition={{ ...FAST_SPRING, delay: index * 0.03 }}
-                                                        >
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleItemClick(group.id, item.id)}
-                                                                className={`w-full h-[34px] flex items-center text-left rounded-md transition-colors duration-150 ${expanded ? 'justify-start gap-2 px-2' : 'justify-start gap-0 pl-[10px]'} ${isActive ? 'text-white' : 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
-                                                            >
-                                                                <ItemIcon className="w-3.5 h-3.5 text-[color:var(--brand-primary)] shrink-0" />
-                                                                {/* Subnav label: maxWidth via CSS, opacity/x via framer-motion */}
-                                                                <motion.span
-                                                                    className="text-xs leading-tight truncate overflow-hidden"
-                                                                    style={{
-                                                                        maxWidth: expanded ? 140 : 0,
-                                                                        transition: `max-width ${LAYOUT_T}`,
-                                                                    }}
-                                                                    animate={{
-                                                                        opacity: expanded ? 1 : 0,
-                                                                        x: expanded ? 0 : -4,
-                                                                    }}
-                                                                    transition={{ duration: 0.2 }}
-                                                                >
-                                                                    {item.label}
-                                                                </motion.span>
-                                                            </button>
-                                                        </motion.div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                {/* Subnav — always rendered for the active category (no hover gate: search-palette-
+                                    driven and history-driven category switches must reflect immediately). */}
+                                {isActiveCategory && (
+                                    <SectionSubnav
+                                        category={category}
+                                        activeSectionId={activeSectionId}
+                                        onSelect={handleSectionClick}
+                                    />
+                                )}
                             </div>
                         );
                     })}
