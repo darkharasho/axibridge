@@ -88,7 +88,7 @@ src/
     metrics-spec.md      # Source-of-truth metrics documentation (synced to docs/)
   renderer/      # Electron renderer (main desktop UI)
     App.tsx              # Root component, manages all app state
-    StatsView.tsx        # Multi-section stats dashboard (aggregated view)
+    StatsView.tsx        # Category-paged stats dashboard (10-category taxonomy)
     ExpandableLogCard.tsx
     FightReportHistoryView.tsx
     SettingsView.tsx
@@ -97,8 +97,10 @@ src/
       computeStatsAggregation.ts  # Core stats computation (called directly or via worker)
       statsTypes.ts               # Stats-specific types
       statsMetrics.ts             # OFFENSE/DEFENSE/SUPPORT metric definitions
+      statsTaxonomy.ts            # 10-category nav taxonomy + section/legacy-anchor resolver
       hooks/                      # React hooks for stats (aggregation, navigation, uploads, etc.)
       sections/                   # One component per stats section (OffenseSection, DefenseSection, etc.)
+      search/                     # Universal search palette: index builder, matcher, jump-and-flash
       utils/                      # dashboardUtils, pruneStatsLog, statsSyncRecovery
     workers/
       statsWorker.ts   # Web Worker that runs computeStatsAggregation off the main thread (>8 logs)

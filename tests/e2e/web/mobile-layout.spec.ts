@@ -192,12 +192,17 @@ test.describe('Mobile Layout (MOBL-001–009)', () => {
 
     // ── Overview group ───────────────────────────────────────────────────────
 
-    test('MOBL-001: KDR section has no layout violations', async ({ page }) => {
-        const section = page.locator('#kdr');
+    test('MOBL-001: Overview section has no layout violations', async ({ page }) => {
+        // Was '#kdr' — that section is now labelled/anchored 'Overview' under the
+        // 10-category taxonomy ('#kdr' itself lives on as a legacy alias to
+        // '#overview', see navigation-search.spec.ts). Retargeting to the real,
+        // current id restores actual coverage here instead of the test.skip()
+        // below silently no-oping on every run.
+        const section = page.locator('#overview');
         if (await section.count() === 0) { test.skip(); return; }
         await section.scrollIntoViewIfNeeded();
         await page.waitForTimeout(500);
-        const violations = await scanForViolations(page, '#kdr');
+        const violations = await scanForViolations(page, '#overview');
         expect(violations, `Layout violations:\n${formatViolations(violations)}`).toHaveLength(0);
     });
 
@@ -228,10 +233,10 @@ test.describe('Mobile Layout (MOBL-001–009)', () => {
         expect(violations, `Layout violations:\n${formatViolations(violations)}`).toHaveLength(0);
     });
 
-    // ── Offensive Stats ──────────────────────────────────────────────────────
+    // ── Offense ───────────────────────────────────────────────────────────────
 
     test('MOBL-005: Offense Detailed section has no layout violations', async ({ page }) => {
-        await navigateToGroup(page, /Offensive/i);
+        await navigateToGroup(page, /^Offense$/i);
         const section = page.locator('#offense-detailed');
         if (await section.count() === 0) { test.skip(); return; }
         await section.scrollIntoViewIfNeeded();
@@ -240,10 +245,10 @@ test.describe('Mobile Layout (MOBL-001–009)', () => {
         expect(violations, `Layout violations:\n${formatViolations(violations)}`).toHaveLength(0);
     });
 
-    // ── Defensive Stats ──────────────────────────────────────────────────────
+    // ── Defense ──────────────────────────────────────────────────────────────
 
     test('MOBL-006: Defense Detailed section has no layout violations', async ({ page }) => {
-        await navigateToGroup(page, /Defensive/i);
+        await navigateToGroup(page, /^Defense$/i);
         const section = page.locator('#defense-detailed');
         if (await section.count() === 0) { test.skip(); return; }
         await section.scrollIntoViewIfNeeded();
@@ -252,8 +257,10 @@ test.describe('Mobile Layout (MOBL-001–009)', () => {
         expect(violations, `Layout violations:\n${formatViolations(violations)}`).toHaveLength(0);
     });
 
+    // ── Boons & Strips (carved out of the old "Defensive Stats" group) ─────────
+
     test('MOBL-007: Boon Output section has no layout violations', async ({ page }) => {
-        await navigateToGroup(page, /Defensive/i);
+        await navigateToGroup(page, /^Boons & Strips$/i);
         const section = page.locator('#boon-output');
         if (await section.count() === 0) { test.skip(); return; }
         await section.scrollIntoViewIfNeeded();
