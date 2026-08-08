@@ -1,9 +1,15 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { StatsView } from '../StatsView';
 import { DEFAULT_STATS_VIEW_SETTINGS } from '../global.d';
 import { useStatsStore } from '../stats/statsStore';
 import { STATS_CATEGORIES } from '../stats/statsTaxonomy';
+
+// jsdom doesn't implement scrollIntoView; useSearchJump calls it on the jump
+// target. Stub in the test env, not src (see SearchPalette.test.tsx).
+beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn();
+});
 
 // Fixture/render scaffolding copied from StatsView.integration.test.tsx's first test.
 // Rendered WITHOUT `embedded` (desktop mode): renderGroup only mounts the section
@@ -71,5 +77,41 @@ describe('StatsView taxonomy integrity', () => {
         const commander = STATS_CATEGORIES.find((c) => c.id === 'commander');
         expect(commander).toBeTruthy();
         expect(screen.getByText(commander!.description)).toBeInTheDocument();
+    });
+
+    it('Ctrl+K opens the search palette; selecting a section result switches category and jumps to it', async () => {
+        useStatsStore.getState().setActiveCategory('overview');
+        renderStatsViewWithFixtures();
+
+        // Every section is always mounted in desktop mode (renderGroup CSS-collapses
+        // inactive categories rather than unmounting them), so "On Tag Review" already
+        // exists as a heading elsewhere on the page — scope queries to the palette
+        // dialog throughout, or they'd be ambiguous against that heading.
+        expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull();
+        fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+        const dialog = await screen.findByRole('dialog', { name: 'Search' });
+
+        const input = within(dialog).getByRole('textbox');
+        fireEvent.change(input, { target: { value: 'on tag review' } });
+        const result = within(dialog).getByText('On Tag Review');
+        fireEvent.click(result);
+
+        // Palette closes synchronously on selection.
+        expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull();
+        // Category activation happens inside useSearchJump's requestAnimationFrame tick.
+        await waitFor(() => {
+            expect(useStatsStore.getState().activeCategory).toBe('squad-cohesion');
+        });
+        await waitFor(() => {
+            expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+        });
+    });
+
+    it('Ctrl+K toggles the palette closed on a second press', async () => {
+        renderStatsViewWithFixtures();
+        fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+        await screen.findByRole('dialog', { name: 'Search' });
+        fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+        expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull();
     });
 });

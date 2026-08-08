@@ -85,6 +85,9 @@ import { DevMockBanner } from './stats/ui/DevMockBanner';
 import { prefetchIconUrls, renderProfessionIcon as renderProfessionIconShared } from './stats/ui/StatsViewShared';
 import { STATS_LOADING_JOKE_INTERVAL_MS, STATS_LOADING_JOKES, shuffled } from './stats/loadingJokes';
 import { computeHealEffectivenessData } from './stats/computeHealEffectivenessData';
+import { SearchPalette } from './stats/search/SearchPalette';
+import { useSearchJump } from './stats/search/useSearchJump';
+import { buildSearchIndex } from './stats/search/searchIndex';
 
 interface StatsViewProps {
     logs: ILogData[];
@@ -99,6 +102,9 @@ interface StatsViewProps {
     precomputedStats?: any;
     embedded?: boolean;
     sectionVisibility?: (id: string) => boolean;
+    /** Host override for where a search-palette selection's category activation goes.
+     *  Desktop default (StatsView itself) writes directly to the shared stats store. */
+    onRequestCategory?: (categoryId: string) => void;
     dashboardTitle?: string;
     statsDataProgress?: {
         active: boolean;
@@ -229,7 +235,7 @@ function resolveReplayFights(stats: any): any[] {
     });
 }
 
-export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
+export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
     useEffect(() => {
@@ -769,6 +775,29 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         scrollContainerRef,
         jumpToSection,
     } = useStatsNavigation(embedded, true);
+
+    // Universal search palette (Ctrl/Cmd+K). Mounted unconditionally so it works
+    // identically in desktop, embedded History, and embedded web hosts.
+    const [searchOpen, setSearchOpen] = useState(false);
+    const searchIndex = useMemo(() => buildSearchIndex({
+        players: safeStats.playerSkillBreakdowns ?? [],
+        // Filtered ONLY by noEgo exclusions — deliberately NOT by the embedded
+        // sectionVisibility fn, which is "active group only" (jumping changes the
+        // group; see NO_EGO_HIDDEN_SECTION_IDS above for why the data map uses the
+        // same exclusion set). Hosts that genuinely hide sections build their own
+        // palette index (web report task).
+        isSectionAllowed: (id) => !(noEgoMode && NO_EGO_HIDDEN_SECTION_IDS.has(id)),
+    }), [safeStats.playerSkillBreakdowns, noEgoMode]);
+    const requestCategory = onRequestCategory ?? ((categoryId: string) => useStatsStore.getState().setActiveCategory(categoryId));
+    const { jumpToEntry } = useSearchJump({ onRequestCategory: requestCategory });
+
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen((v) => !v); }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, []);
 
     const {
         devMockUploadState,
@@ -4183,6 +4212,12 @@ type SpikeFight = {
             {/* Portal target for expanded sections — lives at the StatsView root so
                 position:fixed escapes ancestor transforms/filters/backdrop-filters. */}
             <div ref={expandedPortalRef} />
+            <SearchPalette
+                open={searchOpen}
+                onClose={() => setSearchOpen(false)}
+                index={searchIndex}
+                onSelect={jumpToEntry}
+            />
             <StatsHeader
                 embedded={embedded}
                 dashboardTitle={dashboardTitle}
@@ -4198,6 +4233,7 @@ type SpikeFight = {
                 initialWebhookSelection={initialWebhookSelection}
                 canUploadWeb={canUploadWeb}
                 actionsDisabled={statsActionsDisabled}
+                onSearchClick={() => setSearchOpen(true)}
             />
 
             <WebUploadBanner

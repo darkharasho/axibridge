@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronDown, Sparkles, Trophy, UploadCloud } from 'lucide-react';
+import { ChevronDown, Search, Sparkles, Trophy, UploadCloud } from 'lucide-react';
 import { PublishWebhookPopover } from './PublishWebhookPopover';
 import type { PublishWebhookOption } from '../hooks/useStatsUploads';
 
@@ -19,6 +19,8 @@ type StatsHeaderProps = {
     initialWebhookSelection?: string[];
     canUploadWeb?: boolean;
     actionsDisabled?: boolean;
+    /** Opens the universal search palette. Desktop-only chrome, like the rest of this row. */
+    onSearchClick?: () => void;
 };
 
 export const StatsHeader = ({
@@ -35,7 +37,8 @@ export const StatsHeader = ({
     reportWebhooks = [],
     initialWebhookSelection = [],
     canUploadWeb = true,
-    actionsDisabled = false
+    actionsDisabled = false,
+    onSearchClick
 }: StatsHeaderProps) => {
     const uploadDisabled = uploadingWeb || actionsDisabled || !canUploadWeb;
     const uploadDisabledReason = actionsDisabled
@@ -108,6 +111,18 @@ export const StatsHeader = ({
         </div>
         {!embedded && (
             <div className="flex items-center gap-3">
+                {onSearchClick && (
+                    <button
+                        type="button"
+                        onClick={onSearchClick}
+                        title="Search (Ctrl+K)"
+                        aria-label="Search"
+                        className="p-2 rounded-[4px] transition-colors hover:bg-[var(--bg-hover)]"
+                        style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
+                    >
+                        <Search className="w-4 h-4" />
+                    </button>
+                )}
                 {devMockAvailable && (
                     <button
                         onClick={onDevMockUpload}

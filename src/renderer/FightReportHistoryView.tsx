@@ -6,6 +6,7 @@ import type { ReportIndexEntry, ReportPayload } from '../shared/reportTypes';
 import { normalizeReportPayload } from '../shared/reportNormalization';
 import { StatsView } from './StatsView';
 import { StatsNavSidebar } from './stats/StatsNavSidebar';
+import { useStatsStore } from './stats/statsStore';
 
 type HistoryRepoOption = {
     key: string;
@@ -154,6 +155,12 @@ export function FightReportHistoryView() {
     const [sectionVisibility, setSectionVisibility] = useState<((id: string) => boolean) | null>(null);
     const handleSectionVisibilityChange = useCallback((fn: (id: string) => boolean) => {
         setSectionVisibility(() => fn);
+    }, []);
+    // Search-palette jump target for the embedded StatsView below. Routes through the
+    // same store StatsNavSidebar reads, so the sidebar's active-group highlight (and
+    // the sectionVisibility it pushes down) follow a palette-driven category switch.
+    const handleRequestCategory = useCallback((categoryId: string) => {
+        useStatsStore.getState().setActiveCategory(categoryId);
     }, []);
     const [commanderDropdownOpen, setCommanderDropdownOpen] = useState(false);
     const commanderDropdownRef = useRef<HTMLDivElement>(null);
@@ -456,6 +463,7 @@ export function FightReportHistoryView() {
                                 statsViewSettings={activeReport.report.stats?.statsViewSettings}
                                 dashboardTitle={activeReport.title}
                                 sectionVisibility={sectionVisibility || undefined}
+                                onRequestCategory={handleRequestCategory}
                                 embedded
                             />
                         </div>

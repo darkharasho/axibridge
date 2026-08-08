@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { StatsHeader } from '../stats/ui/StatsHeader';
 
 describe('StatsHeader', () => {
@@ -19,5 +19,58 @@ describe('StatsHeader', () => {
 
         expect(screen.getByText('Statistics Dashboard - Overview')).toBeInTheDocument();
         expect(screen.getByText(/Performance across 4 uploaded logs/i)).toBeInTheDocument();
+    });
+
+    it('renders a search button when onSearchClick is provided and fires it on click', () => {
+        const onSearchClick = vi.fn();
+        render(
+            <StatsHeader
+                embedded={false}
+                totalLogs={0}
+                devMockAvailable={false}
+                devMockUploadState={{ uploading: false }}
+                onDevMockUpload={() => {}}
+                uploadingWeb={false}
+                onWebUpload={() => {}}
+                onSearchClick={onSearchClick}
+            />
+        );
+
+        const button = screen.getByRole('button', { name: 'Search' });
+        fireEvent.click(button);
+        expect(onSearchClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('omits the search button in embedded mode even when onSearchClick is provided', () => {
+        render(
+            <StatsHeader
+                embedded
+                totalLogs={0}
+                devMockAvailable={false}
+                devMockUploadState={{ uploading: false }}
+                onDevMockUpload={() => {}}
+                uploadingWeb={false}
+                onWebUpload={() => {}}
+                onSearchClick={() => {}}
+            />
+        );
+
+        expect(screen.queryByRole('button', { name: 'Search' })).toBeNull();
+    });
+
+    it('omits the search button when onSearchClick is not provided', () => {
+        render(
+            <StatsHeader
+                embedded={false}
+                totalLogs={0}
+                devMockAvailable={false}
+                devMockUploadState={{ uploading: false }}
+                onDevMockUpload={() => {}}
+                uploadingWeb={false}
+                onWebUpload={() => {}}
+            />
+        );
+
+        expect(screen.queryByRole('button', { name: 'Search' })).toBeNull();
     });
 });
