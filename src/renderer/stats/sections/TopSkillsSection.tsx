@@ -7,11 +7,14 @@ import { useStatsSharedContext } from '../StatsViewContext';
 type TopSkillsSectionProps = {
     topSkillsMetric?: 'damage' | 'downContribution';
     onTopSkillsMetricChange?: (metric: 'damage' | 'downContribution') => void;
+    /** Which column(s) to render. Defaults to 'both' (legacy two-column layout). */
+    mode?: 'outgoing' | 'incoming' | 'both';
 };
 
 export const TopSkillsSection = ({
     topSkillsMetric,
-    onTopSkillsMetricChange
+    onTopSkillsMetricChange,
+    mode = 'both'
 }: TopSkillsSectionProps) => {
     const { stats } = useStatsSharedContext();
     const resolvedMetric = (topSkillsMetric || stats.topSkillsMetric) === 'downContribution' ? 'downContribution' : 'damage';
@@ -37,9 +40,12 @@ export const TopSkillsSection = ({
         [sortedTopSkills, metricKey]
     );
     const showMetricToggle = typeof onTopSkillsMetricChange === 'function';
+    const showOutgoing = mode !== 'incoming';
+    const showIncoming = mode !== 'outgoing';
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className={mode === 'both' ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}>
+        {showOutgoing && (
         <div>
             <div className="flex flex-wrap items-center gap-2 mb-3.5 min-h-[28px]">
                 <ArrowBigUp className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
@@ -96,7 +102,9 @@ export const TopSkillsSection = ({
                 )}
             </div>
         </div>
+        )}
 
+        {showIncoming && (
         <div>
             <div className="flex flex-wrap items-center gap-2 mb-3.5 min-h-[28px]">
                 <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
@@ -139,6 +147,7 @@ export const TopSkillsSection = ({
                 )}
             </div>
         </div>
+        )}
         </div>
     );
 };

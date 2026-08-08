@@ -51,6 +51,7 @@ import { OverviewSection } from './stats/sections/OverviewSection';
 import { FightBreakdownSection } from './stats/sections/FightBreakdownSection';
 import { TopPlayersSection } from './stats/sections/TopPlayersSection';
 import { TopSkillsSection } from './stats/sections/TopSkillsSection';
+import { DataMapSection } from './stats/sections/DataMapSection';
 import { SquadCompositionSection } from './stats/sections/SquadCompositionSection';
 import { TimelineSection } from './stats/sections/TimelineSection';
 import { MapDistributionSection } from './stats/sections/MapDistributionSection';
@@ -163,6 +164,14 @@ const ORDERED_SECTION_IDS = [
     'apm-stats',
     'player-comparison'
 ] as const;
+
+// Section ids whose render entries are conditionally omitted entirely when
+// noEgoMode is on (see the `...(!noEgoMode ? [...] : [])` guards below). The
+// data map's directory must skip these too, or it offers dead links to
+// sections that were never mounted — and its buttons re-use the taxonomy's
+// section labels, which duplicate the sections' own on-page headings once
+// they're allowed to render, breaking exact-text queries against either.
+const NO_EGO_HIDDEN_SECTION_IDS = new Set(['top-skills-outgoing', 'top-skills-incoming', 'player-comparison']);
 
 const EMPTY_SKILL_USAGE_SUMMARY: SkillUsageSummary = {
     logRecords: [],
@@ -758,6 +767,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
 
     const {
         scrollContainerRef,
+        jumpToSection,
     } = useStatsNavigation(embedded, true);
 
     const {
@@ -2782,7 +2792,8 @@ type SpikeFight = {
     }, [playerTotalsForSkill, playerMapByKey]);
 
     // For non-embedded (desktop), sections in the active category are visible.
-    // The lazy group system handles mounting/unmounting entire groups.
+    // Only the active category is actually mounted with content — renderGroup gives
+    // inactive categories a zero-height placeholder instead of unmounting them.
     // For embedded, use the sectionVisibility prop as before.
     const activeCategorySectionIds = useMemo(() => {
         const group = STATS_TOC_GROUPS.find(g => g.id === activeCategory);
@@ -2795,6 +2806,13 @@ type SpikeFight = {
             return activeCategorySectionIds.has(id);
         },
         [embedded, isSectionVisibleFast, activeCategorySectionIds]
+    );
+    // Data map directory: same visibility rules as the sections themselves, plus
+    // the noEgoMode omissions (see NO_EGO_HIDDEN_SECTION_IDS) since those render
+    // entries don't exist at all while noEgoMode is on.
+    const isDataMapSectionAllowed = useCallback(
+        (id: string) => isSectionVisible(id) && !(noEgoMode && NO_EGO_HIDDEN_SECTION_IDS.has(id)),
+        [isSectionVisible, noEgoMode]
     );
     const sectionClass = useCallback((id: string, base: string) => {
         const visible = isSectionVisible(id);
@@ -4229,9 +4247,11 @@ type SpikeFight = {
                 </div>
             )}
 
-            {/* Replay: full-page experience — skip all section chrome */}
-            {!embedded && !sectionsDeferred && activeCategory === 'map' && (
-                <div className="flex-1 min-h-0 flex" style={{ minHeight: 0 }}>
+            {/* Replay: full-page experience — skip all section chrome, but keep a real
+                #replay anchor (matches the SectionPanel-rendered id used everywhere else)
+                so deep links / search-jump can still target this category in desktop mode. */}
+            {!embedded && !sectionsDeferred && activeCategory === 'replay' && (
+                <div id="replay" className="flex-1 min-h-0 flex" style={{ minHeight: 0 }}>
                     {r2ReplayStatus === 'error' ? (
                         <div className="flex flex-col items-center justify-center w-full gap-1">
                             <span className="text-sm text-rose-400">Failed to load replay data.</span>
@@ -4250,7 +4270,7 @@ type SpikeFight = {
                 </div>
             )}
 
-            {!sectionsDeferred && (embedded || activeCategory !== 'map') && (<div
+            {!sectionsDeferred && (embedded || activeCategory !== 'replay') && (<div
                 className={`${embedded ? '' : 'flex-1 min-h-0 flex'} relative`}
             >
                 <div
@@ -4719,11 +4739,25 @@ type SpikeFight = {
                 ) : (
                     <>
                         {renderGroup('overview', [
+                            { id: 'data-map', element: <DataMapSection
+                                onNavigate={(categoryId, sectionId) => { useStatsStore.getState().setActiveCategory(categoryId); jumpToSection(sectionId); }}
+                                isSectionAllowed={isDataMapSectionAllowed}
+                            /> },
                             { id: 'overview', element: <OverviewSection
                             /> },
                             { id: 'fight-breakdown', element: <FightBreakdownSection
                                 fightBreakdownTab={fightBreakdownTab}
                                 setFightBreakdownTab={setFightBreakdownTab}
+                            /> },
+                            { id: 'fight-diff-mode', element: <FightDiffModeSection
+                            /> },
+                            { id: 'timeline', element: <TimelineSection
+                                timelineData={safeStats.timelineData}
+                                timelineFriendlyScope={timelineFriendlyScope}
+                                setTimelineFriendlyScope={setTimelineFriendlyScope}
+                            /> },
+                            { id: 'map-distribution', element: <MapDistributionSection
+                                mapData={safeStats.mapData}
                             /> },
                             { id: 'top-players', element: <TopPlayersSection
                                 showTopStats={showTopStats}
@@ -4737,82 +4771,11 @@ type SpikeFight = {
                                 noEgoMode={noEgoMode}
                             /> },
                             ...(!noEgoMode ? [{ id: 'top-skills-outgoing', element: <TopSkillsSection
+                                mode="outgoing"
                                 topSkillsMetric={topSkillsMetric}
                                 onTopSkillsMetricChange={updateTopSkillsMetric}
                             /> }] : []),
-                            { id: 'squad-composition', element: <SquadCompositionSection
-                                sortedSquadClassData={sortedSquadClassData}
-                                sortedEnemyClassData={sortedEnemyClassData}
-                                getProfessionIconPath={getProfessionIconPath}
-                            /> },
-                            { id: 'timeline', element: <TimelineSection
-                                timelineData={safeStats.timelineData}
-                                timelineFriendlyScope={timelineFriendlyScope}
-                                setTimelineFriendlyScope={setTimelineFriendlyScope}
-                            /> },
-                            { id: 'map-distribution', element: <MapDistributionSection
-                                mapData={safeStats.mapData}
-                            /> },
-                        ])}
-
-                        {renderGroup('commanders', [
-                            { id: 'commander-stats', element: <CommanderStatsSection
-                                commanderStats={commanderStats}
-                                getProfessionIconPath={getProfessionIconPath}
-                            /> },
-                            { id: 'commander-push-timing', element: <CommanderPushTimingSection
-                                commanderStats={commanderStats}
-                            /> },
-                            { id: 'commander-target-conversion', element: <CommanderTargetConversionSection
-                                commanderStats={commanderStats}
-                            /> },
-                            { id: 'commander-tag-movement', element: <CommanderTagMovementSection
-                                commanderStats={commanderStats}
-                            /> },
-                            { id: 'commander-tag-death-response', element: <CommanderTagDeathResponseSection
-                                commanderStats={commanderStats}
-                            /> },
-                        ])}
-
-                        {renderGroup('squad-stats', [
-                            { id: 'squad-damage-comparison', element: <SquadDamageComparisonSection /> },
-                            { id: 'squad-kill-pressure', element: <SquadKillPressureSection /> },
-                            { id: 'heal-effectiveness', element: <HealEffectivenessSection
-                                fights={healEffectivenessFights}
-                            /> },
-                            { id: 'squad-tag-distance-deaths', element: <SquadTagDistanceDeathsSection
-                                fights={tagDistanceDeathsData}
-                            /> },
-                            { id: 'on-tag-review', element: <OnTagReviewSection
-                                result={onTagReviewResult}
-                            /> },
-                            { id: 'squad-distance-to-tag', element: <SquadDistanceToTagSection
-                                result={distanceToTagResult}
-                                filterEnabled={distanceToTagFilterEnabled}
-                                onFilterEnabledChange={setDistanceToTagFilterEnabled}
-                                minFights={distanceToTagMinFights}
-                                onMinFightsChange={setDistanceToTagMinFights}
-                            /> },
-                            { id: 'squad-distance-to-tag-visual', element: <SquadDistanceToTagVisualSection
-                                result={distanceToTagResult}
-                                filterEnabled={distanceToTagFilterEnabled}
-                                minFights={distanceToTagMinFights}
-                            /> },
-                        ])}
-
-                        {renderGroup('roster', [
-                            { id: 'attendance-ledger', element: <AttendanceSection
-                                attendanceRows={attendanceData}
-                                getProfessionIconPath={getProfessionIconPath}
-                            /> },
-                            { id: 'squad-comp-fight', element: <SquadCompByFightSection
-                                fights={squadCompByFight}
-                                getProfessionIconPath={getProfessionIconPath}
-                            /> },
-                            { id: 'fight-comp', element: <FightCompSection
-                                fights={fightCompByFight}
-                                getProfessionIconPath={getProfessionIconPath}
-                            /> },
+                            ...(!noEgoMode ? [{ id: 'top-skills-incoming', element: <TopSkillsSection mode="incoming" /> }] : []),
                         ])}
 
                         {renderGroup('offense', [
@@ -4825,39 +4788,17 @@ type SpikeFight = {
                                 setOffenseViewMode={setOffenseViewMode}
                                 noEgoMode={noEgoMode}
                             /> },
-                            { id: 'damage-modifiers', element: <DamageModifiersSection
-                                search={damageModSearch}
-                                setSearch={setDamageModSearch}
-                                activeMod={activeDamageMod}
-                                setActiveMod={setActiveDamageMod}
-                                incoming={false}
-                            /> },
-                            { id: 'player-breakdown', element: <PlayerBreakdownSection
-                                viewMode={playerBreakdownViewMode}
-                                setViewMode={setPlayerBreakdownViewMode}
-                                playerSkillBreakdowns={playerSkillBreakdowns}
-                                classSkillBreakdowns={classSkillBreakdowns}
-                                activePlayerKey={activePlayerBreakdownKey}
-                                setActivePlayerKey={setActivePlayerBreakdownKey}
-                                expandedPlayerKey={expandedPlayerBreakdownKey}
-                                setExpandedPlayerKey={setExpandedPlayerBreakdownKey}
-                                activePlayerSkillId={activePlayerBreakdownSkillId}
-                                setActivePlayerSkillId={setActivePlayerBreakdownSkillId}
-                                activeClassKey={activeClassBreakdownKey}
-                                setActiveClassKey={setActiveClassBreakdownKey}
-                                expandedClassKey={expandedClassBreakdownKey}
-                                setExpandedClassKey={setExpandedClassBreakdownKey}
-                                activeClassSkillId={activeClassBreakdownSkillId}
-                                setActiveClassSkillId={setActiveClassBreakdownSkillId}
-                                skillSearch={playerBreakdownSkillSearch}
-                                setSkillSearch={setPlayerBreakdownSkillSearch}
-                                activePlayerBreakdown={activePlayerBreakdown}
-                                activePlayerSkill={activePlayerSkill}
-                                activeClassBreakdown={activeClassBreakdown}
-                                activeClassSkill={activeClassSkill}
-                            /> },
                             { id: 'damage-breakdown', element: <DamageBreakdownSection
                                 playerSkillBreakdowns={playerSkillBreakdowns}
+                            /> },
+                            { id: 'all-damage', element: <AllDamageSection
+                                fights={allDamageData.fights}
+                                mode={allDamageMode}
+                                setMode={setAllDamageMode}
+                                selectedFightIndex={allDamageSelectedFightIndex}
+                                setSelectedFightIndex={setAllDamageSelectedFightIndex}
+                                selectedDrilldownPlayerKey={allDamageSelectedPlayerKey}
+                                setSelectedDrilldownPlayerKey={setAllDamageSelectedPlayerKey}
                             /> },
                             { id: 'spike-damage', element: <SpikeDamageSection
                                 spikePlayerFilter={spikePlayerFilter}
@@ -4882,36 +4823,12 @@ type SpikeFight = {
                                 spikeFightSkillRows={spikeFightSkillRows}
                                 spikeFightSkillTitle="Outgoing Skill Damage (Selected Fight)"
                             /> },
-                            { id: 'all-damage', element: <AllDamageSection
-                                fights={allDamageData.fights}
-                                mode={allDamageMode}
-                                setMode={setAllDamageMode}
-                                selectedFightIndex={allDamageSelectedFightIndex}
-                                setSelectedFightIndex={setAllDamageSelectedFightIndex}
-                                selectedDrilldownPlayerKey={allDamageSelectedPlayerKey}
-                                setSelectedDrilldownPlayerKey={setAllDamageSelectedPlayerKey}
-                            /> },
-                            { id: 'strip-spikes', element: <FightMetricSection
-                                sectionId="strip-spikes"
-                                title="Strip Spikes"
-                                titleIcon={Eraser}
-                                titleIconClassName="text-amber-300"
-                                modes={[
-                                    { id: 'strips', label: 'Strips' },
-                                    { id: 'stripDownContrib', label: 'Down Contrib' },
-                                ]}
-                                activeMode={stripMode}
-                                setActiveMode={setStripMode}
-                                playerFilter={stripPlayerFilter}
-                                setPlayerFilter={setStripPlayerFilter}
-                                groupedPlayers={groupedStripPlayers}
-                                selectedPlayerKey={selectedStripPlayerKey}
-                                setSelectedPlayerKey={setSelectedStripPlayerKey}
-                                selectedPlayer={selectedStripPlayer}
-                                chartData={stripChartData}
-                                chartMaxY={stripChartMaxY}
-                                formatValue={(v: number) => formatWithCommas(v, 0)}
-                                valueSuffix={stripMode === 'strips' ? 'strips' : ''}
+                            { id: 'damage-modifiers', element: <DamageModifiersSection
+                                search={damageModSearch}
+                                setSearch={setDamageModSearch}
+                                activeMod={activeDamageMod}
+                                setActiveMod={setActiveDamageMod}
+                                incoming={false}
                             /> },
                             { id: 'conditions-outgoing', element: <ConditionsSection
                                 conditionSummary={conditionSummary}
@@ -4938,13 +4855,6 @@ type SpikeFight = {
                                 defenseViewMode={defenseViewMode}
                                 setDefenseViewMode={setDefenseViewMode}
                                 noEgoMode={noEgoMode}
-                            /> },
-                            { id: 'incoming-damage-modifiers', element: <DamageModifiersSection
-                                search={incomingDamageModSearch}
-                                setSearch={setIncomingDamageModSearch}
-                                activeMod={activeIncomingDamageMod}
-                                setActiveMod={setActiveIncomingDamageMod}
-                                incoming={true}
                             /> },
                             { id: 'incoming-strike-damage', element: <SpikeDamageSection
                                 sectionId="incoming-strike-damage"
@@ -4976,6 +4886,13 @@ type SpikeFight = {
                                 spikeFightSkillRows={incomingStrikeFightSkillRows}
                                 spikeFightSkillTitle="Incoming Skill Damage (Selected Fight)"
                             /> },
+                            { id: 'incoming-damage-modifiers', element: <DamageModifiersSection
+                                search={incomingDamageModSearch}
+                                setSearch={setIncomingDamageModSearch}
+                                activeMod={activeIncomingDamageMod}
+                                setActiveMod={setActiveIncomingDamageMod}
+                                incoming={true}
+                            /> },
                             { id: 'defense-mitigation', element: <DamageMitigationSection
                                 damageMitigationSearch={damageMitigationSearch}
                                 setDamageMitigationSearch={setDamageMitigationSearch}
@@ -4986,7 +4903,9 @@ type SpikeFight = {
                                 damageMitigationScope={damageMitigationScope}
                                 setDamageMitigationScope={setDamageMitigationScope}
                             /> },
-                            { id: 'boon-strip-comparison', element: <BoonStripComparisonSection /> },
+                        ])}
+
+                        {renderGroup('boons-strips', [
                             { id: 'boon-output', element: <BoonOutputSection
                                 activeBoonCategory={activeBoonCategory}
                                 setActiveBoonCategory={(val: string) => setActiveBoonCategory(val as BoonCategory)}
@@ -4999,6 +4918,30 @@ type SpikeFight = {
                                 setBoonSearch={setBoonSearch}
                                 formatBoonMetricDisplay={formatBoonMetricDisplay}
                                 getBoonMetricValue={getBoonMetricValue}
+                            /> },
+                            { id: 'boon-uptime', element: <BoonUptimeSection
+                                boonSearch={boonUptimeSearch}
+                                setBoonSearch={setBoonUptimeSearch}
+                                boons={filteredBoonUptimeBoons}
+                                activeBoonId={activeBoonUptimeId}
+                                setActiveBoonId={setActiveBoonUptimeId}
+                                playerFilter={boonUptimePlayerFilter}
+                                setPlayerFilter={setBoonUptimePlayerFilter}
+                                players={filteredBoonUptimePlayers}
+                                selectedPlayerKey={selectedBoonUptimePlayerKey}
+                                setSelectedPlayerKey={setSelectedBoonUptimePlayerKey}
+                                selectedPlayer={selectedBoonUptimePlayer}
+                                chartData={boonUptimeChartData}
+                                chartMaxY={boonUptimeChartMaxY}
+                                selectedFightIndex={selectedBoonUptimeFightIndex}
+                                setSelectedFightIndex={setSelectedBoonUptimeFightIndex}
+                                drilldownTitle={boonUptimeDrilldown.title}
+                                drilldownData={boonUptimeDrilldown.data}
+                                overallUptimePercent={boonUptimeOverallPercent}
+                                showStackCapLine={Boolean(activeBoonUptime?.stacking)}
+                                subgroupMembers={boonUptimeSubgroupMembers}
+                                showIncomingHeatmap={showBoonUptimeIncomingHeatmap}
+                                setShowIncomingHeatmap={setShowBoonUptimeIncomingHeatmap}
                             /> },
                             { id: 'all-boons', element: <AllBoonsSection
                                 boons={boonTimelineBoons as AllBoonsBoon[]}
@@ -5034,30 +4977,6 @@ type SpikeFight = {
                                 showIncomingHeatmap={showBoonTimelineIncomingHeatmap}
                                 setShowIncomingHeatmap={setShowBoonTimelineIncomingHeatmap}
                             /> },
-                            { id: 'boon-uptime', element: <BoonUptimeSection
-                                boonSearch={boonUptimeSearch}
-                                setBoonSearch={setBoonUptimeSearch}
-                                boons={filteredBoonUptimeBoons}
-                                activeBoonId={activeBoonUptimeId}
-                                setActiveBoonId={setActiveBoonUptimeId}
-                                playerFilter={boonUptimePlayerFilter}
-                                setPlayerFilter={setBoonUptimePlayerFilter}
-                                players={filteredBoonUptimePlayers}
-                                selectedPlayerKey={selectedBoonUptimePlayerKey}
-                                setSelectedPlayerKey={setSelectedBoonUptimePlayerKey}
-                                selectedPlayer={selectedBoonUptimePlayer}
-                                chartData={boonUptimeChartData}
-                                chartMaxY={boonUptimeChartMaxY}
-                                selectedFightIndex={selectedBoonUptimeFightIndex}
-                                setSelectedFightIndex={setSelectedBoonUptimeFightIndex}
-                                drilldownTitle={boonUptimeDrilldown.title}
-                                drilldownData={boonUptimeDrilldown.data}
-                                overallUptimePercent={boonUptimeOverallPercent}
-                                showStackCapLine={Boolean(activeBoonUptime?.stacking)}
-                                subgroupMembers={boonUptimeSubgroupMembers}
-                                showIncomingHeatmap={showBoonUptimeIncomingHeatmap}
-                                setShowIncomingHeatmap={setShowBoonUptimeIncomingHeatmap}
-                            /> },
                             { id: 'stab-performance', element: <StabPerformanceSection
                                 playerFilter={stabPerfPlayerFilter}
                                 setPlayerFilter={setStabPerfPlayerFilter}
@@ -5079,6 +4998,32 @@ type SpikeFight = {
                                 showPartyDistance={showStabPerfDistance}
                                 setShowPartyDistance={setShowStabPerfDistance}
                             /> },
+                            { id: 'boon-strip-comparison', element: <BoonStripComparisonSection /> },
+                            { id: 'strip-spikes', element: <FightMetricSection
+                                sectionId="strip-spikes"
+                                title="Strip Spikes"
+                                titleIcon={Eraser}
+                                titleIconClassName="text-amber-300"
+                                modes={[
+                                    { id: 'strips', label: 'Strips' },
+                                    { id: 'stripDownContrib', label: 'Down Contrib' },
+                                ]}
+                                activeMode={stripMode}
+                                setActiveMode={setStripMode}
+                                playerFilter={stripPlayerFilter}
+                                setPlayerFilter={setStripPlayerFilter}
+                                groupedPlayers={groupedStripPlayers}
+                                selectedPlayerKey={selectedStripPlayerKey}
+                                setSelectedPlayerKey={setSelectedStripPlayerKey}
+                                selectedPlayer={selectedStripPlayer}
+                                chartData={stripChartData}
+                                chartMaxY={stripChartMaxY}
+                                formatValue={(v: number) => formatWithCommas(v, 0)}
+                                valueSuffix={stripMode === 'strips' ? 'strips' : ''}
+                            /> },
+                        ])}
+
+                        {renderGroup('support-healing', [
                             { id: 'support-detailed', element: <SupportSection
                                 supportSearch={supportSearch}
                                 setSupportSearch={setSupportSearch}
@@ -5102,26 +5047,109 @@ type SpikeFight = {
                             { id: 'healing-breakdown', element: <HealingBreakdownSection
                                 healingBreakdownPlayers={safeStats.healingBreakdownPlayers}
                             /> },
+                            { id: 'heal-effectiveness', element: <HealEffectivenessSection
+                                fights={healEffectivenessFights}
+                            /> },
                         ])}
 
-                        {renderGroup('other', [
-                            { id: 'fight-diff-mode', element: <FightDiffModeSection
+                        {renderGroup('squad-cohesion', [
+                            { id: 'on-tag-review', element: <OnTagReviewSection
+                                result={onTagReviewResult}
                             /> },
-                            { id: 'special-buffs', element: <SpecialBuffsSection
-                                specialSearch={specialSearch}
-                                setSpecialSearch={setSpecialSearch}
-                                activeSpecialTab={activeSpecialTab}
-                                setActiveSpecialTab={setActiveSpecialTab}
-                                activeSpecialTable={activeSpecialTable}
+                            { id: 'squad-distance-to-tag', element: <SquadDistanceToTagSection
+                                result={distanceToTagResult}
+                                filterEnabled={distanceToTagFilterEnabled}
+                                onFilterEnabledChange={setDistanceToTagFilterEnabled}
+                                minFights={distanceToTagMinFights}
+                                onMinFightsChange={setDistanceToTagMinFights}
                             /> },
-                            { id: 'sigil-relic-uptime', element: <SigilRelicUptimeSection
-                                hasSigilRelicTables={sigilRelicTables.length > 0}
-                                sigilRelicSearch={sigilRelicSearch}
-                                setSigilRelicSearch={setSigilRelicSearch}
-                                filteredSigilRelicTables={filteredSigilRelicTables}
-                                activeSigilRelicTab={activeSigilRelicTab}
-                                setActiveSigilRelicTab={setActiveSigilRelicTab}
-                                activeSigilRelicTable={activeSigilRelicTable}
+                            { id: 'squad-distance-to-tag-visual', element: <SquadDistanceToTagVisualSection
+                                result={distanceToTagResult}
+                                filterEnabled={distanceToTagFilterEnabled}
+                                minFights={distanceToTagMinFights}
+                            /> },
+                            { id: 'squad-tag-distance-deaths', element: <SquadTagDistanceDeathsSection
+                                fights={tagDistanceDeathsData}
+                            /> },
+                            { id: 'squad-kill-pressure', element: <SquadKillPressureSection /> },
+                            { id: 'squad-damage-comparison', element: <SquadDamageComparisonSection /> },
+                        ])}
+
+                        {renderGroup('commander', [
+                            { id: 'commander-stats', element: <CommanderStatsSection
+                                commanderStats={commanderStats}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'commander-push-timing', element: <CommanderPushTimingSection
+                                commanderStats={commanderStats}
+                            /> },
+                            { id: 'commander-target-conversion', element: <CommanderTargetConversionSection
+                                commanderStats={commanderStats}
+                            /> },
+                            { id: 'commander-tag-movement', element: <CommanderTagMovementSection
+                                commanderStats={commanderStats}
+                            /> },
+                            { id: 'commander-tag-death-response', element: <CommanderTagDeathResponseSection
+                                commanderStats={commanderStats}
+                            /> },
+                        ])}
+
+                        {renderGroup('players', [
+                            { id: 'player-breakdown', element: <PlayerBreakdownSection
+                                viewMode={playerBreakdownViewMode}
+                                setViewMode={setPlayerBreakdownViewMode}
+                                playerSkillBreakdowns={playerSkillBreakdowns}
+                                classSkillBreakdowns={classSkillBreakdowns}
+                                activePlayerKey={activePlayerBreakdownKey}
+                                setActivePlayerKey={setActivePlayerBreakdownKey}
+                                expandedPlayerKey={expandedPlayerBreakdownKey}
+                                setExpandedPlayerKey={setExpandedPlayerBreakdownKey}
+                                activePlayerSkillId={activePlayerBreakdownSkillId}
+                                setActivePlayerSkillId={setActivePlayerBreakdownSkillId}
+                                activeClassKey={activeClassBreakdownKey}
+                                setActiveClassKey={setActiveClassBreakdownKey}
+                                expandedClassKey={expandedClassBreakdownKey}
+                                setExpandedClassKey={setExpandedClassBreakdownKey}
+                                activeClassSkillId={activeClassBreakdownSkillId}
+                                setActiveClassSkillId={setActiveClassBreakdownSkillId}
+                                skillSearch={playerBreakdownSkillSearch}
+                                setSkillSearch={setPlayerBreakdownSkillSearch}
+                                activePlayerBreakdown={activePlayerBreakdown}
+                                activePlayerSkill={activePlayerSkill}
+                                activeClassBreakdown={activeClassBreakdown}
+                                activeClassSkill={activeClassSkill}
+                            /> },
+                            ...(!noEgoMode ? [{ id: 'player-comparison', element: <PlayerComparisonSection
+                                comparisonMode={comparisonMode}
+                                setComparisonMode={setComparisonMode}
+                                comparisonCategory={comparisonCategory}
+                                setComparisonCategory={setComparisonCategory}
+                                playerAKey={comparisonPlayerAKey}
+                                setPlayerAKey={setComparisonPlayerAKey}
+                                playerBKey={comparisonPlayerBKey}
+                                setPlayerBKey={setComparisonPlayerBKey}
+                            /> }] : []),
+                            { id: 'apm-stats', element: <ApmSection
+                                apmSpecAvailable={apmSpecAvailable}
+                                skillUsageAvailable={skillUsageAvailable}
+                                apmSpecTables={apmSpecTables}
+                                activeApmSpec={activeApmSpec}
+                                setActiveApmSpec={setActiveApmSpec}
+                                expandedApmSpec={expandedApmSpec}
+                                setExpandedApmSpec={setExpandedApmSpec}
+                                activeApmSkillId={activeApmSkillId}
+                                setActiveApmSkillId={setActiveApmSkillId}
+                                ALL_SKILLS_KEY={ALL_SKILLS_KEY}
+                                apmSkillSearch={apmSkillSearch}
+                                setApmSkillSearch={setApmSkillSearch}
+                                activeApmSpecTable={activeApmSpecTable}
+                                activeApmSkill={activeApmSkill}
+                                isAllApmSkills={isAllApmSkills}
+                                apmView={apmView}
+                                setApmView={setApmView}
+                                formatApmValue={formatApmValue}
+                                formatCastRateValue={formatCastRateValue}
+                                formatCastCountValue={formatCastCountValue}
                             /> },
                             { id: 'skill-usage', element: <SkillUsageSection
                                 selectedPlayers={selectedPlayers}
@@ -5156,40 +5184,45 @@ type SpikeFight = {
                                 getLineDashForPlayer={getLineDashForPlayer}
                                 formatSkillUsageValue={formatSkillUsageValue}
                             /> },
-                            { id: 'apm-stats', element: <ApmSection
-                                apmSpecAvailable={apmSpecAvailable}
-                                skillUsageAvailable={skillUsageAvailable}
-                                apmSpecTables={apmSpecTables}
-                                activeApmSpec={activeApmSpec}
-                                setActiveApmSpec={setActiveApmSpec}
-                                expandedApmSpec={expandedApmSpec}
-                                setExpandedApmSpec={setExpandedApmSpec}
-                                activeApmSkillId={activeApmSkillId}
-                                setActiveApmSkillId={setActiveApmSkillId}
-                                ALL_SKILLS_KEY={ALL_SKILLS_KEY}
-                                apmSkillSearch={apmSkillSearch}
-                                setApmSkillSearch={setApmSkillSearch}
-                                activeApmSpecTable={activeApmSpecTable}
-                                activeApmSkill={activeApmSkill}
-                                isAllApmSkills={isAllApmSkills}
-                                apmView={apmView}
-                                setApmView={setApmView}
-                                formatApmValue={formatApmValue}
-                                formatCastRateValue={formatCastRateValue}
-                                formatCastCountValue={formatCastCountValue}
+                            { id: 'sigil-relic-uptime', element: <SigilRelicUptimeSection
+                                hasSigilRelicTables={sigilRelicTables.length > 0}
+                                sigilRelicSearch={sigilRelicSearch}
+                                setSigilRelicSearch={setSigilRelicSearch}
+                                filteredSigilRelicTables={filteredSigilRelicTables}
+                                activeSigilRelicTab={activeSigilRelicTab}
+                                setActiveSigilRelicTab={setActiveSigilRelicTab}
+                                activeSigilRelicTable={activeSigilRelicTable}
                             /> },
-                            ...(!noEgoMode ? [{ id: 'player-comparison', element: <PlayerComparisonSection
-                                comparisonMode={comparisonMode}
-                                setComparisonMode={setComparisonMode}
-                                comparisonCategory={comparisonCategory}
-                                setComparisonCategory={setComparisonCategory}
-                                playerAKey={comparisonPlayerAKey}
-                                setPlayerAKey={setComparisonPlayerAKey}
-                                playerBKey={comparisonPlayerBKey}
-                                setPlayerBKey={setComparisonPlayerBKey}
-                            /> }] : []),
+                            { id: 'special-buffs', element: <SpecialBuffsSection
+                                specialSearch={specialSearch}
+                                setSpecialSearch={setSpecialSearch}
+                                activeSpecialTab={activeSpecialTab}
+                                setActiveSpecialTab={setActiveSpecialTab}
+                                activeSpecialTable={activeSpecialTable}
+                            /> },
                         ])}
-                        {renderGroup('map', [
+
+                        {renderGroup('roster', [
+                            { id: 'attendance-ledger', element: <AttendanceSection
+                                attendanceRows={attendanceData}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'squad-composition', element: <SquadCompositionSection
+                                sortedSquadClassData={sortedSquadClassData}
+                                sortedEnemyClassData={sortedEnemyClassData}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'squad-comp-fight', element: <SquadCompByFightSection
+                                fights={squadCompByFight}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                            { id: 'fight-comp', element: <FightCompSection
+                                fights={fightCompByFight}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
+                        ])}
+
+                        {renderGroup('replay', [
                             { id: 'replay', element: <div style={{ height: '88vh', minHeight: 500, maxHeight: 1000, display: 'flex', width: '100%' }}>{r2ReplayStatus === 'loading' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#9ca3af' }}>Loading replay data...</div> : r2ReplayStatus === 'error' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#fb7185' }}>Failed to load replay data.</div> : <ReplaySection fights={getReplayFights()} />}</div> },
                         ])}
                     </>

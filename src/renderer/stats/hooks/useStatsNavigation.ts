@@ -1,14 +1,7 @@
 import type { ComponentType } from 'react';
-import { useRef, useState, useEffect, useMemo } from 'react';
-import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown, Eraser, Play } from 'lucide-react';
-import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
-import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
-import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
-import { Gw2AegisIcon } from '../../ui/Gw2AegisIcon';
-import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
-import { Gw2DamMitIcon } from '../../ui/Gw2DamMitIcon';
-import { Gw2FuryIcon } from '../../ui/Gw2FuryIcon';
-import { Gw2SigilIcon } from '../../ui/Gw2SigilIcon';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { STATS_CATEGORIES, SECTION_TO_CATEGORY } from '../statsTaxonomy';
+import { useStatsStore } from '../statsStore';
 
 export type StatsTocIcon = ComponentType<{ className?: string }>;
 
@@ -26,143 +19,33 @@ export interface StatsTocGroup {
     items: readonly StatsTocItem[];
 }
 
-export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = [
-    {
-        id: 'overview',
-        label: 'Overview',
-        icon: Trophy,
-        sectionIds: [
-            'overview',
-            'fight-breakdown',
-            'top-players',
-            'top-skills-outgoing',
-            'top-skills-incoming',
-            'squad-composition',
-            'timeline',
-            'map-distribution'
-        ],
-        items: [
-            { id: 'overview', label: 'Overview', icon: Trophy },
-            { id: 'fight-breakdown', label: 'Fight Breakdown', icon: Swords },
-            { id: 'top-players', label: 'Top Players', icon: Trophy },
-            { id: 'top-skills-outgoing', label: 'Top Skills', icon: ArrowBigUp },
-            { id: 'squad-composition', label: 'Classes', icon: Users },
-            { id: 'timeline', label: 'Squad vs Enemy', icon: Users },
-            { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon }
-        ]
-    },
-    {
-        id: 'commanders',
-        label: 'Commander Stats',
-        icon: CommanderTagIcon,
-        sectionIds: ['commander-stats', 'commander-push-timing', 'commander-target-conversion', 'commander-tag-movement', 'commander-tag-death-response'],
-        items: [
-            { id: 'commander-stats', label: 'Commander Stats', icon: CommanderTagIcon },
-            { id: 'commander-push-timing', label: 'Push Timing', icon: Clock3 },
-            { id: 'commander-target-conversion', label: 'Target Conversion', icon: Target },
-            { id: 'commander-tag-movement', label: 'Tag Movement', icon: Route },
-            { id: 'commander-tag-death-response', label: 'Tag Death Response', icon: Skull }
-        ]
-    },
-    {
-        id: 'squad-stats',
-        label: 'Squad Stats',
-        icon: Users,
-        sectionIds: ['squad-damage-comparison', 'squad-kill-pressure', 'heal-effectiveness', 'squad-tag-distance-deaths', 'on-tag-review', 'squad-distance-to-tag', 'squad-distance-to-tag-visual'],
-        items: [
-            { id: 'squad-damage-comparison', label: 'Damage Comparison', icon: ArrowUpDown },
-            { id: 'squad-kill-pressure', label: 'Kill Pressure', icon: Target },
-            { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves },
-            { id: 'squad-tag-distance-deaths', label: 'Tag Distance Deaths', icon: Crosshair },
-            { id: 'on-tag-review', label: 'On Tag Review', icon: Skull },
-            { id: 'squad-distance-to-tag', label: 'Distance to Tag', icon: Crosshair },
-            { id: 'squad-distance-to-tag-visual', label: 'Distance to Tag Visual', icon: Crosshair },
-        ]
-    },
-    {
-        id: 'roster',
-        label: 'Roster Intel',
-        icon: FileText,
-        sectionIds: ['attendance-ledger', 'squad-comp-fight', 'fight-comp'],
-        items: [
-            { id: 'attendance-ledger', label: 'Attendance Ledger', icon: FileText },
-            { id: 'squad-comp-fight', label: 'Squad Comp by Fight', icon: Users },
-            { id: 'fight-comp', label: 'Fight Comp', icon: Swords }
-        ]
-    },
-    {
-        id: 'offense',
-        label: 'Offensive Stats',
-        icon: Swords,
-        sectionIds: ['offense-detailed', 'damage-modifiers', 'player-breakdown', 'damage-breakdown', 'spike-damage', 'all-damage', 'strip-spikes', 'conditions-outgoing'],
-        items: [
-            { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords },
-            { id: 'damage-modifiers', label: 'Damage Modifiers', icon: Flame },
-            { id: 'player-breakdown', label: 'Player Breakdown', icon: ListTree },
-            { id: 'damage-breakdown', label: 'Damage Breakdown', icon: BarChart3 },
-            { id: 'spike-damage', label: 'Spike Damage', icon: Zap },
-            { id: 'all-damage', label: 'All Damage', icon: Flame },
-            { id: 'strip-spikes', label: 'Strip Spikes', icon: Eraser },
-            { id: 'conditions-outgoing', label: 'Conditions', icon: Skull }
-        ]
-    },
-    {
-        id: 'defense',
-        label: 'Defensive Stats',
-        icon: Shield,
-        sectionIds: ['defense-detailed', 'incoming-damage-modifiers', 'incoming-strike-damage', 'defense-mitigation', 'boon-strip-comparison', 'boon-output', 'all-boons', 'boon-timeline', 'boon-uptime', 'stab-performance', 'support-detailed', 'healing-stats', 'healing-breakdown'],
-        items: [
-            { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield },
-            { id: 'incoming-damage-modifiers', label: 'Incoming Modifiers', icon: ShieldOff },
-            { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert },
-            { id: 'defense-mitigation', label: 'Damage Mitigation', icon: Gw2DamMitIcon },
-            { id: 'boon-strip-comparison', label: 'Boon Strips', icon: Eraser },
-            { id: 'boon-output', label: 'Boon Output', icon: Gw2BoonIcon },
-            { id: 'all-boons', label: 'All Boons', icon: Gw2BoonIcon },
-            { id: 'boon-timeline', label: 'Boon Timeline', icon: Gw2AegisIcon },
-            { id: 'boon-uptime', label: 'Boon Uptime', icon: Gw2FuryIcon },
-            { id: 'stab-performance', label: 'Stab Performance', icon: Shield },
-            { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon },
-            { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse },
-            { id: 'healing-breakdown', label: 'Healing Breakdown', icon: ListTree },
-        ]
-    },
-    {
-        id: 'other',
-        label: 'Other Metrics',
-        icon: Star,
-        sectionIds: ['fight-diff-mode', 'special-buffs', 'sigil-relic-uptime', 'skill-usage', 'apm-stats', 'player-comparison'],
-        items: [
-            { id: 'fight-diff-mode', label: 'Fight Comparison', icon: GitCompareArrows },
-            { id: 'special-buffs', label: 'Special Buffs', icon: Star },
-            { id: 'sigil-relic-uptime', label: 'Sigil/Relic Uptime', icon: Gw2SigilIcon },
-            { id: 'skill-usage', label: 'Skill Usage', icon: Keyboard },
-            { id: 'apm-stats', label: 'APM Breakdown', icon: Gw2ApmIcon },
-            { id: 'player-comparison', label: 'Player Comparison', icon: Users }
-        ]
-    },
-    {
-        id: 'map',
-        label: 'Map',
-        icon: MapIcon,
-        sectionIds: ['replay'],
-        items: [
-            { id: 'replay', label: 'Replay', icon: Play }
-        ]
-    }
-];
+// Derived from the taxonomy module (Task 1) — one TOC group per category, in the
+// same order as STATS_CATEGORIES. Web/History pick up the new grouping automatically
+// wherever they consume STATS_TOC_GROUPS.
+export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = STATS_CATEGORIES.map((c) => ({
+    id: c.id,
+    label: c.label,
+    icon: c.icon,
+    sectionIds: c.sections.map((s) => s.id),
+    items: c.sections.map((s) => ({ id: s.id, label: s.label, icon: s.icon })),
+}));
 
-export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true, scrollLocked = false) => {
+export const useStatsNavigation = (_embedded: boolean, trackActiveOnScroll = true, scrollLocked = false) => {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [activeNavId, setActiveNavId] = useState('overview');
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-    const scrollRafRef = useRef<number | null>(null);
-    const scrollDeltaRef = useRef(0);
+    const activeCategory = useStatsStore((s) => s.activeCategory);
 
     const tocGroups = useMemo(() => STATS_TOC_GROUPS, []);
     const tocItems = useMemo(
         () => tocGroups.flatMap((group) => group.items),
         [tocGroups]
+    );
+    // Scope tracking/stepping to the active category only, so scroll-spy and
+    // keyboard stepping don't reach into sections that aren't even mounted.
+    const activeItems = useMemo(
+        () => tocGroups.find((group) => group.id === activeCategory)?.items ?? [],
+        [tocGroups, activeCategory]
     );
 
     const scrollToSection = (id: string) => {
@@ -184,51 +67,39 @@ export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true
         setMobileNavOpen(false);
     };
 
-    useEffect(() => {
-        if (embedded || scrollLocked) return;
-        const onWheel = (event: WheelEvent) => {
-            if (scrollLocked) return;
-            const container = scrollContainerRef.current;
-            if (!container) return;
-            const target = event.target;
-            if (target instanceof Element && target.closest('[data-stats-mobile-nav]')) return;
-            if (target instanceof Node && container.contains(target)) return;
-            if (event.deltaY === 0) return;
-            if (container.scrollHeight <= container.clientHeight) return;
-            scrollDeltaRef.current += event.deltaY;
-            if (scrollRafRef.current === null) {
-                const tick = () => {
-                    const current = scrollDeltaRef.current;
-                    if (Math.abs(current) < 0.5) {
-                        scrollDeltaRef.current = 0;
-                        scrollRafRef.current = null;
-                        return;
-                    }
-                    const step = current * 0.2;
-                    scrollDeltaRef.current = current - step;
-                    container.scrollBy({ top: step, behavior: 'auto' });
-                    scrollRafRef.current = requestAnimationFrame(tick);
-                };
-                scrollRafRef.current = requestAnimationFrame(tick);
-            }
-            event.preventDefault();
+    const activateCategory = (categoryId: string) => {
+        useStatsStore.getState().setActiveCategory(categoryId);
+    };
+
+    const jumpToSection = (sectionId: string) => {
+        const categoryId = SECTION_TO_CATEGORY.get(sectionId);
+        if (categoryId) activateCategory(categoryId);
+        // Retry loop: the category's sections may not be committed yet.
+        let attempts = 0;
+        const tryScroll = () => {
+            const node = document.getElementById(sectionId);
+            if (node) { scrollToSection(sectionId); return; }
+            if (attempts++ < 20) window.setTimeout(() => requestAnimationFrame(tryScroll), 40);
         };
-        window.addEventListener('wheel', onWheel, { passive: false });
-        // @ts-ignore
-        return () => {
-            window.removeEventListener('wheel', onWheel);
-            if (scrollRafRef.current !== null) {
-                cancelAnimationFrame(scrollRafRef.current);
-                scrollRafRef.current = null;
-            }
-            scrollDeltaRef.current = 0;
-        };
-    }, [embedded, scrollLocked]);
+        requestAnimationFrame(tryScroll);
+    };
 
     const stepSection = (direction: -1 | 1) => {
-        const currentIndex = Math.max(0, tocItems.findIndex((item) => item.id === activeNavId));
-        const nextIndex = Math.min(Math.max(currentIndex + direction, 0), tocItems.length - 1);
-        const nextId = tocItems[nextIndex]?.id;
+        const currentIndex = Math.max(0, activeItems.findIndex((item) => item.id === activeNavId));
+        const nextIndex = currentIndex + direction;
+        if (nextIndex < 0 || nextIndex >= activeItems.length) {
+            // Crossed a category boundary — move to the adjacent category and land
+            // on its last item (moving up) or first item (moving down).
+            const categoryIndex = tocGroups.findIndex((g) => g.id === activeCategory);
+            if (categoryIndex === -1) return;
+            const nextGroup = tocGroups[categoryIndex + direction];
+            if (!nextGroup || nextGroup.items.length === 0) return;
+            activateCategory(nextGroup.id);
+            const targetItem = direction === 1 ? nextGroup.items[0] : nextGroup.items[nextGroup.items.length - 1];
+            if (targetItem) jumpToSection(targetItem.id);
+            return;
+        }
+        const nextId = activeItems[nextIndex]?.id;
         if (nextId) scrollToSection(nextId);
     };
 
@@ -239,8 +110,8 @@ export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true
         let raf = 0;
         const updateActiveSection = () => {
             const containerTop = container.getBoundingClientRect().top;
-            let currentId = tocItems[0]?.id || 'overview';
-            tocItems.forEach((item) => {
+            let currentId = activeItems[0]?.id || 'overview';
+            activeItems.forEach((item) => {
                 const el = document.getElementById(item.id);
                 if (!el) return;
                 const offset = el.getBoundingClientRect().top - containerTop;
@@ -262,7 +133,7 @@ export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true
             container.removeEventListener('scroll', onScroll);
             window.removeEventListener('resize', onScroll);
         };
-    }, [tocItems, trackActiveOnScroll, scrollLocked]);
+    }, [activeItems, trackActiveOnScroll, scrollLocked]);
 
     return {
         mobileNavOpen,
@@ -273,6 +144,8 @@ export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true
         tocGroups,
         tocItems,
         scrollToSection,
-        stepSection
+        stepSection,
+        activateCategory,
+        jumpToSection
     };
 };

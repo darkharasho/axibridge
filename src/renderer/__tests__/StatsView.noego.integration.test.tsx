@@ -50,8 +50,16 @@ describe('StatsView – No Ego mode (integration)', () => {
         // Top Skills section must be absent
         expect(screen.queryByText('Top Outgoing Skills')).toBeNull();
 
-        // Player Comparison section must be absent
-        expect(screen.queryByText('Player Comparison')).toBeNull();
+        // Player Comparison section must be absent. Query by heading role, not
+        // plain text: the data map directory (Task 5) also renders a "Player
+        // Comparison" button linking to the section, and that button is correctly
+        // still hidden too (data map honors noEgoMode), but scoping to the
+        // section's own <h3> keeps this assertion unambiguous either way.
+        expect(screen.queryByRole('heading', { name: 'Player Comparison' })).toBeNull();
+
+        // The data map directory must not offer a dead link to a section that
+        // noEgoMode prevents from ever mounting.
+        expect(screen.queryByRole('button', { name: 'Player Comparison' })).toBeNull();
     });
 
     it('shows MVP podium + Top Skills + Player Comparison, and hides squad-summary when noEgoMode:false (control)', () => {
@@ -72,7 +80,14 @@ describe('StatsView – No Ego mode (integration)', () => {
         // Top Skills section header must appear
         expect(screen.getByText('Top Outgoing Skills')).toBeInTheDocument();
 
-        // Player Comparison section header must appear
-        expect(screen.getByText('Player Comparison')).toBeInTheDocument();
+        // Player Comparison section header must appear. Query by heading role: the
+        // data map directory (Task 5) also renders a same-labelled "Player
+        // Comparison" button to jump to this section, so a plain text query now
+        // matches both and is ambiguous.
+        expect(screen.getByRole('heading', { name: 'Player Comparison' })).toBeInTheDocument();
+
+        // The data map directory's link to it should be present too, once the
+        // section itself is allowed to render.
+        expect(screen.getByRole('button', { name: 'Player Comparison' })).toBeInTheDocument();
     });
 });
