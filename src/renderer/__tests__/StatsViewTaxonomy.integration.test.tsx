@@ -214,4 +214,70 @@ describe('StatsView taxonomy integrity', () => {
             expect(container.querySelector('#player-breakdown [data-player-account]')).toBeTruthy();
         });
     });
+
+    // The two tests above only exercise each section's non-expanded sidebar
+    // tab-list / row (expandedSection defaults to null, and every metric-home
+    // section + player-breakdown gates its DenseStatsTable-based dense view on
+    // isExpanded). That leaves DenseStatsTable's own data-metric-key/
+    // data-player-account wiring — and the per-section dense `columns`/`rows`
+    // builders that feed it — completely uncovered. These two tests drive the
+    // real "Expand" interaction to reach that branch.
+    it('exposes data-metric-key on the offense DenseStatsTable column header when the section is expanded', async () => {
+        useStatsStore.getState().setActiveCategory('offense');
+        renderStatsViewWithFixtures();
+
+        // Pre-expand, #offense-detailed holds the real (non-portalled) content,
+        // including the expand toggle — see SectionPanel.tsx. The category
+        // switch mounts it asynchronously (see the first test in this file),
+        // so wait for it before clicking.
+        await waitFor(() => {
+            expect(document.getElementById('offense-detailed')).not.toBeNull();
+        });
+        const offenseSection = document.getElementById('offense-detailed') as HTMLElement;
+        fireEvent.click(within(offenseSection).getByRole('button', { name: /Expand Offense Detailed/i }));
+
+        // Once expanded, SectionPanel portals the section's real children to a
+        // ref div at the StatsView root (see StatsView.tsx's `expandedPortalRef`)
+        // and leaves #offense-detailed as an empty placeholder — so the expanded
+        // content must be queried via the modal pane, not the section id. Same
+        // pattern StatsView.integration.test.tsx's "shows fullscreen Player
+        // Breakdown dense-table controls" test uses for player-breakdown.
+        await waitFor(() => {
+            const modalPane = document.querySelector('.modal-pane');
+            expect(
+                modalPane?.querySelector('[data-metric-key="downContribution"]'),
+                'missing data-metric-key=downContribution in the expanded offense DenseStatsTable'
+            ).toBeTruthy();
+        });
+    });
+
+    it('exposes data-player-account on player breakdown DenseStatsTable rows when the section is expanded', async () => {
+        useStatsStore.getState().setActiveCategory('players');
+        renderStatsViewWithFixtures();
+
+        await waitFor(() => {
+            expect(document.getElementById('player-breakdown')).not.toBeNull();
+        });
+        const playerBreakdownSection = document.getElementById('player-breakdown') as HTMLElement;
+        fireEvent.click(within(playerBreakdownSection).getByRole('button', { name: /Expand Player Breakdown/i }));
+
+        // Expanding forces class mode (PlayerBreakdownSection.tsx:
+        // `(isExpanded ? 'class' : viewMode) === 'player'` is never true while
+        // expanded), so the sidebar becomes the class-bucket list. Select the one
+        // bucket the fixture player belongs to — that's what makes
+        // activeClassBreakdown non-null and renders the class-mode dense table
+        // (the `playerAccount: entry.player.account` row builder).
+        await waitFor(() => {
+            expect(screen.getByText(/Squad Classes/i)).toBeInTheDocument();
+        });
+        const modalPane = document.querySelector('.modal-pane') as HTMLElement;
+        fireEvent.click(within(modalPane).getByRole('button', { name: new RegExp(FIXTURE_PROFESSION, 'i') }));
+
+        await waitFor(() => {
+            expect(
+                modalPane.querySelector(`[data-player-account="${FIXTURE_ACCOUNT}"]`),
+                `missing data-player-account=${FIXTURE_ACCOUNT} in the expanded player breakdown DenseStatsTable`
+            ).toBeTruthy();
+        });
+    });
 });
