@@ -1,12 +1,19 @@
-import { app } from 'electron';
 import fs from 'fs';
 import path from 'node:path';
 import os from 'node:os';
 
 // Kept in sync with AxiOM's app registry (../axiom/electron/apps.ts) so both
-// writers target the same file and produce identical content.
+// writers target the same file and produce identical content. Note APP_NAME is
+// deliberately not electron's app.name — that reports the lowercase package
+// name 'axibridge' even in a packaged build, which made our entry differ from
+// AxiOM's and the two rewrote each other on every launch.
 const APP_ID = 'axibridge';
-const APP_NAME = 'AxiBridge';
+export const APP_NAME = 'AxiBridge';
+
+// Schemes registered at runtime via app.setAsDefaultProtocolClient. xdg-settings
+// resolves a handler through this desktop entry, so omitting the line drops the
+// registration every time the file is rewritten.
+export const MIME_TYPES: readonly string[] = ['x-scheme-handler/axibridge'];
 
 // Express an absolute path under os.homedir() when it resolves inside the home
 // tree. On Fedora Atomic/Silverblue, $APPIMAGE is /var/home/... while
@@ -26,7 +33,13 @@ export function normalizeHomePath(absPath: string, homeDir: string): string {
 
 // Byte-for-byte identical to AxiOM's writeLinuxDesktopEntry template
 // (../axiom/electron/desktopEntry.ts). Do not reformat.
-export function buildDesktopEntry(name: string, appImagePath: string, iconLine: string): string {
+export function buildDesktopEntry(
+    name: string,
+    appImagePath: string,
+    iconLine: string,
+    mimeTypes: readonly string[]
+): string {
+    const mimeLine = mimeTypes.length ? `MimeType=${mimeTypes.map((m) => `${m};`).join('')}\n` : '';
     return `[Desktop Entry]
 Type=Application
 Name=${name}
@@ -37,7 +50,7 @@ Terminal=false
 Categories=Utility;
 StartupWMClass=${name}
 X-AppImage-Name=${name}
-`;
+${mimeLine}`;
 }
 
 // Preserve an existing Icon= line if it's a bare name or points at a real file,
@@ -64,12 +77,13 @@ export function writeDesktopEntry(opts: {
     name: string;
     appImagePath: string;
     homeDir: string;
+    mimeTypes: readonly string[];
 }): 'written' | 'unchanged' | 'skipped' {
     if (process.platform !== 'linux') return 'skipped';
     const appsDir = path.join(opts.homeDir, '.local', 'share', 'applications');
     const desktopPath = path.join(appsDir, `${opts.appId}.desktop`);
     const iconLine = resolveIconLine(opts.appId, desktopPath);
-    const contents = buildDesktopEntry(opts.name, opts.appImagePath, iconLine);
+    const contents = buildDesktopEntry(opts.name, opts.appImagePath, iconLine, opts.mimeTypes);
     try {
         fs.mkdirSync(appsDir, { recursive: true });
         if (fs.existsSync(desktopPath) && fs.readFileSync(desktopPath, 'utf8') === contents) {
@@ -83,11 +97,28 @@ export function writeDesktopEntry(opts: {
     }
 }
 
+// $APPIMAGE and $APPDIR are ordinary environment variables, so every child
+// process of an AppImage inherits them — including a dev run of this app
+// started from a terminal inside another AppImage. Acting on an inherited
+// $APPIMAGE rewrote axibridge.desktop to launch *that* app instead. We are only
+// really the AppImage when our own executable lives inside the mounted $APPDIR;
+// a nested packaged AppImage gets its own values from its AppRun, so it passes.
+export function resolveOwnAppImage(
+    env: Record<string, string | undefined>,
+    execPath: string
+): string | undefined {
+    if (!env.APPIMAGE || !env.APPDIR) return undefined;
+    const appDir = path.resolve(env.APPDIR);
+    const exe = path.resolve(execPath);
+    if (exe !== appDir && !exe.startsWith(appDir + path.sep)) return undefined;
+    return env.APPIMAGE;
+}
+
 export class DesktopIntegrator {
     private appImage: string | undefined;
 
     constructor() {
-        this.appImage = process.env.APPIMAGE;
+        this.appImage = resolveOwnAppImage(process.env, process.execPath);
     }
 
     public async integrate() {
@@ -106,9 +137,10 @@ export class DesktopIntegrator {
         const appImagePath = normalizeHomePath(this.appImage, homeDir);
         const result = writeDesktopEntry({
             appId: APP_ID,
-            name: app.name || APP_NAME,
+            name: APP_NAME,
             appImagePath,
-            homeDir
+            homeDir,
+            mimeTypes: MIME_TYPES
         });
         if (result === 'written') {
             console.log(`[Integration] Refreshed desktop entry → ${appImagePath}`);
