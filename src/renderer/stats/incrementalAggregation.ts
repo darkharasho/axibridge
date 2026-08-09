@@ -1285,7 +1285,7 @@ export class IncrementalAggregator {
                 const metricRankMaps = metrics.map((metric) => rankByAccount(metric.leaderboard));
                 const buildTopStats = (contribs: any[]) =>
                     [...(contribs || [])]
-                        .sort((a, b) => b.ratio - a.ratio || a.rank - b.rank || a.name.localeCompare(b.name))
+                        .sort((a, b) => (b.ratio * b.weight) - (a.ratio * a.weight) || a.rank - b.rank || a.name.localeCompare(b.name))
                         .slice(0, 3);
                 const enrichPlacement = (entry: any) => {
                     if (!entry) return undefined;
@@ -1312,7 +1312,7 @@ export class IncrementalAggregator {
                         const ratio = higherIsBetter ? val / best : best / val;
                         const rank = metricRankMaps[idx].get(stat.account) || 0;
                         score += ratio * metric.weight;
-                        contribs.push({ name: metric.name, ratio, val: val.toLocaleString(), rank });
+                        contribs.push({ name: metric.name, ratio, weight: metric.weight, val: val.toLocaleString(), rank });
                     });
                     scores.push({ ...stat, score, contribs });
                 });
