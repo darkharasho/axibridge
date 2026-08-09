@@ -83,4 +83,12 @@ describe('SearchPalette', () => {
         expect(overlay).toBeTruthy();
         expect(overlay.className).toContain('z-[10000]');
     });
+
+    it('carries the axi-search-panel class the glass theme targets for its opaque override', () => {
+        // index.css: `body.glass-surfaces .axi-search-panel { background: rgb(15,18,25) !important }`
+        // Glass surfaces are translucent and backdrop blur is unavailable on Linux,
+        // so without this hook the palette renders see-through over report content.
+        const { container } = render(<SearchPalette open onClose={() => {}} index={INDEX} onSelect={() => {}} />);
+        expect(container.querySelector('.axi-search-panel')).toBeTruthy();
+    });
 });

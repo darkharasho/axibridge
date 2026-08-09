@@ -233,6 +233,13 @@ body.glass-surfaces .stats-dashboard-nav-panel {
   backdrop-filter: blur(16px);
 }
 
+/* Search palette must be fully opaque under glass: it floats over arbitrary
+   content, and backdrop-filter blur is unavailable on Linux, so any alpha
+   reads as plain see-through. Solid, no blur. */
+body.glass-surfaces .axi-search-panel {
+  background: rgb(15, 18, 25) !important;
+}
+
 body.glass-surfaces .app-modal-card {
   background: rgba(15, 18, 25, 0.92) !important;
   backdrop-filter: blur(20px);

@@ -170,7 +170,7 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
         >
             {flashStyle}
             <div
-                className="w-full max-w-lg flex flex-col rounded-[4px] overflow-hidden"
+                className="axi-search-panel w-full max-w-lg flex flex-col rounded-[4px] overflow-hidden"
                 style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)', maxHeight: '70vh' }}
                 role="dialog"
                 aria-modal="true"
