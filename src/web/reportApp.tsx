@@ -1790,34 +1790,41 @@ export function ReportApp() {
                     </div>
                 </div>
                 <div className={`fixed bottom-4 left-4 right-4 z-30 mobile-action-bar ${isNarrowViewport ? '' : 'hidden'}`}>
-                    <div className="flex items-center justify-between gap-2 rounded-2xl bg-slate-950/70 border border-white/15 backdrop-blur-xl px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
+                    {/* Icon-over-label, each item flex-1 min-w-0. A row of four
+                        side-by-side icon+label pills needs 387px of the 337px
+                        available at 393px wide, and every label is a single
+                        unbreakable word (min-content == max-content), so
+                        flex-shrink has nothing to give and the last item runs
+                        off-screen. Stacking drops the row to ~291px and the
+                        flex-1/truncate pair keeps it bounded on narrower phones. */}
+                    <div className="flex items-stretch gap-1.5 rounded-2xl bg-slate-950/70 border border-white/15 backdrop-blur-xl px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
                         <a
                             href={themedIndexHref}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
                         >
                             <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                            Back
+                            <span className="max-w-full truncate">Back</span>
                         </a>
                         <button
                             onClick={() => setTocOpen(true)}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
                         >
                             <PanelLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                            Contents
+                            <span className="max-w-full truncate">Contents</span>
                         </button>
                         <button
                             onClick={() => searchOpenRef.current?.()}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
                         >
                             <Search className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                            Search
+                            <span className="max-w-full truncate">Search</span>
                         </button>
                         <button
                             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
                         >
                             <ArrowUp className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                            Top
+                            <span className="max-w-full truncate">Top</span>
                         </button>
                     </div>
                 </div>
