@@ -105,7 +105,12 @@ export const TopSkillsSection = ({
         )}
 
         {showIncoming && (
-        <div>
+        // In the combined two-column layout the incoming column carries its own
+        // anchor so taxonomy/search/deep-links can target #top-skills-incoming
+        // even though it is not a standalone SectionPanel. In standalone
+        // 'incoming' mode the SectionPanel wrapper owns the id — omit it here
+        // to avoid duplicate DOM ids.
+        <div id={mode === 'both' ? 'top-skills-incoming' : undefined}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5 min-h-[28px]">
                 <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Top Incoming Skills</h3>

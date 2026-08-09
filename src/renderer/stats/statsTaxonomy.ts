@@ -50,6 +50,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
             { id: 'top-players', label: 'Top Players', icon: Trophy, description: 'Leaderboard of standout performances.', keywords: ['mvp', 'leaderboard', 'best'] },
             { id: 'top-skills-outgoing', label: 'Top Skills', icon: ArrowBigUp, description: 'Highest-impact outgoing skills across the squad.', keywords: ['skills used', 'damage skills'] },
             { id: 'top-skills-incoming', label: 'Top Incoming Skills', icon: ArrowBigUp, description: 'Enemy skills that hurt the squad the most.', keywords: ['skills taken', 'incoming skills', 'killed by'] },
+            { id: 'squad-composition', label: 'Classes', icon: Users, description: 'Squad and enemy profession distributions.', keywords: ['professions', 'classes', 'comp', 'enemy comp'] },
             { id: 'timeline', label: 'Squad vs Enemy', icon: Users, description: 'Squad and enemy sizes across the session timeline.', keywords: ['squad size', 'enemy size', 'outnumbered'] },
             { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon, description: 'Where the fights happened, by map.', keywords: ['maps', 'borderlands', 'ebg'] },
             { id: 'fight-diff-mode', label: 'Fight Comparison', icon: GitCompareArrows, description: 'Compare two fights side by side across metrics.', keywords: ['compare fights', 'diff', 'versus'] },
@@ -148,7 +149,6 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
         keywords: ['attendance', 'composition', 'squad'],
         sections: [
             { id: 'attendance-ledger', label: 'Attendance Ledger', icon: FileText, description: 'Participation ledger across the session.', keywords: ['attendance', 'showed up', 'participation'] },
-            { id: 'squad-composition', label: 'Classes', icon: Users, description: 'Profession distribution of the squad.', keywords: ['professions', 'classes', 'comp'] },
             { id: 'squad-comp-fight', label: 'Squad Comp by Fight', icon: Users, description: 'Composition fight by fight.', keywords: ['comp per fight'] },
             { id: 'fight-comp', label: 'Fight Comp', icon: Swords, description: 'Squad and enemy composition for each fight.', keywords: ['enemy comp'] },
         ],

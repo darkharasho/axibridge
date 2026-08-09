@@ -4828,12 +4828,18 @@ type SpikeFight = {
                                 enabledTopStats={enabledTopStats}
                                 noEgoMode={noEgoMode}
                             /> },
+                            // Outgoing + incoming render as one two-column section (the classic
+                            // layout); the incoming column carries its own #top-skills-incoming
+                            // anchor inside the combined block.
                             ...(!noEgoMode ? [{ id: 'top-skills-outgoing', element: <TopSkillsSection
-                                mode="outgoing"
                                 topSkillsMetric={topSkillsMetric}
                                 onTopSkillsMetricChange={updateTopSkillsMetric}
                             /> }] : []),
-                            ...(!noEgoMode ? [{ id: 'top-skills-incoming', element: <TopSkillsSection mode="incoming" /> }] : []),
+                            { id: 'squad-composition', element: <SquadCompositionSection
+                                sortedSquadClassData={sortedSquadClassData}
+                                sortedEnemyClassData={sortedEnemyClassData}
+                                getProfessionIconPath={getProfessionIconPath}
+                            /> },
                             { id: 'timeline', element: <TimelineSection
                                 timelineData={safeStats.timelineData}
                                 timelineFriendlyScope={timelineFriendlyScope}
@@ -5273,11 +5279,6 @@ type SpikeFight = {
                         {renderGroup('roster', [
                             { id: 'attendance-ledger', element: <AttendanceSection
                                 attendanceRows={attendanceData}
-                                getProfessionIconPath={getProfessionIconPath}
-                            /> },
-                            { id: 'squad-composition', element: <SquadCompositionSection
-                                sortedSquadClassData={sortedSquadClassData}
-                                sortedEnemyClassData={sortedEnemyClassData}
                                 getProfessionIconPath={getProfessionIconPath}
                             /> },
                             { id: 'squad-comp-fight', element: <SquadCompByFightSection

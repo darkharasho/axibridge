@@ -128,6 +128,7 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
             'Fight Comparison',
             'Top Players',
             'Top Skills',
+            'Classes',
             'Map Distribution',
         ];
 
@@ -164,15 +165,13 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
     });
 
     test('WRPT-048: roster sub-items are clickable', async ({ page }) => {
-        // New category — 'Classes' used to live under the old "Overview" group
-        // (as part of the WRPT-042 list); it moved here along with the other
-        // squad-composition sections.
+        // 'Classes' (squad + enemy comp) is back in Overview per user request —
+        // see the WRPT-042 list. Roster keeps the attendance/per-fight comps.
         const sidebar = page.locator('aside.report-nav-sidebar:visible');
         await sidebar.locator('.report-nav-group-btn', { hasText: /^Roster$/i }).click();
 
         const subItems = [
             'Attendance Ledger',
-            'Classes',
             'Squad Comp by Fight',
             'Fight Comp',
         ];
