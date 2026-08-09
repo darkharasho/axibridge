@@ -535,8 +535,10 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
             );
         }
 
-        // For non-embedded (desktop), only render the active group.
-        // Inactive groups get a zero-height placeholder (measured heights used after first visit).
+        // For non-embedded (desktop), only render the active category's content.
+        // Inactive categories get a zero-height placeholder (no content mounted —
+        // the placeholder-height store was removed in Task 2, so there are no
+        // measured heights to preserve; the category bar drives switching).
         if (groupId !== activeCategory) {
             return (
                 <div
@@ -777,7 +779,6 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
 
     const {
         scrollContainerRef,
-        jumpToSection,
     } = useStatsNavigation(embedded, true);
 
     // Universal search palette (Ctrl/Cmd+K). Mounted unconditionally so it works
@@ -2847,20 +2848,22 @@ type SpikeFight = {
         },
         [embedded, isSectionVisibleFast, activeCategorySectionIds]
     );
-    // Data map directory: intentionally NOT `isSectionVisible` — in desktop mode
-    // that's scoped to the active category (activeCategorySectionIds), and the
-    // data map itself only renders while its host category ('overview') is
-    // active, so every other category's sections would always read as
-    // disallowed and the directory would only ever show one card. The data map
-    // needs a category-agnostic predicate in both modes: `isSectionVisibleFast`
-    // already is one (settings-based `sectionVisibility` prop when embedded,
-    // otherwise "allow everything" — which is also what desktop needs, since
-    // desktop never passes a `sectionVisibility` prop). Layer the noEgoMode
-    // omissions on top (see NO_EGO_HIDDEN_SECTION_IDS) since those render
-    // entries don't exist at all while noEgoMode is on.
+    // Data map directory: a HOST-LEVEL predicate that allows every taxonomy
+    // section minus the noEgo omissions — the active category and the embedded
+    // active-group visibility fn both play NO role here. The data map renders
+    // only while its host category ('overview') is active AND lists sections
+    // from every category, so any predicate keyed on the active
+    // category/group — `isSectionVisible` (desktop, scoped to
+    // activeCategorySectionIds) OR the embedded `sectionVisibility` prop that
+    // real hosts pass (reportApp/CategoryBar push an active-group-scoped fn) —
+    // would mark 9 of 10 categories' sections disallowed and collapse the
+    // directory to a single Overview card. This deliberately mirrors the search
+    // index's predicate (see buildSearchIndex above): both are category-agnostic
+    // directories of the whole report, filtered only by the noEgo exclusions
+    // (those render entries don't exist at all while noEgoMode is on).
     const isDataMapSectionAllowed = useCallback(
-        (id: string) => isSectionVisibleFast(id) && !(noEgoMode && NO_EGO_HIDDEN_SECTION_IDS.has(id)),
-        [isSectionVisibleFast, noEgoMode]
+        (id: string) => !(noEgoMode && NO_EGO_HIDDEN_SECTION_IDS.has(id)),
+        [noEgoMode]
     );
     const sectionClass = useCallback((id: string, base: string) => {
         const visible = isSectionVisible(id);
@@ -4795,7 +4798,15 @@ type SpikeFight = {
                     <>
                         {renderGroup('overview', [
                             { id: 'data-map', element: <DataMapSection
-                                onNavigate={(categoryId, sectionId) => { useStatsStore.getState().setActiveCategory(categoryId); jumpToSection(sectionId); }}
+                                // Route through the same jump path as the search palette: jumpToEntry
+                                // activates the owning category via `requestCategory` (the host's
+                                // onRequestCategory mechanism — the web drives its own nav off this,
+                                // not the store) then polls + scrollIntoView-es the target. This is the
+                                // only path that works on all three surfaces (desktop, embedded History,
+                                // web); the old store-write + container.scrollTo was a no-op off-desktop.
+                                onNavigate={(categoryId, sectionId) => jumpToEntry({
+                                    type: 'section', categoryId, sectionId, label: '', sublabel: '', haystack: [],
+                                })}
                                 isSectionAllowed={isDataMapSectionAllowed}
                             /> },
                             { id: 'overview', element: <OverviewSection

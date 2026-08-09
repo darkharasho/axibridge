@@ -32,4 +32,22 @@ describe('DataMapSection', () => {
         );
         expect(screen.queryByText(STATS_CATEGORIES.find((c) => c.id === 'commander')!.description)).toBeNull();
     });
+
+    it('renders a category with only its allowed sections when SOME (not all) are disallowed', () => {
+        // T4 gap: a partially-allowed category must still render, listing just the
+        // allowed subset of its sections. Disallow exactly one Overview section.
+        render(
+            <DataMapSection
+                onNavigate={() => {}}
+                isSectionAllowed={(id) => id !== 'fight-breakdown'}
+            />
+        );
+        const overview = STATS_CATEGORIES.find((c) => c.id === 'overview')!;
+        // Category card still present (its description renders).
+        expect(screen.getByText(overview.description)).toBeTruthy();
+        // An allowed sibling section still lists as a chip.
+        expect(screen.getByRole('button', { name: 'Fight Comparison' })).toBeTruthy();
+        // The single disallowed section does not.
+        expect(screen.queryByRole('button', { name: 'Fight Breakdown' })).toBeNull();
+    });
 });

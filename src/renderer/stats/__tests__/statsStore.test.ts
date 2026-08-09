@@ -67,6 +67,17 @@ describe('useStatsStore — activeCategory slice', () => {
     });
 });
 
+describe('useStatsStore — activeSectionId slice', () => {
+    it('defaults activeSectionId to "overview"', () => {
+        expect(useStatsStore.getState().activeSectionId).toBe('overview');
+    });
+
+    it('updates activeSectionId via setActiveSectionId', () => {
+        useStatsStore.getState().setActiveSectionId('on-tag-review');
+        expect(useStatsStore.getState().activeSectionId).toBe('on-tag-review');
+    });
+});
+
 describe('useStatsStore — diagnostics slice', () => {
     it('starts with null diagnostics', () => {
         expect(useStatsStore.getState().diagnostics).toBeNull();

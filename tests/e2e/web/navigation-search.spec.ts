@@ -57,6 +57,20 @@ test.describe('Web Report Taxonomy Navigation + Search', () => {
         await expect(page.locator('#overview')).toBeVisible();
     });
 
+    test('data map chip navigates to a non-overview section', async ({ page }) => {
+        const payload = loadReportFixture();
+        await gotoReport(page, payload);
+        // The web report opens on Overview, whose data map (section #data-map) lists a
+        // clickable chip per section of EVERY category. Regression: on embedded hosts
+        // this used to collapse to a single Overview card, and cross-category chips
+        // wrote the zustand store the web ignores. Click the "On Tag Review" chip
+        // (Squad Cohesion) — scoped to #data-map so we hit the chip, not a nav item.
+        await page.locator('#data-map').getByRole('button', { name: 'On Tag Review' }).click();
+        // The chip routes through onRequestCategory → the web activates Squad Cohesion,
+        // mounts the section, and scrolls it into view.
+        await expect(page.locator('#on-tag-review').first()).toBeVisible();
+    });
+
     test('search palette jumps to a section and flashes it', async ({ page }) => {
         const payload = loadReportFixture();
         await gotoReport(page, payload);

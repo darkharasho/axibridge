@@ -4,7 +4,7 @@ import { CategoryBar } from '../CategoryBar';
 import { useStatsStore } from '../statsStore';
 
 beforeEach(() => {
-    useStatsStore.setState({ activeCategory: 'overview' });
+    useStatsStore.setState({ activeCategory: 'overview', activeSectionId: 'overview' });
 });
 
 describe('CategoryBar', () => {
@@ -74,5 +74,21 @@ describe('CategoryBar', () => {
     it('hides categories with no allowed sections', () => {
         render(<CategoryBar isSectionAllowed={(id) => !id.startsWith('commander')} />);
         expect(screen.queryByRole('button', { name: /Commander/i })).toBeNull();
+    });
+
+    it('highlights the active section from the store (follows scroll-spy / jumps)', () => {
+        // Simulate what the desktop scroll-spy and every jump (search palette, data
+        // map, subnav click) do: write activeCategory + activeSectionId to the store.
+        // CategoryBar/SectionSubnav must read the highlight from there, not from
+        // click-only local state — so a store change alone drives the highlight.
+        useStatsStore.setState({ activeCategory: 'squad-cohesion', activeSectionId: 'squad-kill-pressure' });
+        render(<CategoryBar />);
+
+        // The active section's subnav button carries the active 'text-white' class.
+        const active = screen.getByRole('button', { name: 'Kill Pressure' });
+        expect(active.className).toContain('text-white');
+        // A sibling section in the same (active) category is not highlighted.
+        const inactive = screen.getByRole('button', { name: 'On Tag Review' });
+        expect(inactive.className).not.toContain('text-white');
     });
 });

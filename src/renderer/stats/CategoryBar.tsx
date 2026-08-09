@@ -32,7 +32,11 @@ export interface CategoryBarProps {
 export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed }: CategoryBarProps) {
     const activeCategory = useStatsStore((s) => s.activeCategory);
     const setActiveCategory = useStatsStore((s) => s.setActiveCategory);
-    const [activeSectionId, setActiveSectionId] = useState('overview');
+    // Active-section highlight comes from the store, not local click-only state, so
+    // it follows the desktop scroll-spy (useStatsNavigation) and every jump
+    // (search palette, data map, subnav) — see statsStore.activeSectionId.
+    const activeSectionId = useStatsStore((s) => s.activeSectionId);
+    const setActiveSectionId = useStatsStore((s) => s.setActiveSectionId);
     const [isHovered, setIsHovered] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 

@@ -18,6 +18,10 @@ interface StatsStoreState {
     progress: AggregationProgressState;
     diagnostics: AggregationDiagnosticsState | null;
     activeCategory: string;
+    // Active section within the current category page. Written by the desktop
+    // scroll-spy (useStatsNavigation) and by jumps (search palette, data map,
+    // subnav clicks); read by CategoryBar/SectionSubnav to drive the highlight.
+    activeSectionId: string;
     selectedReplayFightId: string | null;
     replayPlayhead: { timeMs: number; playing: boolean; speed: number };
     replayViewport: { scale: number; tx: number; ty: number; followTarget: string | null };
@@ -40,6 +44,7 @@ interface StatsStoreState {
     setProgress: (progress: AggregationProgressState) => void;
     setDiagnostics: (diagnostics: AggregationDiagnosticsState | null) => void;
     setActiveCategory: (categoryId: string) => void;
+    setActiveSectionId: (sectionId: string) => void;
     clearResult: () => void;
     setSelectedReplayFight: (fightId: string | null) => void;
     setReplayPlayhead: (patch: Partial<{ timeMs: number; playing: boolean; speed: number }>) => void;
@@ -66,6 +71,7 @@ const initialState = {
     },
     diagnostics: null,
     activeCategory: 'overview',
+    activeSectionId: 'overview',
     selectedReplayFightId: null,
     replayPlayhead: { timeMs: 0, playing: false, speed: 1 },
     replayViewport: { scale: 3, tx: 0, ty: 0, followTarget: null },
@@ -92,6 +98,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
     setProgress: (progress) => set({ progress }),
     setDiagnostics: (diagnostics) => set({ diagnostics }),
     setActiveCategory: (categoryId) => set({ activeCategory: categoryId }),
+    setActiveSectionId: (sectionId) => set({ activeSectionId: sectionId }),
     clearResult: () => set({ result: null, inputsHash: null }),
     setSelectedReplayFight: (fightId) => set((state) => ({
         selectedReplayFightId: fightId,

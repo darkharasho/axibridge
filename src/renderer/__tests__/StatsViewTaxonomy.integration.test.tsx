@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { StatsView } from '../StatsView';
@@ -33,7 +34,7 @@ const FIXTURE_PROFESSION = 'Guardian';
 const FIXTURE_PROFESSION_LIST = [FIXTURE_PROFESSION];
 const FIXTURE_SKILL = { id: 's1', name: 'Skill 1', damage: 10000, downContribution: 150 };
 
-function renderStatsViewWithFixtures() {
+function renderStatsViewWithFixtures(extraProps: Partial<ComponentProps<typeof StatsView>> = {}) {
     const stats = {
         fightSummaries: [],
         playerSkillBreakdowns: [
@@ -107,6 +108,7 @@ function renderStatsViewWithFixtures() {
             precomputedStats={stats as any}
             statsViewSettings={DEFAULT_STATS_VIEW_SETTINGS}
             dashboardTitle="Statistics Dashboard - Overview"
+            {...extraProps}
         />
     );
 }
@@ -152,14 +154,58 @@ describe('StatsView taxonomy integrity', () => {
         expect(screen.getByText(commander!.description)).toBeInTheDocument();
     });
 
+    it('data map works on embedded hosts: all 10 cards render and cross-category chips route through onRequestCategory', async () => {
+        // Regression test for the embedded-surface data-map break: the real
+        // embedded hosts (web report, History) pass an ACTIVE-CATEGORY-SCOPED
+        // sectionVisibility fn (reportApp derives it from activeGroup; History gets
+        // it from CategoryBar). Since the data map renders only while 'overview' is
+        // active, a predicate built on that fn marks every non-overview section
+        // disallowed → 9 of 10 cards vanish. And chips must go through the host's
+        // onRequestCategory (the web drives its nav off that, not the zustand store).
+        useStatsStore.getState().setActiveCategory('overview');
+        const onRequestCategory = vi.fn();
+        // Realistic host fn: true ONLY for the active category's section ids.
+        const overviewIds = new Set(
+            STATS_CATEGORIES.find((c) => c.id === 'overview')!.sections.map((s) => s.id)
+        );
+        renderStatsViewWithFixtures({
+            embedded: true,
+            sectionVisibility: (id: string) => overviewIds.has(id),
+            onRequestCategory,
+        });
+
+        // All ten category cards render despite the overview-only visibility fn.
+        await waitFor(() => {
+            for (const category of STATS_CATEGORIES) {
+                expect(
+                    screen.getByText(category.description),
+                    `missing data-map card for category ${category.id}`
+                ).toBeInTheDocument();
+            }
+        });
+
+        // A cross-category chip (On Tag Review → squad-cohesion) must invoke the
+        // host's onRequestCategory, not write the store directly (which the web
+        // ignores). In this embedded render the only "On Tag Review" button is the
+        // data-map chip — squad-cohesion's section content isn't mounted (its group
+        // is a zero-height placeholder) and CategoryBar isn't part of StatsView.
+        fireEvent.click(screen.getByRole('button', { name: 'On Tag Review' }));
+        await waitFor(() => {
+            expect(onRequestCategory).toHaveBeenCalledWith('squad-cohesion');
+        });
+    });
+
     it('Ctrl+K opens the search palette; selecting a section result switches category and jumps to it', async () => {
         useStatsStore.getState().setActiveCategory('overview');
         renderStatsViewWithFixtures();
 
-        // Every section is always mounted in desktop mode (renderGroup CSS-collapses
-        // inactive categories rather than unmounting them), so "On Tag Review" already
-        // exists as a heading elsewhere on the page — scope queries to the palette
-        // dialog throughout, or they'd be ambiguous against that heading.
+        // Desktop mode mounts ONLY the active category's content (renderGroup gives
+        // inactive categories a zero-height placeholder), so on-tag-review's section
+        // isn't on the page here. BUT the active Overview category renders the data
+        // map, which lists an "On Tag Review" chip (a button) for cross-category
+        // navigation — so that label already exists outside the palette. Scope
+        // queries to the palette dialog throughout, or they'd be ambiguous against
+        // that chip.
         expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull();
         fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
         const dialog = await screen.findByRole('dialog', { name: 'Search' });

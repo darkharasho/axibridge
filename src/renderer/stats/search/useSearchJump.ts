@@ -1,4 +1,5 @@
 import type { SearchEntry } from './searchIndex';
+import { useStatsStore } from '../statsStore';
 
 export interface UseSearchJumpOptions {
     onRequestCategory: (categoryId: string) => void;
@@ -11,6 +12,10 @@ export interface UseSearchJumpOptions {
 export function useSearchJump({ onRequestCategory }: UseSearchJumpOptions) {
     const jumpToEntry = (entry: SearchEntry) => {
         onRequestCategory(entry.categoryId);
+        // Keep the subnav highlight in sync with the jump so it never goes stale
+        // (CategoryBar/SectionSubnav read activeSectionId from the store). Harmless
+        // on the web, whose nav highlight is driven by reportApp's local state.
+        useStatsStore.getState().setActiveSectionId(entry.sectionId);
         let attempts = 0;
         const tick = () => {
             const sectionEl = document.getElementById(entry.sectionId);

@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { STATS_CATEGORIES, SECTION_TO_CATEGORY } from '../statsTaxonomy';
+import { useEffect, useMemo, useRef } from 'react';
+import { STATS_CATEGORIES } from '../statsTaxonomy';
 import { useStatsStore } from '../statsStore';
 
 export type StatsTocIcon = ComponentType<{ className?: string }>;
@@ -30,81 +30,37 @@ export const STATS_TOC_GROUPS: readonly StatsTocGroup[] = STATS_CATEGORIES.map((
     items: c.sections.map((s) => ({ id: s.id, label: s.label, icon: s.icon })),
 }));
 
-export const useStatsNavigation = (_embedded: boolean, trackActiveOnScroll = true, scrollLocked = false) => {
-    const [mobileNavOpen, setMobileNavOpen] = useState(false);
-    const [activeNavId, setActiveNavId] = useState('overview');
+/**
+ * Provides the desktop scroll container ref plus a scroll-spy that tracks which
+ * section is currently in view and writes it to the store (`activeSectionId`),
+ * which CategoryBar/SectionSubnav consume for the subnav highlight.
+ *
+ * Navigation actions (activate category, scroll/flash to a section) are NOT owned
+ * here anymore: the data map and search palette both route through
+ * `useSearchJump` (scrollIntoView-based, works on desktop + embedded History +
+ * web), and CategoryBar owns its own click-to-scroll. The old container-scroll
+ * helpers (`scrollToSection`/`jumpToSection`/`stepSection`) were removed because
+ * `container.scrollTo` is a no-op on embedded hosts where the page — not this
+ * container — scrolls.
+ *
+ * The scroll-spy is scoped to the active category (only its sections are mounted)
+ * and runs in desktop mode only: embedded hosts scroll the page, not
+ * `scrollContainerRef`, so the highlight there is driven purely by clicks/jumps.
+ */
+export const useStatsNavigation = (embedded: boolean, trackActiveOnScroll = true, scrollLocked = false) => {
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
     const activeCategory = useStatsStore((s) => s.activeCategory);
 
     const tocGroups = useMemo(() => STATS_TOC_GROUPS, []);
-    const tocItems = useMemo(
-        () => tocGroups.flatMap((group) => group.items),
-        [tocGroups]
-    );
-    // Scope tracking/stepping to the active category only, so scroll-spy and
-    // keyboard stepping don't reach into sections that aren't even mounted.
+    // Scope tracking to the active category only, so scroll-spy doesn't reach into
+    // sections that aren't even mounted.
     const activeItems = useMemo(
         () => tocGroups.find((group) => group.id === activeCategory)?.items ?? [],
         [tocGroups, activeCategory]
     );
 
-    const scrollToSection = (id: string) => {
-        const targetId = id === 'kdr' ? 'overview' : id;
-        const container = scrollContainerRef.current;
-        const node = document.getElementById(targetId);
-        if (container && node) {
-            const containerRect = container.getBoundingClientRect();
-            const nodeRect = node.getBoundingClientRect();
-            const rawTop = nodeRect.top - containerRect.top + container.scrollTop;
-            const maxTop = Math.max(0, container.scrollHeight - container.clientHeight);
-            const nextTop = Math.min(Math.max(rawTop - 16, 0), maxTop);
-            container.scrollTo({ top: nextTop, behavior: 'smooth' });
-            setActiveNavId(targetId);
-        } else if (node) {
-            node.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            setActiveNavId(targetId);
-        }
-        setMobileNavOpen(false);
-    };
-
-    const activateCategory = (categoryId: string) => {
-        useStatsStore.getState().setActiveCategory(categoryId);
-    };
-
-    const jumpToSection = (sectionId: string) => {
-        const categoryId = SECTION_TO_CATEGORY.get(sectionId);
-        if (categoryId) activateCategory(categoryId);
-        // Retry loop: the category's sections may not be committed yet.
-        let attempts = 0;
-        const tryScroll = () => {
-            const node = document.getElementById(sectionId);
-            if (node) { scrollToSection(sectionId); return; }
-            if (attempts++ < 20) window.setTimeout(() => requestAnimationFrame(tryScroll), 40);
-        };
-        requestAnimationFrame(tryScroll);
-    };
-
-    const stepSection = (direction: -1 | 1) => {
-        const currentIndex = Math.max(0, activeItems.findIndex((item) => item.id === activeNavId));
-        const nextIndex = currentIndex + direction;
-        if (nextIndex < 0 || nextIndex >= activeItems.length) {
-            // Crossed a category boundary — move to the adjacent category and land
-            // on its last item (moving up) or first item (moving down).
-            const categoryIndex = tocGroups.findIndex((g) => g.id === activeCategory);
-            if (categoryIndex === -1) return;
-            const nextGroup = tocGroups[categoryIndex + direction];
-            if (!nextGroup || nextGroup.items.length === 0) return;
-            activateCategory(nextGroup.id);
-            const targetItem = direction === 1 ? nextGroup.items[0] : nextGroup.items[nextGroup.items.length - 1];
-            if (targetItem) jumpToSection(targetItem.id);
-            return;
-        }
-        const nextId = activeItems[nextIndex]?.id;
-        if (nextId) scrollToSection(nextId);
-    };
-
     useEffect(() => {
-        if (!trackActiveOnScroll || scrollLocked) return;
+        if (!trackActiveOnScroll || scrollLocked || embedded) return;
         const container = scrollContainerRef.current;
         if (!container) return;
         let raf = 0;
@@ -119,7 +75,8 @@ export const useStatsNavigation = (_embedded: boolean, trackActiveOnScroll = tru
                     currentId = item.id;
                 }
             });
-            setActiveNavId((prev) => (prev === currentId ? prev : currentId));
+            const store = useStatsStore.getState();
+            if (store.activeSectionId !== currentId) store.setActiveSectionId(currentId);
         };
         const onScroll = () => {
             if (raf) cancelAnimationFrame(raf);
@@ -133,19 +90,9 @@ export const useStatsNavigation = (_embedded: boolean, trackActiveOnScroll = tru
             container.removeEventListener('scroll', onScroll);
             window.removeEventListener('resize', onScroll);
         };
-    }, [activeItems, trackActiveOnScroll, scrollLocked]);
+    }, [activeItems, trackActiveOnScroll, scrollLocked, embedded]);
 
     return {
-        mobileNavOpen,
-        setMobileNavOpen,
-        activeNavId,
-        setActiveNavId,
         scrollContainerRef,
-        tocGroups,
-        tocItems,
-        scrollToSection,
-        stepSection,
-        activateCategory,
-        jumpToSection
     };
 };
