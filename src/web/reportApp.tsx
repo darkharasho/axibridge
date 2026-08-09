@@ -674,11 +674,11 @@ export function ReportApp() {
             }
             return true;
         }
-        // 'kdr' is a legacy alias (resolveSectionTarget maps it to the real
-        // 'overview' section id) — remapped defensively in case anything ever
-        // calls this with the raw legacy id directly.
-        const targetId = id === 'kdr' ? 'overview' : id;
-        const el = document.getElementById(targetId);
+        // No 'kdr' remap here: the legacy 'kdr' alias is resolved to the real
+        // 'overview' section id by resolveSectionTarget before it ever reaches this
+        // function (every caller supplies either a resolved target.sectionId, the
+        // 'report-top' sentinel handled above, or a taxonomy section id from the nav).
+        const el = document.getElementById(id);
         if (!el) return false;
         const isVisible = el.getAttribute('data-section-visible') !== 'false';
         if (!isVisible) return false;
@@ -686,7 +686,7 @@ export function ReportApp() {
         const rect = el.getBoundingClientRect();
         if (rect.height <= 0) return false;
         let extraOffset = 0;
-        if (targetId === 'stats-view-top') {
+        if (id === 'stats-view-top') {
             const reportTop = document.getElementById('report-top');
             if (reportTop) {
                 extraOffset = reportTop.getBoundingClientRect().height + 12;
@@ -695,7 +695,7 @@ export function ReportApp() {
         const targetTop = rect.top + window.scrollY - 12 - extraOffset;
         window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
         if (history.replaceState) {
-            history.replaceState(null, '', `#${targetId}`);
+            history.replaceState(null, '', `#${id}`);
         }
         return true;
     };

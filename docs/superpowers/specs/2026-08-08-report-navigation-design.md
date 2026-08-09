@@ -51,7 +51,7 @@ The registry moves to a dedicated module (`statsTaxonomy.ts`) where each categor
 
 - A **category bar** — categories as the first-class nav level, rendered in each surface's existing nav rail/sheet position — replaces the grouped sidebar TOC as primary nav and renders one page per category. Only the active category's sections mount — the existing `sectionVisibility`/active-group gating already works this way; this change removes the scroll facade rather than adding machinery.
 - **Deleted:** placeholder-height store (`groupHeights` in `statsStore`), ResizeObserver height tracking in `useLazyGroups`, the global wheel-hijack in `useStatsNavigation`, and cross-group scroll tracking.
-- **Kept:** per-section anchor ids; smooth scroll-to-section and active-section tracking *within* the current category page (drives the subnav highlight); `stepSection` prev/next stepping (now within/across categories).
+- **Kept:** per-section anchor ids; smooth scroll-to-section and active-section tracking *within* the current category page (drives the subnav highlight). *(`stepSection` prev/next stepping was removed in the final fix wave — it ended up unconsumed once nav became category-bar + search + data-map driven.)*
 - Within a category page, a slim **subnav** lists its sections (4–7 entries), reusing the current TOC item icons.
 - **Overview landing = data map**: one card per category (icon, label, description, section list) linking through. Renders as section `data-map` at the top of Overview.
 - **Deep links:** `#<section-id>` resolves by lookup → activate owning category → scroll → highlight. Unknown ids consult the alias map (empty at launch), then fall back to Overview. The web report's existing hash handling and the desktop app adopt the same resolver.
