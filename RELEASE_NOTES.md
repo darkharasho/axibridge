@@ -1,9 +1,24 @@
 # Release Notes
 
-Version v2.18.0 — August 8, 2026
+Version v2.19.0 — August 8, 2026
 
-## On Tag Review
+## Find Anything: Universal Search
+Press Ctrl+K anywhere — or use the search field at the top of the report sidebar — to search everything at once: sections, individual stats, and players. Results jump straight to the right page and flash the exact thing you asked for. "Cleanses" lands on the Support table, a player's name lands on their row in Player Breakdown.
 
-New table in Squad Stats that classifies every squad death by how far the player was from the commander when they went down, styled after GW2 Log Combiner's death breakdown. Each row shows a player's On-Tag deaths (within 600 units of the tag), Off-Tag deaths (600–5000 units, with the actual distances listed out), and Run-Backs (over 5000 units — you were probably still running back from spawn). An After-Tag column also flags deaths that happened after the commander had already died, since those aren't really a positioning problem. Every column is sortable, so you can quickly find who's dying furthest from the group. Available in both the desktop dashboard and web reports.
+## Navigation Overhaul
+The stats dashboard and web reports are reorganized into focused categories: Overview, Offense, Defense, Boons & Strips, Support & Healing, Squad Cohesion, Commander, Players, Roster, and Replay. The old "Defensive Stats" pile (13 sections deep, half of them not defense) is gone — boons and healing have their own homes, and both strip views finally live together. Overview keeps the classic layout you're used to: KDR, fight breakdown, top players, top skills side by side, classes, squad vs enemy, map distribution.
 
-NOTE: like the other distance-to-tag tables, this needs combat replay data to work — fights logged without replay enabled won't produce rows.
+## Data Map
+A new directory page at the top of the nav lists every category and section with a one-liner on what's inside — for when you know the data exists but can't remember where it lives.
+
+## QoL Improvements
+- Old shared report links keep working — every legacy anchor resolves to its new home, including the retired group names.
+- Top Incoming Skills can now be found from the nav and search (it used to render with no entry anywhere).
+- The sidebar highlight follows along as you scroll through a category.
+
+## Fixes
+- Search palette is fully solid under the glass theme instead of see-through.
+- Search no longer hides underneath fullscreen replay.
+- Fixed the desktop replay page missing its deep-link anchor.
+
+NOTE: web reports published before this release keep the viewer they shipped with; new uploads get the new navigation.
