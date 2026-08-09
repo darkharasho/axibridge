@@ -1589,6 +1589,20 @@ export function ReportApp() {
                                 </div>
                             </div>
                         </div>
+                        {/* Search lives with the report's navigation, not the page header —
+                            it opens the same palette as Ctrl+K. Styled as a field, not a pill. */}
+                        <div className="px-4 pb-3">
+                            <button
+                                onClick={() => searchOpenRef.current?.()}
+                                title="Search (Ctrl+K)"
+                                aria-label="Search report"
+                                className="report-nav-search w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:border-white/30 hover:text-gray-200 transition-colors text-left"
+                            >
+                                <Search className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                <span className="text-sm min-w-0 truncate">Search…</span>
+                                <kbd className="ml-auto shrink-0 text-[10px] px-1.5 py-0.5 rounded-md border border-white/10 bg-white/5 text-gray-500 font-sans tracking-wide">Ctrl K</kbd>
+                            </button>
+                        </div>
                         <nav className="px-4 space-y-2 text-sm flex-1 overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
@@ -1710,15 +1724,6 @@ export function ReportApp() {
                                     <div className="text-xs sm:text-sm text-gray-400 mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => searchOpenRef.current?.()}
-                                title="Search (Ctrl+K)"
-                                aria-label="Search"
-                                className="flex px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2"
-                            >
-                                <Search className="w-4 h-4" />
-                                Search
-                            </button>
                             <button
                                 onClick={() => setTocOpen(true)}
                                 className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2`}

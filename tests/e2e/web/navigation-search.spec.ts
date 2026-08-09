@@ -74,6 +74,17 @@ test.describe('Web Report Taxonomy Navigation + Search', () => {
         await expect(page.locator('#on-tag-review').first()).toBeVisible();
     });
 
+    test('sidebar search field opens the palette', async ({ page }) => {
+        const payload = loadReportFixture();
+        await gotoReport(page, payload);
+        // The search affordance lives at the top of the report nav sidebar
+        // (not the page header) and opens the same palette as Ctrl+K.
+        await page.locator('.report-nav-search').click();
+        await expect(page.getByRole('textbox')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('textbox')).toHaveCount(0);
+    });
+
     test('search palette jumps to a section and flashes it', async ({ page }) => {
         const payload = loadReportFixture();
         await gotoReport(page, payload);
