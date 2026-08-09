@@ -4,11 +4,17 @@ import { DataMapSection } from '../DataMapSection';
 import { STATS_CATEGORIES } from '../../statsTaxonomy';
 
 describe('DataMapSection', () => {
-    it('renders one card per category with its description', () => {
+    it('renders one card per content category, excluding its own', () => {
         render(<DataMapSection onNavigate={() => {}} />);
         for (const category of STATS_CATEGORIES) {
+            if (category.id === 'data-map') continue;
             expect(screen.getByText(category.description)).toBeTruthy();
         }
+        // The data-map category's only section is the map itself, which the
+        // directory never lists — so it must not render a card for itself.
+        // No other category or listed section carries the label 'Data Map'
+        // (card labels are spans, not headings, so assert by text).
+        expect(screen.queryByText('Data Map')).toBeNull();
     });
 
     it('lists section labels and navigates on click', () => {

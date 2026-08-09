@@ -41,9 +41,9 @@ const EXPECTED_SECTION_IDS = [
 ];
 
 describe('statsTaxonomy', () => {
-    it('has 10 categories', () => {
+    it('has 11 categories with the Data Map first', () => {
         expect(STATS_CATEGORIES.map((c) => c.id)).toEqual([
-            'overview', 'offense', 'defense', 'boons-strips', 'support-healing',
+            'data-map', 'overview', 'offense', 'defense', 'boons-strips', 'support-healing',
             'squad-cohesion', 'commander', 'players', 'roster', 'replay',
         ]);
     });

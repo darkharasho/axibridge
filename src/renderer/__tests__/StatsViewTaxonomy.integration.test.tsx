@@ -133,11 +133,11 @@ describe('StatsView taxonomy integrity', () => {
     it('data map directory lists sections from every category, not just the active one (desktop mode)', async () => {
         // Regression test for a real bug: isDataMapSectionAllowed must not be
         // built on the active-category-scoped isSectionVisible. The data map
-        // itself only ever renders while its host category ('overview') is
+        // itself only ever renders while its own host category ('data-map') is
         // active, so a category-scoped predicate would make every OTHER
         // category's sections read as disallowed and the directory would
-        // collapse to a single (Overview) card with zero cross-category jumps.
-        useStatsStore.getState().setActiveCategory('overview');
+        // collapse to nothing, with zero cross-category jumps.
+        useStatsStore.getState().setActiveCategory('data-map');
         renderStatsViewWithFixtures();
 
         await waitFor(() => {
@@ -154,29 +154,33 @@ describe('StatsView taxonomy integrity', () => {
         expect(screen.getByText(commander!.description)).toBeInTheDocument();
     });
 
-    it('data map works on embedded hosts: all 10 cards render and cross-category chips route through onRequestCategory', async () => {
+    it('data map works on embedded hosts: all 10 content cards render and cross-category chips route through onRequestCategory', async () => {
         // Regression test for the embedded-surface data-map break: the real
         // embedded hosts (web report, History) pass an ACTIVE-CATEGORY-SCOPED
         // sectionVisibility fn (reportApp derives it from activeGroup; History gets
-        // it from CategoryBar). Since the data map renders only while 'overview' is
-        // active, a predicate built on that fn marks every non-overview section
-        // disallowed → 9 of 10 cards vanish. And chips must go through the host's
-        // onRequestCategory (the web drives its nav off that, not the zustand store).
-        useStatsStore.getState().setActiveCategory('overview');
+        // it from CategoryBar). Since the data map renders only while its own
+        // 'data-map' category is active, a predicate built on that fn marks every
+        // OTHER section disallowed → every content card vanishes. And chips must go
+        // through the host's onRequestCategory (the web drives its nav off that,
+        // not the zustand store).
+        useStatsStore.getState().setActiveCategory('data-map');
         const onRequestCategory = vi.fn();
-        // Realistic host fn: true ONLY for the active category's section ids.
-        const overviewIds = new Set(
-            STATS_CATEGORIES.find((c) => c.id === 'overview')!.sections.map((s) => s.id)
+        // Realistic host fn: true ONLY for the active category's section ids —
+        // for 'data-map' that is just the map itself.
+        const activeIds = new Set(
+            STATS_CATEGORIES.find((c) => c.id === 'data-map')!.sections.map((s) => s.id)
         );
         renderStatsViewWithFixtures({
             embedded: true,
-            sectionVisibility: (id: string) => overviewIds.has(id),
+            sectionVisibility: (id: string) => activeIds.has(id),
             onRequestCategory,
         });
 
-        // All ten category cards render despite the overview-only visibility fn.
+        // All ten content-category cards render despite the visibility fn
+        // (the data-map category never lists itself).
         await waitFor(() => {
             for (const category of STATS_CATEGORIES) {
+                if (category.id === 'data-map') continue;
                 expect(
                     screen.getByText(category.description),
                     `missing data-map card for category ${category.id}`
@@ -201,9 +205,9 @@ describe('StatsView taxonomy integrity', () => {
 
         // Desktop mode mounts ONLY the active category's content (renderGroup gives
         // inactive categories a zero-height placeholder), so on-tag-review's section
-        // isn't on the page here. BUT the active Overview category renders the data
-        // map, which lists an "On Tag Review" chip (a button) for cross-category
-        // navigation — so that label already exists outside the palette. Scope
+        // isn't on the page here. (The data map now lives in its own category, so
+        // its chips are no longer a collision source from Overview — the palette
+        // scoping below is kept for robustness regardless.) Scope
         // queries to the palette dialog throughout, or they'd be ambiguous against
         // that chip.
         expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull();

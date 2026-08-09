@@ -4796,7 +4796,7 @@ type SpikeFight = {
                     </div>
                 ) : (
                     <>
-                        {renderGroup('overview', [
+                        {renderGroup('data-map', [
                             { id: 'data-map', element: <DataMapSection
                                 // Route through the same jump path as the search palette: jumpToEntry
                                 // activates the owning category via `requestCategory` (the host's
@@ -4809,21 +4809,13 @@ type SpikeFight = {
                                 })}
                                 isSectionAllowed={isDataMapSectionAllowed}
                             /> },
+                        ])}
+                        {renderGroup('overview', [
                             { id: 'overview', element: <OverviewSection
                             /> },
                             { id: 'fight-breakdown', element: <FightBreakdownSection
                                 fightBreakdownTab={fightBreakdownTab}
                                 setFightBreakdownTab={setFightBreakdownTab}
-                            /> },
-                            { id: 'fight-diff-mode', element: <FightDiffModeSection
-                            /> },
-                            { id: 'timeline', element: <TimelineSection
-                                timelineData={safeStats.timelineData}
-                                timelineFriendlyScope={timelineFriendlyScope}
-                                setTimelineFriendlyScope={setTimelineFriendlyScope}
-                            /> },
-                            { id: 'map-distribution', element: <MapDistributionSection
-                                mapData={safeStats.mapData}
                             /> },
                             { id: 'top-players', element: <TopPlayersSection
                                 showTopStats={showTopStats}
@@ -4842,6 +4834,16 @@ type SpikeFight = {
                                 onTopSkillsMetricChange={updateTopSkillsMetric}
                             /> }] : []),
                             ...(!noEgoMode ? [{ id: 'top-skills-incoming', element: <TopSkillsSection mode="incoming" /> }] : []),
+                            { id: 'timeline', element: <TimelineSection
+                                timelineData={safeStats.timelineData}
+                                timelineFriendlyScope={timelineFriendlyScope}
+                                setTimelineFriendlyScope={setTimelineFriendlyScope}
+                            /> },
+                            { id: 'map-distribution', element: <MapDistributionSection
+                                mapData={safeStats.mapData}
+                            /> },
+                            { id: 'fight-diff-mode', element: <FightDiffModeSection
+                            /> },
                         ])}
 
                         {renderGroup('offense', [

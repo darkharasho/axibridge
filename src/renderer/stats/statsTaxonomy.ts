@@ -30,20 +30,29 @@ export interface StatsCategory {
 
 export const STATS_CATEGORIES: readonly StatsCategory[] = [
     {
+        // The Data Map is its own destination (a "contents page" at the top of the
+        // bar), deliberately NOT part of Overview — the landing view stays the
+        // classic overview content.
+        id: 'data-map', label: 'Data Map', icon: LayoutGrid,
+        description: 'Directory of every category and section in this report.',
+        keywords: ['index', 'directory', 'contents', 'guide'],
+        sections: [
+            { id: 'data-map', label: 'Data Map', icon: LayoutGrid, description: 'Directory of every category and section in this report.', keywords: ['index', 'directory', 'contents', 'guide'] },
+        ],
+    },
+    {
         id: 'overview', label: 'Overview', icon: Trophy,
         description: 'The raid at a glance — outcomes, KDR, timeline, and standouts.',
         keywords: ['summary', 'kdr', 'kills', 'deaths'],
         sections: [
-            { id: 'data-map', label: 'Data Map', icon: LayoutGrid, description: 'Directory of every category and section in this report.', keywords: ['index', 'directory', 'contents', 'guide'] },
             { id: 'overview', label: 'Overview', icon: Trophy, description: 'Kills, deaths, downs, and KDR for the session.', keywords: ['kdr', 'kill death ratio', 'summary'] },
             { id: 'fight-breakdown', label: 'Fight Breakdown', icon: Swords, description: 'Per-fight results: outcome, sizes, kills, and deaths.', keywords: ['fights', 'per fight', 'wins', 'losses'] },
-            { id: 'fight-diff-mode', label: 'Fight Comparison', icon: GitCompareArrows, description: 'Compare two fights side by side across metrics.', keywords: ['compare fights', 'diff', 'versus'] },
-            { id: 'timeline', label: 'Squad vs Enemy', icon: Users, description: 'Squad and enemy sizes across the session timeline.', keywords: ['squad size', 'enemy size', 'outnumbered'] },
-            { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon, description: 'Where the fights happened, by map.', keywords: ['maps', 'borderlands', 'ebg'] },
             { id: 'top-players', label: 'Top Players', icon: Trophy, description: 'Leaderboard of standout performances.', keywords: ['mvp', 'leaderboard', 'best'] },
             { id: 'top-skills-outgoing', label: 'Top Skills', icon: ArrowBigUp, description: 'Highest-impact outgoing skills across the squad.', keywords: ['skills used', 'damage skills'] },
-            // No standalone anchor yet — rendered inside TopSkillsSection today; Task 5 creates its own render entry.
             { id: 'top-skills-incoming', label: 'Top Incoming Skills', icon: ArrowBigUp, description: 'Enemy skills that hurt the squad the most.', keywords: ['skills taken', 'incoming skills', 'killed by'] },
+            { id: 'timeline', label: 'Squad vs Enemy', icon: Users, description: 'Squad and enemy sizes across the session timeline.', keywords: ['squad size', 'enemy size', 'outnumbered'] },
+            { id: 'map-distribution', label: 'Map Distribution', icon: MapIcon, description: 'Where the fights happened, by map.', keywords: ['maps', 'borderlands', 'ebg'] },
+            { id: 'fight-diff-mode', label: 'Fight Comparison', icon: GitCompareArrows, description: 'Compare two fights side by side across metrics.', keywords: ['compare fights', 'diff', 'versus'] },
         ],
     },
     {

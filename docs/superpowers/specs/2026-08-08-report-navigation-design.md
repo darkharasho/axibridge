@@ -28,11 +28,12 @@ The desktop Stats dashboard and the web report share `StatsView` and must behave
 
 ## 1. Taxonomy
 
-Ten categories replace the current 8 groups. Section **ids are unchanged** (no alias entries needed at launch; the alias mechanism exists for future renames). New id: `data-map` (Overview landing cards).
+Eleven categories replace the current 8 groups. Section **ids are unchanged** (no alias entries needed at launch; the alias mechanism exists for future renames). New id: `data-map`. *(Post-merge amendment: the Data Map was originally Overview's first section; it is now its own category at the top of the bar so the landing view stays the classic overview content.)*
 
 | Category (id) | Section ids |
 |---|---|
-| Overview (`overview`) | `data-map` *(new)*, `overview`, `fight-breakdown`, `fight-diff-mode`, `timeline`, `map-distribution`, `top-players`, `top-skills-outgoing`, `top-skills-incoming` |
+| Data Map (`data-map`) | `data-map` *(new)* |
+| Overview (`overview`) | `overview`, `fight-breakdown`, `fight-diff-mode`, `timeline`, `map-distribution`, `top-players`, `top-skills-outgoing`, `top-skills-incoming` |
 | Offense (`offense`) | `offense-detailed`, `damage-breakdown`, `all-damage`, `spike-damage`, `damage-modifiers`, `conditions-outgoing` |
 | Defense (`defense`) | `defense-detailed`, `incoming-strike-damage`, `incoming-damage-modifiers`, `defense-mitigation` |
 | Boons & Strips (`boons-strips`) | `boon-output`, `boon-uptime`, `all-boons`, `boon-timeline`, `stab-performance`, `boon-strip-comparison`, `strip-spikes` |
@@ -53,7 +54,7 @@ The registry moves to a dedicated module (`statsTaxonomy.ts`) where each categor
 - **Deleted:** placeholder-height store (`groupHeights` in `statsStore`), ResizeObserver height tracking in `useLazyGroups`, the global wheel-hijack in `useStatsNavigation`, and cross-group scroll tracking.
 - **Kept:** per-section anchor ids; smooth scroll-to-section and active-section tracking *within* the current category page (drives the subnav highlight). *(`stepSection` prev/next stepping was removed in the final fix wave — it ended up unconsumed once nav became category-bar + search + data-map driven.)*
 - Within a category page, a slim **subnav** lists its sections (4–7 entries), reusing the current TOC item icons.
-- **Overview landing = data map**: one card per category (icon, label, description, section list) linking through. Renders as section `data-map` at the top of Overview.
+- **Data Map = its own category** (first in the bar): one card per content category (icon, label, description, section list) linking through. *(Amended post-merge: originally rendered at the top of Overview; moved out so Overview opens with the classic overview content.)*
 - **Deep links:** `#<section-id>` resolves by lookup → activate owning category → scroll → highlight. Unknown ids consult the alias map (empty at launch), then fall back to Overview. The web report's existing hash handling and the desktop app adopt the same resolver.
 - **Mobile web:** category bar collapses into the existing mobile nav pattern (`data-stats-mobile-nav`); subnav becomes part of the same sheet.
 

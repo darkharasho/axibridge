@@ -59,8 +59,11 @@ test.describe('Web Report Taxonomy Navigation + Search', () => {
 
     test('data map chip navigates to a non-overview section', async ({ page }) => {
         const payload = loadReportFixture();
-        await gotoReport(page, payload);
-        // The web report opens on Overview, whose data map (section #data-map) lists a
+        await gotoReport(page, payload, '#data-map');
+        await expect(page.locator('#data-map')).toBeVisible();
+        // The Data Map is its own category since the post-merge amendment — navigate
+        // to it via its hash (also exercising the category-anchor resolver), then
+        // click a chip. The data map (section #data-map) lists a
         // clickable chip per section of EVERY category. Regression: on embedded hosts
         // this used to collapse to a single Overview card, and cross-category chips
         // wrote the zustand store the web ignores. Click the "On Tag Review" chip

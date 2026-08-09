@@ -8,7 +8,7 @@ beforeEach(() => {
 });
 
 describe('CategoryBar', () => {
-    it('renders all ten categories', () => {
+    it('renders all eleven categories', () => {
         render(<CategoryBar />);
 
         // Exact accessible-name matching (a plain string, not a RegExp, does a full
@@ -50,7 +50,10 @@ describe('CategoryBar', () => {
         // sufficient to exclude 'Top Players'; verified by a red-check (see
         // task-8-report.md) that renaming the 'players' category label makes this
         // specific assertion fail.
-        for (const label of ['Offense', 'Defense', 'Boons & Strips', 'Support & Healing', 'Squad Cohesion', 'Commander', 'Players', 'Roster']) {
+        // 'Data Map' shares the Overview/Replay structural shape (its category
+        // contains one section with the identical label) but it is not the active
+        // category here, so only the category button exists — exact single match.
+        for (const label of ['Data Map', 'Offense', 'Defense', 'Boons & Strips', 'Support & Healing', 'Squad Cohesion', 'Commander', 'Players', 'Roster']) {
             expect(screen.getByRole('button', { name: label })).toBeTruthy();
         }
     });

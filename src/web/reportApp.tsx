@@ -650,7 +650,11 @@ export function ReportApp() {
     // 'report-top', old group ids) are handled by resolveSectionTarget below.
     const navGroups = useMemo(() => STATS_TOC_GROUPS.map((g) => ({ ...g, sectionIds: [...g.sectionIds], items: [...g.items] })), []);
     const activeGroupDef = useMemo(
-        () => navGroups.find((group) => group.id === activeGroup) || navGroups[0],
+        // Fallback targets Overview explicitly — navGroups[0] is now the Data Map
+        // category, which must never become the accidental landing group.
+        () => navGroups.find((group) => group.id === activeGroup)
+            || navGroups.find((group) => group.id === 'overview')
+            || navGroups[0],
         [navGroups, activeGroup]
     );
     // Stable sectionVisibility — only recreated when activeGroup changes (via startTransition)

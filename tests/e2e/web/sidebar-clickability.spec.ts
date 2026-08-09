@@ -120,10 +120,9 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
 
         // 'KDR' is now labelled 'Overview' (its section id is unchanged; see the
         // legacy '#kdr' alias test in navigation-search.spec.ts). 'Classes' moved
-        // to the new "Roster" category (WRPT-048 below); 'Data Map' and 'Fight
-        // Comparison' are new sections in this category.
+        // to the new "Roster" category (WRPT-048 below); 'Fight Comparison' is new
+        // in this category. ('Data Map' is its own category, not an Overview item.)
         const subItems = [
-            'Data Map',
             'Overview',
             'Fight Breakdown',
             'Fight Comparison',
