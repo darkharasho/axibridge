@@ -129,7 +129,7 @@ describe('App first-time walkthrough', () => {
         });
     });
 
-    it('walkthrough includes step 4 for Elite Insights', async () => {
+    it('walkthrough step 4 pitches local parsing, with axilog as the out-of-the-box engine', async () => {
         const electronApi = makeElectronApiMock({
             settings: { walkthroughSeen: false }
         });
@@ -139,7 +139,10 @@ describe('App first-time walkthrough', () => {
 
         expect(await screen.findByText('Welcome to AxiBridge')).toBeInTheDocument();
         expect(screen.getByText('Maximize accuracy')).toBeInTheDocument();
-        expect(screen.getByText(/Install Elite Insights locally/)).toBeInTheDocument();
+        // Must not tell a new user to install Elite Insights: axilog is the
+        // default engine and needs no download (DEFAULT_PARSER_BACKEND).
+        expect(screen.getByText(/parsed locally by axilog out of the box/)).toBeInTheDocument();
+        expect(screen.queryByText(/Install Elite Insights locally/)).not.toBeInTheDocument();
         expect(screen.getByText('Step 4')).toBeInTheDocument();
     });
 
