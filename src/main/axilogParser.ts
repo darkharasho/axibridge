@@ -440,7 +440,6 @@ let cachedBinding: AxilogBinding | null | undefined;
 const loadBinding = (): AxilogBinding | null => {
     if (cachedBinding !== undefined) return cachedBinding;
     try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
         const mod = require('@axiapps/axilog');
         cachedBinding = typeof mod?.parseFileEi === 'function' ? (mod as AxilogBinding) : null;
     } catch {
@@ -474,7 +473,6 @@ export class AxilogManager {
     getStatus(): { installed: boolean; version: string | null; updateAvailable: string | null } {
         let version: string | null = null;
         try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
             version = require('@axiapps/axilog/package.json').version ?? null;
         } catch {
             version = null;

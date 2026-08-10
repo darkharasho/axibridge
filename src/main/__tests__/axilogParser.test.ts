@@ -340,7 +340,6 @@ describe('AxilogManager', () => {
 // rather than fail on a platform npm has no prebuilt binary for.
 let binding: any = null;
 try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     binding = require('@axiapps/axilog');
 } catch {
     binding = null;
