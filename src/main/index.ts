@@ -236,11 +236,12 @@ let eiManager: EiManager | null = null
 let axilogManager: AxilogManager | null = null
 
 // ─── Parser backend selection ───────────────────────────────────────────────
-// `elite-insights` (default) spawns the .NET CLI; `axilog` is the opt-in
-// in-process path via the @axiapps/axilog native bindings. axilog is far
-// faster but 30 of the 118 EI-JSON fields axibridge reads render blank under
-// it today, so it stays opt-in — see DEFAULT_PARSER_BACKEND's doc comment and
-// docs/axilog-cutover-report.md.
+// `elite-insights` (the default) spawns the .NET CLI; `axilog` is the opt-in
+// in-process path via the @axiapps/axilog native bindings. axilog is far faster
+// and, as of 0.3.0, capability complete — 8 null-guarded residuals out of 83
+// audited read-surface rows — but making it the default is an owner call that
+// has not been made, so it stays opt-in. See DEFAULT_PARSER_BACKEND's doc
+// comment and docs/axilog-cutover-report.md.
 const getParserBackend = (): ParserBackend => normalizeParserBackend(store.get('parserBackend'));
 
 /**
@@ -255,7 +256,14 @@ const getActiveParser = (): EiManager | AxilogManager | null => {
 /** True when a local parse is possible right now with the selected backend. */
 const isLocalParserAvailable = (): boolean => Boolean(getActiveParser()?.isInstalled());
 
-/** True when the EI CLI download/update machinery should run at all. */
+/**
+ * True when the EI CLI download/update machinery should run at all.
+ *
+ * It stands down only while axilog is the *selected*, *available* backend — so
+ * under the current EI default a fresh install downloads and auto-manages the
+ * EI CLI exactly as it always has, and a user who opts into axilog stops
+ * paying for a ~90 MB download they no longer use.
+ */
 const shouldAutoManageEi = (): boolean =>
     Boolean(store.get('autoManageEi', true)) && !(getParserBackend() === 'axilog' && Boolean(axilogManager?.isInstalled()));
 

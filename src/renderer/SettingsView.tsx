@@ -73,14 +73,25 @@ const SETTINGS_SECTIONS = [
 ];
 
 /**
+ * The parse engine this build ships selected when the user has expressed no
+ * preference, and when the host exposes no parser IPC at all (the web build).
+ *
+ * Mirrors `DEFAULT_PARSER_BACKEND` in `src/main/axilogParser.ts` — the renderer
+ * cannot import from the main process, so this is a hand-kept copy. It is only
+ * ever a *pre-resolution* placeholder: `parser:get-backend` reports the real
+ * default in its `default` field, and the card adopts that as soon as it lands.
+ */
+const SHIPPED_DEFAULT_BACKEND: ParserBackendId = 'elite-insights';
+
+/**
  * The two parse engines, in the order they are offered.
  *
- * axilog leads because it is the default (see `DEFAULT_PARSER_BACKEND` in
- * `src/main/axilogParser.ts`). The `implications` lines are deliberately the
- * user-visible consequences, not a feature list — the honest summary of the
- * read-surface re-audit in `docs/axilog-cutover-report.md` is that the two
- * engines agree on almost everything, and the places they do not are worth
- * naming rather than burying.
+ * The order is fixed and deliberately *not* default-dependent: Elite Insights
+ * leads as the engine most users are already running, axilog follows as the
+ * opt-in fast path. The `implications` lines are the user-visible consequences,
+ * not a feature list — the honest summary of the read-surface re-audit in
+ * `docs/axilog-cutover-report.md` is that the two engines agree on almost
+ * everything, and the places they do not are worth naming rather than burying.
  */
 const PARSER_BACKEND_OPTIONS: Array<{
     id: ParserBackendId;
@@ -89,16 +100,6 @@ const PARSER_BACKEND_OPTIONS: Array<{
     implications: string[];
 }> = [
         {
-            id: 'axilog',
-            label: 'axilog (faster)',
-            summary: 'Parses in-process in under a second. Nothing to download.',
-            implications: [
-                'No .NET runtime or Elite Insights download — ships with the app',
-                'Seconds instead of minutes on large logs',
-                'A few Offense Detailed columns and boon-overstack numbers read 0'
-            ]
-        },
-        {
             id: 'elite-insights',
             label: 'Elite Insights',
             summary: 'The original GW2 Elite Insights CLI, run as a separate process.',
@@ -106,6 +107,16 @@ const PARSER_BACKEND_OPTIONS: Array<{
                 'The most complete statistics surface',
                 'Downloads ~90 MB on first use and needs a .NET runtime',
                 'Noticeably slower — seconds to minutes per log'
+            ]
+        },
+        {
+            id: 'axilog',
+            label: 'axilog (faster)',
+            summary: 'Parses in-process in under a second. Nothing to download.',
+            implications: [
+                'No .NET runtime or Elite Insights download — ships with the app',
+                'Seconds instead of minutes on large logs',
+                'A few Offense Detailed columns read whole-fight totals, and boon-overstack numbers read 0'
             ]
         }
     ];
@@ -2757,7 +2768,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     // hosts that expose no such API, e.g. the web
                                     // build) fall back to the shipped default so
                                     // the card never renders with nothing selected.
-                                    const selected = parserBackend?.backend ?? 'axilog';
+                                    const selected = parserBackend?.backend ?? SHIPPED_DEFAULT_BACKEND;
                                     const isActive = selected === option.id;
                                     const unavailable = option.id === 'axilog'
                                         && parserBackend !== null

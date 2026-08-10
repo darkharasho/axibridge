@@ -31,7 +31,7 @@ function makeElectronApiMock(settingsOverrides: Record<string, unknown> = {}) {
         getEiAutoManage: vi.fn().mockResolvedValue(false),
         getParserBackend: vi.fn().mockResolvedValue({
             backend: 'axilog',
-            default: 'axilog',
+            default: 'elite-insights',
             axilogAvailable: true,
             axilogVersion: '0.3.0',
         }),
@@ -744,7 +744,7 @@ describe('SettingsView', () => {
             const { mock } = renderSettings({}, {}, {
                 getParserBackend: vi.fn().mockResolvedValue({
                     backend: 'elite-insights',
-                    default: 'axilog',
+                    default: 'elite-insights',
                     axilogAvailable: true,
                     axilogVersion: '0.3.0',
                 }),
@@ -757,12 +757,16 @@ describe('SettingsView', () => {
             expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'false');
         });
 
-        it('shows axilog selected by default', async () => {
+        it('shows the persisted engine selected once the IPC resolves', async () => {
+            // The base mock persists axilog, which is NOT the shipped default
+            // (that is Elite Insights — the axilog flip is owner-gated). The
+            // card must show what the store holds, not what the build ships.
             renderSettings();
             await findCard();
 
             await waitFor(() =>
                 expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'true'));
+            expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'false');
         });
 
         it('persists a switch to Elite Insights over IPC and updates the selection', async () => {
@@ -795,7 +799,7 @@ describe('SettingsView', () => {
             const { mock } = renderSettings({}, {}, {
                 getParserBackend: vi.fn().mockResolvedValue({
                     backend: 'elite-insights',
-                    default: 'axilog',
+                    default: 'elite-insights',
                     axilogAvailable: false,
                     axilogVersion: null,
                 }),
@@ -810,9 +814,12 @@ describe('SettingsView', () => {
             expect(mock.setParserBackend).not.toHaveBeenCalled();
         });
 
-        it('renders with axilog selected when the host exposes no parser-backend API', async () => {
+        it('renders the shipped default when the host exposes no parser-backend API', async () => {
             // The web build ships no electronAPI parser methods; the card must
             // still render the shipped default rather than nothing selected.
+            // That default is Elite Insights while the axilog flip is
+            // owner-gated (SHIPPED_DEFAULT_BACKEND, mirroring
+            // DEFAULT_PARSER_BACKEND in src/main/axilogParser.ts).
             renderSettings({}, {}, {
                 getParserBackend: undefined,
                 setParserBackend: undefined,
@@ -820,9 +827,10 @@ describe('SettingsView', () => {
             });
             await findCard();
 
-            expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'true');
+            expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'true');
+            expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'false');
             // Clicking must not throw through the optional-call chain.
-            fireEvent.click(screen.getByTestId('parser-backend-elite-insights'));
+            fireEvent.click(screen.getByTestId('parser-backend-axilog'));
         });
 
         it('adopts a backend change broadcast by the main process', async () => {

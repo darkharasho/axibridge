@@ -26,7 +26,7 @@ const STEPS = [
     {
         icon: Zap,
         title: 'Maximize accuracy',
-        description: 'Logs are parsed locally by axilog out of the box — no download, no file size limits, works offline. Prefer Elite Insights? Switch engines any time in Settings.'
+        description: 'Logs are parsed locally on your own machine — no file size limits, works offline. Two engines are available: Elite Insights, set up for you automatically, and the built-in axilog fast path that parses in under a second. Switch engines any time in Settings.'
     }
 ] as const;
 

@@ -7,7 +7,9 @@
  * the Elite Insights .NET CLI. No download, no dotnet runtime, no temp files,
  * ~0.3s instead of ~10s-10min per log.
  *
- * This is the DEFAULT backend as of axilog 0.3.0. See
+ * This backend is **capability complete but not the default** — the flip is
+ * owner-gated (see {@link DEFAULT_PARSER_BACKEND}). It is one setting away at
+ * Settings → Parser Settings → Parse Engine. See
  * `docs/axilog-cutover-report.md` for the read-surface audit that decided which
  * `ParseOptions` flags have to be on, which EI fields axilog still does not
  * emit (and which of those are reconstructed here), and the two methodology
@@ -24,13 +26,19 @@ export type ParserBackend = 'axilog' | 'elite-insights';
 /**
  * The parser used when the user has expressed no preference.
  *
- * **axilog** — flipped from `'elite-insights'` once axilog 0.3.0 closed the
- * `ei-json` adapter gap that had kept the fast path opt-in.
+ * **`'elite-insights'` — the flip to axilog is owner-gated.** axilog is
+ * *capability complete* (below), fully wired, and one setting away at
+ * Settings → Parser Settings → Parse Engine; what it is waiting on is a
+ * repo-owner go, not more engineering. Until then a fresh install behaves
+ * exactly as it always has: it downloads and auto-manages the Elite Insights
+ * CLI (`shouldAutoManageEi()` in `src/main/index.ts`, which only stands down
+ * while the axilog backend is *selected*).
  *
- * The original cutover audit found 30 of the read surface's paths missing, and
- * four whole features rendering blank: boon-generation attribution, incoming
- * conditions, damage mitigation and the incoming-strike-damage chart. axilog's
- * MEIGAP + MEIGAP2 work closed all four. The re-audit in §1 of
+ * The capability case, for whoever makes that call. The original cutover audit
+ * found 30 of the read surface's paths missing, and four whole features
+ * rendering blank: boon-generation attribution, incoming conditions, damage
+ * mitigation and the incoming-strike-damage chart. axilog's MEIGAP + MEIGAP2
+ * work closed all four. The re-audit in §1 of
  * `docs/axilog-cutover-report.md` (re-run against 0.3.0 on the same fixture)
  * puts the surface at **8 residual gaps out of 83 audited rows**, with these
  * residuals — all of them null-guarded, all degrading to `0`/`null`/empty
@@ -40,10 +48,12 @@ export type ParserBackend = 'axilog' | 'elite-insights';
  *    `wasted` — boon *overstack* attribution is blank; generation itself is
  *    exact. (§4.3)
  * 2. `statsTargets[i][0]` carries 8 of EI's 38 stat fields, so 15
- *    `statsTargets`-sourced Offense Detailed columns read 0 even though the
- *    whole-fight equivalents exist in `statsAll[0]`. Structural: EI folds the
- *    enemy roster into one aggregate `"Enemy Players"` target, axilog emits one
- *    entry per real enemy. (§4.1 — the biggest remaining visible gap)
+ *    `statsTargets`-sourced Offense Detailed columns had read 0. 8 of those 15
+ *    now fall back to the whole-fight `statsAll[0]` figure
+ *    (`OFFENSE_METRICS_STATS_ALL_FALLBACK` in
+ *    `packages/bridge-metrics/src/statsMetrics.ts`), leaving **7** blank.
+ *    Structural: EI folds the enemy roster into one aggregate
+ *    `"Enemy Players"` target, axilog emits one entry per real enemy. (§4.1)
  * 3. `statsAll[0].saved` — deferred upstream; `Number(... || 0)`, and not in
  *    `dpsReportTypes` either.
  * 4. `targets[].profession`, `players[].display_name`, `skillMap[].icon` +
@@ -55,25 +65,32 @@ export type ParserBackend = 'axilog' | 'elite-insights';
  * axilog's arcdps-methodology figure under EI's field name, and the mitigation
  * aggregate's secondary `minMitigation` term is roster-shape-sensitive.
  *
- * Elite Insights stays fully wired and is one setting away (Settings → Parser
- * Settings → Parse Engine); `getActiveParser()` also falls back to it
+ * Both engines stay fully wired in both directions: axilog is one setting away
+ * from here, and `getActiveParser()` falls back to Elite Insights
  * automatically if axilog's native binding is unavailable on the platform.
+ *
+ * To flip: change this constant to `'axilog'`. Everything else — the settings
+ * card, the auto-install stand-down, the walkthrough copy — reads the default
+ * rather than hardcoding an engine, so nothing else has to move.
  */
-export const DEFAULT_PARSER_BACKEND: ParserBackend = 'axilog';
+export const DEFAULT_PARSER_BACKEND: ParserBackend = 'elite-insights';
 
 /**
  * Coerce a persisted/IPC value to a known backend id, falling back to
  * {@link DEFAULT_PARSER_BACKEND}.
  *
- * Only an exact `'elite-insights'` selects EI; everything else — unset, empty,
- * mis-cased, whitespace-padded, unknown — resolves to the default, which is now
- * axilog. That is safe in the direction it now points: every residual in
- * {@link DEFAULT_PARSER_BACKEND}'s list was re-verified at its read site to be
- * null-guarded, so a corrupt store lands on a backend that renders a few blank
- * columns, never one that throws or invents a number.
+ * Only the two exact ids are honoured; everything else — unset, empty,
+ * mis-cased, whitespace-padded, unknown — resolves to
+ * {@link DEFAULT_PARSER_BACKEND}. The hardening is symmetric by construction:
+ * it always lands on the shipped default, so a corrupt or hand-edited store can
+ * never put a user on an engine they did not pick. Under the current
+ * (owner-gated) default that means Elite Insights, whose read surface has no
+ * gaps at all; if the default is flipped, it means axilog, where every residual
+ * in {@link DEFAULT_PARSER_BACKEND}'s list was re-verified at its read site to
+ * be null-guarded — a few blank columns, never a throw or an invented number.
  */
 export const normalizeParserBackend = (value: unknown): ParserBackend =>
-    value === 'elite-insights' ? 'elite-insights' : DEFAULT_PARSER_BACKEND;
+    value === 'axilog' || value === 'elite-insights' ? value : DEFAULT_PARSER_BACKEND;
 
 // ─── Settings mapping ─────────────────────────────────────────────────────────
 

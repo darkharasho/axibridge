@@ -16,20 +16,28 @@ import { DEFAULT_EI_SETTINGS } from '../eiParser';
 import { pruneDetailsForStats, buildDashboardSummaryFromDetails, hasUsableFightDetails } from '../detailsProcessing';
 
 /**
- * Anonymized WvW fixture — every character/account name in it is an `Anon<N>`
- * placeholder, so it carries no PII. It still is not committed here: this
- * repo's `.gitignore` excludes every `*.zevtc` as a blanket PII guard, and
- * that guard is worth more than one integration test's portability.
+ * Anonymized WvW fixture — every character name in it is an `Anon<N>`
+ * placeholder, every account `:Anon<N>.<digits>`, every guild id zeroed, so it
+ * carries no PII. It **is committed**, under an owner-authorized, narrow
+ * negation of the blanket `*.zevtc` PII guard
+ * (`!test-fixtures/axilog/*.anon.zevtc`), specifically so the real-parse block
+ * below runs in CI rather than skipping. See `test-fixtures/axilog/README.md`
+ * for the verification that was run before committing it.
  *
- * Resolution order (first hit wins), skipping the real-parse block entirely
- * when neither exists — see `test-fixtures/axilog/README.md`:
+ * Resolution order (first hit wins):
  *   1. `AXILOG_FIXTURE` env var
- *   2. `test-fixtures/axilog/wvw-small.anon.zevtc` (local, gitignored)
+ *   2. `test-fixtures/axilog/wvw-small.anon.zevtc` — the committed one
  *   3. a sibling axilog checkout's `fixtures/wvw-small.anon.zevtc`
+ *
+ * The skip guard on the block stays: the native binding resolves per-platform
+ * via `optionalDependencies` and may genuinely be missing. The *fixture* half
+ * of it should no longer ever fire in this repo.
  */
+const COMMITTED_FIXTURE = path.resolve(__dirname, '../../../test-fixtures/axilog/wvw-small.anon.zevtc');
+
 const FIXTURE_CANDIDATES = [
     process.env.AXILOG_FIXTURE,
-    path.resolve(__dirname, '../../../test-fixtures/axilog/wvw-small.anon.zevtc'),
+    COMMITTED_FIXTURE,
     path.resolve(__dirname, '../../../../axilog/fixtures/wvw-small.anon.zevtc'),
 ].filter((p): p is string => Boolean(p));
 
@@ -38,27 +46,32 @@ const FIXTURE = FIXTURE_CANDIDATES.find((p) => fs.existsSync(p)) ?? FIXTURE_CAND
 // ─── Backend selection ────────────────────────────────────────────────────────
 
 describe('normalizeParserBackend', () => {
-    it('defaults to axilog now that 0.3.0 has closed the ei-json adapter gap', () => {
-        // See DEFAULT_PARSER_BACKEND's doc comment and §1 of
-        // docs/axilog-cutover-report.md: the re-audit against axilog 0.3.0
-        // leaves 8 residual gaps out of 83 audited rows, and every one of them
-        // is null-guarded at its read site.
-        expect(DEFAULT_PARSER_BACKEND).toBe('axilog');
-        expect(normalizeParserBackend(undefined)).toBe('axilog');
-        expect(normalizeParserBackend(null)).toBe('axilog');
-        expect(normalizeParserBackend('')).toBe('axilog');
-        expect(normalizeParserBackend('nonsense')).toBe('axilog');
+    it('ships Elite Insights as the default — the axilog flip is owner-gated', () => {
+        // axilog is capability complete (8 null-guarded residuals out of 83
+        // audited read-surface rows; §1 of docs/axilog-cutover-report.md) and
+        // fully wired, but making it the default is a repo-owner call that has
+        // not been made. This assertion is the gate: flipping
+        // DEFAULT_PARSER_BACKEND must be a deliberate, visible edit here too.
+        expect(DEFAULT_PARSER_BACKEND).toBe('elite-insights');
+        expect(normalizeParserBackend(undefined)).toBe('elite-insights');
+        expect(normalizeParserBackend(null)).toBe('elite-insights');
+        expect(normalizeParserBackend('')).toBe('elite-insights');
+        expect(normalizeParserBackend('nonsense')).toBe('elite-insights');
+        expect(normalizeParserBackend('elite-insights')).toBe('elite-insights');
+    });
+
+    it('honours an exact axilog selection', () => {
         expect(normalizeParserBackend('axilog')).toBe('axilog');
     });
 
-    it('opts out to Elite Insights only on an exact selection', () => {
-        // The hardening survives the flip, just pointing the other way: a
-        // corrupt or hand-edited store can never land on a backend the user did
-        // not pick — it lands on the shipped default.
-        expect(normalizeParserBackend('elite-insights')).toBe('elite-insights');
-        expect(normalizeParserBackend('Elite-Insights')).toBe('axilog');
-        expect(normalizeParserBackend(' elite-insights ')).toBe('axilog');
-        expect(normalizeParserBackend('eliteinsights')).toBe('axilog');
+    it('coerces anything that is not an exact id to the shipped default', () => {
+        // The hardening: a corrupt or hand-edited store can never land a user
+        // on an engine they did not pick. Mis-cased and whitespace-padded
+        // spellings of BOTH ids are rejected, so this test keeps its
+        // discriminating power whichever way DEFAULT_PARSER_BACKEND points.
+        for (const bad of ['AxiLog', ' axilog ', 'axi-log', 'Elite-Insights', ' elite-insights ', 'eliteinsights', 0, {}, []]) {
+            expect(normalizeParserBackend(bad)).toBe(DEFAULT_PARSER_BACKEND);
+        }
     });
 });
 
@@ -349,6 +362,17 @@ try {
 } catch {
     binding = null;
 }
+
+describe('real-parse fixture availability', () => {
+    it('resolves the committed anonymized fixture, so the block below is not silently skipped', () => {
+        // Follow-up 3 in docs/axilog-cutover-report.md, resolved: the fixture
+        // is in-tree behind a narrow .gitignore negation. Without this
+        // assertion a deleted or re-ignored fixture would turn the whole
+        // integration block into a green no-op.
+        expect(fs.existsSync(COMMITTED_FIXTURE)).toBe(true);
+        expect(fs.existsSync(FIXTURE)).toBe(true);
+    });
+});
 
 describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized WvW fixture)', () => {
     let details: any;
