@@ -127,6 +127,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importSettings: () => ipcRenderer.invoke('import-settings'),
     selectSettingsFile: () => ipcRenderer.invoke('select-settings-file'),
 
+    // Parser backend selection ('axilog' | 'elite-insights')
+    getParserBackend: () => ipcRenderer.invoke('parser:get-backend'),
+    setParserBackend: (backend: string) => ipcRenderer.send('parser:set-backend', backend),
+    onParserBackendChanged: (callback: (data: any) => void) => {
+        ipcRenderer.on('parser:backend-changed', (_event, value) => callback(value));
+        return () => { ipcRenderer.removeAllListeners('parser:backend-changed'); };
+    },
+
     // EI (Elite Insights) local parser
     getEiStatus: () => ipcRenderer.invoke('ei:get-status'),
     installEi: () => ipcRenderer.invoke('ei:install'),

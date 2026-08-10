@@ -429,6 +429,11 @@ export interface IElectronAPI {
     onRequestRendererDiagnostics: (callback: () => void) => () => void;
     sendRendererDiagnostics: (payload: { heapUsed: number; heapTotal: number; heapLimit: number; logCount: number }) => void;
 
+    // Parser backend selection
+    getParserBackend: () => Promise<IParserBackendInfo>;
+    setParserBackend: (backend: ParserBackendId) => void;
+    onParserBackendChanged: (callback: (data: { backend: ParserBackendId }) => void) => () => void;
+
     // Elite Insights parser
     getEiStatus: () => Promise<IEiStatus>;
     installEi: () => Promise<void>;
@@ -443,6 +448,20 @@ export interface IElectronAPI {
     onEiDownloadProgress: (callback: (data: { percent: number; message: string }) => void) => () => void;
     onEiParseProgress: (callback: (data: { logId: string; message: string }) => void) => () => void;
     onEiStatusChanged: (callback: (status: IEiStatus) => void) => () => void;
+}
+
+/** Mirrors `ParserBackend` in `src/main/axilogParser.ts`. */
+export type ParserBackendId = 'axilog' | 'elite-insights';
+
+/** Payload of the `parser:get-backend` IPC handler. */
+export interface IParserBackendInfo {
+    /** The persisted selection, already normalized to a known id. */
+    backend: ParserBackendId;
+    /** What an unset/corrupt store resolves to — `'axilog'` since axilog 0.3.0. */
+    default: ParserBackendId;
+    /** Whether axilog's native binding actually loaded on this platform. */
+    axilogAvailable: boolean;
+    axilogVersion: string | null;
 }
 
 export interface IEiParserSettings {

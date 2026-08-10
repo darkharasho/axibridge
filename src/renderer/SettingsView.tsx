@@ -1,7 +1,7 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind } from 'lucide-react';
-import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IEiParserSettings, IEiStatus } from './global.d';
+import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IEiParserSettings, IEiStatus, IParserBackendInfo, ParserBackendId } from './global.d';
 import { normalizeMvpWeightProfiles } from './stats/mvpWeightProfiles';
 import { ReportWebhooksCard } from './ReportWebhooksCard';
 import type { IReportWebhook } from '../shared/reportWebhooks';
@@ -71,6 +71,44 @@ const SETTINGS_SECTIONS = [
     { id: 'export-import', label: 'Export / Import' },
     { id: 'legal', label: 'Legal' }
 ];
+
+/**
+ * The two parse engines, in the order they are offered.
+ *
+ * axilog leads because it is the default (see `DEFAULT_PARSER_BACKEND` in
+ * `src/main/axilogParser.ts`). The `implications` lines are deliberately the
+ * user-visible consequences, not a feature list — the honest summary of the
+ * read-surface re-audit in `docs/axilog-cutover-report.md` is that the two
+ * engines agree on almost everything, and the places they do not are worth
+ * naming rather than burying.
+ */
+const PARSER_BACKEND_OPTIONS: Array<{
+    id: ParserBackendId;
+    label: string;
+    summary: string;
+    implications: string[];
+}> = [
+        {
+            id: 'axilog',
+            label: 'axilog (faster)',
+            summary: 'Parses in-process in under a second. Nothing to download.',
+            implications: [
+                'No .NET runtime or Elite Insights download — ships with the app',
+                'Seconds instead of minutes on large logs',
+                'A few Offense Detailed columns and boon-overstack numbers read 0'
+            ]
+        },
+        {
+            id: 'elite-insights',
+            label: 'Elite Insights',
+            summary: 'The original GW2 Elite Insights CLI, run as a separate process.',
+            implications: [
+                'The most complete statistics surface',
+                'Downloads ~90 MB on first use and needs a .NET runtime',
+                'Noticeably slower — seconds to minutes per log'
+            ]
+        }
+    ];
 
 const IMPORT_SETTING_META: Array<{ key: string; label: string; description: string; section: string }> = [
     { key: 'logDirectory', label: 'Log Directory', description: 'Path to the ArcDPS log folder.', section: 'Logs & Uploads' },
@@ -229,6 +267,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [eiUninstalling, setEiUninstalling] = useState(false);
     const [forceDpsReportOnly, setForceDpsReportOnly] = useState(false);
     const [autoManageEi, setAutoManageEi] = useState(true);
+    const [parserBackend, setParserBackend] = useState<IParserBackendInfo | null>(null);
     const [githubRepoName, setGithubRepoName] = useState('');
     const [githubRepoOwner, setGithubRepoOwner] = useState('');
     const [githubToken, setGithubToken] = useState('');
@@ -587,16 +626,26 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (window.electronAPI?.getEiSettings) {
             window.electronAPI.getEiSettings().then(setEiSettings);
         }
+        if (window.electronAPI?.getParserBackend) {
+            window.electronAPI.getParserBackend().then(setParserBackend);
+        }
 
         const unsubProgress = window.electronAPI?.onEiDownloadProgress?.(setEiDownloadProgress);
         const unsubStatus = window.electronAPI?.onEiStatusChanged?.((status) => {
             setEiStatus(status);
             setEiDownloadProgress(null);
         });
+        // The main process echoes every accepted change back (already
+        // normalized), so the card reflects what was actually persisted rather
+        // than what was clicked.
+        const unsubBackend = window.electronAPI?.onParserBackendChanged?.(({ backend }) => {
+            setParserBackend((prev) => (prev ? { ...prev, backend } : prev));
+        });
 
         return () => {
             unsubProgress?.();
             unsubStatus?.();
+            unsubBackend?.();
         };
     }, []);
 
@@ -2695,8 +2744,70 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     <div ref={parserSettingsRef}>
                     <SettingsSection title="Parser Settings" icon={Zap} delay={0.2} sectionId="parser-settings" hidden={settingsSearchHidden.has('parser-settings')}>
                         <p className="text-sm text-gray-400 mb-4">
-                            Manage the Elite Insights local parser used to generate detailed combat statistics.
+                            Choose the engine that turns your combat logs into detailed statistics, and manage the
+                            Elite Insights install it can fall back to.
                         </p>
+
+                        {/* Parse engine selection */}
+                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4" data-testid="parser-backend-card">
+                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Parse Engine</div>
+                            <div className="grid gap-3">
+                                {PARSER_BACKEND_OPTIONS.map((option) => {
+                                    // Before `getParserBackend` resolves (and in
+                                    // hosts that expose no such API, e.g. the web
+                                    // build) fall back to the shipped default so
+                                    // the card never renders with nothing selected.
+                                    const selected = parserBackend?.backend ?? 'axilog';
+                                    const isActive = selected === option.id;
+                                    const unavailable = option.id === 'axilog'
+                                        && parserBackend !== null
+                                        && !parserBackend.axilogAvailable;
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={isActive}
+                                            data-testid={`parser-backend-${option.id}`}
+                                            disabled={unavailable}
+                                            onClick={() => {
+                                                if (unavailable || isActive) return;
+                                                setParserBackend((prev) => (prev ? { ...prev, backend: option.id } : prev));
+                                                window.electronAPI?.setParserBackend?.(option.id);
+                                            }}
+                                            className={`text-left rounded-[4px] border px-4 py-3 transition-colors ${isActive
+                                                ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
+                                                : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
+                                                } ${unavailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm font-semibold">{option.label}</div>
+                                                <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
+                                                    {unavailable ? 'Unavailable' : isActive ? 'Selected' : 'Select'}
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-gray-400 mt-1">{option.summary}</div>
+                                            <ul className="mt-2 space-y-1 text-xs text-gray-500">
+                                                {option.implications.map((item, idx) => (
+                                                    <li key={`${option.id}-${idx}`}>• {item}</li>
+                                                ))}
+                                            </ul>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {parserBackend && !parserBackend.axilogAvailable && (
+                                <div className="text-xs text-yellow-300 mt-3">
+                                    axilog has no prebuilt binary for this platform, so Elite Insights is being used
+                                    regardless of the selection above.
+                                </div>
+                            )}
+                            <div className="text-xs text-gray-500 mt-3">
+                                Applies to the next log parsed — no restart needed. Logs already in your history keep
+                                the statistics they were parsed with; re-parse them to switch engines retroactively.
+                                {parserBackend?.axilogVersion ? ` axilog ${parserBackend.axilogVersion}.` : ''}
+                            </div>
+                        </div>
 
                         {/* Auto-manage toggle */}
                         <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4">

@@ -29,14 +29,23 @@ function makeElectronApiMock(settingsOverrides: Record<string, unknown> = {}) {
         clearDpsReportCache: vi.fn().mockResolvedValue({ success: true, clearedEntries: 0 }),
         ensureGithubTemplate: vi.fn().mockResolvedValue({ success: true }),
         getEiAutoManage: vi.fn().mockResolvedValue(false),
+        getParserBackend: vi.fn().mockResolvedValue({
+            backend: 'axilog',
+            default: 'axilog',
+            axilogAvailable: true,
+            axilogVersion: '0.3.0',
+        }),
+        setParserBackend: vi.fn(),
+        onParserBackendChanged: vi.fn(() => () => {}),
     };
 }
 
 function renderSettings(
     props: Partial<React.ComponentProps<typeof SettingsView>> = {},
     settingsOverrides: Record<string, unknown> = {},
+    apiOverrides: Record<string, unknown> = {},
 ) {
-    const mock = makeElectronApiMock(settingsOverrides);
+    const mock = { ...makeElectronApiMock(settingsOverrides), ...apiOverrides };
     window.electronAPI = mock as any;
 
     const callbacks = {
@@ -721,6 +730,113 @@ describe('SettingsView', () => {
             fireEvent.click(screen.getByRole('button', { name: /View What's New/i }));
 
             expect(callbacks.onOpenWhatsNew).toHaveBeenCalledOnce();
+        });
+    });
+
+    // -----------------------------------------------------------------------
+    // Parse engine (parser backend) selection
+    // -----------------------------------------------------------------------
+
+    describe('Parse engine selection', () => {
+        const findCard = () => screen.findByTestId('parser-backend-card');
+
+        it('reflects the persisted backend reported by the main process', async () => {
+            const { mock } = renderSettings({}, {}, {
+                getParserBackend: vi.fn().mockResolvedValue({
+                    backend: 'elite-insights',
+                    default: 'axilog',
+                    axilogAvailable: true,
+                    axilogVersion: '0.3.0',
+                }),
+            });
+            await findCard();
+
+            await waitFor(() => expect(mock.getParserBackend).toHaveBeenCalled());
+            await waitFor(() =>
+                expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'true'));
+            expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'false');
+        });
+
+        it('shows axilog selected by default', async () => {
+            renderSettings();
+            await findCard();
+
+            await waitFor(() =>
+                expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'true'));
+        });
+
+        it('persists a switch to Elite Insights over IPC and updates the selection', async () => {
+            const { mock } = renderSettings();
+            await findCard();
+            await waitFor(() =>
+                expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'true'));
+
+            fireEvent.click(screen.getByTestId('parser-backend-elite-insights'));
+
+            expect(mock.setParserBackend).toHaveBeenCalledWith('elite-insights');
+            await waitFor(() =>
+                expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'true'));
+        });
+
+        it('does not re-send IPC when the already-selected engine is clicked', async () => {
+            const { mock } = renderSettings();
+            await findCard();
+            await waitFor(() =>
+                expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'true'));
+
+            fireEvent.click(screen.getByTestId('parser-backend-axilog'));
+
+            expect(mock.setParserBackend).not.toHaveBeenCalled();
+        });
+
+        it('disables axilog and explains why when its native binding is unavailable', async () => {
+            // The main process silently falls back to EI in this case
+            // (getActiveParser), so the card must not imply the choice took.
+            const { mock } = renderSettings({}, {}, {
+                getParserBackend: vi.fn().mockResolvedValue({
+                    backend: 'elite-insights',
+                    default: 'axilog',
+                    axilogAvailable: false,
+                    axilogVersion: null,
+                }),
+            });
+            await findCard();
+
+            await waitFor(() =>
+                expect(screen.getByTestId('parser-backend-axilog')).toBeDisabled());
+            expect(screen.getByText(/no prebuilt binary for this platform/i)).toBeInTheDocument();
+
+            fireEvent.click(screen.getByTestId('parser-backend-axilog'));
+            expect(mock.setParserBackend).not.toHaveBeenCalled();
+        });
+
+        it('renders with axilog selected when the host exposes no parser-backend API', async () => {
+            // The web build ships no electronAPI parser methods; the card must
+            // still render the shipped default rather than nothing selected.
+            renderSettings({}, {}, {
+                getParserBackend: undefined,
+                setParserBackend: undefined,
+                onParserBackendChanged: undefined,
+            });
+            await findCard();
+
+            expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'true');
+            // Clicking must not throw through the optional-call chain.
+            fireEvent.click(screen.getByTestId('parser-backend-elite-insights'));
+        });
+
+        it('adopts a backend change broadcast by the main process', async () => {
+            let broadcast: ((data: { backend: string }) => void) | null = null;
+            renderSettings({}, {}, {
+                onParserBackendChanged: vi.fn((cb: any) => { broadcast = cb; return () => {}; }),
+            });
+            await findCard();
+            await waitFor(() => expect(broadcast).not.toBeNull());
+
+            act(() => broadcast!({ backend: 'elite-insights' }));
+
+            await waitFor(() =>
+                expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'true'));
         });
     });
 });
