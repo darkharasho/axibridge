@@ -4,6 +4,7 @@ import { IncrementalAggregator, computeStatsSync } from '../incrementalAggregati
 import { reinjectElidedReplayFights } from '../../workers/replayTransfer';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import type { DetailsCache } from '../../cache/DetailsCache';
+import { LogPayloadCache } from '../utils/logPayloadRetention';
 
 interface UseStatsAggregationProps {
     logs: any[];
@@ -51,11 +52,6 @@ export interface AggregationDiagnosticsState {
 
 const DETAILS_TOP_LEVEL_DENY = ['phases', 'logErrors'];
 const PLAYER_DENY = ['targetBreakbarDamage1S', 'squadBuffVolumesActive'];
-
-// Max log payloads retained in the worker's ref-cache. Worker restarts re-send
-// unchanged logs as key references instead of multi-MB structured clones; this
-// bounds the worker-side memory for those retained payloads.
-const WORKER_PAYLOAD_CACHE_LIMIT = 80;
 
 /** True while a log is still uploading/parsing or waiting on details — i.e. its
  *  aggregation input will change again soon. */
@@ -122,11 +118,16 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     const streamIdleCallbackRef = useRef<number | null>(null);
     const lastStreamProgressUpdateRef = useRef(0);
     const streamSessionRef = useRef(0);
-    const prunedLogCacheRef = useRef<Map<string, { sourceLog: any; sourceDetails: WeakRef<object> | null; sourceOwners: any; pruned: any }>>(new Map());
-    // Payloads already transferred to the current worker, keyed by log identity
-    // (insertion order = LRU). Holds the same object refs as prunedLogCacheRef,
-    // so this adds no renderer memory; the worker retains its cloned copy.
-    const sentPayloadsRef = useRef<Map<string, any>>(new Map());
+    // Single source of truth for retained log payloads: memoises the pruned
+    // payload per log AND tracks which of them the current worker still holds.
+    // These were previously two maps holding the same object refs — bounding
+    // them separately just moves the retention, so they are one cache with one
+    // heap-pressure-driven budget. Every eviction must be forwarded to the
+    // worker as a 'forget' so its payload store shrinks in lockstep.
+    const payloadCacheRef = useRef<LogPayloadCache | null>(null);
+    if (!payloadCacheRef.current) {
+        payloadCacheRef.current = new LogPayloadCache();
+    }
     const aggregationSettingsKeyRef = useRef<string>('');
     const aggregationSettingsRef = useRef<IStatsViewSettings | undefined>(undefined);
     const lastFallbackComputeKeyRef = useRef('');
@@ -162,8 +163,13 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             streamIdleCallbackRef.current = null;
         }
     };
-    const getPrunedLogForWorker = (log: any, details: any, index: number) => {
-        const logWithDetails = details ? { ...log, details: pruneDetailsForWorker(details) } : log;
+    /** Tell the worker to release payloads the main thread no longer retains. */
+    const forgetInWorker = (keys: string[]) => {
+        if (keys.length === 0 || !workerRef.current) return;
+        workerRef.current.postMessage({ type: 'forget', keys });
+    };
+
+    const getPayloadEntryForWorker = (log: any, details: any, index: number) => {
         const cacheKey = String(log?.filePath || log?.id || `idx-${index}`);
         const detailsRef = details && typeof details === 'object' ? details : null;
         // useSectorOwners patches log.sectorOwners in place on the same details
@@ -172,23 +178,27 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         // stale pre-patch payload (or a `ref` message pointing the worker at it)
         // is reused until the details object is LRU-evicted.
         const owners = log?.sectorOwners ?? null;
-        const cached = prunedLogCacheRef.current.get(cacheKey);
+        const cache = payloadCacheRef.current!;
+        const cached = cache.get(cacheKey);
         if (cached) {
             if (detailsRef && cached.sourceDetails?.deref() === detailsRef && cached.sourceOwners === owners) {
-                return cached.pruned;
+                return cached;
             }
-            if (!detailsRef && cached.sourceLog === logWithDetails && cached.sourceOwners === owners) {
-                return cached.pruned;
+            if (!detailsRef && cached.sourceLog === log && cached.sourceOwners === owners) {
+                return cached;
             }
         }
-        const pruned = logWithDetails;
-        prunedLogCacheRef.current.set(cacheKey, {
-            sourceLog: logWithDetails,
+        // Pruning allocates a fresh payload, so only do it on a cache miss.
+        const logWithDetails = details ? { ...log, details: pruneDetailsForWorker(details) } : log;
+        const entry = {
+            sourceLog: log,
             sourceDetails: detailsRef ? new WeakRef(detailsRef) : null,
             sourceOwners: owners,
-            pruned
-        });
-        return pruned;
+            pruned: logWithDetails,
+            sent: false
+        };
+        forgetInWorker(cache.set(cacheKey, entry));
+        return entry;
     };
 
     const aggregationStatsViewSettings = useMemo(() => {
@@ -232,8 +242,9 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         if (!workerRef.current) {
             workerRef.current = new Worker(new URL('../../workers/statsWorker.ts', import.meta.url), { type: 'module' });
             // Fresh worker = empty worker-side payload store; never send refs for
-            // payloads transferred to a previous worker instance.
-            sentPayloadsRef.current.clear();
+            // payloads transferred to a previous worker instance. The memoised
+            // payloads themselves stay valid, so only the sent flags are cleared.
+            payloadCacheRef.current!.markAllUnsent();
             workerRef.current.onmessage = (event) => {
                 if (event.data?.type === 'progress') {
                     const incomingToken = typeof event.data.token === 'number' ? event.data.token : null;
@@ -410,11 +421,9 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             logs.forEach((log, index) => {
                 validCacheKeys.add(String(log?.filePath || log?.id || `idx-${index}`));
             });
-            prunedLogCacheRef.current.forEach((_value, key) => {
-                if (!validCacheKeys.has(key)) {
-                    prunedLogCacheRef.current.delete(key);
-                }
-            });
+            // Logs that left the set are dead weight in both isolates — drop them
+            // here and tell the worker to release its clones too.
+            forgetInWorker(payloadCacheRef.current!.retain(validCacheKeys));
             clearStreamTimer();
             workerRef.current.postMessage({ type: 'reset', token: activeToken, totalLogs: logs.length });
             workerRef.current.postMessage({
@@ -501,28 +510,20 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     const logId = log?.id || log?.filePath;
                     // peek is synchronous — details were pre-fetched into LRU by prefetchAndStep
                     const details = detailsCache && logId ? detailsCache.peek(logId) : null;
-                    const payload = getPrunedLogForWorker(log, details, index);
                     const payloadKey = String(log?.filePath || log?.id || `idx-${index}`);
-                    const sent = sentPayloadsRef.current;
-                    if (sent.get(payloadKey) === payload) {
+                    const entry = getPayloadEntryForWorker(log, details, index);
+                    if (entry.sent) {
                         // Unchanged since last transfer — the worker still holds it.
-                        sent.delete(payloadKey);
-                        sent.set(payloadKey, payload); // LRU promote
                         workerRef.current.postMessage({ type: 'log', token: activeToken, ref: payloadKey });
                     } else {
-                        sent.delete(payloadKey);
-                        sent.set(payloadKey, payload);
-                        const evictedKeys: string[] = [];
-                        while (sent.size > WORKER_PAYLOAD_CACHE_LIMIT) {
-                            const oldestKey = sent.keys().next().value as string;
-                            sent.delete(oldestKey);
-                            evictedKeys.push(oldestKey);
-                        }
-                        if (evictedKeys.length > 0) {
-                            workerRef.current.postMessage({ type: 'forget', keys: evictedKeys });
-                        }
-                        workerRef.current.postMessage({ type: 'log', token: activeToken, key: payloadKey, payload });
+                        entry.sent = true;
+                        workerRef.current.postMessage({ type: 'log', token: activeToken, key: payloadKey, payload: entry.pruned });
                     }
+                    // Heap pressure climbs as the stream progresses, so re-evaluate
+                    // the budget per log rather than only on insertion. Safe to evict
+                    // a payload already streamed this pass: each key is visited once,
+                    // so the worker's store only matters for subsequent streams.
+                    forgetInWorker(payloadCacheRef.current!.trim());
                     index += 1;
                     processed += 1;
                 }
