@@ -79,6 +79,7 @@ import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers } from './handlers/githubHandlers';
 import { registerEiHandlers } from './handlers/eiHandlers';
 import { EiManager, DEFAULT_EI_SETTINGS, EiParserSettings } from './eiParser';
+import { AxilogManager, normalizeParserBackend, type ParserBackend } from './axilogParser';
 import { parseCliFlags } from './cliFlags';
 
 const cliFlags = parseCliFlags(process.argv);
@@ -231,13 +232,40 @@ let watcher: LogWatcher | null = null
 let uploader: Uploader | null = null
 let discord: DiscordNotifier | null = null
 let eiManager: EiManager | null = null
+let axilogManager: AxilogManager | null = null
+
+// ─── Parser backend selection ───────────────────────────────────────────────
+// `elite-insights` (default) spawns the .NET CLI; `axilog` is the opt-in
+// in-process path via the @axiapps/axilog native bindings. axilog is far
+// faster but 30 of the 118 EI-JSON fields axibridge reads render blank under
+// it today, so it stays opt-in — see DEFAULT_PARSER_BACKEND's doc comment and
+// docs/axilog-cutover-report.md.
+const getParserBackend = (): ParserBackend => normalizeParserBackend(store.get('parserBackend'));
+
+/**
+ * The parser to use for local parses. Falls back to EI when the user selected
+ * axilog but its native binding could not be loaded on this platform.
+ */
+const getActiveParser = (): EiManager | AxilogManager | null => {
+    if (getParserBackend() === 'axilog' && axilogManager?.isInstalled()) return axilogManager;
+    return eiManager;
+};
+
+/** True when a local parse is possible right now with the selected backend. */
+const isLocalParserAvailable = (): boolean => Boolean(getActiveParser()?.isInstalled());
+
+/** True when the EI CLI download/update machinery should run at all. */
+const shouldAutoManageEi = (): boolean =>
+    Boolean(store.get('autoManageEi', true)) && !(getParserBackend() === 'axilog' && Boolean(axilogManager?.isInstalled()));
 
 // We always parse combat replay (EI v3.24+ only emits the distToCom/stackDist
-// distance scalars when it does), but only RETAIN the heavy position arrays when
-// the user's `parseCombatReplay` setting is on. Off = coarse mode: keep the
-// scalars (Closest to Tag still works), drop positions to keep payloads small.
+// distance scalars when it does; axilog never emits them and axilogParser.ts
+// derives them from the same replay positions), but only RETAIN the heavy
+// position arrays when the user's `parseCombatReplay` setting is on. Off =
+// coarse mode: keep the scalars (Closest to Tag still works), drop positions to
+// keep payloads small.
 const statsPruneOptions = (): { keepReplayPositions: boolean } => ({
-    keepReplayPositions: Boolean(eiManager?.getSettings().parseCombatReplay),
+    keepReplayPositions: Boolean(getActiveParser()?.getSettings().parseCombatReplay),
 });
 let autoUpdateRetryAttempts = 0;
 let autoUpdateRetryTimer: NodeJS.Timeout | null = null;
@@ -272,8 +300,9 @@ const getKnownFileHash = (filePath: string): string | null => {
     return fileHashByPath.get(normalizedKey) || null;
 };
 
-// ─── EI Parse Queue ─────────────────────────────────────────────────────────
-// Serialises local EI parses so only one dotnet process runs at a time.
+// ─── Local Parse Queue ──────────────────────────────────────────────────────
+// Serialises local parses so only one dotnet process (EI) / native parse
+// (axilog) runs at a time.
 let eiParseQueue: { logPath: string; logId: string; resolve: (json: any) => void; reject: (err: any) => void }[] = [];
 let eiParseActive = false;
 
@@ -282,7 +311,9 @@ async function processEiQueue() {
     eiParseActive = true;
     const task = eiParseQueue.shift()!;
     try {
-        const json = await eiManager!.parseLog(task.logPath, task.logId);
+        const parser = getActiveParser();
+        if (!parser) throw new Error('No local parser is available');
+        const json = await parser.parseLog(task.logPath, task.logId);
         task.resolve(json);
     } catch (err) {
         task.reject(err);
@@ -558,7 +589,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
     // distToCom/stackDist == 0 — i.e. Closest to Tag stuck at 0. Re-parsing heals
     // those histories. (Independent of the parseCombatReplay retention setting,
     // which only controls whether positions are kept.)
-    const eiInstalled = Boolean(eiManager?.isInstalled());
+    const eiInstalled = isLocalParserAvailable();
     const cachedDetailsLackReplay = eiInstalled
         && cached?.jsonDetails
         && !cached.jsonDetails.combatReplayMetaData;
@@ -573,15 +604,16 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
         console.log(`[Cache] Cached details for ${filePath} lack combatReplayMetaData; forcing EI re-parse.`);
     }
 
-    // ─── EI-first path ──────────────────────────────────────────────────────
-    // When EI is installed and we don't have a full cache hit, parse locally
-    // with EI and upload to dps.report in parallel for the permalink.
+    // ─── Local-parser-first path ────────────────────────────────────────────
+    // When a local parser (EI by default, axilog when opted into) is available
+    // and we don't have a full cache hit, parse locally and upload to
+    // dps.report in parallel for the permalink.
     const forceDpsReportOnly = Boolean(store.get('forceDpsReportOnly', false));
-    if (!cachedHasUsableDetails && eiManager?.isInstalled() && !forceDpsReportOnly) {
+    if (!cachedHasUsableDetails && isLocalParserAvailable() && !forceDpsReportOnly) {
         win?.webContents.send('upload-status', { id: fileId, filePath, status: 'parsing' });
 
-        // Set up EI parse progress callback
-        eiManager.setParseProgressCallback((data: string) => {
+        // Set up local parse progress callback
+        getActiveParser()?.setParseProgressCallback((data: string) => {
             win?.webContents.send('ei:parse-progress', { logId: fileId, filePath, data });
         });
 
@@ -1163,10 +1195,16 @@ function initServices() {
     discord = new DiscordNotifier();
 
     eiManager = new EiManager(app.getPath('userData'));
+    axilogManager = new AxilogManager();
     const savedEiSettings = store.get('eiParserSettings') as EiParserSettings | undefined;
+    const resolvedParserSettings = { ...DEFAULT_EI_SETTINGS, ...(savedEiSettings ?? {}) };
     if (savedEiSettings) {
-        eiManager.setSettings({ ...DEFAULT_EI_SETTINGS, ...savedEiSettings });
+        eiManager.setSettings(resolvedParserSettings);
     }
+    // Both backends read the same user-facing settings object; axilogParser maps
+    // it onto axilog's ParseOptions (see mapEiSettingsToAxilogOptions).
+    axilogManager.setSettings(resolvedParserSettings);
+    console.log(`[Main] Parser backend: ${getParserBackend()} (axilog binding ${axilogManager.isInstalled() ? 'available' : 'UNAVAILABLE'})`);
 
     // Initialize Discord config
     const webhookUrl = store.get('discordWebhookUrl');
@@ -1194,8 +1232,7 @@ function initServices() {
 
     // Headless: auto-manage EI without a window to wait for did-finish-load
     if (cliFlags.headless) {
-        const autoManageEi = store.get('autoManageEi', true);
-        if (autoManageEi) {
+        if (shouldAutoManageEi()) {
             const runAutoManage = async () => {
                 try {
                     eiManager!.setProgressCallback((progress) => {
@@ -1283,9 +1320,9 @@ function createWindow() {
 
     initServices();
 
-    // Auto-manage EI: install if missing, update if outdated
-    const autoManageEi = store.get('autoManageEi', true);
-    if (autoManageEi) {
+    // Auto-manage EI: install if missing, update if outdated. Skipped entirely
+    // when the axilog backend is active — there is nothing to download.
+    if (shouldAutoManageEi()) {
         const runAutoManage = async () => {
             try {
                 eiManager!.setProgressCallback((progress) => {
@@ -1442,6 +1479,7 @@ app.on('activate', () => {
 app.on('before-quit', () => {
     isQuitting = true;
     eiManager?.killActiveProcess();
+    axilogManager?.killActiveProcess();
 });
 
 app.on('open-url', (event) => {
@@ -1801,6 +1839,7 @@ if (!gotTheLock) {
             store,
             getWindow: () => win,
             getEiManager: () => eiManager!,
+            getAxilogManager: () => axilogManager,
         });
     })
 }
