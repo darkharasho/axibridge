@@ -9,6 +9,20 @@ import { getWvwTeamColor, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTea
 
 const rowToColor = (row: any): WvwTeamColor => row?.color ?? getWvwTeamColor(Number(row?.teamId));
 
+// Barrier the squad generated onto squad members. Reports published before
+// squadBarrierGenerated existed only carry the all-allies total, so fall back to it.
+const fightBarrierGenerated = (fight: any): number => (
+    fight?.squadBarrierGenerated != null
+        ? Number(fight.squadBarrierGenerated || 0)
+        : Number(fight?.outgoingBarrierAbsorbed || 0)
+);
+
+// Barrier that expired before anything hit it. Can go slightly negative when
+// non-squad allies barrier the squad, since that absorption has no squad-side source.
+const fightBarrierUnused = (fight: any): number => (
+    fightBarrierGenerated(fight) - Number(fight?.incomingBarrierAbsorbed || 0)
+);
+
 type FightBreakdownSectionProps = {
     fightBreakdownTab: 'sizes' | 'outcomes' | 'damage' | 'barrier';
     setFightBreakdownTab: (value: 'sizes' | 'outcomes' | 'damage' | 'barrier') => void;
@@ -99,9 +113,9 @@ export const FightBreakdownSection = ({
             { id: 'outgoingDmg', label: 'Outgoing Dmg', align: 'right' as const, minWidth: 110 },
             { id: 'incomingDmg', label: 'Incoming Dmg', align: 'right' as const, minWidth: 110 },
             { id: 'damageDelta', label: 'Damage Delta', align: 'right' as const, minWidth: 98 },
-            { id: 'barrierIn', label: 'Barrier Absorb', align: 'right' as const, minWidth: 110 },
-            { id: 'barrierOut', label: 'Enemy Barrier Absorb', align: 'right' as const, minWidth: 146 },
-            { id: 'barrierDelta', label: 'Barrier Delta', align: 'right' as const, minWidth: 98 }
+            { id: 'barrierIn', label: 'Barrier Absorbed', align: 'right' as const, minWidth: 110 },
+            { id: 'barrierOut', label: 'Barrier Generated', align: 'right' as const, minWidth: 146 },
+            { id: 'barrierDelta', label: 'Barrier Unused', align: 'right' as const, minWidth: 98 }
         ];
         return base;
     }, [teamColorColumns]);
@@ -109,7 +123,7 @@ export const FightBreakdownSection = ({
     const denseRows = useMemo(() => {
         return fights.map((fight: any, idx: number) => {
             const damageDelta = Number((fight.totalOutgoingDamage || 0) - (fight.totalIncomingDamage || 0));
-            const barrierDelta = Number((fight.outgoingBarrierAbsorbed || 0) - (fight.incomingBarrierAbsorbed || 0));
+            const barrierDelta = fightBarrierUnused(fight);
             const values: Record<string, ReactNode> = {
                 duration: fight.duration || '--:--',
                 outcome: (
@@ -158,7 +172,7 @@ export const FightBreakdownSection = ({
                     </span>
                 ),
                 barrierIn: Number(fight.incomingBarrierAbsorbed || 0).toLocaleString(),
-                barrierOut: Number(fight.outgoingBarrierAbsorbed || 0).toLocaleString(),
+                barrierOut: fightBarrierGenerated(fight).toLocaleString(),
                 barrierDelta: (
                     <span className={barrierDelta < 0 ? 'text-emerald-300' : 'text-red-300'}>
                         {barrierDelta.toLocaleString()}
@@ -283,15 +297,20 @@ export const FightBreakdownSection = ({
                                                     className="text-right py-2 px-3"
                                                     title="Incoming damage mitigated by your squad's barrier"
                                                 >
-                                                    Barrier Absorption
+                                                    Barrier Absorbed
                                                 </th>
                                                 <th
                                                     className="text-right py-2 px-3"
-                                                    title="Outgoing damage mitigated by enemy barrier"
+                                                    title="Barrier your squad applied to squad members"
                                                 >
-                                                    Enemy Barrier Absorption
+                                                    Barrier Generated
                                                 </th>
-                                                <th className="text-right py-2 px-3">Delta</th>
+                                                <th
+                                                    className="text-right py-2 px-3"
+                                                    title="Barrier that expired before absorbing any damage (generated minus absorbed). Lower is better."
+                                                >
+                                                    Unused
+                                                </th>
                                             </>
                                         )}
                                     </tr>
@@ -384,9 +403,9 @@ export const FightBreakdownSection = ({
                                             {fightBreakdownTab === 'barrier' && (
                                                 <>
                                                     <td className="py-2 px-3 text-right font-mono">{Number(fight.incomingBarrierAbsorbed || 0).toLocaleString()}</td>
-                                                    <td className="py-2 px-3 text-right font-mono">{Number(fight.outgoingBarrierAbsorbed || 0).toLocaleString()}</td>
+                                                    <td className="py-2 px-3 text-right font-mono">{fightBarrierGenerated(fight).toLocaleString()}</td>
                                                     {(() => {
-                                                        const delta = Number((fight.outgoingBarrierAbsorbed || 0) - (fight.incomingBarrierAbsorbed || 0));
+                                                        const delta = fightBarrierUnused(fight);
                                                         return (
                                                             <td className={`py-2 px-3 text-right font-mono ${delta < 0 ? 'text-emerald-300' : 'text-red-300'}`}>
                                                                 {delta.toLocaleString()}

@@ -237,9 +237,12 @@ export function ingestLogFightDiffMode(log: any, idx: number) {
         { metricId: 'strips', metricLabel: 'Squad Strips', higherIsBetter: true, value: squadStrips },
         { metricId: 'stability', metricLabel: 'Squad Stability', higherIsBetter: true, value: squadStability },
         { metricId: 'healing', metricLabel: 'Squad Healing', higherIsBetter: true, value: squadHealing },
-        { metricId: 'barrierOut', metricLabel: 'Squad Barrier Out', higherIsBetter: true, value: squadBarrierOutput },
-        { metricId: 'barrierIncomingAbsorb', metricLabel: 'Barrier Absorption (Incoming)', higherIsBetter: true, value: incomingBarrierAbsorbed },
-        { metricId: 'enemyBarrierAbsorb', metricLabel: 'Enemy Barrier Absorption', higherIsBetter: false, value: outgoingBarrierAbsorbed },
+        { metricId: 'barrierOut', metricLabel: 'Barrier Generated (Squad)', higherIsBetter: true, value: squadBarrierOutput },
+        { metricId: 'barrierIncomingAbsorb', metricLabel: 'Barrier Absorbed', higherIsBetter: true, value: incomingBarrierAbsorbed },
+        // Not enemy barrier — this is the squad's own barrier output across all allies,
+        // squad and non-squad alike. More of it is good, same as the squad-scoped row.
+        { metricId: 'enemyBarrierAbsorb', metricLabel: 'Barrier Generated (All Allies)', higherIsBetter: true, value: outgoingBarrierAbsorbed },
+        { metricId: 'barrierUnused', metricLabel: 'Barrier Unused', higherIsBetter: false, value: Math.max(0, squadBarrierOutput - incomingBarrierAbsorbed) },
         { metricId: 'cc', metricLabel: 'Squad CC', higherIsBetter: true, value: squadCC },
         { metricId: 'downContrib', metricLabel: 'Squad Down Contribution', higherIsBetter: true, value: squadDownContribution },
         { metricId: 'alliesRevived', metricLabel: 'Allies Revived (Players)', higherIsBetter: true, value: squadRevivedPlayers }

@@ -70,3 +70,53 @@ describe('ingestLogFightBreakdown boon strips & applications', () => {
         expect(fb.totalBoonsApplied).toBe(0);
     });
 });
+
+describe('ingestLogFightBreakdown barrier generated vs absorbed', () => {
+    // One healer barriering two squad members (400 + 300) plus a non-squad ally (500).
+    // outgoingBarrier is the all-allies total; outgoingBarrierAllies is squad-only.
+    const mkBarrierLog = () => ({
+        filePath: 'f1',
+        details: {
+            durationMS: 10000,
+            players: [
+                {
+                    notInSquad: false, teamID: 50, dpsAll: [{ damage: 0 }], statsAll: [{}],
+                    defenses: [{ damageBarrier: 250 }],
+                    extBarrierStats: {
+                        outgoingBarrier: [[{ barrier: 1200 }]],
+                        outgoingBarrierAllies: [[{ barrier: 400 }], [{ barrier: 300 }]],
+                    },
+                },
+                {
+                    notInSquad: false, teamID: 50, dpsAll: [{ damage: 0 }], statsAll: [{}],
+                    defenses: [{ damageBarrier: 150 }],
+                    extBarrierStats: {},
+                },
+            ],
+            targets: [],
+        },
+    });
+
+    it('separates squad-scoped barrier generated from the all-allies total', () => {
+        const fb = ingestLogFightBreakdown(mkBarrierLog(), 0);
+        expect(fb.squadBarrierGenerated).toBe(700);      // 400 + 300, squad members only
+        expect(fb.outgoingBarrierAbsorbed).toBe(1200);   // includes the non-squad ally
+        expect(fb.incomingBarrierAbsorbed).toBe(400);    // 250 + 150 damageBarrier
+    });
+
+    it('yields unused barrier from the squad-scoped operands, not the all-allies total', () => {
+        const fb = ingestLogFightBreakdown(mkBarrierLog(), 0);
+        // 700 generated onto squad - 400 actually absorbed = 300 expired unused.
+        // Using outgoingBarrierAbsorbed instead would overstate this as 800.
+        expect(fb.squadBarrierGenerated - fb.incomingBarrierAbsorbed).toBe(300);
+    });
+
+    it('reports 0 squad barrier generated when the healing addon was absent', () => {
+        const fb = ingestLogFightBreakdown({
+            filePath: 'f3',
+            details: { durationMS: 1000, players: [{ notInSquad: false, dpsAll: [{ damage: 0 }], defenses: [{}] }], targets: [] },
+        }, 0);
+        expect(fb.squadBarrierGenerated).toBe(0);
+        expect(fb.incomingBarrierAbsorbed).toBe(0);
+    });
+});

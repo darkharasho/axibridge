@@ -4,6 +4,7 @@ import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './ut
 import { formatDurationMs } from './utils/dashboardUtils';
 import { getWvwTeamColor, teamMapFromLog } from '../../shared/wvwTeams';
 import { partitionSquadPlayers } from '../../shared/playerIdentity';
+import { computeSquadBarrier } from '../../shared/combatMetrics';
 
 const resolvePermalink = (details: any, log: any): string => {
     const direct = log?.permalink || details?.permalink;
@@ -139,7 +140,14 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
         // Raw count of boons applied to the squad this fight (precomputed per
         // player by pruneDetailsForStats from the boonsStates timeline).
         totalBoonsApplied: squadPlayers.reduce((sum: number, p: any) => sum + (Number(p.boonsAppliedCount) || 0), 0),
+        // Damage the squad's own barrier actually absorbed.
         incomingBarrierAbsorbed: squadPlayers.reduce((sum: number, p: any) => sum + (p.defenses?.[0]?.damageBarrier || 0), 0),
+        // Barrier the squad put onto squad members. This is the operand that pairs
+        // with incomingBarrierAbsorbed for the unused-barrier delta: both are
+        // squad-scoped, so the difference is barrier that expired before it was eaten.
+        squadBarrierGenerated: squadPlayers.reduce((sum: number, p: any) => sum + Number(computeSquadBarrier(p) || 0), 0),
+        // Barrier generated onto ALL allies (squad + non-squad). Kept separate because
+        // it overstates the squad-scoped waste calculation.
         outgoingBarrierAbsorbed: squadPlayers.reduce((sum: number, p: any) => {
             const outgoingBarrier = p.extBarrierStats?.outgoingBarrier;
             if (!Array.isArray(outgoingBarrier)) return sum;

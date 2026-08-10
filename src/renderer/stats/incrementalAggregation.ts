@@ -471,8 +471,11 @@ const enrichPrecomputedStats = (input: any, logs: any[]) => {
                 { metricId: 'damageDelta', metricLabel: 'Damage Delta', higherIsBetter: true, value: totalOutgoingDamage - totalIncomingDamage },
                 { metricId: 'outgoingDamage', metricLabel: 'Outgoing Damage', higherIsBetter: true, value: totalOutgoingDamage },
                 { metricId: 'incomingDamage', metricLabel: 'Incoming Damage', higherIsBetter: false, value: totalIncomingDamage },
-                { metricId: 'barrierIncomingAbsorb', metricLabel: 'Barrier Absorption (Incoming)', higherIsBetter: true, value: Number(fight?.incomingBarrierAbsorbed || 0) },
-                { metricId: 'enemyBarrierAbsorb', metricLabel: 'Enemy Barrier Absorption', higherIsBetter: false, value: Number(fight?.outgoingBarrierAbsorbed || 0) },
+                { metricId: 'barrierIncomingAbsorb', metricLabel: 'Barrier Absorbed', higherIsBetter: true, value: Number(fight?.incomingBarrierAbsorbed || 0) },
+                // Not enemy barrier — this is the squad's own barrier output across all allies.
+                { metricId: 'enemyBarrierAbsorb', metricLabel: 'Barrier Generated (All Allies)', higherIsBetter: true, value: Number(fight?.outgoingBarrierAbsorbed || 0) },
+                { metricId: 'barrierOut', metricLabel: 'Barrier Generated (Squad)', higherIsBetter: true, value: Number(fight?.squadBarrierGenerated ?? fight?.outgoingBarrierAbsorbed ?? 0) },
+                { metricId: 'barrierUnused', metricLabel: 'Barrier Unused', higherIsBetter: false, value: Math.max(0, Number(fight?.squadBarrierGenerated ?? fight?.outgoingBarrierAbsorbed ?? 0) - Number(fight?.incomingBarrierAbsorbed || 0)) },
                 { metricId: 'alliesRevived', metricLabel: 'Allies Revived (Players)', higherIsBetter: true, value: Number(fight?.alliesRevived || 0) }
             ];
             return {
