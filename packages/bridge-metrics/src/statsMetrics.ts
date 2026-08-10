@@ -36,6 +36,59 @@ export const OFFENSE_METRICS: Array<{
         { id: 'boonStrips', label: 'Boon Strips', field: 'boonStrips', source: 'support' }
     ];
 
+/**
+ * `OFFENSE_METRICS` ids that may be sourced from the whole-fight `statsAll[0]`
+ * when their per-target `statsTargets` origin carries nothing.
+ *
+ * **Why.** Elite Insights folds the whole enemy roster into one aggregate
+ * `"Enemy Players"` target, so for EI "summed over every target" and
+ * "whole fight" are the *same number* and sourcing either way is equivalent.
+ * axilog emits one `statsTargets` entry per real enemy agent but populates only
+ * 8 of EI's 38 per-target stat fields, so these columns summed to a hard `0`
+ * under axilog even though the identical whole-fight figure sits in
+ * `statsAll[0]`, which axilog emits in full. See §4.1 of
+ * `docs/axilog-cutover-report.md`.
+ *
+ * **The scope boundary, which is what makes this safe.** A whole-fight number
+ * standing in for a per-target one is only correct where the consumer wanted
+ * *all* targets. The single consumer of `OFFENSE_METRICS`'
+ * `source: 'statsTargets'` branch — `computePlayerAggregation.ts`'s
+ * `offenseTotals`/`offenseRateWeights` rollup — sums `p.statsTargets` with **no
+ * target predicate whatsoever**, and nothing upstream of it filters
+ * `statsTargets` either (there is no per-target/enemy filter anywhere in the
+ * app; the Offense Detailed table, the comparison view and `reportMetrics` all
+ * read the all-targets rollup). So "sum over every target" and "whole fight"
+ * are the same scope here, and substituting one for the other changes nothing
+ * but whether the cell is blank. **If a per-target or per-enemy filter is ever
+ * introduced for these columns, this fallback must not be applied inside it** —
+ * it would silently report whole-fight figures under a filtered heading.
+ *
+ * **Exactly these 8**, each verified present on a live axilog 0.3.0
+ * `statsAll[0]` (report §4.1). The other 7 blank columns (`directDmg`,
+ * `missed`, `evaded`, `blocked`, `invulned` and the two
+ * `appliedCrowdControl*DownContribution`s) are absent from `statsAll[0]` too
+ * and stay blank — deliberately, rather than being faked from a near-miss
+ * field.
+ *
+ * Rate metrics bring their denominators with them: `statsAll[0]` carries
+ * `critableDirectDamageCount` and `connectedDirectDamageCount`, so
+ * `criticalRate`/`flankingRate`/`glanceRate` fall back numerator *and*
+ * denominator together and never mix scopes within one ratio.
+ *
+ * Inert under Elite Insights: EI populates the per-target fields, so the
+ * per-target sum is non-zero and the fallback is never consulted.
+ */
+export const OFFENSE_METRICS_STATS_ALL_FALLBACK: ReadonlySet<string> = new Set([
+    'connectedDirectDamageCount',
+    'criticalRate',
+    'criticalDmg',
+    'flankingRate',
+    'glanceRate',
+    'againstDownedDamage',
+    'appliedCrowdControl',
+    'appliedCrowdControlDuration',
+]);
+
 export const DEFENSE_METRICS: Array<{
     id: string;
     label: string;
