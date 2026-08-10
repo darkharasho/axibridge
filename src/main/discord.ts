@@ -91,6 +91,16 @@ const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
 };
 
 // Discord embed limits
+/**
+ * dps.report uploads can fail or still be in flight when an embed goes out.
+ * Return the link only when it is actually usable, so callers can omit the
+ * embed `url` and drop the markdown link instead of emitting `[dps.report]()`.
+ */
+export const toReportLink = (permalink?: string): string | undefined => {
+    const trimmed = typeof permalink === 'string' ? permalink.trim() : '';
+    return /^https?:\/\/\S+$/i.test(trimmed) ? trimmed : undefined;
+};
+
 const DISCORD_EMBED_CHAR_LIMIT = 6000;
 const DISCORD_EMBED_FIELD_LIMIT = 25;
 const DISCORD_MAX_EMBEDS = 10;
@@ -294,7 +304,11 @@ export class DiscordNotifier {
 
                 let content = '';
                 if (logData.id !== 'stats-dashboard' && !logData.suppressContent) {
-                    content = `**${formatFightTitleForDiscord(jsonDetails, logData)}**\n[dps.report](${logData.permalink})`;
+                    const reportLink = toReportLink(logData.permalink);
+                    content = `**${formatFightTitleForDiscord(jsonDetails, logData)}**`;
+                    if (reportLink) {
+                        content += `\n[dps.report](${reportLink})`;
+                    }
                 }
 
                 const payload: any = {
@@ -947,7 +961,7 @@ export class DiscordNotifier {
 
                     const baseEmbed = {
                         title: formatFightTitleForDiscord(jsonDetails, logData),
-                        url: logData.permalink,
+                        url: toReportLink(logData.permalink),
                         description: desc,
                         color: getEmbedColor(jsonDetails.fightName),
                         timestamp: new Date().toISOString(),
@@ -1029,7 +1043,11 @@ export class DiscordNotifier {
                         avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
                         embeds: [{
                             title: "Log Uploaded",
-                            description: `**Log:** [${logData.filePath.split(/[\\\/]/).pop()}](${logData.permalink})`,
+                            description: (() => {
+                                const fileName = logData.filePath.split(/[\\\/]/).pop();
+                                const reportLink = toReportLink(logData.permalink);
+                                return `**Log:** ${reportLink ? `[${fileName}](${reportLink})` : fileName}`;
+                            })(),
                             color: 3447003,
                             timestamp: new Date().toISOString()
                         }]

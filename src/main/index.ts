@@ -10,6 +10,7 @@ import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'
 import { Uploader, UploadResult } from './uploader'
+import { waitForPermalink } from './permalinkWait'
 import { DiscordNotifier } from './discord';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
@@ -696,6 +697,19 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             const selectedWebhookId = store.get('selectedWebhookId', null);
             const webhookUrl = store.get('discordWebhookUrl', null);
             const shouldSendDiscord = Boolean(selectedWebhookId) && typeof webhookUrl === 'string' && webhookUrl.length > 0;
+
+            // The parallel dps.report upload is what supplies the permalink the
+            // Discord embed links its title to. It was started before the local
+            // parse, so it has usually resolved by now — but it must be awaited,
+            // otherwise every freshly-parsed log posts with an empty URL.
+            if (shouldSendDiscord && !syntheticResult.permalink) {
+                const resolvedPermalink = await waitForPermalink(permalinkPromise);
+                if (resolvedPermalink) {
+                    syntheticResult.permalink = resolvedPermalink;
+                } else {
+                    console.warn(`[Main] No dps.report permalink available for ${filePath}; posting Discord embed without a report link.`);
+                }
+            }
 
             if (shouldSendDiscord) {
                 win?.webContents.send('upload-status', {
