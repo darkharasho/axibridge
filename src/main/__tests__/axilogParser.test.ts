@@ -38,22 +38,27 @@ const FIXTURE = FIXTURE_CANDIDATES.find((p) => fs.existsSync(p)) ?? FIXTURE_CAND
 // ─── Backend selection ────────────────────────────────────────────────────────
 
 describe('normalizeParserBackend', () => {
-    it('defaults to elite-insights until axilog closes its ei-json adapter gap', () => {
-        // See DEFAULT_PARSER_BACKEND's doc comment and §4 of
-        // docs/axilog-cutover-report.md: 30 of 118 read fields render blank
-        // under axilog today, so the fast path stays opt-in.
-        expect(DEFAULT_PARSER_BACKEND).toBe('elite-insights');
-        expect(normalizeParserBackend(undefined)).toBe('elite-insights');
-        expect(normalizeParserBackend(null)).toBe('elite-insights');
-        expect(normalizeParserBackend('')).toBe('elite-insights');
-        expect(normalizeParserBackend('nonsense')).toBe('elite-insights');
-        expect(normalizeParserBackend('elite-insights')).toBe('elite-insights');
+    it('defaults to axilog now that 0.3.0 has closed the ei-json adapter gap', () => {
+        // See DEFAULT_PARSER_BACKEND's doc comment and §1 of
+        // docs/axilog-cutover-report.md: the re-audit against axilog 0.3.0 puts
+        // the read surface at 72/79 rows covered, and every residual is
+        // null-guarded at its read site.
+        expect(DEFAULT_PARSER_BACKEND).toBe('axilog');
+        expect(normalizeParserBackend(undefined)).toBe('axilog');
+        expect(normalizeParserBackend(null)).toBe('axilog');
+        expect(normalizeParserBackend('')).toBe('axilog');
+        expect(normalizeParserBackend('nonsense')).toBe('axilog');
+        expect(normalizeParserBackend('axilog')).toBe('axilog');
     });
 
-    it('opts in only on an exact axilog selection', () => {
-        expect(normalizeParserBackend('axilog')).toBe('axilog');
-        expect(normalizeParserBackend('Axilog')).toBe('elite-insights');
-        expect(normalizeParserBackend(' axilog ')).toBe('elite-insights');
+    it('opts out to Elite Insights only on an exact selection', () => {
+        // The hardening survives the flip, just pointing the other way: a
+        // corrupt or hand-edited store can never land on a backend the user did
+        // not pick — it lands on the shipped default.
+        expect(normalizeParserBackend('elite-insights')).toBe('elite-insights');
+        expect(normalizeParserBackend('Elite-Insights')).toBe('axilog');
+        expect(normalizeParserBackend(' elite-insights ')).toBe('axilog');
+        expect(normalizeParserBackend('eliteinsights')).toBe('axilog');
     });
 });
 
@@ -434,8 +439,93 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         expect(summary.hasTargets).toBe(true);
         expect(summary.squadCount).toBeGreaterThan(0);
         expect(summary.enemyCount).toBeGreaterThan(0);
-        // axilog emits no per-target downs/kills split; the statsAll fallback in
-        // buildDashboardSummaryFromDetails keeps this from collapsing to 0.
         expect(summary.isWin).not.toBeNull();
+    });
+
+    it('takes the per-target downs/kills split rather than the statsAll fallback', () => {
+        // axilog 0.3.0 emits `statsTargets[i][0].downed/killed`, so it now takes
+        // buildDashboardSummaryFromDetails' EI-shaped branch. That matters: the
+        // `statsAll` fallback was a deliberately high-biased substitute (it
+        // counts NPCs, guards and siege too), and on this fixture the split
+        // totals 25 against statsAll's 49. Pinning the branch keeps the flipped
+        // default off the approximation. See §4.2 of the cutover report.
+        const sawSplit = details.players.some((p: any) =>
+            (p.statsTargets ?? []).some((t: any) => t?.[0]?.downed !== undefined || t?.[0]?.killed !== undefined));
+        expect(sawSplit).toBe(true);
+
+        const splitTotal = details.players
+            .filter((p: any) => !p.notInSquad)
+            .reduce((sum: number, p: any) => sum + (p.statsTargets ?? []).reduce(
+                (inner: number, t: any) => inner + Number(t?.[0]?.downed || 0) + Number(t?.[0]?.killed || 0), 0), 0);
+        const statsAllTotal = details.players
+            .filter((p: any) => !p.notInSquad)
+            .reduce((sum: number, p: any) => sum + Number(p.statsAll?.[0]?.downed || 0) + Number(p.statsAll?.[0]?.killed || 0), 0);
+
+        expect(splitTotal).toBeGreaterThan(0);
+        expect(splitTotal).toBeLessThan(statsAllTotal);
+    });
+
+    it('emits the read-surface blocks that MEIGAP/MEIGAP2 closed', () => {
+        // One assertion per gap the original audit listed as blocking the
+        // default flip (§4.2-§4.4 of the cutover report, now §4's closed list).
+        // These are the fields whose absence rendered whole features blank, so
+        // a silent upstream regression would be a silent UI regression.
+        const players: any[] = details.players;
+        const targets: any[] = details.targets;
+        const some = (f: (p: any) => any) => players.some((p) => { try { return Boolean(f(p)); } catch { return false; } });
+
+        // Boon-generation attribution (boonGeneration.ts, Stability generation).
+        expect(some((p) => p.selfBuffs?.[0]?.buffData?.[0]?.generation !== undefined)).toBe(true);
+        expect(some((p) => p.groupBuffs?.[0]?.buffData?.[0]?.generation !== undefined)).toBe(true);
+        expect(some((p) => p.squadBuffs?.[0]?.buffData?.[0]?.generation !== undefined)).toBe(true);
+        // Per-source boon timelines.
+        expect(some((p) => p.buffUptimes?.[0]?.statesPerSource)).toBe(true);
+        expect(some((p) => p.buffUptimes?.[0]?.states?.length)).toBe(true);
+        // Incoming CC and incoming strips.
+        expect(some((p) => p.defenses?.[0]?.receivedCrowdControl !== undefined)).toBe(true);
+        expect(some((p) => p.defenses?.[0]?.boonStrips !== undefined)).toBe(true);
+        // Per-ally / per-skill healing and barrier.
+        expect(some((p) => p.extHealingStats?.outgoingHealingAllies)).toBe(true);
+        expect(some((p) => p.extHealingStats?.totalHealingDist)).toBe(true);
+        expect(some((p) => p.extBarrierStats?.outgoingBarrierAllies)).toBe(true);
+        // Minion damage-taken rollups (the mitigation "avoided" minion term).
+        expect(some((p) => p.minions?.length)).toBe(true);
+        // Squad-guild auto-detection, boon-application counts, health timelines.
+        expect(some((p) => typeof p.guildID === 'string')).toBe(true);
+        expect(some((p) => p.boonsStates?.length)).toBe(true);
+        expect(some((p) => p.healthPercents?.length)).toBe(true);
+        // Power/condi split on the incoming series.
+        expect(some((p) => p.powerDamageTaken1S?.[0]?.length)).toBe(true);
+        // Outcome columns on the outgoing skill distribution.
+        expect(some((p) => p.totalDamageDist?.[0]?.some((e: any) => e.connectedHits !== undefined))).toBe(true);
+        // Breakbar damage.
+        expect(some((p) => p.dpsAll?.[0]?.breakbarDamage !== undefined)).toBe(true);
+
+        // Enemy-side: the damage-mitigation and incoming-conditions inputs.
+        expect(targets.some((t) => t.totalDamageDist?.[0]?.length)).toBe(true);
+        expect(targets.some((t) => t.damage1S?.[0]?.length)).toBe(true);
+        expect(targets.some((t) => t.powerDamage1S?.[0]?.length)).toBe(true);
+        expect(targets.some((t) => t.buffs?.[0]?.statesPerSource)).toBe(true);
+        expect(targets.some((t) => t.dpsAll?.[0]?.damage !== undefined)).toBe(true);
+    });
+
+    it('leaves the documented residual gaps absent rather than faked', () => {
+        // The inverse pin: §4 of the cutover report promises these are MISSING,
+        // and the doc comment on DEFAULT_PARSER_BACKEND justifies the flip on
+        // the basis that each degrades to 0/empty at a null-guarded read site.
+        // If axilog starts emitting one, the report and comment go stale — fail
+        // loudly rather than let the docs drift.
+        const players: any[] = details.players;
+        const every = (f: (p: any) => any) => players.every((p) => { try { return !f(p); } catch { return true; } });
+
+        // Boon overstack (generation lands vs wasted) — the half-closed row.
+        expect(every((p) => p.selfBuffs?.some((b: any) => b.buffData?.[0]?.wasted !== undefined))).toBe(true);
+        // Deferred upstream.
+        expect(every((p) => p.statsAll?.[0]?.saved !== undefined)).toBe(true);
+        // Enemy profession — readers fall back to name/id.
+        expect(details.targets.every((t: any) => t.profession === undefined)).toBe(true);
+        // Skill/buff icon + classification metadata needs EI's bundled GW2 DB.
+        expect(Object.values(details.skillMap).every((s: any) => s.icon === undefined)).toBe(true);
+        expect(Object.values(details.buffMap).every((b: any) => b.classification === undefined)).toBe(true);
     });
 });

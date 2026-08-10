@@ -13,9 +13,10 @@ export function registerEiHandlers(opts: EiHandlerOptions) {
     const { store, getWindow, getEiManager, getAxilogManager } = opts;
 
     // ─── Parser backend selection ───────────────────────────────────────────
-    // 'elite-insights' (default) runs the .NET CLI; 'axilog' is the opt-in
-    // in-process path via @axiapps/axilog. See DEFAULT_PARSER_BACKEND's doc
-    // comment and docs/axilog-cutover-report.md for why axilog is not default.
+    // 'axilog' (default since 0.3.0) parses in-process via @axiapps/axilog;
+    // 'elite-insights' is the opt-out that runs the .NET CLI. See
+    // DEFAULT_PARSER_BACKEND's doc comment and docs/axilog-cutover-report.md
+    // for the read-surface re-audit behind the flip and the residual gaps.
     ipcMain.handle('parser:get-backend', () => {
         const axilog = getAxilogManager?.() ?? null;
         return {
