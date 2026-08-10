@@ -1,12 +1,13 @@
 # axilog parser cutover
 
-axibridge parses logs in-process with
+axibridge can parse logs in-process with
 **[axilog](https://github.com/darkharasho/axilog)** (`@axiapps/axilog` 0.3.0, native Rust bindings)
 instead of spawning the Elite Insights .NET CLI. Both backends are fully wired behind one
-`parserBackend` setting, now surfaced in the UI at **Settings → Parser Settings → Parse Engine**.
+`parserBackend` setting, surfaced in the UI at **Settings → Parser Settings → Parse Engine**.
 
-**axilog is the default as of this change.** The first cutover left it opt-in because 30 of the
-EI-JSON paths axibridge reads were not emitted, and four whole features rendered blank:
+**Status: owner-gated, default `elite-insights`.** axilog is *capability complete* — what it is
+waiting on is a repo-owner go, not more engineering. The first cutover left it opt-in because 30 of
+the EI-JSON paths axibridge reads were not emitted, and four whole features rendered blank:
 boon-generation attribution, incoming conditions, damage mitigation and the incoming-strike-damage
 chart. axilog's MEIGAP and MEIGAP2 work closed all four. The re-audit in §1 — re-run against 0.3.0,
 on the same anonymized fixture, through the same flag set — leaves **8 residual gaps out of 83
@@ -14,7 +15,12 @@ audited rows**, none of which produces a wrong number and all of which are null-
 site. Of the other 75 rows, 64 carry data from axilog and 11 are absent by design with no consumer
 consequence.
 
-| | axilog (default) | Elite Insights CLI (fallback) |
+Flipping the default is a one-line change to `DEFAULT_PARSER_BACKEND` in
+`src/main/axilogParser.ts` (plus its pinning assertion in `axilogParser.test.ts`). Nothing else
+hardcodes an engine: the settings card, the EI auto-install stand-down and the walkthrough copy all
+read the default or are written default-neutral.
+
+| | axilog (opt-in) | Elite Insights CLI (default) |
 |---|---|---|
 | Delivery | npm dependency with prebuilt per-platform binaries | ~90 MB download at first run (`GW2EICLI.zip` + a .NET 8 runtime on Linux) into `userData/elite-insights` |
 | Parse of the anonymized WvW fixture | **0.45 s**, in-process | seconds–minutes (10 min timeout) |
@@ -110,7 +116,7 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 | `support[0].boonStripsTime` | E ✅ | strip duration now modelled |
 | `statsTargets[i][0].totalDmg` | E | |
 | `statsTargets[i][0].killed`, `.downed`, `.downContribution`, `.againstDownedCount`, `.interrupts`, `.connectedDamageCount`, `.connectedDmg` | E ✅ | the per-target split. Fixes the original audit's `isWin` problem outright — see §4.2 |
-| `statsTargets[i][0]` — EI's other 30 fields (`directDmg`, `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`, `flankingRate`, `glanceRate`, `missed`, `evaded`, `blocked`, `invulned`, `againstDownedDamage`, `appliedCrowdControl*`, …) | **—** | **the largest residual.** 8 of EI's 38 per-target fields are emitted. See §4.1 |
+| `statsTargets[i][0]` — EI's other 30 fields (`directDmg`, `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`, `flankingRate`, `glanceRate`, `missed`, `evaded`, `blocked`, `invulned`, `againstDownedDamage`, `appliedCrowdControl*`, …) | **—** | **the largest residual.** 8 of EI's 38 per-target fields are emitted; 8 of the 15 affected Offense Detailed columns now take a whole-fight `statsAll[0]` fallback, leaving 7 blank. See §4.1 |
 | `buffUptimes[].id`, `.buffData[0].uptime`, `.buffData[0].presence` | E | 0/444 cells over the 2 pp tolerance vs EI |
 | `buffUptimes[].states`, `.statesPerSource` | E ✅ | 504/504 entries carry both |
 | `selfBuffs`, `groupBuffs`, `squadBuffs` — `[].buffData[0].generation` | E ✅ | boon-generation attribution |
@@ -261,16 +267,20 @@ Ignored, with no axilog counterpart: `detailledWvW`, `parsePhases`, `skipFailedT
 
 ### Backend selection
 
-The store key `parserBackend: 'axilog' | 'elite-insights'` now defaults to **`'axilog'`**.
-`normalizeParserBackend` keeps its hardening, pointed the other way: only an exact
-`'elite-insights'` opts out, and everything else — unset, empty, mis-cased, whitespace-padded,
-unknown — coerces to the default. That inversion was re-verified against the residual gaps
-specifically: each of the 8 in §1 was traced to its read site and confirmed null-guarded
-(`statsAll[0].saved` → `Number(... || 0)`; the `statsTargets` subset → `Number(t[0][field] ?? 0)`;
-`wasted` → the generation readers skip absent buff data; `display_name`, `targets[].profession`,
-`buffMap[].classification` → all have explicit fallbacks; `skillMap` icons/flags → falsy defaults).
-So a corrupt or hand-edited store lands on a backend that renders a few blank columns, never one
-that throws or invents a value.
+The store key `parserBackend: 'axilog' | 'elite-insights'` defaults to **`'elite-insights'`** —
+the axilog flip is owner-gated, not blocked. `normalizeParserBackend` honours only the two exact
+ids; everything else — unset, empty, mis-cased, whitespace-padded, unknown — coerces to
+`DEFAULT_PARSER_BACKEND`, so a corrupt or hand-edited store can never land a user on an engine they
+did not pick. The hardening is written symmetrically on purpose: it does the right thing whichever
+way the default points, so flipping it stays a one-line change.
+
+The flip was audited against the residual gaps specifically, and that audit stands: each of the 8 in
+§1 was traced to its read site and confirmed null-guarded (`statsAll[0].saved` →
+`Number(... || 0)`; the `statsTargets` subset → `Number(t[0][field] ?? 0)`, and 8 of its 15 blank
+columns now take the `statsAll` fallback in §4.1 instead; `wasted` → the generation readers skip
+absent buff data; `display_name`, `targets[].profession`, `buffMap[].classification` → all have
+explicit fallbacks; `skillMap` icons/flags → falsy defaults). Under axilog the worst case is a few
+blank columns, never a throw or an invented value.
 
 `src/main/index.ts` resolves the backend through one `getActiveParser()` helper, and
 `getParserBackend()` re-reads the store on **every** call — so a change takes effect on the next
@@ -278,26 +288,30 @@ parse with no restart. `AxilogManager` mirrors `EiManager`'s shape
 (`isInstalled`/`getStatus`/`get|setSettings`/`setParseProgressCallback`/`parseLog`/
 `killActiveProcess`), with an inert install/update surface.
 
-Two safety behaviours, unchanged by the flip:
+Two safety behaviours:
 
 - If axilog's native binding fails to load (a platform npm has no prebuilt binary for),
   `getActiveParser()` silently falls back to `EiManager`. Both the selection and the binding's real
   availability are reported over `parser:get-backend`, and the settings UI disables the axilog
   option and says so rather than letting the choice look like it took.
 - The EI auto-install/auto-update machinery (`shouldAutoManageEi()`) is skipped entirely while the
-  axilog backend is live. **This now applies by default**, which is the point: a fresh install no
-  longer downloads a .NET runtime or the EI CLI unless the user opts into Elite Insights.
+  axilog backend is *selected and available*. Under the current EI default that means a fresh
+  install downloads and auto-manages the EI CLI exactly as it always has; a user who opts into
+  axilog stops paying for a ~90 MB download they no longer use. Flipping the default would extend
+  the second case to fresh installs, which is much of the point of flipping it.
 
 ### Renderer UI
 
 `src/renderer/SettingsView.tsx` renders a **Parse Engine** card at the top of Parser Settings — a
-two-option radio group (`role="radio"` + `aria-checked`) following the existing CC/Strip Methodology
+two-option radio group (`role="radio"` + `aria-checked`), Elite Insights first, following the
+existing CC/Strip Methodology
 pattern, listing each engine's real consequences rather than a feature list. It reads
 `parser:get-backend` on mount, writes through `parser:set-backend`, and adopts the
 `parser:backend-changed` broadcast so the card shows what was actually persisted (post-normalization)
 rather than what was clicked. Before the IPC resolves — and in the web build, which exposes no
-parser methods at all — it falls back to rendering the shipped default as selected, so the group is
-never empty. The three channels are newly exposed in `src/preload/index.ts` and typed in
+parser methods at all — it falls back to rendering the shipped default as selected
+(`SHIPPED_DEFAULT_BACKEND`, a hand-kept renderer-side mirror of `DEFAULT_PARSER_BACKEND`, since the
+renderer cannot import from the main process), so the group is never empty. The three channels are newly exposed in `src/preload/index.ts` and typed in
 `src/renderer/global.d.ts` (`IParserBackendInfo`, `ParserBackendId`); the main-process handlers
 already existed.
 
@@ -315,41 +329,66 @@ false, the note adds a line pointing at the Install button directly below it.
 Every gap in §1 is null-guarded at the read site — the re-audit found no path that throws or
 produces `NaN`. Worst first.
 
-### 4.1 `statsTargets`' field subset — the largest remaining gap
+### 4.1 `statsTargets`' field subset — 15 blank columns, now 7
 
 axilog emits 8 of the 38 fields EI puts on each `statsTargets[i][0]` entry:
 `totalDmg`, `connectedDmg`, `connectedDamageCount`, `downed`, `killed`, `downContribution`,
 `againstDownedCount`, `interrupts`.
 
-`computePlayerAggregation.ts:974-993` routes `OFFENSE_METRICS` by declared `source`, and 15 of them
-declare `source: 'statsTargets'` without an axilog counterpart. Under axilog those columns of the
-**Offense Detailed** table read `0`:
+`computePlayerAggregation.ts` routes `OFFENSE_METRICS` by declared `source`, and 15 of them declare
+`source: 'statsTargets'` without an axilog counterpart. Those 15 columns of the **Offense Detailed**
+table used to read `0` under axilog. **8 of them now fall back to the whole-fight `statsAll[0]`
+figure; 7 remain blank.**
 
-`directDmg`, `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`, `flankingRate`,
-`glanceRate`, `missed`, `evaded`, `blocked`, `invulned`, `againstDownedDamage`,
-`appliedCrowdControl`, `appliedCrowdControlDuration`, `appliedCrowdControlDownContribution`,
-`appliedCrowdControlDurationDownContribution`.
+- **Filled from `statsAll[0]` (8):** `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`,
+  `flankingRate`, `glanceRate`, `againstDownedDamage`, `appliedCrowdControl`,
+  `appliedCrowdControlDuration`. Each was verified present field-by-field on a live 0.3.0 payload.
+  The three rates bring their denominators with them — `critableDirectDamageCount` for
+  `criticalRate`, `connectedDirectDamageCount` for `flankingRate`/`glanceRate` — so numerator and
+  denominator always come from the same scope and a ratio is never mixed.
+- **Still blank — genuinely needs axilog (7):** `directDmg` (axilog spells the nearest thing
+  `connectedDirectDmg`, which is not the same quantity), `missed`, `evaded`, `blocked`, `invulned`,
+  `appliedCrowdControlDownContribution`, `appliedCrowdControlDurationDownContribution`. None exists
+  on `statsAll[0]` either, and none is faked from a near-miss field.
 
-The frustrating part is that **8 of these 15 already exist**, whole-fight, on `statsAll[0]` — which
-axilog emits in full, and which the same table reads for other metrics. They are blank only because
-the metric definitions point at `statsTargets`. Verified field-by-field against a live 0.3.0
-payload:
+`downed`/`killed`/`downContribution`/`interrupts` were never affected — those are among the 8 axilog
+emits per target.
 
-- **On `statsAll[0]`, recoverable without touching the parser (8):**
-  `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`, `flankingRate`, `glanceRate`,
-  `againstDownedDamage`, `appliedCrowdControl`, `appliedCrowdControlDuration`.
-- **Not on `statsAll[0]` either — genuinely needs axilog (7):** `directDmg` (axilog spells the
-  nearest thing `connectedDirectDmg`, which is not the same quantity), `missed`, `evaded`,
-  `blocked`, `invulned`, `appliedCrowdControlDownContribution`,
-  `appliedCrowdControlDurationDownContribution`.
+#### Why the substitution is sound, and where it stops being sound
 
-This is structural rather than a missing computation: EI folds the enemy roster into one aggregate
-`"Enemy Players"` target, so for EI "per-target" and "whole-fight" coincide and sourcing from
-`statsTargets` costs nothing; axilog emits one entry per real enemy, so the two genuinely differ.
-Closing it means either axilog filling the per-target stat set, or `OFFENSE_METRICS` gaining a
-`statsAll` fallback for the 8 above. Follow-up 2.
+A whole-fight number standing in where a per-target one was asked for is only correct if the
+consumer wanted *every* target. It does here, and that is a property of the code, not an assumption:
 
-`downed`/`killed`/`downContribution`/`interrupts` are unaffected — those are among the 8 emitted.
+- the sole consumer of the `source: 'statsTargets'` branch is `computePlayerAggregation.ts`'s
+  `offenseTotals`/`offenseRateWeights` rollup, which sums `p.statsTargets` with **no target
+  predicate at all**;
+- nothing upstream filters `statsTargets` either — there is no per-target or per-enemy filter
+  anywhere in the app. The Offense Detailed table, the comparison view and `reportMetrics` all read
+  the same all-targets rollup.
+
+So "summed over every target" and "whole fight" denote the same scope, and the substitution changes
+only whether the cell is blank. **The boundary: if a per-target or per-enemy filter is ever
+introduced over these columns, the fallback must not be applied inside it** — it would report
+whole-fight figures under a filtered heading. That caveat is recorded on
+`OFFENSE_METRICS_STATS_ALL_FALLBACK` in `packages/bridge-metrics/src/statsMetrics.ts`, next to the
+list itself.
+
+The trigger is **field presence, never value**. A summed `0` can mean "no criticals landed", which
+must stay `0`; only "no `statsTargets` entry carries this key at all" selects the fallback. That
+also makes the whole thing inert under Elite Insights, which emits the full 38-field set with
+zeroes included — so the fallback is unreachable on an EI payload rather than merely harmless. This
+matters: EI's `statsAll` counts NPCs, guards and siege while its aggregate `"Enemy Players"` target
+does not, so a value-triggered fallback would have quietly inflated real EI zeroes.
+
+The underlying cause is structural rather than a missing computation: EI folds the enemy roster into
+one aggregate `"Enemy Players"` target, so for EI "per-target" and "whole-fight" coincide and
+sourcing from `statsTargets` costs nothing; axilog emits one entry per real enemy, so the two
+genuinely differ. Fully closing it still needs axilog to fill the per-target stat set — follow-up 2,
+now scoped to the remaining 7.
+
+Tests: `src/renderer/stats/__tests__/offenseStatsAllFallback.test.ts` (9), covering both backends —
+the axilog shape filling all 8 (once, not once per target) with matched rate denominators and the 7
+staying blank, and the EI shape leaving genuine per-target zeroes alone.
 
 ### 4.2 Per-target downs/kills — closed, and the fallback is no longer reached
 
@@ -486,9 +525,11 @@ emits them natively wins.
 
 `src/main/__tests__/axilogParser.test.ts` — **32 tests**:
 
-- **Backend selection** (2) — the default is now `axilog`, and unset/empty/unknown values coerce to
-  it; only an exact `'elite-insights'` opts out (`'Elite-Insights'`, `' elite-insights '` and
-  `'eliteinsights'` do not).
+- **Backend selection** (3) — the shipped default is `'elite-insights'` (the assertion is the gate:
+  flipping `DEFAULT_PARSER_BACKEND` has to be a deliberate, visible edit in the test too); an exact
+  `'axilog'` is honoured; and everything else coerces to the default. The coercion case walks
+  mis-cased and whitespace-padded spellings of *both* ids plus non-strings, so it keeps its
+  discriminating power whichever way the default points.
 - **Settings mapping** (4), **derived scalars** (10), **EI-shape shims** (5), **manager** (3) —
   unchanged from the first cutover.
 - **Real-parse integration** (8, was 5) — parses the anonymized WvW fixture through
@@ -504,22 +545,39 @@ emits them natively wins.
     `wasted`, `saved`, `targets[].profession`, skill icons or buff classification, this fails and the
     report gets updated rather than quietly going stale.
 
-`src/renderer/__tests__/SettingsView.test.tsx` — **7 new tests** for the Parse Engine card: it
-reflects the persisted backend, defaults to axilog, persists a switch over `setParserBackend` and
+`src/renderer/__tests__/SettingsView.test.tsx` — **7 tests** for the Parse Engine card: it reflects
+the persisted backend (which is deliberately *not* the shipped default in the base mock, so the card
+is pinned to showing the store rather than the build), persists a switch over `setParserBackend` and
 updates the selection, does not re-send IPC when the already-selected engine is clicked, disables
 axilog with an explanation when the native binding is unavailable (and refuses to send), renders the
-default when the host exposes no parser API at all (the web build), and adopts a
-`parser:backend-changed` broadcast.
+shipped default — Elite Insights — when the host exposes no parser API at all (the web build), and
+adopts a `parser:backend-changed` broadcast.
+
+`src/renderer/stats/__tests__/offenseStatsAllFallback.test.ts` — **9 tests** for §4.1's `statsAll`
+fallback, across both backends. See §4.1.
+
+`src/renderer/__tests__/App.firstTimeExperience.test.tsx` — the walkthrough's step 4 copy is pinned
+default-neutral: it sells local parsing and names both engines rather than whichever is currently
+default, so an owner flip needs no copy change.
 
 `src/main/__tests__/detailsProcessing.test.ts` — the 6 existing tests pinning both sides of the
 enemy-downs fallback are unchanged and still green. They now guard a path axilog no longer takes,
 which is exactly what they were written for.
 
-**The fixture itself is not committed.** `.gitignore:34` excludes every `*.zevtc` as a blanket PII
-guard. The integration block resolves the log from `$AXILOG_FIXTURE`, then `test-fixtures/axilog/`,
-then a sibling axilog checkout, and **skips itself cleanly when none exists**.
-`test-fixtures/axilog/README.md` documents how to supply it. CI skipping that block remains
-intentional pending a repo-owner decision — follow-up 3.
+**The fixture is committed, and the real-parse block now runs in CI.** `test-fixtures/axilog/
+wvw-small.anon.zevtc` sits behind a narrow, owner-authorized negation of the blanket `*.zevtc` PII
+guard (`!test-fixtures/axilog/*.anon.zevtc` — scoped to that directory and requiring `.anon.` in the
+name, so a raw capture dropped there is still ignored). It was verified PII-free before commit: 42
+players, every `character_name` an `Anon<N>` placeholder, every `account` and `recordedBy`
+`:Anon<N>.<digits>`, all 32 `enemyPlayer` targets likewise, every `guildID` zeroed, the remaining
+targets GW2 NPC/pet names, and a raw `strings` scan of the inner `.evtc` turning up no
+account-shaped token other than `Anon<N>.<digits>`.
+
+Resolution is unchanged — `$AXILOG_FIXTURE`, then `test-fixtures/axilog/`, then a sibling axilog
+checkout — but candidate 2 now always hits. A separate always-on test asserts the committed path
+exists, so a deleted or re-ignored fixture fails loudly instead of turning the integration block
+into a green no-op. The `describe.runIf` guard stays for the *native binding*, which really can be
+absent on a platform npm ships no prebuilt binary for.
 
 Gates:
 
@@ -536,15 +594,18 @@ Gates:
    Damage and Top Skills surfaces all display or rank by it unqualified. A tooltip naming the
    methodology costs nothing and stops the app making a claim it does not honour. This is the highest
    -value item on the list precisely because nothing looks broken.
-2. **Close the `statsTargets` field-subset gap** (§4.1) — 15 Offense Detailed columns read 0. Two
-   viable fixes: axilog fills the per-target stat set, or `OFFENSE_METRICS` gains a `statsAll`
-   fallback for the metrics whose whole-fight equivalent already exists there. The second is entirely
-   within axibridge and would fix **8 of the 15** without touching the parser (the list is in §4.1);
-   the remaining 7 need axilog either way.
-3. **Decide the fixture question.** Whether to add a narrow `.gitignore` negation for
-   `test-fixtures/axilog/*.anon.zevtc` so the real-parse tests run in CI. Now that those tests pin
-   the closed surface *and* the residuals, CI running them is worth more than it was. Still a
-   repo-owner call: it is a deliberate exception to a blanket PII guard.
+2. **~~Close the `statsTargets` field-subset gap.~~ PARTIALLY RESOLVED — 8 of 15 done (§4.1).**
+   `OFFENSE_METRICS` now falls back to the whole-fight `statsAll[0]` figure, presence-gated and
+   scoped to the all-targets rollup, for the 8 columns whose equivalent exists there. **7 remain**:
+   `directDmg`, `missed`, `evaded`, `blocked`, `invulned`,
+   `appliedCrowdControlDownContribution`, `appliedCrowdControlDurationDownContribution`. These need
+   axilog to fill the per-target stat set — nothing in axibridge can supply them. Note the boundary
+   recorded in §4.1: the fallback is only valid because no per-target filter exists over these
+   columns; introducing one means revisiting it.
+3. **~~Decide the fixture question.~~ RESOLVED — owner-authorized (2026-08-10): committed.**
+   `test-fixtures/axilog/wvw-small.anon.zevtc` is in-tree behind
+   `!test-fixtures/axilog/*.anon.zevtc`, verified PII-free first, and the real-parse block now runs
+   in CI instead of skipping. See §6.
 4. **Ask axilog to emit `distToCom`/`stackDist` directly** — or a commander-segment timeline. §5's
    3.7 % / 4.3 % mean error is dominated by the single-track commander approximation. Emitting the
    scalars from the engine deletes `deriveDistanceScalars` outright.
