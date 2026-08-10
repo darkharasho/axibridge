@@ -2805,6 +2805,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <div className="text-xs text-gray-500 mt-3">
                                 Applies to the next log parsed — no restart needed. Logs already in your history keep
                                 the statistics they were parsed with; re-parse them to switch engines retroactively.
+                                {parserBackend?.backend === 'elite-insights' && !eiStatus.installed
+                                    ? ' Elite Insights is not installed yet — use Install below before your next parse.'
+                                    : ''}
                                 {parserBackend?.axilogVersion ? ` axilog ${parserBackend.axilogVersion}.` : ''}
                             </div>
                         </div>

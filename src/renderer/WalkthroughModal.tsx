@@ -26,7 +26,7 @@ const STEPS = [
     {
         icon: Zap,
         title: 'Maximize accuracy',
-        description: 'Install Elite Insights locally for precise WvW metrics. Local parsing has no file size limits and works offline.'
+        description: 'Logs are parsed locally by axilog out of the box — no download, no file size limits, works offline. Prefer Elite Insights? Switch engines any time in Settings.'
     }
 ] as const;
 

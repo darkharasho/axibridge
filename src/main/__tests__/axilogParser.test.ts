@@ -40,9 +40,9 @@ const FIXTURE = FIXTURE_CANDIDATES.find((p) => fs.existsSync(p)) ?? FIXTURE_CAND
 describe('normalizeParserBackend', () => {
     it('defaults to axilog now that 0.3.0 has closed the ei-json adapter gap', () => {
         // See DEFAULT_PARSER_BACKEND's doc comment and §1 of
-        // docs/axilog-cutover-report.md: the re-audit against axilog 0.3.0 puts
-        // the read surface at 72/79 rows covered, and every residual is
-        // null-guarded at its read site.
+        // docs/axilog-cutover-report.md: the re-audit against axilog 0.3.0
+        // leaves 8 residual gaps out of 83 audited rows, and every one of them
+        // is null-guarded at its read site.
         expect(DEFAULT_PARSER_BACKEND).toBe('axilog');
         expect(normalizeParserBackend(undefined)).toBe('axilog');
         expect(normalizeParserBackend(null)).toBe('axilog');
@@ -466,8 +466,9 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
     });
 
     it('emits the read-surface blocks that MEIGAP/MEIGAP2 closed', () => {
-        // One assertion per gap the original audit listed as blocking the
-        // default flip (§4.2-§4.4 of the cutover report, now §4's closed list).
+        // One assertion per gap the ORIGINAL audit listed as blocking the
+        // default flip (its §4.2-§4.4; see §1.5 of the current report for the
+        // closed list, which re-numbered these sections).
         // These are the fields whose absence rendered whole features blank, so
         // a silent upstream regression would be a silent UI regression.
         const players: any[] = details.players;

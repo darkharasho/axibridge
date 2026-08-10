@@ -9,9 +9,10 @@ instead of spawning the Elite Insights .NET CLI. Both backends are fully wired b
 EI-JSON paths axibridge reads were not emitted, and four whole features rendered blank:
 boon-generation attribution, incoming conditions, damage mitigation and the incoming-strike-damage
 chart. axilog's MEIGAP and MEIGAP2 work closed all four. The re-audit in §1 — re-run against 0.3.0,
-on the same anonymized fixture, through the same flag set — puts the read surface at **75 of 83
-audited rows carrying data, 8 residual gaps**, none of which produces a wrong number and all of
-which are null-guarded at the read site.
+on the same anonymized fixture, through the same flag set — leaves **8 residual gaps out of 83
+audited rows**, none of which produces a wrong number and all of which are null-guarded at the read
+site. Of the other 75 rows, 64 carry data from axilog and 11 are absent by design with no consumer
+consequence.
 
 | | axilog (default) | Elite Insights CLI (fallback) |
 |---|---|---|
@@ -19,7 +20,7 @@ which are null-guarded at the read site.
 | Parse of the anonymized WvW fixture | **0.45 s**, in-process | seconds–minutes (10 min timeout) |
 | External processes | none | `dotnet` child process per log |
 | Update machinery | none (versioned with the app) | GitHub release polling, auto-install/update |
-| Read-surface coverage | 75/83 rows | 83/83 |
+| Read-surface coverage | 8 residual gaps of 83 rows | no gaps |
 
 Two things are present but **not EI-identical**, and they are the part of this document most worth
 reading before trusting a number: per-skill `downContribution` and the mitigation aggregate's
@@ -29,8 +30,8 @@ reading before trusting a number: per-skill `downContribution` and the mitigatio
 
 ## 1. Read-surface audit (re-run against axilog 0.3.0)
 
-**Verdict: of the 83 audited read-surface rows, 64 carry data from axilog, 11 are absent by design
-with no consumer consequence, and 8 are residual gaps.** Every gap degrades to `0` / `null` / an
+**Verdict: 8 of the 83 audited read-surface rows are residual gaps. Of the other 75, 64 carry data
+from axilog and 11 are absent by design with no consumer consequence.** Every gap degrades to `0` / `null` / an
 empty list rather than throwing — the read surface is uniformly null-guarded (`?.[0]?.field || 0`,
 `Number(x ?? 0)`, `Array.isArray(...) ? ... : []`), and the metrics spec states this contract
 explicitly (`src/shared/metrics-spec.md:1393-1403`, "missing fields always fall back to 0").
@@ -92,7 +93,7 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 | `name` | **D** | aliased from `character_name` |
 | `activeTimes[0]` | E | 0.0000 % max error vs EI on the golden fixture |
 | `dpsAll[0].damage`, `.dps` | E | |
-| `dpsAll[0].breakbarDamage` | E ✅ | in EI units (MEIGAP2 converted them) |
+| `dpsAll[0].breakbarDamage` | E ✅ | in EI units (MEIGAP2 converted them). **Field-presence only**: all 42 players read 0 on the fixture, as does `defenses[0].breakbarDamageTaken`, so the *conversion* is unverified here. Expected — breakbar is irrelevant in WvW |
 | `dpsAll[0].downContribution` | · | inert: `combatMetrics.ts:99-130` reads `statsAll[0].downContribution` first, which *is* emitted |
 | `statsAll[0].downContribution` | E | **arcdps methodology, not EI's — see §2.1** |
 | `statsAll[0].appliedCrowdControl`, `.appliedCrowdControlDuration` | E | exact vs EI |
@@ -108,8 +109,8 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 | `support[0].condiCleanse`, `.condiCleanseSelf`, `.boonStrips`, `.resurrects`, `.stunBreak`, `.removedStunDuration` | E | exact vs EI |
 | `support[0].boonStripsTime` | E ✅ | strip duration now modelled |
 | `statsTargets[i][0].totalDmg` | E | |
-| `statsTargets[i][0].killed`, `.downed`, `.downContribution`, `.againstDownedCount`, `.interrupts`, `.connectedDamageCount`, `.connectedDmg` | E ✅ | the per-target split. Fixes the §4.1 `isWin` problem outright — see §4.2 |
-| `statsTargets[i][0]` — EI's other 30 fields (`directDmg`, `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`, `flankingRate`, `glanceRate`, `missed`, `evaded`, `blocked`, `invulned`, `againstDownedDamage`, `appliedCrowdControl*`, …) | **—** | **the largest residual.** 8 of EI's 38 per-target fields are emitted. See §4.2 |
+| `statsTargets[i][0].killed`, `.downed`, `.downContribution`, `.againstDownedCount`, `.interrupts`, `.connectedDamageCount`, `.connectedDmg` | E ✅ | the per-target split. Fixes the original audit's `isWin` problem outright — see §4.2 |
+| `statsTargets[i][0]` — EI's other 30 fields (`directDmg`, `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`, `flankingRate`, `glanceRate`, `missed`, `evaded`, `blocked`, `invulned`, `againstDownedDamage`, `appliedCrowdControl*`, …) | **—** | **the largest residual.** 8 of EI's 38 per-target fields are emitted. See §4.1 |
 | `buffUptimes[].id`, `.buffData[0].uptime`, `.buffData[0].presence` | E | 0/444 cells over the 2 pp tolerance vs EI |
 | `buffUptimes[].states`, `.statesPerSource` | E ✅ | 504/504 entries carry both |
 | `selfBuffs`, `groupBuffs`, `squadBuffs` — `[].buffData[0].generation` | E ✅ | boon-generation attribution |
@@ -128,7 +129,7 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 | `extHealingStats.outgoingHealingAllies`, `.totalHealingDist`, `.healing1S` | E ✅ | per-ally and per-skill healing |
 | `extBarrierStats.outgoingBarrierAllies`, `.totalBarrierDist` | E ✅ | |
 | `minions[]` | E ✅ | with `totalDamageTakenDist`; 15/42 players have any, which is correct (only minion-bearing specs) |
-| `guildID` | E ✅ | real uppercase GUIDs on the PII capture (9 distinct guilds / 42 players). The committed **anonymized** fixture zeroes them — an anonymizer artifact, not a parser gap. `extractSquadGuilds` already skips `ZERO_GUILD_ID` |
+| `guildID` | E ✅ | real uppercase GUIDs on the PII capture (9 distinct guilds / 42 players). On the committed **anonymized** fixture 38/42 are zeroed and 4/42 omit the key entirely — anonymizer artifacts, not a parser gap. Both shapes are already handled: `extractSquadGuilds` skips `ZERO_GUILD_ID` and requires `typeof === 'string'`, so a guildless or absent entry is dropped rather than counted |
 | `instanceID` | E ✅ | |
 | `display_name` | **—** | every reader falls back to `character_name`/`name` (`computeAllDamageData.ts:207`, `computePlayerAggregation.ts:540`, …) |
 | `healthPercents` | E ✅ | pruned by `PLAYER_DENY` on the stats path; replay-mode consumers now get it |
@@ -163,21 +164,23 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 
 ### 1.5 What closed since the first audit
 
-Of the original gap list:
+Of the original gap list. **Section numbers below are the *original* report's**, which this rewrite
+re-numbered; forward references are to the current §4.
 
-- **§4.2 boon-generation attribution** — closed. `selfBuffs`/`groupBuffs`/`squadBuffs` carry
-  `generation`; `buffUptimes[].statesPerSource` carries the per-source timelines. Only `wasted`
-  remains.
-- **§4.3 incoming conditions, damage mitigation, incoming-strike chart** — closed.
+- **Original §4.2, boon-generation attribution** — closed. `selfBuffs`/`groupBuffs`/`squadBuffs`
+  carry `generation`; `buffUptimes[].statesPerSource` carries the per-source timelines. Only
+  `wasted` remains (now §4.3).
+- **Original §4.3, incoming conditions, damage mitigation, incoming-strike chart** — closed.
   `targets[].buffs[].statesPerSource`, `targets[].totalDamageDist` and
   `targets[].damage1S`/`powerDamage1S` all land, as does `players[].powerDamageTaken1S`.
-- **§4.4 smaller degradations** — 6 of 8 closed: incoming CC, incoming strips, per-ally
+- **Original §4.4, smaller degradations** — 6 of 8 closed: incoming CC, incoming strips, per-ally
   healing/barrier, minions, guild auto-detection, boon applications and breakbar damage. Skill
-  icons/proc flags and enemy profession remain.
-- **§4.1 per-target downs/kills** — closed, and better than the mitigation it replaced. See §4.2.
+  icons/proc flags and enemy profession remain (now §4.3).
+- **Original §4.1, per-target downs/kills** — closed, and better than the mitigation it replaced.
+  See §4.2 below.
 
 Newly identified by this re-audit, not present in the original: the **`statsTargets` field-subset
-residual** (§4.2) and the two methodology caveats in §2. Neither is a regression — both were true at
+residual** (§4.1) and the two methodology caveats in §2. Neither is a regression — both were true at
 the first cutover too; the first audit simply did not reach them, because the fields they concern
 were entirely absent back then.
 
@@ -300,7 +303,10 @@ already existed.
 
 The card carries a note that the choice applies to the next parse, with no restart, and that
 existing history keeps whatever it was parsed with — which is accurate, per `getParserBackend()`
-above.
+above. "No restart" is unconditional only in the axilog direction, though: the native binding ships
+with the app, whereas Elite Insights may never have been downloaded, because `shouldAutoManageEi()`
+is skipped while axilog is live. So when the selection is Elite Insights and `eiStatus.installed` is
+false, the note adds a line pointing at the Install button directly below it.
 
 ---
 
@@ -324,14 +330,24 @@ declare `source: 'statsTargets'` without an axilog counterpart. Under axilog tho
 `appliedCrowdControl`, `appliedCrowdControlDuration`, `appliedCrowdControlDownContribution`,
 `appliedCrowdControlDurationDownContribution`.
 
-The frustrating part is that **most of these values exist**, whole-fight, on `statsAll[0]` — which
+The frustrating part is that **8 of these 15 already exist**, whole-fight, on `statsAll[0]` — which
 axilog emits in full, and which the same table reads for other metrics. They are blank only because
-the metric definitions point at `statsTargets`. This is structural rather than a missing
-computation: EI folds the enemy roster into one aggregate `"Enemy Players"` target, so for EI
-"per-target" and "whole-fight" coincide and sourcing from `statsTargets` costs nothing; axilog emits
-one entry per real enemy, so the two genuinely differ. Closing it means either axilog filling the
-per-target stat set, or `OFFENSE_METRICS` gaining a `statsAll` fallback for the whole-fight-equivalent
-metrics. Follow-up 2.
+the metric definitions point at `statsTargets`. Verified field-by-field against a live 0.3.0
+payload:
+
+- **On `statsAll[0]`, recoverable without touching the parser (8):**
+  `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`, `flankingRate`, `glanceRate`,
+  `againstDownedDamage`, `appliedCrowdControl`, `appliedCrowdControlDuration`.
+- **Not on `statsAll[0]` either — genuinely needs axilog (7):** `directDmg` (axilog spells the
+  nearest thing `connectedDirectDmg`, which is not the same quantity), `missed`, `evaded`,
+  `blocked`, `invulned`, `appliedCrowdControlDownContribution`,
+  `appliedCrowdControlDurationDownContribution`.
+
+This is structural rather than a missing computation: EI folds the enemy roster into one aggregate
+`"Enemy Players"` target, so for EI "per-target" and "whole-fight" coincide and sourcing from
+`statsTargets` costs nothing; axilog emits one entry per real enemy, so the two genuinely differ.
+Closing it means either axilog filling the per-target stat set, or `OFFENSE_METRICS` gaining a
+`statsAll` fallback for the 8 above. Follow-up 2.
 
 `downed`/`killed`/`downContribution`/`interrupts` are unaffected — those are among the 8 emitted.
 
@@ -523,7 +539,8 @@ Gates:
 2. **Close the `statsTargets` field-subset gap** (§4.1) — 15 Offense Detailed columns read 0. Two
    viable fixes: axilog fills the per-target stat set, or `OFFENSE_METRICS` gains a `statsAll`
    fallback for the metrics whose whole-fight equivalent already exists there. The second is entirely
-   within axibridge and would fix ~11 of the 15 without touching the parser.
+   within axibridge and would fix **8 of the 15** without touching the parser (the list is in §4.1);
+   the remaining 7 need axilog either way.
 3. **Decide the fixture question.** Whether to add a narrow `.gitignore` negation for
    `test-fixtures/axilog/*.anon.zevtc` so the real-parse tests run in CI. Now that those tests pin
    the closed surface *and* the residuals, CI running them is worth more than it was. Still a

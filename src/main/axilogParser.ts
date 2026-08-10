@@ -32,18 +32,18 @@ export type ParserBackend = 'axilog' | 'elite-insights';
  * conditions, damage mitigation and the incoming-strike-damage chart. axilog's
  * MEIGAP + MEIGAP2 work closed all four. The re-audit in §1 of
  * `docs/axilog-cutover-report.md` (re-run against 0.3.0 on the same fixture)
- * puts the surface at **72 of 79 audited rows covered**, with these residuals —
- * all of them null-guarded, all degrading to `0`/`null`/empty rather than to a
- * wrong number:
+ * puts the surface at **8 residual gaps out of 83 audited rows**, with these
+ * residuals — all of them null-guarded, all degrading to `0`/`null`/empty
+ * rather than to a wrong number:
  *
  * 1. `selfBuffs`/`groupBuffs`/`squadBuffs` carry `generation` but not
  *    `wasted` — boon *overstack* attribution is blank; generation itself is
- *    exact. (§4.1)
+ *    exact. (§4.3)
  * 2. `statsTargets[i][0]` carries 8 of EI's 38 stat fields, so 15
  *    `statsTargets`-sourced Offense Detailed columns read 0 even though the
  *    whole-fight equivalents exist in `statsAll[0]`. Structural: EI folds the
  *    enemy roster into one aggregate `"Enemy Players"` target, axilog emits one
- *    entry per real enemy. (§4.2 — the biggest remaining visible gap)
+ *    entry per real enemy. (§4.1 — the biggest remaining visible gap)
  * 3. `statsAll[0].saved` — deferred upstream; `Number(... || 0)`, and not in
  *    `dpsReportTypes` either.
  * 4. `targets[].profession`, `players[].display_name`, `skillMap[].icon` +
