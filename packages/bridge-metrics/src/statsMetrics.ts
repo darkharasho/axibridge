@@ -55,13 +55,17 @@ export const OFFENSE_METRICS: Array<{
  * `source: 'statsTargets'` branch — `computePlayerAggregation.ts`'s
  * `offenseTotals`/`offenseRateWeights` rollup — sums `p.statsTargets` with **no
  * target predicate whatsoever**, and nothing upstream of it filters
- * `statsTargets` either (there is no per-target/enemy filter anywhere in the
- * app; the Offense Detailed table, the comparison view and `reportMetrics` all
- * read the all-targets rollup). So "sum over every target" and "whole fight"
- * are the same scope here, and substituting one for the other changes nothing
- * but whether the cell is blank. **If a per-target or per-enemy filter is ever
- * introduced for these columns, this fallback must not be applied inside it** —
- * it would silently report whole-fight figures under a filtered heading.
+ * `statsTargets` on the way in. So *for these columns* "sum over every target"
+ * and "whole fight" are the same scope, and substituting one for the other
+ * changes nothing but whether the cell is blank.
+ *
+ * Per-target filtering does exist elsewhere in the app — `discord.ts` and
+ * `ExpandableLogCard.tsx` both index-filter `statsTargets` by
+ * `targetIndexTeamId` — but neither reads `OFFENSE_METRICS`, so neither is
+ * downstream of this. **If a per-target or per-enemy filter is ever introduced
+ * over these columns, or over the `offenseTotals` rollup, this fallback must
+ * not be applied inside it** — it would silently report whole-fight figures
+ * under a filtered heading.
  *
  * **Exactly these 8**, each verified present on a live axilog 0.3.0
  * `statsAll[0]` (report §4.1). The other 7 blank columns (`directDmg`,
@@ -75,8 +79,16 @@ export const OFFENSE_METRICS: Array<{
  * `criticalRate`/`flankingRate`/`glanceRate` fall back numerator *and*
  * denominator together and never mix scopes within one ratio.
  *
- * Inert under Elite Insights: EI populates the per-target fields, so the
- * per-target sum is non-zero and the fallback is never consulted.
+ * **Two guards, not one** (see the read site). The fallback needs a populated
+ * per-target entry to have been silent about (`sawTarget`) *and* the field to
+ * be absent from it (`!sawField`). The first is what keeps it off an
+ * Elite Insights payload whose `statsTargets` is empty or absent: that is not
+ * axilog's field-subset shape, it is a fight with no tracked roster, and
+ * substituting there would swap in `statsAll`'s NPC/guard/siege-inclusive
+ * whole-fight numbers with nothing to justify them. The second is what keeps a
+ * genuine per-target zero at zero. Together they make the fallback unreachable
+ * on an EI payload that carries a roster, and inert — not merely harmless — on
+ * one that does not.
  */
 export const OFFENSE_METRICS_STATS_ALL_FALLBACK: ReadonlySet<string> = new Set([
     'connectedDirectDamageCount',

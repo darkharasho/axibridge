@@ -144,8 +144,11 @@ describe('App first-time walkthrough', () => {
         // property both engines share — parsing happens on your machine — and
         // names both rather than pinning itself to whichever is current.
         expect(screen.getByText(/parsed locally on your own machine/)).toBeInTheDocument();
-        expect(screen.getByText(/Elite Insights, set up for you automatically/)).toBeInTheDocument();
-        expect(screen.getByText(/built-in axilog fast path/)).toBeInTheDocument();
+        // "Your parse engine is set up automatically" is true under either
+        // default — EI is auto-installed, axilog ships with the app — where
+        // naming one of them as the auto-installed engine would not be.
+        expect(screen.getByText(/Your parse engine is set up automatically/)).toBeInTheDocument();
+        expect(screen.getByText(/Elite Insights and the built-in axilog fast path/)).toBeInTheDocument();
         // Must not push a new user at a manual install step either way.
         expect(screen.queryByText(/Install Elite Insights locally/)).not.toBeInTheDocument();
         expect(screen.getByText('Step 4')).toBeInTheDocument();

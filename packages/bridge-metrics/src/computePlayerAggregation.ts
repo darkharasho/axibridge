@@ -982,15 +982,17 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             } else if (m.source === 'support' && support) {
                 val = Number((support as any)[m.field!] ?? 0);
             } else {
-                // source: 'statsTargets' — summed over EVERY target, with no
-                // predicate. That all-targets scope is what licenses the
-                // whole-fight fallback below; see the boundary note on
-                // OFFENSE_METRICS_STATS_ALL_FALLBACK.
+                // source: 'statsTargets' — summed over EVERY target this rollup
+                // sees, with no predicate. That all-targets scope is what
+                // licenses the whole-fight fallback below; see the boundary
+                // note on OFFENSE_METRICS_STATS_ALL_FALLBACK.
                 const denomField = m.denomField || m.weightField || 'connectedDamageCount';
+                let sawTarget = false;
                 let sawField = false;
                 if (p.statsTargets) {
                     p.statsTargets.forEach((t: any) => {
                         if (!t?.[0]) return;
+                        sawTarget = true;
                         if (t[0][m.field!] !== undefined) sawField = true;
                         val += Number(t[0][m.field!] ?? 0);
                         denom += Number(t[0][denomField] ?? 0);
@@ -1001,12 +1003,24 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 // reported at all". Where the identical whole-fight figure
                 // exists on statsAll[0], use it rather than render a hard 0.
                 //
-                // Gated on field PRESENCE, never on the summed value: a real
-                // zero (a player who landed no critical hit on any tracked
-                // target) must stay zero, and under Elite Insights — which
-                // emits the full per-target set, zeroes included — this branch
-                // is unreachable.
-                if (!sawField && statsAll && OFFENSE_METRICS_STATS_ALL_FALLBACK.has(m.id)) {
+                // TWO guards, and both are load-bearing:
+                //
+                // `sawTarget` — there must be a populated per-target entry to
+                // have been silent about. An empty or absent statsTargets is
+                // not axilog's field-subset shape, it is a fight with no
+                // tracked target roster, and substituting there would swap in
+                // statsAll's NPC/guard/siege-inclusive whole-fight numbers with
+                // nothing to justify them. detailsProcessing.ts:238-262 already
+                // guards the same class of substitution for enemy downs/kills,
+                // where the divergence was measured at 63 vs 136. Costs axilog
+                // nothing: its roster is always populated.
+                //
+                // `!sawField` — presence, never value. A real zero (a player
+                // who landed no critical hit on any tracked target) must stay
+                // zero. Elite Insights emits the full per-target set with
+                // zeroes included, so on any EI payload that carries a target
+                // roster this branch does not fire.
+                if (sawTarget && !sawField && statsAll && OFFENSE_METRICS_STATS_ALL_FALLBACK.has(m.id)) {
                     val = Number((statsAll as any)[m.field!] ?? 0);
                     // Numerator and denominator move together, so a rate is
                     // never a whole-fight count over a per-target one.

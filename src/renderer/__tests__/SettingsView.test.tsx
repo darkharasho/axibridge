@@ -9,6 +9,10 @@ import {
 } from '../SettingsView';
 import { DEFAULT_EMBED_STATS } from '../global.d';
 import { DEFAULT_MVP_WEIGHT_PROFILES } from '../global.d';
+// Drift guard for SHIPPED_DEFAULT_BACKEND, the renderer-side hand-kept mirror
+// of the main-process default. The renderer cannot import from main at RUNTIME,
+// but a test can — so an owner flip that misses the mirror fails here.
+import { DEFAULT_PARSER_BACKEND } from '../../main/axilogParser';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -827,10 +831,14 @@ describe('SettingsView', () => {
             });
             await findCard();
 
-            expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'true');
-            expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'false');
+            // Asserted against the main-process constant, not a literal: this
+            // is the drift guard. Flipping DEFAULT_PARSER_BACKEND without
+            // updating SHIPPED_DEFAULT_BACKEND fails right here.
+            const other = DEFAULT_PARSER_BACKEND === 'axilog' ? 'elite-insights' : 'axilog';
+            expect(screen.getByTestId(`parser-backend-${DEFAULT_PARSER_BACKEND}`)).toHaveAttribute('aria-checked', 'true');
+            expect(screen.getByTestId(`parser-backend-${other}`)).toHaveAttribute('aria-checked', 'false');
             // Clicking must not throw through the optional-call chain.
-            fireEvent.click(screen.getByTestId('parser-backend-axilog'));
+            fireEvent.click(screen.getByTestId(`parser-backend-${other}`));
         });
 
         it('adopts a backend change broadcast by the main process', async () => {

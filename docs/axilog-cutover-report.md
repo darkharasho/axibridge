@@ -15,10 +15,14 @@ audited rows**, none of which produces a wrong number and all of which are null-
 site. Of the other 75 rows, 64 carry data from axilog and 11 are absent by design with no consumer
 consequence.
 
-Flipping the default is a one-line change to `DEFAULT_PARSER_BACKEND` in
-`src/main/axilogParser.ts` (plus its pinning assertion in `axilogParser.test.ts`). Nothing else
-hardcodes an engine: the settings card, the EI auto-install stand-down and the walkthrough copy all
-read the default or are written default-neutral.
+Flipping the default is a change to `DEFAULT_PARSER_BACKEND` in `src/main/axilogParser.ts`, plus
+its pinning assertion in `axilogParser.test.ts`, plus **one mirror**:
+`SHIPPED_DEFAULT_BACKEND` in `src/renderer/SettingsView.tsx`, which exists because the renderer
+cannot import from the main process at runtime. That mirror is the one place an engine is hardcoded
+twice, so it has a drift guard — `SettingsView.test.tsx`'s web-build case asserts the rendered
+default against the imported `DEFAULT_PARSER_BACKEND` rather than a literal, and fails if a flip
+misses the mirror. Everything else reads the default or is written default-neutral: the EI
+auto-install stand-down, the radio-group ordering, and the walkthrough copy.
 
 | | axilog (opt-in) | Elite Insights CLI (default) |
 |---|---|---|
@@ -362,23 +366,36 @@ consumer wanted *every* target. It does here, and that is a property of the code
 - the sole consumer of the `source: 'statsTargets'` branch is `computePlayerAggregation.ts`'s
   `offenseTotals`/`offenseRateWeights` rollup, which sums `p.statsTargets` with **no target
   predicate at all**;
-- nothing upstream filters `statsTargets` either — there is no per-target or per-enemy filter
-  anywhere in the app. The Offense Detailed table, the comparison view and `reportMetrics` all read
-  the same all-targets rollup.
+- nothing upstream filters `statsTargets` on the way into that rollup. The Offense Detailed table,
+  the comparison view and `reportMetrics` all read the same all-targets result.
 
-So "summed over every target" and "whole fight" denote the same scope, and the substitution changes
-only whether the cell is blank. **The boundary: if a per-target or per-enemy filter is ever
-introduced over these columns, the fallback must not be applied inside it** — it would report
-whole-fight figures under a filtered heading. That caveat is recorded on
-`OFFENSE_METRICS_STATS_ALL_FALLBACK` in `packages/bridge-metrics/src/statsMetrics.ts`, next to the
-list itself.
+Per-target filtering *does* exist elsewhere — `discord.ts:232` and `ExpandableLogCard.tsx:533` both
+index-filter `statsTargets` by `targetIndexTeamId` — but neither reads `OFFENSE_METRICS`, so neither
+is downstream of this. So *for these columns* "summed over every target" and "whole fight" denote
+the same scope, and the substitution changes only whether the cell is blank. **The boundary: if a
+per-target or per-enemy filter is ever introduced over these columns, or over the `offenseTotals`
+rollup, the fallback must not be applied inside it** — it would report whole-fight figures under a
+filtered heading. That caveat is recorded on `OFFENSE_METRICS_STATS_ALL_FALLBACK` in
+`packages/bridge-metrics/src/statsMetrics.ts`, next to the list itself.
 
-The trigger is **field presence, never value**. A summed `0` can mean "no criticals landed", which
-must stay `0`; only "no `statsTargets` entry carries this key at all" selects the fallback. That
-also makes the whole thing inert under Elite Insights, which emits the full 38-field set with
-zeroes included — so the fallback is unreachable on an EI payload rather than merely harmless. This
-matters: EI's `statsAll` counts NPCs, guards and siege while its aggregate `"Enemy Players"` target
-does not, so a value-triggered fallback would have quietly inflated real EI zeroes.
+#### Two guards, both load-bearing
+
+`sawField` — the trigger is **field presence, never value**. A summed `0` can mean "no criticals
+landed", which must stay `0`; only "no `statsTargets` entry carries this key at all" selects the
+fallback. EI emits the full 38-field set with zeroes included, so a value-triggered version would
+have quietly inflated real EI zeroes — its `statsAll` counts NPCs, guards and siege while its
+aggregate `"Enemy Players"` target does not.
+
+`sawTarget` — there must be a **populated per-target entry** to have been silent about. An empty or
+absent `statsTargets` is not axilog's field-subset shape; it is a fight with no tracked target
+roster, and substituting there would swap in those same NPC/guard/siege-inclusive whole-fight
+numbers with nothing to justify them. This is the identical failure mode
+`detailsProcessing.ts:238-262` already guards for enemy downs/kills, where the divergence was
+measured on a real EI payload at 63 per-target vs 136 `statsAll`. The guard costs axilog nothing —
+its roster is always populated.
+
+Together the two make the fallback unreachable on an EI payload that carries a roster, and inert on
+one that does not.
 
 The underlying cause is structural rather than a missing computation: EI folds the enemy roster into
 one aggregate `"Enemy Players"` target, so for EI "per-target" and "whole-fight" coincide and
@@ -386,9 +403,10 @@ sourcing from `statsTargets` costs nothing; axilog emits one entry per real enem
 genuinely differ. Fully closing it still needs axilog to fill the per-target stat set — follow-up 2,
 now scoped to the remaining 7.
 
-Tests: `src/renderer/stats/__tests__/offenseStatsAllFallback.test.ts` (9), covering both backends —
-the axilog shape filling all 8 (once, not once per target) with matched rate denominators and the 7
-staying blank, and the EI shape leaving genuine per-target zeroes alone.
+Tests: `src/renderer/stats/__tests__/offenseStatsAllFallback.test.ts` (11), covering both backends
+and both guards — the axilog shape filling all 8 (once, not once per target) with matched rate
+denominators and the 7 staying blank; the EI shape leaving genuine per-target zeroes alone; and an
+empty, absent or wholly unpopulated `statsTargets` getting no substitution at all.
 
 ### 4.2 Per-target downs/kills — closed, and the fallback is no longer reached
 
@@ -550,15 +568,18 @@ the persisted backend (which is deliberately *not* the shipped default in the ba
 is pinned to showing the store rather than the build), persists a switch over `setParserBackend` and
 updates the selection, does not re-send IPC when the already-selected engine is clicked, disables
 axilog with an explanation when the native binding is unavailable (and refuses to send), renders the
-shipped default — Elite Insights — when the host exposes no parser API at all (the web build), and
-adopts a `parser:backend-changed` broadcast.
+shipped default when the host exposes no parser API at all (the web build), and adopts a
+`parser:backend-changed` broadcast. That last case doubles as the drift guard for
+`SHIPPED_DEFAULT_BACKEND`: it asserts against the imported `DEFAULT_PARSER_BACKEND` rather than a
+literal, so flipping the default without updating the renderer mirror fails there.
 
-`src/renderer/stats/__tests__/offenseStatsAllFallback.test.ts` — **9 tests** for §4.1's `statsAll`
-fallback, across both backends. See §4.1.
+`src/renderer/stats/__tests__/offenseStatsAllFallback.test.ts` — **11 tests** for §4.1's `statsAll`
+fallback, across both backends and both guards. See §4.1.
 
 `src/renderer/__tests__/App.firstTimeExperience.test.tsx` — the walkthrough's step 4 copy is pinned
-default-neutral: it sells local parsing and names both engines rather than whichever is currently
-default, so an owner flip needs no copy change.
+default-neutral: it sells local parsing, says the parse engine is set up automatically (true under
+either default — EI is auto-installed, axilog ships with the app) and names both engines without
+claiming either is the current one. An owner flip needs no copy change.
 
 `src/main/__tests__/detailsProcessing.test.ts` — the 6 existing tests pinning both sides of the
 enemy-downs fallback are unchanged and still green. They now guard a path axilog no longer takes,
@@ -601,7 +622,7 @@ Gates:
    `appliedCrowdControlDownContribution`, `appliedCrowdControlDurationDownContribution`. These need
    axilog to fill the per-target stat set — nothing in axibridge can supply them. Note the boundary
    recorded in §4.1: the fallback is only valid because no per-target filter exists over these
-   columns; introducing one means revisiting it.
+   columns or the `offenseTotals` rollup; introducing one means revisiting it.
 3. **~~Decide the fixture question.~~ RESOLVED — owner-authorized (2026-08-10): committed.**
    `test-fixtures/axilog/wvw-small.anon.zevtc` is in-tree behind
    `!test-fixtures/axilog/*.anon.zevtc`, verified PII-free first, and the real-parse block now runs

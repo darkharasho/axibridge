@@ -8,10 +8,18 @@ import { OFFENSE_METRICS_STATS_ALL_FALLBACK } from '../statsMetrics';
  * boundary note on `OFFENSE_METRICS_STATS_ALL_FALLBACK`.
  *
  * Both backends are exercised here because the fallback has to be *inert*
- * under Elite Insights, not merely harmless: EI emits the full 38-field
- * per-target set (zeroes included), so a value-based trigger would have
- * silently swapped whole-fight numbers in for real per-target zeroes. The
- * trigger is field presence, and these tests are what pin that.
+ * under Elite Insights, not merely harmless. Two guards achieve that, and each
+ * has its own tests below:
+ *
+ * - `sawField` — the trigger is field *presence*, never value. EI emits the
+ *   full 38-field per-target set with zeroes included, so a value-based
+ *   trigger would have swapped whole-fight numbers in for real per-target
+ *   zeroes.
+ * - `sawTarget` — there must be a populated per-target entry to have been
+ *   silent about. An EI payload with an empty or absent `statsTargets` is a
+ *   fight with no tracked roster, not axilog's field-subset shape, and
+ *   substituting there would inflate all 8 columns with `statsAll`'s
+ *   NPC/guard/siege-inclusive totals.
  */
 
 /** The 8 whole-fight fields, with plausible non-zero values. */
@@ -199,9 +207,34 @@ describe('OFFENSE_METRICS statsAll fallback', () => {
         });
     });
 
-    it('falls back for a player with no statsTargets at all', () => {
-        const ps = aggregate([makePlayer([])]);
-        expect(ps.offenseTotals.criticalDmg).toBe(90_000);
-        expect(ps.offenseTotals.directDmg || 0).toBe(0);
+    describe('empty or absent statsTargets — no substitution', () => {
+        // The second guard. "No per-target entry at all" is NOT axilog's
+        // field-subset shape; it is a fight with no tracked target roster, and
+        // there is nothing there for the fallback to be standing in for.
+        // Substituting would swap in statsAll's whole-fight numbers, which
+        // count NPCs, guards and siege — the same inflation
+        // detailsProcessing.ts:238-262 already guards against for enemy
+        // downs/kills, where it was measured at 63 per-target vs 136 statsAll.
+        // Costs axilog nothing: its roster is always populated.
+        it('leaves the 8 columns at 0 when statsTargets is empty', () => {
+            const ps = aggregate([makePlayer([])]);
+            for (const id of OFFENSE_METRICS_STATS_ALL_FALLBACK) {
+                expect(ps.offenseTotals[id] || 0).toBe(0);
+            }
+        });
+
+        it('leaves the 8 columns at 0 when statsTargets is absent entirely', () => {
+            const ps = aggregate([makePlayer(undefined)]);
+            for (const id of OFFENSE_METRICS_STATS_ALL_FALLBACK) {
+                expect(ps.offenseTotals[id] || 0).toBe(0);
+            }
+        });
+
+        it('leaves them at 0 when every statsTargets entry is unpopulated', () => {
+            const ps = aggregate([makePlayer([[], null, undefined])]);
+            for (const id of OFFENSE_METRICS_STATS_ALL_FALLBACK) {
+                expect(ps.offenseTotals[id] || 0).toBe(0);
+            }
+        });
     });
 });
