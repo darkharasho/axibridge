@@ -225,12 +225,53 @@ export const buildDashboardSummaryFromDetails = (details: any): DashboardSummary
             squadDeaths += deadCount;
         }
         const statsTargets: any[] = Array.isArray(player?.statsTargets) ? player.statsTargets : [];
+        let targetDowned = 0;
+        let targetKilled = 0;
+        let sawTargetSplit = false;
         statsTargets.forEach((targetStats) => {
             const phase = Array.isArray(targetStats) ? targetStats[0] : null;
             if (!phase) return;
-            enemyDownsDeaths += Number(phase.downed || 0) + Number(phase.killed || 0);
-            enemyDeaths += Number(phase.killed || 0);
+            if (phase.downed !== undefined || phase.killed !== undefined) sawTargetSplit = true;
+            targetDowned += Number(phase.downed || 0);
+            targetKilled += Number(phase.killed || 0);
         });
+        if (statsTargets.length > 0 && !sawTargetSplit) {
+            // Substitution requires a POPULATED but splitless target roster —
+            // the axilog backend's shape: it emits one `{ totalDmg }` entry per
+            // target (~80 on a WvW log) and computes no downs/kills split. Only
+            // then do we fall back to the whole-fight `statsAll[0]` counts.
+            //
+            // Both halves of the condition matter:
+            //
+            // `!sawTargetSplit` keeps Elite Insights out. Every EI payload
+            // checked carries the split on every entry, so EI never reaches
+            // this branch — which is what matters, because `statsAll` is NOT
+            // the per-target sum. `statsAll[0].downed/killed` counts every foe
+            // the player downed or killed, INCLUDING ones not enumerated in
+            // `targets[]` (NPCs, guards, siege). Measured on
+            // `test-fixtures/boon/20260128-190427.json`, a real EI payload: the
+            // per-target sum is 63 while `statsAll` totals 136, with 18 of 55
+            // players disagreeing.
+            //
+            // `statsTargets.length > 0` closes the one path an EI payload could
+            // still reach: a fight with no targets at all. There, substituting
+            // the ~2x-inflated `statsAll` total would invent enemy downs for a
+            // fight that enumerated no enemies, so we report 0 instead — the
+            // less-wrong answer, and it costs axilog nothing since its roster is
+            // always populated.
+            //
+            // On the axilog shape the substitution is a deliberate high-biased
+            // trade, not an equivalence: it over-counts enemy players relative
+            // to a true per-target split, but the alternative is a hard 0, which
+            // makes `isWin` false on every fight the squad took a single down
+            // in. A high-biased count beats a guaranteed-wrong one for a
+            // win/loss heuristic.
+            const all = player?.statsAll?.[0];
+            targetDowned = Number(all?.downed || 0);
+            targetKilled = Number(all?.killed || 0);
+        }
+        enemyDownsDeaths += targetDowned + targetKilled;
+        enemyDeaths += targetKilled;
     });
 
     targets.forEach((target) => {
