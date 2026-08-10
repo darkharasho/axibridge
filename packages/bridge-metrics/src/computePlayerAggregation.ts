@@ -4,7 +4,7 @@ import { applySquadStabilityGeneration as applyStabilityGeneration, computeDownC
 import { Player } from './dpsReportTypes';
 import { DisruptionMethod } from './metricsSettings';
 import { buildConditionIconMap, computeOutgoingConditions, normalizeConditionLabel, resolveBuffMetaById, resolveConditionNameFromEntry } from './conditionsMetrics';
-import { NON_DAMAGING_CONDITIONS, OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS } from './statsMetrics';
+import { NON_DAMAGING_CONDITIONS, OFFENSE_METRICS, OFFENSE_METRICS_STATS_ALL_FALLBACK, DEFENSE_METRICS, SUPPORT_METRICS } from './statsMetrics';
 import { isResUtilitySkill } from './resUtility';
 import { PlayerSkillDamageEntry, PlayerHealingSkillEntry } from './aggregationTypes';
 import { PROFESSION_COLORS } from './professionUtils';
@@ -981,12 +981,51 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 denom = Number((statsAll as any)[m.denomField || m.weightField || 'connectedDamageCount'] ?? 0);
             } else if (m.source === 'support' && support) {
                 val = Number((support as any)[m.field!] ?? 0);
-            } else if (p.statsTargets) {
-                p.statsTargets.forEach((t: any) => {
-                    if (!t?.[0]) return;
-                    val += Number(t[0][m.field!] ?? 0);
-                    denom += Number(t[0][m.denomField || m.weightField || 'connectedDamageCount'] ?? 0);
-                });
+            } else {
+                // source: 'statsTargets' — summed over EVERY target this rollup
+                // sees, with no predicate. That all-targets scope is what
+                // licenses the whole-fight fallback below; see the boundary
+                // note on OFFENSE_METRICS_STATS_ALL_FALLBACK.
+                const denomField = m.denomField || m.weightField || 'connectedDamageCount';
+                let sawTarget = false;
+                let sawField = false;
+                if (p.statsTargets) {
+                    p.statsTargets.forEach((t: any) => {
+                        if (!t?.[0]) return;
+                        sawTarget = true;
+                        if (t[0][m.field!] !== undefined) sawField = true;
+                        val += Number(t[0][m.field!] ?? 0);
+                        denom += Number(t[0][denomField] ?? 0);
+                    });
+                }
+                // axilog populates only 8 of EI's 38 per-target stat fields, so
+                // for the rest the per-target sum is not "zero", it is "not
+                // reported at all". Where the identical whole-fight figure
+                // exists on statsAll[0], use it rather than render a hard 0.
+                //
+                // TWO guards, and both are load-bearing:
+                //
+                // `sawTarget` — there must be a populated per-target entry to
+                // have been silent about. An empty or absent statsTargets is
+                // not axilog's field-subset shape, it is a fight with no
+                // tracked target roster, and substituting there would swap in
+                // statsAll's NPC/guard/siege-inclusive whole-fight numbers with
+                // nothing to justify them. detailsProcessing.ts:238-262 already
+                // guards the same class of substitution for enemy downs/kills,
+                // where the divergence was measured at 63 vs 136. Costs axilog
+                // nothing: its roster is always populated.
+                //
+                // `!sawField` — presence, never value. A real zero (a player
+                // who landed no critical hit on any tracked target) must stay
+                // zero. Elite Insights emits the full per-target set with
+                // zeroes included, so on any EI payload that carries a target
+                // roster this branch does not fire.
+                if (sawTarget && !sawField && statsAll && OFFENSE_METRICS_STATS_ALL_FALLBACK.has(m.id)) {
+                    val = Number((statsAll as any)[m.field!] ?? 0);
+                    // Numerator and denominator move together, so a rate is
+                    // never a whole-fight count over a per-target one.
+                    denom = Number((statsAll as any)[denomField] ?? 0);
+                }
             }
             if (Number.isFinite(val)) {
                 s.offenseTotals[m.id] = (s.offenseTotals[m.id] || 0) + val;

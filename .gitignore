@@ -33,6 +33,12 @@ web/ui-theme.json
 *.evtc
 *.zevtc
 *.csv
+# Narrow, owner-authorized exception to the blanket *.zevtc PII guard above:
+# the anonymized axilog integration fixture, so the real-parse tests run in CI.
+# Every character name in it is `Anon<N>`, every account `:Anon<N>.<digits>`,
+# every guild id zeroed — verified before commit. `.anon.` is required in the
+# name, so a raw capture dropped in this directory stays ignored.
+!test-fixtures/axilog/*.anon.zevtc
 
 # Environment variables
 .env
