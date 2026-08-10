@@ -531,7 +531,7 @@ Gates:
 
 ## 7. Follow-ups
 
-1. **Qualify per-skill "Down Contribution" in the UI.** §2.1: the number is arcdps methodology under
+1. **~~Qualify per-skill "Down Contribution" in the UI.~~ RESOLVED — owner decision (2026-08-10): no qualifier.** The arcdps-methodology number is this product's own, intentional definition of down contribution (axilog's founding differentiator), not an EI reproduction, and it stays unlabelled by design. Original rationale kept below for the record. §2.1: the number is arcdps methodology under
    EI's field name, matching EI on ~114 of 344 shared skills. The All Damage, Player Breakdown, Spike
    Damage and Top Skills surfaces all display or rank by it unqualified. A tooltip naming the
    methodology costs nothing and stops the app making a claim it does not honour. This is the highest
