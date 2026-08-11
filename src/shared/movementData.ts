@@ -9,6 +9,20 @@ export interface SquadMemberMovement {
     isEnemy: boolean;
     inSquad: boolean;
     positions: [number, number][];
+    /**
+     * Absolute poll index of `positions[0]`.
+     *
+     * EI/axilog emit one position per multiple of `pollingRate` inside the
+     * actor's OWN `combatReplayData.start..end` window — not from t=0 — so
+     * `positions[i]` is the sample at absolute poll `firstPoll + i`. Indexing
+     * `positions[floor(t / pollingRate)]` without subtracting this reads the
+     * wrong sample for anyone whose track does not begin at the very start of
+     * the fight; a player who joins at t=38317ms is off by 128 polls, i.e.
+     * their marker is drawn wherever they happened to be ~38 seconds later.
+     *
+     * Use `positionAtTime` rather than indexing by hand.
+     */
+    firstPoll: number;
     downRanges: [number, number][];
     deadRanges: [number, number][];
     boonStates?: Record<number, [number, number][]>;
@@ -33,6 +47,52 @@ export interface BuildMovementDataOptions {
     localName?: string;
     /** When true, skip integer rounding of position/health/damage values for higher precision. */
     precisePositions?: boolean;
+}
+
+/**
+ * Absolute poll index of an actor's `positions[0]`, from its
+ * `combatReplayData.start`.
+ *
+ * Mirrors the derivation `src/main/axilogParser.ts` already documents for its
+ * own `PolledTrack.firstPoll`: axilog/EI emit `positions[i]` for the i-th
+ * multiple of `pollingRate` that falls inside `[start, end]`, so the first
+ * sample sits at `ceil(start / pollingRate)`.
+ */
+const pollIndexOfStart = (startMs: unknown, pollingRate: number): number => {
+    const start = Number(startMs);
+    if (!Number.isFinite(start) || start <= 0 || pollingRate <= 0) return 0;
+    return Math.ceil(start / pollingRate);
+};
+
+/**
+ * `[x, y]` for an actor at absolute time `timeMs`, honouring the actor's own
+ * track offset (see `SquadMemberMovement.firstPoll`).
+ *
+ * `clamp` defaults to TRUE, which is what every call site did before this
+ * helper existed: a time outside the actor's tracked window yields their
+ * first/last known sample rather than nothing, so a marker parks at someone's
+ * last known spot instead of vanishing. That behaviour is deliberately
+ * preserved here — only the index OFFSET was wrong, and quietly turning
+ * clamping off at the same time would change what the map shows for every
+ * actor whose track ends before the fight does.
+ *
+ * Pass `clamp: false` when drawing something anchored to a specific past
+ * instant (rather than to "now"), where an edge sample would place the mark
+ * somewhere the actor was never standing.
+ */
+export function positionAtTime(
+    member: Pick<SquadMemberMovement, 'positions' | 'firstPoll'>,
+    timeMs: number,
+    pollingRate: number,
+    clamp = true,
+): [number, number] | null {
+    if (!member.positions.length || pollingRate <= 0) return null;
+    const raw = Math.floor(timeMs / pollingRate) - (member.firstPoll || 0);
+    if (!clamp && (raw < 0 || raw >= member.positions.length)) return null;
+    const idx = Math.max(0, Math.min(raw, member.positions.length - 1));
+    const pt = member.positions[idx];
+    if (!Array.isArray(pt) || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) return null;
+    return [pt[0], pt[1]];
 }
 
 /** Flatten a possibly-nested EI cumulative series to a flat number[]. */
@@ -137,6 +197,7 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
             isEnemy: false,
             inSquad: !p.notInSquad,
             positions: positions.map(roundPos),
+            firstPoll: pollIndexOfStart(p.combatReplayData?.start, pollingRate),
             downRanges: p.combatReplayData?.down ?? [],
             deadRanges: p.combatReplayData?.dead ?? [],
             boonStates,
@@ -166,6 +227,7 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
             isEnemy: true,
             inSquad: false,
             positions: positions.map(roundPos),
+            firstPoll: pollIndexOfStart(t.combatReplayData?.start, pollingRate),
             downRanges: t.combatReplayData?.down ?? [],
             deadRanges: t.combatReplayData?.dead ?? [],
         });

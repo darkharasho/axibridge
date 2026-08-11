@@ -19,11 +19,12 @@ const PHASE_LEGEND: { kind: string; color: string; desc: string }[] = [
     { kind: 'cleanup', color: '#a78bfa', desc: 'Squad stationary / mopping up' },
 ];
 
-const EVENT_TOGGLES: { key: 'phases' | 'rallyRings' | 'targetFocusLines' | 'damagePulses'; label: string; title: string }[] = [
+const EVENT_TOGGLES: { key: 'phases' | 'rallyRings' | 'targetFocusLines' | 'damagePulses' | 'enemyPulses'; label: string; title: string }[] = [
     { key: 'phases', label: 'Fight phases on timeline', title: 'Marks fight phase boundaries on the scrubber timeline — colours show squad behaviour (opening / push / retreat / cleanup)' },
     { key: 'rallyRings', label: 'Rally rings', title: 'Flashes a ring when a downed player rallies back to full health' },
     { key: 'targetFocusLines', label: 'Target-focus lines', title: 'Lines from each player to the target they are currently damaging most' },
     { key: 'damagePulses', label: 'Damage pulses', title: 'Animated pulses radiating from players when they deal significant burst damage' },
+    { key: 'enemyPulses', label: 'Enemy pulses', title: 'Also pulse when ENEMY players go down or die (violet / green). Off by default because these usually far outnumber your squad\u2019s own' },
 ];
 
 const HEATMAP_OPTIONS: { value: 'off' | 'deaths' | 'time' | 'damage-taken'; label: string; title: string }[] = [

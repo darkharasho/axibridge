@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useStatsStore } from '../statsStore';
 import { useSquadDerived } from './hooks/useSquadDerived';
 import type { ReplayFightPayload } from './replayTypes';
+import { positionAtTime } from '../../../shared/movementData';
 
 interface SquadOverlayProps {
     fight: ReplayFightPayload;
@@ -36,8 +37,7 @@ export const SquadOverlay: React.FC<SquadOverlayProps> = ({ fight, timeMs, scale
 
     const commanderPos = useMemo(() => {
         if (!commander?.positions.length) return null;
-        const idx = Math.min(commander.positions.length - 1, Math.floor(timeMs / fight.movementData.pollingRate));
-        return commander.positions[idx];
+        return positionAtTime(commander, timeMs, fight.movementData.pollingRate);
     }, [commander, timeMs, fight.movementData.pollingRate]);
 
     const ringRadii = useMemo(() => {

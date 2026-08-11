@@ -36,6 +36,9 @@ interface StatsStoreState {
         rallyRings: boolean;
         targetFocusLines: boolean;
         damagePulses: boolean;
+        /** Also pulse ENEMY downs/deaths, not just the squad's. Off by
+         *  default: on a real WvW log these outnumber squad events ~20:1. */
+        enemyPulses: boolean;
         heatmap: 'off' | 'deaths' | 'time' | 'damage-taken';
     };
     replaySpotlightParty: number | null;
@@ -86,6 +89,7 @@ const initialState = {
         rallyRings: false,
         targetFocusLines: false,
         damagePulses: false,
+        enemyPulses: false,
         heatmap: 'off' as const,
     },
     replaySpotlightParty: null,
@@ -138,7 +142,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
             zoneBorders: true,
             centroidSpread: false, tagRangeRings: false,
             squadHealthStrip: false, partyHulls: false, phases: false,
-            rallyRings: false, targetFocusLines: false, damagePulses: false,
+            rallyRings: false, targetFocusLines: false, damagePulses: false, enemyPulses: false,
             heatmap: 'off',
         },
         replaySpotlightParty: null,

@@ -1,16 +1,12 @@
 import { useMemo } from 'react';
 import type { ReplayFightPayload } from '../replayTypes';
-import type { SquadMemberMovement } from '../../../../shared/movementData';
+import { positionAtTime, type SquadMemberMovement } from '../../../../shared/movementData';
 import type { Phase, PhaseKind, SquadDerived, SquadSample } from '../squadDerivedTypes';
 
 const TICK_MS = 1000;
 const cache = new Map<string, SquadDerived>();
 
-function sampleAt(member: SquadMemberMovement, timeMs: number, pollingRate: number): [number, number] | null {
-    if (!member.positions.length) return null;
-    const idx = Math.min(member.positions.length - 1, Math.floor(timeMs / pollingRate));
-    return member.positions[idx];
-}
+const sampleAt = positionAtTime;
 
 function isAliveAt(member: SquadMemberMovement, timeMs: number): boolean {
     for (const [start, end] of member.deadRanges) {

@@ -18,7 +18,12 @@ export function pickDefaultFightId(fights: ReplayFightPayload[]): string | null 
 
 function sampleAt(member: SquadMemberMovement, pollIndex: number): [number, number] | null {
     if (!member.positions.length) return null;
-    const idx = Math.max(0, Math.min(pollIndex, member.positions.length - 1));
+    // `pollIndex` is ABSOLUTE; `positions[0]` sits at the member's own
+    // `firstPoll` (see `SquadMemberMovement.firstPoll`). Clamping is kept
+    // rather than returning null: this feeds hit-testing for "which member
+    // did I click", where parking on someone's nearest known sample is
+    // friendlier than making them un-clickable outside their track.
+    const idx = Math.max(0, Math.min(pollIndex - (member.firstPoll || 0), member.positions.length - 1));
     return member.positions[idx];
 }
 
