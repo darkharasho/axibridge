@@ -93,7 +93,14 @@ export function playerPosAt(
 ): [number, number] | null {
   const positions = player.combatReplayData?.positions;
   if (!positions || positions.length === 0) return null;
-  const startFrame = player.combatReplayData?.start ?? 0;
+  // `combatReplayData.start` is MILLISECONDS, not a frame index. Subtracting
+  // it from a frame number made every mid-fight joiner unresolvable: a player
+  // starting at t=38317ms yielded `frame - 38317`, permanently negative, so
+  // this returned null for them at every single second of the fight.
+  // The first sample sits at poll `ceil(start / pollingRate)`, and
+  // `pollingRate === 1000 / framesPerSec`.
+  const startMs = player.combatReplayData?.start ?? 0;
+  const startFrame = startMs > 0 ? Math.ceil((startMs * framesPerSec) / 1000) : 0;
   const frame = Math.round(tSec * framesPerSec);
   const idx = frame - startFrame;
   if (idx < 0 || idx >= positions.length) return null;
