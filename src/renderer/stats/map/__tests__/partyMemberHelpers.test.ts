@@ -5,7 +5,7 @@ import type { SquadMemberMovement } from '../../../../shared/movementData';
 const base: SquadMemberMovement = {
     name: 'A', account: 'A.1', profession: 'Guardian', eliteSpec: '', group: 1,
     isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
-    positions: [], downRanges: [], deadRanges: [],
+    firstPoll: 0, positions: [], downRanges: [], deadRanges: [],
 };
 
 describe('hpAt', () => {

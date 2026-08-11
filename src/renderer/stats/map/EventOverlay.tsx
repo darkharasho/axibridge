@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useStatsStore } from '../statsStore';
 import type { ReplayFightPayload } from './replayTypes';
-import type { SquadMemberMovement } from '../../../shared/movementData';
+import { positionAtTime, type SquadMemberMovement } from '../../../shared/movementData';
 
 interface EventOverlayProps {
     fight: ReplayFightPayload;
@@ -16,33 +16,39 @@ interface Pulse {
     y: number;
     ageMs: number;
     kind: 'down' | 'death' | 'damage' | 'rally';
+    isEnemy: boolean;
 }
 
-function positionAt(member: SquadMemberMovement, timeMs: number, pollingRate: number): [number, number] | null {
-    if (!member.positions.length) return null;
-    const idx = Math.min(member.positions.length - 1, Math.floor(timeMs / pollingRate));
-    return member.positions[idx];
-}
+const positionAt = positionAtTime;
 
-function collectBasePulses(fight: ReplayFightPayload, timeMs: number): Pulse[] {
+/**
+ * Down/death pulses.
+ *
+ * Squad pulses are unconditional; ENEMY pulses are gated on the
+ * `enemyPulses` layer and default off, because on a real WvW log they are the
+ * overwhelming majority of the events here (the reference fight has 111 enemy
+ * down/death intervals against the squad's 5) and would otherwise bury the
+ * handful that concern your own squad.
+ *
+ * Before this, enemy members were skipped outright — the data was loaded and
+ * discarded, so a fight where almost all the dying happened on the enemy side
+ * rendered no pulses at all.
+ */
+function collectBasePulses(fight: ReplayFightPayload, timeMs: number, includeEnemies: boolean): Pulse[] {
     const pulses: Pulse[] = [];
     const { pollingRate } = fight.movementData;
     for (const m of fight.movementData.members) {
-        if (m.isEnemy) continue;
-        for (const [t] of m.downRanges) {
+        if (m.isEnemy && !includeEnemies) continue;
+        const push = (t: number, kind: 'down' | 'death') => {
             const age = timeMs - t;
-            if (age >= 0 && age < PULSE_DURATION_MS) {
-                const pos = positionAt(m, t, pollingRate);
-                if (pos) pulses.push({ x: pos[0], y: pos[1], ageMs: age, kind: 'down' });
-            }
-        }
-        for (const [t] of m.deadRanges) {
-            const age = timeMs - t;
-            if (age >= 0 && age < PULSE_DURATION_MS) {
-                const pos = positionAt(m, t, pollingRate);
-                if (pos) pulses.push({ x: pos[0], y: pos[1], ageMs: age, kind: 'death' });
-            }
-        }
+            if (age < 0 || age >= PULSE_DURATION_MS) return;
+            // `clamp: false` — this mark belongs at where the actor was
+            // when they went down, so an edge sample would be a lie.
+            const pos = positionAt(m, t, pollingRate, false);
+            if (pos) pulses.push({ x: pos[0], y: pos[1], ageMs: age, kind, isEnemy: m.isEnemy });
+        };
+        for (const [t] of m.downRanges) push(t, 'down');
+        for (const [t] of m.deadRanges) push(t, 'death');
     }
     return pulses;
 }
@@ -64,7 +70,7 @@ function collectDamagePulses(fight: ReplayFightPayload, timeMs: number, index: M
         const m = index.get(e.memberKey);
         if (!m) continue;
         const pos = positionAt(m, timeMs, pollingRate);
-        if (pos) pulses.push({ x: pos[0], y: pos[1], ageMs: age, kind: 'damage' });
+        if (pos) pulses.push({ x: pos[0], y: pos[1], ageMs: age, kind: 'damage', isEnemy: false });
     }
     return pulses;
 }
@@ -78,7 +84,7 @@ function collectRallyPulses(fight: ReplayFightPayload, timeMs: number, index: Ma
         const m = index.get(e.memberKey);
         if (!m) continue;
         const pos = positionAt(m, e.timeMs, pollingRate);
-        if (pos) pulses.push({ x: pos[0], y: pos[1], ageMs: age, kind: 'rally' });
+        if (pos) pulses.push({ x: pos[0], y: pos[1], ageMs: age, kind: 'rally', isEnemy: false });
     }
     return pulses;
 }
@@ -112,7 +118,7 @@ export const EventOverlay: React.FC<EventOverlayProps> = ({ fight, timeMs, scale
     const layers = useStatsStore(state => state.replayLayers);
     const index = useMemo(() => memberByKey(fight), [fight]);
 
-    const basePulses = collectBasePulses(fight, timeMs);
+    const basePulses = collectBasePulses(fight, timeMs, layers.enemyPulses);
     const damagePulses = layers.damagePulses ? collectDamagePulses(fight, timeMs, index) : [];
     const rallyPulses = layers.rallyRings ? collectRallyPulses(fight, timeMs, index) : [];
     const focusLines = layers.targetFocusLines ? collectFocusLines(fight, timeMs, index) : [];
@@ -127,19 +133,26 @@ export const EventOverlay: React.FC<EventOverlayProps> = ({ fight, timeMs, scale
             ))}
             {basePulses.map((p, i) => {
                 const progress = p.ageMs / PULSE_DURATION_MS;
+                // Enemy pulses are dimmer and differently hued so a busy
+                // fight still reads squad-first at a glance: allied down is
+                // blue / death red, enemy down is violet / death green.
+                const suffix = p.isEnemy ? '-enemy' : '';
                 if (p.kind === 'down') {
                     const r = 18 * (1 - progress) / s;
-                    return <circle key={`b-${i}`} data-pulse="down"
+                    return <circle key={`b-${i}`} data-pulse={`down${suffix}`}
                         cx={p.x} cy={p.y} r={r}
-                        fill="none" stroke="#60a5fa" strokeOpacity={(1 - progress) * 0.6} strokeWidth={2 / s} />;
+                        fill="none" stroke={p.isEnemy ? '#c084fc' : '#60a5fa'}
+                        strokeOpacity={(1 - progress) * (p.isEnemy ? 0.4 : 0.6)} strokeWidth={2 / s} />;
                 }
                 const r = (10 + 24 * progress) / s;
                 return (
-                    <g key={`b-${i}`} data-pulse="death">
-                        <circle cx={p.x} cy={p.y} r={r} fill="none" stroke="#ef4444"
-                                strokeOpacity={(1 - progress) * 0.5} strokeWidth={3 / s} />
+                    <g key={`b-${i}`} data-pulse={`death${suffix}`}>
+                        <circle cx={p.x} cy={p.y} r={r} fill="none"
+                                stroke={p.isEnemy ? '#4ade80' : '#ef4444'}
+                                strokeOpacity={(1 - progress) * (p.isEnemy ? 0.35 : 0.5)} strokeWidth={3 / s} />
                         <text x={p.x} y={p.y + 4 / s} textAnchor="middle" fontSize={14 / s}
-                              fill="#fecaca" opacity={(1 - progress) * 0.6}>☠</text>
+                              fill={p.isEnemy ? '#bbf7d0' : '#fecaca'}
+                              opacity={(1 - progress) * (p.isEnemy ? 0.45 : 0.6)}>☠</text>
                     </g>
                 );
             })}

@@ -9,7 +9,7 @@ import type { SquadMemberMovement } from '../../../../shared/movementData';
 const mkMember = (o: Partial<SquadMemberMovement> = {}): SquadMemberMovement => ({
     name: 'Player', account: 'P.1', profession: 'Guardian', eliteSpec: '',
     group: 1, isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
-    positions: [], downRanges: [], deadRanges: [], ...o,
+    firstPoll: 0, positions: [], downRanges: [], deadRanges: [], ...o,
 });
 
 const mkFight = (members: SquadMemberMovement[]): ReplayFightPayload => ({

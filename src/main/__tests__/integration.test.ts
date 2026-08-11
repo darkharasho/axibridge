@@ -28,7 +28,15 @@ ${mimeTypes.length ? `MimeType=${mimeTypes.map((m) => `${m};`).join('')}\n` : ''
 let tmp: string;
 
 beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'axibridge-integration-'));
+    // `realpathSync` is load-bearing, not tidiness. `normalizeHomePath`
+    // resolves symlinks, so these fixtures only behave predictably if the
+    // sandbox root is already a real path. Without it the suite silently
+    // depends on `os.tmpdir()` living OUTSIDE $HOME: point TMPDIR at
+    // something under the home tree (a reasonable thing to do on a box where
+    // /tmp is a small quota'd tmpfs) and, on a distro where /home is a
+    // symlink to /var/home, the "outside the home tree" case below starts
+    // failing — the path it builds is inside the home tree after all.
+    tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'axibridge-integration-')));
 });
 afterEach(() => {
     fs.rmSync(tmp, { recursive: true, force: true });

@@ -6,7 +6,7 @@ import type { SquadMemberMovement } from '../../../../shared/movementData';
 const mkMember = (o: Partial<SquadMemberMovement> = {}): SquadMemberMovement => ({
     name: 'TestPlayer', account: 'Test.1234', profession: 'Guardian', eliteSpec: '',
     group: 1, isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
-    positions: [], downRanges: [], deadRanges: [], ...o,
+    firstPoll: 0, positions: [], downRanges: [], deadRanges: [], ...o,
 });
 
 const boonIcons: Record<number, { name: string; icon: string }> = {

@@ -39,7 +39,7 @@ describe('findClosestMember', () => {
     const m = (name: string, x: number, y: number): SquadMemberMovement => ({
         name, account: name, profession: '', eliteSpec: '', group: 1,
         isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
-        positions: [[x, y]], downRanges: [], deadRanges: [],
+        firstPoll: 0, positions: [[x, y]], downRanges: [], deadRanges: [],
     });
 
     it('returns null when no members are positioned', () => {
@@ -61,7 +61,7 @@ describe('findClosestMember', () => {
         const ghost: SquadMemberMovement = {
             name: 'Ghost', account: 'g', profession: '', eliteSpec: '', group: 1,
             isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
-            positions: [], downRanges: [], deadRanges: [],
+            firstPoll: 0, positions: [], downRanges: [], deadRanges: [],
         };
         const hit = findClosestMember([ghost, m('Alice', 100, 100)], 0, 101, 101, 5);
         expect(hit?.name).toBe('Alice');

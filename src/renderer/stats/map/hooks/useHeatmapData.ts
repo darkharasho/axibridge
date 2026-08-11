@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { ReplayFightPayload } from '../replayTypes';
+import { positionAtTime } from '../../../../shared/movementData';
 import type { SquadMemberMovement } from '../../../../shared/movementData';
 
 const GRID = 128;
@@ -43,8 +44,7 @@ function buildRaster(fight: ReplayFightPayload, mode: Exclude<Mode, 'off'>): Hea
     if (mode === 'deaths') {
         for (const m of allies) {
             for (const [deadAt] of m.deadRanges) {
-                const idx = Math.min(m.positions.length - 1, Math.floor(deadAt / pollingRate));
-                const pos = m.positions[idx];
+                const pos = positionAtTime(m, deadAt, pollingRate);
                 if (!pos) continue;
                 const b = bucket(pos[0], pos[1], width, height);
                 if (b !== null) buffer[b] += 1;
@@ -68,8 +68,7 @@ function buildRaster(fight: ReplayFightPayload, mode: Exclude<Mode, 'off'>): Hea
                     const dmg = m.damageTaken1SPerSec[i];
                     if (dmg <= 0) continue;
                     const tMs = (i + 0.5) * 1000;
-                    const posIdx = Math.min(m.positions.length - 1, Math.round(tMs / pollingRate));
-                    const pos = m.positions[posIdx];
+                    const pos = positionAtTime(m, tMs, pollingRate);
                     if (!pos) continue;
                     const b = bucket(pos[0], pos[1], width, height);
                     if (b !== null) buffer[b] += dmg;
@@ -78,7 +77,9 @@ function buildRaster(fight: ReplayFightPayload, mode: Exclude<Mode, 'off'>): Hea
                 // Fallback: infer damage from HP percentage drops.
                 let prevHp = hpAt(m, 0);
                 for (let i = 0; i < m.positions.length; i++) {
-                    const t = i * pollingRate;
+                    // absolute time of sample i — the track starts at the
+                    // member's own firstPoll, not at t=0
+                    const t = (i + (m.firstPoll || 0)) * pollingRate;
                     const hp = hpAt(m, t);
                     const drop = Math.max(0, prevHp - hp);
                     prevHp = hp;
