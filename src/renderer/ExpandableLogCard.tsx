@@ -9,6 +9,7 @@ import { Player } from '../shared/dpsReportTypes';
 import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DisruptionMethod, IEmbedStatSettings } from './global.d';
 import { getProfessionAbbrev, getProfessionEmoji } from '../shared/professionUtils';
 import { partitionSquadPlayers } from '../shared/playerIdentity';
+import { resolveEnemyClassLabel } from '../shared/computePlayerAggregation';
 import { getProfessionIconPath } from './classIconUtils';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { useLogDetails } from './cache/useLogDetails';
@@ -432,11 +433,10 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 if (seenEnemyIdsInFight.has(idKey)) return;
                 seenEnemyIdsInFight.add(idKey);
 
-                const cleanName = nameText
-                    .replace(/\s+pl-\d+$/i, '')
-                    .replace(/\s*\([^)]*\)/, '')
-                    .trim();
-                fromTargets[cleanName] = (fromTargets[cleanName] || 0) + 1;
+                // Group by PROFESSION, never by `name` -- a WvW target's name
+                // is the player's rank title ("Gold Invader"), not a class.
+                const label = resolveEnemyClassLabel(t);
+                fromTargets[label] = (fromTargets[label] || 0) + 1;
             });
 
             const playerTotal = Object.values(fromPlayers).reduce((sum, count) => sum + count, 0);

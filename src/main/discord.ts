@@ -28,6 +28,7 @@ import {
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../shared/professionUtils';
 import { partitionSquadPlayers } from '../shared/playerIdentity';
+import { resolveEnemyClassLabel } from '../shared/computePlayerAggregation';
 import { Player } from '../shared/dpsReportTypes';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
@@ -468,11 +469,11 @@ export class DiscordNotifier {
                             if (seenEnemyIdsInFight.has(idKey)) return;
                             seenEnemyIdsInFight.add(idKey);
 
-                            const cleanName = String(rawName)
-                                .replace(/\s+pl-\d+$/i, '')
-                                .replace(/\s*\([^)]*\)/, '')
-                                .trim();
-                            fromTargets[cleanName] = (fromTargets[cleanName] || 0) + 1;
+                            // Group by PROFESSION, never by `name` -- a WvW
+                            // target's name is the player's rank title
+                            // ("Gold Invader"), not a class.
+                            const label = resolveEnemyClassLabel(t);
+                            fromTargets[label] = (fromTargets[label] || 0) + 1;
                         });
                     }
                     const playerTotal = Object.values(fromPlayers).reduce((sum, count) => sum + count, 0);

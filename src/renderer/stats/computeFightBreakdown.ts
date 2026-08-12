@@ -1,4 +1,4 @@
-import { getFightDownsDeaths, getFightOutcome, resolveProfessionLabel } from './computePlayerAggregation';
+import { getFightDownsDeaths, getFightOutcome, resolveProfessionLabel, resolveEnemyClassLabel } from './computePlayerAggregation';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { formatDurationMs } from './utils/dashboardUtils';
@@ -76,7 +76,9 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
     };
     const squadClassCountsFight = countProfessions(squadPrimaries, (p) => p?.profession || p?.name);
     const allyClassCountsFight = countProfessions(pugPrimaries, (p) => p?.profession || p?.name);
-    const enemyClassCounts = countProfessions(enemyTargets, (t) => t?.profession || t?.name || t?.id);
+    // Enemies group by PROFESSION only -- `name` is the WvW rank title
+    // ("Gold Invader"), which reads as a class but is not one.
+    const enemyClassCounts = countProfessions(enemyTargets, (t) => resolveEnemyClassLabel(t));
     const alliedTeamIds = new Set<string>();
     squadPlayers.forEach((player: any) => {
         const value = getTeamValue(player);

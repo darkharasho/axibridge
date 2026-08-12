@@ -177,6 +177,31 @@ export const resolveProfessionLabel = (name?: string) => {
     return baseMatch || cleaned || 'Unknown';
 };
 
+/**
+ * The class label for an ENEMY target, for class-breakdown grouping.
+ *
+ * Reads `profession` and nothing else. A WvW target's `name` is the player's
+ * RANK TITLE ("Gold Invader", "Mithril Legend"), so falling back to it charts
+ * rank titles as if they were professions -- plausible-looking nonsense in a
+ * position where nothing signals to the reader that it is not a class.
+ * "Unknown" is the honest answer when the source does not carry a profession.
+ *
+ * axilog supplies `targets[].profession` as a deliberate superset over EI
+ * (GW2EI's `JsonNPC` has no profession member at all), so for axilog-parsed
+ * logs this is present and was previously being discarded.
+ *
+ * A purely numeric profession is treated as absent: axilog before 0.3.3
+ * rendered an elite-spec id it could not name as that id, and "79" is not a
+ * class name.
+ */
+export const resolveEnemyClassLabel = (target?: any): string => {
+    const raw = target && typeof target === 'object' ? target.profession : undefined;
+    if (typeof raw !== 'string') return 'Unknown';
+    const trimmed = raw.trim();
+    if (!trimmed || /^\d+$/.test(trimmed)) return 'Unknown';
+    return resolveProfessionLabel(trimmed);
+};
+
 // --- Module-level constants and helper functions (moved from closure) ---
 
 const supportTimeSanityFields = new Set(['boonStripsTime', 'condiCleanseTime', 'condiCleanseTimeSelf']);
