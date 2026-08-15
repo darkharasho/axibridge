@@ -47,7 +47,12 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
     const { squadPrimaries, pugPrimaries } = partitionSquadPlayers(players);
     const targets = Array.isArray(details?.targets) ? details.targets : [];
     const wvwTeamMap = teamMapFromLog(details);
-    const enemyTargets = targets.filter((t: any) => !t.isFake);
+    // Enemy players only. `isFake` drops EI's synthetic agents; `enemyPlayer === false`
+    // drops WvW NPCs (guards, lords, sentries, dolyaks, siege) that arcdps logs as
+    // targets. Without the second filter the headline enemyCount counts NPCs while
+    // teamBreakdown below (which applies it) does not, so the columns stop summing to
+    // the total whenever a fight happens near objectives.
+    const enemyTargets = targets.filter((t: any) => !t.isFake && t.enemyPlayer !== false);
     const summary = log?.dashboardSummary && typeof log.dashboardSummary === 'object'
         ? log.dashboardSummary
         : null;

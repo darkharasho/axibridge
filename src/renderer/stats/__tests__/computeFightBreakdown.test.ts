@@ -29,6 +29,39 @@ describe('ingestLogFightBreakdown team colors', () => {
     });
 });
 
+describe('ingestLogFightBreakdown enemy NPC exclusion', () => {
+    // WvW fights near objectives pull guards/lords/sentries into targets[]. EI marks
+    // them enemyPlayer: false. They must not inflate enemyCount, because teamBreakdown
+    // and enemyClassCounts exclude them -- the columns have to sum to the headline.
+    const mkNpcLog = () => ({
+        filePath: 'f1',
+        details: {
+            durationMS: 10000,
+            players: [{ notInSquad: false, teamID: 50, dpsAll: [{ damage: 0 }], defenses: [{}], statsAll: [{}] }],
+            targets: [
+                { enemyPlayer: true, isFake: false, teamID: 707, name: 'Tempest pl-1', profession: 'Tempest' },
+                { enemyPlayer: true, isFake: false, teamID: 707, name: 'Scourge pl-2', profession: 'Scourge' },
+                { enemyPlayer: false, isFake: false, teamID: 707, name: 'Veteran Guard' },
+                { enemyPlayer: false, isFake: false, teamID: 707, name: 'Keep Lord' },
+                { enemyPlayer: true, isFake: true, teamID: 707, name: 'Dummy PvP Agent' },
+            ],
+        },
+    });
+
+    it('excludes NPC targets from enemyCount', () => {
+        const fb = ingestLogFightBreakdown(mkNpcLog(), 0);
+        expect(fb.enemyCount).toBe(2);
+    });
+
+    it('keeps enemyCount equal to the sum of teamBreakdown and enemyClassCounts', () => {
+        const fb = ingestLogFightBreakdown(mkNpcLog(), 0);
+        const teamSum = fb.teamBreakdown.reduce((sum: number, t: any) => sum + t.count, 0);
+        const classSum = Object.values(fb.enemyClassCounts).reduce((sum: number, n: any) => sum + n, 0);
+        expect(teamSum).toBe(fb.enemyCount);
+        expect(classSum).toBe(fb.enemyCount);
+    });
+});
+
 describe('ingestLogFightBreakdown boon strips & applications', () => {
     const mkBoonLog = () => ({
         filePath: 'f1',
