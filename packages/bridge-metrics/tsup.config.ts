@@ -23,7 +23,9 @@ export default defineConfig({
         statsMetrics: 'src/statsMetrics.ts',
         boonGeneration: 'src/boonGeneration.ts',
         constants: 'src/constants.ts',
-        playerIdentity: 'src/playerIdentity.ts'
+        playerIdentity: 'src/playerIdentity.ts',
+        nativeRoster: 'src/nativeRoster.ts',
+        nativeEncounter: 'src/nativeEncounter.ts'
     },
     format: ['esm', 'cjs'],
     outExtension: ({ format }) => ({ js: format === 'cjs' ? '.cjs' : '.js' }),

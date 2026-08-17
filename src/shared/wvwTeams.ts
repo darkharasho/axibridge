@@ -9,7 +9,11 @@
 //   - Drevarr/EVTC_parser/gw2_data.py
 //   - Drevarr/GW2_EI_log_combiner/config.py
 
-import { getEncounterTeamMap } from '@axiapps/bridge-metrics';
+// Subpath, not the package root: `src/shared/**` is also compiled by
+// `electron/tsconfig.json`, whose Node10 resolver cannot see the root `exports`
+// map. Every other shared module imports this way for the same reason — see
+// `src/main/bridgeMetricsRoot.d.ts`.
+import { getEncounterTeamMap } from '@axiapps/bridge-metrics/nativeEncounter';
 
 export type WvwTeamColor = 'red' | 'green' | 'blue' | 'unknown';
 

@@ -26,7 +26,9 @@
         "./statsMetrics": { "types": "./dist/statsMetrics.d.ts", "import": "./dist/statsMetrics.js", "require": "./dist/statsMetrics.cjs" },
         "./boonGeneration": { "types": "./dist/boonGeneration.d.ts", "import": "./dist/boonGeneration.js", "require": "./dist/boonGeneration.cjs" },
         "./constants": { "types": "./dist/constants.d.ts", "import": "./dist/constants.js", "require": "./dist/constants.cjs" },
-        "./playerIdentity": { "types": "./dist/playerIdentity.d.ts", "import": "./dist/playerIdentity.js", "require": "./dist/playerIdentity.cjs" }
+        "./playerIdentity": { "types": "./dist/playerIdentity.d.ts", "import": "./dist/playerIdentity.js", "require": "./dist/playerIdentity.cjs" },
+        "./nativeRoster": { "types": "./dist/nativeRoster.d.ts", "import": "./dist/nativeRoster.js", "require": "./dist/nativeRoster.cjs" },
+        "./nativeEncounter": { "types": "./dist/nativeEncounter.d.ts", "import": "./dist/nativeEncounter.js", "require": "./dist/nativeEncounter.cjs" }
     },
     "typesVersions": {
         "*": { "*": ["dist/*.d.ts"] }
