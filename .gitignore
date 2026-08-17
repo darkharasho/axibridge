@@ -76,3 +76,6 @@ arcbridge-settings.json
 graphify-out/
 repomix-output.txt
 .playwright-mcp/
+
+# Local scratch probes (never committed)
+/scratch/
