@@ -854,6 +854,86 @@ native, while `defenses`, `extBarrierStats`, `stabGeneration` and `statsTargets`
 units 5 and 6. Finishing them here would leave those units' work done in a way their own oracles
 never checked.
 
+### Unit 5a — boons, migrated (2026-08-17)
+
+`buildBoonTables`/`getEntityBoonGenerationMs` (`packages/bridge-metrics/src/boonGeneration.ts`),
+`computeStabPerformance`, `computeBoonUptimeTimeline` and `computeBoonTimeline` now read
+`blocks.boons` and `catalogs.buffs` through a new module,
+`packages/bridge-metrics/src/nativeBoons.ts`. The oracle
+(`src/test/__tests__/boonsNative.oracle.test.ts`) has an **empty allowlist**, 6/6 tests green: the
+same 12 boon tables with identical row membership per table, every per-source join key resolving to
+a real entity (1462/1462), a condition never reaching the boon path, and a strip test that deletes
+EI's buff payload entirely with no number changing.
+
+**Boon uptime is migrated in code, not in production.** `getEntityBuffUptime` and
+`getEntityBuffPresence` exist in `nativeBoons.ts` and are unit-tested, but grep confirms their only
+callers are their own tests — nothing in `src/` or `packages/bridge-metrics/src` outside the test
+file calls them. None of 5a's four modules needed uptime: the tables read `generation`, both
+timelines read `states`. The real uptime consumer is
+`packages/bridge-metrics/src/computePlayerAggregation.ts` plus `src/shared/commanderMetrics/*`,
+which still read EI's `buffUptimes` and belong to the aggregators unit, not this one. The oracle's
+504-pair "matches EI uptime under the intensity/duration rule" assertion is easy to misread as
+proof this is done — it isn't. It validates the rule's **premise** (EI `uptime` equals native
+`avg_stacks` for intensity buffs and `uptime_pct` for duration buffs, checked against raw
+`blocks.boons`/`ei.players` data directly) so the aggregators unit can lean on it later, but it
+exercises no migrated reader today.
+
+**What retired, and why it was there.** `catalogs.buffs` states `kind` (`'boon' | 'condition'`) and
+`stacking` outright, which retires two things inside `boonGeneration.ts`: the hardcoded per-boon-id
+table the pre-migration code kept locally, and `isBoon`, a `classification`-string sniff that
+passed everything through because EI never actually set `classification` — conditions never reached
+these tables by accident, not by the check working. (The similarly-named `BOON_IDS` in
+`src/renderer/stats/topStatsCatalog.ts` and the `isBoon` sniffs left standing in
+`computeCommanderStats.ts` and `computePlayerAggregation.ts` are separate, unmigrated call sites —
+see the aggregators-unit note above.)
+
+**Losing `icon` is parity, not a regression.** EI's `buffMap` carries zero populated icons on this
+fixture already (§4.3); native's `catalogs.buffs` has no icon field either, so every boon-icon reader
+was already on the text-label fallback before this unit touched anything.
+
+**The per-source join moved from character name to entity id.** EI's `statesPerSource` was keyed by
+character name, which is not unique across agent instances (§ "EI duplicate player entries" in
+memory — same failure family). `getEntityBuffStatesPerSource` keys by the native source entity id,
+resolved back to an account through the same `entity.id → account` map the rest of the file already
+builds. The oracle pins 1462/1462 (entity, buff, source) triples resolving to a real entity, which a
+name collision would silently have dropped.
+
+**`blocks.boons` and `blocks.conditions` are disjoint by role, and there is no condition-on-squad
+uptime natively yet.** Native splits buffs into two blocks by `catalogs.buffs[id].kind`; boons live
+in `blocks.boons`, conditions in `blocks.conditions`. Nothing in this unit reads the condition block
+— that is unit 5b's whole job, and its central trap is already known: EI and native disagree on
+condition names (`Crippled` vs `Cripple`, `Immobile` vs `Immobilize`), so a name-keyed join that
+worked for boons will silently miscount conditions. `computeStripSpikesData` stays on EI for now too,
+for an unrelated reason: boon strips live in `blocks.support`, which is unit 6, not 5a or 5b.
+
+**One behaviour changed, and it is not user-visible.** A pre-existing bug — identical on the EI
+path, not introduced here — ran the per-source bucket-timeline attribution *inside* the per-category
+loop in `computeBoonTimeline.ts`, so `addBucketWeightsFromStates` (which accumulates into a reused
+array) fired once per generating category for a boon that generated in all three, scaling
+`bucketWeights5s` by a data-dependent 1×/2×/3× multiplier. It now runs once per (entity, boonId).
+The only field this touched was `bucketWeights5s`, the raw diagnostic array — the rendered
+`buckets5s` is normalized by `scaleBucketsToTotal` and is ratio-invariant to a uniform scale, so no
+number a user sees moved. Pinned by
+`src/renderer/__tests__/computeBoonTimeline.test.ts` (restoring the old per-category placement fails
+it at `[15000, 15000]` vs the correct `[5000, 5000]`).
+
+**A fixture fact, recorded so it doesn't get mistaken for a bug later.** Boon table rows are per-boon,
+not fixed at squad size — a player earns a row only when generation or wasted is non-zero. On
+`wvw-small.anon.zevtc`, Might has 33 of 38 squad rows (5 members generate zero Might all log) and
+Alacrity has 1 of 38. Identical on the EI and native paths; the oracle derives the expected
+membership set independently per table and pins it exactly, not as a `>0` bound.
+
+**A precision gotcha worth carrying into later units.** EI truncates its `generation`/`wasted`
+fields to 3 decimal places (measured on the fixture: EI reports `4.298` self-Might generation where
+native's raw `self_pct` is `4.297595617327787`). `computeGenerationMs` multiplies that percentage by
+`durationMs` and a per-category recipient count, so a half-ULP rounding gap at the percentage level
+is amplified by the same count — exact equality between native-derived and EI-derived generation
+fails even when both are correct. The working tolerance is
+`0.0006 * durationMs * recipientCount + 1` milliseconds
+(`packages/bridge-metrics/src/__tests__/boonGeneration.native.test.ts`). This cost real debugging
+time before the amplification was understood; later units comparing native to EI generation/wasted
+figures should reach for this tolerance shape rather than re-deriving it.
+
 ### Other reconstructions
 
 `applyEiCompatShims` fills `players[].name` (from `character_name`), `zone` (split out of
