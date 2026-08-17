@@ -100,3 +100,54 @@ describe('entitiesById', () => {
         expect(map.get(99)).toBeUndefined();
     });
 });
+
+describe('sentinel handling — the three states EI collapsed into one', () => {
+    it('distinguishes a squad with zero members from a report that has no roster', () => {
+        // "ran, found nothing" vs "never ran". Both yield an empty array here,
+        // but they must be distinguishable at the coverage layer, not inferred
+        // from emptiness. This test pins that the FILTER never invents members
+        // for either case.
+        expect(squadEntities({ entities: [] } as any)).toEqual([]);
+        expect(squadEntities({} as any)).toEqual([]);
+    });
+
+    it('treats combat_participant absent as NOT participating, never as true', () => {
+        const r = {
+            entities: [
+                { id: 0, role: 'npc', account: '', combat_participant: undefined },
+                { id: 1, role: 'npc', account: '', combat_participant: false },
+                { id: 2, role: 'npc', account: '', combat_participant: true },
+            ],
+        } as any;
+        // Strict === true, so an absent flag cannot be silently promoted.
+        expect(combatParticipantEnemies(r).map((e) => e.id)).toEqual([2]);
+    });
+
+    it('treats an unrecognised role as not-squad rather than defaulting to squad', () => {
+        const r = { entities: [{ id: 0, role: 'some_future_role', combat_participant: true }] } as any;
+        expect(squadEntities(r)).toEqual([]);
+        expect(enemyPlayerEntities(r)).toEqual([]);
+        // But it IS a combat participant, because that is a separate fact.
+        expect(combatParticipantEnemies(r).map((e) => e.id)).toEqual([0]);
+    });
+
+    it('does not confuse subgroup 0 with an absent subgroup', () => {
+        const zero = { id: 0, role: 'squad', account: ':A.1', subgroup: 0 } as any;
+        const absent = { id: 1, role: 'squad', account: ':B.2' } as any;
+        expect(zero.subgroup).toBe(0);
+        expect(absent.subgroup).toBeUndefined();
+        // The trap: `entity.subgroup || 1` would turn a real 0 into 1.
+        expect(squadEntities({ entities: [zero, absent] } as any).map((e) => e.subgroup))
+            .toEqual([0, undefined]);
+    });
+
+    it('does not treat the zero guild id as a repped guild', () => {
+        // Anonymized fixtures carry the zero guild on every entity. A reader
+        // that trusted presence over value would report a session guild of
+        // all-zeros for every anonymized log.
+        const ZERO = '00000000-0000-0000-0000-000000000000';
+        const e = { id: 0, role: 'squad', account: ':A.1', guild_id: ZERO } as any;
+        expect(e.guild_id).toBe(ZERO);
+        expect(squadEntities({ entities: [e] } as any)).toHaveLength(1);
+    });
+});
