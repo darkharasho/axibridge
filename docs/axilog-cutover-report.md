@@ -584,18 +584,73 @@ have been *larger* after the migration than before it.
    that absence, so the entry fails rather than surviving on faith if a future axilog starts
    emitting them.
 
-### Deferred to unit 3b
+### Unit 3b — the replay map, migrated (2026-08-17)
 
-The renderer's **visual** replay surface still reads EI positions and still works:
-`src/renderer/stats/map/*` (`ReplayView`, `SquadOverlay`, `EventOverlay`, `useHeatmapData`,
-`useSquadDerived`), `wvwTiles.ts`, `wvwLandmarks.ts`, `mapUtils.ts`, and `MovementData`'s
-`members`/`pollingRate`/`inchToPixel` view-model. These are pixel-calibrated against `wvwTiles`'
-`continentRect` and must migrate onto `ArenaProjection` as one piece. `movementData.ts` therefore
-gained `buildNativeMovement` **alongside** the existing view-model rather than replacing it.
+The renderer's **visual** replay surface now reads native positions. The decision that made this
+small: **keep the calibrated pixel space, change its source.**
 
-Also note: `computePositioning` in `packages/bridge-metrics/src/positioning.ts` was migrated but has
-**no consumer inside axibridge** — it is live public API of a published package (`@axiapps/bridge-metrics`),
-which is why it was ported rather than deleted. Worth a decision of its own.
+Every landmark in `wvwLandmarks.ts` (523x750 alpine, 716x750 EBG) and every `pixelOffset` in
+`wvwTiles.ts` is hand-calibrated against EI's canvas, whose max dimension is 750. Native emits the
+arena un-squeezed. Measured on the fixture at 0.3.5:
+
+| | value |
+|---|---|
+| native `blocks.replay.tracks.arena` image | 697 x 1000 |
+| scaled so max dimension = 750 | 522.75 x 750 |
+| EI `combatReplayMetaData.sizes` | **523 x 750** |
+
+`replayCanvas(arena)` reproduces that, rounding included, and `worldToPixel(arena, x, y, canvas)`
+then lands within a **median 0.01 px** of EI's own positions over >1000 compared samples. So every
+calibrated constant stays exact while EI stops being read. Re-calibrating the overlay into world
+inches would have been a large, risky, purely cosmetic change.
+
+**`inchToPixel` is replaced by a per-axis pair, not a corrected scalar.** The projection is
+genuinely anisotropic: the fixture's world rect is 61440 x 86016 (ratio 0.714) against an image of
+697 x 1000 (ratio 0.697), so the axes differ by ~2.4%. EI collapsed that to `0.009`, against true
+scales of 0.008512 (x) and 0.008719 (y). The commander range rings were therefore both oversized
+and wrongly circular; they are now ellipses scaled per axis.
+
+**The dense `positions[]` encoding survives, deliberately.** All 74 tracks on the fixture step by
+exactly `poll_ms` and every track's first sample is an exact multiple of it, so `positions[] +
+firstPoll` remains valid. Storing `[t, x, y]` triples instead would have inflated `replayFights` --
+~66% of `report.json` -- by roughly half for no gain. `firstPoll` is now READ from the first
+sample's timestamp rather than derived, so the `ceil`-vs-`floor` error unit 3 found at five call
+sites cannot recur. The no-gap invariant is asserted against the real fixture in the unit 3b
+oracle, so a future axilog that introduces gaps fails loudly.
+
+**A latent dependency removed.** The EI path joined and deduped allies on `players[].name`, which
+axilog's ei-json compat does not emit (it spells it `character_name`). Production was fine only
+because `applyEiCompatShims` back-fills it -- but that shim is scheduled for deletion with its
+readers in unit 8, at which point all 42 allies would have collided on `undefined` and the map
+would have drawn one. Entity ids make the join total.
+
+Also migrated off EI: `computeFightAvgPosition` (which feeds the landmark lookup), the payload's
+`mapSize`/`mapImageUrl` (now from the arena), and `computeRallyEvents` (which re-read EI down/dead
+intervals the movement members already carried natively).
+
+**Oracle:** `src/test/__tests__/unit3bReplayMap.oracle.test.ts`, 8 tests, two allowlist entries
+(`ally member count`, `inch scale`).
+
+### Deferred out of unit 3b: `commanderMetrics`
+
+`src/shared/commanderMetrics/*` and `computeCommanderStats.ts` are now the last EI-position readers
+in the app. Scoping them against the code rather than the file list showed they are not a
+mechanical swap, for two reasons:
+
+1. `playerPosAt(player, tSec, framesPerSec)` is keyed on an EI `Player` with no entity id, so
+   feeding it native tracks means changing `computeCommanderFightData`'s contract and threading an
+   account-to-track join through four files -- unit-scale work on a 2000-line EI-shaped subsystem
+   whose other 90% belongs to units 4-6.
+2. **There is a pre-existing unit bug there that must be fixed deliberately.** `cohesion.ts`
+   computes `distFromTag` in map PIXELS, and `firstSquadDeathEarly.ts` renders it as
+   `"<n>u from tag"` -- game units. Those differ by ~117x (one pixel spans ~117 world inches on
+   this fixture). The detector's thresholds appear tuned against the pixel value, so correcting the
+   unit without re-deriving them changes which fights trigger the detector. That trade-off belongs
+   with the commanderMetrics migration, not with the replay map.
+
+`computePositioning` in `packages/bridge-metrics/src/positioning.ts` remains migrated-but-unused
+inside axibridge -- it is live public API of a published package, which is why it was ported rather
+than deleted. Still worth a decision of its own.
 
 ### Other reconstructions
 

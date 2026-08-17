@@ -7,7 +7,7 @@ const fight = (over: Partial<ReplayFightPayload>): ReplayFightPayload => ({
     fightId: 'f0', fightIndex: 0, label: 'x', timestampMs: 0, durationMs: 100,
     mapKey: null, mapImageUrl: null, mapSize: null, avgPosition: null,
     nearestLandmark: null, squadSize: 0, kills: 0, deaths: 0,
-    movementData: { pollingRate: 300, durationMs: 100, inchToPixel: 1, members: [], boonIcons: {}, skillIcons: {} },
+    movementData: { pollingRate: 300, durationMs: 100, pixelsPerInch: { x: 1, y: 1 }, members: [], boonIcons: {}, skillIcons: {} },
     dpsSamples: [], killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
     sectorOwners: null, ...over,
 });

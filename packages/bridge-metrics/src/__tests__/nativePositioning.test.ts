@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     getPollMs, getArena, worldToPixel, getPositionTracks, getPositionTrack,
     positionAt, getDistanceScalars, NO_DISTANCE,
+    replayCanvas, pixelsPerInch, REPLAY_CANVAS_MAX,
 } from '../nativePositioning';
 
 const ARENA = {
@@ -62,6 +63,54 @@ describe('nativePositioning — arena projection', () => {
         const [px, py] = worldToPixel(a, 0, 0, [523, 750]);
         expect(px).toBeCloseTo(261.5, 6);
         expect(py).toBeCloseTo(375, 6);
+    });
+});
+
+describe('nativePositioning — render canvas', () => {
+    it('reproduces EI\'s sizes for the reference arena', () => {
+        // EI reported [523, 750] for this exact arena; 697 × 0.75 = 522.75.
+        // Matching EI's rounding is the point — the landmark table was
+        // calibrated against 523, not against 522.75.
+        expect(replayCanvas(ARENA)).toEqual([523, 750]);
+    });
+
+    it('caps the LARGER dimension, whichever axis it is', () => {
+        expect(replayCanvas({ ...ARENA, image_width: 1000, image_height: 697 }))
+            .toEqual([REPLAY_CANVAS_MAX, 523]);
+    });
+
+    it('leaves an already-750 canvas alone', () => {
+        expect(replayCanvas({ ...ARENA, image_width: 750, image_height: 750 }))
+            .toEqual([750, 750]);
+    });
+
+    it('degrades to [0, 0] rather than dividing by zero', () => {
+        expect(replayCanvas({ ...ARENA, image_width: 0, image_height: 0 })).toEqual([0, 0]);
+    });
+
+    it('gives an exact per-axis inch scale, not EI\'s rounded scalar', () => {
+        const ppi = pixelsPerInch(ARENA);
+        // EI rounded both of these to a single 0.009.
+        expect(ppi.x).toBeCloseTo(523 / 61440, 12);
+        expect(ppi.y).toBeCloseTo(750 / 86016, 12);
+    });
+
+    it('keeps the two axes distinct — the projection is anisotropic', () => {
+        const ppi = pixelsPerInch(ARENA);
+        // ~2.4% apart. A caller averaging these would reintroduce EI's error.
+        expect(ppi.x).not.toBeCloseTo(ppi.y, 5);
+        expect(ppi.y / ppi.x).toBeCloseTo(1.0248, 3);
+    });
+
+    it('honours an explicit canvas', () => {
+        const ppi = pixelsPerInch(ARENA, [697, 1000]);
+        expect(ppi.x).toBeCloseTo(697 / 61440, 12);
+    });
+
+    it('returns 0 for a degenerate world rect instead of Infinity', () => {
+        const ppi = pixelsPerInch({ ...ARENA, world_min_x: 0, world_max_x: 0 });
+        expect(ppi.x).toBe(0);
+        expect(Number.isFinite(ppi.y)).toBe(true);
     });
 });
 

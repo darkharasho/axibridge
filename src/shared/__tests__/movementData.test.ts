@@ -1,37 +1,31 @@
 import { describe, it, expect } from 'vitest';
 import { buildMovementData, buildNativeMovement, positionAt, positionAtOrBefore } from '../movementData';
+import { buildNativeLog } from '../../test/nativeLogFixture';
 
 const trackedBuffs = new Set<number>([740, 725]); // Might, Fury — arbitrary sample.
 
 describe('buildMovementData', () => {
-    it('returns null when no players have positions', () => {
-        const details = { players: [{ name: 'Alice', combatReplayData: { positions: [] } }], targets: [] };
-        expect(buildMovementData(details, { trackedBuffIds: trackedBuffs })).toBeNull();
+    it('returns null when the log has no native replay tracks', () => {
+        expect(buildMovementData({ players: [] }, { trackedBuffIds: trackedBuffs })).toBeNull();
     });
 
-    it('extracts ally members with positions', () => {
-        const details = {
-            durationMS: 60_000,
-            combatReplayMetaData: { pollingRate: 300, inchToPixel: 0.01 },
-            players: [
-                {
-                    name: 'Alice', account: 'Alice.0001', profession: 'Guardian', elite_spec: 62,
-                    group: 1, hasCommanderTag: true, notInSquad: false, isFake: false,
-                    combatReplayData: { positions: [[100, 100], [110, 110]], dead: [], down: [] },
+    it('extracts ally members, projecting world samples onto the render canvas', () => {
+        const details = buildNativeLog([
+            {
+                id: 1, role: 'squad', account: 'Alice.0001', character: 'Alice',
+                profession: 'Guardian', elite_spec: 'Firebrand', subgroup: 1, commander: true,
+                pixels: [[100, 100], [110, 110]],
+                ei: {
                     healthPercents: [[0, 100], [1000, 90]],
                     buffUptimes: [{ id: 740, states: [[0, 1], [30_000, 0]] }],
                     rotation: [],
                 },
-            ],
-            targets: [],
-            skillMap: {},
-            buffMap: { b740: { name: 'Might', icon: '/might.png' } },
-        };
+            },
+        ], { buffMap: { b740: { name: 'Might', icon: '/might.png' } } });
 
-        const movement = buildMovementData(details, { trackedBuffIds: trackedBuffs });
-        expect(movement).not.toBeNull();
-        expect(movement!.members).toHaveLength(1);
-        const member = movement!.members[0];
+        const movement = buildMovementData(details, { trackedBuffIds: trackedBuffs })!;
+        expect(movement.members).toHaveLength(1);
+        const member = movement.members[0];
         expect(member.name).toBe('Alice');
         expect(member.isCommander).toBe(true);
         expect(member.isLocal).toBe(false);
@@ -39,69 +33,86 @@ describe('buildMovementData', () => {
         expect(member.inSquad).toBe(true);
         expect(member.positions).toEqual([[100, 100], [110, 110]]);
         expect(member.boonStates?.[740]).toEqual([[0, 1], [30_000, 0]]);
-        expect(movement!.boonIcons[740]?.name).toBe('Might');
+        expect(movement.boonIcons[740]?.name).toBe('Might');
+    });
+
+    it('reads firstPoll from the sample timestamp rather than deriving it', () => {
+        // A track starting at 1500ms on a 300ms grid is poll 5. The EI path had
+        // to infer this from a start time, and five call sites used floor where
+        // ceil was correct; a self-timestamped sample removes the derivation.
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'A.1', character: 'A', pixels: [[10, 10]], startMs: 1500 },
+        ]);
+        expect(buildMovementData(details, { trackedBuffIds: trackedBuffs })!.members[0].firstPoll).toBe(5);
+    });
+
+    it('gives an exact per-axis inch scale instead of EI\'s rounded scalar', () => {
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'A.1', character: 'A', pixels: [[10, 10]] },
+        ]);
+        // 750px over a 75000-inch world rect.
+        expect(buildMovementData(details, { trackedBuffIds: trackedBuffs })!.pixelsPerInch)
+            .toEqual({ x: 0.01, y: 0.01 });
     });
 
     it('marks a member as local when localAccount matches', () => {
-        const details = {
-            durationMS: 60_000,
-            combatReplayMetaData: { pollingRate: 300, inchToPixel: 0.01 },
-            players: [
-                { name: 'Bob', account: 'Bob.0002', profession: 'Engineer', elite_spec: 43,
-                  group: 2, hasCommanderTag: false, notInSquad: false, isFake: false,
-                  combatReplayData: { positions: [[50, 50]], dead: [], down: [] } },
-            ],
-            targets: [],
-            skillMap: {},
-            buffMap: {},
-        };
-
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'Bob.0002', character: 'Bob', pixels: [[50, 50]] },
+        ]);
         const movement = buildMovementData(details, { trackedBuffIds: trackedBuffs, localAccount: 'Bob.0002' });
         expect(movement!.members[0].isLocal).toBe(true);
     });
 
-    it('extracts enemy players from targets[]', () => {
-        const details = {
-            durationMS: 60_000,
-            combatReplayMetaData: { pollingRate: 300, inchToPixel: 0.01 },
-            players: [
-                { name: 'Ally', account: 'Ally.0001', profession: 'Warrior', elite_spec: 18,
-                  group: 1, hasCommanderTag: false, notInSquad: false, isFake: false,
-                  combatReplayData: { positions: [[0, 0]], dead: [], down: [] } },
-            ],
-            targets: [
-                { name: 'Dragonhunter pl-1', isFake: false, enemyPlayer: true, profession: 'Guardian',
-                  combatReplayData: { positions: [[500, 500], [510, 510]], dead: [], down: [] } },
-            ],
-            skillMap: {},
-            buffMap: {},
-        };
-
-        const movement = buildMovementData(details, { trackedBuffIds: trackedBuffs });
-        const enemy = movement!.members.find(m => m.isEnemy);
-        expect(enemy).toBeDefined();
-        expect(enemy!.name).toBe('Dragonhunter pl-1');
-        expect(enemy!.eliteSpec).toBe('Dragonhunter');
+    it('keeps every ally without depending on a name at all', () => {
+        // axilog's ei-json compat spells the character name `character_name`,
+        // not `name`. The old path deduped allies on `name` and so depended on
+        // `applyEiCompatShims` back-filling it — a shim slated for deletion in
+        // unit 8. Entity ids make the join total and drop that dependency.
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'A.1', character: 'A', pixels: [[10, 10]] },
+            { id: 2, role: 'squad', account: 'B.2', character: 'B', pixels: [[20, 20]] },
+            { id: 3, role: 'squad', account: 'C.3', character: 'C', pixels: [[30, 30]] },
+        ]);
+        expect(buildMovementData(details, { trackedBuffIds: trackedBuffs })!.members).toHaveLength(3);
     });
 
-    it('deduplicates targets that share a name with an ally', () => {
-        const details = {
-            durationMS: 60_000,
-            combatReplayMetaData: { pollingRate: 300, inchToPixel: 0.01 },
-            players: [
-                { name: 'DoppelGanger', account: 'DG.0001', profession: 'Mesmer', elite_spec: 40,
-                  group: 1, hasCommanderTag: false, notInSquad: false, isFake: false,
-                  combatReplayData: { positions: [[0, 0]], dead: [], down: [] } },
-            ],
-            targets: [
-                { name: 'DoppelGanger', isFake: false, enemyPlayer: true, profession: 'Mesmer',
-                  combatReplayData: { positions: [[100, 100]], dead: [], down: [] } },
-            ],
-            skillMap: {},
-            buffMap: {},
-        };
-        const movement = buildMovementData(details, { trackedBuffIds: trackedBuffs });
-        expect(movement!.members.filter(m => m.name === 'DoppelGanger')).toHaveLength(1);
+    it('separates squad members from non-squad friendlies', () => {
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'A.1', character: 'A', pixels: [[10, 10]] },
+            { id: 2, role: 'friendly_player', account: 'P.2', character: 'Pug', pixels: [[20, 20]] },
+        ]);
+        const members = buildMovementData(details, { trackedBuffIds: trackedBuffs })!.members;
+        expect(members.find(m => m.name === 'A')!.inSquad).toBe(true);
+        expect(members.find(m => m.name === 'Pug')!.inSquad).toBe(false);
+        expect(members.every(m => !m.isEnemy)).toBe(true);
+    });
+
+    it('takes enemy profession and spec as fields, not scraped from a display name', () => {
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'Ally.0001', character: 'Ally', pixels: [[0, 0]] },
+            {
+                id: 2, role: 'enemy_player', name: 'Anon26',
+                profession: 'Guardian', elite_spec: 'Dragonhunter',
+                pixels: [[500, 500], [510, 510]],
+            },
+        ]);
+        const enemy = buildMovementData(details, { trackedBuffIds: trackedBuffs })!.members.find(m => m.isEnemy)!;
+        expect(enemy.name).toBe('Anon26');
+        expect(enemy.profession).toBe('Guardian');
+        // The EI path parsed this out of a "<spec> pl-123" name string.
+        expect(enemy.eliteSpec).toBe('Dragonhunter');
+    });
+
+    it('carries down and dead intervals from the native track', () => {
+        const details = buildNativeLog([
+            {
+                id: 1, role: 'squad', account: 'A.1', character: 'A', pixels: [[10, 10], [11, 11]],
+                down: [[600, 900]], dead: [[900, 1200]],
+            },
+        ]);
+        const member = buildMovementData(details, { trackedBuffIds: trackedBuffs })!.members[0];
+        expect(member.downRanges).toEqual([[600, 900]]);
+        expect(member.deadRanges).toEqual([[900, 1200]]);
     });
 });
 
@@ -149,26 +160,21 @@ describe('buildNativeMovement', () => {
         expect(positionAt(md.tracks.get(5)!, 600)).toEqual([30, 40]);
     });
 
-    it('leaves the EI view-model surface intact for the replay map', () => {
-        // The map (SquadOverlay, useHeatmapData, replayTypes, ...) still reads
-        // `members`/`pollingRate`/`inchToPixel`. Unit 3b migrates those onto
-        // `arena` + `tracks` as one piece; until then both surfaces coexist and
-        // this asserts the old one was not gutted out from under them.
-        const details = {
+    it('reads no EI position data at all', () => {
+        // The map view-model now sources positions from the same native tracks
+        // this surface exposes. A log carrying ONLY EI positions must therefore
+        // yield nothing rather than quietly falling back to the pixel space and
+        // the rounded inchToPixel that unit 3 removed.
+        const eiOnly = {
             durationMS: 60_000,
-            combatReplayMetaData: { pollingRate: 300, inchToPixel: 0.01 },
+            combatReplayMetaData: { pollingRate: 300, inchToPixel: 0.01, sizes: [523, 750] },
             players: [{
                 name: 'Alice', account: 'Alice.0001', profession: 'Guardian',
                 notInSquad: false, combatReplayData: { start: 7, positions: [[1, 2], [3, 4]], dead: [], down: [] },
             }],
             targets: [],
         };
-        const md = buildMovementData(details, { trackedBuffIds: trackedBuffs })!;
-        expect(md.pollingRate).toBe(300);
-        expect(md.members[0].positions).toEqual([[1, 2], [3, 4]]);
-        // ceil(7 / 300) = 1 — this module is one of only two call sites that
-        // ever got that rounding right.
-        expect(md.members[0].firstPoll).toBe(1);
+        expect(buildMovementData(eiOnly, { trackedBuffIds: trackedBuffs })).toBeNull();
     });
 });
 

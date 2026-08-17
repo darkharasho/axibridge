@@ -1,3 +1,4 @@
+import { buildNativeLog } from '../../test/nativeLogFixture';
 import { describe, it, expect } from 'vitest';
 import {
     resolveMapFromZone,
@@ -60,6 +61,9 @@ describe('formatDuration', () => {
     });
 });
 
+// Positions round-trip through world inches, so exact equality would be
+// asserting float noise. The only consumer is the landmark lookup, where
+// sub-pixel differences are far below the nearest objective's scale.
 describe('computeFightAvgPosition', () => {
     it('returns null when details has no players', () => {
         expect(computeFightAvgPosition({})).toBeNull();
@@ -68,34 +72,46 @@ describe('computeFightAvgPosition', () => {
     });
 
     it('uses the commander when present', () => {
-        const details = {
-            players: [
-                { hasCommanderTag: false, combatReplayData: { positions: [[100, 100], [200, 200]] } },
-                { hasCommanderTag: true, combatReplayData: { positions: [[50, 60], [70, 80], [90, 100]] } },
-            ],
-        };
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'A.1', pixels: [[100, 100], [200, 200]] },
+            { id: 2, role: 'squad', account: 'B.2', commander: true, pixels: [[50, 60], [70, 80], [90, 100]] },
+        ]);
         // median of xs=[50,70,90] is 70; median of ys=[60,80,100] is 80.
-        expect(computeFightAvgPosition(details)).toEqual([70, 80]);
+        const pos = computeFightAvgPosition(details)!;
+        expect(pos[0]).toBeCloseTo(70, 9);
+        expect(pos[1]).toBeCloseTo(80, 9);
     });
 
-    it('falls back to first player with positions when no commander', () => {
-        const details = {
-            players: [
-                { hasCommanderTag: false, combatReplayData: { positions: [] } },
-                { hasCommanderTag: false, combatReplayData: { positions: [[10, 10], [30, 30], [50, 50]] } },
-            ],
-        };
-        expect(computeFightAvgPosition(details)).toEqual([30, 30]);
+    it('falls back to a squad member with a track when no commander', () => {
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'A.1' },
+            { id: 2, role: 'squad', account: 'B.2', pixels: [[10, 10], [30, 30], [50, 50]] },
+        ]);
+        const pos = computeFightAvgPosition(details)!;
+        expect(pos[0]).toBeCloseTo(30, 9);
+        expect(pos[1]).toBeCloseTo(30, 9);
     });
 
-    it('returns null when no player has positions', () => {
-        const details = {
-            players: [
-                { hasCommanderTag: true, combatReplayData: { positions: [] } },
-                { hasCommanderTag: false, combatReplayData: { positions: [] } },
-            ],
-        };
-        expect(computeFightAvgPosition(details)).toBeNull();
+    it('falls back to enemy tracks when no squad member was tracked', () => {
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'A.1' },
+            { id: 2, role: 'enemy_player', name: 'E', pixels: [[20, 20], [40, 40], [60, 60]] },
+        ]);
+        const pos = computeFightAvgPosition(details)!;
+        expect(pos[0]).toBeCloseTo(40, 9);
+        expect(pos[1]).toBeCloseTo(40, 9);
+    });
+
+    it('returns null for a log carrying only EI positions', () => {
+        expect(computeFightAvgPosition({
+            players: [{ hasCommanderTag: true, combatReplayData: { positions: [[1, 2]] } }],
+        })).toBeNull();
+    });
+
+    it('returns null when no entity has a track', () => {
+        expect(computeFightAvgPosition(buildNativeLog([
+            { id: 1, role: 'squad', account: 'A.1' },
+        ]))).toBeNull();
     });
 });
 

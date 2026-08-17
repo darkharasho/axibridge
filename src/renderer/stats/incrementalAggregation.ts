@@ -42,7 +42,8 @@ import { createStabPerformanceAccumulator, ingestLogStabPerformance, finalizeSta
 import { computeSpecialTables } from './computeSpecialTables';
 import { classifyPlayerRoles } from './classifyPlayerRoles';
 
-import { buildMovementData } from '../../shared/movementData';
+import { buildMovementData, type SquadMemberMovement } from '../../shared/movementData';
+import { getArena, replayCanvas } from '@axiapps/bridge-metrics/nativePositioning';
 import { resolveMapFromZone, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
 import { findNearestLandmark } from '../../shared/wvwLandmarks';
 import { TRACKED_REPLAY_BUFF_IDS } from '../../shared/replayBuffs';
@@ -52,17 +53,23 @@ function memberKey(p: any): string {
     return String(p?.account || p?.name || '');
 }
 
-function computeRallyEvents(details: any): RallyEvent[] {
+/**
+ * A rally is a down that ended without a death.
+ *
+ * Reads the down/dead intervals off the already-built movement members, which
+ * carry them from the native track, rather than re-reading EI's
+ * `combatReplayData` — one source for the intervals, not two.
+ */
+function computeRallyEvents(members: SquadMemberMovement[]): RallyEvent[] {
     const events: RallyEvent[] = [];
-    for (const p of details?.players ?? []) {
-        if (p?.isFake || p?.notInSquad) continue;
-        const downs: [number, number][] = p?.combatReplayData?.down ?? [];
-        const deaths: [number, number][] = p?.combatReplayData?.dead ?? [];
-        for (const [downStart, downEnd] of downs) {
+    for (const m of members) {
+        if (m.isEnemy || !m.inSquad) continue;
+        for (const [downStart, downEnd] of m.downRanges) {
             if (downEnd <= 0) continue;
-            const diedFromThisDown = deaths.some(([dStart]) => Math.abs(dStart - downStart) <= 250 || (dStart >= downStart && dStart <= downEnd));
+            const diedFromThisDown = m.deadRanges.some(([dStart]) =>
+                Math.abs(dStart - downStart) <= 250 || (dStart >= downStart && dStart <= downEnd));
             if (!diedFromThisDown) {
-                events.push({ timeMs: downEnd, memberKey: memberKey(p) });
+                events.push({ timeMs: downEnd, memberKey: m.account || m.name });
             }
         }
     }
@@ -148,6 +155,7 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
     const details = log?.details;
     if (!details) return null;
 
+    const arena = getArena(details);
     const movement = buildMovementData(details, {
         trackedBuffIds: TRACKED_REPLAY_BUFF_IDS,
         localAccount: log?.recordedAccount,
@@ -176,7 +184,7 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
 
     const dpsSamples: ReplayDpsSample[] = computeSquadDpsSamples(details);
     const killEvents: ReplayKillEvent[] = collectKillEvents(movement);
-    const rallyEvents = computeRallyEvents(details);
+    const rallyEvents = computeRallyEvents(movement.members);
     const damageSpikeEvents = computeDamageSpikeEvents(details);
     const targetFocusSamples = computeTargetFocusSamples(details);
 
@@ -187,8 +195,8 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
         timestampMs: Number(log?.uploadTime ? log.uploadTime * 1000 : log?.timestampMs ?? 0),
         durationMs: Number(details?.durationMS) || 0,
         mapKey,
-        mapImageUrl: details?.combatReplayMetaData?.maps?.[0]?.url ?? null,
-        mapSize: details?.combatReplayMetaData?.sizes ?? null,
+        mapImageUrl: arena?.image_url ?? null,
+        mapSize: arena ? replayCanvas(arena) : null,
         sectorOwners: log?.sectorOwners ?? null,
         avgPosition,
         nearestLandmark: landmark,

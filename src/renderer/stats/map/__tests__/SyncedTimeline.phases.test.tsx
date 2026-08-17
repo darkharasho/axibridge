@@ -18,7 +18,7 @@ const mkFight = (): ReplayFightPayload => ({
     mapKey: null, mapImageUrl: null, mapSize: [600, 600], avgPosition: null,
     nearestLandmark: null, squadSize: 1, kills: 0, deaths: 0,
     movementData: {
-        pollingRate: 1000, durationMs: 10_000, inchToPixel: 1,
+        pollingRate: 1000, durationMs: 10_000, pixelsPerInch: { x: 1, y: 1 },
         members: [mkMember({ deadRanges: [[6000, 10_000]] })], boonIcons: {}, skillIcons: {},
     },
     dpsSamples: [{ timeMs: 0, squadDps: 0 }, { timeMs: 5000, squadDps: 1000 }, { timeMs: 10_000, squadDps: 0 }],

@@ -40,10 +40,22 @@ export const SquadOverlay: React.FC<SquadOverlayProps> = ({ fight, timeMs, scale
         return positionAtTime(commander, timeMs, fight.movementData.pollingRate);
     }, [commander, timeMs, fight.movementData.pollingRate]);
 
+    /**
+     * Range indicators are ELLIPSES, not circles.
+     *
+     * The arena projection is anisotropic — the reference fixture's x and y
+     * scales differ by ~2.4% — so a fixed game range covers a different number
+     * of pixels on each axis. EI collapsed that to one rounded `inchToPixel`
+     * (0.009 against true scales of 0.008512 and 0.008719), which drew these
+     * rings both circular and 3-6% oversized.
+     */
     const ringRadii = useMemo(() => {
-        const inch = fight.movementData.inchToPixel ?? 1;
-        return { near: 600 * inch, far: 1200 * inch };
-    }, [fight.movementData.inchToPixel]);
+        const { x, y } = fight.movementData.pixelsPerInch ?? { x: 1, y: 1 };
+        return {
+            near: [600 * x, 600 * y] as const,
+            far: [1200 * x, 1200 * y] as const,
+        };
+    }, [fight.movementData.pixelsPerInch]);
 
     return (
         <g className="replay-squad-overlay">
@@ -78,9 +90,9 @@ export const SquadOverlay: React.FC<SquadOverlayProps> = ({ fight, timeMs, scale
 
             {layers.tagRangeRings && commanderPos && (
                 <g data-overlay="tag-rings">
-                    <circle cx={commanderPos[0]} cy={commanderPos[1]} r={ringRadii.near}
+                    <ellipse cx={commanderPos[0]} cy={commanderPos[1]} rx={ringRadii.near[0]} ry={ringRadii.near[1]}
                             fill="none" style={{ stroke: 'var(--brand-primary)' }} strokeOpacity={0.4} strokeWidth={sw} strokeDasharray={`${4/scale} ${2/scale}`} />
-                    <circle cx={commanderPos[0]} cy={commanderPos[1]} r={ringRadii.far}
+                    <ellipse cx={commanderPos[0]} cy={commanderPos[1]} rx={ringRadii.far[0]} ry={ringRadii.far[1]}
                             fill="none" style={{ stroke: 'var(--brand-primary)' }} strokeOpacity={0.25} strokeWidth={sw} strokeDasharray={`${4/scale} ${2/scale}`} />
                 </g>
             )}
