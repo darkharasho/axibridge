@@ -1,9 +1,11 @@
 // src/shared/commanderMetrics/cohesion.ts
 
 import type { CommanderFightData, DeathEvent, BombWindow } from '../commanderTypes';
+import type { PositionTrack } from '../movementData';
 import {
   buildSquadPositionSeries,
   squadPosAt,
+  tagPosAt,
   dist2d,
   centroid,
   stdev,
@@ -16,6 +18,11 @@ import {
  * always meant. The EI predecessor fed replay pixels into the same
  * comparisons — see `buildSquadTracks` for why that made these two metrics
  * unconditionally zero.
+ *
+ * All of them are measured from the COMMANDER, via `tagTrack`, falling back to
+ * the squad centroid for any second the tag is not resolvable (and for a fight
+ * with no tag at all). The centroid was the EI-era stand-in; see
+ * `buildSquadTracks` for what it costs.
  */
 export interface CohesionContext {
   squadTracks: SquadTrack[];
@@ -23,6 +30,7 @@ export interface CohesionContext {
   seriesLen: number;
   bombWindows: BombWindow[];
   deathsTimeline: DeathEvent[];
+  tagTrack: PositionTrack | null;
 }
 
 /**
@@ -34,8 +42,18 @@ export interface CohesionContext {
 export function computeCohesion(
   ctx: CohesionContext,
 ): { cohesion: CommanderFightData['cohesion']; spreadStdev: number[] } {
-  const { squadTracks, pollMs, seriesLen, bombWindows, deathsTimeline } = ctx;
+  const { squadTracks, pollMs, seriesLen, bombWindows, deathsTimeline, tagTrack } = ctx;
   const perSecondPositions = buildSquadPositionSeries(squadTracks, pollMs, seriesLen);
+
+  /**
+   * The point every distance below is measured from at second `t`: the
+   * commander, or the squad centroid when the tag has no position there.
+   *
+   * `pts` is never empty at a call site (each guards on it first), so the
+   * centroid fallback is always defined.
+   */
+  const originAt = (t: number, pts: [number, number][]): [number, number] =>
+    tagPosAt(tagTrack, t, pollMs) ?? centroid(pts)!;
 
   // ---- Per-second metrics ----
   const spreadStdev = new Array<number>(seriesLen).fill(0);
@@ -47,10 +65,10 @@ export function computeCohesion(
     const pts = perSecondPositions[t];
     if (pts.length === 0) continue;
 
-    const c = centroid(pts)!;
+    const c = originAt(t, pts);
     const dists = pts.map(p => dist2d(p, c));
 
-    // Average dist from tag (centroid) across all squad-player-seconds
+    // Average dist from tag across all squad-player-seconds
     for (const d of dists) {
       totalDistSum += d;
       totalDistCount++;
@@ -85,7 +103,7 @@ export function computeCohesion(
       death.distFromTag = 0;
       continue;
     }
-    const c = centroid(pts)!;
+    const c = originAt(t, pts);
     // Find this member's position at the instant they died.
     const st = squadTracks.find(s => s.key === death.account);
     if (st) {
@@ -102,7 +120,7 @@ export function computeCohesion(
     : 0;
 
   // ---- stragglersAtBomb ----
-  // Unique squad players > 1500u from centroid during any bomb window
+  // Unique squad players > 1500u from the tag during any bomb window
   const stragglerSet = new Set<string>();
   for (const bw of bombWindows) {
     const tStart = bw.tSec;
@@ -110,7 +128,7 @@ export function computeCohesion(
     for (let t = Math.floor(tStart); t <= Math.ceil(tEnd) && t < seriesLen; t++) {
       const pts = perSecondPositions[t];
       if (pts.length === 0) continue;
-      const c = centroid(pts)!;
+      const c = originAt(t, pts);
       for (const st of squadTracks) {
         const pos = squadPosAt(st, t, pollMs);
         if (pos === null) continue;

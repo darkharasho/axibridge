@@ -53,6 +53,12 @@ export interface NativeMemberSpec {
     elite_spec?: string;
     subgroup?: number;
     commander?: boolean;
+    /**
+     * Overrides the default `[[0, 1000]]` hold. In arcdps SESSION time, as
+     * native emits it — the total span is what selects between two tag holders,
+     * and a span is origin-independent.
+     */
+    commanderSegments?: Array<[number, number]>;
     /** Positions in RENDER-CANVAS PIXELS; inverted to world inches here. */
     pixels?: Array<[number, number]>;
     /**
@@ -111,7 +117,13 @@ export const buildNativeLog = (
         if (m.name !== undefined) entity.name = m.name;
         if (m.elite_spec !== undefined) entity.elite_spec = m.elite_spec;
         if (m.subgroup !== undefined) entity.subgroup = m.subgroup;
-        if (m.commander) entity.commander = { guid: `g-${m.id}`, segments: [[0, 1000]], variant: 'blue' };
+        if (m.commander) {
+            entity.commander = {
+                guid: `g-${m.id}`,
+                segments: m.commanderSegments ?? [[0, 1000]],
+                variant: 'blue',
+            };
+        }
         entities.push(entity);
 
         const start = m.startMs ?? pollMs;

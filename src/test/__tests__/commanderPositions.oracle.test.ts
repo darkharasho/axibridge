@@ -25,7 +25,12 @@ const ALLOWLIST: DivergenceAllowlist = {
             + 'replay positions are canvas pixels; at 0.008512 px/inch the squad '
             + 'measured 10.2px from its centroid, which CohesionSection rendered '
             + 'verbatim as "10u". The same distance in the game units the card '
-            + 'claims is ~1101u.',
+            + 'claims is ~1101u. It is now ~793u, because the origin also moved '
+            + 'from the centroid to the COMMANDER: native `commander.segments` '
+            + 'identifies the tag, so "distance from tag" can finally mean it. '
+            + 'The centroid is displaced by the very outlier the metric exists '
+            + 'to catch; the tag is not. Median 571u -> 207u, and the share of '
+            + 'player-seconds inside the 600u bubble 57% -> 92%.',
     },
     'timeSpread900PlusSec': {
         reason:
@@ -38,7 +43,12 @@ const ALLOWLIST: DivergenceAllowlist = {
         reason:
             'Native is right. TAG_RADIUS 600 against pixels spans ~70,000 game '
             + 'units -- wider than the 61440x86016 map -- so every tracked member '
-            + 'always counted and MatchupSection\'s tagPct was pinned at 100%.',
+            + 'always counted and MatchupSection\'s tagPct was pinned at 100%. '
+            + 'Measured in game units from the CENTROID it swung to the opposite '
+            + 'error, 3 of 38, because one absent member pulls the centroid off '
+            + 'the blob and out from under everyone standing on the tag. From '
+            + 'the tag itself it is 36 of 38, which is what a stacked squad at '
+            + 'engage actually looks like.',
     },
 };
 
@@ -73,6 +83,35 @@ describe('commander positions oracle — EI pixels vs native game units', () => 
         expectEqualOrAllowlisted('timeSpread900PlusSec', 0, data.cohesion.timeSpread900PlusSec, ALLOWLIST);
         expect(data.cohesion.timeSpread900PlusSec).toBeGreaterThan(0);
         expect(data.cohesion.timeSpread900PlusSec).toBeLessThanOrEqual(Math.ceil(data.duration));
+    });
+
+    it('sources the tag from native commander.segments, not the centroid', () => {
+        // The fixture has exactly one tag holder. Pinned against the real
+        // container because the whole change rests on this field existing and
+        // being findable -- an axilog that stopped emitting `commander` would
+        // otherwise degrade silently back to centroid-relative distances, with
+        // every cohesion number still plausible.
+        const tagged = native.entities.filter(
+            (e: any) => Array.isArray(e?.commander?.segments) && e.commander.segments.length > 0,
+        );
+        expect(tagged).toHaveLength(1);
+        expect(buildSquadTracks(details).tagTrack).not.toBeNull();
+
+        // Strip the tag and the same fixture falls back to the centroid, which
+        // is both the no-commander path and the size of what the tag buys.
+        const untagged = {
+            ...details,
+            native: {
+                ...native,
+                entities: native.entities.map((e: any) => ({ ...e, commander: undefined })),
+            },
+        } as any;
+        expect(buildSquadTracks(untagged).tagTrack).toBeNull();
+        const centroidRelative = computeCommanderFightData(untagged);
+        expect(centroidRelative.cohesion.avgDistFromTag)
+            .toBeGreaterThan(data.cohesion.avgDistFromTag);
+        expect(centroidRelative.matchup.inTagBubbleAtEngage)
+            .toBeLessThan(data.matchup.inTagBubbleAtEngage);
     });
 
     it('lets the tag bubble discriminate instead of counting everyone', () => {

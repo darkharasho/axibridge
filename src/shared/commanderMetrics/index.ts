@@ -21,12 +21,12 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, optio
 
   // Positions come from native tracks, in world inches. Nothing here reads
   // `combatReplayMetaData` any more — not its pollingRate, not its pixel space.
-  const { tracks: squadTracks, pollMs } = buildSquadTracks(json);
+  const { tracks: squadTracks, pollMs, tagTrack } = buildSquadTracks(json);
 
   // Build squad players list early — shared across many sub-computations
   const squadPlayers = json.players.filter(p => !p.notInSquad);
 
-  const matchup = computeMatchup(json, squadPlayers, squadTracks, pollMs, duration);
+  const matchup = computeMatchup(json, squadPlayers, squadTracks, pollMs, duration, tagTrack);
 
   const survival = computeSurvival(json, options);
 
@@ -53,6 +53,7 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, optio
     seriesLen,
     bombWindows: burst.bombWindows,
     deathsTimeline,
+    tagTrack,
   });
 
   // `computeSurvival` and `buildDeathsTimeline` each construct their own

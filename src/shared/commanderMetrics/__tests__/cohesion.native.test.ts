@@ -21,17 +21,24 @@ const parked = (id: number, account: string, x: number, y: number, ei?: Record<s
     ei,
 });
 
+/** As {@link parked}, but this one is carrying the commander tag. */
+const tagged = (
+    id: number, account: string, x: number, y: number,
+    segments?: Array<[number, number]>,
+) => ({ ...parked(id, account, x, y), commander: true, commanderSegments: segments });
+
 const cohesionOf = (log: Record<string, any>, deaths: DeathEvent[] = [], seriesLen = 4) => {
-    const { tracks, pollMs } = buildSquadTracks(log);
+    const { tracks, pollMs, tagTrack } = buildSquadTracks(log);
     return computeCohesion({
         squadTracks: tracks, pollMs, seriesLen,
         bombWindows: [{ tSec: 0, durationSec: 3 } as any],
         deathsTimeline: deaths,
+        tagTrack,
     });
 };
 
 describe('computeCohesion in game units', () => {
-    it('measures spread from the squad centroid in world inches', () => {
+    it('measures spread from the squad centroid when nobody is tagged', () => {
         // Two stacked at the origin, one 1500u east → centroid at x=500.
         // Distances are 500, 500, 1000; mean 666.67.
         const log = buildNativeLog([
@@ -88,6 +95,83 @@ describe('computeCohesion in game units', () => {
         ];
         cohesionOf(log, deaths);
         expect(deaths[0].distFromTag).toBe(0);
+    });
+});
+
+/**
+ * "Distance from tag" now means distance from the TAG.
+ *
+ * EI exposed no positional commander evidence, so the centroid was the only
+ * available stand-in — and it degrades precisely when the metric matters, since
+ * one distant member drags the centroid toward themselves and inflates the
+ * reading for everyone who actually stacked. Native `commander.segments`
+ * identifies the tag, and its own replay track puts it somewhere.
+ */
+describe('computeCohesion measured from the commander', () => {
+    it('measures from the tag, not the centroid the outlier displaces', () => {
+        // The tag and one member are stacked at the origin; a third is 3000u
+        // east. From the CENTROID (x=1000) the two stacked members read 1000u
+        // each and the outlier 2000u — mean 1333. From the TAG the stacked pair
+        // read 0 and the outlier its true 3000u — mean 1000.
+        const log = buildNativeLog([
+            tagged(1, 'Tag.1', 0, 0), parked(2, 'B.2', 0, 0), parked(3, 'C.3', 3000, 0),
+        ]);
+        expect(cohesionOf(log).cohesion.avgDistFromTag).toBeCloseTo(1000, 6);
+    });
+
+    it('stops counting a stacked squad as spread out because one member left', () => {
+        // Same shape, inside the 900u threshold: from the tag, A and B are at 0
+        // and only C is beyond — but the centroid put ALL THREE past 900u.
+        const log = buildNativeLog([
+            tagged(1, 'Tag.1', 0, 0), parked(2, 'B.2', 100, 0), parked(3, 'C.3', 3000, 0),
+        ]);
+        const { cohesion } = cohesionOf(log);
+        expect(cohesion.stragglersAtBomb).toBe(1);
+    });
+
+    it('measures a death from the tag', () => {
+        const log = buildNativeLog([
+            tagged(1, 'Tag.1', 0, 0), parked(2, 'B.2', 0, 0), parked(3, 'C.3', 1500, 0),
+        ]);
+        const deaths: DeathEvent[] = [
+            { tSec: 2, account: 'C.3', profession: 'Guardian', role: 'unknown', distFromTag: 0 },
+        ];
+        cohesionOf(log, deaths);
+        // The tag is at the origin, C at x=1500 — their true separation. The
+        // centroid (x=500) would have said 1000.
+        expect(deaths[0].distFromTag).toBeCloseTo(1500, 6);
+    });
+
+    it('picks the member who held the tag longest when two are tagged', () => {
+        // A brief tag at the origin, a long one 4000u east. Measuring from the
+        // wrong one moves every distance by 4000u, so the choice is visible in
+        // the mean rather than only in an internal field.
+        const log = buildNativeLog([
+            tagged(1, 'Brief.1', 0, 0, [[0, 500]]),
+            tagged(2, 'Long.2', 4000, 0, [[0, 9000]]),
+            parked(3, 'C.3', 4000, 0),
+        ]);
+        // From Long.2: 4000, 0, 0 → mean 1333.33.
+        expect(cohesionOf(log).cohesion.avgDistFromTag).toBeCloseTo(4000 / 3, 4);
+    });
+
+    it('falls back to the centroid for seconds the tag has no position', () => {
+        // The tag's track stops after 3 samples (~0.6s); the others run to 3s.
+        // Seconds past the tag's track fall back to the centroid rather than
+        // to a stale tag position carried forward forever.
+        const log = buildNativeLog([
+            {
+                id: 1, role: 'squad' as const, account: 'Tag.1', character: 'Tag', startMs: 0,
+                world: [[0, 0], [0, 0], [0, 0]] as Array<[number, number]>,
+                commander: true,
+            },
+            parked(2, 'B.2', 2000, 0), parked(3, 'C.3', 2000, 0),
+        ]);
+        // t=0: from the tag → 0 (tag itself is untracked past its samples but
+        // present here), 2000, 2000. t=1..3: the tag is gone, so the centroid
+        // of B and C (x=2000) gives 0 and 0. Only the first second can register
+        // anyone beyond 900u.
+        expect(cohesionOf(log).cohesion.timeSpread900PlusSec).toBe(1);
     });
 });
 

@@ -88,7 +88,25 @@ export interface SquadTrack {
 }
 
 /**
- * Collect the squad's native position tracks.
+ * Total time a native `commander.segments` list covers, in ms.
+ *
+ * Segments are raw arcdps SESSION time, not fight-relative — see
+ * `encounter.log_start_ms` in axilog's NATIVE-FORMAT.md. That does not matter
+ * here: this is a span, so the unknown origin cancels. It is used only to rank
+ * two tag-holders against each other, never as a timestamp.
+ */
+function taggedMs(entity: { commander?: { segments?: unknown } } | null | undefined): number {
+  const segments = entity?.commander?.segments;
+  if (!Array.isArray(segments)) return 0;
+  let total = 0;
+  for (const seg of segments) {
+    if (Array.isArray(seg) && seg.length >= 2) total += Math.max(0, Number(seg[1]) - Number(seg[0]));
+  }
+  return total;
+}
+
+/**
+ * Collect the squad's native position tracks, plus the commander's.
  *
  * Every distance these tracks produce is in WORLD INCHES — game units — which
  * is the unit every threshold in `commanderThresholds.ts` is written in (600u
@@ -96,17 +114,49 @@ export interface SquadTrack {
  * PIXELS into those same comparisons; at ~0.0085 px/inch, 900u is 7.7px on a
  * 523×750 canvas, so `timeSpread900PlusSec` and `stragglersAtBomb` were
  * always 0 and `inTagBubbleAtEngage` was always the whole squad.
+ *
+ * `tagTrack` is the commander's own track, which native makes available for the
+ * first time: EI exposed no per-player tag evidence positionally, so "distance
+ * from tag" had to be approximated by distance from the squad CENTROID. That
+ * approximation degrades exactly when it matters — one member far away displaces
+ * the centroid itself, inflating everyone else's reading, while the tag's
+ * position is unmoved by them. On the reference fixture the switch takes median
+ * distance from 571u to 208u and the share of player-seconds inside the 600u
+ * bubble from 57% to 92%.
+ *
+ * When several squad members hold a tag, the one who held it longest wins
+ * (ties broken by account), matching the commander-row selection in
+ * `computeCommanderStats`. `null` when nobody carries a tag, or when the tag
+ * holder has no position track — callers fall back to the centroid.
  */
-export function buildSquadTracks(json: unknown): { tracks: SquadTrack[]; pollMs: number } {
+export function buildSquadTracks(
+  json: unknown,
+): { tracks: SquadTrack[]; pollMs: number; tagTrack: PositionTrack | null } {
   const movement = buildNativeMovement(json);
-  if (!movement) return { tracks: [], pollMs: 300 };
+  if (!movement) return { tracks: [], pollMs: 300, tagTrack: null };
   const tracks: SquadTrack[] = [];
+  let tag: { entity: { id: number; account?: string | null }; tagged: number } | null = null;
   for (const entity of squadEntities((json as { native?: unknown })?.native ?? {})) {
     const track = movement.tracks.get(entity.id);
     if (!track) continue;
     tracks.push({ key: entity.account ?? String(entity.id), track });
+
+    const tagged = taggedMs(entity as { commander?: { segments?: unknown } });
+    if (tagged <= 0) continue;
+    if (
+      tag === null
+      || tagged > tag.tagged
+      || (tagged === tag.tagged
+        && String(entity.account ?? '') < String(tag.entity.account ?? ''))
+    ) {
+      tag = { entity, tagged };
+    }
   }
-  return { tracks, pollMs: movement.pollMs };
+  return {
+    tracks,
+    pollMs: movement.pollMs,
+    tagTrack: tag ? (movement.tracks.get(tag.entity.id) ?? null) : null,
+  };
 }
 
 /**
@@ -128,6 +178,23 @@ export function squadPosAt(
   pollMs: number,
 ): [number, number] | null {
   return positionAtOrBefore(t.track, tSec * 1000, pollMs);
+}
+
+/**
+ * Where the commander was at second `tSec`, in world inches, or null.
+ *
+ * Same one-poll staleness bound as {@link squadPosAt}: past it the answer is
+ * null rather than a stale tag position carried forward, and the caller falls
+ * back to the centroid for that second. On the reference fixture the tag
+ * resolves for 49 of 50 seconds.
+ */
+export function tagPosAt(
+  tagTrack: PositionTrack | null,
+  tSec: number,
+  pollMs: number,
+): [number, number] | null {
+  if (!tagTrack) return null;
+  return positionAtOrBefore(tagTrack, tSec * 1000, pollMs);
 }
 
 /**

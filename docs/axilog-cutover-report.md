@@ -690,8 +690,47 @@ statistics or exclude non-participants is a product decision about what these ca
 migration question -- but until it is answered, `fragmentedAtBomb` will fire at max severity on
 most fights.
 
-Also still open: `distFromTag` measures distance from the squad **centroid**, not the commander.
-Native exposes `commander.segments`, so the real tag position is available for the first time.
+### Distance from the tag now means distance from the TAG (2026-08-17)
+
+`distFromTag` measured distance from the squad **centroid**, because EI exposed no positional
+commander evidence. Native `commander.segments` identifies the tag holder, and their own replay
+track puts them somewhere, so `buildSquadTracks` now returns a `tagTrack` alongside the squad's
+and every cohesion distance is measured from it -- `avgDistFromTag`, `spreadStdev`,
+`timeSpread900PlusSec`, `distFromTag` on each death, `stragglersAtBomb`, and
+`matchup.inTagBubbleAtEngage`. When several members hold a tag, the one who held it longest wins
+(ties by account), matching `computeCommanderStats`' commander-row selection. Seconds where the
+tag has no position fall back to the centroid, as does a fight with no tag at all; on the
+reference fixture the tag resolves for 49 of 50 seconds.
+
+The centroid is not a neutral stand-in. It is *displaced by the very outlier the metric exists to
+catch*, which inflates the reading for everyone who actually stacked; the tag's own position is
+unmoved by them. Per-player-second distance on `wvw-small.anon.zevtc`:
+
+| | centroid | commander |
+|---|---|---|
+| mean | 1102u | 793u |
+| median | 571u | **207u** |
+| p90 | 857u | 545u |
+| within the 600u bubble | 57.0% | **91.8%** |
+| `matchup.inTagBubbleAtEngage` | 3 of 38 | **36 of 38** |
+
+`inTagBubbleAtEngage` is the clearest case: in EI pixels it counted the whole squad every time,
+and fixing only the units swung it to the opposite error -- 3 of 38 at engage, a rout, on a fight
+where the squad was stacked. 36 of 38 is what the fight actually was.
+
+**This does NOT fix the absent-member problem above.** `peakSpreadStdev` goes 5228u -> 5512u
+against a `spreadBad` of 600, and `timeSpread900PlusSec` stays at 49 of 50 seconds, because both
+are tail statistics and the ~18,000u member is still in the tail wherever the origin sits. Only
+the central tendency moved. `fragmentedAtBomb` will still fire at max severity, and robust
+statistics vs. a non-participant filter remains the open product decision.
+
+**axilog gained `encounter.log_start_ms` for this (0.3.6, not yet consumed here).** The change uses
+segment PRESENCE, not segment timing, which is why it does not need that field: `commander.segments`
+are raw arcdps session-time ms (`[[33847418, 33847418], [33847418, 33896600]]` against a
+`duration_ms` of 49285) and the native container carried no `t0` to rebase them against, so from
+JSON alone they were uninterpretable. axilog 0.3.6 emits that `t0`. Consuming it would buy
+mid-fight tag handoff and dropped-tag handling; deferred because the only fixture has exactly one
+tag holder for the whole fight, so neither behaviour is testable here yet.
 
 `computePositioning` in `packages/bridge-metrics/src/positioning.ts` remains migrated-but-unused
 inside axibridge -- it is live public API of a published package, which is why it was ported rather
