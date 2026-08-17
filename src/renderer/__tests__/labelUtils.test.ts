@@ -141,3 +141,26 @@ describe('resolveMapName', () => {
         expect(resolveMapName({ zone: 'WvW - Red Alpine Borderlands' }, {})).toBe('Red Borderlands');
     });
 });
+
+describe('resolveMapName with a native encounter', () => {
+    it('prefers the native map name over the fightName-derived zone', () => {
+        const details = {
+            fightName: 'Detailed WvW - Eternal Battlegrounds',
+            native: { axilog: { schema: '1.0' }, encounter: { map: 'Green Alpine Borderlands' } },
+        };
+        expect(resolveMapName(details, {})).toBe('Green Borderlands');
+    });
+
+    it('keeps the existing fallback chain when native is absent', () => {
+        expect(resolveMapName({ fightName: 'Detailed WvW - Eternal Battlegrounds' }, {}))
+            .toBe('Eternal Battlegrounds');
+    });
+
+    it('ignores an empty native map rather than returning Unknown', () => {
+        const details = {
+            fightName: 'Detailed WvW - Eternal Battlegrounds',
+            native: { axilog: { schema: '1.0' }, encounter: { map: '   ' } },
+        };
+        expect(resolveMapName(details, {})).toBe('Eternal Battlegrounds');
+    });
+});

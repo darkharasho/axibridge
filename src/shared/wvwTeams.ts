@@ -9,6 +9,8 @@
 //   - Drevarr/EVTC_parser/gw2_data.py
 //   - Drevarr/GW2_EI_log_combiner/config.py
 
+import { getEncounterTeamMap } from '@axiapps/bridge-metrics';
+
 export type WvwTeamColor = 'red' | 'green' | 'blue' | 'unknown';
 
 /** Authoritative per-log team→color map (0 means that team is absent). */
@@ -41,11 +43,27 @@ export function teamMapFromLog(log: unknown): WvwTeamMap | null {
   const data = (obj.wvWMapData ?? obj.wvwMapData) as
     | { redTeamID?: number; greenTeamID?: number; blueTeamID?: number }
     | undefined;
-  if (!data || typeof data !== 'object') return null;
+  const fromEi: WvwTeamMap | null = data && typeof data === 'object'
+    ? {
+      red: Number(data.redTeamID) || 0,
+      green: Number(data.greenTeamID) || 0,
+      blue: Number(data.blueTeamID) || 0,
+    }
+    : null;
+
+  // The two sources answer different questions, so they are merged rather than
+  // ranked. `encounter.teams` enumerates the teams OBSERVED in this log, keyed
+  // by colour — no id-table guessing. `wvWMapData` carries all three teams of
+  // the MATCH, including one that fielded nobody in this fight (the fixture has
+  // red 697 with no red player). Native wins where both speak; EI fills the
+  // slots native leaves at 0.
+  const fromNative = getEncounterTeamMap(log);
+  if (!fromNative) return fromEi;
+  if (!fromEi) return fromNative;
   return {
-    red: Number(data.redTeamID) || 0,
-    green: Number(data.greenTeamID) || 0,
-    blue: Number(data.blueTeamID) || 0,
+    red: fromNative.red || fromEi.red,
+    green: fromNative.green || fromEi.green,
+    blue: fromNative.blue || fromEi.blue,
   };
 }
 

@@ -83,3 +83,42 @@ describe('metadata tables', () => {
     expect(WVW_TEAM_COLOR_ORDER).toEqual(['red', 'green', 'blue', 'unknown']);
   });
 });
+
+describe('teamMapFromLog with a native encounter', () => {
+  const withNative = (teams: any[], rest: any = {}) => ({
+    ...rest,
+    native: { axilog: { schema: '1.0' }, encounter: { teams } },
+  });
+
+  it('prefers native ids where both sources speak', () => {
+    const log = withNative(
+      [{ team_id: 2767, color: 'green' }, { team_id: 433, color: 'blue' }],
+      { wvWMapData: { redTeamID: 1, greenTeamID: 2, blueTeamID: 3 } },
+    );
+    expect(teamMapFromLog(log)).toEqual({ red: 1, green: 2767, blue: 433 });
+  });
+
+  it('fills slots native leaves empty from wvWMapData', () => {
+    // Native enumerates only OBSERVED teams, so a team that fielded nobody is
+    // absent from it while the match event still knows the id.
+    const log = withNative(
+      [{ team_id: 0, color: 'unknown' }, { team_id: 2767, color: 'green' }],
+      { wvWMapData: { redTeamID: 697, greenTeamID: 2767, blueTeamID: 433 } },
+    );
+    expect(teamMapFromLog(log)).toEqual({ red: 697, green: 2767, blue: 433 });
+  });
+
+  it('uses native alone when the log has no wvWMapData', () => {
+    expect(teamMapFromLog(withNative([{ team_id: 433, color: 'blue' }])))
+      .toEqual({ red: 0, green: 0, blue: 433 });
+  });
+
+  it('falls back to wvWMapData for a log with no native report', () => {
+    expect(teamMapFromLog({ wvWMapData: { redTeamID: 1, greenTeamID: 2, blueTeamID: 3 } }))
+      .toEqual({ red: 1, green: 2, blue: 3 });
+  });
+
+  it('still returns null when neither source is present', () => {
+    expect(teamMapFromLog({})).toBeNull();
+  });
+});
