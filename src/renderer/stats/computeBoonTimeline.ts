@@ -272,6 +272,15 @@ export function ingestLogBoonTimeline(log: any, acc: BoonTimelineAccumulator, _b
             // Native keys per-source states by entity id (this entity is the
             // recipient; the sources are whoever granted the boon). EI keyed
             // this by character name, which is not unique.
+            //
+            // This is attributed once per (entity, boonId), not once per
+            // category. The pre-existing EI-era code re-derived and re-added
+            // the same states inside the per-category loop, so a boon that
+            // generated in all three categories got its bucket weights
+            // scaled by a data-dependent 1x/2x/3x multiplier -- a bug present
+            // in both the EI and native paths, not something this migration
+            // introduced. See computeBoonTimeline.test.ts for the regression
+            // that pins single attribution.
             const bySource = getEntityBuffStatesPerSource(details, entity.id, boonIdNum);
             if (bySource.size === 0) return;
             const timelineByPlayer = fightBucketTimelineByBoon.get(boonId) || new Map<string, number[]>();
