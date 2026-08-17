@@ -86,6 +86,13 @@ export function CohesionSection({ fight, thresholds }: { fight: CommanderFightDa
         meta=">1500u from tag"
         severity={stragglersSev}
       />
+      <MetricCard
+        label="Not in the fight"
+        value={`${c.detachedMembers}`}
+        description="Squad members who spent the whole fight somewhere else on the map. They're left out of every number in this section — one of them would otherwise decide all of them."
+        meta="never within 5000u"
+        severity={c.detachedMembers === 0 ? 'green' : 'yellow'}
+      />
     </div>
   );
 }

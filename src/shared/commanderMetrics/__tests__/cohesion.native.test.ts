@@ -175,6 +175,76 @@ describe('computeCohesion measured from the commander', () => {
     });
 });
 
+/**
+ * Members who were never in the fight are excluded from the aggregates.
+ *
+ * A squad member who spends the whole fight tens of thousands of units away was
+ * not fighting — they were in another part of the map. Cohesion's aggregates are
+ * a mean and a standard deviation over player-seconds, so one such member
+ * dominates both, and no choice of ORIGIN fixes it: they are in the tail wherever
+ * the origin sits. This is a roster problem, not a statistics problem, which is
+ * why the answer is to exclude and COUNT them rather than to reach for a robust
+ * estimator that would hide them.
+ */
+describe('computeCohesion excludes detached members', () => {
+    it('drops a member who was never anywhere near the fight', () => {
+        // Two stacked on the tag, one parked 20000u away. Counting them, the
+        // mean is ~6667u and peak sigma ~9428u — both about the one absentee.
+        const log = buildNativeLog([
+            tagged(1, 'Tag.1', 0, 0), parked(2, 'B.2', 100, 0), parked(3, 'Away.3', 20000, 0),
+        ]);
+        const { cohesion } = cohesionOf(log);
+        expect(cohesion.detachedMembers).toBe(1);
+        // Only the tag (0u) and B (100u) remain.
+        expect(cohesion.avgDistFromTag).toBeCloseTo(50, 6);
+        expect(cohesion.peakSpreadStdev).toBeCloseTo(50, 6);
+        expect(cohesion.timeSpread900PlusSec).toBe(0);
+        expect(cohesion.stragglersAtBomb).toBe(0);
+    });
+
+    it('keeps a genuine straggler who was out of position but present', () => {
+        // 3000u out is a bad place to be and the metrics should say so. The
+        // filter asks whether someone was in the fight at all, not whether they
+        // were where they should have been.
+        const log = buildNativeLog([
+            tagged(1, 'Tag.1', 0, 0), parked(2, 'B.2', 100, 0), parked(3, 'C.3', 3000, 0),
+        ]);
+        const { cohesion } = cohesionOf(log);
+        expect(cohesion.detachedMembers).toBe(0);
+        expect(cohesion.timeSpread900PlusSec).toBe(4);
+        expect(cohesion.stragglersAtBomb).toBe(1);
+    });
+
+    it('keeps someone who ran back, far seconds included', () => {
+        // Away for the first half at 20000u, stacked on the tag for the second.
+        // The test is the MINIMUM over the fight, so returning once keeps every
+        // one of their far seconds in the aggregates.
+        const log = buildNativeLog([
+            tagged(1, 'Tag.1', 0, 0),
+            {
+                id: 2, role: 'squad' as const, account: 'Back.2', character: 'Back', startMs: 0,
+                world: [
+                    ...Array.from({ length: 6 }, () => [20000, 0] as [number, number]),
+                    ...Array.from({ length: 5 }, () => [0, 0] as [number, number]),
+                ],
+            },
+        ]);
+        const { cohesion } = cohesionOf(log);
+        expect(cohesion.detachedMembers).toBe(0);
+        expect(cohesion.stragglersAtBomb).toBe(1);
+    });
+
+    it('keeps everyone rather than emptying the squad', () => {
+        // A lone member far from a centroid that IS them cannot happen, but a
+        // whole squad detached from a stale tag position could. Reporting a
+        // squad of nobody would be worse than reporting the raw numbers.
+        const log = buildNativeLog([parked(1, 'A.1', 0, 0)]);
+        const { cohesion } = cohesionOf(log);
+        expect(cohesion.detachedMembers).toBe(0);
+        expect(cohesion.avgDistFromTag).toBe(0);
+    });
+});
+
 describe('computeCommanderFightData end to end', () => {
     it('joins EI-sourced deaths to native tracks by account', () => {
         // The deaths timeline is still built from EI `combatReplayData.dead`

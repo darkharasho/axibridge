@@ -24,6 +24,21 @@ import {
  * with no tag at all). The centroid was the EI-era stand-in; see
  * `buildSquadTracks` for what it costs.
  */
+/**
+ * How far away a squad member has to stay, for the WHOLE fight, before we
+ * conclude they were never in it — world inches.
+ *
+ * This is deliberately NOT the 1500u straggler radius. 1500u means "out of
+ * position", and the whole point of `stragglersAtBomb` is to count people past
+ * it; excluding them here would hollow that metric out, leaving it able to see
+ * only members who wandered back inside at some other second. 5000u is well
+ * beyond the footprint of a fight, so clearing it for every sampled second means
+ * a different part of the map, not a bad pull. On the reference fixture the one
+ * detached member's CLOSEST approach is 11,896u while the worst moment of the
+ * next-worst member is 67u — there is nothing near this line to get wrong.
+ */
+const DETACHED_RADIUS = 5000;
+
 export interface CohesionContext {
   squadTracks: SquadTrack[];
   pollMs: number;
@@ -31,6 +46,48 @@ export interface CohesionContext {
   bombWindows: BombWindow[];
   deathsTimeline: DeathEvent[];
   tagTrack: PositionTrack | null;
+}
+
+/**
+ * Split the squad into the members who were in this fight and the count who
+ * were not.
+ *
+ * The test is the MINIMUM distance over the whole fight, which makes the filter
+ * one-directional and conservative: coming within {@link DETACHED_RADIUS} even
+ * once keeps a member permanently, far seconds and all, so somebody who died
+ * out wide, got dragged off, or ran back late is still measured in full. Only
+ * the member who is never close at any sampled second is dropped.
+ *
+ * Members whose track resolves at no second at all are kept and not counted:
+ * they contribute nothing to the aggregates either way, and reporting them as
+ * "detached" would turn a tracking gap into an accusation.
+ */
+function withoutDetached(
+  ctx: CohesionContext,
+  originAt: (t: number, pts: [number, number][]) => [number, number],
+): { squadTracks: SquadTrack[]; detachedMembers: number } {
+  const { squadTracks, pollMs, seriesLen } = ctx;
+  const allPositions = buildSquadPositionSeries(squadTracks, pollMs, seriesLen);
+
+  const closest = new Map<string, number>();
+  for (let t = 0; t < seriesLen; t++) {
+    const pts = allPositions[t];
+    if (pts.length === 0) continue;
+    const c = originAt(t, pts);
+    for (const st of squadTracks) {
+      const pos = squadPosAt(st, t, pollMs);
+      if (pos === null) continue;
+      const d = dist2d(pos, c);
+      const prev = closest.get(st.key);
+      if (prev === undefined || d < prev) closest.set(st.key, d);
+    }
+  }
+
+  const kept = squadTracks.filter(st => (closest.get(st.key) ?? 0) <= DETACHED_RADIUS);
+  // Never report a squad of nobody: if the filter would take everyone, the
+  // origin itself is more likely wrong than the entire squad absent.
+  if (kept.length === 0) return { squadTracks, detachedMembers: 0 };
+  return { squadTracks: kept, detachedMembers: squadTracks.length - kept.length };
 }
 
 /**
@@ -42,8 +99,7 @@ export interface CohesionContext {
 export function computeCohesion(
   ctx: CohesionContext,
 ): { cohesion: CommanderFightData['cohesion']; spreadStdev: number[] } {
-  const { squadTracks, pollMs, seriesLen, bombWindows, deathsTimeline, tagTrack } = ctx;
-  const perSecondPositions = buildSquadPositionSeries(squadTracks, pollMs, seriesLen);
+  const { pollMs, seriesLen, bombWindows, deathsTimeline, tagTrack } = ctx;
 
   /**
    * The point every distance below is measured from at second `t`: the
@@ -54,6 +110,9 @@ export function computeCohesion(
    */
   const originAt = (t: number, pts: [number, number][]): [number, number] =>
     tagPosAt(tagTrack, t, pollMs) ?? centroid(pts)!;
+
+  const { squadTracks, detachedMembers } = withoutDetached(ctx, originAt);
+  const perSecondPositions = buildSquadPositionSeries(squadTracks, pollMs, seriesLen);
 
   // ---- Per-second metrics ----
   const spreadStdev = new Array<number>(seriesLen).fill(0);
@@ -148,6 +207,7 @@ export function computeCohesion(
       peakSpreadStdev,
       peakSpreadStdevTSec,
       stragglersAtBomb,
+      detachedMembers,
     },
     spreadStdev,
   };

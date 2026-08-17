@@ -72,6 +72,7 @@ export interface CommanderFightData {
     peakSpreadStdev: number;
     peakSpreadStdevTSec: number;
     stragglersAtBomb: number;
+    detachedMembers: number;           // excluded from every field above
   };
 
   sustain: {

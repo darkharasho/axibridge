@@ -724,6 +724,48 @@ are tail statistics and the ~18,000u member is still in the tail wherever the or
 the central tendency moved. `fragmentedAtBomb` will still fire at max severity, and robust
 statistics vs. a non-participant filter remains the open product decision.
 
+### The absent member was a roster problem, not a statistics problem (2026-08-17)
+
+Measuring the distribution settled the "robust statistics vs. filter" question above: it is not a
+heavy tail, it is a member who was not in the fight. Distance-to-tag on `wvw-small.anon.zevtc` is
+bimodal with nothing in between -- 37 of 38 members have medians from 0u to 392u, and the 38th has
+a **19,912u median and a 34,743u maximum**, with full position coverage for all 49 seconds. A
+robust estimator would have hidden them. `computeCohesion` now excludes them and reports the count
+as `cohesion.detachedMembers`, rendered as its own card.
+
+Two things this cost a probe to learn:
+
+- **`combat_participant` does not identify them.** Native reports it `true` for all 38, so the
+  ready-made non-participant flag is a dead end and geometry is the only available test.
+- **The straggler radius cannot be reused as the cut.** 1500u was the obvious no-new-constant
+  choice, but `stragglersAtBomb` exists to count members past 1500u -- excluding them upstream
+  leaves that metric able to see only members who wandered back inside at some other second.
+  `DETACHED_RADIUS` is 5000u, beyond the footprint of a fight rather than inside it. The fixture
+  has no near-misses either way: the detached member's *closest approach all fight* is 11,896u,
+  and the worst single moment of the next-worst member is 67u.
+
+The test is the **minimum** over the fight, so coming within 5000u even once keeps a member
+permanently, far seconds included -- a genuine straggler who runs back is still measured in full.
+Scope is cohesion only; `matchup.inTagBubbleAtEngage` keeps all 38 deliberately, because it is
+reported against the distinct-person `squadCount` and the absent member *should* show as missing
+from "36 of 38".
+
+| | all 38 | 37 kept |
+|---|---|---|
+| `avgDistFromTag` | 793u | **245u** |
+| `timeSpread900PlusSec` | 49 of 50 | **6 of 50** |
+| `peakSpreadStdev` (vs `spreadBad` 600) | 5512u @1s | **234u @49s** |
+
+That last row is the point: `fragmentedAtBomb` was pinned at maximum severity on a fight whose
+squad was in fact stacked, and it now does not fire.
+
+**A geometric fact the oracle surfaced while this landed.** With the outlier gone, the
+centroid-relative mean (172u) is *lower* than the tag-relative one (245u), reversing an assertion
+that had held. This is not the centroid winning: it is by construction the minimum-mean-distance
+point of the set it summarises, so no origin can beat it. It measures how tight the blob is around
+itself; the tag measures whether the blob is on the commander, which is the question the card
+asks. The old ordering was an artifact of the outlier dragging the centroid.
+
 **axilog gained `encounter.log_start_ms` for this (0.3.6, not yet consumed here).** The change uses
 segment PRESENCE, not segment timing, which is why it does not need that field: `commander.segments`
 are raw arcdps session-time ms (`[[33847418, 33847418], [33847418, 33896600]]` against a
