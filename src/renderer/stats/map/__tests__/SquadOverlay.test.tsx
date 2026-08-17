@@ -16,7 +16,7 @@ const mkFight = (members: SquadMemberMovement[]): ReplayFightPayload => ({
     fightId: 's1', fightIndex: 0, label: 'x', timestampMs: 0, durationMs: 3000,
     mapKey: null, mapImageUrl: null, mapSize: [600, 600], avgPosition: null,
     nearestLandmark: null, squadSize: members.length, kills: 0, deaths: 0,
-    movementData: { pollingRate: 1000, durationMs: 3000, inchToPixel: 2, members, boonIcons: {}, skillIcons: {} },
+    movementData: { pollingRate: 1000, durationMs: 3000, pixelsPerInch: { x: 1, y: 1 }, members, boonIcons: {}, skillIcons: {} },
     dpsSamples: [], killEvents: [],
     damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
     sectorOwners: null,
@@ -51,8 +51,20 @@ describe('SquadOverlay', () => {
         useStatsStore.getState().setReplayLayer('tagRangeRings', true);
         const fight = mkFight([mkMember({ isCommander: true, positions: [[200, 200]] })]);
         const { container } = render(<svg><SquadOverlay fight={fight} timeMs={0} scale={1} /></svg>);
-        const rings = container.querySelectorAll('[data-overlay="tag-rings"] circle');
+        // Ellipses, not circles: the arena projection is anisotropic, so a
+        // fixed game range spans a different pixel count on each axis.
+        const rings = container.querySelectorAll('[data-overlay="tag-rings"] ellipse');
         expect(rings.length).toBe(2);
+    });
+
+    it('scales each ring axis by its own pixels-per-inch', () => {
+        useStatsStore.getState().setReplayLayer('tagRangeRings', true);
+        const fight = mkFight([mkMember({ isCommander: true, positions: [[200, 200]] })]);
+        fight.movementData.pixelsPerInch = { x: 0.01, y: 0.02 };
+        const { container } = render(<svg><SquadOverlay fight={fight} timeMs={0} scale={1} /></svg>);
+        const [near] = container.querySelectorAll('[data-overlay="tag-rings"] ellipse');
+        expect(near.getAttribute('rx')).toBe('6');
+        expect(near.getAttribute('ry')).toBe('12');
     });
 
     it('renders hull polygons when partyHulls is on and party has ≥ 3 members', () => {

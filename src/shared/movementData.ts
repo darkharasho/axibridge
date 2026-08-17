@@ -4,9 +4,13 @@
  * `exports` map. See `src/main/bridgeMetricsRoot.d.ts`.
  */
 import {
-    getArena, getPollMs, getPositionTracks, positionAt,
+    getArena, getPollMs, getPositionTracks, positionAt, worldToPixel,
+    replayCanvas, pixelsPerInch,
     type ArenaProjection, type PositionTrack,
 } from '@axiapps/bridge-metrics/nativePositioning';
+import {
+    squadEntities, friendlyPlayerEntities, enemyPlayerEntities,
+} from '@axiapps/bridge-metrics/nativeRoster';
 
 export type { ArenaProjection, PositionTrack };
 export { positionAt };
@@ -83,7 +87,7 @@ export const positionAtOrBefore = (
     return best;
 };
 
-// ─── The EI replay view-model (migrates in unit 3b) ───────────────────────────
+// ─── The replay map view-model ────────────────────────────────────────────────
 
 export interface SquadMemberMovement {
     name: string;
@@ -99,13 +103,16 @@ export interface SquadMemberMovement {
     /**
      * Absolute poll index of `positions[0]`.
      *
-     * EI/axilog emit one position per multiple of `pollingRate` inside the
-     * actor's OWN `combatReplayData.start..end` window — not from t=0 — so
+     * A track's samples start at the actor's own first poll, not at t=0, so
      * `positions[i]` is the sample at absolute poll `firstPoll + i`. Indexing
      * `positions[floor(t / pollingRate)]` without subtracting this reads the
      * wrong sample for anyone whose track does not begin at the very start of
      * the fight; a player who joins at t=38317ms is off by 128 polls, i.e.
      * their marker is drawn wherever they happened to be ~38 seconds later.
+     *
+     * This is now READ from the first sample's own timestamp rather than
+     * inferred from a start time, so the `ceil`-vs-`floor` mistake that unit 3
+     * found at five call sites cannot recur here.
      *
      * Use `positionAtTime` rather than indexing by hand.
      */
@@ -122,7 +129,15 @@ export interface SquadMemberMovement {
 export interface MovementData {
     pollingRate: number;
     durationMs: number;
-    inchToPixel: number;
+    /**
+     * Exact pixels-per-world-inch on the render canvas, per axis.
+     *
+     * Replaces EI's single `inchToPixel`, which was rounded to 3dp AND forced
+     * one scale onto a projection whose axes genuinely differ by ~2.4%. Scale a
+     * game range by the matching axis; a value spanning both axes (a range
+     * indicator) is an ellipse, not a circle.
+     */
+    pixelsPerInch: { x: number; y: number };
     members: SquadMemberMovement[];
     boonIcons: Record<number, { name: string; icon: string }>;
     skillIcons: Record<number, { name: string; icon: string }>;
@@ -137,19 +152,52 @@ export interface BuildMovementDataOptions {
 }
 
 /**
- * Absolute poll index of an actor's `positions[0]`, from its
- * `combatReplayData.start`.
+ * Flatten a native track into the dense, poll-indexed pixel array the map
+ * renders, plus the absolute poll index of its first entry.
  *
- * Mirrors the derivation `src/main/axilogParser.ts` already documents for its
- * own `PolledTrack.firstPoll`: axilog/EI emit `positions[i]` for the i-th
- * multiple of `pollingRate` that falls inside `[start, end]`, so the first
- * sample sits at `ceil(start / pollingRate)`.
+ * Native samples are self-timestamped, so `firstPoll` is read rather than
+ * derived. The dense encoding is kept deliberately: `replayFights` is ~66% of
+ * `report.json`, and storing `[t, x, y]` triples would inflate the largest part
+ * of the payload by half. It is safe because native tracks are a uniform grid
+ * — all 74 tracks on the reference fixture step by exactly `poll_ms`.
+ *
+ * Should a future axilog ever introduce gaps, the grid is rebuilt by index from
+ * each sample's own timestamp and any hole carries the previous position
+ * forward. That degrades to "the marker parks at the last known spot", which is
+ * exactly what `positionAtTime`'s clamping already does at track edges — never
+ * to the silent off-by-N that indexing a compacted array would produce.
  */
-const pollIndexOfStart = (startMs: unknown, pollingRate: number): number => {
-    const start = Number(startMs);
-    if (!Number.isFinite(start) || start <= 0 || pollingRate <= 0) return 0;
-    return Math.ceil(start / pollingRate);
+const denseTrack = (
+    track: PositionTrack,
+    pollMs: number,
+    arena: ArenaProjection | null,
+    canvas: [number, number],
+    round: (pt: [number, number]) => [number, number],
+): { positions: [number, number][]; firstPoll: number } | null => {
+    const samples = track.samples;
+    if (!samples.length || pollMs <= 0 || !arena) return null;
+
+    const firstPoll = Math.round(samples[0][0] / pollMs);
+    const lastPoll = Math.round(samples[samples.length - 1][0] / pollMs);
+    const span = lastPoll - firstPoll + 1;
+    if (!(span > 0)) return null;
+
+    const positions = new Array<[number, number]>(span);
+    for (const [t, wx, wy] of samples) {
+        const idx = Math.round(t / pollMs) - firstPoll;
+        if (idx < 0 || idx >= span) continue;
+        positions[idx] = round(worldToPixel(arena, wx, wy, canvas));
+    }
+    // Carry forward across any hole (none exist today — see above).
+    for (let i = 0; i < span; i++) {
+        if (!positions[i]) positions[i] = positions[i - 1] ?? positions.find(Boolean)!;
+    }
+    return { positions, firstPoll };
 };
+
+/** `commander.segments` is native's commander-tag evidence. */
+const hasCommanderTag = (entity: any): boolean =>
+    Array.isArray(entity?.commander?.segments) && entity.commander.segments.length > 0;
 
 /**
  * `[x, y]` for an actor at absolute time `timeMs`, honouring the actor's own
@@ -210,9 +258,12 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
     const roundPos = precisePositions
         ? (pt: any): [number, number] => [pt[0], pt[1]]
         : (pt: any): [number, number] => [Math.round(pt[0]), Math.round(pt[1])];
-    const pollingRate = details?.combatReplayMetaData?.pollingRate ?? 300;
+    const pollingRate = getPollMs(details) ?? 300;
     const durationMs = details?.durationMS ?? 0;
-    const inchToPixel = details?.combatReplayMetaData?.inchToPixel ?? 1;
+    const arena = getArena(details);
+    const tracks = getPositionTracks(details);
+    if (!arena || tracks.size === 0) return null;
+    const canvas = replayCanvas(arena);
 
     const skillIcons: Record<number, { name: string; icon: string }> = {};
     for (const [key, val] of Object.entries(details?.skillMap ?? {})) {
@@ -224,15 +275,35 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
     }
 
     const members: SquadMemberMovement[] = [];
-    const allyNames = new Set<string>();
 
-    const players = Array.isArray(details?.players) ? details.players : [];
-    for (const p of players) {
-        if (p?.isFake) continue;
-        if (allyNames.has(p.name)) continue; // skip duplicate player entries (EI can emit the same character twice in WvW)
-        const positions = p?.combatReplayData?.positions;
-        if (!positions?.length) continue;
-        allyNames.add(p.name);
+    /**
+     * Allies come from the native roster, joined to their track by entity id.
+     *
+     * The EI path this replaces joined on `players[].name` and deduped on it —
+     * but axilog's ei-json compat does not emit `name`, so every ally collided
+     * on `undefined` and the map rendered ONE of 42 allies. Entity ids are the
+     * join key native was built to provide; there is nothing to dedupe.
+     */
+    const nativeReport = details?.native ?? {};
+    const allies = [
+        ...squadEntities(nativeReport).map(e => ({ e, inSquad: true })),
+        ...friendlyPlayerEntities(nativeReport).map(e => ({ e, inSquad: false })),
+    ];
+
+    // Boons, casts, health and damage series still come from EI — those blocks
+    // belong to units 4-6. Account is the only stable join EI still offers.
+    const eiByAccount = new Map<string, any>();
+    for (const p of (Array.isArray(details?.players) ? details.players : [])) {
+        if (p?.isFake || !p?.account) continue;
+        if (!eiByAccount.has(p.account)) eiByAccount.set(p.account, p);
+    }
+
+    for (const { e, inSquad } of allies) {
+        const track = tracks.get(e.id);
+        if (!track) continue;
+        const dense = denseTrack(track, pollingRate, arena, canvas, roundPos);
+        if (!dense) continue;
+        const p = (e.account ? eiByAccount.get(e.account) : null) ?? {};
 
         let boonStates: Record<number, [number, number][]> | undefined;
         if (Array.isArray(p.buffUptimes)) {
@@ -258,8 +329,9 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
             skillCasts.sort((a, b) => a.time - b.time);
         }
 
-        const isLocal = (!!localAccount && p.account === localAccount)
-            || (!!localName && p.name === localName);
+        const character = e.character ?? (e as any).name ?? '';
+        const isLocal = (!!localAccount && e.account === localAccount)
+            || (!!localName && character === localName);
 
         // Extract per-second damage-taken deltas from the cumulative EI series.
         // EI outputs damageTaken1S / powerDamageTaken1S as cumulative arrays; we
@@ -274,19 +346,19 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
         }
 
         members.push({
-            name: p.name,
-            account: p.account ?? '',
-            profession: p.profession ?? '',
-            eliteSpec: p.elite_spec ?? '',
-            group: p.group ?? 0,
-            isCommander: !!p.hasCommanderTag,
+            name: character,
+            account: e.account ?? '',
+            profession: e.profession ?? '',
+            eliteSpec: e.elite_spec ?? '',
+            group: e.subgroup ?? 0,
+            isCommander: hasCommanderTag(e),
             isLocal,
             isEnemy: false,
-            inSquad: !p.notInSquad,
-            positions: positions.map(roundPos),
-            firstPoll: pollIndexOfStart(p.combatReplayData?.start, pollingRate),
-            downRanges: p.combatReplayData?.down ?? [],
-            deadRanges: p.combatReplayData?.dead ?? [],
+            inSquad,
+            positions: dense.positions,
+            firstPoll: dense.firstPoll,
+            downRanges: track.down,
+            deadRanges: track.dead,
             boonStates,
             healthPercents: p.healthPercents?.map((pt: any) => [pt[0], precisePositions ? pt[1] : Math.round(pt[1])] as [number, number]),
             damageTaken1SPerSec: precisePositions ? damageTaken1SPerSec : damageTaken1SPerSec?.map(Math.round),
@@ -294,29 +366,27 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
         });
     }
 
-    const targets = Array.isArray(details?.targets) ? details.targets : [];
-    for (const t of targets) {
-        if (!t?.enemyPlayer || t?.isFake) continue;
-        const positions = t?.combatReplayData?.positions;
-        if (!positions?.length) continue;
-        if (allyNames.has(t.name)) continue;
-
-        const specMatch = typeof t.name === 'string' ? t.name.match(/^(.+?) pl-\d+$/) : null;
-        const specName = specMatch?.[1] ?? '';
+    // Enemies. Native gives profession and elite spec as fields; the EI path
+    // had to scrape them out of a `"<spec> pl-123"` display name.
+    for (const e of enemyPlayerEntities(nativeReport)) {
+        const track = tracks.get(e.id);
+        if (!track) continue;
+        const dense = denseTrack(track, pollingRate, arena, canvas, roundPos);
+        if (!dense) continue;
         members.push({
-            name: t.name,
+            name: (e as any).name ?? e.character ?? '',
             account: '',
-            profession: t.profession ?? specName,
-            eliteSpec: specName,
+            profession: e.profession ?? '',
+            eliteSpec: e.elite_spec ?? '',
             group: 0,
             isCommander: false,
             isLocal: false,
             isEnemy: true,
             inSquad: false,
-            positions: positions.map(roundPos),
-            firstPoll: pollIndexOfStart(t.combatReplayData?.start, pollingRate),
-            downRanges: t.combatReplayData?.down ?? [],
-            deadRanges: t.combatReplayData?.dead ?? [],
+            positions: dense.positions,
+            firstPoll: dense.firstPoll,
+            downRanges: track.down,
+            deadRanges: track.dead,
         });
     }
 
@@ -331,5 +401,9 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
         }
     }
 
-    return { pollingRate, durationMs, inchToPixel, members, boonIcons, skillIcons };
+    return {
+        pollingRate, durationMs,
+        pixelsPerInch: pixelsPerInch(arena, canvas),
+        members, boonIcons, skillIcons,
+    };
 }

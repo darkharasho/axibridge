@@ -105,13 +105,27 @@ Replace the two `<circle>` range rings with `<ellipse>`, `rx = 600 * ppi.x`,
 `ry = 600 * ppi.y`. This is a deliberate, visible correction: the rings were
 previously both too large and forced circular in an anisotropic space.
 
-## Task 5: `commanderMetrics` positional funnel
+## Task 5: `commanderMetrics` positional funnel — DEFERRED to its own unit
 
-**Files:** `src/shared/commanderMetrics/shared.ts` (`positionAtSecond`),
-`src/shared/commanderMetrics/matchup.ts` (dead ranges).
+Scoping this against the code rather than the file list changed the answer. It is
+not a mechanical source swap, for two reasons found while probing:
 
-All position reads in this 2000-line subsystem funnel through one helper plus one
-dead-range read. Only those move; the rest of the subsystem is units 4–6.
+1. **`playerPosAt(player, tSec, framesPerSec)` is keyed on an EI `Player`.** There
+   is no entity id on it, so feeding it native tracks means changing
+   `computeCommanderFightData`'s contract and threading an account→track join
+   through four files. That is unit-scale work on a 2000-line EI-shaped subsystem
+   whose other 90% belongs to units 4–6.
+
+2. **There is a pre-existing unit bug here that must be fixed deliberately, not
+   incidentally.** `cohesion.ts` computes `distFromTag` in map PIXELS, and
+   `firstSquadDeathEarly.ts` renders it as `"<n>u from tag"` — game units. Those
+   differ by ~117× (one pixel spans ~117 world inches on the reference fixture).
+   The detector's thresholds appear tuned against the pixel value, so correcting
+   the unit without re-tuning them would change which fights trigger the detector.
+
+Deciding that trade-off belongs with the commanderMetrics migration, where the
+thresholds can be re-derived, not inside the replay-map unit. Tracked as the next
+unit; it is the last EI-position reader in the app.
 
 ## Task 6: Oracle, docs, verification
 

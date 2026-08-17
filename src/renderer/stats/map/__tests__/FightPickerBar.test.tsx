@@ -8,7 +8,7 @@ const makeFight = (id: string, label: string): ReplayFightPayload => ({
     fightId: id, fightIndex: 0, label, timestampMs: 0, durationMs: 60_000,
     mapKey: null, mapImageUrl: null, mapSize: null, avgPosition: null,
     nearestLandmark: null, squadSize: 20, kills: 5, deaths: 2,
-    movementData: { pollingRate: 300, durationMs: 60_000, inchToPixel: 1, members: [], boonIcons: {}, skillIcons: {} },
+    movementData: { pollingRate: 300, durationMs: 60_000, pixelsPerInch: { x: 1, y: 1 }, members: [], boonIcons: {}, skillIcons: {} },
     dpsSamples: [], killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
     sectorOwners: null,
 });

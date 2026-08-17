@@ -1,4 +1,8 @@
 import { WvwMap, findNearestLandmark } from './wvwLandmarks';
+import {
+    getArena, getPositionTracks, replayCanvas, worldToPixel,
+} from '@axiapps/bridge-metrics/nativePositioning';
+import { squadEntities, enemyPlayerEntities } from '@axiapps/bridge-metrics/nativeRoster';
 
 const ZONE_PREFIXES = ['Detailed WvW - ', 'World vs World - ', 'WvW - '];
 
@@ -51,18 +55,42 @@ function medianPosition(positions: Array<[number, number]>): [number, number] | 
     return [xs[mid], ys[mid]];
 }
 
+/**
+ * A representative position for the fight, in render-canvas pixels.
+ *
+ * Pixels rather than world inches because the only consumer is
+ * `findNearestLandmark`, whose table is calibrated in that space. Preference
+ * order is unchanged: the commander, then any squad member, then any enemy —
+ * enemy tracks exist even in logs where no squad member was tracked, and they
+ * are close enough to name the nearest objective.
+ */
 export function computeFightAvgPosition(details: any): [number, number] | null {
-    const players = Array.isArray(details?.players) ? details.players : [];
-    const commander = players.find((p: any) => p?.hasCommanderTag && p?.combatReplayData?.positions?.length);
-    if (commander) return medianPosition(commander.combatReplayData.positions);
-    const anyWithPos = players.find((p: any) => p?.combatReplayData?.positions?.length);
-    if (anyWithPos) return medianPosition(anyWithPos.combatReplayData.positions);
-    // Fall back to enemy targets — dps.report includes positions on targets even when
-    // squad player positions are absent. Enemy positions are close enough to determine
-    // the nearest WvW objective for the fight label.
-    const targets = Array.isArray(details?.targets) ? details.targets : [];
-    const targetWithPos = targets.find((t: any) => t?.combatReplayData?.positions?.length);
-    return targetWithPos ? medianPosition(targetWithPos.combatReplayData.positions) : null;
+    const arena = getArena(details);
+    if (!arena) return null;
+    const tracks = getPositionTracks(details);
+    if (tracks.size === 0) return null;
+    const canvas = replayCanvas(arena);
+    const report = details?.native ?? {};
+
+    const pixelsFor = (entityId: number): Array<[number, number]> | null => {
+        const samples = tracks.get(entityId)?.samples;
+        if (!samples?.length) return null;
+        return samples.map(([, x, y]) => worldToPixel(arena, x, y, canvas));
+    };
+
+    const squad = squadEntities(report);
+    const commander = squad.find(
+        (e: any) => Array.isArray(e?.commander?.segments) && e.commander.segments.length > 0,
+    );
+    for (const candidate of [
+        ...(commander ? [commander] : []),
+        ...squad,
+        ...enemyPlayerEntities(report),
+    ]) {
+        const pixels = pixelsFor(candidate.id);
+        if (pixels) return medianPosition(pixels);
+    }
+    return null;
 }
 
 export interface FightLabelInputs {
