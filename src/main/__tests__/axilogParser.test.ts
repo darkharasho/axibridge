@@ -45,23 +45,21 @@ const FIXTURE = FIXTURE_CANDIDATES.find((p) => fs.existsSync(p)) ?? FIXTURE_CAND
 
 // ─── Backend selection ────────────────────────────────────────────────────────
 
-describe('normalizeParserBackend', () => {
-    it('ships Elite Insights as the default — the axilog flip is owner-gated', () => {
-        // axilog is capability complete (8 null-guarded residuals out of 83
-        // audited read-surface rows; §1 of docs/axilog-cutover-report.md) and
-        // fully wired, but making it the default is a repo-owner call that has
-        // not been made. This assertion is the gate: flipping
-        // DEFAULT_PARSER_BACKEND must be a deliberate, visible edit here too.
-        expect(DEFAULT_PARSER_BACKEND).toBe('elite-insights');
-        expect(normalizeParserBackend(undefined)).toBe('elite-insights');
-        expect(normalizeParserBackend(null)).toBe('elite-insights');
-        expect(normalizeParserBackend('')).toBe('elite-insights');
-        expect(normalizeParserBackend('nonsense')).toBe('elite-insights');
-        expect(normalizeParserBackend('elite-insights')).toBe('elite-insights');
+describe('shipped default backend', () => {
+    it('defaults to axilog', () => {
+        expect(DEFAULT_PARSER_BACKEND).toBe('axilog');
     });
 
-    it('honours an exact axilog selection', () => {
-        expect(normalizeParserBackend('axilog')).toBe('axilog');
+    it('resolves every unrecognized value to axilog', () => {
+        expect(normalizeParserBackend(undefined)).toBe('axilog');
+        expect(normalizeParserBackend(null)).toBe('axilog');
+        expect(normalizeParserBackend('')).toBe('axilog');
+        expect(normalizeParserBackend('Axilog')).toBe('axilog');
+        expect(normalizeParserBackend('elite insights')).toBe('axilog');
+    });
+
+    it('still honours an explicit elite-insights selection', () => {
+        expect(normalizeParserBackend('elite-insights')).toBe('elite-insights');
     });
 
     it('coerces anything that is not an exact id to the shipped default', () => {
@@ -466,13 +464,13 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         expect(summary.isWin).not.toBeNull();
     });
 
-    it('takes the per-target downs/kills split rather than the statsAll fallback', () => {
-        // axilog 0.3.0 emits `statsTargets[i][0].downed/killed`, so it now takes
-        // buildDashboardSummaryFromDetails' EI-shaped branch. That matters: the
-        // `statsAll` fallback was a deliberately high-biased substitute (it
-        // counts NPCs, guards and siege too), and on this fixture the split
-        // totals 25 against statsAll's 49. Pinning the branch keeps the flipped
-        // default off the approximation. See §4.2 of the cutover report.
+    it('carries a per-target downs/kills split narrower than the whole-fight total', () => {
+        // The `statsAll` substitution this once guarded against was deleted at
+        // 0.3.4 (it was a deliberately high-biased substitute: it counts NPCs,
+        // guards and siege too). What still needs pinning is that the split is
+        // present AND genuinely per-target — on this fixture it totals 25
+        // against statsAll's 49, so a regression that silently widened the
+        // split back to whole-fight scope would show up here as equality.
         const sawSplit = details.players.some((p: any) =>
             (p.statsTargets ?? []).some((t: any) => t?.[0]?.downed !== undefined || t?.[0]?.killed !== undefined));
         expect(sawSplit).toBe(true);
@@ -534,11 +532,11 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         expect(targets.some((t) => t.dpsAll?.[0]?.damage !== undefined)).toBe(true);
     });
 
-    it('emits the three residuals axilog 0.3.2 closed', () => {
-        // Promoted out of the inverse pin below when the dependency moved
-        // 0.3.0 -> 0.3.2. Each was a documented gap in §4.3 of the cutover
-        // report; each now carries real values, not just keys, so these assert
-        // on populated data rather than field presence alone.
+    it('emits the residuals axilog 0.3.2 and 0.3.4 closed', () => {
+        // Promoted out of the inverse pin below as the dependency moved
+        // 0.3.0 -> 0.3.2 -> 0.3.4. Each was a documented gap in §4.3 of the
+        // cutover report; each now carries real values, not just keys, so these
+        // assert on populated data rather than field presence alone.
         const players: any[] = details.players;
 
         // Boon overstack. Generation was already exact; `wasted` closes the
@@ -561,6 +559,21 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         const enemyPlayers = details.targets.filter((t: any) => t.enemyPlayer);
         expect(enemyPlayers.length).toBeGreaterThan(0);
         expect(enemyPlayers.every((t: any) => typeof t.profession === 'string' && t.profession)).toBe(true);
+
+        // 0.3.4's headline closure: the per-target split widened 8 -> 23
+        // fields, which retired BOTH remaining workarounds (the statsAll
+        // offense fallback and the enemy-downs substitution). The 15 Offense
+        // Detailed columns that had read 0 now source per-target throughout.
+        // packages/bridge-metrics/src/__tests__/statsTargetsFieldSurface.test.ts
+        // pins the individual field names; this pins the width.
+        const perTarget = players[0].statsTargets[0][0];
+        expect(Object.keys(perTarget).length).toBeGreaterThanOrEqual(23);
+        for (const field of [
+            'directDmg', 'missed', 'evaded', 'blocked', 'invulned',
+            'appliedCrowdControlDownContribution', 'appliedCrowdControlDurationDownContribution',
+        ]) {
+            expect(perTarget[field], `per-target ${field}`).toBeDefined();
+        }
     });
 
     it('keeps the enemy roster free of squad-side minions', () => {
@@ -596,18 +609,11 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
 
         // Every reader falls back to character_name/name.
         expect(every((p) => p.display_name !== undefined)).toBe(true);
-        // The `statsTargets` field subset (§4.1). These 7 have no `statsAll`
-        // equivalent either, so unlike the other 8 they take no fallback and
-        // stay blank. Pinned because faking them from a near-miss field (e.g.
-        // `connectedDirectDmg` for `directDmg`) is the tempting wrong fix.
-        for (const field of [
-            'directDmg', 'missed', 'evaded', 'blocked', 'invulned',
-            'appliedCrowdControlDownContribution', 'appliedCrowdControlDurationDownContribution',
-        ]) {
-            expect(every((p) => p.statsTargets?.some((t: any) => t?.[0] && field in t[0]))).toBe(true);
-        }
         // Skill/buff icon + classification metadata needs EI's bundled GW2 DB.
+        // These close via NATIVE `catalogs` in units 5 and 7 of the migration —
+        // to_ei_json does not map them, so on ei-json they stay absent.
         expect(Object.values(details.skillMap).every((s: any) => s.icon === undefined)).toBe(true);
+        expect(Object.values(details.buffMap).every((b: any) => b.icon === undefined)).toBe(true);
         expect(Object.values(details.buffMap).every((b: any) => b.classification === undefined)).toBe(true);
     });
 });
