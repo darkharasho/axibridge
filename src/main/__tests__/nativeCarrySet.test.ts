@@ -4,7 +4,13 @@ import * as fs from 'node:fs';
 import { buildNativeCarrySet, CARRIED_PATHS } from '../nativeCarrySet';
 import { AxilogManager } from '../axilogParser';
 import { DEFAULT_EI_SETTINGS } from '../eiParser';
-import { getEntitySkillRows, getEntityDamageTotal } from '@axiapps/bridge-metrics/nativeDamage';
+import {
+    getEntitySkillRows,
+    getEntityDamageTotal,
+    getEntityDamageSeries,
+    getEntityDamageTakenSeries,
+    getEntityDownContribution,
+} from '@axiapps/bridge-metrics/nativeDamage';
 import { listBoonIds, getBuffMeta, getEntityBuffUptime } from '@axiapps/bridge-metrics/nativeBoons';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 
@@ -134,6 +140,28 @@ describe.runIf(binding && fs.existsSync(COMMITTED_FIXTURE))(
             const skillRows = getEntitySkillRows(details, squadId, { perTarget: true });
             expect(skillRows.length).toBeGreaterThan(0);
             expect(getEntityDamageTotal(details, squadId)).toBeGreaterThan(0);
+            // `catalogs.skills` — the shape-mirror test only proves the row
+            // count survives; without the catalog `resolveSkillMeta` falls
+            // back to the placeholder `Skill ${id}` name, which would still
+            // satisfy a bare non-empty-string check. Require at least one
+            // row with a real, catalog-resolved name.
+            expect(skillRows.some((row) => row.skillName.length > 0 && !/^Skill \d+$/.test(row.skillName))).toBe(
+                true,
+            );
+
+            // `blocks.series` — no reader above touches it; drive the series
+            // readers directly across the squad so dropping the path fails.
+            const squad = squadEntities(details.native);
+            const anyDamageSeries = squad.some((e: any) => getEntityDamageSeries(details, e.id).some((v) => v > 0));
+            expect(anyDamageSeries).toBe(true);
+            const anyDamageTakenSeries = squad.some((e: any) =>
+                getEntityDamageTakenSeries(details, e.id).some((v) => v > 0));
+            expect(anyDamageTakenSeries).toBe(true);
+
+            // `blocks.contribution` — down contribution is sparse per entity,
+            // so scan the squad rather than assuming `squadId` has any.
+            const anyDownContribution = squad.some((e: any) => getEntityDownContribution(details, e.id) > 0);
+            expect(anyDownContribution).toBe(true);
 
             // Unit 5a (boons) — blocks.boons / catalogs.buffs.
             const boonIds = listBoonIds(details);
