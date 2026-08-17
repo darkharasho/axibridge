@@ -14,6 +14,69 @@ const makeLogs = (...fixtures: any[]) =>
         details: f,
     }));
 
+const ARENA = {
+    image_width: 697, image_height: 1000, image_url: 'x',
+    world_min_x: -30720, world_min_y: -43008, world_max_x: 30720, world_max_y: 43008,
+};
+
+/**
+ * A minimal NATIVE fight with two squad deaths: one on-tag, one run-back.
+ * The committed EI goldens predate the migration and carry no `native` block,
+ * so a positions-bearing fixture has to be built in native shape.
+ */
+const nativeDeathLog = (startedAtIso: string) => {
+    const pollMs = 300;
+    const samples = (x: number, n: number) =>
+        Array.from({ length: n }, (_, i) => [(i + 1) * pollMs, x, 0] as [number, number, number]);
+    return {
+        id: 'log-native-deaths',
+        filePath: 'native-deaths.zevtc',
+        details: {
+            durationMS: 6000,
+            fightName: 'Skirmish',
+            // A real parse returns BOTH surfaces during the migration: the EI
+            // rows the un-migrated metrics still read, plus `native`.
+            players: [
+                { account: 'Cmdr.5678', name: 'Cmdr', profession: 'Guardian', notInSquad: false, hasCommanderTag: true, dpsAll: [{ damage: 100 }], defenses: [{ damageTaken: 10, downCount: 0, deadCount: 0 }], statsAll: [{}] },
+                { account: 'Close.1111', name: 'Close', profession: 'Guardian', notInSquad: false, dpsAll: [{ damage: 100 }], defenses: [{ damageTaken: 10, downCount: 1, deadCount: 1 }], statsAll: [{}] },
+                { account: 'Far.2222', name: 'Far', profession: 'Necromancer', notInSquad: false, dpsAll: [{ damage: 100 }], defenses: [{ damageTaken: 10, downCount: 1, deadCount: 1 }], statsAll: [{}] },
+            ],
+            targets: [],
+            native: {
+                axilog: { schema: '1.0' },
+                encounter: {
+                    map: 'Green Alpine Borderlands',
+                    duration_ms: 6000,
+                    started_at_unix: Math.floor(Date.parse(startedAtIso) / 1000),
+                },
+                entities: [
+                    { id: 1, account: 'Cmdr.5678', profession: 'Guardian', role: 'squad', commander: { guid: 'g', segments: [[0, 6000]], variant: 'blue' } },
+                    { id: 2, account: 'Close.1111', profession: 'Guardian', role: 'squad' },
+                    { id: 3, account: 'Far.2222', profession: 'Necromancer', role: 'squad' },
+                ],
+                blocks: {
+                    replay: {
+                        by_entity: {
+                            1: { start_ms: 0, end_ms: 6000, active_ms: 6000, down: [], dead: [], dc: [], dist_to_com: 0, stack_dist: 300 },
+                            2: { start_ms: 0, end_ms: 6000, active_ms: 6000, down: [[900, 1200]], dead: [[1200, 6000]], dc: [], dist_to_com: 400, stack_dist: 350 },
+                            3: { start_ms: 0, end_ms: 6000, active_ms: 6000, down: [[900, 1200]], dead: [[1200, 6000]], dc: [], dist_to_com: 9000, stack_dist: 8000 },
+                        },
+                        tracks: {
+                            poll_ms: pollMs,
+                            arena: ARENA,
+                            by_entity: {
+                                1: { samples: samples(0, 19), down_intervals: [], dead_intervals: [], dc_intervals: [] },
+                                2: { samples: samples(400, 19), down_intervals: [[900, 1200]], dead_intervals: [[1200, 6000]], dc_intervals: [] },
+                                3: { samples: samples(9000, 19), down_intervals: [[900, 1200]], dead_intervals: [[1200, 6000]], dc_intervals: [] },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    };
+};
+
 describe('IncrementalAggregator', () => {
     it('computeStatsSync produces valid stats for multiple logs', () => {
         const logs = makeLogs(fixture1, fixture2, fixture3);
@@ -72,9 +135,11 @@ describe('IncrementalAggregator', () => {
     });
 
     it('reassigns tagDistanceDeaths shortLabels chronologically (result + events)', () => {
-        // fixture2 (Jan 17) is older than fixtureDeaths (Feb 5). Ingest reversed
-        // so the death-bearing fixture (which would naively get F1) lands at F2.
-        const logs = makeLogs(fixtureDeaths, fixture2);
+        // fixture2 (Jan 17) is older than the native death log below, so ingest
+        // reversed: the death-bearing fight (which would naively get F1) must
+        // land at F2.
+        const logs = [...makeLogs(fixture2)];
+        logs.unshift(nativeDeathLog('2026-02-05T19:11:32Z'));
         const result = computeStatsSync({ logs });
 
         const tdd = result.stats.tagDistanceDeaths;
@@ -82,8 +147,6 @@ describe('IncrementalAggregator', () => {
         expect(tdd.length).toBe(2);
         expect(tdd.map((f: any) => f.shortLabel)).toEqual(['F1', 'F2']);
 
-        // The death-bearing fixture must be F2 (it's the later timestamp),
-        // and its events must have been rewritten to carry shortLabel "F2".
         const deathFight = tdd.find((f: any) => Array.isArray(f.events) && f.events.length > 0);
         expect(deathFight).toBeTruthy();
         expect(deathFight.shortLabel).toBe('F2');
@@ -93,7 +156,8 @@ describe('IncrementalAggregator', () => {
     });
 
     it('exposes onTagReview rows aggregated from replay deaths', () => {
-        const logs = makeLogs(fixtureDeaths, fixture2);
+        const logs = [...makeLogs(fixture2)];
+        logs.unshift(nativeDeathLog('2026-02-05T19:11:32Z'));
         const result = computeStatsSync({ logs });
 
         const otr = result.stats.onTagReview;
@@ -106,5 +170,16 @@ describe('IncrementalAggregator', () => {
             expect(row.onTag + row.offTag + row.runBack).toBe(row.total);
             expect(row.afterTag).toBeLessThanOrEqual(row.total);
         }
+    });
+
+    it('surfaces no tag-distance rows for an EI-only log with no native block', () => {
+        // The cutover made explicit: positions now come from axilog's native
+        // report, so a log parsed before the migration carries nothing these
+        // tables can read. The upgrade re-parse sweep is what refills them --
+        // an empty table is the honest answer until it runs, and is very
+        // deliberately not a zero-distance one.
+        const result = computeStatsSync({ logs: makeLogs(fixtureDeaths) });
+        expect(result.stats.onTagReview.rows).toEqual([]);
+        expect(result.stats.tagDistanceDeaths.every((f: any) => f.hasReplayData === false)).toBe(true);
     });
 });

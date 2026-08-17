@@ -8,6 +8,9 @@
  */
 
 import { resolveCommanderDistance } from '@axiapps/bridge-metrics';
+import { buildNativeMovement, positionAt, type PositionTrack } from '../../shared/movementData';
+import { getDistanceScalars } from '@axiapps/bridge-metrics/nativePositioning';
+import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 
 export type StabPerfPlayerData = {
     group: number;
@@ -91,33 +94,36 @@ const computeDeaths = (player: any, bucketCount: number): number[] => {
     return out;
 };
 
+/**
+ * Mean distance to the tag per 5s bucket, in WORLD INCHES.
+ *
+ * Both tracks are read at the same timestamp. The old version derived a poll
+ * index for each side (`floor(start / pollingRate)`, where `ceil` is correct)
+ * and indexed two arrays by it, so any actor whose replay did not begin on the
+ * polling grid — 36 of 42 on the committed fixture — was compared against a
+ * tag position from a different moment. It also divided by EI's `inchToPixel`,
+ * which is rounded to 3dp and read 3.12% short.
+ */
 const computeDistances = (
-    player: any,
-    cmdPositions: Array<[number, number]>,
-    cmdOffset: number,
-    pollingRate: number,
-    inchesToPixel: number,
+    track: PositionTrack | null,
+    tagTrack: PositionTrack | null,
     fallbackDist: number,
     bucketCount: number
 ): number[] => {
-    const getFirstSeg = (replayData: any) => Array.isArray(replayData) ? replayData[0] : replayData;
-    const playerSeg = getFirstSeg(player?.combatReplayData);
-    const playerPositions: Array<[number, number]> = Array.isArray(playerSeg?.positions) ? playerSeg.positions : [];
-    const playerOffset = Math.floor(Number(playerSeg?.start || 0) / pollingRate);
     return Array.from({ length: bucketCount }, (_, b) => {
-        if (cmdPositions.length === 0 || playerPositions.length === 0) return fallbackDist;
+        if (!track || !tagTrack || track.samples.length === 0 || tagTrack.samples.length === 0) {
+            return fallbackDist;
+        }
         const bucketStartMs = b * 5000;
         const bucketEndMs = (b + 1) * 5000;
         let sum = 0, count = 0;
-        for (let t = bucketStartMs; t < bucketEndMs; t += pollingRate) {
-            const tick = Math.floor(t / pollingRate);
-            const cmdIdx = tick - cmdOffset;
-            const playerIdx = tick - playerOffset;
-            if (cmdIdx < 0 || cmdIdx >= cmdPositions.length) continue;
-            if (playerIdx < 0 || playerIdx >= playerPositions.length) continue;
-            const [cx, cy] = cmdPositions[cmdIdx];
-            const [px, py] = playerPositions[playerIdx];
-            const d = Math.hypot(px - cx, py - cy) / inchesToPixel;
+        for (const [t] of track.samples) {
+            if (t < bucketStartMs) continue;
+            if (t >= bucketEndMs) break;
+            const p = positionAt(track, t);
+            const tag = positionAt(tagTrack, t);
+            if (!p || !tag) continue;
+            const d = Math.hypot(p[0] - tag[0], p[1] - tag[1]);
             if (Number.isFinite(d)) { sum += d; count++; }
         }
         return count > 0 ? sum / count : fallbackDist;
@@ -167,26 +173,38 @@ export function ingestLogStabPerformance(log: any, acc: StabPerfAccumulator): vo
     if (durationMs <= 0) return;
     const bucketCount = Math.max(1, Math.ceil(durationMs / 5000));
 
-    const replayMeta = (details as any)?.combatReplayMetaData || {};
-    const inchesToPixel = Number(replayMeta?.inchToPixel || 0) > 0 ? Number(replayMeta.inchToPixel) : 1;
-    const pollingRate = Number(replayMeta?.pollingRate || 0) > 0 ? Number(replayMeta.pollingRate) : 500;
-    const getFirstSeg = (replayData: any) => Array.isArray(replayData) ? replayData[0] : replayData;
-    const commanderPlayer = squadPlayers.find((p: any) => p?.hasCommanderTag);
-    const cmdSeg = getFirstSeg(commanderPlayer?.combatReplayData);
-    const cmdPositions: Array<[number, number]> = Array.isArray(cmdSeg?.positions) ? cmdSeg.positions : [];
-    const cmdOffset = Math.floor(Number(cmdSeg?.start || 0) / pollingRate);
+    // Positions come from native; stab stacks, deaths and damage still read the
+    // EI player rows (units 4 and 5). The two are joined by ACCOUNT, which is
+    // the only key both surfaces share.
+    const movement = buildNativeMovement(details);
+    const scalars = getDistanceScalars(details);
+    const squadNative = squadEntities(details?.native ?? {});
+    const entityByAccount = new Map<string, number>();
+    for (const e of squadNative) {
+        if (e.account) entityByAccount.set(e.account, e.id);
+    }
+    const commanderEntity = squadNative.find((e: any) => {
+        const c = e?.commander;
+        return !!c && typeof c === 'object' && Array.isArray(c.segments) && c.segments.length > 0;
+    });
+    const tagTrack = commanderEntity && movement
+        ? movement.tracks.get(commanderEntity.id) ?? null
+        : null;
 
     const incomingDamage = computeIncomingDamage(squadPlayers, bucketCount).map(round0);
     const playersOut: Record<string, StabPerfPlayerData> = {};
     squadPlayers.forEach((player: any) => {
         const playerAccount = String(player?.account || player?.name || 'Unknown');
         const group = Number(player?.group || 0);
-        const distStats = (player as any)?.statsAll?.[0];
-        const cmdDist = resolveCommanderDistance(distStats?.distToCom);
-        const fallbackDist = cmdDist !== null ? cmdDist : Number(distStats?.stackDist || 0);
+        // Coarse fallback: axilog's in-core scalars, already world inches.
+        const entityId = entityByAccount.get(playerAccount);
+        const scalar = entityId === undefined ? undefined : scalars.get(entityId);
+        const cmdDist = resolveCommanderDistance(scalar?.distToCom ?? undefined);
+        const fallbackDist = cmdDist !== null ? cmdDist : Number(scalar?.stackDist || 0);
         const stacks = computeStabStacks(player, bucketCount).map(round1);
         const deaths = computeDeaths(player, bucketCount);
-        const distances = computeDistances(player, cmdPositions, cmdOffset, pollingRate, inchesToPixel, fallbackDist, bucketCount).map(round0);
+        const track = entityId === undefined || !movement ? null : movement.tracks.get(entityId) ?? null;
+        const distances = computeDistances(track, tagTrack, fallbackDist, bucketCount).map(round0);
         const hasAny = stacks.some((v) => v > 0) || deaths.some((v) => v > 0) || distances.some((v) => v > 0);
         if (!hasAny && group === 0) return;
         playersOut[playerAccount] = {
