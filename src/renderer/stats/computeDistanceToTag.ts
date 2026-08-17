@@ -1,3 +1,7 @@
+import { buildNativeMovement, positionAt } from '../../shared/movementData';
+import { getDistanceScalars, NO_DISTANCE } from '@axiapps/bridge-metrics/nativePositioning';
+import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
+
 export type DistanceContributionSource = 'replay' | 'fightAvg';
 
 /** One player's contribution from a single fight. */
@@ -34,57 +38,64 @@ export type DistanceToTagResult = {
     commanderCount: number;
 };
 
-const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+const finiteOrNull = (v: unknown): number | null =>
+    typeof v === 'number' && Number.isFinite(v) ? v : null;
 
-const getStackDist = (player: any): number | null => {
-    const stats = player?.statsAll?.[0];
-    const v = stats?.stackDist;
-    return typeof v === 'number' && Number.isFinite(v) ? v : null;
-};
-
+/**
+ * Per-fight distance-to-tag, read from axilog's native replay block.
+ *
+ * Distances are WORLD INCHES straight from the samples. The old EI path
+ * computed `hypot(pixels) / combatReplayMetaData.inchToPixel`, and EI rounds
+ * that scale to three decimals (0.009 against a true 0.0087193), so every
+ * number this table showed read 3.12% short.
+ *
+ * Sample alignment is by TIMESTAMP. The old path re-derived each actor's first
+ * poll as `floor(start / pollingRate)` where `ceil` is correct, shifting the
+ * whole track one tick against the tag for anyone whose replay did not begin
+ * on the polling grid — 36 of 42 players on the committed fixture.
+ */
 export const ingestLogDistanceToTag = (log: any, fightIndex: number): DistanceContribution[] => {
     const details = log?.details;
     const fightId = log?.filePath || `fight-${fightIndex}`;
-    const players = Array.isArray(details?.players) ? details.players : [];
-    const squadPlayers = players.filter((p: any) => !p?.notInSquad);
-    if (squadPlayers.length === 0) return [];
 
-    const replayMeta = details?.combatReplayMetaData || {};
-    const pollingRate = replayMeta?.pollingRate > 0 ? replayMeta.pollingRate : 0;
-    const inchToPixel = replayMeta?.inchToPixel > 0 ? replayMeta.inchToPixel : 0;
+    const squad = squadEntities(details?.native ?? {});
+    if (squad.length === 0) return [];
 
-    const commander = squadPlayers.find((p: any) => p?.hasCommanderTag);
-    const tagPositions: Array<[number, number]> = commander?.combatReplayData?.positions || [];
-    const replayUsable = !!commander && tagPositions.length > 0 && pollingRate > 0 && inchToPixel > 0;
+    const movement = buildNativeMovement(details);
+    const scalars = getDistanceScalars(details);
+    const commander = squad.find((e: any) => {
+        const c = (e as any)?.commander;
+        return !!c && typeof c === 'object' && Array.isArray(c.segments) && c.segments.length > 0;
+    });
+    const tagTrack = commander && movement ? movement.tracks.get(commander.id) ?? null : null;
 
     const out: DistanceContribution[] = [];
 
-    for (const player of squadPlayers) {
-        const account = player?.account || 'Unknown';
-        const profession = player?.profession || 'Unknown';
-        const isCommander = !!player?.hasCommanderTag;
+    for (const entity of squad) {
+        const account = entity?.account || 'Unknown';
+        const profession = entity?.profession || 'Unknown';
+        const isCommander = entity.id === commander?.id;
 
-        const playerPositions: Array<[number, number]> | undefined = player?.combatReplayData?.positions;
-        if (replayUsable && Array.isArray(playerPositions) && playerPositions.length > 0) {
-            const playerStart = Number(player?.combatReplayData?.start || 0);
-            const playerOffset = Math.floor(playerStart / pollingRate);
+        const track = movement?.tracks.get(entity.id) ?? null;
+        if (tagTrack && track && track.samples.length > 0) {
             const samples: number[] = [];
-            for (let i = 0; i < playerPositions.length; i++) {
-                const tagIdx = clamp(i + playerOffset, 0, tagPositions.length - 1);
-                const [px, py] = playerPositions[i];
-                const [tx, ty] = tagPositions[tagIdx];
-                const dist = isCommander ? 0 : Math.hypot(px - tx, py - ty) / inchToPixel;
-                samples.push(dist);
+            for (const [t] of track.samples) {
+                const p = positionAt(track, t);
+                const tag = positionAt(tagTrack, t);
+                if (!p || !tag) continue;
+                samples.push(isCommander ? 0 : Math.hypot(p[0] - tag[0], p[1] - tag[1]));
             }
-            const fightMean = samples.length > 0
-                ? samples.reduce((s, v) => s + v, 0) / samples.length
-                : 0;
-            out.push({ account, profession, isCommander, fightId, source: 'replay', samples, fightMean });
-            continue;
+            if (samples.length > 0) {
+                const fightMean = samples.reduce((s, v) => s + v, 0) / samples.length;
+                out.push({ account, profession, isCommander, fightId, source: 'replay', samples, fightMean });
+                continue;
+            }
         }
 
-        const stack = getStackDist(player);
-        if (stack === null) continue;
+        // Coarse mode: no tracks, but axilog's in-core `stack_dist` survives
+        // `pruneDetailsForStats` and is already world inches.
+        const stack = finiteOrNull(scalars.get(entity.id)?.stackDist);
+        if (stack === null || stack === NO_DISTANCE) continue;
         out.push({
             account, profession, isCommander, fightId,
             source: 'fightAvg', samples: [], fightMean: stack,

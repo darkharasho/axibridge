@@ -6,38 +6,66 @@ import {
     type DistanceContribution,
 } from '../computeDistanceToTag';
 
-const makeLog = (overrides: any = {}) => ({
-    log: {
-        filePath: overrides.filePath ?? 'fight-1',
-        details: {
-            combatReplayMetaData: {
-                pollingRate: overrides.pollingRate ?? 150,
-                inchToPixel: overrides.inchToPixel ?? 1,
-            },
-            players: overrides.players ?? [],
-            ...(overrides.detailsExtra ?? {}),
-        },
-    },
-});
+const ARENA = {
+    image_width: 697, image_height: 1000, image_url: 'x',
+    world_min_x: -30720, world_min_y: -43008, world_max_x: 30720, world_max_y: 43008,
+};
 
-const makePlayer = (opts: {
-    account: string;
-    profession?: string;
-    hasCommanderTag?: boolean;
-    notInSquad?: boolean;
-    positions?: Array<[number, number]>;
-    start?: number;
-    stackDist?: number;
-}) => ({
-    account: opts.account,
-    profession: opts.profession ?? 'Guardian',
-    hasCommanderTag: opts.hasCommanderTag ?? false,
-    notInSquad: opts.notInSquad ?? false,
-    statsAll: [{ stackDist: opts.stackDist ?? 0 }],
-    combatReplayData: opts.positions
-        ? { positions: opts.positions, start: opts.start ?? 0 }
-        : undefined,
-});
+/**
+ * A native-shaped log. `entities` is the roster; `blocks.replay.by_entity`
+ * carries the intervals and the in-core distance scalars; `tracks.by_entity`
+ * carries `[t_ms, x, y]` samples in WORLD INCHES.
+ */
+const makeLog = (overrides: any = {}) => {
+    const entities = overrides.entities ?? [];
+    const pollMs = overrides.pollMs ?? 150;
+    const byEntity: any = {};
+    const trackByEntity: any = {};
+    for (const e of entities) {
+        byEntity[e.id] = {
+            start_ms: e.start_ms ?? 0, end_ms: 10_000, active_ms: 10_000,
+            down: e.down ?? [], dead: e.dead ?? [], dc: [],
+            dist_to_com: e.dist_to_com ?? null, stack_dist: e.stack_dist ?? null,
+        };
+        if (e.positions) {
+            trackByEntity[e.id] = {
+                // Samples land on the shared grid, starting at the first
+                // multiple of pollMs at or after this entity's start.
+                samples: e.positions.map((pt: [number, number], i: number) => [
+                    (Math.max(1, Math.ceil((e.start_ms ?? 0) / pollMs)) + i) * pollMs,
+                    pt[0], pt[1],
+                ]),
+                down_intervals: e.down ?? [], dead_intervals: e.dead ?? [], dc_intervals: [],
+            };
+        }
+    }
+    return {
+        log: {
+            filePath: overrides.filePath ?? 'fight-1',
+            details: {
+                durationMS: 10_000,
+                native: {
+                    axilog: { schema: '1.0' },
+                    entities: entities.map((e: any) => ({
+                        id: e.id,
+                        account: e.account,
+                        profession: e.profession ?? 'Guardian',
+                        role: e.role ?? 'squad',
+                        ...(e.commander ? { commander: { guid: 'g', segments: [[0, 10_000]], variant: 'blue' } } : {}),
+                    })),
+                    blocks: {
+                        replay: {
+                            by_entity: byEntity,
+                            ...(overrides.noTracks ? {} : {
+                                tracks: { poll_ms: pollMs, arena: ARENA, by_entity: trackByEntity },
+                            }),
+                        },
+                    },
+                },
+            },
+        },
+    };
+};
 
 describe('ingestLogDistanceToTag', () => {
     it('returns empty when no players', () => {
@@ -45,16 +73,19 @@ describe('ingestLogDistanceToTag', () => {
         expect(out).toEqual([]);
     });
 
-    it('emits fightAvg contribution per non-squad-excluded player when replay data is missing', () => {
+    it('emits fightAvg contributions from the native scalars when tracks are absent', () => {
+        // Coarse mode: the user turned off position retention, so
+        // pruneDetailsForStats dropped `tracks` but kept `by_entity`.
         const out = ingestLogDistanceToTag(
             makeLog({
-                players: [
-                    makePlayer({ account: 'A.1', stackDist: 200 }),
-                    makePlayer({ account: 'B.2', stackDist: 500 }),
-                    makePlayer({ account: 'C.3', notInSquad: true, stackDist: 999 }),
+                noTracks: true,
+                entities: [
+                    { id: 1, account: 'A.1', stack_dist: 200 },
+                    { id: 2, account: 'B.2', stack_dist: 500 },
+                    { id: 3, account: 'C.3', role: 'friendly_player', stack_dist: 999 },
                 ],
             }).log,
-            0
+            0,
         );
         expect(out).toHaveLength(2);
         expect(out.every(c => c.source === 'fightAvg')).toBe(true);
@@ -62,25 +93,17 @@ describe('ingestLogDistanceToTag', () => {
         expect(out.find(c => c.account === 'B.2')!.fightMean).toBe(500);
     });
 
-    it('emits replay contribution with samples when commander + player have positions', () => {
-        // Commander at origin; player at (3,4) → distance 5 (inchToPixel=1)
+    it('emits replay contribution with samples when commander + player have tracks', () => {
+        // Commander at origin; player at (3,4) -> 5 WORLD INCHES. No
+        // inchToPixel division, so 5 is 5 rather than 5/0.009.
         const out = ingestLogDistanceToTag(
             makeLog({
-                players: [
-                    makePlayer({
-                        account: 'Cmdr.0',
-                        hasCommanderTag: true,
-                        positions: [[0, 0], [0, 0], [0, 0]],
-                        stackDist: 0,
-                    }),
-                    makePlayer({
-                        account: 'A.1',
-                        positions: [[3, 4], [6, 8], [9, 12]],
-                        stackDist: 999,
-                    }),
+                entities: [
+                    { id: 1, account: 'Cmdr.0', commander: true, positions: [[0, 0], [0, 0], [0, 0]] },
+                    { id: 2, account: 'A.1', positions: [[3, 4], [6, 8], [9, 12]] },
                 ],
             }).log,
-            0
+            0,
         );
         const a = out.find(c => c.account === 'A.1')!;
         expect(a.source).toBe('replay');
@@ -91,41 +114,68 @@ describe('ingestLogDistanceToTag', () => {
     it('flags commander contributions with isCommander=true', () => {
         const out = ingestLogDistanceToTag(
             makeLog({
-                players: [
-                    makePlayer({ account: 'Cmdr.0', hasCommanderTag: true, stackDist: 0 }),
-                    makePlayer({ account: 'A.1', stackDist: 200 }),
+                noTracks: true,
+                entities: [
+                    { id: 1, account: 'Cmdr.0', commander: true, stack_dist: 0 },
+                    { id: 2, account: 'A.1', stack_dist: 200 },
                 ],
             }).log,
-            0
+            0,
         );
         expect(out.find(c => c.account === 'Cmdr.0')!.isCommander).toBe(true);
         expect(out.find(c => c.account === 'A.1')!.isCommander).toBe(false);
     });
 
-    it('handles offset replay starts', () => {
-        // pollingRate=150, player starts 300ms in (offset=2)
-        // Commander positions: 5 ticks at origin
-        // Player positions (start=300): 3 ticks at (3,4), (6,8), (9,12)
-        // Aligned tag indices: 2,3,4 (still origin) → distances 5,10,15
+    it('does not shift a mid-poll track against the tag', () => {
+        // The bug this unit deletes: the old code derived the player's first
+        // poll as floor(start / pollingRate) where ceil is correct, so a
+        // player starting 300ms in was compared against the wrong tag tick.
+        // 36 of 42 players on the committed fixture have a non-multiple start.
+        // Native samples carry their own t_ms, so there is nothing to derive.
         const out = ingestLogDistanceToTag(
             makeLog({
-                players: [
-                    makePlayer({
-                        account: 'Cmdr.0',
-                        hasCommanderTag: true,
-                        positions: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
-                    }),
-                    makePlayer({
-                        account: 'A.1',
-                        positions: [[3, 4], [6, 8], [9, 12]],
-                        start: 300,
-                    }),
+                entities: [
+                    { id: 1, account: 'Cmdr.0', commander: true, positions: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]] },
+                    { id: 2, account: 'A.1', start_ms: 300, positions: [[3, 4], [6, 8], [9, 12]] },
                 ],
             }).log,
-            0
+            0,
         );
-        const a = out.find(c => c.account === 'A.1')!;
-        expect(a.samples).toEqual([5, 10, 15]);
+        expect(out.find(c => c.account === 'A.1')!.samples).toEqual([5, 10, 15]);
+    });
+
+    it('is unaffected by a start that is not a multiple of the poll rate', () => {
+        // start_ms 2 with a 150ms grid: the first sample is still at t=150.
+        const out = ingestLogDistanceToTag(
+            makeLog({
+                entities: [
+                    { id: 1, account: 'Cmdr.0', commander: true, positions: [[0, 0], [0, 0], [0, 0]] },
+                    { id: 2, account: 'A.1', start_ms: 2, positions: [[3, 4], [6, 8], [9, 12]] },
+                ],
+            }).log,
+            0,
+        );
+        expect(out.find(c => c.account === 'A.1')!.samples).toEqual([5, 10, 15]);
+    });
+
+    it('reports world inches, not pixels divided by a rounded scale', () => {
+        // EI's inchToPixel is rounded to 3dp (0.009 against a true 0.0087193),
+        // so every distance the old path produced read 3.12% short. 1000
+        // inches must read as exactly 1000.
+        const out = ingestLogDistanceToTag(
+            makeLog({
+                entities: [
+                    { id: 1, account: 'Cmdr.0', commander: true, positions: [[0, 0]] },
+                    { id: 2, account: 'A.1', positions: [[1000, 0]] },
+                ],
+            }).log,
+            0,
+        );
+        expect(out.find(c => c.account === 'A.1')!.fightMean).toBe(1000);
+    });
+
+    it('returns nothing for a log with no native report at all', () => {
+        expect(ingestLogDistanceToTag({ filePath: 'f', details: { players: [] } }, 0)).toEqual([]);
     });
 });
 
@@ -308,9 +358,10 @@ describe('computeDistanceToTag (end-to-end)', () => {
     it('runs full pipeline on minimal logs', () => {
         const out = computeDistanceToTag([
             makeLog({
-                players: [
-                    makePlayer({ account: 'Cmdr.0', hasCommanderTag: true, stackDist: 0 }),
-                    makePlayer({ account: 'A.1', stackDist: 250 }),
+                noTracks: true,
+                entities: [
+                    { id: 1, account: 'Cmdr.0', commander: true, stack_dist: 0 },
+                    { id: 2, account: 'A.1', stack_dist: 250 },
                 ],
             }),
         ]);
