@@ -15,3 +15,4 @@ export * from './positioning';
 export * from './playerIdentity';
 export * from './nativeRoster';
 export * from './nativeEncounter';
+export * from './nativePositioning';

@@ -25,7 +25,8 @@ export default defineConfig({
         constants: 'src/constants.ts',
         playerIdentity: 'src/playerIdentity.ts',
         nativeRoster: 'src/nativeRoster.ts',
-        nativeEncounter: 'src/nativeEncounter.ts'
+        nativeEncounter: 'src/nativeEncounter.ts',
+        nativePositioning: 'src/nativePositioning.ts'
     },
     format: ['esm', 'cjs'],
     outExtension: ({ format }) => ({ js: format === 'cjs' ? '.cjs' : '.js' }),

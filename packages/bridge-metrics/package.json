@@ -28,7 +28,8 @@
         "./constants": { "types": "./dist/constants.d.ts", "import": "./dist/constants.js", "require": "./dist/constants.cjs" },
         "./playerIdentity": { "types": "./dist/playerIdentity.d.ts", "import": "./dist/playerIdentity.js", "require": "./dist/playerIdentity.cjs" },
         "./nativeRoster": { "types": "./dist/nativeRoster.d.ts", "import": "./dist/nativeRoster.js", "require": "./dist/nativeRoster.cjs" },
-        "./nativeEncounter": { "types": "./dist/nativeEncounter.d.ts", "import": "./dist/nativeEncounter.js", "require": "./dist/nativeEncounter.cjs" }
+        "./nativeEncounter": { "types": "./dist/nativeEncounter.d.ts", "import": "./dist/nativeEncounter.js", "require": "./dist/nativeEncounter.cjs" },
+        "./nativePositioning": { "types": "./dist/nativePositioning.d.ts", "import": "./dist/nativePositioning.js", "require": "./dist/nativePositioning.cjs" }
     },
     "typesVersions": {
         "*": { "*": ["dist/*.d.ts"] }
