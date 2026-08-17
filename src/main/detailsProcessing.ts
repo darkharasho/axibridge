@@ -144,8 +144,16 @@ export interface PruneDetailsOptions {
      * payload). EI v3.24+ only emits the distToCom/stackDist distance scalars when
      * replay is parsed, so we always parse it — but when the user's
      * `parseCombatReplay` setting is off we drop the positions here, keeping only
-     * the coarse statsAll scalars (and `combatReplayMetaData` as a marker that the
-     * log was parsed with replay). Defaults to true (keep everything).
+     * the coarse scalars (and `combatReplayMetaData` as a marker that the log was
+     * parsed with replay). Defaults to true (keep everything).
+     *
+     * Since unit 3 this governs BOTH sides: the EI `positions` arrays and
+     * native's `blocks.replay.tracks`. They are the same measurement in two
+     * shapes, so retaining one while dropping the other would make coarse mode
+     * larger than it was before the migration — 284 KB of tracks against 6.0 KB
+     * of `by_entity` intervals on `wvw-small.anon.zevtc`. The intervals and the
+     * `dist_to_com`/`stack_dist` scalars survive coarse mode; they ARE the
+     * coarse scalars this mode exists to keep.
      */
     keepReplayPositions?: boolean;
 }
@@ -159,6 +167,17 @@ export const pruneDetailsForStats = (details: any, options: PruneDetailsOptions 
     if (!details || typeof details !== 'object') return details;
     const keepReplayPositions = options.keepReplayPositions !== false;
     const pruned: any = omit(details, TOP_LEVEL_DENY);
+    // Coarse mode drops native's per-sample tracks alongside EI's positions —
+    // see `keepReplayPositions`. Rebuild the containers rather than mutating,
+    // because `details.native` is shared with the caller's copy.
+    const nativeReplay = pruned.native?.blocks?.replay;
+    if (!keepReplayPositions && nativeReplay?.tracks) {
+        const { tracks: _dropped, ...rest } = nativeReplay;
+        pruned.native = {
+            ...pruned.native,
+            blocks: { ...pruned.native.blocks, replay: rest },
+        };
+    }
     if (Array.isArray(pruned.players)) {
         // Precompute the boon-application count before the heavy `boonsStates`
         // timeline is stripped, so the stats pipeline gets the count without the

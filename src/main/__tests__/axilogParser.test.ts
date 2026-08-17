@@ -5,15 +5,15 @@ import * as fs from 'node:fs';
 import {
     AxilogManager,
     DEFAULT_PARSER_BACKEND,
-    NO_DISTANCE,
     applyEiCompatShims,
-    deriveDistanceScalars,
     formatEncounterDuration,
     mapEiSettingsToAxilogOptions,
     normalizeParserBackend,
 } from '../axilogParser';
 import { DEFAULT_EI_SETTINGS } from '../eiParser';
 import { pruneDetailsForStats, buildDashboardSummaryFromDetails, hasUsableFightDetails } from '../detailsProcessing';
+import { getDistanceScalars, getPositionTracks, getArena } from '@axiapps/bridge-metrics/nativePositioning';
+import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 
 /**
  * Anonymized WvW fixture — every character name in it is an `Anon<N>`
@@ -119,140 +119,17 @@ describe('mapEiSettingsToAxilogOptions', () => {
     });
 });
 
-// ─── Derived distance scalars ─────────────────────────────────────────────────
+// ─── Derived distance scalars: deleted in unit 3 ──────────────────────────────
 
-const POLL = 300;
-
-/** Build a minimal ei-json-shaped payload with hand-placed replay positions. */
-const makeDetails = (players: any[], inchToPixel = 0.5) => ({
-    combatReplayMetaData: { inchToPixel, pollingRate: POLL, sizes: [100, 100], maps: [] },
-    players,
-});
-
-const makePlayer = (opts: {
-    account: string;
-    commander?: boolean;
-    start?: number;
-    positions: Array<[number, number]>;
-    down?: Array<[number, number]>;
-    dead?: Array<[number, number]>;
-    dc?: Array<[number, number]>;
-}) => ({
-    account: opts.account,
-    hasCommanderTag: Boolean(opts.commander),
-    notInSquad: false,
-    statsAll: [{}],
-    combatReplayData: {
-        start: opts.start ?? 0,
-        end: (opts.start ?? 0) + (opts.positions.length - 1) * POLL,
-        positions: opts.positions,
-        down: opts.down ?? [],
-        dead: opts.dead ?? [],
-        dc: opts.dc ?? [],
-    },
-});
-
-describe('deriveDistanceScalars', () => {
-    it('averages the XY distance to the commander, converted from pixels to inches', () => {
-        // Commander parked at the origin; the player sits 1 then 3 pixels away.
-        // inchToPixel 0.5 => 2 and 6 inches => mean 4.
-        const details = makeDetails([
-            makePlayer({ account: 'Cmdr.1', commander: true, positions: [[0, 0], [0, 0]] }),
-            makePlayer({ account: 'A.2', positions: [[1, 0], [3, 0]] }),
-        ]);
-        deriveDistanceScalars(details);
-        expect(details.players[1].statsAll[0].distToCom).toBeCloseTo(4, 10);
-        expect(details.players[0].statsAll[0].distToCom).toBe(0);
-    });
-
-    it('aligns samples on the shared polling grid using ceil(start / pollingRate)', () => {
-        // The player's replay starts at poll 1, so its sample 0 must be compared
-        // against the commander's sample 1 (not sample 0).
-        const details = makeDetails([
-            makePlayer({ account: 'Cmdr.1', commander: true, positions: [[0, 0], [100, 0], [200, 0]] }),
-            makePlayer({ account: 'A.2', start: 1, positions: [[101, 0], [201, 0]] }),
-        ]);
-        deriveDistanceScalars(details);
-        // 1 pixel off at both polls => 2 inches at inchToPixel 0.5.
-        expect(details.players[1].statsAll[0].distToCom).toBeCloseTo(2, 10);
-    });
-
-    it("excludes the actor's down/dead/dc polls, matching EI's active-position filter", () => {
-        // Poll 1 (t=300) is spent downed and must not be averaged in, even
-        // though a position is still emitted for it.
-        const details = makeDetails([
-            makePlayer({ account: 'Cmdr.1', commander: true, positions: [[0, 0], [0, 0], [0, 0]] }),
-            makePlayer({
-                account: 'A.2',
-                positions: [[1, 0], [999, 0], [3, 0]],
-                down: [[250, 350]],
-            }),
-        ]);
-        deriveDistanceScalars(details);
-        expect(details.players[1].statsAll[0].distToCom).toBeCloseTo(4, 10);
-    });
-
-    it('keeps the commander reference unfiltered while it is downed (EI uses raw polled positions)', () => {
-        const details = makeDetails([
-            makePlayer({ account: 'Cmdr.1', commander: true, positions: [[0, 0], [0, 0]], down: [[250, 350]] }),
-            makePlayer({ account: 'A.2', positions: [[1, 0], [3, 0]] }),
-        ]);
-        deriveDistanceScalars(details);
-        expect(details.players[1].statsAll[0].distToCom).toBeCloseTo(4, 10);
-    });
-
-    it('computes stackDist against the mean of the active squad positions', () => {
-        // Three players at x = 0, 2, 4 for both polls; centre is x = 2.
-        // Distances 2, 0, 2 pixels => 4, 0, 4 inches.
-        const details = makeDetails([
-            makePlayer({ account: 'A.1', positions: [[0, 0], [0, 0]] }),
-            makePlayer({ account: 'B.2', positions: [[2, 0], [2, 0]] }),
-            makePlayer({ account: 'C.3', positions: [[4, 0], [4, 0]] }),
-        ]);
-        deriveDistanceScalars(details);
-        expect(details.players[0].statsAll[0].stackDist).toBeCloseTo(4, 10);
-        expect(details.players[1].statsAll[0].stackDist).toBeCloseTo(0, 10);
-        expect(details.players[2].statsAll[0].stackDist).toBeCloseTo(4, 10);
-    });
-
-    it("emits EI's -1 sentinel when there is no commander to measure against", () => {
-        const details = makeDetails([makePlayer({ account: 'A.1', positions: [[1, 0], [3, 0]] })]);
-        deriveDistanceScalars(details);
-        expect(details.players[0].statsAll[0].distToCom).toBe(NO_DISTANCE);
-        // stackDist is still measurable — the squad centre is the player itself.
-        expect(details.players[0].statsAll[0].stackDist).toBeCloseTo(0, 10);
-    });
-
-    it('emits the sentinel when there is no replay metadata to convert pixels with', () => {
-        const details: any = { players: [makePlayer({ account: 'A.1', positions: [[1, 0]] })] };
-        deriveDistanceScalars(details);
-        expect(details.players[0].statsAll[0].distToCom).toBe(NO_DISTANCE);
-        expect(details.players[0].statsAll[0].stackDist).toBe(NO_DISTANCE);
-    });
-
-    it('emits the sentinel for a player with no replay positions at all', () => {
-        const details = makeDetails([
-            makePlayer({ account: 'Cmdr.1', commander: true, positions: [[0, 0]] }),
-            { account: 'Ghost.2', notInSquad: false, statsAll: [{}], combatReplayData: { start: 0, positions: [] } },
-        ]);
-        deriveDistanceScalars(details);
-        expect(details.players[1].statsAll[0].distToCom).toBe(NO_DISTANCE);
-        expect(details.players[1].statsAll[0].stackDist).toBe(NO_DISTANCE);
-    });
-
-    it('creates statsAll when the player entry has none', () => {
-        const details = makeDetails([
-            { account: 'A.1', hasCommanderTag: false, combatReplayData: { start: 0, positions: [[0, 0]] } } as any,
-        ]);
-        deriveDistanceScalars(details);
-        expect(details.players[0].statsAll[0].stackDist).toBeCloseTo(0, 10);
-    });
-
-    it('is a no-op on a payload with no players', () => {
-        expect(() => deriveDistanceScalars({ players: [] })).not.toThrow();
-        expect(() => deriveDistanceScalars(null)).not.toThrow();
+describe('the parser no longer fabricates distance scalars', () => {
+    it('exports no deriveDistanceScalars', async () => {
+        const mod: any = await import('../axilogParser');
+        expect(mod.deriveDistanceScalars).toBeUndefined();
+        expect(mod.NO_DISTANCE).toBeUndefined();
+        expect(mod.DEFAULT_POLLING_RATE_MS).toBeUndefined();
     });
 });
+
 
 // ─── EI-shape shims ───────────────────────────────────────────────────────────
 
@@ -424,6 +301,17 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         expect(details.players.length).toBeGreaterThan(0);
     });
 
+    it('leaves statsAll[0].distToCom absent rather than reconstructing it', () => {
+        // Absent beats invented. The EI side never carried these; axibridge
+        // reconstructed them from pixel arrays with a rounded inchToPixel
+        // (-3.12% systematic) and a first-commander-track approximation
+        // standing in for real commander segments. axilog measures them
+        // in-core now — see @axiapps/bridge-metrics/nativePositioning.
+        const player = details.players.find((p: any) => !p.notInSquad);
+        expect(player.statsAll[0].distToCom).toBeUndefined();
+        expect(player.statsAll[0].stackDist).toBeUndefined();
+    });
+
     it('carries every block the enabled ParseOptions gate', () => {
         const player = details.players.find((p: any) => !p.notInSquad);
         expect(player.dpsAll[0].damage).toBeGreaterThan(0);
@@ -445,32 +333,35 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         expect(details.players.some((p: any) => p.rotation?.length)).toBe(true);
     });
 
-    it('derives plausible distToCom/stackDist for every squad player', () => {
-        const squad = details.players.filter((p: any) => !p.notInSquad);
-        const commander = squad.find((p: any) => p.hasCommanderTag);
-        expect(commander).toBeTruthy();
-        expect(commander.statsAll[0].distToCom).toBe(0);
+    it('carries plausible native distToCom/stackDist for every squad player', () => {
+        // These come from axilog's in-core pass now, not from a reconstruction
+        // over EI's pixel arrays, and they are already world inches — there is
+        // no inchToPixel division on this path to get wrong.
+        const scalars = getDistanceScalars(details);
+        expect(scalars.size).toBeGreaterThan(0);
 
-        const measured = squad.filter((p: any) => p.statsAll[0].distToCom >= 0);
-        expect(measured.length).toBe(squad.length);
-        for (const p of measured) {
+        const squadIds = squadEntities(details.native).map((e: any) => e.id);
+        expect(squadIds.length).toBeGreaterThan(0);
+
+        const measured = squadIds
+            .map((id: number) => scalars.get(id))
+            .filter((s: any) => s && s.distToCom !== null && s.distToCom >= 0);
+        expect(measured.length).toBeGreaterThan(squadIds.length / 2);
+
+        for (const s of measured) {
             // Sane world-inch magnitudes: no NaN, no pixel-scale leakage, and
             // nothing wider than a WvW borderlands map.
-            expect(Number.isFinite(p.statsAll[0].distToCom)).toBe(true);
-            expect(Number.isFinite(p.statsAll[0].stackDist)).toBe(true);
-            expect(p.statsAll[0].distToCom).toBeLessThan(200000);
-            expect(p.statsAll[0].stackDist).toBeGreaterThanOrEqual(0);
-            expect(p.statsAll[0].stackDist).toBeLessThan(200000);
+            expect(Number.isFinite(s!.distToCom!)).toBe(true);
+            expect(s!.distToCom!).toBeLessThan(200000);
+            expect(s!.stackDist!).toBeGreaterThanOrEqual(0);
+            expect(s!.stackDist!).toBeLessThan(200000);
         }
         // Not every player can be sitting exactly on the tag.
-        expect(measured.some((p: any) => p.statsAll[0].distToCom > 1)).toBe(true);
+        expect(measured.some((s: any) => s.distToCom > 1)).toBe(true);
 
         // The bulk of a WvW squad stacks within a few hundred inches of the
         // tag; stragglers are real, so assert the median rather than the max.
-        const sorted = measured
-            .filter((p: any) => !p.hasCommanderTag)
-            .map((p: any) => p.statsAll[0].distToCom)
-            .sort((a: number, b: number) => a - b);
+        const sorted = measured.map((s: any) => s.distToCom).sort((a: number, b: number) => a - b);
         const median = sorted[Math.floor(sorted.length / 2)];
         expect(median).toBeGreaterThan(0);
         expect(median).toBeLessThan(2000);
@@ -479,12 +370,22 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
     it('survives the stats pruning pipeline in both retention modes', () => {
         const kept = pruneDetailsForStats(details, { keepReplayPositions: true });
         expect(kept.players[0].combatReplayData.positions.length).toBeGreaterThan(0);
-        expect(kept.players[0].statsAll[0].distToCom).toBeGreaterThanOrEqual(0);
+        expect(getPositionTracks(kept).size).toBeGreaterThan(0);
+        expect(getDistanceScalars(kept).size).toBeGreaterThan(0);
 
         const coarse = pruneDetailsForStats(details, { keepReplayPositions: false });
         expect(coarse.players[0].combatReplayData).toBeUndefined();
-        // Coarse mode is exactly why the scalars have to be derived.
-        expect(coarse.players[0].statsAll[0].distToCom).toBeGreaterThanOrEqual(0);
+        // Coarse mode must drop BOTH sample surfaces, or it would be larger
+        // after the migration than before it — 284 KB of native tracks against
+        // 6.0 KB of intervals on this fixture.
+        expect(getPositionTracks(coarse).size).toBe(0);
+        expect(getArena(coarse)).toBeNull();
+        // ...but the scalars and intervals survive: they ARE the coarse data
+        // this mode exists to keep, and Closest-to-Tag still resolves from them.
+        expect(getDistanceScalars(coarse).size).toBeGreaterThan(0);
+
+        // And the source object is untouched — pruning returns a new tree.
+        expect(getPositionTracks(details).size).toBeGreaterThan(0);
     });
 
     it('builds a dashboard summary with a non-degenerate enemy count', () => {
@@ -662,11 +563,15 @@ describe('native carry-set at the seam', () => {
             encounter: { map: 'Green Alpine Borderlands' },
             entities: [],
             coverage: {},
-            blocks: { replay: { tracks: [1, 2, 3] } },
+            blocks: { replay: { tracks: [1, 2, 3] }, damage: { by_entity: {} } },
         }) as any);
         const details: any = await mgr.parseLog(FIXTURE, 'log-1');
         expect(details.native.encounter.map).toBe('Green Alpine Borderlands');
-        expect(details.native.blocks).toBeUndefined();
+        // Unit 3 carries `blocks.replay` — and ONLY that block. `blocks`
+        // wholesale is 2.4 MB; a silent widening here would be a 100x
+        // payload regression in report.json.
+        expect(details.native.blocks.replay.tracks).toEqual([1, 2, 3]);
+        expect(Object.keys(details.native.blocks)).toEqual(['replay']);
     });
 
     it('leaves details.native absent when the native parse throws', async () => {

@@ -86,9 +86,13 @@ export interface AxilogParseOptions {
  *
  * - `replay` is **unconditionally true**, exactly as `generateEiConf` hardcodes
  *   `ParseCombatReplay=True`: it is what produces `players[].combatReplayData
- *   .positions` + the top-level `combatReplayMetaData` that Distance-to-Tag /
- *   On-Tag-Review / Stab-Performance read, and it is the input to the derived
- *   `distToCom`/`stackDist` scalars below. The user's `parseCombatReplay`
+ *   .positions` + the top-level `combatReplayMetaData` that the legacy EI
+ *   readers use, and — since unit 3 — it also gates native's
+ *   `blocks.replay.tracks` (the self-timestamped world-inch samples) and the
+ *   in-core `dist_to_com`/`stack_dist` pass that replaced axibridge's own
+ *   reconstruction of those scalars. The interval half of `blocks.replay` is
+ *   computed on every parse, so `coverage.replay === "present"` does NOT imply
+ *   positions exist; only this flag does. The user's `parseCombatReplay`
  *   setting means "RETAIN the position arrays post-parse" and is applied later,
  *   by `pruneDetailsForStats` — unchanged by this backend.
  * - `computeDamageModifiers` -> `modifiers`, which gates both the per-player
@@ -117,252 +121,7 @@ export const mapEiSettingsToAxilogOptions = (
     modifiers: settings?.computeDamageModifiers !== false,
 });
 
-// ─── Derived distance-to-tag scalars ──────────────────────────────────────────
-
-/**
- * EI's own "no samples" sentinel for `distToCom`/`stackDist`
- * (`GameplayStatistics.GetDistanceToTarget` returns `-1`). Both axibridge
- * readers already reject negatives, so this degrades cleanly to "unknown"
- * rather than to a bogus 0.
- */
-export const NO_DISTANCE = -1;
-
-/** GW2EI's fixed combat-replay polling rate, used when the log carries no metadata. */
-export const DEFAULT_POLLING_RATE_MS = 300;
-
-type Interval = readonly [number, number];
-
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
-
-/**
- * Normalise one of axilog's `combatReplayData.{down,dead,dc}` arrays. Entries
- * are `[start, end]` ms pairs.
- *
- * `dc` is bracketed with `long.MinValue` / `long.MaxValue`, which survive the
- * JSON round-trip as ±9.22e18 — finite, so they are kept as-is. Note the outer
- * sentinels are harmless but the brackets' INNER endpoints are not quite: a
- * typical `dc` reads `[[MIN, start], [end, MAX]]`, and because
- * {@link inAnyInterval} is inclusive at both ends, a poll landing exactly on
- * `start` or `end` is treated as disconnected and dropped, where EI counts it
- * as active. That costs at most the actor's first and last sample, and only
- * when `start`/`end` is an exact multiple of the polling rate — measured at
- * **6 of 6,894 samples (0.087%)** across the 42 players of the committed
- * fixture. Left as-is: correcting it means special-casing the sentinels, and
- * the bias is far below the derivation's other approximations (see
- * {@link deriveDistanceScalars}).
- */
-const toIntervals = (raw: unknown): Interval[] => {
-    if (!Array.isArray(raw)) return [];
-    const out: Interval[] = [];
-    for (const entry of raw) {
-        if (!Array.isArray(entry)) continue;
-        const start = Number(entry[0]);
-        const end = Number(entry[1]);
-        if (!isFiniteNumber(start) || !isFiniteNumber(end)) continue;
-        out.push([start, end]);
-    }
-    return out;
-};
-
-const inAnyInterval = (t: number, intervals: Interval[]): boolean => {
-    for (const [start, end] of intervals) {
-        if (t >= start && t <= end) return true;
-    }
-    return false;
-};
-
-/**
- * One actor's polled positions expanded onto absolute poll indices.
- *
- * axilog emits `positions[i]` for the i-th multiple of `pollingRate` inside
- * `[start, end]` (see `axilog_core::analysis::ei_replay`'s "polling grid"
- * doc), so the absolute poll index of sample `i` is
- * `ceil(start / pollingRate) + i`.
- */
-interface PolledTrack {
-    firstPoll: number;
-    positions: Array<[number, number]>;
-    /** Polls the actor is NOT "active" for, per EI's `GetStatus`: down/dead/dc. */
-    inactive: Interval[];
-}
-
-const readTrack = (player: any, pollingRate: number): PolledTrack | null => {
-    const replay = player?.combatReplayData;
-    const positions = replay?.positions;
-    if (!Array.isArray(positions) || positions.length === 0) return null;
-    const start = Number(replay?.start);
-    const firstPoll = isFiniteNumber(start) ? Math.ceil(start / pollingRate) : 0;
-    return {
-        firstPoll,
-        positions: positions as Array<[number, number]>,
-        inactive: [...toIntervals(replay?.down), ...toIntervals(replay?.dead), ...toIntervals(replay?.dc)],
-    };
-};
-
-const positionAtPoll = (
-    track: PolledTrack,
-    poll: number,
-    pollingRate: number,
-    requireActive: boolean,
-): [number, number] | null => {
-    const idx = poll - track.firstPoll;
-    if (idx < 0 || idx >= track.positions.length) return null;
-    const point = track.positions[idx];
-    if (!Array.isArray(point) || !isFiniteNumber(point[0]) || !isFiniteNumber(point[1])) return null;
-    if (requireActive && inAnyInterval(poll * pollingRate, track.inactive)) return null;
-    return [point[0], point[1]];
-};
-
-/**
- * Compute EI's `statsAll[0].distToCom` / `statsAll[0].stackDist` from axilog's
- * `combatReplayData` and write them onto every player, in place.
- *
- * ### EI semantics being reproduced
- *
- * `GW2EIBuilders/JsonModels/JsonActorUtilities/JsonStatisticsBuilder.cs:153-154`
- * maps `StackDist = gameStats.DistanceToCenterOfSquad` and
- * `DistToCom = gameStats.DistanceToCommander`, both computed by
- * `GW2EIEvtcParser/EIData/Statistics/GameplayStatistics.cs:140-141` via
- * `GetDistanceToTarget` (same file, lines 29-69):
- *
- * - iterate the actor's **active** polled positions
- *   (`SingleActor.GetCombatReplayActivePolledPositions`,
- *   `GW2EIEvtcParser/EIData/Actors/SingleActor.cs:268-290`, which nulls every
- *   poll the actor is down, dead or disconnected for);
- * - for each, take the reference position **at the same poll timestamp**,
- *   skipping polls where the reference is null (lines 44-62);
- * - distance is the **XY-plane** length, Z discarded (`.XY().Length()`, line 57);
- * - the result is the arithmetic mean, or `-1` when no sample qualified
- *   (line 64). It is also left at its `0` default when the log has no combat
- *   replay at all (line 139's `log.CanCombatReplay` guard).
- *
- * References:
- * - commander: `StatisticsHelper.CalculateStackCommanderPositions`
- *   (`GW2EIEvtcParser/EIData/Statistics/StatisticsHelper.cs:258-300`) — the
- *   commanding player's **raw** (not active-filtered) polled positions during
- *   their commander segments, `null` where nobody is commanding.
- *
- *   **Known approximation:** this function uses the first player carrying
- *   `hasCommanderTag` and reads that actor's whole track, because axilog's
- *   ei-json exposes only that boolean — not EI's per-segment timeline built
- *   from every player's `GetCommanderStates`. So a tag hand-off or relog
- *   mid-fight attributes every poll to one track, and polls before the tag was
- *   picked up are measured against a reference EI would have left `null`.
- *   Measured overall error of this derivation vs EI, this effect included:
- *   3.7% mean on `distToCom`, 4.3% on `stackDist`. Closing it needs a
- *   commander-segment surface from axilog — see the cutover report's
- *   follow-ups.
- * - squad centre: `StatisticsHelper.CalculateStackCenterPositions` (same file,
- *   lines 201-257) — per poll, the mean of every `log.PlayerList` member's
- *   **active** position, `null` where nobody is active.
- *
- * ### Unit conversion
- *
- * EI works in world inches; axilog's ei-json `positions` are map **pixels** on
- * GW2EI's arena image (`combatReplayMetaData.inchToPixel`). Dividing by
- * `inchToPixel` recovers inches — the exact conversion axibridge's own replay
- * path already performs in `src/renderer/stats/computeDistanceToTag.ts`.
- * When `combatReplayMetaData` is absent (axilog omits it for maps GW2EI ships
- * no image for) there is no scale factor, so both scalars stay at
- * {@link NO_DISTANCE} rather than being reported in the wrong unit.
- */
-export const deriveDistanceScalars = (details: any): any => {
-    const players: any[] = Array.isArray(details?.players) ? details.players : [];
-    if (players.length === 0) return details;
-
-    const ensureStatsAll = (player: any) => {
-        if (!Array.isArray(player.statsAll) || player.statsAll.length === 0) {
-            player.statsAll = [{}];
-        } else if (!player.statsAll[0] || typeof player.statsAll[0] !== 'object') {
-            player.statsAll[0] = {};
-        }
-        return player.statsAll[0];
-    };
-
-    const meta = details?.combatReplayMetaData;
-    const inchToPixel = Number(meta?.inchToPixel);
-    const rawPolling = Number(meta?.pollingRate);
-    const pollingRate = isFiniteNumber(rawPolling) && rawPolling > 0 ? rawPolling : DEFAULT_POLLING_RATE_MS;
-
-    if (!isFiniteNumber(inchToPixel) || inchToPixel <= 0) {
-        for (const player of players) {
-            const stats = ensureStatsAll(player);
-            stats.distToCom = NO_DISTANCE;
-            stats.stackDist = NO_DISTANCE;
-        }
-        return details;
-    }
-
-    const tracks = new Map<any, PolledTrack>();
-    for (const player of players) {
-        const track = readTrack(player, pollingRate);
-        if (track) tracks.set(player, track);
-    }
-
-    // Commander reference: raw (not active-filtered) positions, per EI.
-    const commander = players.find((p) => p?.hasCommanderTag && tracks.has(p));
-    const commanderTrack = commander ? tracks.get(commander)! : null;
-
-    // Squad-centre reference: mean of every player's ACTIVE position per poll.
-    let lastPoll = -1;
-    for (const track of tracks.values()) {
-        lastPoll = Math.max(lastPoll, track.firstPoll + track.positions.length - 1);
-    }
-    const centre: Array<[number, number] | null> = new Array(Math.max(0, lastPoll + 1)).fill(null);
-    for (let poll = 0; poll <= lastPoll; poll++) {
-        let sumX = 0;
-        let sumY = 0;
-        let count = 0;
-        for (const track of tracks.values()) {
-            const point = positionAtPoll(track, poll, pollingRate, true);
-            if (!point) continue;
-            sumX += point[0];
-            sumY += point[1];
-            count++;
-        }
-        centre[poll] = count > 0 ? [sumX / count, sumY / count] : null;
-    }
-
-    for (const player of players) {
-        const stats = ensureStatsAll(player);
-        const track = tracks.get(player);
-        if (!track) {
-            stats.distToCom = NO_DISTANCE;
-            stats.stackDist = NO_DISTANCE;
-            continue;
-        }
-
-        let comSum = 0;
-        let comCount = 0;
-        let stackSum = 0;
-        let stackCount = 0;
-
-        for (let i = 0; i < track.positions.length; i++) {
-            const poll = track.firstPoll + i;
-            const self = positionAtPoll(track, poll, pollingRate, true);
-            if (!self) continue;
-
-            if (commanderTrack) {
-                const ref = positionAtPoll(commanderTrack, poll, pollingRate, false);
-                if (ref) {
-                    comSum += Math.hypot(self[0] - ref[0], self[1] - ref[1]) / inchToPixel;
-                    comCount++;
-                }
-            }
-
-            const centreRef = centre[poll];
-            if (centreRef) {
-                stackSum += Math.hypot(self[0] - centreRef[0], self[1] - centreRef[1]) / inchToPixel;
-                stackCount++;
-            }
-        }
-
-        stats.distToCom = comCount > 0 ? comSum / comCount : NO_DISTANCE;
-        stats.stackDist = stackCount > 0 ? stackSum / stackCount : NO_DISTANCE;
-    }
-
-    return details;
-};
 
 // ─── EI-shape compatibility shims ─────────────────────────────────────────────
 
@@ -565,7 +324,6 @@ export class AxilogManager {
         // After the carry-set: the shims project native encounter facts onto
         // the legacy EI field names, so they need `details.native` in place.
         applyEiCompatShims(details, logPath);
-        deriveDistanceScalars(details);
         this.parseProgressCallback?.(`[axilog] parsed ${logId} in ${Date.now() - started}ms\n`);
         return details;
     }
