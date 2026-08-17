@@ -5,6 +5,7 @@ import { formatDurationMs } from './utils/dashboardUtils';
 import { getWvwTeamColor, teamMapFromLog } from '../../shared/wvwTeams';
 import { partitionSquadPlayers } from '../../shared/playerIdentity';
 import { computeSquadBarrier } from '../../shared/combatMetrics';
+import { getEncounterDurationMs } from '@axiapps/bridge-metrics';
 
 const resolvePermalink = (details: any, log: any): string => {
     const direct = log?.permalink || details?.permalink;
@@ -22,6 +23,10 @@ const resolvePermalink = (details: any, log: any): string => {
 };
 
 const resolveFightDurationLabel = (details: any, log: any): string => {
+    // Native first, compared against null rather than truthiness: a real 0-ms
+    // encounter must not fall through to the EI value or to the placeholder.
+    const nativeMs = getEncounterDurationMs(details);
+    if (nativeMs !== null) return formatDurationMs(nativeMs);
     const durationMs = Number(details?.durationMS || 0);
     if (durationMs > 0) return formatDurationMs(durationMs);
     const fallback = typeof log?.encounterDuration === 'string' ? log.encounterDuration.trim() : '';
