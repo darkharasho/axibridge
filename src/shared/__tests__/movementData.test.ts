@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildMovementData, buildNativeMovement, positionAt } from '../movementData';
+import { buildMovementData, buildNativeMovement, positionAt, positionAtOrBefore } from '../movementData';
 
 const trackedBuffs = new Set<number>([740, 725]); // Might, Fury — arbitrary sample.
 
@@ -169,5 +169,26 @@ describe('buildNativeMovement', () => {
         // ceil(7 / 300) = 1 — this module is one of only two call sites that
         // ever got that rounding right.
         expect(md.members[0].firstPoll).toBe(1);
+    });
+});
+
+describe('positionAtOrBefore', () => {
+    const track = { entityId: 5, samples: [[300, 10, 20], [600, 30, 40], [1500, 50, 60]] as [number, number, number][], down: [], dead: [], dc: [] };
+
+    it('answers with the last sample at or before the instant', () => {
+        // A death at 700ms is not on the 300ms grid; the answer is where the
+        // actor was last seen, at t=600.
+        expect(positionAtOrBefore(track, 700, 300)).toEqual([30, 40]);
+        expect(positionAtOrBefore(track, 600, 300)).toEqual([30, 40]);
+    });
+
+    it('refuses to borrow across a tracking gap', () => {
+        // t=1200 is 600ms past the last sample — beyond one poll of staleness,
+        // so the actor's whereabouts are genuinely unknown.
+        expect(positionAtOrBefore(track, 1200, 300)).toBeNull();
+    });
+
+    it('returns null before the first sample', () => {
+        expect(positionAtOrBefore(track, 100, 300)).toBeNull();
     });
 });

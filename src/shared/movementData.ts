@@ -49,6 +49,40 @@ export const buildNativeMovement = (details: any): NativeMovement | null => {
     return { pollMs, arena: getArena(details), tracks };
 };
 
+/**
+ * The last sample at or before `tMs`, or `null`.
+ *
+ * `positionAt` deliberately refuses to answer for an instant it has no sample
+ * for — inventing a midpoint would put an actor somewhere they provably were
+ * not. But down and death events are arcdps timestamps and do NOT land on the
+ * polling grid, so an exact hit is not expected there. This is the explicit
+ * tolerance for those call sites: "where were they last seen", not "where were
+ * they interpolated to be".
+ *
+ * `maxAgeMs` bounds how stale an answer may be; it defaults to one poll, so a
+ * sample can never be borrowed from across a tracking gap.
+ */
+export const positionAtOrBefore = (
+    track: PositionTrack,
+    tMs: number,
+    maxAgeMs: number,
+): [number, number] | null => {
+    let lo = 0;
+    let hi = track.samples.length - 1;
+    let best: [number, number] | null = null;
+    while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        const [t, x, y] = track.samples[mid];
+        if (t <= tMs) {
+            if (tMs - t <= maxAgeMs) best = [x, y];
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    return best;
+};
+
 // ─── The EI replay view-model (migrates in unit 3b) ───────────────────────────
 
 export interface SquadMemberMovement {

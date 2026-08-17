@@ -1,5 +1,7 @@
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { getFightOutcome } from './computePlayerAggregation';
+import { buildNativeMovement, positionAtOrBefore } from '../../shared/movementData';
+import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 
 export type TagDistanceDeathEvent = {
     fightId: string;
@@ -24,7 +26,17 @@ export type TagDistanceDeathFightSummary = {
     hasReplayData: boolean;
 };
 
-const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+const isCommanderEntity = (e: any): boolean => {
+    const c = e?.commander;
+    return !!c && typeof c === 'object' && Array.isArray(c.segments) && c.segments.length > 0;
+};
+
+/** `blocks.replay.by_entity[id].dead` — present even without `--replay`. */
+const deadIntervals = (details: any, entityId: number): Array<[number, number]> => {
+    const raw = details?.native?.blocks?.replay?.by_entity?.[entityId]?.dead;
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((e: any) => Array.isArray(e) && Number.isFinite(Number(e[0]))) as Array<[number, number]>;
+};
 
 const resolveFightOutcome = (details: any, log: any): boolean | null => {
     const players = Array.isArray(details?.players) ? details.players : [];
@@ -49,16 +61,12 @@ export function ingestLogTagDistanceDeaths(log: any, fightIndex: number): TagDis
     });
     const isWin = resolveFightOutcome(details, log);
 
-    const players = Array.isArray(details?.players) ? details.players : [];
-    const squadPlayers = players.filter((p: any) => !p?.notInSquad);
-    const replayMeta = (details as any)?.combatReplayMetaData || {};
-    const pollingRate = replayMeta?.pollingRate > 0 ? replayMeta.pollingRate : 0;
-    const inchToPixel = replayMeta?.inchToPixel > 0 ? replayMeta.inchToPixel : 0;
+    const squad = squadEntities(details?.native ?? {});
+    const movement = buildNativeMovement(details);
+    const commander = squad.find(isCommanderEntity);
+    const tagTrack = commander && movement ? movement.tracks.get(commander.id) ?? null : null;
 
-    const commander = squadPlayers.find((p: any) => p?.hasCommanderTag);
-    const tagPositions: Array<[number, number]> = commander?.combatReplayData?.positions || [];
-
-    if (!commander || tagPositions.length === 0 || pollingRate <= 0 || inchToPixel <= 0) {
+    if (!commander || !movement || !tagTrack || tagTrack.samples.length === 0) {
         return {
             fightId, shortLabel, fullLabel, isWin,
             avgDistance: 0, events: [], eventCount: 0, hasReplayData: false,
@@ -67,47 +75,38 @@ export function ingestLogTagDistanceDeaths(log: any, fightIndex: number): TagDis
 
     const events: TagDistanceDeathEvent[] = [];
 
-    for (const player of squadPlayers) {
-        const isCommanderPlayer = !!player.hasCommanderTag;
-        const replay = player?.combatReplayData;
-        if (!replay?.positions || !Array.isArray(replay.dead) || !Array.isArray(replay.down)) continue;
+    for (const entity of squad) {
+        const isCommanderPlayer = entity.id === commander.id;
+        const track = movement.tracks.get(entity.id);
+        if (!track || track.samples.length === 0) continue;
 
-        const playerPositions: Array<[number, number]> = replay.positions;
-        const playerStart = Number(replay.start || 0);
-        const playerOffset = Math.floor(playerStart / pollingRate);
+        // Native's `dead` intervals ARE the deaths. The old path had to infer
+        // them — "a down entry whose linkedDeathMs appears in the dead set" —
+        // only because EI's down/dead arrays were unlinked.
+        for (const [deathStartMs] of deadIntervals(details, entity.id)) {
+            if (!Number.isFinite(deathStartMs) || deathStartMs < 0) continue;
 
-        const deadSet = new Set<number>();
-        for (const entry of replay.dead) {
-            if (Array.isArray(entry) && Number.isFinite(entry[0]) && entry[0] > 0) {
-                deadSet.add(entry[0]);
-            }
-        }
+            // A death is an arcdps timestamp, not a poll instant, so ask where
+            // the actor was last seen rather than demanding an exact sample.
+            const p = positionAtOrBefore(track, deathStartMs, movement.pollMs);
+            const tag = positionAtOrBefore(tagTrack, deathStartMs, movement.pollMs);
+            if (!p || !tag) continue;
 
-        for (const entry of replay.down) {
-            if (!Array.isArray(entry)) continue;
-            const downStartMs = Number(entry[0]);
-            const linkedDeathMs = Number(entry[1]);
-            if (!Number.isFinite(downStartMs) || downStartMs < 0) continue;
-            if (!deadSet.has(linkedDeathMs)) continue;
-
-            const pollIndex = Math.floor(downStartMs / pollingRate);
-            const playerIdx = clamp(pollIndex - playerOffset, 0, playerPositions.length - 1);
-            const tagIdx = clamp(pollIndex, 0, tagPositions.length - 1);
-
-            const [px, py] = playerPositions[playerIdx];
-            const [tx, ty] = tagPositions[tagIdx];
-            const distanceFromTag = isCommanderPlayer ? 0 : Math.round(Math.hypot(px - tx, py - ty) / inchToPixel);
+            const distanceFromTag = isCommanderPlayer
+                ? 0
+                : Math.round(Math.hypot(p[0] - tag[0], p[1] - tag[1]));
 
             events.push({
                 fightId, shortLabel, fullLabel, isWin,
-                playerAccount: player.account || 'Unknown',
+                playerAccount: entity.account || 'Unknown',
                 isCommander: isCommanderPlayer,
-                timeIntoFightMs: downStartMs,
-                timeIntoFightSec: Math.round(downStartMs / 1000),
+                timeIntoFightMs: deathStartMs,
+                timeIntoFightSec: Math.round(deathStartMs / 1000),
                 distanceFromTag,
             });
         }
     }
+    events.sort((a, b) => a.timeIntoFightMs - b.timeIntoFightMs);
 
     const avgDistance = events.length > 0
         ? Math.round(events.reduce((sum, e) => sum + e.distanceFromTag, 0) / events.length)
