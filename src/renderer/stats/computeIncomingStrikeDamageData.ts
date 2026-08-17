@@ -1,50 +1,30 @@
+import {
+    squadEntities, enemyPlayerEntities, getEntityProfession,
+    getEntitySkillRows, getEntityVsTargetSeries, getEntityDamageTakenSeries,
+} from '@axiapps/bridge-metrics';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { resolveProfessionLabel } from './computePlayerAggregation';
 
-const resolveSkillMeta = (rawId: any, details: any) => {
-    const idNum = Number(rawId);
-    if (!Number.isFinite(idNum)) return { name: String(rawId || 'Unknown Skill'), icon: undefined as string | undefined };
-    const skillMap = details?.skillMap || {};
-    const buffMap = details?.buffMap || {};
-    const mapped = skillMap?.[`s${idNum}`] || skillMap?.[`${idNum}`];
-    if (mapped?.name) return { name: String(mapped.name), icon: mapped?.icon };
-    const buffMapped = buffMap?.[`b${idNum}`] || buffMap?.[`${idNum}`];
-    if (buffMapped?.name) return { name: String(buffMapped.name), icon: buffMapped?.icon };
-    return { name: `Skill ${idNum}`, icon: undefined as string | undefined };
-};
-
-const getHighestIncomingStrikeHit = (target: any, details: any) => {
+/**
+ * The enemy's own biggest strike, from `by_skill[].max`.
+ *
+ * Enemies carry NO `outcomes` anywhere in the native container, so every enemy
+ * row comes back `indirect: false` and nothing is filtered — which is the
+ * correct default: with no flag available there is nothing to exclude, and the
+ * EI path's `indirectDamage` filter had nothing to act on for these rows
+ * either once a `targetDamageDist` was absent.
+ */
+const getHighestIncomingStrikeHit = (details: any, entityId: number) => {
+    const entity = details?.native?.blocks?.damage?.by_entity?.[String(entityId)];
     let bestValue = 0;
     let bestName = '';
-    const readEntryPeak = (entry: any) => {
-        if (!entry || typeof entry !== 'object') return;
-        if (entry.indirectDamage) return;
-        const candidates = [
-            Number(entry.max),
-            Number(entry.maxDamage),
-            Number(entry.maxHit)
-        ].filter((n) => Number.isFinite(n));
-        const peak = candidates.length > 0 ? Math.max(...candidates) : 0;
+    for (const row of getEntitySkillRows(details, entityId).filter((r) => !r.indirect)) {
+        const peak = Number(entity?.by_skill?.[String(row.skillId)]?.max ?? 0);
         if (peak > bestValue) {
             bestValue = peak;
-            bestName = resolveSkillMeta(entry.id, details).name;
+            bestName = row.skillName;
         }
-    };
-    if (Array.isArray(target?.totalDamageDist)) {
-        target.totalDamageDist.forEach((list: any) => {
-            if (!Array.isArray(list)) return;
-            list.forEach((entry: any) => readEntryPeak(entry));
-        });
-    }
-    if (Array.isArray(target?.targetDamageDist)) {
-        target.targetDamageDist.forEach((targetGroup: any) => {
-            if (!Array.isArray(targetGroup)) return;
-            targetGroup.forEach((list: any) => {
-                if (!Array.isArray(list)) return;
-                list.forEach((entry: any) => readEntryPeak(entry));
-            });
-        });
     }
     return { peak: bestValue, skillName: bestName || 'Unknown Skill' };
 };
@@ -74,57 +54,6 @@ const sumSeries = (seriesList: number[][]) => {
     return out;
 };
 
-const normalizeCumulativeSeries = (value: any): number[] => {
-    if (!Array.isArray(value) || value.length === 0) return [];
-    const first = value[0];
-    if (typeof first === 'number') {
-        return value.map((entry: any) => Number(entry || 0));
-    }
-    if (Array.isArray(first) && first.length > 0) {
-        if (typeof first[0] === 'number') {
-            return first.map((entry: any) => Number(entry || 0));
-        }
-        if (Array.isArray(first[0])) {
-            // Handles nested shapes like [phase][target][time] by summing phase 0 targets.
-            const phase0Targets = first
-                .map((series: any) => Array.isArray(series) ? series.map((entry: any) => Number(entry || 0)) : null)
-                .filter((series: number[] | null): series is number[] => Array.isArray(series) && series.length > 0);
-            if (phase0Targets.length > 0) {
-                return sumSeries(phase0Targets);
-            }
-        }
-    }
-    return [];
-};
-
-const getPerSecondStrikeSeries = (target: any) => {
-    const cumulativePower = normalizeCumulativeSeries(target?.powerDamage1S);
-    const cumulativeAny = normalizeCumulativeSeries(target?.damage1S);
-    const cumulative = cumulativePower.length > 0 ? cumulativePower : cumulativeAny;
-    return toPerSecond(cumulative);
-};
-
-const getTargetPowerCumulativeFromPlayer = (player: any, targetIndex: number) => {
-    const targetPower = player?.targetPowerDamage1S;
-    if (!Array.isArray(targetPower) || !Array.isArray(targetPower[targetIndex])) return [] as number[];
-    const targetEntry = targetPower[targetIndex];
-    if (!Array.isArray(targetEntry) || targetEntry.length === 0) return [] as number[];
-    if (typeof targetEntry[0] === 'number') {
-        return targetEntry.map((value: any) => Number(value || 0));
-    }
-    if (Array.isArray(targetEntry[0]) && !Array.isArray(targetEntry[0][0])) {
-        return targetEntry[0].map((value: any) => Number(value || 0));
-    }
-    if (Array.isArray(targetEntry[0]) && Array.isArray(targetEntry[0][0])) {
-        const phase0 = targetEntry[0];
-        const flattened = phase0
-            .map((series: any) => Array.isArray(series) ? series.map((value: any) => Number(value || 0)) : null)
-            .filter((series: number[] | null): series is number[] => Array.isArray(series) && series.length > 0);
-        return sumSeries(flattened);
-    }
-    return [] as number[];
-};
-
 const getMaxRollingDamage = (values: number[], window: number) => {
     if (!Array.isArray(values) || values.length === 0 || window <= 0) return 0;
     let sum = 0;
@@ -150,61 +79,23 @@ const getBuckets = (values: number[], bucketSizeSeconds: number) => {
     return out;
 };
 
-const toPairs = (value: any): Array<[number, number]> => {
-    if (!Array.isArray(value)) return [];
-    return value
-        .map((entry: any) => {
-            if (Array.isArray(entry)) return [Number(entry[0]), Number(entry[1])] as [number, number];
-            if (entry && typeof entry === 'object') return [Number(entry.time), Number(entry.value)] as [number, number];
-            return null;
-        })
-        .filter((entry: any): entry is [number, number] => !!entry && Number.isFinite(entry[0]) && entry[0] >= 0);
-};
-
-const normalizeEventTimes = (times: number[], replayStarts: number[], allReplayStarts: number[], bucketCount: number, durationMs: number) => {
-    if (!times.length || bucketCount <= 0) return [] as number[];
-    const maxMs = Math.max(bucketCount * 5000, durationMs || 0);
-    const validRangeScore = (values: number[]) => values.reduce((count, value) => (
-        value >= 0 && value <= (maxMs + 2000) ? count + 1 : count
-    ), 0);
-    const raw = times.map((value) => Number(value || 0)).filter((value) => Number.isFinite(value) && value >= 0);
-    if (!raw.length) return [] as number[];
-    const variants: number[][] = [raw];
-    const maxRaw = raw.reduce((max, value) => Math.max(max, value), 0);
-    const minRaw = raw.reduce((min, value) => Math.min(min, value), Number.POSITIVE_INFINITY);
-    if (maxRaw > (maxMs * 20)) variants.push(raw.map((value) => value / 1000));
-    if (maxRaw <= (maxMs * 2) && minRaw >= 0 && maxRaw > 0 && maxRaw < Math.max(120, bucketCount * 5 + 10)) {
-        variants.push(raw.map((value) => value * 1000));
-    }
-    let best = raw;
-    let bestOffset = 0;
-    let bestScore = -1;
-    variants.forEach((variant) => {
-        const minTime = variant.reduce((min, value) => Math.min(min, value), Number.POSITIVE_INFINITY);
-        const offsets = new Set<number>([0, ...replayStarts, ...allReplayStarts]);
-        if (Number.isFinite(minTime) && maxMs > 0 && minTime > maxMs) {
-            const approx = Math.floor(minTime / maxMs) * maxMs;
-            offsets.add(approx);
-            offsets.add(Math.max(0, approx - maxMs));
-        }
-        offsets.forEach((offset) => {
-            const shifted = variant.map((value) => value - offset);
-            const score = validRangeScore(shifted);
-            if (score > bestScore) {
-                bestScore = score;
-                bestOffset = offset;
-                best = variant;
-            }
-        });
-    });
-    return best.map((value) => value - bestOffset).filter((value) => Number.isFinite(value) && value >= 0);
-};
-
-const markerIndicesFromTimes = (times: number[], replayStarts: number[], allReplayStarts: number[], bucketCount: number, durationMs: number) => {
-    const normalized = normalizeEventTimes(times, replayStarts, allReplayStarts, bucketCount, durationMs);
-    return Array.from(new Set(normalized
+/**
+ * Squad-wide down/death marker indices from `blocks.replay`.
+ *
+ * Native reports these as `[startMs, endMs]` pairs in FIGHT-relative time, so
+ * EI's per-player replay-start offset guessing is gone entirely.
+ */
+const markerIndices = (details: any, entityIds: number[], field: 'down' | 'dead', bucketCount: number): number[] => {
+    if (bucketCount <= 0) return [];
+    const byEntity = details?.native?.blocks?.replay?.by_entity ?? {};
+    const idx = entityIds.flatMap((id) => {
+        const events = byEntity?.[String(id)]?.[field];
+        return Array.isArray(events) ? events.map((e: any) => Number(Array.isArray(e) ? e[0] : e)) : [];
+    })
+        .filter((value) => Number.isFinite(value) && value >= 0)
         .map((value) => Math.floor(value / 5000))
-        .filter((idx) => Number.isFinite(idx) && idx >= 0 && idx < bucketCount)));
+        .filter((i) => i >= 0 && i < bucketCount);
+    return Array.from(new Set(idx));
 };
 
 // --- Types ---
@@ -278,62 +169,37 @@ export function ingestLogIncomingStrikeDamage(log: any, acc: IncomingStrikeDamag
         avgPosition: computeFightAvgPosition(details),
     });
     const values: Record<string, IncomingStrikeFightValue> = {};
-    const allPlayers = Array.isArray(details.players) ? details.players : [];
-    const squadPlayers = allPlayers.filter((entry: any) => !entry?.notInSquad);
-    const allReplayStarts = squadPlayers
-        .flatMap((entry: any) => {
-            const replay = entry?.combatReplayData;
-            if (Array.isArray(replay)) return replay.map((seg: any) => Number(seg?.start));
-            return [Number(replay?.start)];
-        })
-        .filter((value: number) => Number.isFinite(value) && value >= 0);
-    const downTimes = squadPlayers.flatMap((entry: any) => {
-        const replay = entry?.combatReplayData;
-        const segments = Array.isArray(replay) ? replay : (replay ? [replay] : []);
-        return segments.flatMap((segment: any) => toPairs(segment?.down).map(([time]) => Number(time || 0)));
-    });
-    const deathTimes = squadPlayers.flatMap((entry: any) => {
-        const replay = entry?.combatReplayData;
-        const segments = Array.isArray(replay) ? replay : (replay ? [replay] : []);
-        return segments.flatMap((segment: any) => toPairs(segment?.dead).map(([time]) => Number(time || 0)));
-    });
-
+    const members = squadEntities(details?.native);
+    const memberIds = members.map((m) => m.id);
     const classSeries = new Map<string, { perSecond: number[]; hit: number; skillName: string }>();
     const classSkillRows = new Map<string, Map<string, { skillName: string; damage: number; hits: number; icon?: string }>>();
     const classCounts = new Map<string, number>();
-    const targets = Array.isArray(details.targets) ? details.targets : [];
-    targets.forEach((target: any, targetIndex: number) => {
-        if (!target || target.isFake || !target.enemyPlayer) return;
-        const profession = resolveProfessionLabel(target?.profession || target?.name || target?.id) || 'Unknown';
+    // `enemyPlayerEntities` is native's equivalent of EI's curated `targets[]`:
+    // the role filter is applied upstream, and there are no fake targets.
+    enemyPlayerEntities(details?.native).forEach((enemy) => {
+        const profession = resolveProfessionLabel(getEntityProfession(enemy) || String(enemy.id)) || 'Unknown';
         classCounts.set(profession, (classCounts.get(profession) || 0) + 1);
         const skillBucket = classSkillRows.get(profession) || new Map<string, { skillName: string; damage: number; hits: number; icon?: string }>();
-        if (Array.isArray(target?.totalDamageDist)) {
-            target.totalDamageDist.forEach((list: any) => {
-                if (!Array.isArray(list)) return;
-                list.forEach((entry: any) => {
-                    if (!entry || typeof entry !== 'object') return;
-                    if (entry.indirectDamage) return;
-                    const damage = Number(entry.totalDamage || 0);
-                    if (!Number.isFinite(damage) || damage <= 0) return;
-                    const hits = Number(entry.connectedHits || entry.hits || 0);
-                    const skillMeta = resolveSkillMeta(entry.id, details);
-                    const skillName = skillMeta.name;
-                    const row = skillBucket.get(skillName) || { skillName, damage: 0, hits: 0, icon: skillMeta.icon };
-                    row.damage += damage;
-                    row.hits += Number.isFinite(hits) ? hits : 0;
-                    if (!row.icon && skillMeta.icon) row.icon = skillMeta.icon;
-                    skillBucket.set(skillName, row);
-                });
+        getEntitySkillRows(details, enemy.id)
+            .filter((row) => !row.indirect && row.damage > 0)
+            .forEach((entry) => {
+                const row = skillBucket.get(entry.skillName)
+                    || { skillName: entry.skillName, damage: 0, hits: 0, icon: entry.icon };
+                row.damage += entry.damage;
+                row.hits += entry.connectedHits || entry.hits;
+                if (!row.icon && entry.icon) row.icon = entry.icon;
+                skillBucket.set(entry.skillName, row);
             });
-        }
         classSkillRows.set(profession, skillBucket);
-        const squadTargetCumulative = sumSeries(squadPlayers.map((player: any) =>
-            getTargetPowerCumulativeFromPlayer(player, targetIndex)
+
+        // The per-class series is squad OUTGOING power damage against this
+        // enemy, keyed by entity id instead of EI's target array index. That
+        // proxy is preserved deliberately -- see the unit 4 plan's non-goals.
+        const squadTargetCumulative = sumSeries(memberIds.map((id) =>
+            getEntityVsTargetSeries(details, id, enemy.id, { power: true })
         ));
-        const strikeSeries = squadTargetCumulative.length > 0
-            ? toPerSecond(squadTargetCumulative)
-            : getPerSecondStrikeSeries(target);
-        const bestHit = getHighestIncomingStrikeHit(target, details);
+        const strikeSeries = toPerSecond(squadTargetCumulative);
+        const bestHit = getHighestIncomingStrikeHit(details, enemy.id);
         let bucket = classSeries.get(profession);
         if (!bucket) {
             bucket = { perSecond: [], hit: 0, skillName: '' };
@@ -358,10 +224,9 @@ export function ingestLogIncomingStrikeDamage(log: any, acc: IncomingStrikeDamag
         Array.isArray(entry.perSecond) && entry.perSecond.some((value) => Number(value || 0) > 0)
     );
     if (classSeries.size === 0 || !hasClassTimelineData) {
-        const squadIncomingSeries = sumSeries(squadPlayers.map((player: any) => {
-            const cumulative = normalizeCumulativeSeries(player?.powerDamageTaken1S);
-            return toPerSecond(cumulative);
-        }));
+        const squadIncomingSeries = sumSeries(memberIds.map((id) =>
+            toPerSecond(getEntityDamageTakenSeries(details, id, { power: true }))
+        ));
         const totalClassCount = Array.from(classCounts.values()).reduce((sum, count) => sum + Number(count || 0), 0);
         if (squadIncomingSeries.length > 0 && totalClassCount > 0) {
             classCounts.forEach((count, profession) => {
@@ -397,8 +262,8 @@ export function ingestLogIncomingStrikeDamage(log: any, acc: IncomingStrikeDamag
             totalDamage,
             skillName: entry.skillName || 'Unknown Skill',
             buckets5s,
-            downIndices5s: markerIndicesFromTimes(downTimes, [], allReplayStarts, bucketCount, Number(details?.durationMS || 0)),
-            deathIndices5s: markerIndicesFromTimes(deathTimes, [], allReplayStarts, bucketCount, Number(details?.durationMS || 0)),
+            downIndices5s: markerIndices(details, memberIds, 'down', bucketCount),
+            deathIndices5s: markerIndices(details, memberIds, 'dead', bucketCount),
             skillRows: Array.from(classSkillRows.get(profession)?.values() || [])
                 .sort((a, b) => b.damage - a.damage)
                 .slice(0, 50)

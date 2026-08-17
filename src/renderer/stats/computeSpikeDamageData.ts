@@ -1,67 +1,56 @@
+import {
+    squadEntities, getEntityProfession,
+    getEntityDamageSeries, getEntityTargetDamageSeries, getEntitySkillRows,
+    getEntityDownContributionBySkill, type NativeSkillRow,
+} from '@axiapps/bridge-metrics';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 
-const getHighestSingleHit = (player: any, details: any) => {
-    const skillMap = details?.skillMap || {};
-    const buffMap = details?.buffMap || {};
-    let bestValue = 0;
-    let bestDownContribution = 0;
-    let bestName = '';
-    const resolveSkillName = (rawId: any) => {
-        const idNum = Number(rawId);
-        if (!Number.isFinite(idNum)) return String(rawId || 'Unknown Skill');
-        const mapped = skillMap?.[`s${idNum}`] || skillMap?.[`${idNum}`];
-        if (mapped?.name) return String(mapped.name);
-        const buffMapped = buffMap?.[`b${idNum}`] || buffMap?.[`${idNum}`];
-        if (buffMapped?.name) return String(buffMapped.name);
-        return `Skill ${idNum}`;
-    };
-    const readEntryPeak = (entry: any) => {
-        if (!entry || typeof entry !== 'object') return;
-        if (entry.indirectDamage) return;
-        const totalDamage = Number(entry.totalDamage || 0);
-        const candidates = [
-            Number(entry.max),
-            Number(entry.maxDamage),
-            Number(entry.maxHit)
-        ].filter((n) => Number.isFinite(n) && n > 0);
-        let peak = candidates.length > 0 ? Math.max(...candidates) : 0;
-        // Guard: max should never exceed totalDamage (corrupted totalDamageDist entries)
-        if (peak > 0 && Number.isFinite(totalDamage) && totalDamage > 0 && peak > totalDamage) {
-            peak = totalDamage;
+/**
+ * Strike-damage skill rows for one entity, per-target first.
+ *
+ * `per_target.by_skill` carries no `outcomes`, so `getEntitySkillRows` joins
+ * the `indirect` flag from the entity's own top-level rows; filtering on it is
+ * what keeps condition ticks out of every number in this module.
+ */
+const getStrikeRows = (details: any, entityId: number): NativeSkillRow[] => {
+    const perTarget = getEntitySkillRows(details, entityId, { perTarget: true }).filter((r) => !r.indirect);
+    if (perTarget.length > 0) return perTarget;
+    return getEntitySkillRows(details, entityId).filter((r) => !r.indirect);
+};
+
+const getHighestSingleHit = (details: any, entityId: number) => {
+    // `max` lives on the per-skill records in both by_skill and per_target,
+    // so the peak hit no longer needs EI's corrupted-entry guard: native's max
+    // is a real observed hit, not a derived figure that could exceed the total.
+    const rows = getEntitySkillRows(details, entityId, { perTarget: true }).filter((r) => !r.indirect);
+    const entity = details?.native?.blocks?.damage?.by_entity?.[String(entityId)];
+    const maxOf = (skillId: number): number => {
+        let best = 0;
+        for (const target of Object.values<any>(entity?.per_target ?? {})) {
+            best = Math.max(best, Number(target?.by_skill?.[String(skillId)]?.max ?? 0));
         }
+        if (best <= 0) best = Number(entity?.by_skill?.[String(skillId)]?.max ?? 0);
+        return best;
+    };
+
+    const downBySkill = getEntityDownContributionBySkill(details, entityId);
+    let bestValue = 0;
+    let bestName = '';
+    let bestDownContribution = 0;
+    for (const row of rows) {
+        const peak = maxOf(row.skillId);
         if (peak > bestValue) {
             bestValue = peak;
-            bestName = resolveSkillName(entry.id);
+            bestName = row.skillName;
         }
-        const downContribution = Number(entry.downContribution || 0);
-        if (downContribution > bestDownContribution) {
-            bestDownContribution = downContribution;
-        }
-    };
-    let sawTargetEntry = false;
-    if (Array.isArray(player?.targetDamageDist)) {
-        player.targetDamageDist.forEach((targetGroup: any) => {
-            if (!Array.isArray(targetGroup)) return;
-            targetGroup.forEach((list: any) => {
-                if (!Array.isArray(list)) return;
-                list.forEach((entry: any) => {
-                    sawTargetEntry = true;
-                    readEntryPeak(entry);
-                });
-            });
-        });
-    }
-    if ((!sawTargetEntry || bestValue <= 0) && Array.isArray(player?.totalDamageDist)) {
-        player.totalDamageDist.forEach((list: any) => {
-            if (!Array.isArray(list)) return;
-            list.forEach((entry: any) => readEntryPeak(entry));
-        });
+        const downContribution = downBySkill.get(row.skillId) ?? 0;
+        if (downContribution > bestDownContribution) bestDownContribution = downContribution;
     }
     return { peak: bestValue, peakDownContribution: bestDownContribution, skillName: bestName || 'Unknown Skill' };
 };
 
-const getPerSecondDamageSeries = (player: any): { perSecond: number[]; usedFallback: boolean } => {
+const getPerSecondDamageSeries = (details: any, entityId: number): { perSecond: number[]; usedFallback: boolean } => {
     const toPerSecond = (series: number[]) => {
         if (!Array.isArray(series) || series.length === 0) return [] as number[];
         const deltas: number[] = [];
@@ -72,49 +61,12 @@ const getPerSecondDamageSeries = (player: any): { perSecond: number[]; usedFallb
         }
         return deltas;
     };
-    const sumCumulativeTargets = (targetSeries: any[]) => {
-        if (!Array.isArray(targetSeries)) return [] as number[];
-        const maxLen = targetSeries.reduce((len, series) => Math.max(len, Array.isArray(series) ? series.length : 0), 0);
-        if (maxLen <= 0) return [] as number[];
-        const summed = new Array<number>(maxLen).fill(0);
-        targetSeries.forEach((series) => {
-            if (!Array.isArray(series)) return;
-            for (let i = 0; i < maxLen; i += 1) {
-                summed[i] += Number(series[i] || 0);
-            }
-        });
-        return summed;
-    };
-    const normalizeNumberSeries = (series: any) =>
-        Array.isArray(series) ? series.map((value: any) => Number(value || 0)) : null;
-    const extractTargetPhase0 = (targetDamage1S: any) => {
-        if (!Array.isArray(targetDamage1S) || targetDamage1S.length === 0) return null;
-        const first = targetDamage1S[0];
-        if (!Array.isArray(first)) return null;
-
-        // Shape A: [phase][target][time]
-        if (Array.isArray(first[0]) && Array.isArray(first[0][0])) {
-            return sumCumulativeTargets(first);
-        }
-
-        // Shape B: [target][phase][time]
-        if (Array.isArray(first[0]) && !Array.isArray(first[0][0])) {
-            const phaseSeries = targetDamage1S
-                .map((target: any) => normalizeNumberSeries(Array.isArray(target) ? target[0] : null))
-                .filter((series: number[] | null): series is number[] => Array.isArray(series) && series.length > 0);
-            if (phaseSeries.length > 0) return sumCumulativeTargets(phaseSeries);
-        }
-
-        return null;
-    };
-    const targetPhase0 = extractTargetPhase0(player?.targetDamage1S);
-    const totalPhase0 = Array.isArray(player?.damage1S) && Array.isArray(player.damage1S[0])
-        ? player.damage1S[0]
-        : null;
-    const usedFallback = !targetPhase0;
-    const cumulative = targetPhase0
-        ? targetPhase0
-        : (Array.isArray(totalPhase0) ? totalPhase0.map((v: any) => Number(v || 0)) : []);
+    // Per-target excludes minions and splash that landed on nothing tracked;
+    // the entity total is the fallback, and carries both, which is why the
+    // caller still scales it by the personal ratio.
+    const targetCumulative = getEntityTargetDamageSeries(details, entityId);
+    const usedFallback = targetCumulative.length === 0;
+    const cumulative = usedFallback ? getEntityDamageSeries(details, entityId) : targetCumulative;
     return { perSecond: toPerSecond(cumulative), usedFallback };
 };
 
@@ -143,62 +95,13 @@ const getBuckets = (values: number[], bucketSizeSeconds: number) => {
     return out;
 };
 
-const getDamageAndDownContributionTotals = (player: any, details: any) => {
+const getDamageAndDownContributionTotals = (details: any, entityId: number) => {
+    const downBySkill = getEntityDownContributionBySkill(details, entityId);
     let damageTotal = 0;
     let downContributionTotal = 0;
-    const totalsBySkill = new Map<number, { damage: number; downContribution: number }>();
-    const consume = (entry: any) => {
-        if (!entry || typeof entry !== 'object') return;
-        if (entry.indirectDamage) return;
-        const damage = Number(entry.totalDamage || 0);
-        const downContribution = Number(entry.downContribution || 0);
-        if (!Number.isFinite(damage) && !Number.isFinite(downContribution)) return;
-        damageTotal += Number.isFinite(damage) ? damage : 0;
-        downContributionTotal += Number.isFinite(downContribution) ? downContribution : 0;
-    };
-    if (Array.isArray(player?.targetDamageDist)) {
-        player.targetDamageDist.forEach((targetGroup: any) => {
-            if (!Array.isArray(targetGroup)) return;
-            targetGroup.forEach((list: any) => {
-                if (!Array.isArray(list)) return;
-                list.forEach((entry: any) => {
-                    const skillId = Number(entry?.id);
-                    if (Number.isFinite(skillId)) {
-                        const existing = totalsBySkill.get(skillId) || { damage: 0, downContribution: 0 };
-                        existing.damage += Number(entry?.totalDamage || 0);
-                        existing.downContribution += Number(entry?.downContribution || 0);
-                        totalsBySkill.set(skillId, existing);
-                    }
-                    consume(entry);
-                });
-            });
-        });
-    }
-    const allowTotalSupplement = !details?.detailedWvW;
-    if (allowTotalSupplement && Array.isArray(player?.totalDamageDist)) {
-        player.totalDamageDist.forEach((list: any) => {
-            if (!Array.isArray(list)) return;
-            list.forEach((entry: any) => {
-                const skillId = Number(entry?.id);
-                if (!Number.isFinite(skillId)) {
-                    consume(entry);
-                    return;
-                }
-                const existing = totalsBySkill.get(skillId);
-                if (!existing) {
-                    consume(entry);
-                    return;
-                }
-                const deltaDamage = Number(entry?.totalDamage || 0) - Number(existing.damage || 0);
-                const deltaDown = Number(entry?.downContribution || 0) - Number(existing.downContribution || 0);
-                if (deltaDamage <= 0 && deltaDown <= 0) return;
-                consume({
-                    ...entry,
-                    totalDamage: Math.max(0, deltaDamage),
-                    downContribution: Math.max(0, deltaDown)
-                });
-            });
-        });
+    for (const row of getStrikeRows(details, entityId)) {
+        damageTotal += row.damage;
+        downContributionTotal += downBySkill.get(row.skillId) ?? 0;
     }
     return {
         damageTotal: Math.max(0, damageTotal),
@@ -206,73 +109,20 @@ const getDamageAndDownContributionTotals = (player: any, details: any) => {
     };
 };
 
-const resolveSkillMeta = (rawId: any, details: any) => {
-    const idNum = Number(rawId);
-    if (!Number.isFinite(idNum)) return { name: String(rawId || 'Unknown Skill'), icon: undefined as string | undefined };
-    const skillMap = details?.skillMap || {};
-    const buffMap = details?.buffMap || {};
-    const mapped = skillMap?.[`s${idNum}`] || skillMap?.[`${idNum}`];
-    if (mapped?.name) return { name: String(mapped.name), icon: mapped?.icon };
-    const buffMapped = buffMap?.[`b${idNum}`] || buffMap?.[`${idNum}`];
-    if (buffMapped?.name) return { name: String(buffMapped.name), icon: buffMapped?.icon };
-    return { name: `Skill ${idNum}`, icon: undefined as string | undefined };
-};
-
-const toPairs = (value: any): Array<[number, number]> => {
-    if (!Array.isArray(value)) return [];
-    return value
-        .map((entry: any) => {
-            if (Array.isArray(entry)) return [Number(entry[0]), Number(entry[1])] as [number, number];
-            if (entry && typeof entry === 'object') return [Number(entry.time), Number(entry.value)] as [number, number];
-            return null;
-        })
-        .filter((entry: any): entry is [number, number] => !!entry && Number.isFinite(entry[0]) && entry[0] >= 0);
-};
-
-const normalizeEventTimes = (times: number[], replayStarts: number[], allReplayStarts: number[], bucketCount: number, durationMs: number) => {
-    if (!times.length || bucketCount <= 0) return [] as number[];
-    const maxMs = Math.max(bucketCount * 5000, durationMs || 0);
-    const validRangeScore = (values: number[]) => values.reduce((count, value) => (
-        value >= 0 && value <= (maxMs + 2000) ? count + 1 : count
-    ), 0);
-    const raw = times.map((value) => Number(value || 0)).filter((value) => Number.isFinite(value) && value >= 0);
-    if (!raw.length) return [] as number[];
-    const variants: number[][] = [raw];
-    const maxRaw = raw.reduce((max, value) => Math.max(max, value), 0);
-    const minRaw = raw.reduce((min, value) => Math.min(min, value), Number.POSITIVE_INFINITY);
-    if (maxRaw > (maxMs * 20)) variants.push(raw.map((value) => value / 1000));
-    if (maxRaw <= (maxMs * 2) && minRaw >= 0 && maxRaw > 0 && maxRaw < Math.max(120, bucketCount * 5 + 10)) {
-        variants.push(raw.map((value) => value * 1000));
-    }
-    let best = raw;
-    let bestOffset = 0;
-    let bestScore = -1;
-    variants.forEach((variant) => {
-        const minTime = variant.reduce((min, value) => Math.min(min, value), Number.POSITIVE_INFINITY);
-        const offsets = new Set<number>([0, ...replayStarts, ...allReplayStarts]);
-        if (Number.isFinite(minTime) && maxMs > 0 && minTime > maxMs) {
-            const approx = Math.floor(minTime / maxMs) * maxMs;
-            offsets.add(approx);
-            offsets.add(Math.max(0, approx - maxMs));
-        }
-        offsets.forEach((offset) => {
-            const shifted = variant.map((value) => value - offset);
-            const score = validRangeScore(shifted);
-            if (score > bestScore) {
-                bestScore = score;
-                bestOffset = offset;
-                best = variant;
-            }
-        });
-    });
-    return best.map((value) => value - bestOffset).filter((value) => Number.isFinite(value) && value >= 0);
-};
-
-const markerIndicesFromTimes = (times: number[], replayStarts: number[], allReplayStarts: number[], bucketCount: number, durationMs: number) => {
-    const normalized = normalizeEventTimes(times, replayStarts, allReplayStarts, bucketCount, durationMs);
-    return Array.from(new Set(normalized
-        .map((value) => Math.floor(value / 5000))
-        .filter((idx) => Number.isFinite(idx) && idx >= 0 && idx < bucketCount)));
+/**
+ * Down/death marker times for one entity, from `blocks.replay`.
+ *
+ * These are `[startMs, endMs]` pairs in FIGHT-relative milliseconds, which is
+ * why the EI path's offset-and-unit guessing is gone: EI reported them in
+ * session time against a replay start that had to be inferred per player.
+ */
+const markerIndices = (events: any, bucketCount: number): number[] => {
+    if (!Array.isArray(events) || bucketCount <= 0) return [];
+    return Array.from(new Set(events
+        .map((entry: any) => Number(Array.isArray(entry) ? entry[0] : entry))
+        .filter((value: number) => Number.isFinite(value) && value >= 0)
+        .map((value: number) => Math.floor(value / 5000))
+        .filter((idx: number) => idx >= 0 && idx < bucketCount)));
 };
 
 // --- Types ---
@@ -361,27 +211,20 @@ export function ingestLogSpikeDamage(log: any, acc: SpikeDamageAccumulator, opti
         avgPosition: computeFightAvgPosition(details),
     });
     const values: Record<string, SpikeDamageFightValue> = {};
-    const players = Array.isArray(details.players) ? details.players : [];
-    const allReplayStarts = players
-        .flatMap((entry: any) => {
-            const replay = entry?.combatReplayData;
-            if (Array.isArray(replay)) return replay.map((seg: any) => Number(seg?.start));
-            return [Number(replay?.start)];
-        })
-        .filter((value: number) => Number.isFinite(value) && value >= 0);
-    players.forEach((player: any) => {
-        if (player?.notInSquad) return;
-        const account = String(player?.account || player?.name || 'Unknown');
-        const characterName = String(player?.character_name || player?.display_name || player?.name || '');
-        const profession = String(player?.profession || 'Unknown');
+    const members = squadEntities(details?.native);
+    members.forEach((entity) => {
+        const account = String(entity?.account || entity?.character || 'Unknown');
+        const characterName = String(entity?.character || '');
+        // EI's `profession` is native's `elite_spec` — getEntityProfession maps it.
+        const profession = String(getEntityProfession(entity) || 'Unknown');
         const key = splitPlayersByClass && profession !== 'Unknown' ? `${account}::${profession}` : account;
-        const spike = getHighestSingleHit(player, details);
+        const spike = getHighestSingleHit(details, entity.id);
         const hit = Number(spike.peak || 0);
         const hitDown = Number(spike.peakDownContribution || 0);
-        const { perSecond: perSecondRaw, usedFallback } = getPerSecondDamageSeries(player);
-        const { damageTotal, downContributionTotal } = getDamageAndDownContributionTotals(player, details);
-        // When damage1S fallback was used, it includes pet/minion damage.
-        // Scale down to personal-only damage using targetDamageDist totals.
+        const { perSecond: perSecondRaw, usedFallback } = getPerSecondDamageSeries(details, entity.id);
+        const { damageTotal, downContributionTotal } = getDamageAndDownContributionTotals(details, entity.id);
+        // When the entity-total series was used it includes minion damage.
+        // Scale down to personal-only damage using the per-skill strike totals.
         const perSecondTotal = usedFallback ? perSecondRaw.reduce((sum, v) => sum + v, 0) : 0;
         const personalRatio = usedFallback && perSecondTotal > 0 && damageTotal > 0 && damageTotal < perSecondTotal
             ? Math.min(1, damageTotal / perSecondTotal)
@@ -405,87 +248,19 @@ export function ingestLogSpikeDamage(log: any, acc: SpikeDamageAccumulator, opti
         const rawBucketsDown = getBuckets(perSecondDown, 5);
         const buckets5s = Array.from({ length: bucketCount }, (_, idx) => Number(rawBuckets[idx] || 0));
         const buckets5sDown = Array.from({ length: bucketCount }, (_, idx) => Number(rawBucketsDown[idx] || 0));
-        const skillRowsMap = new Map<string, { skillName: string; damage: number; downContribution: number; hits: number; icon?: string }>();
-        const consumeDamageEntry = (entry: any) => {
-            if (!entry || typeof entry !== 'object') return;
-            if (entry.indirectDamage) return;
-            const damage = Number(entry.totalDamage || 0);
-            const downContribution = Number(entry.downContribution || 0);
-            if ((!Number.isFinite(damage) || damage <= 0) && (!Number.isFinite(downContribution) || downContribution <= 0)) return;
-            const hits = Number(entry.connectedHits || entry.hits || 0);
-            const skillMeta = resolveSkillMeta(entry.id, details);
-            const skillName = skillMeta.name;
-            const row = skillRowsMap.get(skillName) || { skillName, damage: 0, downContribution: 0, hits: 0, icon: skillMeta.icon };
-            row.damage += Number.isFinite(damage) ? damage : 0;
-            row.downContribution += Number.isFinite(downContribution) ? downContribution : 0;
-            row.hits += Number.isFinite(hits) ? hits : 0;
-            if (!row.icon && skillMeta.icon) row.icon = skillMeta.icon;
-            skillRowsMap.set(skillName, row);
-        };
-        const targetSkillTotals = new Map<number, { damage: number; downContribution: number; hits: number }>();
-        if (Array.isArray(player?.targetDamageDist)) {
-            player.targetDamageDist.forEach((targetGroup: any) => {
-                if (!Array.isArray(targetGroup)) return;
-                targetGroup.forEach((list: any) => {
-                    if (!Array.isArray(list)) return;
-                    list.forEach((entry: any) => {
-                        const skillId = Number(entry?.id);
-                        const damage = Number(entry?.totalDamage || 0);
-                        const downContribution = Number(entry?.downContribution || 0);
-                        if (Number.isFinite(skillId)) {
-                            const existing = targetSkillTotals.get(skillId) || { damage: 0, downContribution: 0, hits: 0 };
-                            existing.damage += Number.isFinite(damage) ? damage : 0;
-                            existing.downContribution += Number.isFinite(downContribution) ? downContribution : 0;
-                            existing.hits += Number(entry?.connectedHits || entry?.hits || 0);
-                            targetSkillTotals.set(skillId, existing);
-                        }
-                        consumeDamageEntry(entry);
-                    });
-                });
-            });
-        }
-        const allowTotalSupplement = !details?.detailedWvW;
-        if (allowTotalSupplement && Array.isArray(player?.totalDamageDist)) {
-            player.totalDamageDist.forEach((list: any) => {
-                if (!Array.isArray(list)) return;
-                list.forEach((entry: any) => {
-                    const skillId = Number(entry?.id);
-                    if (!Number.isFinite(skillId)) {
-                        consumeDamageEntry(entry);
-                        return;
-                    }
-                    const target = targetSkillTotals.get(skillId);
-                    if (!target) {
-                        consumeDamageEntry(entry);
-                        return;
-                    }
-                    const totalDamage = Number(entry?.totalDamage || 0);
-                    const totalDownContribution = Number(entry?.downContribution || 0);
-                    const totalHits = Number(entry?.connectedHits || entry?.hits || 0);
-                    const deltaDamage = totalDamage - Number(target.damage || 0);
-                    const deltaDownContribution = totalDownContribution - Number(target.downContribution || 0);
-                    const deltaHits = totalHits - Number(target.hits || 0);
-                    if (deltaDamage <= 0 && deltaDownContribution <= 0 && deltaHits <= 0) return;
-                    consumeDamageEntry({
-                        ...entry,
-                        totalDamage: Math.max(0, deltaDamage),
-                        downContribution: Math.max(0, deltaDownContribution),
-                        connectedHits: Math.max(0, deltaHits),
-                        hits: Math.max(0, deltaHits)
-                    });
-                });
-            });
-        }
-        const replayEntries = (() => {
-            const replay = player?.combatReplayData;
-            if (Array.isArray(replay)) return replay.filter((entry: any) => entry && typeof entry === 'object');
-            return replay && typeof replay === 'object' ? [replay] : [];
-        })();
-        const replayStarts = replayEntries
-            .map((entry: any) => Number(entry?.start))
-            .filter((value: number) => Number.isFinite(value) && value >= 0);
-        const downTimes = replayEntries.flatMap((entry: any) => toPairs(entry?.down).map(([time]) => Number(time || 0)));
-        const deathTimes = replayEntries.flatMap((entry: any) => toPairs(entry?.dead).map(([time]) => Number(time || 0)));
+        const downBySkill = getEntityDownContributionBySkill(details, entity.id);
+        const skillRows = getStrikeRows(details, entity.id)
+            .map((row) => ({
+                skillName: row.skillName,
+                damage: row.damage,
+                downContribution: downBySkill.get(row.skillId) ?? 0,
+                hits: row.connectedHits || row.hits,
+                icon: row.icon,
+            }))
+            .filter((row) => row.damage > 0 || row.downContribution > 0)
+            .sort((a, b) => b.damage - a.damage)
+            .slice(0, 50);
+        const replay = details?.native?.blocks?.replay?.by_entity?.[String(entity.id)];
         values[key] = {
             hit,
             burst1s,
@@ -498,11 +273,9 @@ export function ingestLogSpikeDamage(log: any, acc: SpikeDamageAccumulator, opti
             skillName: spike.skillName || 'Unknown Skill',
             buckets5s,
             buckets5sDown,
-            downIndices5s: markerIndicesFromTimes(downTimes, replayStarts, allReplayStarts, bucketCount, Number(details?.durationMS || 0)),
-            deathIndices5s: markerIndicesFromTimes(deathTimes, replayStarts, allReplayStarts, bucketCount, Number(details?.durationMS || 0)),
-            skillRows: Array.from(skillRowsMap.values())
-                .sort((a, b) => b.damage - a.damage)
-                .slice(0, 50)
+            downIndices5s: markerIndices(replay?.down, bucketCount),
+            deathIndices5s: markerIndices(replay?.dead, bucketCount),
+            skillRows
         };
 
         const existing = acc.playerMap.get(key) || {
