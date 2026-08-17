@@ -91,6 +91,29 @@ parseFile → ReportV1 → pruneBlocks (drop blocks / drop replay.tracks)
 store per parse. That is what lets the cutover proceed incrementally without a restart
 or a migration flag of its own.
 
+**During the migration (settled in unit 2):** `parseLog` runs both bindings and attaches
+a *carry-set* — a whitelist of the native blocks migrated units actually read — to the
+EI details under one key, `details.native` (`src/main/nativeCarrySet.ts`). Migrated
+readers read native; unmigrated ones keep reading EI. The whitelist grows one unit at a
+time and the EI half is deleted at Step N.
+
+This does not reopen what decision 3 rejected. That rejection was of a parallel
+*implementation diff* — computing every metric twice at runtime and comparing — which is
+what put two full detail payloads in flight and caused the renderer OOM in `6ebc97a1`.
+The carry-set is a projection, not a second payload, and the comparison lives in the
+oracle tests. Measured on the fixture:
+
+| | |
+|---|---|
+| Full EI payload | 3.40 MB |
+| Full native payload | 2.38 MB |
+| **Unit 1+2 carry-set** (`axilog`+`encounter`+`entities`+`coverage`) | **0.022 MB** |
+| EI parse / native parse | 349 ms / 225 ms |
+
+`blocks` never enters the carry-set wholesale — when a unit migrates, it carries the one
+block it reads. The standing cost is therefore the second parse, +64% per log rather than
+2×, and it disappears at Step N.
+
 ### `ReportV1` is read directly
 
 No axibridge wrapper type. A wrapper would reintroduce the third shape decision 1
@@ -108,6 +131,9 @@ Today pruning is `omit(details, DENY)` over EI's flat player objects
 we already prune: `blocks.replay.tracks` *is* the position payload that dominates
 `report.json`, and it is one key. `coverage` then states why a block is absent rather
 than leaving the consumer to infer it.
+
+The end state is also simply smaller: the full native report measures 2.38 MB against
+ei-json's 3.40 MB on the fixture, before any pruning at all.
 
 ### Positional joins are deleted
 
@@ -187,6 +213,8 @@ which side is right. Expected entries:
 | Divergence | Which is right, and why |
 |---|---|
 | `distToCom` / `stackDist` | Native. The delta is the old derivation's 3.7%/4.3% mean error. |
+| `timeStart` / `timeEnd` (unit 2, recorded) | Native, and the EI side no longer answers. ei-json emits no log-start event, so the shim inferred the time from the `.zevtc` mtime — off by 204 days on the fixture. Now sourced from `encounter.started_at_unix`. |
+| WvW team map (unit 2, recorded) | Neither; they answer different questions. `wvWMapData` carries all three teams of the **match** (red 697 on the fixture, which fielded nobody); `encounter.teams` enumerates only the teams **observed** in the log. Every id native reports matches EI, so `teamMapFromLog` prefers native and fills empty slots from the match event. |
 | Player counts where a relog occurred | Native. `dedupe_players` keys by account and collects agent addrs across relogs; EI emits one row per agent instance. |
 | `minMitigation` | Native. Id-keyed per-target skill rows make a true global minimum trivial; today's column is a mean-of-mins, biased high. Closes cutover-report follow-up 6. |
 | Skill/buff icons, proc flags | Native. Absent → present, so APM's auto-attack exclusion and proc filtering begin actually excluding and filtering. |
@@ -215,15 +243,31 @@ Ordered by data dependency. Each is one unit of work with its own oracle test.
 | # | Unit | Principal files |
 |---|---|---|
 | 1 | Roster & identity | `playerIdentity.ts` → new `nativeRoster.ts`, `computeDominantGuildId.ts`, `squadGuilds.ts` |
-| 2 | Encounter & fight-level | `computeFightBreakdown.ts`, `reportMetrics.ts`; retires the rest of `applyEiCompatShims` |
+| 2 | Encounter & fight-level ✅ | `nativeEncounter.ts`, `timestampUtils.ts`, `labelUtils.ts`, `wvwTeams.ts`, `computeFightBreakdown.ts`, `buildReportMeta.ts`; re-sources `applyEiCompatShims` from native |
 | 3 | Positioning & replay | `positioning.ts`, `computeDistanceToTag.ts`, `computeOnTagReview.ts`, `computeTagDistanceDeaths.ts`, `computeTimelineAndMapData.ts` |
 | 4 | Damage | `computeAllDamageData.ts`, `computeSpikeDamageData.ts`, `computeIncomingStrikeDamageData.ts`, `computeFightDiffMode.ts` |
 | 5 | Boons & conditions | `boonGeneration.ts`, `conditionsMetrics.ts`, `computeBoonTimeline.ts`, `computeBoonUptimeTimeline.ts`, `computeStabPerformance.ts`; retires `attachConditionMetrics` into `blocks.conditions` |
 | 6 | Defense, support, healing | `combatMetrics.ts`, `computeHealEffectivenessData.ts`, `computeStripSpikesData.ts` |
 | 7 | Rotation & skills | `computeSkillUsageData.ts`, `computeSpecialTables.ts`; picks up proc flags and icons |
 | 8 | The aggregators | `computePlayerAggregation.ts` (1689), `incrementalAggregation.ts` (1805), `computeCommanderStats.ts` (804), `computeStatsAggregation.ts` |
-| 9 | Rollup & web report | `rollup.ts`, `src/web/reportApp.tsx`; decision 2's projection lands here |
+| 9 | Rollup & web report | `rollup.ts`, `reportMetrics.ts`, `src/web/reportApp.tsx`; decision 2's projection lands here |
 | 10 | Discord | `discord.ts` |
+
+`reportMetrics.ts` was originally listed under unit 2 but reads the *published*
+`report.json` (`extractRunSummary`, `RunSummary`), not EI details — under decision 2 that
+artifact keeps its shape during the migration, so it belongs to unit 9.
+
+`applyEiCompatShims` is **re-sourced, not retired**, in unit 2. Seven live sites still
+read its EI-spelled outputs with no native path — `main/index.ts` persists
+`encounterDuration` into `ILogData`, `discord.ts` formats embeds from `timeStartStd`,
+`dashboardUtils` and `ExpandableLogCard` read both — and those readers belong to units 8
+and 10. The function now projects native encounter facts onto the legacy names and dies
+with them. What unit 2 did delete is its `.zevtc`-mtime timestamp inference: the mtime is
+the fight end only for a log still sitting where arcdps wrote it, and on the committed
+fixture — checked out by git — it was wrong by **204 days**. Any user log that had been
+copied, restored from backup or re-synced carried an equally wrong report date. With no
+native start available the timestamps are now left undefined and callers fall back to
+`uploadTime`.
 
 `attendance.ts` reads a rollup payload, never EI JSON; its producer is
 `incrementalAggregation.ts`, so attendance moves with unit 8.
