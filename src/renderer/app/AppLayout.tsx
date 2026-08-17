@@ -53,7 +53,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         computedSkillUsageData,
         aggregationProgress,
         aggregationDiagnostics,
-        nativeCoverage,
+        axilogCoverage,
         handleLogsHealed,
         statsDataProgress,
         setStatsViewSettings,
@@ -162,8 +162,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         skillUsageData: computedSkillUsageData,
         aggregationProgress,
         aggregationDiagnostics,
-        nativeCoverage,
-    }), [computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, nativeCoverage]);
+        axilogCoverage,
+    }), [computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage]);
 
     const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'commander' | 'history' | 'settings') => {
         setActiveNavView(nextView);

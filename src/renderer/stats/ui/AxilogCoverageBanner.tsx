@@ -1,36 +1,36 @@
 /**
  * Says out loud that some of the numbers on screen are missing logs.
  *
- * Without this the degradation is silent: a log with no `.native` contributes
- * zero to damage, positioning, boons and replay, and the dashboard renders a
- * confident-looking total that is simply wrong by however many logs are
- * missing. The banner names the count, names the cause, and — when the source
- * `.zevtc` files are still on disk and the user is on the axilog engine —
- * offers the one action that actually fixes it.
+ * Without this the degradation is silent: a log with no Axilog data
+ * contributes zero to damage, positioning, boons and replay, and the dashboard
+ * renders a confident-looking total that is simply wrong by however many logs
+ * are missing. The banner names the count, names the cause, and — when the
+ * source `.zevtc` files are still on disk and the user is on the Axilog engine
+ * — offers the one action that actually fixes it.
  */
 
 import { useState } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
-import type { NativeCoverage } from '../utils/nativeCoverage';
-import { describeNativeGap, isHealable } from '../utils/nativeCoverage';
-import type { NativeHealState } from '../hooks/useNativeHeal';
+import type { AxilogCoverage } from '../utils/axilogCoverage';
+import { describeAxilogGap, isHealable } from '../utils/axilogCoverage';
+import type { AxilogHealState } from '../hooks/useAxilogHeal';
 
-type NativeCoverageBannerProps = {
+type AxilogCoverageBannerProps = {
     embedded: boolean;
-    coverage: NativeCoverage;
-    /** The selected parse engine. Re-parsing is only offered on 'axilog'. */
+    coverage: AxilogCoverage;
+    /** The selected parse engine. Re-parsing is only offered on Axilog. */
     parserBackend: 'axilog' | 'elite-insights' | null;
-    healState: NativeHealState;
+    healState: AxilogHealState;
     onHeal: () => void;
 };
 
-export const NativeCoverageBanner = ({
+export const AxilogCoverageBanner = ({
     embedded,
     coverage,
     parserBackend,
     healState,
     onHeal,
-}: NativeCoverageBannerProps) => {
+}: AxilogCoverageBannerProps) => {
     const [detailsOpen, setDetailsOpen] = useState(false);
 
     // The published web report is a snapshot: its logs cannot be re-parsed and
@@ -50,14 +50,14 @@ export const NativeCoverageBanner = ({
                 style={{ background: 'var(--status-success-bg)', border: '1px solid var(--status-success-border)' }}
             >
                 <span className="text-[11px]" style={{ color: 'var(--status-success)' }}>
-                    Re-parsed {healState.healed} {healState.healed === 1 ? 'log' : 'logs'}. Native data restored.
+                    Re-parsed {healState.healed} {healState.healed === 1 ? 'log' : 'logs'}. Axilog data restored.
                 </span>
             </div>
         );
     }
 
     const remedy = parserBackend === 'elite-insights'
-        ? 'Switch to the axilog engine at Settings → Parser Settings → Parse Engine, then re-parse.'
+        ? 'Switch to the Axilog engine at Settings → Parser Settings → Parse Engine, then re-parse.'
         : healable.length === 0
             ? 'The original .zevtc files are no longer on disk, so these logs cannot be repaired.'
             : healable.length < missing.length
@@ -83,7 +83,7 @@ export const NativeCoverageBanner = ({
                         Incomplete data
                     </div>
                     <div className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
-                        {describeNativeGap(coverage)}{' '}
+                        {describeAxilogGap(coverage)}{' '}
                         Damage, positioning, boons and replay from{' '}
                         {missing.length === 1 ? 'it' : 'them'} are missing from every total below.
                         {remedy ? ` ${remedy}` : ''}

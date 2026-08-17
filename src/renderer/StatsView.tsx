@@ -26,9 +26,9 @@ import { DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod
 import type { PlayerSkillBreakdown, PlayerSkillDamageEntry, SkillUsageSummary } from './stats/statsTypes';
 import { getDefaultConditionIcon, normalizeConditionLabel } from '../shared/conditionsMetrics';
 import { DetailsCacheContext } from './cache/DetailsCacheContext';
-import { NativeCoverageBanner } from './stats/ui/NativeCoverageBanner';
-import { useNativeHeal } from './stats/hooks/useNativeHeal';
-import { EMPTY_NATIVE_COVERAGE, type NativeCoverage } from './stats/utils/nativeCoverage';
+import { AxilogCoverageBanner } from './stats/ui/AxilogCoverageBanner';
+import { useAxilogHeal } from './stats/hooks/useAxilogHeal';
+import { EMPTY_AXILOG_COVERAGE, type AxilogCoverage } from './stats/utils/axilogCoverage';
 
 import { SkillUsageSection } from './stats/sections/SkillUsageSection';
 import { ApmSection } from './stats/sections/ApmSection';
@@ -125,9 +125,9 @@ interface StatsViewProps {
         skillUsageData: SkillUsageSummary;
         aggregationProgress?: AggregationProgressState;
         aggregationDiagnostics?: AggregationDiagnosticsState | null;
-        nativeCoverage?: NativeCoverage;
+        axilogCoverage?: AxilogCoverage;
     };
-    /** Called with the file paths of logs a native re-parse repaired. */
+    /** Called with the file paths of logs an Axilog re-parse repaired. */
     onLogsHealed?: (filePaths: string[]) => void;
 }
 
@@ -285,10 +285,10 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
 
     const detailsCache = useContext(DetailsCacheContext);
 
-    // Native coverage + repair. The aggregation observed which logs arrived
-    // without axilog's native container while it was already resolving their
+    // Axilog coverage + repair. The aggregation observed which logs arrived
+    // without Axilog data while it was already resolving their
     // details; this view is where that becomes visible and actionable.
-    const nativeCoverage = externalAggregationResult?.nativeCoverage ?? EMPTY_NATIVE_COVERAGE;
+    const axilogCoverage = externalAggregationResult?.axilogCoverage ?? EMPTY_AXILOG_COVERAGE;
     const [parserBackend, setParserBackend] = useState<'axilog' | 'elite-insights' | null>(null);
     useEffect(() => {
         if (embedded) return;
@@ -302,7 +302,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
             .catch(() => { /* leave null — the banner just omits the remedy */ });
         return () => { cancelled = true; };
     }, [embedded]);
-    const { healState, heal } = useNativeHeal({ detailsCache, onLogsHealed });
+    const { healState, heal } = useAxilogHeal({ detailsCache, onLogsHealed });
 
     const getDetails = (log: any): any => {
         if (detailsCache && log?.id) {
@@ -4276,12 +4276,12 @@ type SpikeFight = {
                 onSearchClick={() => setSearchOpen(true)}
             />
 
-            <NativeCoverageBanner
+            <AxilogCoverageBanner
                 embedded={embedded}
-                coverage={nativeCoverage}
+                coverage={axilogCoverage}
                 parserBackend={parserBackend}
                 healState={healState}
-                onHeal={() => heal(nativeCoverage.missingLogs)}
+                onHeal={() => heal(axilogCoverage.missingLogs)}
             />
 
             <WebUploadBanner

@@ -362,7 +362,6 @@ export interface IElectronAPI {
         githubFavoriteRepos?: string[] | null;
         walkthroughSeen?: boolean;
         allowLocalJson?: boolean;
-        forceDpsReportOnly?: boolean;
         eiAnnouncementDismissed?: boolean;
         r2AccountId?: string | null;
         r2AccessKeyId?: string | null;
@@ -382,9 +381,9 @@ export interface IElectronAPI {
     onConsoleLog: (callback: (log: { type: 'info' | 'error', message: string, timestamp: string }) => void) => () => void;
     onConsoleLogHistory: (callback: (logs: Array<{ type: 'info' | 'error', message: string, timestamp: string }>) => void) => () => void;
     setConsoleLogForwarding: (enabled: boolean) => void;
-    getLogDetails: (payload: { filePath: string; permalink?: string }) => Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>;
-    /** Re-parse the original `.zevtc` with axilog so the details regain `.native`. */
-    reparseLogNative: (payload: { filePath: string }) => Promise<{
+    getLogDetails: (payload: { filePath: string }) => Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>;
+    /** Re-parse the original `.zevtc` with axilog so the details regain Axilog data. */
+    reparseLogAxilog: (payload: { filePath: string }) => Promise<{
         success: boolean;
         details?: any;
         reason?: 'wrong-backend' | 'axilog-unavailable' | 'source-missing' | 'unusable-details' | 'parse-failed';
@@ -512,10 +511,10 @@ declare global {
         fightName?: string;
         fightLabel?: string;
         detailsStatus: DetailsStatus;
-        /** Where the details came from. Only 'axilog' carries the native container
+        /** Where the details came from. Only 'axilog' carries the Axilog data
          *  the migrated stats readers need; the rest render those views empty.
          *  Absent on logs persisted before this field existed. */
-        parseSource?: import('./stats/utils/nativeCoverage').ParseSource;
+        parseSource?: import('./stats/utils/axilogCoverage').ParseSource;
         splitEnemiesByTeam?: boolean;
         dashboardSummary?: {
             hasPlayers: boolean;

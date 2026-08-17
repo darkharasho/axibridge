@@ -1,10 +1,10 @@
 /**
- * Re-parse logs that arrived without axilog's native container, one at a time,
+ * Re-parse logs that arrived without Axilog data, one at a time,
  * and put the healed details back where every reader will find them.
  *
  * "Everywhere" is three places, and missing any one of them leaves the gap
  * half-closed: the main process's bulk details store (done by the IPC handler,
- * so `get-log-details` stops serving the native-less copy), the renderer's
+ * so `get-log-details` stops serving the Axilog-less copy), the renderer's
  * `DetailsCache` under BOTH the log id and the file path (the two keys the
  * hydration and streaming paths use), and the log row itself, so its
  * `parseSource` stops accusing an engine that is no longer responsible.
@@ -16,10 +16,10 @@
 
 import { useCallback, useRef, useState } from 'react';
 import type { DetailsCache } from '../../cache/DetailsCache';
-import type { NativeCoverageLog } from '../utils/nativeCoverage';
-import { isHealable } from '../utils/nativeCoverage';
+import type { AxilogCoverageLog } from '../utils/axilogCoverage';
+import { isHealable } from '../utils/axilogCoverage';
 
-export interface NativeHealState {
+export interface AxilogHealState {
     running: boolean;
     /** Logs re-parsed so far this run, successful or not. */
     done: number;
@@ -29,9 +29,9 @@ export interface NativeHealState {
     failures: Array<{ label: string; error: string }>;
 }
 
-const IDLE: NativeHealState = { running: false, done: 0, total: 0, healed: 0, failures: [] };
+const IDLE: AxilogHealState = { running: false, done: 0, total: 0, healed: 0, failures: [] };
 
-export function useNativeHeal({
+export function useAxilogHeal({
     detailsCache,
     onLogsHealed,
 }: {
@@ -39,23 +39,23 @@ export function useNativeHeal({
     /** Marks the healed logs as axilog-sourced in the owning state. */
     onLogsHealed?: (filePaths: string[]) => void;
 }) {
-    const [healState, setHealState] = useState<NativeHealState>(IDLE);
+    const [healState, setHealState] = useState<AxilogHealState>(IDLE);
     const runningRef = useRef(false);
 
-    const heal = useCallback(async (logs: NativeCoverageLog[]) => {
+    const heal = useCallback(async (logs: AxilogCoverageLog[]) => {
         if (runningRef.current) return;
         const targets = logs.filter(isHealable);
-        if (targets.length === 0 || !window.electronAPI?.reparseLogNative) return;
+        if (targets.length === 0 || !window.electronAPI?.reparseLogAxilog) return;
 
         runningRef.current = true;
         setHealState({ running: true, done: 0, total: targets.length, healed: 0, failures: [] });
         const healedPaths: string[] = [];
-        const failures: NativeHealState['failures'] = [];
+        const failures: AxilogHealState['failures'] = [];
 
         for (const target of targets) {
-            let result: Awaited<ReturnType<NonNullable<typeof window.electronAPI.reparseLogNative>>> | null = null;
+            let result: Awaited<ReturnType<NonNullable<typeof window.electronAPI.reparseLogAxilog>>> | null = null;
             try {
-                result = await window.electronAPI.reparseLogNative({ filePath: target.filePath });
+                result = await window.electronAPI.reparseLogAxilog({ filePath: target.filePath });
             } catch (err: any) {
                 result = { success: false, error: err?.message || 'Re-parse failed.' };
             }

@@ -190,7 +190,7 @@ function App() {
     } = useLogsForStats({ logs });
 
     /**
-     * A native re-parse succeeded for these files. The healed details are
+     * An Axilog re-parse succeeded for these files. The healed details are
      * already in the DetailsCache, so all that is left is to stop the log rows
      * blaming the engine that is no longer responsible — and to hand the
      * aggregation a new `logsForStats` array, which is what makes the streaming
@@ -237,7 +237,6 @@ function App() {
                 try {
                     const result = await window.electronAPI.getLogDetails({
                         filePath: log.filePath,
-                        permalink: log.permalink,
                     });
                     return result?.success ? result.details ?? null : null;
                 } catch {
@@ -312,7 +311,7 @@ function App() {
         lastComputedFlushId,
         aggregationProgress,
         aggregationDiagnostics,
-        nativeCoverage,
+        axilogCoverage,
         requestFlush
     } = useStatsAggregationWorker({
         logs: logsForStats,
@@ -1055,14 +1054,14 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, nativeCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,
         view, appVersion, showTerminal, webUploadState, webUploadLogEntries,
         logsForStats, mvpWeights, disruptionMethod, statsViewSettings,
         computedStats, computedSkillUsageData, aggregationProgress,
-        aggregationDiagnostics, nativeCoverage, handleLogsHealed,
+        aggregationDiagnostics, axilogCoverage, handleLogsHealed,
         statsDataProgress, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
         selectedWebhookId, developerSettingsTrigger, helpUpdatesFocusTrigger, parserSettingsFocusTrigger,
         showEiBanner, eiAutoManageStatus, eiAutoManageProgress,

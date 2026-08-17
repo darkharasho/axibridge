@@ -9,18 +9,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { NativeCoverageBanner } from '../NativeCoverageBanner';
-import { summarizeNativeCoverage, EMPTY_NATIVE_COVERAGE } from '../../utils/nativeCoverage';
-import type { NativeHealState } from '../../hooks/useNativeHeal';
+import { AxilogCoverageBanner } from '../AxilogCoverageBanner';
+import { summarizeAxilogCoverage, EMPTY_AXILOG_COVERAGE } from '../../utils/axilogCoverage';
+import type { AxilogHealState } from '../../hooks/useAxilogHeal';
 
-const IDLE: NativeHealState = { running: false, done: 0, total: 0, healed: 0, failures: [] };
+const IDLE: AxilogHealState = { running: false, done: 0, total: 0, healed: 0, failures: [] };
 
 const coverageMissing = (logs: Array<{ id: string; filePath: string; parseSource?: any }>) =>
-    summarizeNativeCoverage(logs.map((log) => ({ log, hasNative: false })));
+    summarizeAxilogCoverage(logs.map((log) => ({ log, hasAxilog: false })));
 
-const renderBanner = (props: Partial<React.ComponentProps<typeof NativeCoverageBanner>> = {}) =>
+const renderBanner = (props: Partial<React.ComponentProps<typeof AxilogCoverageBanner>> = {}) =>
     render(
-        <NativeCoverageBanner
+        <AxilogCoverageBanner
             embedded={false}
             coverage={coverageMissing([{ id: 'a', filePath: '/a.zevtc', parseSource: 'dps.report' }])}
             parserBackend="axilog"
@@ -30,9 +30,9 @@ const renderBanner = (props: Partial<React.ComponentProps<typeof NativeCoverageB
         />,
     );
 
-describe('NativeCoverageBanner', () => {
-    it('renders nothing when every log has native data', () => {
-        const { container } = renderBanner({ coverage: EMPTY_NATIVE_COVERAGE });
+describe('AxilogCoverageBanner', () => {
+    it('renders nothing when every log has Axilog data', () => {
+        const { container } = renderBanner({ coverage: EMPTY_AXILOG_COVERAGE });
         expect(container).toBeEmptyDOMElement();
     });
 
@@ -57,7 +57,7 @@ describe('NativeCoverageBanner', () => {
     it('offers no re-parse on the Elite Insights engine, and says how to enable it', () => {
         renderBanner({ parserBackend: 'elite-insights' });
         expect(screen.queryByRole('button', { name: /Re-parse/ })).toBeNull();
-        expect(screen.getByText(/Switch to the axilog engine/)).toBeTruthy();
+        expect(screen.getByText(/Switch to the Axilog engine/)).toBeTruthy();
     });
 
     it('offers no re-parse when no source file survives, and says why', () => {
@@ -104,10 +104,10 @@ describe('NativeCoverageBanner', () => {
 
     it('confirms success once the gap is actually closed', () => {
         renderBanner({
-            coverage: EMPTY_NATIVE_COVERAGE,
+            coverage: EMPTY_AXILOG_COVERAGE,
             healState: { running: false, done: 2, total: 2, healed: 2, failures: [] },
         });
-        expect(screen.getByText(/Re-parsed 2 logs\. Native data restored\./)).toBeTruthy();
+        expect(screen.getByText(/Re-parsed 2 logs\. Axilog data restored\./)).toBeTruthy();
     });
 
     it('still warns when a repair run left some logs unhealed', () => {

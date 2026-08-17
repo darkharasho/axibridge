@@ -1,5 +1,5 @@
 /**
- * Re-parse a log so its details regain axilog's native container.
+ * Re-parse a log so its details regain Axilog data.
  *
  * `buildNativeCarrySet` runs in exactly one place — {@link AxilogManager.parseLog} —
  * so a log whose details came from dps.report, from an Elite Insights parse or
@@ -49,7 +49,7 @@ export interface ReparseHandlerOptions {
 export function registerReparseHandlers(opts: ReparseHandlerOptions) {
     const { getAxilogManager, getBackend, getPruneOptions, setBulkLogDetails } = opts;
 
-    ipcMain.handle('log:reparse-native', async (_event, payload: { filePath?: string }): Promise<ReparseResult> => {
+    ipcMain.handle('log:reparse-axilog', async (_event, payload: { filePath?: string }): Promise<ReparseResult> => {
         const filePath = typeof payload?.filePath === 'string' ? payload.filePath.trim() : '';
         if (!filePath) {
             return { success: false, reason: 'source-missing', error: 'Missing filePath.' };
@@ -99,7 +99,7 @@ export function registerReparseHandlers(opts: ReparseHandlerOptions) {
             setBulkLogDetails(filePath, pruned);
             return { success: true, details: pruned };
         } catch (err: any) {
-            console.warn('[Main] log:reparse-native failed:', err?.message || err);
+            console.warn('[Main] log:reparse-axilog failed:', err?.message || err);
             return { success: false, reason: 'parse-failed', error: err?.message || 'Re-parse failed.' };
         }
     });

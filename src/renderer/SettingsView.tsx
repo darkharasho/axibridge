@@ -111,7 +111,7 @@ const PARSER_BACKEND_OPTIONS: Array<{
         },
         {
             id: 'axilog',
-            label: 'axilog (faster)',
+            label: 'Axilog (faster)',
             summary: 'Parses in-process in under a second. Nothing to download.',
             implications: [
                 'No .NET runtime or Elite Insights download — ships with the app',
@@ -276,7 +276,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [eiUpdateCheckResult, setEiUpdateCheckResult] = useState<'none' | null>(null);
     const [eiReinstalling, setEiReinstalling] = useState(false);
     const [eiUninstalling, setEiUninstalling] = useState(false);
-    const [forceDpsReportOnly, setForceDpsReportOnly] = useState(false);
     const [autoManageEi, setAutoManageEi] = useState(true);
     const [parserBackend, setParserBackend] = useState<IParserBackendInfo | null>(null);
     const [githubRepoName, setGithubRepoName] = useState('');
@@ -594,9 +593,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         const loadedCommanderThresholds = (settings as { commanderThresholds?: Partial<CommanderThresholds> }).commanderThresholds;
         if (loadedCommanderThresholds && typeof loadedCommanderThresholds === 'object') {
             setCommanderThresholds({ ...DEFAULT_COMMANDER_THRESHOLDS, ...loadedCommanderThresholds });
-        }
-        if (typeof settings.forceDpsReportOnly === 'boolean') {
-            setForceDpsReportOnly(settings.forceDpsReportOnly);
         }
         window.electronAPI.getEiAutoManage().then(setAutoManageEi);
         setGithubRepoOwner(settings.githubRepoOwner || '');
@@ -986,7 +982,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             githubLogoPath: githubLogoPath || null,
             githubFavoriteRepos,
             allowLocalJson,
-            forceDpsReportOnly,
             r2AccountId: r2AccountId || null,
             r2AccessKeyId: r2AccessKeyId || null,
             r2SecretAccessKey: r2SecretAccessKey || null,
@@ -1035,7 +1030,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         githubToken,
         githubLogoPath,
         githubFavoriteRepos,
-        forceDpsReportOnly,
         r2AccountId,
         r2AccessKeyId,
         r2SecretAccessKey,
@@ -2809,7 +2803,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
                             {parserBackend && !parserBackend.axilogAvailable && (
                                 <div className="text-xs text-yellow-300 mt-3">
-                                    axilog has no prebuilt binary for this platform, so Elite Insights is being used
+                                    Axilog has no prebuilt binary for this platform, so Elite Insights is being used
                                     regardless of the selection above.
                                 </div>
                             )}
@@ -2819,7 +2813,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 {parserBackend?.backend === 'elite-insights' && !eiStatus.installed
                                     ? ' Elite Insights is not installed yet — use Install below before your next parse.'
                                     : ''}
-                                {parserBackend?.axilogVersion ? ` axilog ${parserBackend.axilogVersion}.` : ''}
+                                {parserBackend?.axilogVersion ? ` Axilog ${parserBackend.axilogVersion}.` : ''}
                             </div>
                         </div>
 
@@ -2830,16 +2824,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 description="Checks for updates on startup and installs automatically"
                                 enabled={autoManageEi}
                                 onChange={(v) => { setAutoManageEi(v); window.electronAPI.setEiAutoManage(v); }}
-                            />
-                        </div>
-
-                        {/* Force dps.report only toggle */}
-                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4">
-                            <Toggle
-                                label="Force dps.report Only"
-                                description="Bypass local EI parsing and use dps.report for all log processing"
-                                enabled={forceDpsReportOnly}
-                                onChange={(v) => setForceDpsReportOnly(v)}
                             />
                         </div>
 

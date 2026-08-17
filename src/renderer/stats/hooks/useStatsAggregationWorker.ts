@@ -6,11 +6,11 @@ import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import type { DetailsCache } from '../../cache/DetailsCache';
 import { LogPayloadCache } from '../utils/logPayloadRetention';
 import {
-    detailsHaveNativeReport,
-    summarizeNativeCoverage,
-    EMPTY_NATIVE_COVERAGE,
-    type NativeCoverage,
-} from '../utils/nativeCoverage';
+    detailsHaveAxilogData,
+    summarizeAxilogCoverage,
+    EMPTY_AXILOG_COVERAGE,
+    type AxilogCoverage,
+} from '../utils/axilogCoverage';
 
 interface UseStatsAggregationProps {
     logs: any[];
@@ -152,12 +152,12 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         completedAt: 0
     });
     const [aggregationDiagnostics, setAggregationDiagnostics] = useState<AggregationDiagnosticsState | null>(null);
-    // Native coverage is observed here rather than computed by a separate pass
+    // Axilog coverage is observed here rather than computed by a separate pass
     // because this is the one place that already resolves every log's details.
     // A standalone scan would have to peek the LRU, which misses anything only
     // in IndexedDB and would report phantom gaps.
-    const [nativeCoverage, setNativeCoverage] = useState<NativeCoverage>(EMPTY_NATIVE_COVERAGE);
-    const coverageEntriesRef = useRef<Array<{ log: any; hasNative: boolean }>>([]);
+    const [axilogCoverage, setAxilogCoverage] = useState<AxilogCoverage>(EMPTY_AXILOG_COVERAGE);
+    const coverageEntriesRef = useRef<Array<{ log: any; hasAxilog: boolean }>>([]);
     const workerAggregationStartedAtRef = useRef(0);
     // Guards the stuck-elided-replay recovery flush so it fires at most once per
     // settle (keyed by the settled completedAt), preventing a flush loop.
@@ -526,9 +526,9 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     // peek is synchronous — details were pre-fetched into LRU by prefetchAndStep
                     const details = detailsCache && logId ? detailsCache.peek(logId) : null;
                     // Only logs whose details actually resolved are judged. One
-                    // still hydrating is not missing native data, and counting
+                    // still hydrating is not missing Axilog data, and counting
                     // it would flash a warning that retracts itself.
-                    if (details) coverageEntriesRef.current.push({ log, hasNative: detailsHaveNativeReport(details) });
+                    if (details) coverageEntriesRef.current.push({ log, hasAxilog: detailsHaveAxilogData(details) });
                     const payloadKey = String(log?.filePath || log?.id || `idx-${index}`);
                     const entry = getPayloadEntryForWorker(log, details, index);
                     if (entry.sent) {
@@ -551,7 +551,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     prefetchAndStep();
                 } else {
                     publishProgress('computing', true);
-                    setNativeCoverage(summarizeNativeCoverage(coverageEntriesRef.current));
+                    setAxilogCoverage(summarizeAxilogCoverage(coverageEntriesRef.current));
                     // Mid-bulk results are transient (more logs/details are coming);
                     // skip the heavy replay transfer until the set settles.
                     const skipReplay = logs.some(isLogPendingIngestion);
@@ -563,7 +563,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                 publishProgress('computing', true);
                 // The step loop never runs, so nothing else would clear a
                 // coverage summary left over from the previous selection.
-                setNativeCoverage(EMPTY_NATIVE_COVERAGE);
+                setAxilogCoverage(EMPTY_AXILOG_COVERAGE);
                 workerRef.current.postMessage({ type: 'flush', token: activeToken });
             } else {
                 publishProgress('streaming', true);
@@ -603,16 +603,16 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             preciseReplay,
         });
 
-        const coverageEntries: Array<{ log: any; hasNative: boolean }> = [];
+        const coverageEntries: Array<{ log: any; hasAxilog: boolean }> = [];
         for (const log of logs) {
             const logId = log?.id || log?.filePath;
             const cachedDetails = detailsCache && logId ? detailsCache.peek(logId) : null;
-            if (cachedDetails) coverageEntries.push({ log, hasNative: detailsHaveNativeReport(cachedDetails) });
+            if (cachedDetails) coverageEntries.push({ log, hasAxilog: detailsHaveAxilogData(cachedDetails) });
             const logWithDetails = cachedDetails ? { ...log, details: cachedDetails } : log;
             aggregator.ingestLog(logWithDetails);
             // logWithDetails goes out of scope — eligible for GC
         }
-        const coverage = summarizeNativeCoverage(coverageEntries);
+        const coverage = summarizeAxilogCoverage(coverageEntries);
 
         let result: any;
         try {
@@ -663,7 +663,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             totalMs: Math.max(0, Number(fallback?.computeMs || 0)),
             flushId: null
         });
-        setNativeCoverage(fallback?.coverage ?? EMPTY_NATIVE_COVERAGE);
+        setAxilogCoverage(fallback?.coverage ?? EMPTY_AXILOG_COVERAGE);
     }, [fallbackComputeKey, fallback, workerFailed, logs.length, shouldUseWorker]);
 
     const resolvedResult = (workerFailed || typeof Worker === 'undefined' || !shouldUseWorker)
@@ -715,7 +715,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         lastComputedFlushId,
         aggregationProgress: resolvedAggregationProgress,
         aggregationDiagnostics,
-        nativeCoverage,
+        axilogCoverage,
         requestFlush: () => {
             const flushId = Date.now();
             pendingFlushIdRef.current = flushId;

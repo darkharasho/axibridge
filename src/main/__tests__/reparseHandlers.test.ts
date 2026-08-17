@@ -1,5 +1,5 @@
 /**
- * The handler's whole job is to be the ONE path that can restore `.native`, so
+ * The handler's whole job is to be the ONE path that can restore Axilog data, so
  * the tests are mostly about the four ways it must refuse. Two of the refusals
  * are load-bearing rather than defensive: it will not re-parse for a user who
  * chose the Elite Insights engine (that would silently change their numbers to
@@ -48,11 +48,11 @@ const setup = (overrides: Partial<Parameters<typeof registerReparseHandlers>[0]>
     return {
         parseLog,
         setBulkLogDetails,
-        invoke: (payload: any) => handlers.get('log:reparse-native')!(null, payload),
+        invoke: (payload: any) => handlers.get('log:reparse-axilog')!(null, payload),
     };
 };
 
-describe('log:reparse-native', () => {
+describe('log:reparse-axilog', () => {
     beforeEach(() => {
         prune.mockClear();
         usable.mockReset().mockReturnValue(true);
@@ -72,7 +72,7 @@ describe('log:reparse-native', () => {
         expect(result.details.pruned).toBe(true);
         expect(result.details.native.axilog).toBeDefined();
         // The main-process store must be updated too, or `get-log-details`
-        // keeps serving the native-less copy on the next hydration.
+        // keeps serving the Axilog-less copy on the next hydration.
         expect(setBulkLogDetails).toHaveBeenCalledWith('/logs/a.zevtc', result.details);
     });
 
@@ -98,7 +98,7 @@ describe('log:reparse-native', () => {
         });
     });
 
-    it('refuses when the source log is gone, since nothing else carries native data', async () => {
+    it('refuses when the source log is gone, since nothing else carries Axilog data', async () => {
         existsSync.mockReturnValue(false);
         const { parseLog, invoke } = setup();
 

@@ -2,16 +2,16 @@
  * The heal is only finished when the fresh details are reachable from every key
  * the pipeline looks under. The renderer reads the cache by log id while
  * streaming and by file path while hydrating, so a heal that writes one key
- * leaves the other serving the native-less copy and the banner comes straight
+ * leaves the other serving the Axilog-less copy and the banner comes straight
  * back. That double write, and the refusal to report a log as healed when its
  * re-parse failed, are what these tests pin.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useNativeHeal } from '../useNativeHeal';
-import type { NativeCoverageLog } from '../../utils/nativeCoverage';
+import { useAxilogHeal } from '../useAxilogHeal';
+import type { AxilogCoverageLog } from '../../utils/axilogCoverage';
 
-const log = (id: string, filePath: string): NativeCoverageLog => ({
+const log = (id: string, filePath: string): AxilogCoverageLog => ({
     id, filePath, label: id, parseSource: 'dps.report',
 });
 
@@ -24,10 +24,10 @@ const setElectronAPI = (value: any) => {
 };
 
 const setReparse = (impl: (payload: { filePath: string }) => any) => {
-    setElectronAPI({ reparseLogNative: vi.fn(impl) });
+    setElectronAPI({ reparseLogAxilog: vi.fn(impl) });
 };
 
-describe('useNativeHeal', () => {
+describe('useAxilogHeal', () => {
     beforeEach(() => {
         setElectronAPI(undefined);
     });
@@ -35,7 +35,7 @@ describe('useNativeHeal', () => {
     it('writes healed details under both the id and the file path', async () => {
         const cache = fakeCache();
         setReparse(() => ({ success: true, details: { native: { axilog: {} } } }));
-        const { result } = renderHook(() => useNativeHeal({ detailsCache: cache as any }));
+        const { result } = renderHook(() => useAxilogHeal({ detailsCache: cache as any }));
 
         await act(async () => { await result.current.heal([log('log-1', '/a.zevtc')]); });
 
@@ -46,7 +46,7 @@ describe('useNativeHeal', () => {
     it('writes once when the id and the file path are the same key', async () => {
         const cache = fakeCache();
         setReparse(() => ({ success: true, details: {} }));
-        const { result } = renderHook(() => useNativeHeal({ detailsCache: cache as any }));
+        const { result } = renderHook(() => useAxilogHeal({ detailsCache: cache as any }));
 
         await act(async () => { await result.current.heal([log('/a.zevtc', '/a.zevtc')]); });
 
@@ -60,7 +60,7 @@ describe('useNativeHeal', () => {
                 ? { success: true, details: {} }
                 : { success: false, reason: 'source-missing', error: 'gone' }
         ));
-        const { result } = renderHook(() => useNativeHeal({ detailsCache: fakeCache() as any, onLogsHealed }));
+        const { result } = renderHook(() => useAxilogHeal({ detailsCache: fakeCache() as any, onLogsHealed }));
 
         await act(async () => {
             await result.current.heal([log('a', '/good.zevtc'), log('b', '/bad.zevtc')]);
@@ -74,7 +74,7 @@ describe('useNativeHeal', () => {
     it('does not announce a heal when nothing succeeded', async () => {
         const onLogsHealed = vi.fn();
         setReparse(() => ({ success: false, error: 'nope' }));
-        const { result } = renderHook(() => useNativeHeal({ detailsCache: fakeCache() as any, onLogsHealed }));
+        const { result } = renderHook(() => useAxilogHeal({ detailsCache: fakeCache() as any, onLogsHealed }));
 
         await act(async () => { await result.current.heal([log('a', '/a.zevtc')]); });
 
@@ -83,7 +83,7 @@ describe('useNativeHeal', () => {
 
     it('survives a rejected IPC call and records it as a failure', async () => {
         setReparse(() => { throw new Error('bridge died'); });
-        const { result } = renderHook(() => useNativeHeal({ detailsCache: fakeCache() as any }));
+        const { result } = renderHook(() => useAxilogHeal({ detailsCache: fakeCache() as any }));
 
         await act(async () => { await result.current.heal([log('a', '/a.zevtc')]); });
 
@@ -93,13 +93,13 @@ describe('useNativeHeal', () => {
 
     it('skips logs with no source file rather than asking for a parse of nothing', async () => {
         setReparse(() => ({ success: true, details: {} }));
-        const { result } = renderHook(() => useNativeHeal({ detailsCache: fakeCache() as any }));
+        const { result } = renderHook(() => useAxilogHeal({ detailsCache: fakeCache() as any }));
 
         await act(async () => {
             await result.current.heal([log('a', ''), log('b', '/b.zevtc')]);
         });
 
-        expect((window as any).electronAPI.reparseLogNative).toHaveBeenCalledTimes(1);
+        expect((window as any).electronAPI.reparseLogAxilog).toHaveBeenCalledTimes(1);
         expect(result.current.healState.total).toBe(1);
     });
 
@@ -108,20 +108,20 @@ describe('useNativeHeal', () => {
         setReparse(() => new Promise((resolve) => {
             release = () => resolve({ success: true, details: {} });
         }));
-        const { result } = renderHook(() => useNativeHeal({ detailsCache: fakeCache() as any }));
+        const { result } = renderHook(() => useAxilogHeal({ detailsCache: fakeCache() as any }));
 
         let first: Promise<void>;
         act(() => { first = result.current.heal([log('a', '/a.zevtc')]); });
         await waitFor(() => expect(result.current.healState.running).toBe(true));
         await act(async () => { await result.current.heal([log('b', '/b.zevtc')]); });
-        expect((window as any).electronAPI.reparseLogNative).toHaveBeenCalledTimes(1);
+        expect((window as any).electronAPI.reparseLogAxilog).toHaveBeenCalledTimes(1);
 
         await act(async () => { release?.(); await first!; });
         expect(result.current.healState.running).toBe(false);
     });
 
     it('does nothing at all without the IPC bridge', async () => {
-        const { result } = renderHook(() => useNativeHeal({ detailsCache: fakeCache() as any }));
+        const { result } = renderHook(() => useAxilogHeal({ detailsCache: fakeCache() as any }));
         await act(async () => { await result.current.heal([log('a', '/a.zevtc')]); });
         expect(result.current.healState.running).toBe(false);
         expect(result.current.healState.total).toBe(0);
