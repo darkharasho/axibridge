@@ -447,6 +447,8 @@ export interface IElectronAPI {
     updateEi: () => Promise<void>;
     reinstallEi: () => Promise<void>;
     uninstallEi: () => Promise<IEiStatus>;
+    /** Bytes the Elite Insights CLI + private .NET runtime occupy; 0 when not installed. */
+    getEiDiskUsage?: () => Promise<{ bytes: number }>;
     checkEiUpdate: () => Promise<{ updateAvailable: string | null }>;
     getEiSettings: () => Promise<IEiParserSettings>;
     saveEiSettings: (settings: Partial<IEiParserSettings>) => void;

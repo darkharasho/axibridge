@@ -10,7 +10,7 @@ const {
     mockSpawn,
     mockExistsSync, mockMkdirSync, mockMkdtempSync, mockWriteFileSync,
     mockReadFileSync, mockReaddirSync, mockRmSync, mockUnlinkSync,
-    mockChmodSync, mockCreateWriteStream,
+    mockChmodSync, mockCreateWriteStream, mockStatSync,
 } = vi.hoisted(() => ({
     mockSpawn: vi.fn(),
     mockExistsSync: vi.fn().mockReturnValue(true),
@@ -23,6 +23,7 @@ const {
     mockUnlinkSync: vi.fn(),
     mockChmodSync: vi.fn(),
     mockCreateWriteStream: vi.fn(),
+    mockStatSync: vi.fn(),
 }));
 
 vi.mock('child_process', () => {
@@ -44,6 +45,7 @@ vi.mock('fs', () => ({
     rmSync: (...args: any[]) => mockRmSync(...args),
     unlinkSync: (...args: any[]) => mockUnlinkSync(...args),
     chmodSync: (...args: any[]) => mockChmodSync(...args),
+    statSync: (...args: any[]) => mockStatSync(...args),
     createWriteStream: (...args: any[]) => mockCreateWriteStream(...args),
 }));
 
@@ -163,6 +165,53 @@ describe('EiManager', () => {
 
     beforeEach(() => {
         mgr = new EiManager('/fake/userData');
+    });
+
+    describe('getDiskUsage', () => {
+        const CLI = path.join('/fake/userData', 'elite-insights', 'eicli');
+        const DOTNET = path.join('/fake/userData', 'elite-insights', 'dotnet_native');
+        const file = (name: string) => ({ name, isDirectory: () => false, isFile: () => true });
+        const dir = (name: string) => ({ name, isDirectory: () => true, isFile: () => false });
+
+        // These tests replace the shared readdirSync stub, which the parse
+        // tests below rely on to find EI's output file. Put it back.
+        afterEach(() => {
+            mockReaddirSync.mockReset();
+            mockReaddirSync.mockReturnValue(['20260408-log_wvw.json.gz']);
+            mockStatSync.mockReset();
+        });
+
+        it('sums both trees, recursing into subdirectories', () => {
+            const tree: Record<string, any[]> = {
+                [CLI]: [file('cli.dll')],
+                [DOTNET]: [file('dotnet'), dir('shared')],
+                [path.join(DOTNET, 'shared')]: [file('runtime.dll')],
+            };
+            mockReaddirSync.mockImplementation((d: string) => tree[d] ?? []);
+            mockStatSync.mockImplementation((f: string) => ({
+                size: f.endsWith('runtime.dll') ? 3000 : f.endsWith('cli.dll') ? 200 : 100,
+            }));
+
+            expect(mgr.getDiskUsage()).toBe(3300);
+        });
+
+        it('skips what it cannot read rather than throwing', () => {
+            mockReaddirSync.mockImplementation((d: string) => {
+                if (d === CLI) return [file('ok.dll'), file('locked.dll')];
+                throw new Error('EACCES');
+            });
+            mockStatSync.mockImplementation((f: string) => {
+                if (f.endsWith('locked.dll')) throw new Error('EACCES');
+                return { size: 50 };
+            });
+
+            expect(mgr.getDiskUsage()).toBe(50);
+        });
+
+        it('is zero when nothing is on disk', () => {
+            mockReaddirSync.mockImplementation(() => []);
+            expect(mgr.getDiskUsage()).toBe(0);
+        });
     });
 
     describe('isInstalled', () => {

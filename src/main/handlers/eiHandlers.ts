@@ -112,6 +112,13 @@ export function registerEiHandlers(opts: EiHandlerOptions) {
         return status;
     });
 
+    // Asked for by the settings card when it wants to name what uninstalling
+    // would reclaim. Separate from `ei:get-status` because it walks the tree.
+    ipcMain.handle('ei:get-disk-usage', () => {
+        const mgr = getEiManager();
+        return { bytes: mgr.isInstalled() ? mgr.getDiskUsage() : 0 };
+    });
+
     ipcMain.handle('ei:check-update', async () => {
         const mgr = getEiManager();
         const updateAvailable = await mgr.checkForUpdate();

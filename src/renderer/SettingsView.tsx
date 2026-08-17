@@ -18,6 +18,7 @@ import { ProofOfWorkModal } from './ui/ProofOfWorkModal';
 import { ParticleHover } from './particles';
 import { TOP_STATS_CATALOG, CATEGORY_ORDER, CATEGORY_META, DEFAULT_ENABLED_TOP_STATS, normalizeEnabledTopStats, type TopStatCategory } from './stats/topStatsCatalog';
 import { BoonGlyph } from './ui/BoonGlyph';
+import { HistoryReparseCard } from './settings/HistoryReparseCard';
 
 // Pure helpers — defined outside the component so they are never recreated on re-render.
 // Exported so they can be unit-tested independently.
@@ -148,6 +149,11 @@ const IMPORT_SETTING_META: Array<{ key: string; label: string; description: stri
     { key: 'githubFavoriteRepos', label: 'Favorite Repos', description: 'Pinned repos list.', section: 'GitHub' }
 ];
 
+/** Disk sizes, rounded to whole MB — precision no one reads past. */
+function formatDiskMb(bytes: number): string {
+    return `${Math.max(1, Math.round(bytes / (1024 * 1024)))} MB`;
+}
+
 interface SettingsViewProps {
     onBack: () => void;
     onEmbedStatSettingsSaved?: (settings: IEmbedStatSettings) => void;
@@ -174,6 +180,8 @@ interface SettingsViewProps {
     particlesEnabled?: boolean;
     developerSettingsTrigger?: number;
     isBulkUploadActive?: boolean;
+    /** Marks re-parsed logs as axilog-sourced in the owning state. */
+    onLogsHealed?: (filePaths: string[]) => void;
 }
 
 // Toggle switch component — memoized with a custom comparator that ignores onChange reference
@@ -251,7 +259,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [reportWebhooks, setReportWebhooks] = useState<IReportWebhook[]>([]);
@@ -276,6 +284,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [eiReinstalling, setEiReinstalling] = useState(false);
     const [eiUninstalling, setEiUninstalling] = useState(false);
     const [autoManageEi, setAutoManageEi] = useState(true);
+    /** Bytes the Elite Insights install occupies, once main has walked it. */
+    const [eiDiskBytes, setEiDiskBytes] = useState<number | null>(null);
     const [parserBackend, setParserBackend] = useState<IParserBackendInfo | null>(null);
     const [githubRepoName, setGithubRepoName] = useState('');
     const [githubRepoOwner, setGithubRepoOwner] = useState('');
@@ -654,6 +664,25 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             unsubBackend?.();
         };
     }, []);
+
+    /**
+     * How much disk the Elite Insights install is holding.
+     *
+     * Re-asked whenever the install state flips, because the number is only
+     * ever shown to justify uninstalling — after an uninstall it must go away,
+     * and after a fresh install it must appear.
+     */
+    useEffect(() => {
+        if (!eiStatus.installed || !window.electronAPI?.getEiDiskUsage) {
+            setEiDiskBytes(null);
+            return;
+        }
+        let cancelled = false;
+        window.electronAPI.getEiDiskUsage()
+            .then((result) => { if (!cancelled) setEiDiskBytes(result?.bytes ?? null); })
+            .catch(() => { if (!cancelled) setEiDiskBytes(null); });
+        return () => { cancelled = true; };
+    }, [eiStatus.installed]);
 
     useEffect(() => {
         if (!window.electronAPI?.onClearDpsReportCacheProgress) return;
@@ -2846,6 +2875,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
                         </div>
 
+                        <HistoryReparseCard
+                            backend={parserBackend?.backend ?? null}
+                            onLogsHealed={onLogsHealed}
+                        />
+
                         {/* Auto-manage toggle */}
                         <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4">
                             <Toggle
@@ -2867,6 +2901,19 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             {eiStatus.updateAvailable && (
                                 <div className="text-xs text-yellow-300 mb-2">
                                     Update available: v{eiStatus.updateAvailable}
+                                </div>
+                            )}
+                            {/*
+                              * Axilog parses in-process, so a user on it is holding an
+                              * Elite Insights CLI and a private .NET runtime that nothing
+                              * calls any more. Uninstalling is theirs to decide — going
+                              * back to Elite Insights means re-downloading all of it — so
+                              * this names the cost rather than reclaiming it for them.
+                              */}
+                            {eiStatus.installed && parserBackend?.backend === 'axilog' && (
+                                <div className="text-xs text-gray-400 mb-2" data-testid="ei-unused-hint">
+                                    Axilog is the selected engine, so this install is no longer used for parsing.
+                                    Uninstalling frees{eiDiskBytes ? ` ${formatDiskMb(eiDiskBytes)}` : ' the space it holds'}.
                                 </div>
                             )}
                             {eiStatus.error && (

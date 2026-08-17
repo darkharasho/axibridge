@@ -135,6 +135,48 @@ export class EiManager {
         return true;
     }
 
+    /**
+     * Bytes this install occupies — the CLI plus the private .NET runtime,
+     * which is the bulk of it.
+     *
+     * Deliberately not folded into `getStatus()`: it is a recursive walk over
+     * thousands of files, and `getStatus()` is called on every install,
+     * update, reinstall and uninstall round-trip. Callers that want the number
+     * ask for it once, when they have somewhere to show it.
+     *
+     * Returns 0 when nothing is installed. Unreadable entries are skipped
+     * rather than thrown on — an undercount is a better answer here than an
+     * error, since the number only ever labels a button.
+     */
+    getDiskUsage(): number {
+        const walk = (dir: string): number => {
+            let total = 0;
+            let entries: fs.Dirent[];
+            try {
+                entries = fs.readdirSync(dir, { withFileTypes: true });
+            } catch {
+                return 0;
+            }
+            for (const entry of entries) {
+                const full = path.join(dir, entry.name);
+                // Symlinks are followed by neither branch: the .NET layout has
+                // links back into itself, and counting through them would
+                // double-count or loop.
+                if (entry.isDirectory()) {
+                    total += walk(full);
+                } else if (entry.isFile()) {
+                    try {
+                        total += fs.statSync(full).size;
+                    } catch {
+                        // skip
+                    }
+                }
+            }
+            return total;
+        };
+        return walk(this.cliDir) + walk(this.dotnetDir);
+    }
+
     getStatus(): { installed: boolean; version: string | null; updateAvailable: string | null } {
         const installed = this.isInstalled();
         let version: string | null = null;

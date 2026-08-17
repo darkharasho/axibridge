@@ -452,6 +452,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onParserSettingsFocusConsumed={handleParserSettingsFocusConsumed}
                                 howToTrigger={howToTrigger}
                                 onHowToConsumed={handleHowToConsumed}
+                                onLogsHealed={handleLogsHealed}
                                 onOpenWalkthrough={() => setWalkthroughOpen(true)}
                                 onOpenWhatsNew={() => setWhatsNewOpen(true)}
                                 isBulkUploadActive={isBulkUploadActive}

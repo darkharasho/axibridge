@@ -75,3 +75,37 @@ jobs:
 
       - name: Electron E2E tests
         run: xvfb-run -a npm run test:e2e:electron
+
+  # Windows exists as its own job for one reason: the native parser binding.
+  # `src/test/axilogOracle.ts` and the bridge-metrics native suites load
+  # `@axiapps/axilog` and parse a real `.zevtc` fixture, so this is the only
+  # place `@axiapps/axilog-win32-x64-msvc` is exercised at all — the Linux job
+  # never touches it.
+  #
+  # Deliberately no Playwright: the Electron E2E step is written around
+  # `xvfb-run`, which does not exist here, and the browser install would
+  # dominate the job for coverage the Linux `tests` job already provides.
+  #
+  # What this still cannot prove: the tests resolve the binding from
+  # `node_modules`, not from inside a packed `app.asar`. Whether the `.node`
+  # loads from an installed NSIS build is only answered by installing one.
+  tests-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Package unit tests
+        run: npm test --workspace packages/bridge-metrics
+
+      - name: Unit tests
+        run: npm run test:unit

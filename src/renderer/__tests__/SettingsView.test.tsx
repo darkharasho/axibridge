@@ -742,6 +742,51 @@ describe('SettingsView', () => {
     // Parse engine (parser backend) selection
     // -----------------------------------------------------------------------
 
+    // Axilog parses in-process, so a user on it keeps an Elite Insights CLI and
+    // a private .NET runtime that nothing calls. Nothing deletes it for them —
+    // going back to Elite Insights means re-downloading the lot — so the card
+    // has to at least say it is dead weight, and how much of it there is.
+    describe('Unused Elite Insights install', () => {
+        const installedApi = (over: Record<string, unknown> = {}) => ({
+            getEiStatus: vi.fn().mockResolvedValue({
+                installed: true, version: '3.24', updateAvailable: null, installing: false, error: null,
+            }),
+            getEiDiskUsage: vi.fn().mockResolvedValue({ bytes: 94 * 1024 * 1024 }),
+            ...over,
+        });
+
+        it('names the reclaimable size when Axilog is the selected engine', async () => {
+            renderSettings({}, {}, installedApi());
+
+            const hint = await screen.findByTestId('ei-unused-hint');
+            expect(hint.textContent).toContain('no longer used for parsing');
+            expect(hint.textContent).toContain('94 MB');
+        });
+
+        it('still says the install is unused when the size cannot be read', async () => {
+            renderSettings({}, {}, installedApi({ getEiDiskUsage: undefined }));
+
+            const hint = await screen.findByTestId('ei-unused-hint');
+            expect(hint.textContent).toContain('the space it holds');
+        });
+
+        it('stays silent while Elite Insights is the engine actually in use', async () => {
+            renderSettings({}, {}, installedApi({
+                getParserBackend: vi.fn().mockResolvedValue({
+                    backend: 'elite-insights',
+                    default: 'axilog',
+                    axilogAvailable: true,
+                    axilogVersion: '0.3.0',
+                }),
+            }));
+            await screen.findByTestId('parser-backend-card');
+
+            await waitFor(() =>
+                expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'true'));
+            expect(screen.queryByTestId('ei-unused-hint')).toBeNull();
+        });
+    });
+
     describe('Parse engine selection', () => {
         const findCard = () => screen.findByTestId('parser-backend-card');
 
