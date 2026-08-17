@@ -7,8 +7,8 @@
  * the Elite Insights .NET CLI. No download, no dotnet runtime, no temp files,
  * ~0.3s instead of ~10s-10min per log.
  *
- * This backend is **capability complete but not the default** — the flip is
- * owner-gated (see {@link DEFAULT_PARSER_BACKEND}). It is one setting away at
+ * This backend is **capability complete and the default** (see
+ * {@link DEFAULT_PARSER_BACKEND}). Elite Insights is one setting away at
  * Settings → Parser Settings → Parse Engine. See
  * `docs/axilog-cutover-report.md` for the read-surface audit that decided which
  * `ParseOptions` flags have to be on, which EI fields axilog still does not

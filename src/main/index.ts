@@ -236,12 +236,12 @@ let eiManager: EiManager | null = null
 let axilogManager: AxilogManager | null = null
 
 // ─── Parser backend selection ───────────────────────────────────────────────
-// `elite-insights` (the default) spawns the .NET CLI; `axilog` is the opt-in
-// in-process path via the @axiapps/axilog native bindings. axilog is far faster
-// and, as of 0.3.0, capability complete — 8 null-guarded residuals out of 83
-// audited read-surface rows — but making it the default is an owner call that
-// has not been made, so it stays opt-in. See DEFAULT_PARSER_BACKEND's doc
-// comment and docs/axilog-cutover-report.md.
+// `axilog` (the default) parses in-process via the @axiapps/axilog bindings;
+// `elite-insights` is the opt-out that spawns the .NET CLI. It is also the only
+// engine that emits Axilog data, which the migrated stats readers need — an
+// explicit Elite Insights selection is honoured, but its logs render empty in
+// the migrated views and say so via the coverage banner. See
+// DEFAULT_PARSER_BACKEND's doc comment and docs/axilog-cutover-report.md.
 const getParserBackend = (): ParserBackend => normalizeParserBackend(store.get('parserBackend'));
 
 /**
@@ -259,10 +259,10 @@ const isLocalParserAvailable = (): boolean => Boolean(getActiveParser()?.isInsta
 /**
  * True when the EI CLI download/update machinery should run at all.
  *
- * It stands down only while axilog is the *selected*, *available* backend — so
- * under the current EI default a fresh install downloads and auto-manages the
- * EI CLI exactly as it always has, and a user who opts into axilog stops
- * paying for a ~90 MB download they no longer use.
+ * It stands down while axilog is the *selected*, *available* backend — which
+ * under the axilog default is a fresh install, so nobody pays for the ~90 MB
+ * download by default any more. It resumes for a user who opts out to Elite
+ * Insights, and on a platform with no axilog binary, where EI is the fallback.
  */
 const shouldAutoManageEi = (): boolean =>
     Boolean(store.get('autoManageEi', true)) && !(getParserBackend() === 'axilog' && Boolean(axilogManager?.isInstalled()));

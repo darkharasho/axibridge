@@ -86,12 +86,11 @@ const SHIPPED_DEFAULT_BACKEND: ParserBackendId = 'axilog';
 /**
  * The two parse engines, in the order they are offered.
  *
- * The order is fixed and deliberately *not* default-dependent: Elite Insights
- * leads as the engine most users are already running, axilog follows as the
- * opt-in fast path. The `implications` lines are the user-visible consequences,
- * not a feature list — the honest summary of the read-surface re-audit in
- * `docs/axilog-cutover-report.md` is that the two engines agree on almost
- * everything, and the places they do not are worth naming rather than burying.
+ * Axilog leads because it is the default and the only engine that produces the
+ * data the stats views read. The `implications` lines are the user-visible
+ * consequences, not a feature list — Elite Insights' cost is no longer just the
+ * download and the wait, it is that logs parsed with it render empty in the
+ * migrated views, and that is the first thing someone choosing it should know.
  */
 const PARSER_BACKEND_OPTIONS: Array<{
     id: ParserBackendId;
@@ -100,23 +99,23 @@ const PARSER_BACKEND_OPTIONS: Array<{
     implications: string[];
 }> = [
         {
-            id: 'elite-insights',
-            label: 'Elite Insights',
-            summary: 'The original GW2 Elite Insights CLI, run as a separate process.',
-            implications: [
-                'The most complete statistics surface',
-                'Downloads ~90 MB on first use and needs a .NET runtime',
-                'Noticeably slower — seconds to minutes per log'
-            ]
-        },
-        {
             id: 'axilog',
-            label: 'Axilog (faster)',
+            label: 'Axilog (default)',
             summary: 'Parses in-process in under a second. Nothing to download.',
             implications: [
                 'No .NET runtime or Elite Insights download — ships with the app',
                 'Seconds instead of minutes on large logs',
                 'A few Offense Detailed columns read whole-fight totals, and boon-overstack numbers read 0'
+            ]
+        },
+        {
+            id: 'elite-insights',
+            label: 'Elite Insights (legacy)',
+            summary: 'The original GW2 Elite Insights CLI, run as a separate process.',
+            implications: [
+                'Does not produce Axilog data — damage, positioning, boons and replay read empty',
+                'Downloads ~90 MB on first use and needs a .NET runtime',
+                'Noticeably slower — seconds to minutes per log'
             ]
         }
     ];
