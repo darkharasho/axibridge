@@ -12,7 +12,13 @@
 export interface NativeBuffMeta {
     id: number;
     name: string;
-    kind: 'boon' | 'condition';
+    /**
+     * axilog's catalog is three-valued: a buff that is neither a boon nor a
+     * condition is `effect` (Frost Aura and friends). Passing it through
+     * rather than folding it into `boon` keeps this in step with
+     * `listBoonIds`, which filters on `kind === 'boon'` exactly.
+     */
+    kind: 'boon' | 'condition' | 'effect';
     /** True for intensity stacking. Normalized to the boolean the display math takes. */
     stacking: boolean;
     maxStacks: number;
@@ -45,7 +51,7 @@ export const getBuffMeta = (details: any, buffId: number | string): NativeBuffMe
     return {
         id: Number(buffId),
         name: String(raw.name ?? `Buff ${buffId}`),
-        kind: raw.kind === 'condition' ? 'condition' : 'boon',
+        kind: raw.kind === 'condition' || raw.kind === 'effect' ? raw.kind : 'boon',
         stacking: raw.stacking === 'intensity',
         maxStacks: Number(raw.max_stacks ?? 0),
     };

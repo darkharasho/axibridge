@@ -51,6 +51,28 @@ describe('nativeBoons', () => {
         expect(ids).toContain(743);
     });
 
+    it('passes through the third catalog kind instead of folding it into boon', () => {
+        // axilog's catalog is three-valued -- a buff that is neither boon nor
+        // condition is `effect` (Frost Aura, auras generally). `wvw-small`
+        // catalogs only the buffs that actually appeared in it (12 boons, 14
+        // conditions, no effects), so this case is unreachable from the real
+        // fixture and needs a hand-built catalog to pin. Folding `effect` into
+        // `boon` here would disagree with `listBoonIds`, which filters on
+        // `kind === 'boon'` exactly -- the same buff would be a boon by meta
+        // and not a boon by listing.
+        const synthetic = {
+            native: { catalogs: { buffs: {
+                5579: { name: 'Frost Aura', kind: 'effect', stacking: 'duration', max_stacks: 1 },
+                740: { name: 'Might', kind: 'intensity_typo_unknown', stacking: 'intensity', max_stacks: 25 },
+            } } },
+        } as any;
+        expect(getBuffMeta(synthetic, 5579)?.kind).toBe('effect');
+        expect(listBoonIds(synthetic)).not.toContain(5579);
+        // An unrecognised kind still falls back to `boon` -- only the known
+        // third value is passed through.
+        expect(getBuffMeta(synthetic, 740)?.kind).toBe('boon');
+    });
+
     it('reads avg_stacks for intensity buffs and uptime_pct for duration buffs', () => {
         for (const entity of native.entities.filter((e: any) => e.role === 'squad')) {
             const raw = native.blocks.boons.by_entity[String(entity.id)] ?? {};
