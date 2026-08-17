@@ -18,6 +18,7 @@
 
 import * as fs from 'fs';
 import type { EiParserSettings } from './eiParser';
+import { buildNativeCarrySet } from './nativeCarrySet';
 
 // ─── Backend selection ────────────────────────────────────────────────────────
 
@@ -452,6 +453,8 @@ export const applyEiCompatShims = (details: any, logPath: string): any => {
 /** The slice of `@axiapps/axilog` this module needs; injectable for tests. */
 export interface AxilogBinding {
     parseFileEi: (path: string, opts?: AxilogParseOptions) => any;
+    /** Native `ReportV1` parse. Optional so existing test doubles stay valid. */
+    parseFile?: (path: string, opts?: AxilogParseOptions) => unknown;
 }
 
 let cachedBinding: AxilogBinding | null | undefined;
@@ -533,6 +536,21 @@ export class AxilogManager {
         const details = binding.parseFileEi(logPath, options);
         applyEiCompatShims(details, logPath);
         deriveDistanceScalars(details);
+        // Carry native alongside EI for the duration of the migration. Migrated
+        // readers read `details.native`; unmigrated ones keep reading EI. Both
+        // halves come from ONE axilog version, so they cannot disagree about
+        // anything except shape. The EI half is deleted at Step N.
+        //
+        // A native failure must never fail the parse: EI-shaped compute is still
+        // the majority of the app. It degrades the migrated readers only.
+        if (typeof binding.parseFile === 'function') {
+            try {
+                const carry = buildNativeCarrySet(binding.parseFile(logPath, options));
+                if (carry) (details as any).native = carry;
+            } catch (err) {
+                this.parseProgressCallback?.(`[axilog] native parse failed for ${logId}: ${String(err)}\n`);
+            }
+        }
         this.parseProgressCallback?.(`[axilog] parsed ${logId} in ${Date.now() - started}ms\n`);
         return details;
     }

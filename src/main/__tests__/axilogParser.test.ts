@@ -617,3 +617,41 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         expect(Object.values(details.buffMap).every((b: any) => b.classification === undefined)).toBe(true);
     });
 });
+
+describe('native carry-set at the seam', () => {
+    const fakeBinding = (native: any) => ({
+        parseFileEi: () => ({ players: [], durationMS: 1000 }),
+        parseFile: () => native,
+    });
+
+    it('attaches the pruned native report as details.native', async () => {
+        const mgr = new AxilogManager(fakeBinding({
+            axilog: { schema: '1.0' },
+            encounter: { map: 'Green Alpine Borderlands' },
+            entities: [],
+            coverage: {},
+            blocks: { replay: { tracks: [1, 2, 3] } },
+        }) as any);
+        const details: any = await mgr.parseLog(FIXTURE, 'log-1');
+        expect(details.native.encounter.map).toBe('Green Alpine Borderlands');
+        expect(details.native.blocks).toBeUndefined();
+    });
+
+    it('leaves details.native absent when the native parse throws', async () => {
+        const binding: any = {
+            parseFileEi: () => ({ players: [] }),
+            parseFile: () => { throw new Error('native boom'); },
+        };
+        const details: any = await new AxilogManager(binding).parseLog(FIXTURE, 'log-1');
+        // Absent, NOT null and NOT {}: readers must be able to tell
+        // "no native data" from "native data that is empty".
+        expect('native' in details).toBe(false);
+        expect(details.players).toEqual([]);
+    });
+
+    it('leaves details.native absent when the binding has no parseFile', async () => {
+        const details: any = await new AxilogManager({ parseFileEi: () => ({ players: [] }) } as any)
+            .parseLog(FIXTURE, 'log-1');
+        expect('native' in details).toBe(false);
+    });
+});
