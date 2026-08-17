@@ -9,10 +9,11 @@ import { teamMapFromLog } from '../../shared/wvwTeams';
 const ALLOWLIST: DivergenceAllowlist = {
     'encounter start': {
         reason:
-            'Native is right. EI emits no log-start event through to_ei_json, so '
-            + 'applyEiCompatShims inferred the fight time from the .zevtc mtime (fight END, '
-            + 'minus durationMS). Native reports encounter.started_at_unix, the real start. '
-            + 'The delta is the inference error, and it is why this unit exists.',
+            'Native is right, and the EI side no longer answers at all. to_ei_json emits no '
+            + 'log-start event, so applyEiCompatShims used to infer the fight time from the '
+            + '.zevtc mtime — wrong by ~204 days on this fixture, and by the same magnitude '
+            + 'for any log copied, restored or re-synced. Unit 2 deleted that inference and '
+            + 'sources the timestamps from encounter.started_at_unix instead.',
     },
     'team map': {
         reason:
@@ -57,22 +58,20 @@ describe('unit 2 oracle — encounter facts, EI vs native', () => {
 
     it('records the timestamp divergence as reviewed, not as agreement', () => {
         expectEqualOrAllowlisted(
-            'encounter start', shimmed.timeStart * 1000, getEncounterStartMs(withNative), ALLOWLIST,
+            'encounter start', shimmed.timeStart, getEncounterStartMs(withNative), ALLOWLIST,
         );
     });
 
-    it('shows the mtime inference is unbounded, not merely imprecise', () => {
-        // Measured here: ~204 DAYS. The committed fixture's mtime is when git
-        // checked it out (2026-08-10), while the fight happened 2026-01-18.
+    it('leaves the EI side with no timestamp at all once native is unavailable', () => {
+        // Before this unit the shim filled these from the `.zevtc` mtime. On
+        // this very fixture that was wrong by ~204 days — git checked the file
+        // out on 2026-08-10, the fight happened 2026-01-18 — and it was wrong
+        // by the same magnitude for any user log copied, restored or re-synced.
         //
-        // That is not a fixture quirk to be tolerated — it is the production
-        // failure mode. Any log copied between machines, restored from a
-        // backup, synced, or re-downloaded gets an mtime unrelated to its
-        // fight, and every EI-derived report date for it is wrong by that
-        // much. The inference is only ever right for a log still sitting where
-        // arcdps wrote it.
-        const deltaMs = Math.abs(getEncounterStartMs(withNative)! - shimmed.timeStart * 1000);
-        expect(deltaMs).toBeGreaterThan(24 * 60 * 60 * 1000);
+        // The inference is gone, so an EI-only parse now yields nothing here
+        // and callers fall back to uploadTime. Absent beats invented.
+        expect(shimmed.timeStart).toBeUndefined();
+        expect(shimmed.timeStartStd).toBeUndefined();
     });
 
     it('reports a native start inside the fight, not an epoch or a file time', () => {
