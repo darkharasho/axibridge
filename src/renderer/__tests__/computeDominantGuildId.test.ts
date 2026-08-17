@@ -1,87 +1,97 @@
 import { describe, expect, it } from 'vitest';
 import { computeDominantGuildId } from '../stats/utils/computeDominantGuildId';
 
-const log = (...players: Array<{ name?: string; account?: string; guildID?: string; notInSquad?: boolean; hasCommanderTag?: boolean }>) => ({ players });
+const ZERO = '00000000-0000-0000-0000-000000000000';
+const GUILD_A = 'aaaaaaaa-0000-0000-0000-000000000001';
+const GUILD_B = 'bbbbbbbb-0000-0000-0000-000000000002';
 
-describe('computeDominantGuildId', () => {
-    it('follows the commander even when the squad mostly reps another guild', () => {
-        expect(computeDominantGuildId([
-            log(
-                { name: 'Cmdr', account: 'C.1', guildID: 'g-cmd', hasCommanderTag: true },
-                { name: 'A', guildID: 'g-pug' },
-                { name: 'B', guildID: 'g-pug' },
-                { name: 'C', guildID: 'g-pug' },
-            ),
-        ])).toBe('g-cmd');
+const ent = (over: any = {}) => ({
+    id: 0,
+    account: ':Player.1111',
+    character: 'Player',
+    role: 'squad',
+    combat_participant: true,
+    profession: 'Guardian',
+    elite_spec: 'Firebrand',
+    subgroup: 1,
+    guild_id: ZERO,
+    agent_addr: 1,
+    instid: 1,
+    ...over,
+});
+
+const report = (entities: any[]) => ({ entities } as any);
+
+describe('computeDominantGuildId over native reports', () => {
+    it('returns the guild the commander repped in the most logs', () => {
+        const commander = (guild: string) =>
+            ent({ id: 0, account: ':Cmdr.1', guild_id: guild, commander: { guid: 'g', segments: [[0, 1]], variant: 'p' } });
+        const result = computeDominantGuildId([
+            report([commander(GUILD_A), ent({ id: 1, account: ':Other.2', guild_id: GUILD_B })]),
+            report([commander(GUILD_A), ent({ id: 1, account: ':Other.2', guild_id: GUILD_B })]),
+            report([commander(GUILD_B), ent({ id: 1, account: ':Other.2', guild_id: GUILD_B })]),
+        ]);
+        expect(result).toBe(GUILD_A);
     });
 
-    it("picks the commander's most repped guild across logs", () => {
-        expect(computeDominantGuildId([
-            log({ name: 'Cmdr', account: 'C.1', guildID: 'g-alt', hasCommanderTag: true }),
-            log({ name: 'Cmdr', account: 'C.1', guildID: 'g-main', hasCommanderTag: true }),
-            log({ name: 'Cmdr', account: 'C.1', guildID: 'g-main', hasCommanderTag: true }),
-        ])).toBe('g-main');
+    it('falls back to the squad-wide vote when nobody tagged', () => {
+        const result = computeDominantGuildId([
+            report([
+                ent({ id: 0, account: ':A.1', guild_id: GUILD_B }),
+                ent({ id: 1, account: ':B.2', guild_id: GUILD_B }),
+                ent({ id: 2, account: ':C.3', guild_id: GUILD_A }),
+            ]),
+        ]);
+        expect(result).toBe(GUILD_B);
     });
 
-    it('follows the primary commander when several people tag', () => {
-        expect(computeDominantGuildId([
-            log(
-                { name: 'Main', account: 'M.1', guildID: 'g-main', hasCommanderTag: true },
-                { name: 'Tail', account: 'T.1', guildID: 'g-tail', hasCommanderTag: true },
-            ),
-            log({ name: 'Main', account: 'M.1', guildID: 'g-main', hasCommanderTag: true }),
-        ])).toBe('g-main');
+    it('falls back to the squad vote when the commander repped nothing', () => {
+        const result = computeDominantGuildId([
+            report([
+                ent({ id: 0, account: ':Cmdr.1', guild_id: ZERO, commander: { guid: 'g', segments: [[0, 1]], variant: 'p' } }),
+                ent({ id: 1, account: ':A.2', guild_id: GUILD_A }),
+            ]),
+        ]);
+        expect(result).toBe(GUILD_A);
     });
 
-    it('falls back to the squad vote when the commander reps nothing', () => {
-        expect(computeDominantGuildId([
-            log(
-                { name: 'Cmdr', account: 'C.1', hasCommanderTag: true },
-                { name: 'A', guildID: 'g-pug' },
-            ),
-        ])).toBe('g-pug');
-    });
-
-    it('ignores the zero guild id', () => {
-        expect(computeDominantGuildId([
-            log(
-                { name: 'Cmdr', account: 'C.1', guildID: '00000000-0000-0000-0000-000000000000', hasCommanderTag: true },
-                { name: 'A', guildID: 'g-pug' },
-            ),
-        ])).toBe('g-pug');
-    });
-
-    it('picks the guild represented by the most accounts across logs', () => {
-        expect(computeDominantGuildId([
-            log({ name: 'A', guildID: 'g-eww' }, { name: 'B', guildID: 'g-eww' }, { name: 'C', guildID: 'g-pug' }),
-            log({ name: 'A', guildID: 'g-eww' }, { name: 'C', guildID: 'g-pug' }),
-        ])).toBe('g-eww');
+    it('ignores non-squad allies in the squad-wide vote', () => {
+        const result = computeDominantGuildId([
+            report([
+                ent({ id: 0, account: ':A.1', guild_id: GUILD_A }),
+                ent({ id: 1, account: ':P.9', role: 'friendly_player', guild_id: GUILD_B }),
+                ent({ id: 2, account: ':Q.8', role: 'friendly_player', guild_id: GUILD_B }),
+            ]),
+        ]);
+        expect(result).toBe(GUILD_A);
     });
 
     it('breaks ties alphabetically by guild id', () => {
-        expect(computeDominantGuildId([
-            log({ name: 'A', guildID: 'g-zzz' }, { name: 'B', guildID: 'g-aaa' }),
-        ])).toBe('g-aaa');
+        const result = computeDominantGuildId([
+            report([
+                ent({ id: 0, account: ':A.1', guild_id: GUILD_B }),
+                ent({ id: 1, account: ':B.2', guild_id: GUILD_A }),
+            ]),
+        ]);
+        expect(result).toBe(GUILD_A);
     });
 
-    it('skips unrepped players and non-squad players', () => {
-        expect(computeDominantGuildId([
-            log({ name: 'A' }, { name: 'B', guildID: '' }, { name: 'Spy', guildID: 'g-enemy', notInSquad: true }),
-        ])).toBe('');
+    it('returns empty when the whole squad is unrepped', () => {
+        const result = computeDominantGuildId([
+            report([ent({ id: 0, account: ':A.1' }), ent({ id: 1, account: ':B.2' })]),
+        ]);
+        expect(result).toBe('');
+    });
+
+    it('returns empty for a report with no entities at all', () => {
+        expect(computeDominantGuildId([{} as any])).toBe('');
         expect(computeDominantGuildId([])).toBe('');
     });
 
-    it('counts an account once per log despite duplicate agent entries', () => {
-        // EI emits one players[] entry per agent instance (relog/build swap).
-        expect(computeDominantGuildId([
-            log({ name: 'A', account: 'X.1', guildID: 'g-eww' }, { name: 'A2', account: 'X.1', guildID: 'g-eww' }, { name: 'B', guildID: 'g-pug' }),
-            log({ name: 'B', guildID: 'g-pug' }),
-        ])).toBe('g-pug');
-    });
-
-    it('uses the first entry per account per log when instances rep different guilds', () => {
-        expect(computeDominantGuildId([
-            log({ name: 'A', account: 'X.1', guildID: 'g-first' }, { name: 'A2', account: 'X.1', guildID: 'g-second' }),
-        ])).toBe('g-first');
+    it('treats a missing guild_id the same as the zero guild', () => {
+        const result = computeDominantGuildId([
+            report([ent({ id: 0, account: ':A.1', guild_id: undefined }), ent({ id: 1, account: ':B.2', guild_id: GUILD_A })]),
+        ]);
+        expect(result).toBe(GUILD_A);
     });
 });

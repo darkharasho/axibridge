@@ -1,17 +1,33 @@
+import { squadEntities, getEntityAccountKey, type NativeReportLike } from '@axiapps/bridge-metrics';
 import { computePrimaryCommanderIdentity } from './computePrimaryCommander';
 
 const ZERO_GUILD_ID = '00000000-0000-0000-0000-000000000000';
 
+/**
+ * `computePrimaryCommanderIdentity` still takes EI-shaped input and is read by
+ * callers not yet converted, so we project the native entities into the three
+ * fields it reads rather than migrating it here.
+ *
+ * This is a deliberate, scoped, one-function bridge — not the general
+ * `eiToNative()` adapter the migration spec rejects.
+ */
+// TODO(unit 8): delete this shim when computePrimaryCommanderIdentity moves to native.
+const commanderShim = (report: NativeReportLike) => ({
+    players: squadEntities(report).map((e) => ({
+        account: e.account,
+        name: e.character,
+        hasCommanderTag: Boolean((e as any).commander),
+    })),
+});
+
 /** First guild repped by an account in a given log ('' when unrepped/absent).
- *  EI emits one players[] entry per agent instance (relog/build swap), so the
- *  first entry wins, matching how commander votes are counted. */
-const guildReppedInLog = (details: any, voteKeys: string[]): string => {
-    const players = (details?.players || []) as any[];
-    for (const player of players) {
-        if (player?.notInSquad) continue;
-        const key = player?.account || player?.name;
+ *  axilog emits one entity per account — it dedupes relogs and build swaps
+ *  upstream, collecting agent addrs — so there is nothing to collapse here. */
+const guildReppedInLog = (report: NativeReportLike, voteKeys: string[]): string => {
+    for (const entity of squadEntities(report)) {
+        const key = entity?.account || entity?.character;
         if (!key || !voteKeys.includes(key)) continue;
-        const guildId = typeof player?.guildID === 'string' ? player.guildID : '';
+        const guildId = typeof entity?.guild_id === 'string' ? entity.guild_id : '';
         return guildId && guildId.toUpperCase() !== ZERO_GUILD_ID ? guildId : '';
     }
     return '';
@@ -21,14 +37,14 @@ const guildReppedInLog = (details: any, voteKeys: string[]): string => {
  *  logs (one vote per log; ties break alphabetically by guild id). Falls back
  *  to the squad-wide vote when nobody tagged or the commander never repped.
  *  Returns '' when no guild is represented at all. */
-export const computeDominantGuildId = (detailsList: any[]): string => {
-    const commander = computePrimaryCommanderIdentity(detailsList);
+export const computeDominantGuildId = (reports: NativeReportLike[]): string => {
+    const commander = computePrimaryCommanderIdentity(reports.map(commanderShim));
     const commanderKeys = [commander.account, commander.name].filter(Boolean);
 
     if (commanderKeys.length) {
         const counts = new Map<string, number>();
-        detailsList.forEach((details) => {
-            const guildId = guildReppedInLog(details, commanderKeys);
+        reports.forEach((report) => {
+            const guildId = guildReppedInLog(report, commanderKeys);
             if (!guildId) return;
             counts.set(guildId, (counts.get(guildId) || 0) + 1);
         });
@@ -39,15 +55,15 @@ export const computeDominantGuildId = (detailsList: any[]): string => {
     // No commander, or the commander repped nothing: fall back to the squad's
     // most-repped guild so pug sessions still get a guild on the report.
     const counts = new Map<string, number>();
-    detailsList.forEach((details) => {
-        const players = (details?.players || []) as any[];
+    reports.forEach((report) => {
+        // Redundant under native's upstream dedupe, but kept so the function
+        // stays correct if it is ever handed a hand-built report.
         const seenThisLog = new Set<string>();
-        players.forEach((player) => {
-            if (player?.notInSquad) return;
-            const voteKey = player?.account || player?.name;
+        squadEntities(report).forEach((entity) => {
+            const voteKey = getEntityAccountKey(entity);
             if (!voteKey || seenThisLog.has(voteKey)) return;
             seenThisLog.add(voteKey);
-            const guildId = typeof player?.guildID === 'string' ? player.guildID : '';
+            const guildId = typeof entity?.guild_id === 'string' ? entity.guild_id : '';
             if (!guildId || guildId.toUpperCase() === ZERO_GUILD_ID) return;
             counts.set(guildId, (counts.get(guildId) || 0) + 1);
         });
