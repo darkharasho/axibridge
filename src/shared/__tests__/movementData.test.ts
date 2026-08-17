@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildMovementData } from '../movementData';
+import { buildMovementData, buildNativeMovement, positionAt } from '../movementData';
 
 const trackedBuffs = new Set<number>([740, 725]); // Might, Fury — arbitrary sample.
 
@@ -102,5 +102,72 @@ describe('buildMovementData', () => {
         };
         const movement = buildMovementData(details, { trackedBuffIds: trackedBuffs });
         expect(movement!.members.filter(m => m.name === 'DoppelGanger')).toHaveLength(1);
+    });
+});
+
+// ─── The native movement surface (unit 3) ─────────────────────────────────────
+
+const nativeLog = {
+    native: {
+        axilog: { schema: '1.0' },
+        blocks: {
+            replay: {
+                by_entity: { 5: { start_ms: 7, end_ms: 900, active_ms: 893, down: [], dead: [], dc: [] } },
+                tracks: {
+                    poll_ms: 300,
+                    arena: {
+                        image_width: 697, image_height: 1000, image_url: 'x',
+                        world_min_x: -30720, world_min_y: -43008, world_max_x: 30720, world_max_y: 43008,
+                    },
+                    by_entity: {
+                        5: { samples: [[300, 10, 20], [600, 30, 40]], down_intervals: [], dead_intervals: [], dc_intervals: [] },
+                    },
+                },
+            },
+        },
+    },
+};
+
+describe('buildNativeMovement', () => {
+    it('carries pollMs, arena and tracks', () => {
+        const md = buildNativeMovement(nativeLog)!;
+        expect(md.pollMs).toBe(300);
+        expect(md.arena!.image_width).toBe(697);
+        expect(md.tracks.get(5)!.samples).toHaveLength(2);
+    });
+
+    it('returns null without a native replay block', () => {
+        expect(buildNativeMovement({})).toBeNull();
+    });
+
+    it('resolves a position by timestamp, ignoring start_ms entirely', () => {
+        // start_ms is 7 — a non-multiple of the 300ms grid. Re-deriving a first
+        // poll index is what 36 of 42 fixture players tripped over; native
+        // samples carry their own t_ms, so there is nothing to compute.
+        const md = buildNativeMovement(nativeLog)!;
+        expect(positionAt(md.tracks.get(5)!, 300)).toEqual([10, 20]);
+        expect(positionAt(md.tracks.get(5)!, 600)).toEqual([30, 40]);
+    });
+
+    it('leaves the EI view-model surface intact for the replay map', () => {
+        // The map (SquadOverlay, useHeatmapData, replayTypes, ...) still reads
+        // `members`/`pollingRate`/`inchToPixel`. Unit 3b migrates those onto
+        // `arena` + `tracks` as one piece; until then both surfaces coexist and
+        // this asserts the old one was not gutted out from under them.
+        const details = {
+            durationMS: 60_000,
+            combatReplayMetaData: { pollingRate: 300, inchToPixel: 0.01 },
+            players: [{
+                name: 'Alice', account: 'Alice.0001', profession: 'Guardian',
+                notInSquad: false, combatReplayData: { start: 7, positions: [[1, 2], [3, 4]], dead: [], down: [] },
+            }],
+            targets: [],
+        };
+        const md = buildMovementData(details, { trackedBuffIds: trackedBuffs })!;
+        expect(md.pollingRate).toBe(300);
+        expect(md.members[0].positions).toEqual([[1, 2], [3, 4]]);
+        // ceil(7 / 300) = 1 — this module is one of only two call sites that
+        // ever got that rounding right.
+        expect(md.members[0].firstPoll).toBe(1);
     });
 });

@@ -1,3 +1,56 @@
+/**
+ * Subpath import, not the package root: `src/shared/**` is also compiled by
+ * `electron/tsconfig.json`, whose Node10 resolver cannot see the root
+ * `exports` map. See `src/main/bridgeMetricsRoot.d.ts`.
+ */
+import {
+    getArena, getPollMs, getPositionTracks, positionAt,
+    type ArenaProjection, type PositionTrack,
+} from '@axiapps/bridge-metrics/nativePositioning';
+
+export type { ArenaProjection, PositionTrack };
+export { positionAt };
+
+/**
+ * The native movement surface: self-timestamped world-inch tracks plus the
+ * arena projection needed to draw them.
+ *
+ * This coexists with the EI view-model below rather than replacing it. The two
+ * answer different questions: this one answers "where was entity N at time T",
+ * which is all the stats compute modules need; `MovementData` additionally
+ * carries names, professions, boon states, skill casts and health percents,
+ * which the replay map renders. Unit 3b migrates that view-model onto `arena`
+ * and `tracks` as one piece — the map's ~10 files are calibrated against
+ * `wvwTiles.ts`'s `continentRect` and have to move together.
+ *
+ * Note `tracks` is keyed by native ENTITY ID and includes enemy players, while
+ * `MovementData.members` is a flat list keyed by name. They do not join
+ * one-to-one; do not mix them.
+ */
+export interface NativeMovement {
+    /** The replay polling interval in ms. */
+    pollMs: number;
+    /** `null` for maps GW2EI ships no arena image for. */
+    arena: ArenaProjection | null;
+    /** Keyed by entity id. Includes enemy players, not just the squad. */
+    tracks: Map<number, PositionTrack>;
+}
+
+/**
+ * Build the native surface, or `null` when the log carries no position samples
+ * — either an EI-only parse, or a native parse whose tracks were dropped by
+ * `pruneDetailsForStats` because the user turned off position retention.
+ */
+export const buildNativeMovement = (details: any): NativeMovement | null => {
+    const pollMs = getPollMs(details);
+    if (pollMs === null || pollMs <= 0) return null;
+    const tracks = getPositionTracks(details);
+    if (tracks.size === 0) return null;
+    return { pollMs, arena: getArena(details), tracks };
+};
+
+// ─── The EI replay view-model (migrates in unit 3b) ───────────────────────────
+
 export interface SquadMemberMovement {
     name: string;
     account: string;
