@@ -1,3 +1,6 @@
+import {
+    getBuffMeta, listBoonIds, getEntityBuffStatesPerSource, squadEntities, getEntityProfession,
+} from '@axiapps/bridge-metrics';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 
@@ -148,13 +151,9 @@ export function ingestLogBoonUptimeTimeline(log: any, acc: BoonUptimeTimelineAcc
 
     const details = log?.details;
     if (!details) return;
-    const players = Array.isArray(details.players) ? details.players : [];
-    const squadPlayers = players.filter((p: any) => !p?.notInSquad);
-    if (squadPlayers.length <= 0) return;
-    const durationMs = Math.max(0, Number(details?.durationMS || 0));
-    const buffMap = (details?.buffMap && typeof details.buffMap === 'object')
-        ? details.buffMap
-        : {};
+    const members = squadEntities(details?.native);
+    if (members.length <= 0) return;
+    const durationMs = Math.max(0, Number(details?.native?.encounter?.duration_ms ?? details?.durationMS ?? 0));
     const fullLabel = buildFightLabelV2({
         zone: details.fightName || log.fightName || `Fight ${index + 1}`,
         durationMs: details.durationMS,
@@ -163,31 +162,32 @@ export function ingestLogBoonUptimeTimeline(log: any, acc: BoonUptimeTimelineAcc
     const fightValuesByBoon = new Map<string, Map<string, UptimeFightValue>>();
     const fightPlayerSeenByBoon = new Map<string, Set<string>>();
 
-    squadPlayers.forEach((player: any) => {
-        const account = String(player?.account || player?.name || 'Unknown');
+    members.forEach((entity) => {
+        const account = String(entity.account || entity.character || 'Unknown');
         const key = account;
-        const profession = String(player?.profession || 'Unknown');
-        const buffUptimes = Array.isArray(player?.buffUptimes) ? player.buffUptimes : [];
-        buffUptimes.forEach((buff: any) => {
-            const boonIdNum = Number(buff?.id);
-            if (!Number.isFinite(boonIdNum)) return;
+        const profession = getEntityProfession(entity) || 'Unknown';
+
+        listBoonIds(details).forEach((boonIdNum) => {
+            const meta = getBuffMeta(details, boonIdNum);
+            if (!meta) return;
             const boonId = `b${boonIdNum}`;
-            const meta = buffMap[boonId] || {};
-            const classification = String(meta?.classification || '');
-            if (classification && classification !== 'Boon') return;
-            const statesPerSource = (buff?.statesPerSource && typeof buff.statesPerSource === 'object')
-                ? buff.statesPerSource
-                : null;
-            if (!statesPerSource) return;
-            const boonBucket = ensureBoonBucket(boonBuckets, boonId, defaultBoonIntervalMs, defaultStackingIntervalMs, meta);
+
+            // Native keys per-source states by entity id. EI keyed them by
+            // character name, which is not unique -- axilog emits one entity
+            // per agent instance, so two entries can share a name.
+            const bySource = getEntityBuffStatesPerSource(details, entity.id, boonIdNum);
+            if (bySource.size === 0) return;
+            const statesPerSource: Record<string, Array<[number, number]>> = {};
+            for (const [sourceId, states] of bySource) statesPerSource[String(sourceId)] = states;
+
+            const boonBucket = ensureBoonBucket(
+                boonBuckets, boonId, defaultBoonIntervalMs, defaultStackingIntervalMs,
+                { name: meta.name, stacking: meta.stacking },
+            );
             const intervalMs = boonBucket.intervalMs;
             const boonBucketCount = Math.max(1, Math.ceil(Math.max(1, durationMs) / intervalMs));
             const buckets = sampleStackTimeline(
-                statesPerSource as Record<string, any>,
-                boonBucketCount,
-                Boolean(meta?.stacking),
-                String(meta?.name || ''),
-                intervalMs
+                statesPerSource, boonBucketCount, meta.stacking, meta.name, intervalMs,
             );
             const fightValue = createFightValue(buckets);
             if (fightValue.total <= 0 && fightValue.peak <= 0) return;
