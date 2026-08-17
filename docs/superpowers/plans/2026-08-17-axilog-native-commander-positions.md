@@ -71,10 +71,10 @@ There is no `framesPerSec` and no start-frame derivation: native samples carry
 their own timestamps. This removes the `ceil`-vs-`floor` bug class that unit 3
 found at five call sites and that `shared.ts` carries an eight-line comment about.
 
-- [ ] Write the failing test for `squadPosAt` (on-grid, between-grid, past-the-end, gap)
-- [ ] Implement, delete the EI helpers
-- [ ] Run tests
-- [ ] Commit
+- [x] Write the failing test for `squadPosAt` (on-grid, between-grid, past-the-end, gap)
+- [x] Implement, delete the EI helpers
+- [x] Run tests
+- [x] Commit
 
 ### Task 2: Cohesion in game units
 
@@ -90,10 +90,10 @@ Death matching stays keyed on account (`SquadTrack.key`), matching
 `DeathEvent.account`, so `distFromTag` fills exactly as before — in units the
 `"…u from tag"` evidence string has always claimed.
 
-- [ ] Write a native-backed test asserting corrected magnitudes on the real fixture
-- [ ] Migrate `computeCohesion`
-- [ ] Run tests
-- [ ] Commit
+- [x] Write a native-backed test asserting corrected magnitudes on the real fixture
+- [x] Migrate `computeCohesion`
+- [x] Run tests
+- [x] Commit
 
 ### Task 3: Matchup's tag bubble
 
@@ -104,10 +104,10 @@ Death matching stays keyed on account (`SquadTrack.key`), matching
 Same swap for `inTagBubbleAtEngage`. Its `TAG_RADIUS = 600` becomes meaningful for
 the first time; the distinct-person dedupe logic is untouched.
 
-- [ ] Update the existing test onto native tracks
-- [ ] Add a test that a member well outside 600u is excluded (impossible to write today)
-- [ ] Migrate, run tests
-- [ ] Commit
+- [x] Update the existing test onto native tracks
+- [x] Add a test that a member well outside 600u is excluded (impossible to write today)
+- [x] Migrate, run tests
+- [x] Commit
 
 ### Task 4: Verification against the real fixture
 
@@ -119,13 +119,13 @@ Assert, against `test-fixtures/axilog/wvw-small.anon.zevtc`:
 - `matchup.inTagBubbleAtEngage < squadCount` — i.e. the metric can now discriminate
 - allowlist entry recording that EI's pixel space is the wrong side
 
-- [ ] Write, run, commit
+- [x] Write, run, commit
 
 ### Task 5: Documentation
 
-- [ ] `docs/axilog-cutover-report.md` §5: record the unit and the measured before/after
-- [ ] `src/shared/movementData.ts`: the `NativeMovement` docstring still describes unit 3b as future work — correct it
-- [ ] Commit
+- [x] `docs/axilog-cutover-report.md` §5: record the unit and the measured before/after
+- [x] `src/shared/movementData.ts`: the `NativeMovement` docstring still describes unit 3b as future work — correct it
+- [x] Commit
 
 ---
 
