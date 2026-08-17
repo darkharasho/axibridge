@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { oracleFixture, expectEqualOrAllowlisted } from '../axilogOracle';
+import pkg from '../../../package.json';
 
 describe('axilog oracle harness', () => {
     it('parses the fixture both ways at the same version', () => {
         const { ei, native } = oracleFixture();
         expect(native.axilog.schema).toBe('1.0');
-        expect(native.axilog.version).toBe('0.3.4');
+        // Read from the exact pin rather than hardcoded: the whole point of
+        // the oracle is that BOTH sides come from one axilog build, and a
+        // literal here just goes stale at every bump (it did, at 0.3.5).
+        expect(native.axilog.version).toBe(pkg.dependencies['@axiapps/axilog']);
         expect(Array.isArray(ei.players)).toBe(true);
         expect(Array.isArray(native.entities)).toBe(true);
     });
