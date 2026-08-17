@@ -39,26 +39,26 @@ export type ParserBackend = 'axilog' | 'elite-insights';
  * rendering blank: boon-generation attribution, incoming conditions, damage
  * mitigation and the incoming-strike-damage chart. axilog's MEIGAP + MEIGAP2
  * work closed all four. The re-audit in §1 of
- * `docs/axilog-cutover-report.md` (re-run against 0.3.0 on the same fixture)
- * puts the surface at **8 residual gaps out of 83 audited rows**, with these
+ * `docs/axilog-cutover-report.md` (re-run against 0.3.2 on the same fixture)
+ * puts the surface at **5 residual gaps out of 83 audited rows**, with these
  * residuals — all of them null-guarded, all degrading to `0`/`null`/empty
  * rather than to a wrong number:
  *
- * 1. `selfBuffs`/`groupBuffs`/`squadBuffs` carry `generation` but not
- *    `wasted` — boon *overstack* attribution is blank; generation itself is
- *    exact. (§4.3)
- * 2. `statsTargets[i][0]` carries 8 of EI's 38 stat fields, so 15
+ * 1. `statsTargets[i][0]` carries 8 of EI's 38 stat fields, so 15
  *    `statsTargets`-sourced Offense Detailed columns had read 0. 8 of those 15
  *    now fall back to the whole-fight `statsAll[0]` figure
  *    (`OFFENSE_METRICS_STATS_ALL_FALLBACK` in
  *    `packages/bridge-metrics/src/statsMetrics.ts`), leaving **7** blank.
  *    Structural: EI folds the enemy roster into one aggregate
  *    `"Enemy Players"` target, axilog emits one entry per real enemy. (§4.1)
- * 3. `statsAll[0].saved` — deferred upstream; `Number(... || 0)`, and not in
- *    `dpsReportTypes` either.
- * 4. `targets[].profession`, `players[].display_name`, `skillMap[].icon` +
- *    auto-attack/proc flags, `buffMap[].icon`/`.classification` — cosmetic or
- *    already-defaulted. (§4.3)
+ * 2. `players[].display_name`, `skillMap[].icon` + auto-attack/proc flags,
+ *    `buffMap[].icon`/`.classification` — cosmetic or already-defaulted. (§4.3)
+ *
+ * Closed by the 0.3.0 -> 0.3.2 bump (§1.6): `statsAll[0].saved`, boon-overstack
+ * `wasted` and `targets[].profession`. That bump also stopped axilog listing
+ * squad-side pets, spirits, banners and conjures as enemy targets — which had
+ * been inflating enemy downs (25 -> 15 on the fixture) and folding friendly
+ * minion damage into the enemy per-skill buckets behind damage mitigation.
  *
  * Two accuracy caveats that are *not* absences, and so do not degrade visibly —
  * read §2 before trusting the numbers: per-skill `downContribution` is

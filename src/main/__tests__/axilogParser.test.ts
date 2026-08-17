@@ -534,6 +534,57 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         expect(targets.some((t) => t.dpsAll?.[0]?.damage !== undefined)).toBe(true);
     });
 
+    it('emits the three residuals axilog 0.3.2 closed', () => {
+        // Promoted out of the inverse pin below when the dependency moved
+        // 0.3.0 -> 0.3.2. Each was a documented gap in §4.3 of the cutover
+        // report; each now carries real values, not just keys, so these assert
+        // on populated data rather than field presence alone.
+        const players: any[] = details.players;
+
+        // Boon overstack. Generation was already exact; `wasted` closes the
+        // other half, so "how much of it was wasted" stops reading 0.
+        const wastedCells = players.flatMap((p) =>
+            ['selfBuffs', 'groupBuffs', 'squadBuffs'].flatMap((k) =>
+                (p[k] ?? []).map((e: any) => e.buffData?.[0]?.wasted),
+            ),
+        ).filter((w) => w !== undefined);
+        expect(wastedCells.length).toBeGreaterThan(0);
+        expect(wastedCells.some((w) => w > 0)).toBe(true);
+
+        // Deferred upstream until 0.3.2.
+        expect(players.every((p) => typeof p.statsAll?.[0]?.saved === 'number')).toBe(true);
+        expect(players.some((p) => p.statsAll[0].saved > 0)).toBe(true);
+
+        // Enemy profession — every enemy player resolves a class, so the
+        // per-target damage-split labels and the incoming-strike legend stop
+        // falling back to the character name.
+        const enemyPlayers = details.targets.filter((t: any) => t.enemyPlayer);
+        expect(enemyPlayers.length).toBeGreaterThan(0);
+        expect(enemyPlayers.every((t: any) => typeof t.profession === 'string' && t.profession)).toBe(true);
+    });
+
+    it('keeps the enemy roster free of squad-side minions', () => {
+        // 0.3.2 stopped enumerating squad pets, spirits, banners, conjures and
+        // food as enemy targets (they were 48 of 0.3.0's 80 entries on this
+        // fixture). Two consequences this pins, both correctness rather than
+        // cosmetics:
+        //   - friendly minion damage was being folded into the global ENEMY
+        //     per-skill buckets behind damage mitigation;
+        //   - downs credited against a squad member's own pet counted as ENEMY
+        //     downs, inflating the fixture's split total 15 -> 25.
+        // `statsTargets`/`targetDamageDist` are positionally indexed against
+        // `targets`, so the three must stay the same length or every per-target
+        // read silently misattributes.
+        const targets: any[] = details.targets;
+        expect(targets.length).toBeGreaterThan(0);
+        expect(targets.every((t) => t.enemyPlayer)).toBe(true);
+
+        for (const p of details.players) {
+            if (Array.isArray(p.statsTargets)) expect(p.statsTargets.length).toBe(targets.length);
+            if (Array.isArray(p.targetDamageDist)) expect(p.targetDamageDist.length).toBe(targets.length);
+        }
+    });
+
     it('leaves the documented residual gaps absent rather than faked', () => {
         // The inverse pin: §4 of the cutover report promises these are MISSING,
         // and the doc comment on DEFAULT_PARSER_BACKEND justifies the flip on
@@ -543,12 +594,18 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         const players: any[] = details.players;
         const every = (f: (p: any) => any) => players.every((p) => { try { return !f(p); } catch { return true; } });
 
-        // Boon overstack (generation lands vs wasted) — the half-closed row.
-        expect(every((p) => p.selfBuffs?.some((b: any) => b.buffData?.[0]?.wasted !== undefined))).toBe(true);
-        // Deferred upstream.
-        expect(every((p) => p.statsAll?.[0]?.saved !== undefined)).toBe(true);
-        // Enemy profession — readers fall back to name/id.
-        expect(details.targets.every((t: any) => t.profession === undefined)).toBe(true);
+        // Every reader falls back to character_name/name.
+        expect(every((p) => p.display_name !== undefined)).toBe(true);
+        // The `statsTargets` field subset (§4.1). These 7 have no `statsAll`
+        // equivalent either, so unlike the other 8 they take no fallback and
+        // stay blank. Pinned because faking them from a near-miss field (e.g.
+        // `connectedDirectDmg` for `directDmg`) is the tempting wrong fix.
+        for (const field of [
+            'directDmg', 'missed', 'evaded', 'blocked', 'invulned',
+            'appliedCrowdControlDownContribution', 'appliedCrowdControlDurationDownContribution',
+        ]) {
+            expect(every((p) => p.statsTargets?.some((t: any) => t?.[0] && field in t[0]))).toBe(true);
+        }
         // Skill/buff icon + classification metadata needs EI's bundled GW2 DB.
         expect(Object.values(details.skillMap).every((s: any) => s.icon === undefined)).toBe(true);
         expect(Object.values(details.buffMap).every((b: any) => b.classification === undefined)).toBe(true);

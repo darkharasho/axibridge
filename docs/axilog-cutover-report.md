@@ -1,7 +1,7 @@
 # axilog parser cutover
 
 axibridge can parse logs in-process with
-**[axilog](https://github.com/darkharasho/axilog)** (`@axiapps/axilog` 0.3.0, native Rust bindings)
+**[axilog](https://github.com/darkharasho/axilog)** (`@axiapps/axilog` 0.3.2, native Rust bindings)
 instead of spawning the Elite Insights .NET CLI. Both backends are fully wired behind one
 `parserBackend` setting, surfaced in the UI at **Settings → Parser Settings → Parse Engine**.
 
@@ -9,11 +9,16 @@ instead of spawning the Elite Insights .NET CLI. Both backends are fully wired b
 waiting on is a repo-owner go, not more engineering. The first cutover left it opt-in because 30 of
 the EI-JSON paths axibridge reads were not emitted, and four whole features rendered blank:
 boon-generation attribution, incoming conditions, damage mitigation and the incoming-strike-damage
-chart. axilog's MEIGAP and MEIGAP2 work closed all four. The re-audit in §1 — re-run against 0.3.0,
-on the same anonymized fixture, through the same flag set — leaves **8 residual gaps out of 83
+chart. axilog's MEIGAP and MEIGAP2 work closed all four. The re-audit in §1 — re-run against 0.3.2,
+on the same anonymized fixture, through the same flag set — leaves **5 residual gaps out of 83
 audited rows**, none of which produces a wrong number and all of which are null-guarded at the read
-site. Of the other 75 rows, 64 carry data from axilog and 11 are absent by design with no consumer
+site. Of the other 78 rows, 67 carry data from axilog and 11 are absent by design with no consumer
 consequence.
+
+> **Updated for 0.3.2** (was 0.3.0, 8 residuals). The bump closed three documented gaps —
+> `statsAll[0].saved`, boon-overstack `wasted` and `targets[].profession` — and fixed a roster bug
+> that was producing two **wrong numbers**, not blanks: squad-side pets, spirits, banners, conjures
+> and food were being enumerated as enemy targets. See §1.6.
 
 Flipping the default is a change to `DEFAULT_PARSER_BACKEND` in `src/main/axilogParser.ts`, plus
 its pinning assertion in `axilogParser.test.ts`, plus **one mirror**:
@@ -30,7 +35,7 @@ auto-install stand-down, the radio-group ordering, and the walkthrough copy.
 | Parse of the anonymized WvW fixture | **0.45 s**, in-process | seconds–minutes (10 min timeout) |
 | External processes | none | `dotnet` child process per log |
 | Update machinery | none (versioned with the app) | GitHub release polling, auto-install/update |
-| Read-surface coverage | 8 residual gaps of 83 rows | no gaps |
+| Read-surface coverage | 5 residual gaps of 83 rows | no gaps |
 
 Two things are present but **not EI-identical**, and they are the part of this document most worth
 reading before trusting a number: per-skill `downContribution` and the mitigation aggregate's
@@ -38,9 +43,9 @@ reading before trusting a number: per-skill `downContribution` and the mitigatio
 
 ---
 
-## 1. Read-surface audit (re-run against axilog 0.3.0)
+## 1. Read-surface audit (re-run against axilog 0.3.2)
 
-**Verdict: 8 of the 83 audited read-surface rows are residual gaps. Of the other 75, 64 carry data
+**Verdict: 5 of the 83 audited read-surface rows are residual gaps. Of the other 78, 67 carry data
 from axilog and 11 are absent by design with no consumer consequence.** Every gap degrades to `0` / `null` / an
 empty list rather than throwing — the read surface is uniformly null-guarded (`?.[0]?.field || 0`,
 `Number(x ?? 0)`, `Array.isArray(...) ? ... : []`), and the metrics spec states this contract
@@ -57,8 +62,9 @@ nothing itself — it returns the gunzipped JSON opaquely. The real consumers ar
 `dpsReportCache` → `pruneDetailsForWorker`
 (`src/renderer/stats/hooks/useStatsAggregationWorker.ts:73`) → `@axiapps/bridge-metrics` +
 `src/renderer/stats/*`. The declared input contract lives at `src/shared/metrics-spec.md:11-46`.
-Each row below was probed against a real 0.3.0 parse of
-`axilog/fixtures/wvw-small.anon.zevtc` (42 players, 80 targets) with
+Each row below was probed against a real 0.3.2 parse of
+`axilog/fixtures/wvw-small.anon.zevtc` (42 players, 32 targets — all of them real enemy players
+since 0.3.2; see §1.6) with
 `{ replay, skillDamage, timeseries, rotation, modifiers }` all on — the exact option set
 `mapEiSettingsToAxilogOptions` produces from the default settings — and cross-checked against the
 real (PII, uncommitted) capture where anonymization could mask a value.
@@ -95,7 +101,7 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 | `{red,green,blue}ShardID` | · | `wvwTeams.ts` validates numerically and skips |
 | `phases`, `logErrors`, `mechanics` | n/a | pruned before any consumer; **never read** (not counted) |
 
-### 1.2 `players[]` — 48 rows: 41 covered, 3 absent by design, 4 residual
+### 1.2 `players[]` — 48 rows: 43 covered, 3 absent by design, 2 residual
 
 | Path | axilog | Notes |
 |---|---|---|
@@ -109,7 +115,7 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 | `statsAll[0].appliedCrowdControl`, `.appliedCrowdControlDuration` | E | exact vs EI |
 | `statsAll[0].downed`, `.killed` | E | whole-fight, incl. NPCs/guards/siege |
 | `statsAll[0].distToCom`, `.stackDist` | **D** | see §3 |
-| `statsAll[0].saved` | **—** | deferred upstream; `Number(... \|\| 0)`, and not in `dpsReportTypes` either |
+| `statsAll[0].saved` | E ✅ | closed in 0.3.2; 37/42 players non-zero on the fixture. Still not in `dpsReportTypes`, so the read stays `Number(... \|\| 0)` |
 | `statsAll[0]` hit-quality family (`criticalRate`/`criticalDmg`/`flankingRate`/`glanceRate`/`againstMovingRate`/`connected*`/`critableDirectDamageCount`/`againstDowned*`) | E | exact vs EI both eras |
 | `defenses[0].damageTaken`, `.downCount`, `.deadCount` | E | |
 | `defenses[0].blockedCount`/`evadedCount`/`dodgeCount`/`missedCount`/`interruptedCount`/`invulnedCount` | E | exact vs EI |
@@ -124,7 +130,7 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 | `buffUptimes[].id`, `.buffData[0].uptime`, `.buffData[0].presence` | E | 0/444 cells over the 2 pp tolerance vs EI |
 | `buffUptimes[].states`, `.statesPerSource` | E ✅ | 504/504 entries carry both |
 | `selfBuffs`, `groupBuffs`, `squadBuffs` — `[].buffData[0].generation` | E ✅ | boon-generation attribution |
-| `selfBuffs`, `groupBuffs`, `squadBuffs` — `[].buffData[0].wasted` | **—** | overstack/wasted generation not modelled. Generation itself is exact |
+| `selfBuffs`, `groupBuffs`, `squadBuffs` — `[].buffData[0].wasted` | E ✅ | closed in 0.3.2; 524 of 908 cells non-zero on the fixture. Overstack attribution is no longer blank |
 | `totalDamageDist[phase][]` (`id`/`totalDamage`/`min`/`max`/`hits`/`crit`/`flank`) | F `skillDamage` | every shared skill id exact vs the golden |
 | `totalDamageDist[][].connectedHits`, `.downContribution`, `.indirectDamage`, `.glance`, `.missed`, `.evaded`, `.blocked`, `.invulned`, `.interrupted` | F ✅ | the outcome columns. `downContribution` here is arcdps-methodology — **§2.1** |
 | `targetDamageDist[target][phase][]` | F `skillDamage` | 872 non-empty cells across 37/42 players |
@@ -148,16 +154,16 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 | `combatReplayData.{start,end,down,dead,dc}` | E | `down`/`dead` byte-exact vs the golden |
 | `combatReplayData.{positions,orientations,iconURL}` | F `replay` | GW2EI's own pixel grid, text-exact vs two real EI exports |
 
-### 1.3 `targets[]` — 7 rows: 6 covered, 1 residual
+### 1.3 `targets[]` — 7 rows: 7 covered, 0 residual
 
 | Path | axilog | Notes |
 |---|---|---|
 | `id`, `name`, `teamID`, `enemyPlayer`, `isFake`, `instanceID` | E | `isFake` always `false` — every target is a real tracked agent |
-| `profession` | **—** | axilog resolves no profession for enemies; all five readers fall back to `name`/`id` (`computeFightDiffMode.ts:98`, `computeIncomingStrikeDamageData.ts:307`, …) |
-| `totalDamageDist[0][]` | E ✅ | the enemy-skill averages behind damage mitigation. 42/80 targets, incl. 31/32 `enemyPlayer` (the one omission dealt no damage) |
-| `damage1S`, `powerDamage1S` | E ✅ | incoming-strike-damage chart's primary source; 80/80 targets |
-| `buffs[].id`, `.statesPerSource` | E ✅ | incoming-conditions attribution; 46/80 targets |
-| `dpsAll[0].damage` | E ✅ | 80/80 |
+| `profession` | E ✅ | closed in 0.3.2; 32/32 enemies resolve a class, elite spec folded into the field EI-style (`"Harbinger"`, `"Dragonhunter"`, `"Luminary"`). The five `name`/`id` fallbacks (`computeFightDiffMode.ts:98`, `computeIncomingStrikeDamageData.ts:307`, …) stay as guards but are no longer the live path |
+| `totalDamageDist[0][]` | E ✅ | the enemy-skill averages behind damage mitigation. 31/32 targets (the one omission dealt no damage) |
+| `damage1S`, `powerDamage1S` | E ✅ | incoming-strike-damage chart's primary source; 32/32 targets |
+| `buffs[].id`, `.statesPerSource` | E ✅ | incoming-conditions attribution; 31/32 targets |
+| `dpsAll[0].damage` | E ✅ | 32/32 |
 | `combatReplayData.{positions,start,down,dead}` | F `replay` | |
 | `totalHealth`, `healthPercentBurned`, `defenses`, `statsAll` | n/a | declared in the `Target` interface, **never read** (not counted) |
 
@@ -193,6 +199,42 @@ Newly identified by this re-audit, not present in the original: the **`statsTarg
 residual** (§4.1) and the two methodology caveats in §2. Neither is a regression — both were true at
 the first cutover too; the first audit simply did not reach them, because the fields they concern
 were entirely absent back then.
+
+### 1.6 What the 0.3.0 → 0.3.2 bump changed
+
+Three of the eight residuals closed — `statsAll[0].saved`, boon-overstack `wasted`, and
+`targets[].profession`. Only the last is in axilog's release notes; the first two shipped silently in
+0.3.1, which has no notes at all. All three were re-probed on the same fixture and carry real values,
+not just keys: `saved` is non-zero for 37/42 players, `wasted` for 524 of 908 buff cells, and
+`profession` resolves for 32/32 enemies.
+
+The fourth change is not a gap closing and matters more, because it was producing **wrong numbers
+rather than blanks**. 0.3.0 enumerated squad-side entities as enemy targets: of its 80 `targets[]`
+entries, **48 were friendly** — 15 ranger pets (`Juvenile Brown Bear`, `Juvenile Siege Turtle`, …),
+7 spirits, 8 Ventari `Tablet` instances, `Blood Fiend`, `Continuum Rift`, `Black Hole`,
+`Function Gyro`, `Binding Roots`, warrior and guild banners, and three plates of food. 0.3.2 emits
+32, all of them real `enemyPlayer` agents, and the 32 enemy ids are identical across both versions —
+so nothing was lost, only pollution removed. Two consumer-visible consequences:
+
+- **Damage mitigation.** `precomputeGlobalEnemySkillStats` (`computePlayerAggregation.ts:491-509`)
+  folds every `targets[].totalDamageDist[0][]` entry into one global per-skill bucket. Under 0.3.0,
+  11 friendly minions carried a damage distribution, contributing 14 skill ids and 3,029 damage of
+  *squad pet* output into the buckets behind "what enemy skills hit us". Now gone.
+- **Enemy downs/kills.** The per-target split summed 25 on this fixture under 0.3.0; it sums **15**
+  under 0.3.2. The entire difference is 10 downs credited against squad members' own pets —
+  `Juvenile Brown Bear` ×4, `Juvenile Polar Bear` ×2, `Blood Fiend`, `Function Gyro`,
+  `Juvenile Black Bear`, `Juvenile Siege Turtle` — each counted as an *enemy* down. Every one of the
+  32 real enemy targets carries byte-identical downs/kills across the two versions, so 15 is the
+  correct figure and 0.3.0's 25 was inflating enemy downs by 67 %. §4.2's numbers are updated
+  accordingly.
+
+`statsTargets[]` and `targetDamageDist[]` are positionally indexed against `targets[]`, and both
+shrank in lockstep (80 → 32), so index alignment holds and no per-target read misattributes. That
+invariant is now pinned by a test rather than left to inspection — see §6.
+
+This also reduces, but does not remove, §2.2's `minMitigation` roster-shape sensitivity: the
+per-skill `minCount` now spans 32 buckets instead of 80, against EI's 1. The column is still biased
+high, and follow-up 6 still stands.
 
 ---
 
@@ -346,7 +388,8 @@ figure; 7 remain blank.**
 
 - **Filled from `statsAll[0]` (8):** `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`,
   `flankingRate`, `glanceRate`, `againstDownedDamage`, `appliedCrowdControl`,
-  `appliedCrowdControlDuration`. Each was verified present field-by-field on a live 0.3.0 payload.
+  `appliedCrowdControlDuration`. Each was verified present field-by-field on a live payload, first on
+  0.3.0 and re-verified on 0.3.2.
   The three rates bring their denominators with them — `critableDirectDamageCount` for
   `criticalRate`, `connectedDirectDamageCount` for `flankingRate`/`glanceRate` — so numerator and
   denominator always come from the same scope and a ratio is never mixed.
@@ -419,28 +462,28 @@ because the alternative was a hard `0` that made `isWin` false on every fight th
 in.
 
 **axilog 0.3.0 emits the split, so `sawTargetSplit` is now true and the fallback is not reached.**
-The dashboard takes the same branch as Elite Insights. On the fixture the split totals 25 enemy
-downs+kills against `statsAll`'s 49 — the fallback would have roughly doubled the count, so this is
-a straight accuracy win, not just a tidier code path.
+The dashboard takes the same branch as Elite Insights. On the fixture the split totals **15** enemy
+downs+kills against `statsAll`'s 49 — the fallback would have more than tripled the count, so this
+is a straight accuracy win, not just a tidier code path.
+
+(That 15 was 25 under 0.3.0. The 10-count difference was downs credited against squad members' own
+pets, which 0.3.0 listed as enemy targets; see §1.6. The real enemy figures are unchanged.)
 
 The guard stays exactly as it was, and both halves still earn their place: it now covers only older
 cached axilog payloads and the empty-roster EI case. `axilogParser.test.ts` pins the new behaviour
 (the split is present, and its total is strictly below the `statsAll` total), and
 `detailsProcessing.test.ts`'s 6 tests still pin both sides of the guard itself.
 
-Still degrading to `0` for per-target consumers: `computeFightDiffMode.ts:78-90`'s per-target damage
-split labels (which need `targets[].profession`, §4.3), and `dashboardMetrics.ts:80-92`'s
+Still degrading to `0` for per-target consumers: `dashboardMetrics.ts:80-92`'s
 `againstDownedCount`/`interrupts` rollups where they read fields outside the emitted 8.
+`computeFightDiffMode.ts:78-90`'s per-target damage split labels were also listed here; 0.3.2's
+`targets[].profession` closes that one.
 
 ### 4.3 Smaller degradations
 
-- **Boon overstack** (`selfBuffs`/`groupBuffs`/`squadBuffs` `[].buffData[0].wasted`) → 0. Generation
-  itself is exact and complete; only the wasted/overstack split is missing, so "how much boon did
-  they put out" is right and "how much of it was wasted" is blank.
-- **`statsAll[0].saved`** → 0. Deferred upstream; not in `dpsReportTypes` either.
-- **Enemy profession** (`targets[].profession`) → enemy grouping and the incoming-strike-damage
-  legend fall back to name/id, which for `enemyPlayer` targets is the (anonymized or real) character
-  name rather than a class.
+- ~~**Boon overstack**~~, ~~**`statsAll[0].saved`**~~, ~~**enemy profession**~~ — **all three closed
+  by axilog 0.3.2** (§1.6). Overstack attribution, the `saved` counter and enemy class labels now
+  carry real data.
 - **Skill icons / auto-attack & proc classification** (`skillMap[].icon`/`.autoAttack`/
   `.isTraitProc`) → APM's auto-attack exclusion and proc filtering see every skill as a non-auto,
   non-proc cast. Needs EI's bundled GW2 skill DB.
@@ -454,7 +497,7 @@ fields backed by a real computed metric.
 ### 4.4 One cache interaction worth knowing
 
 `get-log-details`' `detailsTargetsHaveBuffs` freshness probe (`uploadHandlers.ts:151`) checks for
->1 target with `buffs`. axilog now emits `buffs` on 46/80 targets, so cached axilog payloads
+>1 target with `buffs`. axilog now emits `buffs` on 31/32 targets, so cached axilog payloads
 **no longer** always look stale — the redundant dps.report re-fetch the original report described is
 gone.
 
@@ -541,7 +584,7 @@ emits them natively wins.
 
 ## 6. Test evidence
 
-`src/main/__tests__/axilogParser.test.ts` — **32 tests**:
+`src/main/__tests__/axilogParser.test.ts` — **36 tests**:
 
 - **Backend selection** (3) — the shipped default is `'elite-insights'` (the assertion is the gate:
   flipping `DEFAULT_PARSER_BACKEND` has to be a deliberate, visible edit in the test too); an exact
@@ -550,7 +593,7 @@ emits them natively wins.
   discriminating power whichever way the default points.
 - **Settings mapping** (4), **derived scalars** (10), **EI-shape shims** (5), **manager** (3) —
   unchanged from the first cutover.
-- **Real-parse integration** (8, was 5) — parses the anonymized WvW fixture through
+- **Real-parse integration** (10, was 8) — parses the anonymized WvW fixture through
   `AxilogManager.parseLog` and asserts a `parseLog`-shaped payload satisfying
   `hasUsableFightDetails`; every flag-gated block present; finite, sane `distToCom`/`stackDist` for
   all 42 squad players; survival of `pruneDetailsForStats` in both retention modes; a dashboard
@@ -559,9 +602,21 @@ emits them natively wins.
     strictly below the `statsAll` total, so a regression to the high-biased path fails loudly;
   - *every MEIGAP/MEIGAP2 block is present* — one assertion per gap the original audit called
     blocking, so a silent upstream regression becomes a test failure rather than a blank panel;
-  - *the documented residuals are still absent* — the inverse pin. If axilog starts emitting
-    `wasted`, `saved`, `targets[].profession`, skill icons or buff classification, this fails and the
-    report gets updated rather than quietly going stale.
+  - *the documented residuals are still absent* — the inverse pin. It did exactly its job on the
+    0.3.2 bump: `wasted`, `saved` and `targets[].profession` started landing, the test went red, and
+    this report was updated rather than quietly going stale. Those three moved to a positive
+    assertion (*the three residuals axilog 0.3.2 closed*, which checks populated values rather than
+    field presence); the pin now covers `display_name`, skill icons, buff classification and the
+    seven `statsTargets` fields of §4.1 — the last of these because faking them from a near-miss
+    field (`connectedDirectDmg` for `directDmg`) is the tempting wrong fix.
+
+  Two more are new with 0.3.2:
+  - *the enemy roster is free of squad-side minions* — every `targets[]` entry is an `enemyPlayer`,
+    pinning §1.6's fix so a regression to enumerating pets as enemies fails here rather than
+    silently re-inflating enemy downs and polluting mitigation;
+  - *the per-target arrays stay index-aligned* — `statsTargets.length` and `targetDamageDist.length`
+    both equal `targets.length` for every player. These are positional indexes, so a roster change
+    that moved one and not the others would misattribute every per-target read rather than blank it.
 
 `src/renderer/__tests__/SettingsView.test.tsx` — **7 tests** for the Parse Engine card: it reflects
 the persisted backend (which is deliberately *not* the shipped default in the base mock, so the card
@@ -630,12 +685,14 @@ Gates:
 4. **Ask axilog to emit `distToCom`/`stackDist` directly** — or a commander-segment timeline. §5's
    3.7 % / 4.3 % mean error is dominated by the single-track commander approximation. Emitting the
    scalars from the engine deletes `deriveDistanceScalars` outright.
-5. **Ask axilog for `wasted` boon generation** (§4.3) and a **log-start timestamp**. The latter would
-   replace the `.zevtc`-mtime inference in `applyEiCompatShims`, which is wrong for a copied or
-   restored file (small blast radius: only consulted after `uploadTime`).
+5. **~~Ask axilog for `wasted` boon generation.~~ RESOLVED in 0.3.2** (§1.6). Still open from this
+   item: a **log-start timestamp**, which would replace the `.zevtc`-mtime inference in
+   `applyEiCompatShims`, wrong for a copied or restored file (small blast radius: only consulted
+   after `uploadTime`).
 6. **`minMitigation` roster-shape sensitivity** (§2.2). Either have axilog expose a true per-skill
    global minimum, or compute the column from a min-of-mins rather than a mean-of-mins in
    `resolveGlobalEnemyStats`. The second is a one-line change in axibridge and is probably the right
    answer; it needs a decision on what the column is meant to mean.
-7. **Enemy profession and skill/buff icons** (§4.3) — both need a GW2 skill/spec database axilog does
-   not carry. Lowest priority: cosmetic, with working fallbacks.
+7. **~~Enemy profession~~ and skill/buff icons** (§4.3) — enemy profession **resolved in 0.3.2**
+   (§1.6). Skill and buff icons still need a GW2 skill database axilog does not carry. Lowest
+   priority: cosmetic, with working fallbacks.
