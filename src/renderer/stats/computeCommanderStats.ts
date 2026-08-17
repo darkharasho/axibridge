@@ -4,6 +4,8 @@ import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './ut
 import { formatDurationMs } from './utils/dashboardUtils';
 import { resolveProfessionLabel } from './computePlayerAggregation';
 import { partitionSquadPlayers } from '../../shared/playerIdentity';
+import { buildNativeMovement } from '../../shared/movementData';
+import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 
 const isBoon = (meta?: { classification?: string }) => {
     if (!meta?.classification) return true;
@@ -365,17 +367,40 @@ const percentFromFlags = (values: Array<boolean | null | undefined>) => {
     const positive = filtered.reduce((sum, value) => sum + (value ? 1 : 0), 0);
     return (positive / filtered.length) * 100;
 };
-const extractReplayPositionPairs = (value: any): Array<[number, number]> => {
-    if (!Array.isArray(value)) return [];
-    return value
-        .map((entry: any) => (Array.isArray(entry) ? [Number(entry[0]), Number(entry[1])] as [number, number] : null))
-        .filter((entry: [number, number] | null): entry is [number, number] => (
-            !!entry && Number.isFinite(entry[0]) && Number.isFinite(entry[1])
-        ));
+/**
+ * The world-inch positions of the squad member holding `account`, or `[]`.
+ *
+ * Joined by account rather than by name: axilog's ei-json compat spells the
+ * character name `character_name`, and arcdps emits one entry per agent
+ * instance, so name is neither reliably present nor unique.
+ */
+const nativeTrackPositions = (details: any, account: unknown): Array<[number, number]> => {
+    if (typeof account !== 'string' || !account) return [];
+    const movement = buildNativeMovement(details);
+    if (!movement) return [];
+    for (const entity of squadEntities(details?.native ?? {})) {
+        if (entity.account !== account) continue;
+        const track = movement.tracks.get(entity.id);
+        if (!track) return [];
+        return track.samples.map(([, x, y]) => [x, y] as [number, number]);
+    }
+    return [];
 };
-const computeMovementMetrics = (combatReplayData: any, durationMs: number, inchToPixel: number) => {
-    const segments = Array.isArray(combatReplayData) ? combatReplayData : (combatReplayData ? [combatReplayData] : []);
-    const positions = segments.flatMap((segment: any) => extractReplayPositionPairs(segment?.positions));
+
+/**
+ * Movement metrics from a native position track.
+ *
+ * Native samples are world inches, so the per-step distance is a game-unit
+ * distance directly. The EI predecessor measured in canvas pixels and divided
+ * by `combatReplayMetaData.inchToPixel` — a value EI rounds to 3dp (0.009
+ * against a true 0.008512) and collapses from a genuinely anisotropic
+ * projection onto one axis, so every distance carried ~6% of scale error
+ * before any rounding of the pixels themselves.
+ *
+ * The 1u / 25u thresholds are unchanged: they were already compared against
+ * the converted, game-unit distance.
+ */
+const computeMovementMetrics = (positions: Array<[number, number]>, durationMs: number) => {
     if (positions.length < 2) {
         return {
             distanceTraveled: null,
@@ -384,7 +409,6 @@ const computeMovementMetrics = (combatReplayData: any, durationMs: number, inchT
             movementBurstCount: null
         };
     }
-    const scale = Number.isFinite(inchToPixel) && inchToPixel > 0 ? inchToPixel : 1;
     const stationaryThreshold = 1;
     const burstThreshold = 25;
     let totalDistance = 0;
@@ -395,7 +419,7 @@ const computeMovementMetrics = (combatReplayData: any, durationMs: number, inchT
     for (let i = 1; i < positions.length; i += 1) {
         const [prevX, prevY] = positions[i - 1];
         const [nextX, nextY] = positions[i];
-        const distance = Math.hypot(nextX - prevX, nextY - prevY) / scale;
+        const distance = Math.hypot(nextX - prevX, nextY - prevY);
         if (!Number.isFinite(distance)) continue;
         segmentCount += 1;
         totalDistance += Math.max(0, distance);
@@ -444,12 +468,9 @@ export function ingestLogCommanderStats(log: any, idx: number, commanders: Map<s
     const characterName = String(commander?.name || '');
     const profession = resolveProfessionLabel(commander?.profession || commander?.name || 'Unknown');
     const durationMs = Math.max(0, Number(details?.durationMS || 0));
-    const replayMeta = (details?.combatReplayMetaData && typeof details.combatReplayMetaData === 'object')
-        ? details.combatReplayMetaData
-        : {};
-    const inchToPixel = Number(replayMeta?.inchToPixel || 0) > 0
-        ? Number(replayMeta.inchToPixel)
-        : 1;
+    // The commander's own world-inch track, joined by account. Nothing here
+    // reads `combatReplayMetaData` any more.
+    const commanderPositions = nativeTrackPositions(details, commander?.account);
     const timestamp = resolveFightTimestamp(details, log);
     const mapName = resolveMapName(details, log);
     const squadCount = partitionSquadPlayers(players).squadPrimaries.length;
@@ -531,7 +552,7 @@ export function ingestLogCommanderStats(log: any, idx: number, commanders: Map<s
     const { boonCount, boonUptimePct } = parseCommanderBoonUptime(commander, buffMap);
     const incomingDamageBySkill = collectIncomingSkillRows(commander?.totalDamageTaken, skillMap, buffMap);
     const incomingBoonUptimes = collectIncomingBoonRows(commander, buffMap, durationMs);
-    const movementMetrics = computeMovementMetrics(commander?.combatReplayData, durationMs, inchToPixel);
+    const movementMetrics = computeMovementMetrics(commanderPositions, durationMs);
     const bucketCount = Math.max(1, Math.ceil(Math.max(1, durationMs) / 5000));
     const incomingDamageCumulative = extractCumulativeSeries(commander?.powerDamageTaken1S);
     const incomingDamagePerSecond = toPerSecond(incomingDamageCumulative);

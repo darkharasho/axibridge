@@ -662,6 +662,18 @@ Thresholds were left unchanged. The per-player-second distance distribution in g
 599u, p75 778u, p90 992u -- lands squarely on the existing 600/900/1500 values, which is the
 evidence they were always game units and only the input scale was wrong.
 
+`computeCommanderStats.ts` moved too, and it was the one place already producing game units --
+it measured in pixels and divided by `combatReplayMetaData.inchToPixel`. That divisor is EI's
+3dp-rounded 0.009 against a true 0.008512, collapsed from an anisotropic projection onto one axis,
+so `distanceTraveled` / `movementPerMinute` / `stationaryPct` / `movementBurstCount` carried ~6% of
+scale error before any pixel rounding. Native samples need no divisor. The 1u / 25u
+stationary/burst thresholds are unchanged, since they were already compared against the converted
+value.
+
+With that, **no file under `src/renderer` or `src/shared` reads `combatReplayData.positions` or
+`combatReplayMetaData` any more.** The remaining `combatReplayMetaData` references in `src/main`
+are cache-validation markers, not position reads.
+
 **A second, independent defect surfaced while testing.** `computeSurvival` and
 `buildDeathsTimeline` each construct their own `DeathEvent` objects, and `computeCohesion` fills
 `distFromTag` on the timeline's only. `firstSquadDeathEarly` reads
