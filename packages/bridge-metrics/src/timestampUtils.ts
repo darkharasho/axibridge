@@ -1,4 +1,5 @@
 import { TIMESTAMP_MS_THRESHOLD } from './constants';
+import { getEncounterStartMs } from './nativeEncounter';
 
 /**
  * Converts any timestamp-like value to a millisecond epoch number.
@@ -33,6 +34,12 @@ export const parseTimestamp = (value: any): number => {
  * falling back through several fields and then to the log's uploadTime.
  */
 export const resolveFightTimestamp = (details: any, log: any): number => {
+    // Native reports the real fight start. Everything below it reaches this
+    // number only through the `.zevtc` mtime inference, which is unbounded-wrong
+    // for any log that has been copied, restored or synced — see the unit 2
+    // oracle, where it is off by ~204 days.
+    const nativeStart = getEncounterStartMs(details);
+    if (nativeStart !== null) return nativeStart;
     return parseTimestamp(
         details?.timeStartStd
         ?? details?.timeStart
