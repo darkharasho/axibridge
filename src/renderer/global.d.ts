@@ -438,6 +438,7 @@ export interface IElectronAPI {
     // Parser backend selection
     getParserBackend: () => Promise<IParserBackendInfo>;
     setParserBackend: (backend: ParserBackendId) => void;
+    ackParserMigrationNotice: () => void;
     onParserBackendChanged: (callback: (data: { backend: ParserBackendId }) => void) => () => void;
 
     // Elite Insights parser
@@ -468,6 +469,12 @@ export interface IParserBackendInfo {
     /** Whether axilog's native binding actually loaded on this platform. */
     axilogAvailable: boolean;
     axilogVersion: string | null;
+    /**
+     * True when the one-time migration moved this user off Elite Insights and
+     * they have not been told yet. Stays true across restarts until acknowledged
+     * or until they pick an engine by hand.
+     */
+    migratedFromEliteInsights?: boolean;
 }
 
 export interface IEiParserSettings {

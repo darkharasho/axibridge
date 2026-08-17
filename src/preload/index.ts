@@ -133,6 +133,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Parser backend selection ('axilog' | 'elite-insights')
     getParserBackend: () => ipcRenderer.invoke('parser:get-backend'),
     setParserBackend: (backend: string) => ipcRenderer.send('parser:set-backend', backend),
+    ackParserMigrationNotice: () => ipcRenderer.send('parser:ack-migration-notice'),
     onParserBackendChanged: (callback: (data: any) => void) => {
         ipcRenderer.on('parser:backend-changed', (_event, value) => callback(value));
         return () => { ipcRenderer.removeAllListeners('parser:backend-changed'); };

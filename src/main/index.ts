@@ -81,6 +81,7 @@ import { registerEiHandlers } from './handlers/eiHandlers';
 import { registerReparseHandlers } from './handlers/reparseHandlers';
 import { EiManager, DEFAULT_EI_SETTINGS, EiParserSettings } from './eiParser';
 import { AxilogManager, normalizeParserBackend, type ParserBackend } from './axilogParser';
+import { migrateParserBackendToAxilog } from './parserBackendMigration';
 import { parseCliFlags } from './cliFlags';
 
 const cliFlags = parseCliFlags(process.argv);
@@ -1170,6 +1171,12 @@ function initServices() {
     // Both backends read the same user-facing settings object; axilogParser maps
     // it onto axilog's ParseOptions (see mapEiSettingsToAxilogOptions).
     axilogManager.setSettings(resolvedParserSettings);
+    // Before anything reads the backend: move a pre-cutover Elite Insights
+    // selection onto Axilog, once. See parserBackendMigration.ts.
+    const migration = migrateParserBackendToAxilog(store, axilogManager.isInstalled());
+    if (migration === 'migrated') {
+        console.log('[Main] Parser backend migrated: elite-insights → axilog (one-time).');
+    }
     console.log(`[Main] Parser backend: ${getParserBackend()} (axilog binding ${axilogManager.isInstalled() ? 'available' : 'UNAVAILABLE'})`);
 
     // Initialize Discord config

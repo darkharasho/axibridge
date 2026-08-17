@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { EiManager, EiParserSettings } from '../eiParser';
 import { AxilogManager, DEFAULT_PARSER_BACKEND, normalizeParserBackend } from '../axilogParser';
+import { PARSER_BACKEND_MIGRATION_NOTICE_KEY } from '../parserBackendMigration';
 
 export interface EiHandlerOptions {
     store: any;
@@ -24,13 +25,23 @@ export function registerEiHandlers(opts: EiHandlerOptions) {
             default: DEFAULT_PARSER_BACKEND,
             axilogAvailable: Boolean(axilog?.isInstalled()),
             axilogVersion: axilog?.getStatus().version ?? null,
+            // True until the user has been told their Elite Insights selection
+            // was migrated. Rides along here because the migration runs before
+            // any window exists, so an event would have nobody to reach.
+            migratedFromEliteInsights: Boolean(store.get(PARSER_BACKEND_MIGRATION_NOTICE_KEY)),
         };
     });
 
     ipcMain.on('parser:set-backend', (_event, backend: unknown) => {
         const resolved = normalizeParserBackend(backend);
         store.set('parserBackend', resolved);
+        // Choosing an engine by hand answers the notice, whichever way it goes.
+        store.set(PARSER_BACKEND_MIGRATION_NOTICE_KEY, false);
         getWindow()?.webContents.send('parser:backend-changed', { backend: resolved });
+    });
+
+    ipcMain.on('parser:ack-migration-notice', () => {
+        store.set(PARSER_BACKEND_MIGRATION_NOTICE_KEY, false);
     });
 
     ipcMain.handle('ei:get-status', () => {

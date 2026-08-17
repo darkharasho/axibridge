@@ -2755,6 +2755,34 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         {/* Parse engine selection */}
                         <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4" data-testid="parser-backend-card">
                             <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Parse Engine</div>
+                            {/*
+                              * The one-time migration changed a setting the user
+                              * had chosen by hand, so it says so where the setting
+                              * lives — and the picker below is the undo.
+                              */}
+                            {parserBackend?.migratedFromEliteInsights && (
+                                <div
+                                    data-testid="parser-backend-migration-notice"
+                                    className="bg-blue-500/10 border border-blue-500/30 rounded-[4px] px-3 py-2.5 mb-3 flex items-start gap-3"
+                                >
+                                    <div className="flex-1 text-xs text-blue-100 leading-snug">
+                                        <span className="font-semibold">Switched to Axilog.</span>{' '}
+                                        You had selected Elite Insights, which no longer produces the data the stats
+                                        views read — damage, positioning, boons and replay come out empty on logs it
+                                        parses. Pick Elite Insights below to switch back.
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setParserBackend((prev) => (prev ? { ...prev, migratedFromEliteInsights: false } : prev));
+                                            window.electronAPI?.ackParserMigrationNotice?.();
+                                        }}
+                                        className="text-xs text-blue-300/70 hover:text-blue-100 flex-shrink-0"
+                                    >
+                                        Got it
+                                    </button>
+                                </div>
+                            )}
                             <div className="grid gap-3">
                                 {PARSER_BACKEND_OPTIONS.map((option) => {
                                     // Before `getParserBackend` resolves (and in
@@ -2776,7 +2804,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             disabled={unavailable}
                                             onClick={() => {
                                                 if (unavailable || isActive) return;
-                                                setParserBackend((prev) => (prev ? { ...prev, backend: option.id } : prev));
+                                                // Picking an engine by hand answers the migration
+                                                // notice, whichever way it goes — main does the same.
+                                                setParserBackend((prev) => (prev ? { ...prev, backend: option.id, migratedFromEliteInsights: false } : prev));
                                                 window.electronAPI?.setParserBackend?.(option.id);
                                             }}
                                             className={`text-left rounded-[4px] border px-4 py-3 transition-colors ${isActive
