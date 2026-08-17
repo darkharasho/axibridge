@@ -81,7 +81,7 @@ export const getEntityDownContributionBySkill = (details: any, entityId: number)
 };
 
 export const getEntitySkillRows = (
-    details: any, entityId: number, opts: { perTarget?: boolean } = {},
+    details: any, entityId: number, opts: { perTarget?: boolean; supplement?: boolean } = {},
 ): NativeSkillRow[] => {
     const entity = damageOf(details, entityId);
     if (!entity) return [];
@@ -102,6 +102,25 @@ export const getEntitySkillRows = (
     if (opts.perTarget) {
         for (const target of Object.values<any>(entity.per_target ?? {})) {
             for (const [id, v] of Object.entries<any>(target?.by_skill ?? {})) add(id, v);
+        }
+        if (opts.supplement) {
+            // Damage that landed on nothing tracked — splash, and hits on
+            // entities the log did not curate — lives in `by_skill` but has no
+            // `per_target` row. Adding the remainder reproduces EI's
+            // targetDamageDist/totalDamageDist reconciliation, which callers
+            // suppress on detailed WvW logs where the per-target slices are
+            // authoritative and the totals carry known-bogus outliers.
+            for (const [id, v] of Object.entries<any>(entity.by_skill ?? {})) {
+                const seen = source[id];
+                const deltaDamage = Number(v?.total ?? 0) - Number(seen?.total ?? 0);
+                const deltaHits = Number(v?.hits ?? 0) - Number(seen?.hits ?? 0);
+                if (deltaDamage <= 0 && deltaHits <= 0) continue;
+                add(id, {
+                    total: Math.max(0, deltaDamage),
+                    hits: Math.max(0, deltaHits),
+                    connected_hits: Math.max(0, Number(v?.connected_hits ?? v?.hits ?? 0) - Number(seen?.connected_hits ?? 0)),
+                });
+            }
         }
     } else {
         for (const [id, v] of Object.entries<any>(entity.by_skill ?? {})) add(id, v);

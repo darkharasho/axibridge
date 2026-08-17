@@ -14,7 +14,13 @@ import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
  * what keeps condition ticks out of every number in this module.
  */
 const getStrikeRows = (details: any, entityId: number): NativeSkillRow[] => {
-    const perTarget = getEntitySkillRows(details, entityId, { perTarget: true }).filter((r) => !r.indirect);
+    // `supplement` adds back damage with no per-target row — splash, and hits
+    // on uncurated entities — which is EI's totalDamageDist reconciliation.
+    // Detailed WvW logs suppress it: there the per-target slices are
+    // authoritative and the totals carry outliers EI never resolved.
+    const supplement = !details?.detailedWvW;
+    const perTarget = getEntitySkillRows(details, entityId, { perTarget: true, supplement })
+        .filter((r) => !r.indirect);
     if (perTarget.length > 0) return perTarget;
     return getEntitySkillRows(details, entityId).filter((r) => !r.indirect);
 };
@@ -23,14 +29,20 @@ const getHighestSingleHit = (details: any, entityId: number) => {
     // `max` lives on the per-skill records in both by_skill and per_target,
     // so the peak hit no longer needs EI's corrupted-entry guard: native's max
     // is a real observed hit, not a derived figure that could exceed the total.
-    const rows = getEntitySkillRows(details, entityId, { perTarget: true }).filter((r) => !r.indirect);
     const entity = details?.native?.blocks?.damage?.by_entity?.[String(entityId)];
+    const targets = Object.values<any>(entity?.per_target ?? {});
+    // When per-target slices exist they are the ONLY source of the peak, even
+    // if `by_skill` reports a larger max for some skill: that larger figure is
+    // damage against something the log did not curate, and EI's equivalent
+    // rule existed because those totals carry known-bogus outliers.
+    const rows = getEntitySkillRows(details, entityId, { perTarget: targets.length > 0 })
+        .filter((r) => !r.indirect);
     const maxOf = (skillId: number): number => {
+        if (targets.length === 0) return Number(entity?.by_skill?.[String(skillId)]?.max ?? 0);
         let best = 0;
-        for (const target of Object.values<any>(entity?.per_target ?? {})) {
+        for (const target of targets) {
             best = Math.max(best, Number(target?.by_skill?.[String(skillId)]?.max ?? 0));
         }
-        if (best <= 0) best = Number(entity?.by_skill?.[String(skillId)]?.max ?? 0);
         return best;
     };
 
