@@ -1,55 +1,76 @@
 import { describe, it, expect } from 'vitest';
 import { computeOnTagReview, ON_TAG_RANGE, RUN_BACK_RANGE } from '../computeOnTagReview';
 
-// pollingRate=150, inchToPixel=0.02 → pixel distance × 50 = game units.
-// 12px=600u (On-Tag boundary), 100px=5000u (Run-Back boundary), 200px=10000u.
-const makeLog = (overrides: any = {}) => ({
-    log: {
-        filePath: overrides.filePath ?? 'fight-1',
-        encounterName: overrides.encounterName ?? 'Skirmish',
-        details: {
-            fightName: overrides.fightName ?? 'Skirmish',
-            durationMS: overrides.durationMS ?? 120000,
-            combatReplayMetaData: {
-                pollingRate: overrides.pollingRate ?? 150,
-                inchToPixel: overrides.inchToPixel ?? 0.02,
-            },
-            players: overrides.players ?? [],
-            targets: overrides.targets ?? [],
-        },
-        dashboardSummary: overrides.dashboardSummary ?? { isWin: true },
+const ARENA = {
+    image_width: 697, image_height: 1000, image_url: 'x',
+    world_min_x: -30720, world_min_y: -43008, world_max_x: 30720, world_max_y: 43008,
+};
+
+/**
+ * A native-shaped log at a 150ms poll. Positions are WORLD INCHES: 600 is the
+ * On-Tag boundary, 5000 the Run-Back boundary. A track's first sample lands at
+ * `ceil(start_ms / pollMs) * pollMs`, matching what axilog emits.
+ *
+ * Only `dead` produces an event. Native records deaths as their own intervals,
+ * already linked to the down that caused them, so there is no "does this down's
+ * second value appear in the dead set" inference left to make.
+ */
+const makeLog = (overrides: any = {}) => {
+    const entities = overrides.entities ?? [];
+    const pollMs = overrides.pollMs ?? 150;
+    const byEntity: any = {};
+    const trackByEntity: any = {};
+    for (const e of entities) {
+        byEntity[e.id] = {
+            start_ms: e.start_ms ?? 0, end_ms: 120_000, active_ms: 120_000,
+            down: e.down ?? [], dead: e.dead ?? [], dc: [],
+            dist_to_com: e.dist_to_com ?? null, stack_dist: e.stack_dist ?? null,
+        };
+        if (e.positions?.length) {
+            trackByEntity[e.id] = {
+                samples: e.positions.map((pt: [number, number], i: number) => [
+                    (Math.ceil((e.start_ms ?? 0) / pollMs) + i) * pollMs, pt[0], pt[1],
+                ]),
+                down_intervals: e.down ?? [], dead_intervals: e.dead ?? [], dc_intervals: [],
+            };
+        }
     }
-});
+    return {
+        log: {
+            filePath: overrides.filePath ?? 'fight-1',
+            encounterName: 'Skirmish',
+            details: {
+                fightName: 'Skirmish',
+                durationMS: 120000,
+                players: [],
+                targets: [],
+                native: {
+                    axilog: { schema: '1.0' },
+                    entities: entities.map((e: any) => ({
+                        id: e.id, account: e.account,
+                        profession: e.profession ?? 'Guardian', role: e.role ?? 'squad',
+                        ...(e.commander ? { commander: { guid: 'g', segments: [[0, 120_000]], variant: 'blue' } } : {}),
+                    })),
+                    blocks: {
+                        replay: {
+                            by_entity: byEntity,
+                            ...(overrides.noTracks ? {} : {
+                                tracks: { poll_ms: pollMs, arena: ARENA, by_entity: trackByEntity },
+                            }),
+                        },
+                    },
+                },
+            },
+            dashboardSummary: { isWin: true },
+        },
+    };
+};
 
-const makePlayer = (opts: {
-    account: string;
-    profession?: string;
-    hasCommanderTag?: boolean;
-    notInSquad?: boolean;
-    positions?: Array<[number, number]>;
-    dead?: Array<[number, number]>;
-    down?: Array<[number, number]>;
-    start?: number;
-    distToCom?: number | string;
-}) => ({
-    account: opts.account,
-    profession: opts.profession ?? 'Guardian',
-    hasCommanderTag: opts.hasCommanderTag ?? false,
-    notInSquad: opts.notInSquad ?? false,
-    combatReplayData: {
-        positions: opts.positions ?? [],
-        dead: opts.dead ?? [],
-        down: opts.down ?? [],
-        start: opts.start ?? 0,
-    },
-    statsAll: [{ distToCom: opts.distToCom ?? 100 }],
-    defenses: [{ damageTaken: 50, downCount: 0, deadCount: 0 }],
-});
-
-const stationaryCommander = (positions = 3) => makePlayer({
-    account: 'Cmdr.5678',
-    hasCommanderTag: true,
-    positions: Array.from({ length: positions }, () => [0, 0] as [number, number]),
+/** A stationary tag at the origin, sampled `n` times from t=0. */
+const stationaryCommander = (n = 3, over: any = {}) => ({
+    id: 1, account: 'Cmdr.5678', commander: true,
+    positions: Array.from({ length: n }, () => [0, 0] as [number, number]),
+    ...over,
 });
 
 const findRow = (result: any, account: string) =>
@@ -65,11 +86,11 @@ describe('computeOnTagReview', () => {
         expect(computeOnTagReview([])).toEqual({ rows: [], usableFightCount: 0 });
     });
 
-    it('produces no rows when no fight has a commander with positions', () => {
+    it('produces no rows when no fight has a commander with a track', () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
-                    makePlayer({ account: 'Player.1234', positions: [[0, 0], [10, 10]], down: [[150, 150]], dead: [[150, 300]] }),
+                entities: [
+                    { id: 2, account: 'Player.1234', positions: [[0, 0], [500, 500]], dead: [[150, 300]] },
                 ],
             }),
         ]);
@@ -77,17 +98,12 @@ describe('computeOnTagReview', () => {
         expect(result.usableFightCount).toBe(0);
     });
 
-    it('classifies a death at exactly 600 units as On-Tag', () => {
+    it('classifies a death at exactly 600 inches as On-Tag', () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
+                entities: [
                     stationaryCommander(),
-                    makePlayer({
-                        account: 'Player.1234',
-                        positions: [[12, 0], [12, 0], [12, 0]],
-                        down: [[150, 150]],
-                        dead: [[150, 300]],
-                    }),
+                    { id: 2, account: 'Player.1234', positions: [[600, 0], [600, 0], [600, 0]], dead: [[150, 300]] },
                 ],
             }),
         ]);
@@ -100,17 +116,12 @@ describe('computeOnTagReview', () => {
         expect(result.usableFightCount).toBe(1);
     });
 
-    it('classifies a death at exactly 5000 units as Off-Tag and records the range', () => {
+    it('classifies a death at exactly 5000 inches as Off-Tag and records the range', () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
+                entities: [
                     stationaryCommander(),
-                    makePlayer({
-                        account: 'Player.1234',
-                        positions: [[100, 0], [100, 0], [100, 0]],
-                        down: [[150, 150]],
-                        dead: [[150, 300]],
-                    }),
+                    { id: 2, account: 'Player.1234', positions: [[5000, 0], [5000, 0], [5000, 0]], dead: [[150, 300]] },
                 ],
             }),
         ]);
@@ -122,17 +133,12 @@ describe('computeOnTagReview', () => {
         expect(row.offTagRanges).toEqual([5000]);
     });
 
-    it('classifies a death beyond 5000 units as Run-Back without recording a range', () => {
+    it('classifies a death beyond 5000 inches as Run-Back without recording a range', () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
+                entities: [
                     stationaryCommander(),
-                    makePlayer({
-                        account: 'Player.1234',
-                        positions: [[200, 0], [200, 0], [200, 0]],
-                        down: [[150, 150]],
-                        dead: [[150, 300]],
-                    }),
+                    { id: 2, account: 'Player.1234', positions: [[10000, 0], [10000, 0], [10000, 0]], dead: [[150, 300]] },
                 ],
             }),
         ]);
@@ -144,30 +150,30 @@ describe('computeOnTagReview', () => {
         expect(row.offTagRanges).toEqual([]);
     });
 
-    it('counts After-Tag as an overlay when the down starts after the tag first died', () => {
-        const commander = makePlayer({
-            account: 'Cmdr.5678',
-            hasCommanderTag: true,
-            positions: [[0, 0], [0, 0], [0, 0], [0, 0]],
-            down: [[100, 100]],
-            dead: [[100, 5000]],
-        });
+    it('reports world inches, not pixels divided by a rounded scale', () => {
+        // EI's inchToPixel is rounded to 3dp (0.009 against a true 0.0087193),
+        // so a player parked 1000 inches out used to be reported at ~969 --
+        // 3.12% short, systematically, and enough to move a borderline death
+        // across the 600-inch On-Tag line.
         const result = computeOnTagReview([
             makeLog({
-                players: [
-                    commander,
-                    makePlayer({
-                        account: 'Late.1234',
-                        positions: [[6, 0], [6, 0], [6, 0], [6, 0]],
-                        down: [[300, 300]],
-                        dead: [[300, 600]],
-                    }),
-                    makePlayer({
-                        account: 'Early.1234',
-                        positions: [[6, 0], [6, 0], [6, 0], [6, 0]],
-                        down: [[50, 50]],
-                        dead: [[50, 600]],
-                    }),
+                entities: [
+                    stationaryCommander(),
+                    { id: 2, account: 'Player.1234', positions: [[1000, 0], [1000, 0], [1000, 0]], dead: [[150, 300]] },
+                ],
+            }),
+        ]);
+        expect(findRow(result, 'Player.1234').offTagRanges).toEqual([1000]);
+        expect(findRow(result, 'Player.1234').avgDist).toBe(1000);
+    });
+
+    it('counts After-Tag as an overlay when the death is after the tag first died', () => {
+        const result = computeOnTagReview([
+            makeLog({
+                entities: [
+                    stationaryCommander(4, { dead: [[100, 5000]] }),
+                    { id: 2, account: 'Late.1234', positions: [[300, 0], [300, 0], [300, 0], [300, 0]], dead: [[300, 600]] },
+                    { id: 3, account: 'Early.1234', positions: [[300, 0], [300, 0], [300, 0], [300, 0]], dead: [[50, 600]] },
                 ],
             }),
         ]);
@@ -183,14 +189,9 @@ describe('computeOnTagReview', () => {
     it('does not count After-Tag when the commander never died', () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
+                entities: [
                     stationaryCommander(4),
-                    makePlayer({
-                        account: 'Player.1234',
-                        positions: [[6, 0], [6, 0], [6, 0], [6, 0]],
-                        down: [[300, 300]],
-                        dead: [[300, 600]],
-                    }),
+                    { id: 2, account: 'Player.1234', positions: [[300, 0], [300, 0], [300, 0], [300, 0]], dead: [[300, 600]] },
                 ],
             }),
         ]);
@@ -198,16 +199,12 @@ describe('computeOnTagReview', () => {
     });
 
     it('excludes rallied downs but keeps the player as a zero-death row', () => {
+        // A down the player got back up from has no dead interval at all.
         const result = computeOnTagReview([
             makeLog({
-                players: [
+                entities: [
                     stationaryCommander(),
-                    makePlayer({
-                        account: 'Player.1234',
-                        positions: [[24, 0], [24, 0], [24, 0]],
-                        down: [[150, 0]], // rallied: no linked death
-                        dead: [],
-                    }),
+                    { id: 2, account: 'Player.1234', positions: [[1200, 0], [1200, 0], [1200, 0]], down: [[150, 300]], dead: [] },
                 ],
             }),
         ]);
@@ -218,33 +215,25 @@ describe('computeOnTagReview', () => {
         expect(row.fightCount).toBe(1);
     });
 
-    it('ignores downs that start before the fight', () => {
+    it('ignores a death interval that starts before the fight', () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
+                entities: [
                     stationaryCommander(),
-                    makePlayer({
-                        account: 'Player.1234',
-                        positions: [[24, 0], [24, 0], [24, 0]],
-                        down: [[-50, 100]],
-                        dead: [[100, 300]],
-                    }),
+                    { id: 2, account: 'Player.1234', positions: [[1200, 0], [1200, 0], [1200, 0]], dead: [[-50, 300]] },
                 ],
             }),
         ]);
         expect(findRow(result, 'Player.1234').total).toBe(0);
     });
 
-    it('counts the commander\'s own death as On-Tag at distance 0', () => {
-        const commander = makePlayer({
-            account: 'Cmdr.5678',
-            hasCommanderTag: true,
-            positions: [[300, 0], [300, 0], [300, 0]],
-            down: [[150, 150]],
-            dead: [[150, 300]],
-        });
+    it("counts the commander's own death as On-Tag at distance 0", () => {
         const result = computeOnTagReview([
-            makeLog({ players: [commander] }),
+            makeLog({
+                entities: [
+                    { id: 1, account: 'Cmdr.5678', commander: true, positions: [[15000, 0], [15000, 0], [15000, 0]], dead: [[150, 300]] },
+                ],
+            }),
         ]);
         const row = findRow(result, 'Cmdr.5678');
         expect(row.isCommander).toBe(true);
@@ -253,66 +242,44 @@ describe('computeOnTagReview', () => {
         expect(row.avgDist).toBe(0);
     });
 
-    it('truncates Avg Dist samples at the player\'s first death', () => {
+    it("truncates Avg Dist samples at the player's first death", () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
+                entities: [
                     stationaryCommander(),
-                    makePlayer({
-                        account: 'Player.1234',
-                        positions: [[24, 0], [100, 0], [100, 0]],
-                        down: [[150, 150]],
-                        dead: [[150, 300]],
-                    }),
+                    { id: 2, account: 'Player.1234', positions: [[1200, 0], [5000, 0], [5000, 0]], dead: [[150, 300]] },
                 ],
             }),
         ]);
-        // death poll = 1 → samples = poll 0 only → 24px = 1200u (not (1200+5000+5000)/3)
+        // Death at t=150 => only the t=0 sample counts => 1200, not the mean
+        // of 1200/5000/5000.
         expect(findRow(result, 'Player.1234').avgDist).toBe(1200);
     });
 
-    it('truncates Avg Dist samples at the tag\'s death even if the player survived', () => {
-        const commander = makePlayer({
-            account: 'Cmdr.5678',
-            hasCommanderTag: true,
-            positions: [[0, 0], [0, 0], [0, 0]],
-            down: [[150, 150]],
-            dead: [[150, 5000]],
-        });
+    it("truncates Avg Dist samples at the tag's death even if the player survived", () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
-                    commander,
-                    makePlayer({
-                        account: 'Player.1234',
-                        positions: [[24, 0], [200, 0], [200, 0]],
-                        dead: [],
-                        down: [],
-                    }),
+                entities: [
+                    stationaryCommander(3, { dead: [[150, 5000]] }),
+                    { id: 2, account: 'Player.1234', positions: [[1200, 0], [10000, 0], [10000, 0]], dead: [], down: [] },
                 ],
             }),
         ]);
-        // tag death poll = 1 → samples = poll 0 only → 1200u
         expect(findRow(result, 'Player.1234').avgDist).toBe(1200);
     });
 
-    it('applies the player start offset to both death position and Avg Dist', () => {
-        const commander = makePlayer({
-            account: 'Cmdr.5678',
-            hasCommanderTag: true,
-            positions: [[0, 0], [0, 0], [0, 0], [0, 0]],
-        });
+    it('does not shift a mid-poll track against the tag', () => {
+        // The regression this unit exists for: the old path derived the
+        // player's first poll as floor(start / pollingRate) where ceil is
+        // correct. 36 of 42 players on the committed fixture have a start that
+        // is not a multiple of the poll rate. Here the player joins at 150ms,
+        // so their samples are t=150/300 and both sides are read at the same
+        // instant rather than at two separately-derived indices.
         const result = computeOnTagReview([
             makeLog({
-                players: [
-                    commander,
-                    makePlayer({
-                        account: 'Late.9999',
-                        start: 150, // offset = 1 poll
-                        positions: [[40, 0], [40, 0]],
-                        down: [[300, 300]],
-                        dead: [[300, 600]],
-                    }),
+                entities: [
+                    stationaryCommander(4),
+                    { id: 2, account: 'Late.9999', start_ms: 150, positions: [[2000, 0], [2000, 0]], dead: [[300, 600]] },
                 ],
             }),
         ]);
@@ -322,38 +289,38 @@ describe('computeOnTagReview', () => {
         expect(row.avgDist).toBe(2000);
     });
 
-    it('falls back to distToCom for Avg Dist when the player has no positions', () => {
+    it('falls back to the native dist_to_com when the player has no track', () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
+                entities: [
                     stationaryCommander(),
-                    makePlayer({ account: 'NoReplay.1111', positions: [], distToCom: 800.4 }),
+                    { id: 2, account: 'NoReplay.1111', dist_to_com: 800.4 },
                 ],
             }),
         ]);
         expect(findRow(result, 'NoReplay.1111').avgDist).toBe(800);
     });
 
-    it('ignores distToCom sentinels ("Infinity" and negative values)', () => {
+    it('ignores the -1 no-distance sentinel and out-of-range values', () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
+                entities: [
                     stationaryCommander(),
-                    makePlayer({ account: 'Inf.1111', positions: [], distToCom: 'Infinity' }),
-                    makePlayer({ account: 'Neg.2222', positions: [], distToCom: -1 }),
+                    { id: 2, account: 'Neg.2222', dist_to_com: -1 },
+                    { id: 3, account: 'Far.3333', dist_to_com: 999999 },
                 ],
             }),
         ]);
-        expect(findRow(result, 'Inf.1111')).toBeUndefined();
         expect(findRow(result, 'Neg.2222')).toBeUndefined();
+        expect(findRow(result, 'Far.3333')).toBeUndefined();
     });
 
     it('excludes non-squad players', () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
+                entities: [
                     stationaryCommander(),
-                    makePlayer({ account: 'Enemy.3333', notInSquad: true, positions: [[12, 0]], down: [[150, 150]], dead: [[150, 300]] }),
+                    { id: 2, account: 'Enemy.3333', role: 'enemy_player', positions: [[600, 0]], dead: [[150, 300]] },
                 ],
             }),
         ]);
@@ -363,15 +330,14 @@ describe('computeOnTagReview', () => {
     it('aggregates counts, ranges, fights, and Avg Dist across fights by account', () => {
         const fight = (range: number, filePath: string) => makeLog({
             filePath,
-            players: [
+            entities: [
                 stationaryCommander(),
-                makePlayer({
-                    account: 'Player.1234',
+                {
+                    id: 2, account: 'Player.1234',
                     profession: filePath === 'f1' ? 'Guardian' : 'Firebrand',
-                    positions: [[range / 50, 0], [range / 50, 0], [range / 50, 0]],
-                    down: [[150, 150]],
+                    positions: [[range, 0], [range, 0], [range, 0]],
                     dead: [[150, 300]],
-                }),
+                },
             ],
         });
         const result = computeOnTagReview([fight(2000, 'f1'), fight(1000, 'f2')]);
@@ -389,21 +355,11 @@ describe('computeOnTagReview', () => {
     it('sorts rows by total deaths descending by default', () => {
         const result = computeOnTagReview([
             makeLog({
-                players: [
-                    stationaryCommander(),
-                    makePlayer({ account: 'Zero.1111', positions: [[12, 0], [12, 0], [12, 0]] }),
-                    makePlayer({
-                        account: 'Two.2222',
-                        positions: [[12, 0], [12, 0], [12, 0], [12, 0], [12, 0]],
-                        down: [[150, 150], [450, 450]],
-                        dead: [[150, 300], [450, 600]],
-                    }),
-                    makePlayer({
-                        account: 'One.3333',
-                        positions: [[12, 0], [12, 0], [12, 0]],
-                        down: [[150, 150]],
-                        dead: [[150, 300]],
-                    }),
+                entities: [
+                    stationaryCommander(5),
+                    { id: 2, account: 'Zero.1111', positions: [[600, 0], [600, 0], [600, 0]] },
+                    { id: 3, account: 'Two.2222', positions: [[600, 0], [600, 0], [600, 0], [600, 0], [600, 0]], dead: [[150, 300], [450, 600]] },
+                    { id: 4, account: 'One.3333', positions: [[600, 0], [600, 0], [600, 0]], dead: [[150, 300]] },
                 ],
             }),
         ]);

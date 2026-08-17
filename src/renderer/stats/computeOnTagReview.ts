@@ -5,6 +5,10 @@
  * After-Tag is an overlay count (subset of Total) for downs that started after
  * the tag's first death in that fight.
  */
+import { buildNativeMovement, positionAt, positionAtOrBefore } from '../../shared/movementData';
+import { getDistanceScalars } from '@axiapps/bridge-metrics/nativePositioning';
+import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
+
 export const ON_TAG_RANGE = 600;
 export const RUN_BACK_RANGE = 5000;
 
@@ -44,96 +48,81 @@ export type OnTagReviewResult = {
     usableFightCount: number;
 };
 
-const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+const isCommanderEntity = (e: any): boolean => {
+    const c = e?.commander;
+    return !!c && typeof c === 'object' && Array.isArray(c.segments) && c.segments.length > 0;
+};
 
-const getDistToCom = (player: any): number | null => {
-    const v = player?.statsAll?.[0]?.distToCom;
+/** `blocks.replay.by_entity[id].dead` — present even without `--replay`. */
+const deadIntervals = (details: any, entityId: number): Array<[number, number]> => {
+    const raw = details?.native?.blocks?.replay?.by_entity?.[entityId]?.dead;
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((e: any) => Array.isArray(e) && Number.isFinite(Number(e[0]))) as Array<[number, number]>;
+};
+
+const coarseDistToCom = (scalars: Map<number, { distToCom: number | null }>, id: number): number | null => {
+    const v = scalars.get(id)?.distToCom;
     return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= RUN_BACK_RANGE ? v : null;
 };
 
 export const ingestLogOnTagReview = (log: any, fightIndex: number): OnTagReviewContribution[] => {
     const details = log?.details;
     const fightId = log?.filePath || `fight-${fightIndex}`;
-    const players = Array.isArray(details?.players) ? details.players : [];
-    const squadPlayers = players.filter((p: any) => !p?.notInSquad);
-    if (squadPlayers.length === 0) return [];
 
-    const replayMeta = details?.combatReplayMetaData || {};
-    const pollingRate = replayMeta?.pollingRate > 0 ? replayMeta.pollingRate : 0;
-    const inchToPixel = replayMeta?.inchToPixel > 0 ? replayMeta.inchToPixel : 0;
+    const squad = squadEntities(details?.native ?? {});
+    if (squad.length === 0) return [];
 
-    const commander = squadPlayers.find((p: any) => p?.hasCommanderTag);
-    const tagPositions: Array<[number, number]> = commander?.combatReplayData?.positions || [];
-    if (!commander || tagPositions.length === 0 || pollingRate <= 0 || inchToPixel <= 0) return [];
+    const movement = buildNativeMovement(details);
+    const scalars = getDistanceScalars(details);
+    const commander = squad.find(isCommanderEntity);
+    const tagTrack = commander && movement ? movement.tracks.get(commander.id) ?? null : null;
+    if (!commander || !movement || !tagTrack || tagTrack.samples.length === 0) return [];
 
-    // Tag death = first dead interval starting after fight start.
-    let tagDied = false;
-    let tagDeathMs = Infinity;
-    for (const entry of commander?.combatReplayData?.dead ?? []) {
-        if (Array.isArray(entry) && Number.isFinite(entry[0]) && entry[0] > 0) {
-            tagDied = true;
-            tagDeathMs = entry[0];
-            break;
-        }
-    }
-    const tagDeathPoll = tagDied ? Math.floor(tagDeathMs / pollingRate) : Infinity;
+    // Tag death = first dead interval starting after fight start. Compared as a
+    // TIMESTAMP; the old path converted it to a poll index and compared indices,
+    // which mixed two different derivations of the same instant.
+    const tagDeaths = deadIntervals(details, commander.id).filter(([t]) => t > 0);
+    const tagDied = tagDeaths.length > 0;
+    const tagDeathMs = tagDied ? tagDeaths[0][0] : Infinity;
 
     const out: OnTagReviewContribution[] = [];
 
-    for (const player of squadPlayers) {
-        const account = player?.account || 'Unknown';
-        const profession = player?.profession || 'Unknown';
-        const isCommanderPlayer = !!player?.hasCommanderTag;
+    for (const entity of squad) {
+        const account = entity?.account || 'Unknown';
+        const profession = entity?.profession || 'Unknown';
+        const isCommanderPlayer = entity.id === commander.id;
 
-        const replay = player?.combatReplayData;
-        const positions: Array<[number, number]> = Array.isArray(replay?.positions) ? replay.positions : [];
-        const playerOffset = Math.floor(Number(replay?.start || 0) / pollingRate);
+        const track = movement.tracks.get(entity.id) ?? null;
 
         const deaths: OnTagDeath[] = [];
-        let firstDeathPoll = Infinity;
+        let firstDeathMs = Infinity;
 
-        if (positions.length > 0 && Array.isArray(replay?.dead) && Array.isArray(replay?.down)) {
-            const deadSet = new Set<number>();
-            for (const entry of replay.dead) {
-                if (Array.isArray(entry) && Number.isFinite(entry[0]) && entry[0] > 0) {
-                    deadSet.add(entry[0]);
-                }
-            }
-
-            for (const entry of replay.down) {
-                if (!Array.isArray(entry)) continue;
-                const downStartMs = Number(entry[0]);
-                const linkedDeathMs = Number(entry[1]);
-                if (!Number.isFinite(downStartMs) || downStartMs < 0) continue;
-                if (!deadSet.has(linkedDeathMs)) continue;
-
-                const pollIndex = Math.floor(downStartMs / pollingRate);
-                const playerIdx = clamp(pollIndex - playerOffset, 0, positions.length - 1);
-                const tagIdx = clamp(pollIndex, 0, tagPositions.length - 1);
-
-                const [px, py] = positions[playerIdx];
-                const [tx, ty] = tagPositions[tagIdx];
-                const range = isCommanderPlayer ? 0 : Math.round(Math.hypot(px - tx, py - ty) / inchToPixel);
-
-                deaths.push({ range, afterTag: tagDied && downStartMs > tagDeathMs });
-                firstDeathPoll = Math.min(firstDeathPoll, pollIndex);
+        if (track && track.samples.length > 0) {
+            for (const [deathMs] of deadIntervals(details, entity.id)) {
+                if (deathMs < 0) continue;
+                // A death is an arcdps timestamp, not a poll instant.
+                const p = positionAtOrBefore(track, deathMs, movement.pollMs);
+                const tag = positionAtOrBefore(tagTrack, deathMs, movement.pollMs);
+                if (!p || !tag) continue;
+                const range = isCommanderPlayer ? 0 : Math.round(Math.hypot(p[0] - tag[0], p[1] - tag[1]));
+                deaths.push({ range, afterTag: tagDied && deathMs > tagDeathMs });
+                firstDeathMs = Math.min(firstDeathMs, deathMs);
             }
         }
 
-        // Avg distance to tag over polls before the player's first death and the
-        // tag's death — "how far from tag while it mattered".
+        // Avg distance to tag over the samples before the player's first death
+        // and the tag's death — "how far from tag while it mattered".
         let avgDist: number | null = null;
-        if (positions.length > 0) {
-            const limitPoll = Math.min(firstDeathPoll, tagDeathPoll);
+        if (track && track.samples.length > 0) {
+            const limitMs = Math.min(firstDeathMs, tagDeathMs);
             let sum = 0;
             let count = 0;
-            for (let i = 0; i < positions.length; i++) {
-                const absPoll = i + playerOffset;
-                if (absPoll >= limitPoll) break;
-                const tagIdx = clamp(absPoll, 0, tagPositions.length - 1);
-                const [px, py] = positions[i];
-                const [tx, ty] = tagPositions[tagIdx];
-                sum += isCommanderPlayer ? 0 : Math.hypot(px - tx, py - ty) / inchToPixel;
+            for (const [t] of track.samples) {
+                if (t >= limitMs) break;
+                const p = positionAt(track, t);
+                const tag = positionAt(tagTrack, t);
+                if (!p || !tag) continue;
+                sum += isCommanderPlayer ? 0 : Math.hypot(p[0] - tag[0], p[1] - tag[1]);
                 count++;
             }
             if (count > 0) {
@@ -141,7 +130,7 @@ export const ingestLogOnTagReview = (log: any, fightIndex: number): OnTagReviewC
                 if (mean <= RUN_BACK_RANGE) avgDist = mean;
             }
         }
-        if (avgDist === null) avgDist = getDistToCom(player);
+        if (avgDist === null) avgDist = coarseDistToCom(scalars, entity.id);
 
         // Nothing measurable this fight — skip so the player doesn't get a hollow row.
         if (deaths.length === 0 && avgDist === null) continue;
