@@ -67,6 +67,13 @@ export const listBoonIds = (details: any): number[] => {
         .sort((a, b) => a - b);
 };
 
+/**
+ * No production consumer as of unit 5a — the boon-uptime surfaces still read EI
+ * and move in the aggregators unit (`computePlayerAggregation`,
+ * `commanderMetrics/*`). It is exercised by tests and by the carry-set guard,
+ * and it is the function those consumers will call, so it stays. Do not read
+ * its presence as evidence that uptime is already migrated.
+ */
 export const getEntityBuffUptime = (details: any, entityId: number, buffId: number): number => {
     const entry = entryOf(details, entityId, buffId);
     if (!entry) return 0;
