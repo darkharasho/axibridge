@@ -7,7 +7,7 @@
  * has no log details at render time — can still draw party overlays.
  */
 
-import { resolveCommanderDistance } from '@axiapps/bridge-metrics';
+import { resolveCommanderDistance, getEntityBuffStates } from '@axiapps/bridge-metrics';
 import { buildNativeMovement, positionAt, type PositionTrack } from '../../shared/movementData';
 import { getDistanceScalars } from '@axiapps/bridge-metrics/nativePositioning';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
@@ -130,15 +130,19 @@ const computeDistances = (
     });
 };
 
-const computeStabStacks = (player: any, bucketCount: number): number[] => {
+const STABILITY_BUFF_ID = 1122;
+
+const computeStabStacks = (
+    details: any, entityId: number | undefined, bucketCount: number,
+): number[] => {
     const out = new Array<number>(bucketCount).fill(0);
-    const buffUptime = Array.isArray(player?.buffUptimes)
-        ? player.buffUptimes.find((b: any) => Number(b?.id) === 1122)
-        : null;
-    if (!buffUptime?.states || !Array.isArray(buffUptime.states)) return out;
-    const states: Array<[number, number]> = (buffUptime.states as any[])
-        .map((s: any) => Array.isArray(s) ? [Number(s[0]), Number(s[1])] : null)
-        .filter(Boolean) as Array<[number, number]>;
+    if (entityId === undefined) return out;
+    const states = getEntityBuffStates(details, entityId, STABILITY_BUFF_ID);
+    if (states.length === 0) return out;
+    // The bucket integration below is unchanged. Native `states` are a step
+    // function in fight-relative ms whose last entry runs to fight end --
+    // exactly what EI's `states` were, because the EI shim was passing these
+    // very arrays through. All 504 are byte-identical on the fixture.
     for (let b = 0; b < bucketCount; b++) {
         const bucketStart = b * 5000;
         const bucketEnd = (b + 1) * 5000;
@@ -201,7 +205,7 @@ export function ingestLogStabPerformance(log: any, acc: StabPerfAccumulator): vo
         const scalar = entityId === undefined ? undefined : scalars.get(entityId);
         const cmdDist = resolveCommanderDistance(scalar?.distToCom ?? undefined);
         const fallbackDist = cmdDist !== null ? cmdDist : Number(scalar?.stackDist || 0);
-        const stacks = computeStabStacks(player, bucketCount).map(round1);
+        const stacks = computeStabStacks(details, entityId, bucketCount).map(round1);
         const deaths = computeDeaths(player, bucketCount);
         const track = entityId === undefined || !movement ? null : movement.tracks.get(entityId) ?? null;
         const distances = computeDistances(track, tagTrack, fallbackDist, bucketCount).map(round0);

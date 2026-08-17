@@ -18,3 +18,4 @@ export * from './nativeEncounter';
 export * from './nativePositioning';
 export * from './nativeSeries';
 export * from './nativeDamage';
+export * from './nativeBoons';

@@ -1,3 +1,6 @@
+import { getBuffMeta, listBoonIds, getEntityBuffGeneration, getEntityActiveMs } from './nativeBoons';
+import { squadEntities, getEntityProfession } from './nativeRoster';
+
 export type BoonCategory = 'selfBuffs' | 'groupBuffs' | 'squadBuffs' | 'totalBuffs';
 export type BoonMetric = 'total' | 'average' | 'uptime';
 
@@ -45,18 +48,7 @@ const CATEGORY_COUNT: Record<Exclude<BoonCategory, 'totalBuffs'>, (groupCount: n
 
 const safeDiv = (a: number, b: number, fallback = 0) => (b ? a / b : fallback);
 
-const isBoon = (meta?: BuffInfo) => {
-    if (!meta?.classification) return true;
-    return meta.classification === 'Boon';
-};
-
 const toBoonId = (id: number) => `b${id}`;
-
-const getActiveTimeMs = (player: any, fallbackMs: number) => {
-    const activeTimes = Array.isArray(player?.activeTimes) ? player.activeTimes : [];
-    const activeMs = typeof activeTimes[0] === 'number' ? activeTimes[0] : 0;
-    return activeMs > 0 ? activeMs : fallbackMs;
-};
 
 const computeGenerationMs = (
     category: Exclude<BoonCategory, 'totalBuffs'>,
@@ -196,39 +188,32 @@ export const buildBoonTables = (logs: Array<{ details?: any }>, splitPlayersByCl
         const details = log.details;
         if (!details) return;
 
-        const durationMs = details.durationMS || 0;
-        const buffMap: Record<string, BuffInfo> = details.buffMap || {};
-        Object.entries(buffMap).forEach(([id, meta]) => {
-            if (!boonMeta.has(id)) {
-                boonMeta.set(id, meta);
-                return;
-            }
-            const existing = boonMeta.get(id) || {};
-            const merged: BuffInfo = {
-                name: existing.name || meta.name,
-                stacking: existing.stacking ?? meta.stacking,
-                icon: existing.icon || meta.icon,
-                classification: existing.classification || meta.classification,
-            };
-            boonMeta.set(id, merged);
+        const durationMs = Number(details?.native?.encounter?.duration_ms ?? details.durationMS ?? 0);
+
+        // Buff metadata comes from the catalog, which states `kind` outright.
+        // The old path sniffed a `classification` string that EI never sets,
+        // so every buff passed -- conditions simply never reached these arrays.
+        listBoonIds(details).forEach((id) => {
+            const meta = getBuffMeta(details, id);
+            if (!meta) return;
+            boonMeta.set(toBoonId(id), { name: meta.name, stacking: meta.stacking, classification: 'Boon' });
         });
 
-        const players = (details.players || []) as any[];
-        const squadPlayers = players.filter((p) => !p.notInSquad);
-        const squadCount = squadPlayers.length;
+        const members = squadEntities(details?.native);
+        const squadCount = members.length;
 
         const groupCounts = new Map<number, number>();
-        squadPlayers.forEach((player) => {
-            const group = player.group ?? 0;
+        members.forEach((entity) => {
+            const group = entity.subgroup ?? 0;
             groupCounts.set(group, (groupCounts.get(group) || 0) + 1);
         });
 
-        squadPlayers.forEach((player) => {
-            const account = player.account || player.name || player.character_name || 'Unknown';
-            const profession = player.profession || 'Unknown';
-            const group = player.group ?? 0;
+        members.forEach((entity) => {
+            const account = entity.account || entity.character || 'Unknown';
+            const profession = getEntityProfession(entity) || 'Unknown';
+            const group = entity.subgroup ?? 0;
             const groupCount = groupCounts.get(group) || 1;
-            const activeTimeMs = getActiveTimeMs(player, durationMs);
+            const activeTimeMs = getEntityActiveMs(details, entity.id, durationMs);
             const key = splitPlayersByClass && profession !== 'Unknown' ? `${account}::${profession}` : account;
 
             if (!playerAgg.has(key)) {
@@ -257,29 +242,19 @@ export const buildBoonTables = (logs: Array<{ details?: any }>, splitPlayersByCl
             agg.squadSupported += squadCount;
 
             BOON_CATEGORIES.forEach((category) => {
-                const buffs = (player[category] || []) as BuffGenerationEntry[];
-                buffs.forEach((buff) => {
-                    if (typeof buff?.id !== 'number') return;
-                    const boonId = toBoonId(buff.id);
-                    const meta = buffMap[boonId];
-                    if (!isBoon(meta)) return;
-                    const stacking = meta?.stacking ?? false;
-                    const generation = buff.buffData?.[0]?.generation ?? 0;
-                    const wasted = buff.buffData?.[0]?.wasted ?? 0;
-                    const { generationMs, wastedMs } = computeGenerationMs(
+                boonMeta.forEach((_meta, boonId) => {
+                    const boonIdNum = Number(boonId.slice(1));
+                    if (!Number.isFinite(boonIdNum)) return;
+                    const { generationMs, wastedMs } = getEntityBoonGenerationMs(
+                        details,
+                        entity.id,
                         category,
-                        stacking,
-                        generation,
-                        wasted,
+                        boonIdNum,
                         durationMs,
                         groupCount,
                         squadCount,
                     );
                     if (!generationMs && !wastedMs) return;
-
-                    if (!boonMeta.has(boonId)) {
-                        boonMeta.set(boonId, meta || {});
-                    }
 
                     if (!agg.boons[boonId]) {
                         agg.boons[boonId] = {
@@ -296,7 +271,7 @@ export const buildBoonTables = (logs: Array<{ details?: any }>, splitPlayersByCl
         });
     });
 
-    const boonIds = Array.from(boonMeta.keys()).filter((id) => isBoon(boonMeta.get(id)));
+    const boonIds = Array.from(boonMeta.keys());
 
     const boonTables: BoonTable[] = boonIds.map((boonId) => {
         const meta = boonMeta.get(boonId) || {};
@@ -414,4 +389,38 @@ export const getPlayerBoonGenerationMs = (
     const wasted = target.buffData?.[0]?.wasted ?? 0;
 
     return computeGenerationMs(category, stacking, generation, wasted, durationMs, groupCount, squadCount);
+};
+
+const GENERATION_FIELD: Record<Exclude<BoonCategory, 'totalBuffs'>, keyof ReturnType<typeof getEntityBuffGeneration>> = {
+    selfBuffs: 'self',
+    groupBuffs: 'group',
+    squadBuffs: 'squad',
+};
+
+const WASTED_FIELD: Record<Exclude<BoonCategory, 'totalBuffs'>, keyof ReturnType<typeof getEntityBuffGeneration>> = {
+    selfBuffs: 'selfWasted',
+    groupBuffs: 'groupWasted',
+    squadBuffs: 'squadWasted',
+};
+
+export const getEntityBoonGenerationMs = (
+    details: any,
+    entityId: number,
+    category: Exclude<BoonCategory, 'totalBuffs'>,
+    boonId: number,
+    durationMs: number,
+    groupCount: number,
+    squadCount: number,
+) => {
+    const gen = getEntityBuffGeneration(details, entityId, boonId);
+    const stacking = getBuffMeta(details, boonId)?.stacking ?? false;
+    return computeGenerationMs(
+        category,
+        stacking,
+        Number(gen[GENERATION_FIELD[category]] ?? 0),
+        Number(gen[WASTED_FIELD[category]] ?? 0),
+        durationMs,
+        groupCount,
+        squadCount,
+    );
 };

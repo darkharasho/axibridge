@@ -29,7 +29,10 @@
         "./playerIdentity": { "types": "./dist/playerIdentity.d.ts", "import": "./dist/playerIdentity.js", "require": "./dist/playerIdentity.cjs" },
         "./nativeRoster": { "types": "./dist/nativeRoster.d.ts", "import": "./dist/nativeRoster.js", "require": "./dist/nativeRoster.cjs" },
         "./nativeEncounter": { "types": "./dist/nativeEncounter.d.ts", "import": "./dist/nativeEncounter.js", "require": "./dist/nativeEncounter.cjs" },
-        "./nativePositioning": { "types": "./dist/nativePositioning.d.ts", "import": "./dist/nativePositioning.js", "require": "./dist/nativePositioning.cjs" }
+        "./nativePositioning": { "types": "./dist/nativePositioning.d.ts", "import": "./dist/nativePositioning.js", "require": "./dist/nativePositioning.cjs" },
+        "./nativeSeries": { "types": "./dist/nativeSeries.d.ts", "import": "./dist/nativeSeries.js", "require": "./dist/nativeSeries.cjs" },
+        "./nativeDamage": { "types": "./dist/nativeDamage.d.ts", "import": "./dist/nativeDamage.js", "require": "./dist/nativeDamage.cjs" },
+        "./nativeBoons": { "types": "./dist/nativeBoons.d.ts", "import": "./dist/nativeBoons.js", "require": "./dist/nativeBoons.cjs" }
     },
     "typesVersions": {
         "*": { "*": ["dist/*.d.ts"] }

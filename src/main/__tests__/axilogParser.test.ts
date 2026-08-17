@@ -567,11 +567,14 @@ describe('native carry-set at the seam', () => {
         }) as any);
         const details: any = await mgr.parseLog(FIXTURE, 'log-1');
         expect(details.native.encounter.map).toBe('Green Alpine Borderlands');
-        // Unit 3 carries `blocks.replay` — and ONLY that block. `blocks`
+        // The whitelist carries `blocks.replay` (unit 3) and `blocks.damage`
+        // (unit 4) — and ONLY blocks a migrated reader needs. `blocks`
         // wholesale is 2.4 MB; a silent widening here would be a 100x
-        // payload regression in report.json.
+        // payload regression in report.json. This fake binding's `blocks`
+        // has no `boons`/`series`/`contribution`, so those stay absent even
+        // though they are in `CARRIED_PATHS` — there's nothing to carry.
         expect(details.native.blocks.replay.tracks).toEqual([1, 2, 3]);
-        expect(Object.keys(details.native.blocks)).toEqual(['replay']);
+        expect(Object.keys(details.native.blocks).sort()).toEqual(['damage', 'replay']);
     });
 
     it('leaves details.native absent when the native parse throws', async () => {

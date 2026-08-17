@@ -1,4 +1,7 @@
-import { getPlayerBoonGenerationMs } from '../../shared/boonGeneration';
+import {
+    getBuffMeta, listBoonIds, squadEntities, getEntityProfession, getEntityBuffStatesPerSource,
+} from '@axiapps/bridge-metrics';
+import { getEntityBoonGenerationMs } from '../../shared/boonGeneration';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 
@@ -176,26 +179,18 @@ export function ingestLogBoonTimeline(log: any, acc: BoonTimelineAccumulator, _b
 
     const details = log?.details;
     if (!details) return;
-    const players = Array.isArray(details.players) ? details.players : [];
-    const squadPlayers = players.filter((p: any) => !p?.notInSquad);
-    const squadCount = squadPlayers.length;
+    const members = squadEntities(details?.native);
+    const squadCount = members.length;
     if (squadCount <= 0) return;
-    const durationMs = Math.max(0, Number(details?.durationMS || 0));
+    const durationMs = Math.max(0, Number(details?.native?.encounter?.duration_ms ?? details?.durationMS ?? 0));
     const bucketCount = Math.max(1, Math.ceil(Math.max(1, durationMs) / 5000));
-    const buffMap = (details?.buffMap && typeof details.buffMap === 'object')
-        ? details.buffMap
-        : {};
-    const nameToKey = new Map<string, string>();
+    const idToKey = new Map<number, string>();
     const groupCounts = new Map<number, number>();
-    squadPlayers.forEach((player: any) => {
-        const group = Number(player?.group ?? 0);
+    members.forEach((entity: any) => {
+        const group = entity.subgroup ?? 0;
         groupCounts.set(group, (groupCounts.get(group) || 0) + 1);
-        const account = String(player?.account || player?.name || 'Unknown');
-        const key = account;
-        [player?.name, player?.display_name, player?.character_name, player?.account]
-            .map((value) => String(value || '').trim())
-            .filter(Boolean)
-            .forEach((value) => nameToKey.set(value, key));
+        const key = entity.account || entity.character || 'Unknown';
+        idToKey.set(entity.id, key);
     });
     const fullLabel = buildFightLabelV2({
         zone: details.fightName || log.fightName || `Fight ${index + 1}`,
@@ -206,26 +201,28 @@ export function ingestLogBoonTimeline(log: any, acc: BoonTimelineAccumulator, _b
     const fightBucketTimelineByBoon = new Map<string, Map<string, number[]>>();
     const fightPlayerSeenByBoon = new Map<string, Set<string>>();
 
-    squadPlayers.forEach((player: any) => {
-        const account = String(player?.account || player?.name || 'Unknown');
-        const profession = String(player?.profession || 'Unknown');
-        const key = account;
-        const group = Number(player?.group ?? 0);
+    members.forEach((entity: any) => {
+        const key = entity.account || entity.character || 'Unknown';
+        const account = key;
+        const profession = getEntityProfession(entity) || 'Unknown';
+        const group = entity.subgroup ?? 0;
         const groupCount = Math.max(1, Number(groupCounts.get(group) || 1));
         const categories: Array<'selfBuffs' | 'groupBuffs' | 'squadBuffs'> = ['selfBuffs', 'groupBuffs', 'squadBuffs'];
-        categories.forEach((category) => {
-            const buffs = Array.isArray(player?.[category]) ? player[category] : [];
-            buffs.forEach((buff: any) => {
-                const boonIdNum = Number(buff?.id);
-                if (!Number.isFinite(boonIdNum)) return;
-                const boonId = `b${boonIdNum}`;
-                const meta = buffMap[boonId] || {};
-                const classification = String(meta?.classification || '');
-                if (classification && classification !== 'Boon') return;
+
+        listBoonIds(details).forEach((boonIdNum) => {
+            const meta = getBuffMeta(details, boonIdNum);
+            if (!meta) return;
+            const boonId = `b${boonIdNum}`;
+            let generatedAny = false;
+
+            categories.forEach((category) => {
                 const generationMs = Number(
-                    getPlayerBoonGenerationMs(player, category, boonIdNum, durationMs, groupCount, squadCount, buffMap)?.generationMs || 0
+                    getEntityBoonGenerationMs(
+                        details, entity.id, category, boonIdNum, durationMs, groupCount, squadCount,
+                    )?.generationMs || 0
                 );
                 if (!Number.isFinite(generationMs) || generationMs <= 0) return;
+                generatedAny = true;
                 const boonBucket = ensureBoonBucket(boonBuckets, boonId, meta);
                 const playerEntry = boonBucket.players.get(key) || {
                     key,
@@ -269,28 +266,36 @@ export function ingestLogBoonTimeline(log: any, acc: BoonTimelineAccumulator, _b
                 addBoonCategoryGeneration(allFightTotals, category, generationMs);
                 fightValues.set('__all__', allFightTotals);
                 fightValuesByBoon.set(boonId, fightValues);
-                const buffUptime = Array.isArray(player?.buffUptimes)
-                    ? player.buffUptimes.find((entry: any) => Number(entry?.id) === boonIdNum)
-                    : null;
-                const statesPerSource = (buffUptime?.statesPerSource && typeof buffUptime.statesPerSource === 'object')
-                    ? buffUptime.statesPerSource
-                    : null;
-                if (statesPerSource) {
-                    const timelineByPlayer = fightBucketTimelineByBoon.get(boonId) || new Map<string, number[]>();
-                    Object.entries(statesPerSource).forEach(([sourceName, states]) => {
-                        const sourceKey = nameToKey.get(String(sourceName || '').trim());
-                        if (!sourceKey) return;
-                        addBucketWeightsFromStates(
-                            timelineByPlayer,
-                            sourceKey,
-                            states,
-                            bucketCount,
-                            durationMs
-                        );
-                    });
-                    fightBucketTimelineByBoon.set(boonId, timelineByPlayer);
-                }
             });
+
+            if (!generatedAny) return;
+            // Native keys per-source states by entity id (this entity is the
+            // recipient; the sources are whoever granted the boon). EI keyed
+            // this by character name, which is not unique.
+            //
+            // This is attributed once per (entity, boonId), not once per
+            // category. The pre-existing EI-era code re-derived and re-added
+            // the same states inside the per-category loop, so a boon that
+            // generated in all three categories got its bucket weights
+            // scaled by a data-dependent 1x/2x/3x multiplier -- a bug present
+            // in both the EI and native paths, not something this migration
+            // introduced. See computeBoonTimeline.test.ts for the regression
+            // that pins single attribution.
+            const bySource = getEntityBuffStatesPerSource(details, entity.id, boonIdNum);
+            if (bySource.size === 0) return;
+            const timelineByPlayer = fightBucketTimelineByBoon.get(boonId) || new Map<string, number[]>();
+            for (const [sourceEntityId, states] of bySource) {
+                const sourceKey = idToKey.get(sourceEntityId);
+                if (!sourceKey) continue;
+                addBucketWeightsFromStates(
+                    timelineByPlayer,
+                    sourceKey,
+                    states,
+                    bucketCount,
+                    durationMs
+                );
+            }
+            fightBucketTimelineByBoon.set(boonId, timelineByPlayer);
         });
     });
 

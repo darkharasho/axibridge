@@ -12,14 +12,6 @@ const makeMockLog = (opts: {
     details: {
         durationMS: opts.durationMs,
         timeStartStd: '2026-01-01T00:00:00Z',
-        buffMap: {
-            [`b${opts.boonId}`]: {
-                name: opts.boonName,
-                stacking: opts.stacking,
-                icon: '',
-                classification: 'Boon',
-            },
-        },
         players: [
             {
                 account: 'TestPlayer.1234',
@@ -27,14 +19,43 @@ const makeMockLog = (opts: {
                 profession: 'Guardian',
                 group: 1,
                 notInSquad: false,
-                buffUptimes: [
-                    {
-                        id: opts.boonId,
-                        statesPerSource: opts.statesPerSource,
-                    },
-                ],
             },
         ],
+        native: {
+            encounter: { duration_ms: opts.durationMs },
+            entities: [
+                {
+                    id: 1,
+                    account: 'TestPlayer.1234',
+                    character: 'TestPlayer',
+                    role: 'squad',
+                    profession: 'Guardian',
+                },
+            ],
+            catalogs: {
+                buffs: {
+                    [opts.boonId]: {
+                        name: opts.boonName,
+                        kind: 'boon',
+                        stacking: opts.stacking ? 'intensity' : 'duration',
+                        max_stacks: opts.stacking ? 25 : 1,
+                    },
+                },
+            },
+            blocks: {
+                boons: {
+                    by_entity: {
+                        '1': {
+                            [opts.boonId]: {
+                                per_source: {
+                                    by_source: opts.statesPerSource,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
     },
 });
 
