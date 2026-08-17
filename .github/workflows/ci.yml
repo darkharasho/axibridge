@@ -58,6 +58,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The root vitest config globs only `src/**`, so `test:unit` below never
+      # reaches the workspace packages. Run their suites explicitly, and run
+      # them before the slow Playwright install so a regression fails fast.
+      - name: Package unit tests
+        run: npm test --workspace packages/bridge-metrics
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
