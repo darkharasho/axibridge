@@ -64,6 +64,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     setConsoleLogForwarding: (enabled: boolean) => ipcRenderer.send('set-console-log-forwarding', enabled),
     getLogDetails: (payload: { filePath: string }) => ipcRenderer.invoke('get-log-details', payload),
+    // Re-parse a log with axilog so its details regain the native container the
+    // migrated stats readers need. See src/main/handlers/reparseHandlers.ts.
+    reparseLogNative: (payload: { filePath: string }) => ipcRenderer.invoke('log:reparse-native', payload),
     onDetailsPrewarm: (callback: (data: any) => void) => {
         ipcRenderer.on('details-prewarm', (_event, value) => callback(value))
         return () => {

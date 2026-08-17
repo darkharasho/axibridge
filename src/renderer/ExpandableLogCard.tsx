@@ -15,6 +15,7 @@ import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { useLogDetails } from './cache/useLogDetails';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { getWvwTeamColor, teamMapFromLog, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamColor } from '../shared/wvwTeams';
+import { detailsHaveNativeReport } from './stats/utils/nativeCoverage';
 
 // Track which logs have already played their arrival/success animations (survives virtualization remounts)
 const seenArrivalIds = new Set<string>();
@@ -236,6 +237,14 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         return 'Unknown Borderland';
     };
     const cardTitle = `${formattedDateTime()} - ${borderlandLabel()}`;
+    // Details only load once the card is expanded, so fall back to the ingestion
+    // record while collapsed: a log from dps.report, the Elite Insights engine or
+    // a JSON import definitionally has no native container. A log with neither
+    // details nor a recorded source (persisted before that field existed) makes
+    // no claim rather than a wrong one.
+    const lacksNativeData = Object.keys(details).length > 0
+        ? !detailsHaveNativeReport(details)
+        : Boolean(log.parseSource) && log.parseSource !== 'axilog';
     const formatDurationFromMs = (ms: number) => {
         const totalSeconds = Math.max(0, Math.floor(ms / 1000));
         const hours = Math.floor(totalSeconds / 3600);
@@ -918,6 +927,19 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start gap-3">
                         <h4 className="text-sm font-bold text-gray-200 truncate">{cardTitle}</h4>
+                        {lacksNativeData && (
+                            <span
+                                className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0"
+                                style={{
+                                    background: 'var(--status-warning-bg)',
+                                    border: '1px solid var(--status-warning-border)',
+                                    color: 'var(--status-warning)',
+                                }}
+                                title="Parsed without axilog native data — damage, positioning, boons and replay from this log are missing from the stats totals."
+                            >
+                                No native data
+                            </span>
+                        )}
                         {encounterDurationLabel && (
                             <span className="text-xs font-mono font-semibold shrink-0 tabular-nums" style={{ color: 'var(--brand-primary)' }}>{encounterDurationLabel}</span>
                         )}

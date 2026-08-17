@@ -79,6 +79,7 @@ import {
 import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers } from './handlers/githubHandlers';
 import { registerEiHandlers } from './handlers/eiHandlers';
+import { registerReparseHandlers } from './handlers/reparseHandlers';
 import { EiManager, DEFAULT_EI_SETTINGS, EiParserSettings } from './eiParser';
 import { AxilogManager, normalizeParserBackend, type ParserBackend } from './axilogParser';
 import { parseCliFlags } from './cliFlags';
@@ -549,6 +550,10 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 uploadTime: prunedDetails?.uploadTime || Date.now() / 1000,
                 status: hasUsableDetails ? 'calculating' : 'success',
                 detailsStatus: hasUsableDetails ? 'available' as const : 'idle' as const,
+                // An imported EI JSON never carries axilog's native container,
+                // so the migrated readers render it empty. Recording where the
+                // details came from is what lets the renderer say so.
+                parseSource: 'json-import' as const,
                 playerCount,
                 dashboardSummary,
                 squadGuilds
@@ -764,6 +769,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 filePath,
                 status: hasUsableDetails ? 'calculating' : 'success',
                 detailsStatus: hasUsableDetails ? 'available' as const : 'idle' as const,
+                // Whichever engine actually ran. Only 'axilog' attaches native.
+                parseSource: getParserBackend(),
                 playerCount,
                 dashboardSummary,
                 squadGuilds
@@ -972,6 +979,11 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                     filePath,
                     status: hasDetails ? 'calculating' : 'success',
                     detailsStatus: detailsKnownUnavailable ? 'unavailable' as const : hasDetails ? 'available' as const : 'idle' as const,
+                    // Reached either because no local parser is installed or
+                    // because the local parse threw and we fell through. Either
+                    // way these details come from dps.report and carry no
+                    // native container.
+                    parseSource: 'dps.report' as const,
                     playerCount,
                     dashboardSummary
                 });
@@ -983,6 +995,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                     filePath,
                     status: hasDetails ? 'calculating' : 'success',
                     detailsStatus: detailsKnownUnavailable ? 'unavailable' as const : hasDetails ? 'available' as const : 'idle' as const,
+                    parseSource: 'dps.report' as const,
                     playerCount,
                     dashboardSummary
                 });
@@ -1862,6 +1875,12 @@ if (!gotTheLock) {
             getWindow: () => win,
             getEiManager: () => eiManager!,
             getAxilogManager: () => axilogManager,
+        });
+        registerReparseHandlers({
+            getAxilogManager: () => axilogManager,
+            getBackend: () => getParserBackend(),
+            getPruneOptions: statsPruneOptions,
+            setBulkLogDetails,
         });
     })
 }

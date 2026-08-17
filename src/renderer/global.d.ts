@@ -383,6 +383,13 @@ export interface IElectronAPI {
     onConsoleLogHistory: (callback: (logs: Array<{ type: 'info' | 'error', message: string, timestamp: string }>) => void) => () => void;
     setConsoleLogForwarding: (enabled: boolean) => void;
     getLogDetails: (payload: { filePath: string; permalink?: string }) => Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>;
+    /** Re-parse the original `.zevtc` with axilog so the details regain `.native`. */
+    reparseLogNative: (payload: { filePath: string }) => Promise<{
+        success: boolean;
+        details?: any;
+        reason?: 'wrong-backend' | 'axilog-unavailable' | 'source-missing' | 'unusable-details' | 'parse-failed';
+        error?: string;
+    }>;
     onDetailsPrewarm?: (callback: (data: any) => void) => (() => void);
     getLogs: () => Promise<ILogData[]>;
     saveLogs: (logs: ILogData[]) => void;
@@ -505,6 +512,10 @@ declare global {
         fightName?: string;
         fightLabel?: string;
         detailsStatus: DetailsStatus;
+        /** Where the details came from. Only 'axilog' carries the native container
+         *  the migrated stats readers need; the rest render those views empty.
+         *  Absent on logs persisted before this field existed. */
+        parseSource?: import('./stats/utils/nativeCoverage').ParseSource;
         splitEnemiesByTeam?: boolean;
         dashboardSummary?: {
             hasPlayers: boolean;

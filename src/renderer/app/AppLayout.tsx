@@ -53,6 +53,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         computedSkillUsageData,
         aggregationProgress,
         aggregationDiagnostics,
+        nativeCoverage,
+        handleLogsHealed,
         statsDataProgress,
         setStatsViewSettings,
         setColorPalette,
@@ -160,7 +162,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         skillUsageData: computedSkillUsageData,
         aggregationProgress,
         aggregationDiagnostics,
-    }), [computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics]);
+        nativeCoverage,
+    }), [computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, nativeCoverage]);
 
     const handleNavViewChange = (nextView: 'dashboard' | 'stats' | 'commander' | 'history' | 'settings') => {
         setActiveNavView(nextView);
@@ -411,6 +414,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                             disruptionMethod={disruptionMethod}
                                             statsViewSettings={statsViewSettings}
                                             aggregationResult={stableAggregationResult}
+                                            onLogsHealed={handleLogsHealed}
                                             statsDataProgress={statsDataProgress}
                                             onStatsViewSettingsChange={stableOnStatsViewSettingsChange}
                                             webUploadState={webUploadState}

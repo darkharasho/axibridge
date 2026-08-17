@@ -26,6 +26,9 @@ import { DEFAULT_STATS_VIEW_SETTINGS, DEFAULT_WEB_UPLOAD_STATE, DisruptionMethod
 import type { PlayerSkillBreakdown, PlayerSkillDamageEntry, SkillUsageSummary } from './stats/statsTypes';
 import { getDefaultConditionIcon, normalizeConditionLabel } from '../shared/conditionsMetrics';
 import { DetailsCacheContext } from './cache/DetailsCacheContext';
+import { NativeCoverageBanner } from './stats/ui/NativeCoverageBanner';
+import { useNativeHeal } from './stats/hooks/useNativeHeal';
+import { EMPTY_NATIVE_COVERAGE, type NativeCoverage } from './stats/utils/nativeCoverage';
 
 import { SkillUsageSection } from './stats/sections/SkillUsageSection';
 import { ApmSection } from './stats/sections/ApmSection';
@@ -122,7 +125,10 @@ interface StatsViewProps {
         skillUsageData: SkillUsageSummary;
         aggregationProgress?: AggregationProgressState;
         aggregationDiagnostics?: AggregationDiagnosticsState | null;
+        nativeCoverage?: NativeCoverage;
     };
+    /** Called with the file paths of logs a native re-parse repaired. */
+    onLogsHealed?: (filePaths: string[]) => void;
 }
 
 const sidebarListClass = 'space-y-0.5 max-h-72 overflow-y-auto';
@@ -239,7 +245,7 @@ function resolveReplayFights(stats: any): any[] {
     });
 }
 
-export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult }: StatsViewProps) {
+export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
     useEffect(() => {
@@ -278,6 +284,26 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     );
 
     const detailsCache = useContext(DetailsCacheContext);
+
+    // Native coverage + repair. The aggregation observed which logs arrived
+    // without axilog's native container while it was already resolving their
+    // details; this view is where that becomes visible and actionable.
+    const nativeCoverage = externalAggregationResult?.nativeCoverage ?? EMPTY_NATIVE_COVERAGE;
+    const [parserBackend, setParserBackend] = useState<'axilog' | 'elite-insights' | null>(null);
+    useEffect(() => {
+        if (embedded) return;
+        let cancelled = false;
+        window.electronAPI?.getParserBackend?.()
+            .then((info: any) => {
+                if (!cancelled && (info?.backend === 'axilog' || info?.backend === 'elite-insights')) {
+                    setParserBackend(info.backend);
+                }
+            })
+            .catch(() => { /* leave null — the banner just omits the remedy */ });
+        return () => { cancelled = true; };
+    }, [embedded]);
+    const { healState, heal } = useNativeHeal({ detailsCache, onLogsHealed });
+
     const getDetails = (log: any): any => {
         if (detailsCache && log?.id) {
             const cached = detailsCache.peek(log.id);
@@ -4248,6 +4274,14 @@ type SpikeFight = {
                 canUploadWeb={canUploadWeb}
                 actionsDisabled={statsActionsDisabled}
                 onSearchClick={() => setSearchOpen(true)}
+            />
+
+            <NativeCoverageBanner
+                embedded={embedded}
+                coverage={nativeCoverage}
+                parserBackend={parserBackend}
+                healState={healState}
+                onHeal={() => heal(nativeCoverage.missingLogs)}
             />
 
             <WebUploadBanner
