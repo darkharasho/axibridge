@@ -25,7 +25,7 @@ const makeLog = (overrides: any = {}) => {
         if (e.positions?.length) {
             trackByEntity[e.id] = {
                 samples: e.positions.map((pt: [number, number], i: number) => [
-                    (Math.max(1, Math.ceil((e.start_ms ?? 0) / pollMs)) + i) * pollMs, pt[0], pt[1],
+                    (Math.ceil((e.start_ms ?? 0) / pollMs) + i) * pollMs, pt[0], pt[1],
                 ]),
                 down_intervals: e.down ?? [], dead_intervals: e.dead ?? [], dc_intervals: [],
             };
@@ -109,14 +109,14 @@ describe('computeTagDistanceDeaths', () => {
             makeLog({
                 entities: [
                     { id: 1, account: 'Cmdr.5678', commander: true, positions: [[0, 0], [0, 0], [0, 0]] },
-                    { id: 2, account: 'Player.1234', positions: [[100, 0], [200, 0], [300, 0]], dead: [[300, 900]] },
+                    { id: 2, account: 'Player.1234', positions: [[100, 0], [200, 0], [300, 0]], dead: [[150, 900]] },
                 ],
             }),
         ]);
         expect(result[0].hasReplayData).toBe(true);
         expect(result[0].eventCount).toBe(1);
         expect(result[0].events[0].playerAccount).toBe('Player.1234');
-        expect(result[0].events[0].timeIntoFightMs).toBe(300);
+        expect(result[0].events[0].timeIntoFightMs).toBe(150);
         expect(result[0].events[0].distanceFromTag).toBe(200);
     });
 
@@ -139,17 +139,18 @@ describe('computeTagDistanceDeaths', () => {
 
     it('resolves a death that falls between polls to the last known position', () => {
         // Deaths are arcdps timestamps and do not land on the polling grid.
-        // 320ms is 20ms past the t=300 sample, so the answer is [200,0].
+        // The track runs t=0/150/300; a death at 170ms resolves to the t=150
+        // sample — where the actor was last seen — not to an interpolation.
         const result = computeTagDistanceDeaths([
             makeLog({
                 entities: [
                     { id: 1, account: 'Cmdr.5678', commander: true, positions: [[0, 0], [0, 0], [0, 0]] },
-                    { id: 2, account: 'Player.1234', positions: [[100, 0], [200, 0], [300, 0]], dead: [[320, 900]] },
+                    { id: 2, account: 'Player.1234', positions: [[100, 0], [200, 0], [300, 0]], dead: [[170, 900]] },
                 ],
             }),
         ]);
         expect(result[0].events[0].distanceFromTag).toBe(200);
-        expect(result[0].events[0].timeIntoFightMs).toBe(320);
+        expect(result[0].events[0].timeIntoFightMs).toBe(170);
     });
 
     it('does not shift a mid-poll track against the tag', () => {

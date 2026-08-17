@@ -32,7 +32,7 @@ const makeLog = (overrides: any = {}) => {
                 // Samples land on the shared grid, starting at the first
                 // multiple of pollMs at or after this entity's start.
                 samples: e.positions.map((pt: [number, number], i: number) => [
-                    (Math.max(1, Math.ceil((e.start_ms ?? 0) / pollMs)) + i) * pollMs,
+                    (Math.ceil((e.start_ms ?? 0) / pollMs) + i) * pollMs,
                     pt[0], pt[1],
                 ]),
                 down_intervals: e.down ?? [], dead_intervals: e.dead ?? [], dc_intervals: [],
@@ -145,11 +145,14 @@ describe('ingestLogDistanceToTag', () => {
     });
 
     it('is unaffected by a start that is not a multiple of the poll rate', () => {
-        // start_ms 2 with a 150ms grid: the first sample is still at t=150.
+        // start_ms 2 on a 150ms grid: ceil(2/150) = 1, so the first sample is
+        // at t=150 and the track runs 150/300/450 — verified against the real
+        // fixture, where a start of 3ms likewise yields a first sample at 300
+        // while floor would have said 0.
         const out = ingestLogDistanceToTag(
             makeLog({
                 entities: [
-                    { id: 1, account: 'Cmdr.0', commander: true, positions: [[0, 0], [0, 0], [0, 0]] },
+                    { id: 1, account: 'Cmdr.0', commander: true, positions: [[0, 0], [0, 0], [0, 0], [0, 0]] },
                     { id: 2, account: 'A.1', start_ms: 2, positions: [[3, 4], [6, 8], [9, 12]] },
                 ],
             }).log,
