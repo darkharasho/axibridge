@@ -114,7 +114,7 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 | `statsAll[0].downContribution` | E | **arcdps methodology, not EI's — see §2.1** |
 | `statsAll[0].appliedCrowdControl`, `.appliedCrowdControlDuration` | E | exact vs EI |
 | `statsAll[0].downed`, `.killed` | E | whole-fight, incl. NPCs/guards/siege |
-| `statsAll[0].distToCom`, `.stackDist` | **D** | see §3 |
+| `statsAll[0].distToCom`, `.stackDist` | **A** ✅ | never emitted by `to_ei_json`, and no longer needed: unit 3 reads `blocks.replay.by_entity[].{dist_to_com,stack_dist}` in world inches. See §5. |
 | `statsAll[0].saved` | E ✅ | closed in 0.3.2; 37/42 players non-zero on the fixture. Still not in `dpsReportTypes`, so the read stays `Number(... \|\| 0)` |
 | `statsAll[0]` hit-quality family (`criticalRate`/`criticalDmg`/`flankingRate`/`glanceRate`/`againstMovingRate`/`connected*`/`critableDirectDamageCount`/`againstDowned*`) | E | exact vs EI both eras |
 | `defenses[0].damageTaken`, `.downCount`, `.deadCount` | E | |
@@ -302,7 +302,7 @@ it; `totalMitigation` and every mitigation count column are exact.
 
 | `EiParserSettings` | axilog `ParseOptions` | Rationale |
 |---|---|---|
-| *(none — hardcoded `true`)* | `replay` | Mirrors `generateEiConf`, which hardcodes `ParseCombatReplay=True` for the same reason. Produces `combatReplayData.positions` + `combatReplayMetaData`, and is the input to the derived `distToCom`/`stackDist`. The user's `parseCombatReplay` setting means *retain the positions post-parse* and is still applied downstream by `pruneDetailsForStats` — untouched. |
+| *(none — hardcoded `true`)* | `replay` | Mirrors `generateEiConf`, which hardcodes `ParseCombatReplay=True` for the same reason. Since unit 3 it gates `blocks.replay.tracks` (the self-timestamped world-inch samples) and the in-core `dist_to_com`/`stack_dist` pass. Note the interval half of `blocks.replay` is computed on **every** parse, so `coverage.replay === "present"` does **not** imply positions exist — only this flag does. The user's `parseCombatReplay` setting means *retain the samples post-parse* and is applied downstream by `pruneDetailsForStats`, which since unit 3 drops **both** EI's `positions` and native's `tracks`. |
 | `computeDamageModifiers` | `modifiers` | Gates `damageModifiers`/`incomingDamageModifiers` **and** the top-level `damageModMap`, which doubles as `get-log-details`' cache-freshness marker (`uploadHandlers.ts:152`). |
 | `rawTimelineArrays` | `timeseries` | `damage1S`/`damageTaken1S`/`targetDamage1S`/`dpsTargets` — the direct analogue of EI's own `RawTimelineArrays` conf key. |
 | *(none — hardcoded `true`)* | `skillDamage` | Real EI always emits `totalDamageDist`/`targetDamageDist`/`totalDamageTaken`; axilog makes them opt-in purely for payload size. Forced on to keep the read surface identical. |
@@ -503,75 +503,99 @@ gone.
 
 ---
 
-## 5. Derived scalars: `distToCom` / `stackDist`
+## 5. Distance scalars: `distToCom` / `stackDist` — reconstruction DELETED (unit 3)
 
-Still derived — axilog does not emit them, and they remain the entire basis of the Closest-to-Tag
-metric plus the coarse-mode positioning path. Unchanged by this cutover; recorded here in full
-because the derivation is the one place axibridge computes an EI statistic itself.
+**Status: closed.** axilog measures both in-core and emits them on
+`blocks.replay.by_entity[id].{dist_to_com,stack_dist}`, in world inches.
+`deriveDistanceScalars` is gone (`src/main/axilogParser.ts`, ~245 lines), and readers take the
+native values through `getDistanceScalars` (`@axiapps/bridge-metrics/nativePositioning`).
 
-### EI semantics (verified against GW2EI source, not inferred)
+The follow-up that tracked this section's **"3.7 % / 4.3 % mean error"** is closed, and the
+breakdown is worth recording, because most of it was not the approximation we thought:
 
-`GW2EIBuilders/JsonModels/JsonActorUtilities/JsonStatisticsBuilder.cs:153-154` maps
-`StackDist = gameStats.DistanceToCenterOfSquad` and `DistToCom = gameStats.DistanceToCommander`,
-both produced by `GW2EIEvtcParser/EIData/Statistics/GameplayStatistics.cs:140-141` through
-`GetDistanceToTarget` (same file, lines 29-69):
+| Source of error | Share | Fate |
+|---|---|---|
+| EI's `inchToPixel` rounded to 3 decimals — `0.009` against a true `750/86016 = 0.0087193` | **3.12 %, systematic, every distance in the app** | Gone. Native samples are already world inches; the division is deleted, not corrected. |
+| First-`hasCommanderTag`-player's whole track standing in for EI's per-segment commander timeline | the remainder | Gone. axilog computes against real `commander.segments`. |
 
-- iterate the actor's **active** polled positions
-  (`SingleActor.GetCombatReplayActivePolledPositions`,
-  `GW2EIEvtcParser/EIData/Actors/SingleActor.cs:268-290`, which nulls every poll the actor spends
-  **down, dead or disconnected**);
-- pair each with the reference position at the **same poll timestamp**, skipping polls where the
-  reference is null (lines 44-62);
-- the distance is the **XY-plane** length — Z is discarded (`.XY().Length()`, line 57);
-- return the arithmetic mean, or **`-1`** when nothing qualified (line 64). The whole block is
-  additionally gated on `log.CanCombatReplay` (line 139), leaving the C# `double` default `0`.
+The rounding term was the dominant one and it was **not** confined to the derived scalars: every
+`hypot(pixels) / inchToPixel` in the renderer carried it, so Distance-to-Tag, On-Tag Review,
+Tag-Distance Deaths and Stab Performance all read 3.12 % short. That is fixed by construction now,
+not by a correction factor.
 
-References:
-- **commander** — `StatisticsHelper.CalculateStackCommanderPositions`
-  (`GW2EIEvtcParser/EIData/Statistics/StatisticsHelper.cs:260-300`): the commanding player's **raw**
-  (not active-filtered) polled positions during their commander segments, `null` where nobody is
-  commanding.
-- **squad centre** — `StatisticsHelper.CalculateStackCenterPositions` (same file, 201-257): per
-  poll, the mean of every player's **active** position, `null` where nobody is active.
+### The poll-offset off-by-one, also deleted
 
-### Reproduction
+axilog emits `positions[i]` for the i-th multiple of `pollingRate` falling **inside**
+`[start, end]`, so sample `i` sits at absolute poll `ceil(start / pollingRate) + i`. Verified
+directly against the committed fixture at 0.3.5: an actor with `start_ms = 3` has its first sample
+at `t = 300`, where `floor` would say `0`.
 
-`deriveDistanceScalars` transcribes exactly that, from `combatReplayData.{positions,start,down,dead,
-dc}` plus `combatReplayMetaData`:
+Only `movementData.ts` and the parser's own `readTrack` used `ceil`. **Five call sites used
+`floor`** — `positioning.ts` (5 loops), `computeDistanceToTag.ts:70`, `computeOnTagReview.ts:90`,
+`computeTagDistanceDeaths.ts:77`, `computeStabPerformance.ts:106,177` — so those tracks were
+compared against a tag position from a different 300 ms tick. **36 of 42 players (86 %) on the
+committed fixture have a `start` that is not a multiple of the poll rate**, so this was the common
+case, not an edge case.
 
-- **Grid alignment.** axilog emits `positions[i]` for the i-th multiple of `pollingRate` inside
-  `[start, end]`, so sample `i` sits at absolute poll index `ceil(start / pollingRate) + i`. (Note
-  axibridge's own replay path in `computeDistanceToTag.ts:69` uses `floor`, a pre-existing ≤1-poll
-  skew this derivation does not inherit.)
-- **Active filter.** A poll is skipped when its timestamp falls inside any of the actor's
-  `down`/`dead`/`dc` intervals. The commander reference is deliberately *not* filtered, per
-  `CalculateStackCommanderPositions`.
-- **Units.** EI works in world inches; axilog's positions are map **pixels**. Dividing by
-  `combatReplayMetaData.inchToPixel` recovers inches — the same conversion
-  `computeDistanceToTag.ts:78` already performs.
-- **Sentinel.** `-1` (`NO_DISTANCE`) when there is no commander, no positions, or no
-  `combatReplayMetaData`. This is EI's own sentinel and is already rejected by every reader:
-  `resolveCommanderDistance` (`packages/bridge-metrics/src/dashboardMetrics.ts:29-42`) requires
-  `typeof === 'number' && isFinite && >= 0`, and `computeOnTagReview.ts:50` re-checks inline.
+Native samples are `[t_ms, x, y]`. There is no index to derive, so the bug class is eliminated
+structurally rather than fixed in five places.
 
-Measured on the committed fixture (42 squad players): median 240 inches from the tag, the blob
-between 230 and 450, one genuine straggler at 21,860.
+### EI semantics (retained for reference)
 
-### Measured accuracy, and the deliberate approximations behind it
+The behaviour axilog now reproduces in-core, verified against GW2EI source:
+`JsonStatisticsBuilder.cs:153-154` maps `StackDist = gameStats.DistanceToCenterOfSquad` and
+`DistToCom = gameStats.DistanceToCommander`, both from
+`GameplayStatistics.cs:140-141` via `GetDistanceToTarget` (lines 29-69): iterate the actor's
+**active** polled positions (nulling every poll spent down, dead or disconnected), pair each with
+the reference at the **same poll timestamp**, take the **XY-plane** length (Z discarded), and
+return the mean or **`-1`** when nothing qualified. `NO_DISTANCE = -1` is preserved verbatim by
+axilog and still rejected by every reader.
 
-Reviewed against EI's own output: **3.7 % / 4.3 % mean error** on `distToCom` / `stackDist` — the
-*sum* of the approximations below, not a floor on any one.
+### Carry-set and payload
 
-1. **The commander reference is one player's whole track, not EI's per-segment commander timeline.**
-   `deriveDistanceScalars` picks the first player with `hasCommanderTag` and uses that actor's entire
-   position track. EI builds a timeline from **every** player's `GetCommanderStates`
-   (`StatisticsHelper.cs:258-300`). So a tag **hand-off or relog** attributes the whole fight to one
-   track, and **polls before the tag was picked up** are counted against a reference EI would have
-   nulled. axilog's ei-json exposes only a boolean `hasCommanderTag`. Follow-up 4.
-2. **The squad centre is averaged over `players[]`** rather than GW2EI's `log.PlayerList`.
-3. **Pixel-grid rounding**, from exported map-pixel positions divided by `inchToPixel`.
-4. **Inclusive `dc` bracket endpoints** drop a poll landing exactly on the actor's `start`/`end`
-   that EI keeps — 6 of 6,894 samples (0.087 %). See `toIntervals`.
+The carry-set gained `blocks.replay` and `CARRIED_KEYS` became `CARRIED_PATHS` (dotted paths), so
+`blocks` can hold `replay` and nothing else. Measured on `wvw-small.anon.zevtc`:
+
+| | Size |
+|---|---|
+| Full native report | 2441.5 KB |
+| Carry-set, units 1+2 | 22.8 KB |
+| Carry-set, unit 3 | **313.3 KB** |
+| — of which `tracks` | 284.4 KB |
+| — of which intervals + arena + `poll_ms` | 6.3 KB |
+
+The 284.4 KB of tracks **replaces** EI's `combatReplayData.positions`, which the details object
+already carried, so the net is roughly flat. `pruneDetailsForStats` now drops both sample surfaces
+in coarse mode (`parseCombatReplay` off) and keeps the 6.3 KB — without that, coarse mode would
+have been *larger* after the migration than before it.
+
+### Oracle allowlist — two reviewed divergences
+
+`src/test/__tests__/unit3Positioning.oracle.test.ts`:
+
+1. **`per-instant position`** — GW2EI's `ei_replay::handle_position` freezes an actor across a
+   >600 ms gap whose last velocity reads ~zero, then snaps; axilog's downsampler interpolates
+   through. A genuine sampling difference, not a projection error: native world coordinates pushed
+   through `worldToPixel` land on EI's own pixel positions to a **sub-pixel median across >1000
+   samples**. Native's trajectory is the more faithful reconstruction and is golden-tested in
+   axilog.
+2. **`distance scalars`** — there is no EI side to compare: `to_ei_json` never emitted
+   `statsAll[0].distToCom`/`.stackDist`, measured absent for all 42 players. A guard test asserts
+   that absence, so the entry fails rather than surviving on faith if a future axilog starts
+   emitting them.
+
+### Deferred to unit 3b
+
+The renderer's **visual** replay surface still reads EI positions and still works:
+`src/renderer/stats/map/*` (`ReplayView`, `SquadOverlay`, `EventOverlay`, `useHeatmapData`,
+`useSquadDerived`), `wvwTiles.ts`, `wvwLandmarks.ts`, `mapUtils.ts`, and `MovementData`'s
+`members`/`pollingRate`/`inchToPixel` view-model. These are pixel-calibrated against `wvwTiles`'
+`continentRect` and must migrate onto `ArenaProjection` as one piece. `movementData.ts` therefore
+gained `buildNativeMovement` **alongside** the existing view-model rather than replacing it.
+
+Also note: `computePositioning` in `packages/bridge-metrics/src/positioning.ts` was migrated but has
+**no consumer inside axibridge** — it is live public API of a published package (`@axiapps/bridge-metrics`),
+which is why it was ported rather than deleted. Worth a decision of its own.
 
 ### Other reconstructions
 
@@ -682,7 +706,7 @@ Gates:
    `test-fixtures/axilog/wvw-small.anon.zevtc` is in-tree behind
    `!test-fixtures/axilog/*.anon.zevtc`, verified PII-free first, and the real-parse block now runs
    in CI instead of skipping. See §6.
-4. **Ask axilog to emit `distToCom`/`stackDist` directly** — or a commander-segment timeline. §5's
+4. **~~Ask axilog to emit `distToCom`/`stackDist` directly~~ RESOLVED (unit 3, axilog 0.3.5).** axilog emits both in-core in world inches, from real commander segments; `deriveDistanceScalars` is deleted. Original text: **Ask axilog to emit `distToCom`/`stackDist` directly** — or a commander-segment timeline. §5's
    3.7 % / 4.3 % mean error is dominated by the single-track commander approximation. Emitting the
    scalars from the engine deletes `deriveDistanceScalars` outright.
 5. **~~Ask axilog for `wasted` boon generation.~~ RESOLVED in 0.3.2** (§1.6). Still open from this
