@@ -13,3 +13,4 @@ export { resolveFightTimestamp, parseTimestamp as parseFightTimestamp } from './
 export * from './reportMetrics';
 export * from './positioning';
 export * from './playerIdentity';
+export * from './nativeRoster';

@@ -4,7 +4,7 @@ import { applySquadStabilityGeneration as applyStabilityGeneration, computeDownC
 import { Player } from './dpsReportTypes';
 import { DisruptionMethod } from './metricsSettings';
 import { buildConditionIconMap, computeOutgoingConditions, normalizeConditionLabel, resolveBuffMetaById, resolveConditionNameFromEntry } from './conditionsMetrics';
-import { NON_DAMAGING_CONDITIONS, OFFENSE_METRICS, OFFENSE_METRICS_STATS_ALL_FALLBACK, DEFENSE_METRICS, SUPPORT_METRICS } from './statsMetrics';
+import { NON_DAMAGING_CONDITIONS, OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS } from './statsMetrics';
 import { isResUtilitySkill } from './resUtility';
 import { PlayerSkillDamageEntry, PlayerHealingSkillEntry } from './aggregationTypes';
 import { PROFESSION_COLORS } from './professionUtils';
@@ -175,6 +175,31 @@ export const resolveProfessionLabel = (name?: string) => {
     }
     const baseMatch = baseProfessionNames.find((prof) => lower.includes(prof.toLowerCase()));
     return baseMatch || cleaned || 'Unknown';
+};
+
+/**
+ * The class label for an ENEMY target, for class-breakdown grouping.
+ *
+ * Reads `profession` and nothing else. A WvW target's `name` is the player's
+ * RANK TITLE ("Gold Invader", "Mithril Legend"), so falling back to it charts
+ * rank titles as if they were professions -- plausible-looking nonsense in a
+ * position where nothing signals to the reader that it is not a class.
+ * "Unknown" is the honest answer when the source does not carry a profession.
+ *
+ * axilog supplies `targets[].profession` as a deliberate superset over EI
+ * (GW2EI's `JsonNPC` has no profession member at all), so for axilog-parsed
+ * logs this is present and was previously being discarded.
+ *
+ * A purely numeric profession is treated as absent: axilog before 0.3.3
+ * rendered an elite-spec id it could not name as that id, and "79" is not a
+ * class name.
+ */
+export const resolveEnemyClassLabel = (target?: any): string => {
+    const raw = target && typeof target === 'object' ? target.profession : undefined;
+    if (typeof raw !== 'string') return 'Unknown';
+    const trimmed = raw.trim();
+    if (!trimmed || /^\d+$/.test(trimmed)) return 'Unknown';
+    return resolveProfessionLabel(trimmed);
 };
 
 // --- Module-level constants and helper functions (moved from closure) ---
@@ -983,48 +1008,14 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 val = Number((support as any)[m.field!] ?? 0);
             } else {
                 // source: 'statsTargets' — summed over EVERY target this rollup
-                // sees, with no predicate. That all-targets scope is what
-                // licenses the whole-fight fallback below; see the boundary
-                // note on OFFENSE_METRICS_STATS_ALL_FALLBACK.
+                // sees, with no predicate.
                 const denomField = m.denomField || m.weightField || 'connectedDamageCount';
-                let sawTarget = false;
-                let sawField = false;
                 if (p.statsTargets) {
                     p.statsTargets.forEach((t: any) => {
                         if (!t?.[0]) return;
-                        sawTarget = true;
-                        if (t[0][m.field!] !== undefined) sawField = true;
                         val += Number(t[0][m.field!] ?? 0);
                         denom += Number(t[0][denomField] ?? 0);
                     });
-                }
-                // axilog populates only 8 of EI's 38 per-target stat fields, so
-                // for the rest the per-target sum is not "zero", it is "not
-                // reported at all". Where the identical whole-fight figure
-                // exists on statsAll[0], use it rather than render a hard 0.
-                //
-                // TWO guards, and both are load-bearing:
-                //
-                // `sawTarget` — there must be a populated per-target entry to
-                // have been silent about. An empty or absent statsTargets is
-                // not axilog's field-subset shape, it is a fight with no
-                // tracked target roster, and substituting there would swap in
-                // statsAll's NPC/guard/siege-inclusive whole-fight numbers with
-                // nothing to justify them. detailsProcessing.ts:238-262 already
-                // guards the same class of substitution for enemy downs/kills,
-                // where the divergence was measured at 63 vs 136. Costs axilog
-                // nothing: its roster is always populated.
-                //
-                // `!sawField` — presence, never value. A real zero (a player
-                // who landed no critical hit on any tracked target) must stay
-                // zero. Elite Insights emits the full per-target set with
-                // zeroes included, so on any EI payload that carries a target
-                // roster this branch does not fire.
-                if (sawTarget && !sawField && statsAll && OFFENSE_METRICS_STATS_ALL_FALLBACK.has(m.id)) {
-                    val = Number((statsAll as any)[m.field!] ?? 0);
-                    // Numerator and denominator move together, so a rate is
-                    // never a whole-fight count over a per-target one.
-                    denom = Number((statsAll as any)[denomField] ?? 0);
                 }
             }
             if (Number.isFinite(val)) {

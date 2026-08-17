@@ -138,6 +138,10 @@ export const useStatsUploads = ({
             commanders,
             primaryCommander: commanderIdentity.name,
             primaryCommanderAccount: commanderIdentity.account,
+            // TODO(unit 2): detailsList is still EI-shaped until the parse seam
+            // returns ReportV1. computeDominantGuildId now reads native
+            // entities[], so this call yields '' until then. Guild detection is
+            // degraded, not wrong, in the interim.
             guildId: computeDominantGuildId(detailsList),
             dateStart,
             dateEnd,

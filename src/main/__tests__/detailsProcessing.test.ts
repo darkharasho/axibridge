@@ -379,56 +379,6 @@ describe('buildDashboardSummaryFromDetails', () => {
         expect(summary.isWin).toBe(false);
     });
 
-    it('falls back to statsAll[0] on the real axilog shape: populated statsTargets, no split', () => {
-        const players = [
-            {
-                statsAll: [{ downed: 3, killed: 2 }],
-                // axilog emits one { totalDmg } entry per target and no split —
-                // the array is NOT empty, so the guard must key on the missing
-                // downed/killed keys rather than on length.
-                statsTargets: [[{ totalDmg: 1000 }], [{ totalDmg: 250 }], [{ totalDmg: 0 }]],
-                defenses: [{ downCount: 1, deadCount: 0 }],
-            },
-        ];
-        const summary = buildDashboardSummaryFromDetails({ players, targets: [] });
-        expect(summary.enemyDeaths).toBe(2);
-        // 3 downed + 2 killed = 5 enemy vs 1 squad down => a win, not a loss.
-        expect(summary.isWin).toBe(true);
-    });
-
-    it('reports zero rather than substituting statsAll when statsTargets is empty', () => {
-        // No target roster at all means no enemies were enumerated, so the
-        // ~2x-inflated statsAll total (it counts non-target foes) must NOT be
-        // substituted — that would invent enemy downs for a fight with no
-        // targets. This is the one path an Elite Insights payload could still
-        // reach, and it costs axilog nothing: its roster is always populated.
-        const players = [
-            {
-                statsAll: [{ downed: 4, killed: 1 }],
-                statsTargets: [],
-                defenses: [{ downCount: 2, deadCount: 1 }],
-            },
-        ];
-        const summary = buildDashboardSummaryFromDetails({ players, targets: [] });
-        expect(summary.enemyDeaths).toBe(0);
-        expect(summary.isWin).toBe(false);
-    });
-
-    it('never substitutes statsAll when even one target carries the split (Elite Insights)', () => {
-        // Guards the reviewer's finding: statsAll counts non-target foes too,
-        // so reaching the fallback on an EI payload would silently inflate the
-        // enemy count. A single split-bearing entry must pin the per-target sum.
-        const players = [
-            {
-                statsAll: [{ downed: 50, killed: 50 }],
-                statsTargets: [[{ totalDmg: 10 }], [{ downed: 1, killed: 1 }], [{ totalDmg: 20 }]],
-                defenses: [{}],
-            },
-        ];
-        const summary = buildDashboardSummaryFromDetails({ players, targets: [] });
-        expect(summary.enemyDeaths).toBe(1);
-    });
-
     it('stays at zero when neither statsTargets nor statsAll carry downs/kills', () => {
         const players = [{ statsTargets: [[{ totalDmg: 10 }]], defenses: [{}] }];
         const summary = buildDashboardSummaryFromDetails({ players, targets: [] });

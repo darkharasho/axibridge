@@ -26,54 +26,32 @@ export type ParserBackend = 'axilog' | 'elite-insights';
 /**
  * The parser used when the user has expressed no preference.
  *
- * **`'elite-insights'` — the flip to axilog is owner-gated.** axilog is
- * *capability complete* (below), fully wired, and one setting away at
- * Settings → Parser Settings → Parse Engine; what it is waiting on is a
- * repo-owner go, not more engineering. Until then a fresh install behaves
- * exactly as it always has: it downloads and auto-manages the Elite Insights
- * CLI (`shouldAutoManageEi()` in `src/main/index.ts`, which only stands down
- * while the axilog backend is *selected*).
+ * **`'axilog'`.** The Elite Insights backend remains selectable at
+ * Settings → Parser Settings → Parse Engine and is removed only at the end of
+ * the native migration (the spec's "Step N"), so an explicit
+ * `'elite-insights'` selection is still honoured.
  *
- * The capability case, for whoever makes that call. The original cutover audit
- * found 30 of the read surface's paths missing, and four whole features
- * rendering blank: boon-generation attribution, incoming conditions, damage
- * mitigation and the incoming-strike-damage chart. axilog's MEIGAP + MEIGAP2
- * work closed all four. The re-audit in §1 of
- * `docs/axilog-cutover-report.md` (re-run against 0.3.0 on the same fixture)
- * puts the surface at **8 residual gaps out of 83 audited rows**, with these
- * residuals — all of them null-guarded, all degrading to `0`/`null`/empty
- * rather than to a wrong number:
+ * A fresh install now parses in-process via the `@axiapps/axilog` napi
+ * bindings: no ~90 MB `GW2EICLI.zip` download, no .NET 8 runtime, no `dotnet`
+ * child process, ~0.4 s instead of ~10 s-10 min per log.
+ * `shouldAutoManageEi()` in `src/main/index.ts` reads this constant rather than
+ * hardcoding an engine, so the auto-install stands down on its own.
  *
- * 1. `selfBuffs`/`groupBuffs`/`squadBuffs` carry `generation` but not
- *    `wasted` — boon *overstack* attribution is blank; generation itself is
- *    exact. (§4.3)
- * 2. `statsTargets[i][0]` carries 8 of EI's 38 stat fields, so 15
- *    `statsTargets`-sourced Offense Detailed columns had read 0. 8 of those 15
- *    now fall back to the whole-fight `statsAll[0]` figure
- *    (`OFFENSE_METRICS_STATS_ALL_FALLBACK` in
- *    `packages/bridge-metrics/src/statsMetrics.ts`), leaving **7** blank.
- *    Structural: EI folds the enemy roster into one aggregate
- *    `"Enemy Players"` target, axilog emits one entry per real enemy. (§4.1)
- * 3. `statsAll[0].saved` — deferred upstream; `Number(... || 0)`, and not in
- *    `dpsReportTypes` either.
- * 4. `targets[].profession`, `players[].display_name`, `skillMap[].icon` +
- *    auto-attack/proc flags, `buffMap[].icon`/`.classification` — cosmetic or
- *    already-defaulted. (§4.3)
+ * The read-surface case is closed. The original cutover audit found 30 missing
+ * paths and four features rendering blank; axilog's MEIGAP/MEIGAP2 work closed
+ * all four, and 0.3.4 widened the per-target split from 8 to 23 fields, which
+ * retired both remaining workarounds (the `statsAll` offense fallback and the
+ * enemy-downs substitution). See `docs/axilog-cutover-report.md` §1 for the
+ * audit and `docs/superpowers/specs/2026-08-16-axilog-native-format-migration-design.md`
+ * for where this sits in the migration.
  *
  * Two accuracy caveats that are *not* absences, and so do not degrade visibly —
- * read §2 before trusting the numbers: per-skill `downContribution` is
- * axilog's arcdps-methodology figure under EI's field name, and the mitigation
- * aggregate's secondary `minMitigation` term is roster-shape-sensitive.
- *
- * Both engines stay fully wired in both directions: axilog is one setting away
- * from here, and `getActiveParser()` falls back to Elite Insights
- * automatically if axilog's native binding is unavailable on the platform.
- *
- * To flip: change this constant to `'axilog'`. Everything else — the settings
- * card, the auto-install stand-down, the walkthrough copy — reads the default
- * rather than hardcoding an engine, so nothing else has to move.
+ * read §2 of the cutover report before trusting the numbers: per-skill
+ * `downContribution` is axilog's arcdps-methodology figure under EI's field
+ * name, and the mitigation aggregate's secondary `minMitigation` term is
+ * roster-shape-sensitive.
  */
-export const DEFAULT_PARSER_BACKEND: ParserBackend = 'elite-insights';
+export const DEFAULT_PARSER_BACKEND: ParserBackend = 'axilog';
 
 /**
  * Coerce a persisted/IPC value to a known backend id, falling back to
@@ -83,11 +61,7 @@ export const DEFAULT_PARSER_BACKEND: ParserBackend = 'elite-insights';
  * mis-cased, whitespace-padded, unknown — resolves to
  * {@link DEFAULT_PARSER_BACKEND}. The hardening is symmetric by construction:
  * it always lands on the shipped default, so a corrupt or hand-edited store can
- * never put a user on an engine they did not pick. Under the current
- * (owner-gated) default that means Elite Insights, whose read surface has no
- * gaps at all; if the default is flipped, it means axilog, where every residual
- * in {@link DEFAULT_PARSER_BACKEND}'s list was re-verified at its read site to
- * be null-guarded — a few blank columns, never a throw or an invented number.
+ * never put a user on an engine they did not pick.
  */
 export const normalizeParserBackend = (value: unknown): ParserBackend =>
     value === 'axilog' || value === 'elite-insights' ? value : DEFAULT_PARSER_BACKEND;

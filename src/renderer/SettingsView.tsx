@@ -81,7 +81,7 @@ const SETTINGS_SECTIONS = [
  * ever a *pre-resolution* placeholder: `parser:get-backend` reports the real
  * default in its `default` field, and the card adopts that as soon as it lands.
  */
-const SHIPPED_DEFAULT_BACKEND: ParserBackendId = 'elite-insights';
+const SHIPPED_DEFAULT_BACKEND: ParserBackendId = 'axilog';
 
 /**
  * The two parse engines, in the order they are offered.
