@@ -25,19 +25,24 @@ const ALLOWLIST: DivergenceAllowlist = {
             + 'replay positions are canvas pixels; at 0.008512 px/inch the squad '
             + 'measured 10.2px from its centroid, which CohesionSection rendered '
             + 'verbatim as "10u". The same distance in the game units the card '
-            + 'claims is ~1101u. It is now ~793u, because the origin also moved '
-            + 'from the centroid to the COMMANDER: native `commander.segments` '
-            + 'identifies the tag, so "distance from tag" can finally mean it. '
-            + 'The centroid is displaced by the very outlier the metric exists '
-            + 'to catch; the tag is not. Median 571u -> 207u, and the share of '
-            + 'player-seconds inside the 600u bubble 57% -> 92%.',
+            + 'claims is ~1101u. It is now ~245u, after two further corrections. '
+            + 'The origin moved from the centroid to the COMMANDER: native '
+            + '`commander.segments` identifies the tag, so "distance from tag" '
+            + 'can finally mean it, and the centroid is displaced by the very '
+            + 'outlier the metric exists to catch while the tag is not (median '
+            + '571u -> 207u, share of player-seconds inside the 600u bubble '
+            + '57% -> 92%). Then the outlier itself was excluded: one member of '
+            + 'this 38 spent the whole fight ~20,000u away and never came within '
+            + '11,896u, which moved the mean 793u -> 245u on its own.',
     },
     'timeSpread900PlusSec': {
         reason:
             'Native is right. The threshold is 900 GAME UNITS = 7.66px on this '
             + 'arena, so in pixel space the comparison `dist > 900` was '
             + 'unsatisfiable on a 523x750 canvas and this metric read 0 for every '
-            + 'fight ever recorded. Same for stragglersAtBomb at 1500u.',
+            + 'fight ever recorded. Same for stragglersAtBomb at 1500u. It read '
+            + '49 of 50 seconds when it first became reachable, which was the '
+            + 'absent member and not the squad; excluding them leaves 6.',
     },
     'inTagBubbleAtEngage': {
         reason:
@@ -108,8 +113,19 @@ describe('commander positions oracle — EI pixels vs native game units', () => 
         } as any;
         expect(buildSquadTracks(untagged).tagTrack).toBeNull();
         const centroidRelative = computeCommanderFightData(untagged);
+
+        // The centroid reads LOWER, and that is not the centroid winning. It is
+        // the minimum-mean-distance point of the very set it summarises, so no
+        // other origin can beat it -- it measures how tight the blob is around
+        // itself, while the tag measures whether the blob is ON THE COMMANDER,
+        // which is the question the card asks. Before detached members were
+        // excluded this comparison ran the other way, but only because one
+        // absent member dragged the centroid out from under everyone.
         expect(centroidRelative.cohesion.avgDistFromTag)
-            .toBeGreaterThan(data.cohesion.avgDistFromTag);
+            .toBeLessThan(data.cohesion.avgDistFromTag);
+
+        // Where the outlier's pull on the centroid is still visible is matchup,
+        // which counts distinct people and so keeps all 38.
         expect(centroidRelative.matchup.inTagBubbleAtEngage)
             .toBeLessThan(data.matchup.inTagBubbleAtEngage);
     });
@@ -121,6 +137,23 @@ describe('commander positions oracle — EI pixels vs native game units', () => 
         // The load-bearing half: it must now be able to exclude someone.
         expect(data.matchup.inTagBubbleAtEngage).toBeLessThan(data.matchup.squadCount);
         expect(data.matchup.inTagBubbleAtEngage).toBeGreaterThan(0);
+    });
+
+    it('leaves the one member who was never in this fight out of cohesion', () => {
+        // Pinned on the real fixture because the shape it guards against is a
+        // property of real logs and not of anything hand-built: 37 of these 38
+        // have a median distance from the tag between 0u and 392u, and the
+        // 38th sits at a 19,912u median for all 50 seconds. `combat_participant`
+        // does NOT separate them -- native reports it true for all 38 -- so
+        // geometry is the only available test.
+        expect(data.cohesion.detachedMembers).toBe(1);
+
+        // Every aggregate this member used to decide. Peak sigma against a
+        // `spreadBad` of 600 is the load-bearing one: at 5512u it pinned the
+        // `fragmentedAtBomb` detector at maximum severity for a fight whose
+        // squad was in fact stacked.
+        expect(data.cohesion.peakSpreadStdev).toBeLessThan(600);
+        expect(data.cohesion.timeSpread900PlusSec).toBeLessThan(data.duration / 2);
     });
 
     it('shares one DeathEvent between survival and the deaths timeline', () => {

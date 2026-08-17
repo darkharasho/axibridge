@@ -12,6 +12,7 @@ function fight(avgDist: number, deaths: number) {
       peakSpreadStdev: 0,
       peakSpreadStdevTSec: 0,
       stragglersAtBomb: 0,
+      detachedMembers: 0,
     },
     outcome: {
       kills: 0,

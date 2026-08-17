@@ -13,6 +13,7 @@ function fight(spread: number, peakT: number, bombs: BombWindow[]) {
       peakSpreadStdev: spread,
       peakSpreadStdevTSec: peakT,
       stragglersAtBomb: 0,
+      detachedMembers: 0,
     },
     burst: {
       worst3sIncoming: 0,

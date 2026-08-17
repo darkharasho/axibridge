@@ -45,6 +45,7 @@ export function baseFight(overrides: Partial<CommanderFightData> = {}): Commande
       peakSpreadStdev: 0,
       peakSpreadStdevTSec: 0,
       stragglersAtBomb: 0,
+      detachedMembers: 0,
     },
     sustain: {
       cleansesApplied: 0,

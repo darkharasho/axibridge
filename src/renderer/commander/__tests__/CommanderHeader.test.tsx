@@ -15,7 +15,7 @@ const fight: CommanderFightData = {
   },
   survival: { firstSquadDeath: null, firstSupportDeath: null, squadAliveAtEnd: 20, squadTotal: 25, rallyRate: 0.5, rallies: 1, downs: 2, avgTimeDownedSec: 3 },
   burst: { worst3sIncoming: 0, worst3sIncomingTSec: 0, inHealRatioAtSpike: 0, healAtSpike: 0, bombWindowCount: 0, bombWindows: [], downsInWorst3s: 0, stabUptimeInSpike: 0 },
-  cohesion: { avgDistFromTag: 0, timeSpread900PlusSec: 0, avgDistAtDeath: 0, peakSpreadStdev: 0, peakSpreadStdevTSec: 0, stragglersAtBomb: 0 },
+  cohesion: { avgDistFromTag: 0, timeSpread900PlusSec: 0, avgDistAtDeath: 0, peakSpreadStdev: 0, peakSpreadStdevTSec: 0, stragglersAtBomb: 0, detachedMembers: 0 },
   sustain: { cleansesApplied: 0, conditionsTaken: 0, stripsLanded: 0, stripsReceived: 0, stabThroughBombs: 0, resistanceAtBurst: 0, aegisAtBurst: 0 },
   engage: { squadHpAtEngage: 0, keyCdsUsed0to10s: 0, preEngageDowns: 0, stab0to10s: 0, dodgeStarvation: 'low' },
   outcome: { kills: 0, squadDeaths: 0, allyDeaths: 0, netTrade: 0, damageOut: 0, damageIn: 0, damageOutInRatio: 0 },
