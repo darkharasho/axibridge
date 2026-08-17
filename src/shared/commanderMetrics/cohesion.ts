@@ -1,18 +1,25 @@
 // src/shared/commanderMetrics/cohesion.ts
 
-import type { Player } from '../dpsReportTypes';
 import type { CommanderFightData, DeathEvent, BombWindow } from '../commanderTypes';
 import {
   buildSquadPositionSeries,
-  playerPosAt,
+  squadPosAt,
   dist2d,
   centroid,
   stdev,
+  type SquadTrack,
 } from './shared';
 
+/**
+ * Every distance in this module is in WORLD INCHES (game units), because that
+ * is what native tracks store and what the 900u / 1500u literals below have
+ * always meant. The EI predecessor fed replay pixels into the same
+ * comparisons — see `buildSquadTracks` for why that made these two metrics
+ * unconditionally zero.
+ */
 export interface CohesionContext {
-  squadPlayers: Player[];
-  pollingRate: number;
+  squadTracks: SquadTrack[];
+  pollMs: number;
   seriesLen: number;
   bombWindows: BombWindow[];
   deathsTimeline: DeathEvent[];
@@ -27,10 +34,8 @@ export interface CohesionContext {
 export function computeCohesion(
   ctx: CohesionContext,
 ): { cohesion: CommanderFightData['cohesion']; spreadStdev: number[] } {
-  const { squadPlayers, pollingRate, seriesLen, bombWindows, deathsTimeline } = ctx;
-  const { perSecondPositions, framesPerSec } = buildSquadPositionSeries(
-    squadPlayers, pollingRate, seriesLen,
-  );
+  const { squadTracks, pollMs, seriesLen, bombWindows, deathsTimeline } = ctx;
+  const perSecondPositions = buildSquadPositionSeries(squadTracks, pollMs, seriesLen);
 
   // ---- Per-second metrics ----
   const spreadStdev = new Array<number>(seriesLen).fill(0);
@@ -81,10 +86,10 @@ export function computeCohesion(
       continue;
     }
     const c = centroid(pts)!;
-    // Find this player's position at this second
-    const player = squadPlayers.find(p => (p.account ?? p.name) === death.account);
-    if (player) {
-      const pos = playerPosAt(player, death.tSec, framesPerSec);
+    // Find this member's position at the instant they died.
+    const st = squadTracks.find(s => s.key === death.account);
+    if (st) {
+      const pos = squadPosAt(st, death.tSec, pollMs);
       death.distFromTag = pos !== null ? dist2d(pos, c) : 0;
     } else {
       death.distFromTag = 0;
@@ -106,11 +111,11 @@ export function computeCohesion(
       const pts = perSecondPositions[t];
       if (pts.length === 0) continue;
       const c = centroid(pts)!;
-      for (const p of squadPlayers) {
-        const pos = playerPosAt(p, t, framesPerSec);
+      for (const st of squadTracks) {
+        const pos = squadPosAt(st, t, pollMs);
         if (pos === null) continue;
         if (dist2d(pos, c) > 1500) {
-          stragglerSet.add(p.account ?? p.name);
+          stragglerSet.add(st.key);
         }
       }
     }

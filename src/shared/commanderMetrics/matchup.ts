@@ -2,14 +2,15 @@
 
 import type { DPSReportJSON, Player } from '../dpsReportTypes';
 import type { CommanderFightData } from '../commanderTypes';
-import { KNOWN_PROFESSIONS, playerPosAt, dist2d, centroid } from './shared';
+import { KNOWN_PROFESSIONS, squadPosAt, dist2d, centroid, type SquadTrack } from './shared';
 import { getWvwTeamColor, teamMapFromLog } from '../wvwTeams';
-import { partitionSquadPlayers, getPlayerAccountKey } from '../playerIdentity';
+import { partitionSquadPlayers } from '../playerIdentity';
 
 export function computeMatchup(
   json: DPSReportJSON,
   squadPlayers: Player[],
-  pollingRate: number,
+  squadTracks: SquadTrack[],
+  pollMs: number,
   durationSec: number,
 ): CommanderFightData['matchup'] {
   // squadCount/alliesCount are DISTINCT-PERSON counts: arcdps emits a new
@@ -109,36 +110,34 @@ export function computeMatchup(
   }
 
   // ---- inTagBubbleAtEngage ----
-  // Count squad players within 600u of squad centroid at t = min(2, durationSec).
-  // Position/centroid math stays entry-based (every tracked squadPlayers entry
-  // still contributes a point, unchanged). Only the final "how many are on tag"
-  // count is deduped by identity, so it stays comparable to the distinct-person
-  // squadCount it's reported against (MatchupSection's tagPct = this / squadCount).
+  // Count squad members within 600 GAME UNITS of the squad centroid at
+  // t = min(2, durationSec). Positions are native world inches, so 600 is the
+  // familiar GW2 range it was always meant to be. Fed replay pixels, as the EI
+  // path did, 600 spanned ~70,000u — wider than the map — so this counted the
+  // entire squad on every fight and `tagPct` was unconditionally 100%.
+  //
+  // Native tracks are already one-per-entity, and `SquadTrack.key` is the
+  // account, so the distinct-person dedupe this metric needs (it is reported
+  // against the distinct-person `squadCount`) falls out of the Set directly.
   const TAG_RADIUS = 600;
-  const framesPerSec = 1000 / pollingRate;
   const engageSec = Math.min(2, durationSec);
   const engagePts: [number, number][] = [];
-  const engagePtOwners: Player[] = [];
-  for (const p of squadPlayers) {
-    const pos = playerPosAt(p, engageSec, framesPerSec);
+  const engageKeys: string[] = [];
+  for (const st of squadTracks) {
+    const pos = squadPosAt(st, engageSec, pollMs);
     if (pos !== null) {
       engagePts.push(pos);
-      engagePtOwners.push(p);
+      engageKeys.push(st.key);
     }
   }
   const engageCentroid = centroid(engagePts);
   let inTagBubbleAtEngage = 0;
   if (engageCentroid !== null) {
     const onTagKeys = new Set<string>();
-    let onTagKeylessCount = 0;
     engagePts.forEach((pos, i) => {
-      if (dist2d(pos, engageCentroid) <= TAG_RADIUS) {
-        const key = getPlayerAccountKey(engagePtOwners[i]);
-        if (key !== null) onTagKeys.add(key);
-        else onTagKeylessCount++;
-      }
+      if (dist2d(pos, engageCentroid) <= TAG_RADIUS) onTagKeys.add(engageKeys[i]);
     });
-    inTagBubbleAtEngage = onTagKeys.size + onTagKeylessCount;
+    inTagBubbleAtEngage = onTagKeys.size;
   }
 
   return {

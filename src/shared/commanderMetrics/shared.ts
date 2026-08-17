@@ -3,6 +3,8 @@
 
 import type { Player } from '../dpsReportTypes';
 import { PROFESSION_COLORS } from '../professionUtils';
+import { buildNativeMovement, positionAtOrBefore, type PositionTrack } from '../movementData';
+import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 
 // ---------------------------------------------------------------------------
 // Buff IDs
@@ -77,36 +79,55 @@ export function squadBuffUptimeAtSec(
 // ---------------------------------------------------------------------------
 
 /**
- * Get the [x, y] position for a player at a given second `tSec`.
- *
- * EI encodes positions as Array<[number, number]>, where the player's
- * `combatReplayData.start` frame is the absolute frame offset for positions[0].
- * A polling rate of 300 ms → ~3.33 frames per second.
- *
- * Returns null if the player has no position data at that second
- * (not yet spawned, or dead and no longer tracked).
+ * A squad member's native position track, tagged with the identity key the
+ * rest of the commander metrics join on (`DeathEvent.account`, straggler sets).
  */
-export function playerPosAt(
-  player: Player,
+export interface SquadTrack {
+  key: string;
+  track: PositionTrack;
+}
+
+/**
+ * Collect the squad's native position tracks.
+ *
+ * Every distance these tracks produce is in WORLD INCHES — game units — which
+ * is the unit every threshold in `commanderThresholds.ts` is written in (600u
+ * tag radius, 900u spread, 1500u straggler). The EI predecessor fed replay
+ * PIXELS into those same comparisons; at ~0.0085 px/inch, 900u is 7.7px on a
+ * 523×750 canvas, so `timeSpread900PlusSec` and `stragglersAtBomb` were
+ * always 0 and `inTagBubbleAtEngage` was always the whole squad.
+ */
+export function buildSquadTracks(json: unknown): { tracks: SquadTrack[]; pollMs: number } {
+  const movement = buildNativeMovement(json);
+  if (!movement) return { tracks: [], pollMs: 300 };
+  const tracks: SquadTrack[] = [];
+  for (const entity of squadEntities((json as { native?: unknown })?.native ?? {})) {
+    const track = movement.tracks.get(entity.id);
+    if (!track) continue;
+    tracks.push({ key: entity.account ?? String(entity.id), track });
+  }
+  return { tracks, pollMs: movement.pollMs };
+}
+
+/**
+ * Where a squad member was at second `tSec`, in world inches, or null.
+ *
+ * Whole seconds do not land on the polling grid (t=1s sits between the 900ms
+ * and 1200ms samples), so this asks "where were they last seen" with a
+ * one-poll staleness bound rather than demanding an exact hit. Past that bound
+ * — a tracking gap, or the end of the track — the answer is null, not a stale
+ * position carried forward forever.
+ *
+ * There is no start-frame derivation here: native samples carry their own
+ * timestamps. The mid-fight joiner that the EI path resolved to null at every
+ * second of the fight is structurally impossible.
+ */
+export function squadPosAt(
+  t: SquadTrack,
   tSec: number,
-  framesPerSec: number,
+  pollMs: number,
 ): [number, number] | null {
-  const positions = player.combatReplayData?.positions;
-  if (!positions || positions.length === 0) return null;
-  // `combatReplayData.start` is MILLISECONDS, not a frame index. Subtracting
-  // it from a frame number made every mid-fight joiner unresolvable: a player
-  // starting at t=38317ms yielded `frame - 38317`, permanently negative, so
-  // this returned null for them at every single second of the fight.
-  // The first sample sits at poll `ceil(start / pollingRate)`, and
-  // `pollingRate === 1000 / framesPerSec`.
-  const startMs = player.combatReplayData?.start ?? 0;
-  const startFrame = startMs > 0 ? Math.ceil((startMs * framesPerSec) / 1000) : 0;
-  const frame = Math.round(tSec * framesPerSec);
-  const idx = frame - startFrame;
-  if (idx < 0 || idx >= positions.length) return null;
-  const pt = positions[idx];
-  if (!Array.isArray(pt) || pt.length < 2) return null;
-  return [pt[0], pt[1]];
+  return positionAtOrBefore(t.track, tSec * 1000, pollMs);
 }
 
 /**
@@ -141,32 +162,26 @@ export function centroid(pts: [number, number][]): [number, number] | null {
 }
 
 /**
- * Build per-second position data for the squad.
+ * Build per-second position data for the squad, in world inches.
  *
- * Returns an array of length `seriesLen`, where each entry is either:
- *   - an array of [x, y] positions for squad members present at that second, or
- *   - an empty array (no players visible).
- *
- * Also returns `framesPerSec` for reuse.
+ * Returns an array of length `seriesLen`, where each entry is the positions of
+ * the squad members tracked at that second — empty when nobody is.
  */
 export function buildSquadPositionSeries(
-  squadPlayers: Player[],
-  pollingRate: number,
+  tracks: SquadTrack[],
+  pollMs: number,
   seriesLen: number,
-): { perSecondPositions: Array<[number, number][]>; framesPerSec: number } {
-  const framesPerSec = 1000 / pollingRate;
+): Array<[number, number][]> {
   const perSecondPositions: Array<[number, number][]> = [];
-
   for (let t = 0; t < seriesLen; t++) {
     const pts: [number, number][] = [];
-    for (const p of squadPlayers) {
-      const pos = playerPosAt(p, t, framesPerSec);
+    for (const st of tracks) {
+      const pos = squadPosAt(st, t, pollMs);
       if (pos !== null) pts.push(pos);
     }
     perSecondPositions.push(pts);
   }
-
-  return { perSecondPositions, framesPerSec };
+  return perSecondPositions;
 }
 
 // ---------------------------------------------------------------------------
