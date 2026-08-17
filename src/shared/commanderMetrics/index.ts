@@ -1,7 +1,7 @@
 // src/shared/commanderMetrics/index.ts
 // Orchestrator: calls each section helper and assembles the final CommanderFightData.
 
-import type { ComputeCommanderFightData } from '../commanderTypes';
+import type { ComputeCommanderFightData, DeathEvent } from '../commanderTypes';
 import { computeMatchup } from './matchup';
 import { computeSurvival, buildDeathsTimeline } from './survival';
 import { buildSeries, computeBurst } from './burstAndSeries';
@@ -54,6 +54,18 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, optio
     bombWindows: burst.bombWindows,
     deathsTimeline,
   });
+
+  // `computeSurvival` and `buildDeathsTimeline` each construct their own
+  // DeathEvent objects from the same source, and computeCohesion fills
+  // distFromTag on the timeline's copies only. Re-point survival's two fields
+  // at the timeline entries so the value is shared rather than duplicated and
+  // stale — `firstSquadDeathEarly` renders
+  // `survival.firstSquadDeath.distFromTag`, which was therefore always 0 and
+  // its far-from-tag flag consequently dead.
+  const linkDeath = (d: DeathEvent | null): DeathEvent | null =>
+    d ? (deathsTimeline.find(e => e.account === d.account && e.tSec === d.tSec) ?? d) : d;
+  survival.firstSquadDeath = linkDeath(survival.firstSquadDeath);
+  survival.firstSupportDeath = linkDeath(survival.firstSupportDeath);
 
   // Build per-second Stability uptime series (needed by sustain, engage, and burst)
   const stabUptime = buildStabUptimeSeries(squadPlayers, seriesLen);
