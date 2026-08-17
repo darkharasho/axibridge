@@ -132,7 +132,13 @@ describe('resolveOwnAppImage', () => {
     });
 });
 
-describe('writeDesktopEntry', () => {
+// `writeDesktopEntry` returns 'skipped' on anything but Linux (integration.ts:82)
+// — the desktop entry is an AppImage concept and there is nothing to write on
+// Windows or macOS. These cases assert the Linux behaviour, so they only mean
+// anything on Linux; elsewhere they would be asserting against the early return.
+// The guard itself is covered by the `is a no-op off Linux` case below, which
+// runs everywhere.
+describe.skipIf(process.platform !== 'linux')('writeDesktopEntry', () => {
     const opts = (over: Partial<Parameters<typeof writeDesktopEntry>[0]> = {}) => ({
         appId: 'axibridge',
         name: 'AxiBridge',
@@ -177,5 +183,30 @@ describe('writeDesktopEntry', () => {
         fs.writeFileSync(path.join(appsDir, 'axibridge.desktop'), `Icon=${icon}\n`);
         writeDesktopEntry(opts());
         expect(fs.readFileSync(desktopFile(), 'utf8')).toContain(`Icon=${icon}`);
+    });
+});
+
+describe('writeDesktopEntry platform guard', () => {
+    // Runs on every platform, and asserts the opposite thing on each: on Linux
+    // the writer must engage, everywhere else it must decline without touching
+    // the filesystem. Written as one case rather than two skipIf blocks so the
+    // guard cannot be silently deleted on either side.
+    it('only writes on Linux, and leaves the filesystem alone elsewhere', () => {
+        const result = writeDesktopEntry({
+            appId: 'axibridge',
+            name: 'AxiBridge',
+            appImagePath: '/home/u/AppImages/AxiBridge-2.13.5.AppImage',
+            homeDir: tmp,
+            mimeTypes: MIME_TYPES
+        });
+        const written = fs.existsSync(path.join(tmp, '.local', 'share', 'applications', 'axibridge.desktop'));
+
+        if (process.platform === 'linux') {
+            expect(result).toBe('written');
+            expect(written).toBe(true);
+        } else {
+            expect(result).toBe('skipped');
+            expect(written).toBe(false);
+        }
     });
 });
