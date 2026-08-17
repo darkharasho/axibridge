@@ -14,6 +14,27 @@
  * governs via the user's `parseCombatReplay` setting — so the net is roughly
  * flat, not +290 KB.
  *
+ * Unit 4 (damage) was migrated in `packages/bridge-metrics/src/nativeDamage.ts`
+ * without ever updating this whitelist, so `blocks.damage`/`blocks.series`/
+ * `blocks.contribution`/`catalogs.skills` were silently absent in every
+ * shipped build — the readers ran on `main` returning zeroed damage totals,
+ * empty skill breakdowns, and empty spike/incoming-damage series the whole
+ * time. Backfilled here alongside the unit 5a fix below. Measured on
+ * `wvw-small.anon.zevtc`: `blocks.damage` is 1113.2 KB (by far the largest
+ * single addition this carry-set has taken — nearly 4x `blocks.replay`'s
+ * 290.5 KB — because it holds full per-entity, per-target, per-skill hit
+ * breakdowns for the whole squad; there is no narrower sub-path that still
+ * serves `getEntitySkillRows`/`getEntityDamageTotal`), `blocks.series` is
+ * 223.7 KB (comparable to `blocks.replay`), `blocks.contribution` is 9.4 KB,
+ * and `catalogs.skills` is 82.1 KB (carried narrowly — `catalogs` wholesale
+ * is 103.3 KB and also drags in unrelated catalogs).
+ *
+ * Unit 5a (boons) adds `blocks.boons` and `catalogs.buffs`. Measured on the
+ * same fixture: `blocks.boons` is 209.4 KB — this must be carried whole, not
+ * narrowed to exclude the nested `per_source` (~90.9 KB of the total),
+ * because `getEntityBuffStatesPerSource` backs the live boon-generation- and
+ * boon-uptime-over-time timelines. `catalogs.buffs` is 2.0 KB.
+ *
  * When a unit migrates, add its path and re-measure.
  */
 export const CARRIED_PATHS = [
@@ -22,6 +43,12 @@ export const CARRIED_PATHS = [
     'entities',
     'coverage',
     'blocks.replay',
+    'blocks.damage',
+    'blocks.series',
+    'blocks.contribution',
+    'catalogs.skills',
+    'blocks.boons',
+    'catalogs.buffs',
 ] as const;
 
 export type CarriedPath = (typeof CARRIED_PATHS)[number];

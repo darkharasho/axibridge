@@ -26,7 +26,10 @@ export default defineConfig({
         playerIdentity: 'src/playerIdentity.ts',
         nativeRoster: 'src/nativeRoster.ts',
         nativeEncounter: 'src/nativeEncounter.ts',
-        nativePositioning: 'src/nativePositioning.ts'
+        nativePositioning: 'src/nativePositioning.ts',
+        nativeSeries: 'src/nativeSeries.ts',
+        nativeDamage: 'src/nativeDamage.ts',
+        nativeBoons: 'src/nativeBoons.ts'
     },
     format: ['esm', 'cjs'],
     outExtension: ({ format }) => ({ js: format === 'cjs' ? '.cjs' : '.js' }),
