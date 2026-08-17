@@ -55,20 +55,14 @@ export function teamMapFromLog(log: unknown): WvwTeamMap | null {
     }
     : null;
 
-  // The two sources answer different questions, so they are merged rather than
-  // ranked. `encounter.teams` enumerates the teams OBSERVED in this log, keyed
-  // by colour — no id-table guessing. `wvWMapData` carries all three teams of
-  // the MATCH, including one that fielded nobody in this fight (the fixture has
-  // red 697 with no red player). Native wins where both speak; EI fills the
-  // slots native leaves at 0.
-  const fromNative = getEncounterTeamMap(log);
-  if (!fromNative) return fromEi;
-  if (!fromEi) return fromNative;
-  return {
-    red: fromNative.red || fromEi.red,
-    green: fromNative.green || fromEi.green,
-    blue: fromNative.blue || fromEi.blue,
-  };
+  // Native wins outright when present — it is not merged with `wvWMapData`,
+  // because a colour EI reports that native does not is a PLACEHOLDER, not a
+  // team. `to_ei_json` must fill EI's fixed red/blue/green shape, so when a
+  // colour fielded nobody it emits `representative_team_id(colour)` — a
+  // hardcoded 697/432/39 (axilog-ei/src/lib.rs:27). The committed fixture has
+  // no red player and still reports `redTeamID: 697`. Merging that in would
+  // put an id no agent in the log belongs to into the map.
+  return getEncounterTeamMap(log) ?? fromEi;
 }
 
 /**

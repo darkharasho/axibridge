@@ -90,22 +90,24 @@ describe('teamMapFromLog with a native encounter', () => {
     native: { axilog: { schema: '1.0' }, encounter: { teams } },
   });
 
-  it('prefers native ids where both sources speak', () => {
+  it('uses native outright when present, ignoring wvWMapData', () => {
     const log = withNative(
       [{ team_id: 2767, color: 'green' }, { team_id: 433, color: 'blue' }],
       { wvWMapData: { redTeamID: 1, greenTeamID: 2, blueTeamID: 3 } },
     );
-    expect(teamMapFromLog(log)).toEqual({ red: 1, green: 2767, blue: 433 });
+    expect(teamMapFromLog(log)).toEqual({ red: 0, green: 2767, blue: 433 });
   });
 
-  it('fills slots native leaves empty from wvWMapData', () => {
-    // Native enumerates only OBSERVED teams, so a team that fielded nobody is
-    // absent from it while the match event still knows the id.
+  it('does not import EI placeholder ids for colours native never saw', () => {
+    // to_ei_json must fill EI's fixed three-colour shape, so a colour that
+    // fielded nobody gets representative_team_id() -- a hardcoded 697/432/39.
+    // The committed fixture has no red player and still reports redTeamID 697.
+    // That id belongs to no agent in the log and must not enter the map.
     const log = withNative(
       [{ team_id: 0, color: 'unknown' }, { team_id: 2767, color: 'green' }],
       { wvWMapData: { redTeamID: 697, greenTeamID: 2767, blueTeamID: 433 } },
     );
-    expect(teamMapFromLog(log)).toEqual({ red: 697, green: 2767, blue: 433 });
+    expect(teamMapFromLog(log)).toEqual({ red: 0, green: 2767, blue: 0 });
   });
 
   it('uses native alone when the log has no wvWMapData', () => {

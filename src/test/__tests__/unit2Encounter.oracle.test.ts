@@ -17,12 +17,13 @@ const ALLOWLIST: DivergenceAllowlist = {
     },
     'team map': {
         reason:
-            'Neither is wrong; they answer different questions. EI wvWMapData carries all '
-            + 'three teams of the MATCH from the arcdps statechange event (red 697 here). '
-            + 'Native encounter.teams enumerates only the teams OBSERVED in this log, so a '
-            + 'team that fielded nobody is absent. Every id native does report matches EI '
-            + '(asserted below). teamMapFromLog therefore prefers native and fills empty '
-            + 'slots from wvWMapData, rather than replacing one with the other.',
+            'Native is right; the EI extra is fabricated. wvWMapData has a fixed '
+            + 'red/blue/green shape, so to_ei_json fills a colour that fielded nobody with '
+            + 'representative_team_id() -- a hardcoded 697/432/39 (axilog-ei/src/lib.rs:27). '
+            + 'This fixture has no red player and still reports redTeamID 697, an id no '
+            + 'agent in the log belongs to. encounter.teams enumerates only OBSERVED teams, '
+            + 'and every id it does report matches EI (asserted below), so teamMapFromLog '
+            + 'takes native outright rather than merging the placeholder in.',
     },
 };
 

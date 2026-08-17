@@ -214,7 +214,7 @@ which side is right. Expected entries:
 |---|---|
 | `distToCom` / `stackDist` | Native. The delta is the old derivation's 3.7%/4.3% mean error. |
 | `timeStart` / `timeEnd` (unit 2, recorded) | Native, and the EI side no longer answers. ei-json emits no log-start event, so the shim inferred the time from the `.zevtc` mtime — off by 204 days on the fixture. Now sourced from `encounter.started_at_unix`. |
-| WvW team map (unit 2, recorded) | Neither; they answer different questions. `wvWMapData` carries all three teams of the **match** (red 697 on the fixture, which fielded nobody); `encounter.teams` enumerates only the teams **observed** in the log. Every id native reports matches EI, so `teamMapFromLog` prefers native and fills empty slots from the match event. |
+| WvW team map (unit 2, recorded) | Native. `wvWMapData` has a fixed red/blue/green shape, so `to_ei_json` fills a colour that fielded nobody with `representative_team_id()` — a hardcoded 697/432/39 (`axilog-ei/src/lib.rs:27`). The fixture has no red player and still reports `redTeamID: 697`, an id no agent in the log belongs to. `encounter.teams` enumerates only observed teams, and every id it reports matches EI, so `teamMapFromLog` takes native outright rather than merging the placeholder in. |
 | Player counts where a relog occurred | Native. `dedupe_players` keys by account and collects agent addrs across relogs; EI emits one row per agent instance. |
 | `minMitigation` | Native. Id-keyed per-target skill rows make a true global minimum trivial; today's column is a mean-of-mins, biased high. Closes cutover-report follow-up 6. |
 | Skill/buff icons, proc flags | Native. Absent → present, so APM's auto-attack exclusion and proc filtering begin actually excluding and filtering. |
