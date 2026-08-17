@@ -135,15 +135,24 @@ EI only ever exposed this as a `notInSquad` flag on a squad-shaped row.
 `to_ei_json` as well as the native container, so bumping to 0.3.4 while still reading EI
 obsoletes most of the cutover report's workarounds. Delete:
 
-- `deriveDistanceScalars` (240 lines + 10 tests) — 0.3.4 computes `distToCom`/`stackDist`
-  engine-side and maps them onto `statsAll`.
-- The `.zevtc`-mtime timestamp inference in `applyEiCompatShims` — `encounter.started_at_unix`
-  is a real log-start anchor, carried through to EI's `timeStart`.
 - `OFFENSE_METRICS_STATS_ALL_FALLBACK` and its 11 tests
-  (`packages/bridge-metrics/src/statsMetrics.ts`) — the per-target split went 7 → 23
-  fields and `to_ei_json` fills 15 under EI's own key names, closing all 7 columns that
-  were still blank.
-- The `sawTargetSplit` enemy-downs fallback in `src/main/detailsProcessing.ts`.
+  (`packages/bridge-metrics/src/statsMetrics.ts`) — the per-target split went 8 → 23
+  fields and `to_ei_json` fills them under EI's own key names, closing all the columns
+  that were still blank.
+- The `sawTargetSplit` enemy-downs fallback in `src/main/detailsProcessing.ts` and its
+  3 tests.
+
+Two deletions originally scoped here turned out not to be available at 0.3.4,
+established by probing the published artifact:
+
+- `deriveDistanceScalars` — 0.3.4 computes the scalars engine-side onto
+  **native** `blocks.replay.by_entity[id].{dist_to_com, stack_dist}`, but
+  `to_ei_json` does not map them: `statsAll[0].distToCom` is `undefined` for
+  every player even with `everything: true`. The deletion moves to **unit 3**.
+- The `.zevtc`-mtime timestamp inference — `encounter.started_at_unix` is real
+  on native, but ei-json still emits no `timeStart`/`timeEnd`/`zone`/
+  `encounterDuration`/`players[].name`. `applyEiCompatShims` survives Step 0
+  in full and is retired in **unit 2**.
 
 Also in Step 0: flip `DEFAULT_PARSER_BACKEND` to `'axilog'` (with its
 `SHIPPED_DEFAULT_BACKEND` mirror), which is decision 1's first move regardless.
@@ -205,7 +214,7 @@ Ordered by data dependency. Each is one unit of work with its own oracle test.
 
 | # | Unit | Principal files |
 |---|---|---|
-| 1 | Roster & identity | `playerIdentity.ts`, `attendance.ts`, `professionUtils.ts`, squad-guild extraction |
+| 1 | Roster & identity | `playerIdentity.ts` → new `nativeRoster.ts`, `computeDominantGuildId.ts`, `squadGuilds.ts` |
 | 2 | Encounter & fight-level | `computeFightBreakdown.ts`, `reportMetrics.ts`; retires the rest of `applyEiCompatShims` |
 | 3 | Positioning & replay | `positioning.ts`, `computeDistanceToTag.ts`, `computeOnTagReview.ts`, `computeTagDistanceDeaths.ts`, `computeTimelineAndMapData.ts` |
 | 4 | Damage | `computeAllDamageData.ts`, `computeSpikeDamageData.ts`, `computeIncomingStrikeDamageData.ts`, `computeFightDiffMode.ts` |
@@ -215,6 +224,16 @@ Ordered by data dependency. Each is one unit of work with its own oracle test.
 | 8 | The aggregators | `computePlayerAggregation.ts` (1689), `incrementalAggregation.ts` (1805), `computeCommanderStats.ts` (804), `computeStatsAggregation.ts` |
 | 9 | Rollup & web report | `rollup.ts`, `src/web/reportApp.tsx`; decision 2's projection lands here |
 | 10 | Discord | `discord.ts` |
+
+`attendance.ts` reads a rollup payload, never EI JSON; its producer is
+`incrementalAggregation.ts`, so attendance moves with unit 8.
+`professionUtils.ts` takes profession *strings* and is shape-agnostic — only
+its callers migrate.
+
+**The profession mapping trap:** EI's `players[].profession` is native's
+`entities[].elite_spec`, not native's `entities[].profession`. EI reports
+`"Amalgam"`; native reports `profession: "Engineer", elite_spec: "Amalgam"`.
+Every axibridge lookup table is keyed on the elite-spec spelling.
 
 Unit 8 is ~40% of the compute surface on its own but goes late deliberately: all four
 modules consume the units above, so most of their conversion is already done by the time
@@ -280,16 +299,31 @@ version rather than a caret range until that declaration lands.
   retargeted from EI-shape assertions to native ones. Its inverse pin — asserting
   documented residuals are still absent — has already proved its worth by going red on the
   0.3.2 bump instead of letting the report go stale; keep that pattern.
-- **Retired with their subjects:** the 10 `deriveDistanceScalars` tests, the 11
-  `offenseStatsAllFallback` tests, the 6 `detailsProcessing` enemy-downs fallback tests,
-  the `targets[]` index-alignment invariant test, and the `SettingsView` Parse Engine tests.
+- **Retired with their subjects:** the 11 `offenseStatsAllFallback` tests and the 3
+  `detailsProcessing` enemy-downs fallback tests (Step 0); later, the 10
+  `deriveDistanceScalars` tests (unit 3) and the `targets[]` index-alignment invariant
+  test. The `SettingsView` Parse Engine tests are *updated*, not retired — they already
+  read `DEFAULT_PARSER_BACKEND`, so only the `SHIPPED_DEFAULT_BACKEND` mirror moved.
 - **Gates:** `npm run validate` (typecheck + lint) and `npm run test:unit` green at every
   unit boundary; `npm run test:e2e:web` before unit 9 merges.
 - Per the repo-wide runner limit, vitest runs with `--maxWorkers=2`.
+- The root vitest config includes only `src/**`, so `packages/bridge-metrics`' own suite
+  runs separately via `npm test -w @axiapps/bridge-metrics`. Both must be run at a unit
+  boundary; neither covers the other. Fixture paths in package tests must be
+  `__dirname`-relative, since that suite's cwd is the package dir.
+
+**What the committed fixture cannot exercise.** It contains no relog (42 EI
+`players[]` entries, 42 distinct accounts), so the account-dedupe divergence
+the allowlist anticipates is not observable on it and is covered synthetically
+instead. It is also anonymized, which zeroes every `guild_id`, so the
+squad-guild vote cannot be exercised end-to-end on real data. Both gaps are
+covered by unit tests over hand-built reports; neither is a reason to commit a
+non-anonymized log.
 
 ## Open items
 
-1. **Publish axilog 0.3.4 to npm.** Blocks Step 0. Owner-held.
+1. ~~**Publish axilog 0.3.4 to npm.**~~ CLOSED — 0.3.4 is on the registry and
+   pinned exactly in `package.json`.
 2. **When to declare native 1.0 frozen** — recommended at unit 1's merge; needs an axilog-side
    commit to `NATIVE-FORMAT.md`.
 3. **`packages/bridge-metrics` is consumed via `dist/`, not `src/`.** Every unit touching it
