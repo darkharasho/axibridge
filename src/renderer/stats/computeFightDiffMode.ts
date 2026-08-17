@@ -1,3 +1,7 @@
+import {
+    squadEntities, enemyPlayerEntities, getEntityProfession,
+    getEntityDamageTotal, getEntityVsTargetSeries,
+} from '@axiapps/bridge-metrics';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { formatDurationMs } from './utils/dashboardUtils';
@@ -62,6 +66,9 @@ export function ingestLogFightDiffMode(log: any, idx: number) {
     const players = Array.isArray(details.players) ? details.players : [];
     const squadPlayers = players.filter((p: any) => !p.notInSquad);
     const allTargets = Array.isArray(details.targets) ? details.targets : [];
+    // Damage comes from native; `squadPlayers` survives only for the defense,
+    // barrier and stabilty reads, which units 5 and 6 own.
+    const members = squadEntities(details?.native);
     const timestamp = resolveFightTimestamp(details, log);
     const mapName = resolveMapName(details, log);
     const durationMs = Number(details.durationMS || 0);
@@ -101,43 +108,20 @@ export function ingestLogFightDiffMode(log: any, idx: number) {
         });
     });
 
-    // Fallback 1: derive per-target totals from cumulative targetDamage1S timelines.
+    // Fallback 1: derive per-target totals from the squad's cumulative
+    // per-target damage series. Native keys these by enemy ENTITY ID, so EI's
+    // fragile target-array index join is gone.
     if (targetFocusMap.size === 0) {
-        const targetDamageTotals = new Map<number, number>();
-        const extractTargetPhase0 = (series: any): number[][] => {
-            if (!Array.isArray(series) || series.length === 0) return [];
-            const first = series[0];
-            if (Array.isArray(first) && Array.isArray(first[0])) {
-                // Shape A: [phase][target][time]
-                if (typeof first[0][0] === 'number') return first as number[][];
-                // Shape B: [target][phase][time]
-                if (Array.isArray(first[0]) && typeof first[0][0] === 'number') {
-                    return (series as any[]).map((targetEntry) => (Array.isArray(targetEntry) ? (targetEntry[0] || []) : []));
-                }
-            }
-            return [];
-        };
-        squadPlayers.forEach((player: any) => {
-            const phase0 = extractTargetPhase0(player?.targetDamage1S);
-            phase0.forEach((cumulative: any, targetIndex: number) => {
-                if (!Array.isArray(cumulative) || cumulative.length === 0) return;
-                const values = cumulative
-                    .map((value: any) => Number(value))
-                    .filter((value: number) => Number.isFinite(value) && value >= 0);
-                if (values.length === 0) return;
-                const totalDamage = Math.max(0, values[values.length - 1] || 0);
-                if (totalDamage <= 0) return;
-                targetDamageTotals.set(targetIndex, (targetDamageTotals.get(targetIndex) || 0) + totalDamage);
+        enemyPlayerEntities(details?.native).forEach((enemy) => {
+            let damage = 0;
+            members.forEach((member) => {
+                const cumulative = getEntityVsTargetSeries(details, member.id, enemy.id);
+                if (cumulative.length === 0) return;
+                damage += Math.max(0, Number(cumulative[cumulative.length - 1] || 0));
             });
-        });
-
-        targetDamageTotals.forEach((damage, targetIndex) => {
             if (damage <= 0) return;
-            const target = allTargets[targetIndex];
-            if (target?.isFake) return;
-            const rawLabel = target?.profession || target?.name || target?.id || `Target ${targetIndex + 1}`;
-            const label = resolveProfessionLabel(rawLabel);
-            upsertTargetFocus(label || String(rawLabel), damage, 0);
+            const rawLabel = getEntityProfession(enemy) || String(enemy.id);
+            upsertTargetFocus(resolveProfessionLabel(rawLabel) || String(rawLabel), damage, 0);
         });
     }
 
@@ -192,7 +176,7 @@ export function ingestLogFightDiffMode(log: any, idx: number) {
     }));
     const enemyCount = allTargets.filter((target: any) => !target?.isFake).length;
     const squadCount = squadPlayers.length;
-    const totalOutgoingDamage = squadPlayers.reduce((sum: number, player: any) => sum + Number(player?.dpsAll?.[0]?.damage || 0), 0);
+    const totalOutgoingDamage = members.reduce((sum, member) => sum + getEntityDamageTotal(details, member.id), 0);
     const totalIncomingDamage = squadPlayers.reduce((sum: number, player: any) => sum + Number(player?.defenses?.[0]?.damageTaken || 0), 0);
     const incomingBarrierAbsorbed = squadPlayers.reduce((sum: number, player: any) => sum + Number(player?.defenses?.[0]?.damageBarrier || 0), 0);
     const outgoingBarrierAbsorbed = squadPlayers.reduce((sum: number, player: any) => {

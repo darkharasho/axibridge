@@ -16,3 +16,5 @@ export * from './playerIdentity';
 export * from './nativeRoster';
 export * from './nativeEncounter';
 export * from './nativePositioning';
+export * from './nativeSeries';
+export * from './nativeDamage';

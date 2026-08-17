@@ -778,6 +778,82 @@ tag holder for the whole fight, so neither behaviour is testable here yet.
 inside axibridge -- it is live public API of a published package, which is why it was ported rather
 than deleted. Still worth a decision of its own.
 
+### Unit 4 — damage, migrated (2026-08-17)
+
+`computeAllDamageData`, `computeSpikeDamageData`, `computeIncomingStrikeDamageData` and the damage
+half of `computeFightDiffMode` now read `blocks.damage`, `blocks.series`, `blocks.contribution` and
+`catalogs.skills`. The oracle
+(`src/test/__tests__/damageNative.oracle.test.ts`) has an **empty allowlist**: squad total damage is
+identical on both paths, and equals axilog's own `by_entity[].total` sum. This unit changed sources,
+not numbers.
+
+**What was deleted, and why it existed.** Both series extractors were mostly a coin-flip between
+`[phase][target][time]` and `[target][phase][time]` — EI emitted either shape and the code guessed
+from the nesting depth of element 0. Native has one shape, so ~80 lines of shape-guessing went with
+it, along with the `skillMap`/`buffMap` double lookup (`s{id}` then `b{id}`, because EI filed some
+damaging skills under buffs) which `catalogs.skills[id]` replaces outright.
+
+**The trap this unit turns on: `per_target.by_skill` carries no `outcomes`, so it carries no
+`indirect`.** Every damage module filters condition ticks out of strike damage, and the per-target
+slices — the preferred source, because they exclude minions and untracked splash — cannot answer
+the question. The flag is joined from the same entity's top-level `by_skill`. Verified on the
+fixture: all **2105** per-target skill ids are present there, so the join never misses. It fails
+*silently* if dropped — Bleeding and Burning would simply appear in the strike tables looking like
+damage — which is why the oracle asserts the five common condition names never appear in a strike
+row, and separately that the flag is really present on this fixture so the assertion cannot pass
+vacuously.
+
+Two related facts, both measured:
+
+- **`outcomes` is squad-only.** 529 of 529 squad `by_skill` entries carry it; 0 of 323 enemy and 0
+  of 22 npc entries do. Enemy rows therefore come back `indirect: false` and nothing is filtered,
+  which is the correct default — with no flag there is nothing to exclude.
+- **`indirect` is a per-(entity, skill) fact, not a per-skill one.** Skill 19426 (Torment) reports
+  both values across entities in this one fixture. The `false` belongs to a squad entity whose
+  `total` is 0, i.e. a meaningless flag on a zero-damage record — but a global skill→flag map would
+  have adopted it. Joining per entity, which is the shape native already gives, is right regardless.
+
+**The new shared primitive: `decodeSeries` (`packages/bridge-metrics/src/nativeSeries.ts`).** Every
+native 1s series is `{ data, enc, interval_ms, len }` with `enc` of `"rle"` (a list of
+`[value, runLength]` pairs) or `"raw"`. Nothing in axibridge decoded them before; units 5 and 6
+consume the identical encoding, which is why it is its own module rather than a helper inside
+`nativeDamage.ts`. **`len` is authoritative, not `data.length`**, and the series are CUMULATIVE — so
+a run that stops short of `len` must be padded by **repeating the last value**. Padding with zero
+would make the next `toPerSecond` delta negative and silently blank a player's tail, with every
+shape check still passing. The decoder is pinned against the real container: decoded length equals
+`len`, the series is monotonic, and its last sample equals `by_entity[id].total`.
+
+**Down/death markers moved too, and got simpler.** `blocks.replay.by_entity[id].{down,dead}` are
+`[startMs, endMs]` pairs in **fight-relative** time. EI reported them in session time against a
+replay start that had to be inferred per player, so both spike modules carried a
+`normalizeEventTimes` that tried unit conversions and a set of candidate offsets and scored each by
+how many results landed in range. All of that is deleted; the native path is `Math.floor(t / 5000)`.
+
+**One EI behaviour deliberately reproduced.** EI reconciled `targetDamageDist` against
+`totalDamageDist`, adding back per-skill deltas *unless* the log was `detailedWvW`. That is not an
+EI quirk: the remainder is real damage that landed on nothing curated, and on detailed WvW logs the
+totals carry outliers EI never resolved. `getEntitySkillRows(..., { supplement })` reproduces it
+from native's own numbers. The peak-hit rule is the sharper half — **when per-target slices exist
+they are the only source of the peak**, even where `by_skill` reports a larger `max` for some skill,
+because that larger figure is by definition damage against something untracked.
+
+**Preserved, not endorsed:** `computeIncomingStrikeDamageData`'s per-enemy-class series is built
+from squad players' *outgoing* power damage against that enemy, not from enemy outgoing damage.
+Native maps it 1:1 (`series.by_entity[squadId].per_target[enemyId].power_damage`), keyed by entity
+id rather than EI's target-array index, so the index join disappears. Whether the proxy is the right
+metric is a product question, not a migration one.
+
+**Left for later:** per-second down-contribution buckets. Native's
+`contribution.by_entity[].downs_contribution_by_skill` gives real per-skill attribution — now used
+for the per-skill column — but the 5s buckets still scale total damage by a flat
+`downContribution / damage` ratio, as they did on EI. Also unconsumed: `blocks.hit_stats` and
+`blocks.damage_mods` (unit 7).
+
+`computeFightDiffMode` is **half-migrated on purpose**: damage totals and per-target focus read
+native, while `defenses`, `extBarrierStats`, `stabGeneration` and `statsTargets` stay on EI rows for
+units 5 and 6. Finishing them here would leave those units' work done in a way their own oracles
+never checked.
+
 ### Other reconstructions
 
 `applyEiCompatShims` fills `players[].name` (from `character_name`), `zone` (split out of

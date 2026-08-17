@@ -1,6 +1,67 @@
 import { describe, expect, it } from 'vitest';
 import { computeStatsSync as computeStatsAggregation } from '../stats/incrementalAggregation';
 
+/**
+ * These fixtures carry BOTH shapes on purpose.
+ *
+ * `topSkills` and `playerSkillBreakdowns` still come from the EI-shaped
+ * aggregation (unit 8 migrates it); `spikeDamage` reads the native blocks as
+ * of unit 4. The native side is built from the same numbers so the two must
+ * agree, which is what makes the spike assertions below meaningful rather than
+ * a restatement of the fixture.
+ */
+const nativeDamage = (opts: {
+    account: string;
+    profession: string;
+    skills: Record<string, { name: string; total: number; hits: number; max?: number; indirect?: boolean }>;
+    perTarget?: Record<string, { total: number; hits: number; max?: number }>;
+    series?: number[];
+}) => {
+    const catalogSkills: Record<string, { name: string }> = {};
+    const bySkill: Record<string, any> = {};
+    for (const [id, v] of Object.entries(opts.skills)) {
+        catalogSkills[id] = { name: v.name };
+        bySkill[id] = {
+            total: v.total, hits: v.hits, connected_hits: v.hits,
+            max: v.max ?? 0, min: 0, crit_hits: 0, flank_hits: 0,
+            outcomes: { indirect: Boolean(v.indirect) },
+        };
+    }
+    const perTarget = opts.perTarget
+        ? { 900: { by_skill: Object.fromEntries(Object.entries(opts.perTarget).map(([id, v]) => [
+            id, { total: v.total, hits: v.hits, max: v.max ?? 0, min: 0, crit_hits: 0, flank_hits: 0 },
+        ])) } }
+        : {};
+    const total = Object.values(opts.skills).reduce((sum, v) => sum + v.total, 0);
+    const series = opts.series ?? [0, 100, 200, 300, 400, 500];
+    return {
+        entities: [{
+            id: 1, account: opts.account, character: opts.account,
+            role: 'squad', elite_spec: opts.profession, profession: opts.profession,
+            combat_participant: true,
+        }],
+        catalogs: { skills: catalogSkills },
+        blocks: {
+            damage: { by_entity: { 1: { total, by_skill: bySkill, per_target: perTarget } } },
+            series: {
+                by_entity: {
+                    1: {
+                        damage: { data: series, enc: 'raw', interval_ms: 1000, len: series.length },
+                        ...(opts.perTarget
+                            ? { per_target: { 900: {
+                                damage: { data: series, enc: 'raw', interval_ms: 1000, len: series.length },
+                                power_damage: { data: series, enc: 'raw', interval_ms: 1000, len: series.length },
+                            } } }
+                            : {}),
+                    },
+                },
+            },
+            contribution: { by_entity: {} },
+            replay: { by_entity: { 1: { down: [], dead: [] } } },
+        },
+    };
+};
+
 describe('computeStatsAggregation (skill damage source reconciliation)', () => {
     it('uses buffMap skill names when skillMap entry is missing', () => {
         const vampAuraId = 30285;
@@ -56,6 +117,17 @@ describe('computeStatsAggregation (skill damage source reconciliation)', () => {
             status: 'success',
             filePath: 'skill-damage-source-test',
             details: {
+                native: nativeDamage({
+                    account: 'BreakN.5496',
+                    profession: 'Berserker',
+                    skills: {
+                        123: { name: 'Arcing Slice', total: 1000, hits: 1, max: 1000 },
+                        31710: { name: 'Battle Maul', total: 494819, hits: 1, max: 494819 },
+                    },
+                    // Battle Maul landed on nothing curated, so it has no
+                    // per-target row -- the supplement is what keeps it.
+                    perTarget: { 123: { total: 1000, hits: 1, max: 1000 } },
+                }),
                 durationMS: 5000,
                 skillMap: {
                     [`s${battleMaulId}`]: { name: 'Battle Maul' },
@@ -118,6 +190,12 @@ describe('computeStatsAggregation (skill damage source reconciliation)', () => {
             status: 'success',
             filePath: 'skill-damage-source-zero-target-test',
             details: {
+                native: nativeDamage({
+                    account: 'BreakN.5496',
+                    profession: 'Berserker',
+                    skills: { 31710: { name: 'Battle Maul', total: 494819, hits: 1, max: 494819 } },
+                    perTarget: { 31710: { total: 0, hits: 0, max: 494819 } },
+                }),
                 durationMS: 5000,
                 skillMap: {
                     [`s${battleMaulId}`]: { name: 'Battle Maul' }
@@ -168,6 +246,12 @@ describe('computeStatsAggregation (skill damage source reconciliation)', () => {
             status: 'success',
             filePath: 'skill-damage-source-partial-target-test',
             details: {
+                native: nativeDamage({
+                    account: 'BreakN.5496',
+                    profession: 'Berserker',
+                    skills: { 31710: { name: 'Battle Maul', total: 494819, hits: 3, max: 494819 } },
+                    perTarget: { 31710: { total: 1000, hits: 2, max: 494819 } },
+                }),
                 durationMS: 5000,
                 skillMap: {
                     [`s${battleMaulId}`]: { name: 'Battle Maul' }
@@ -219,6 +303,20 @@ describe('computeStatsAggregation (skill damage source reconciliation)', () => {
             status: 'success',
             filePath: 'spike-hit-max-only-test',
             details: {
+                native: nativeDamage({
+                    account: 'BreakN.5496',
+                    profession: 'Berserker',
+                    skills: {
+                        31710: { name: 'Battle Maul', total: 494819, hits: 1 },
+                        29852: { name: 'Arc Divider', total: 10000, hits: 1, max: 10000 },
+                    },
+                    // Battle Maul reports no max at all, so it cannot win the
+                    // peak no matter how large its total is.
+                    perTarget: {
+                        31710: { total: 494819, hits: 1 },
+                        29852: { total: 10000, hits: 1, max: 10000 },
+                    },
+                }),
                 durationMS: 5000,
                 skillMap: {
                     [`s${battleMaulId}`]: { name: 'Battle Maul' },
@@ -361,6 +459,19 @@ describe('computeStatsAggregation (skill damage source reconciliation)', () => {
             status: 'success',
             filePath: 'spike-hit-detailed-wvw-outlier-test',
             details: {
+                native: nativeDamage({
+                    account: 'BreakN.5496',
+                    profession: 'Berserker',
+                    skills: {
+                        54922: { name: 'Battle Maul', total: 494819, hits: 1, max: 494819 },
+                        14447: { name: 'Whirlwind Attack', total: 196698, hits: 17, max: 178481 },
+                        29852: { name: 'Arc Divider', total: 14528, hits: 1, max: 14528 },
+                    },
+                    perTarget: {
+                        29852: { total: 14528, hits: 1, max: 14528 },
+                        14447: { total: 355, hits: 1, max: 355 },
+                    },
+                }),
                 detailedWvW: true,
                 durationMS: 5000,
                 skillMap: {
