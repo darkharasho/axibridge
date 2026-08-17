@@ -64,8 +64,7 @@ export function useDetailsHydration({
         let timeoutId: number | null = null;
         const result = await Promise.race([
             window.electronAPI.getLogDetails({
-                filePath: log.filePath,
-                permalink: log.permalink
+                filePath: log.filePath
             }),
             new Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>((resolve) => {
                 timeoutId = window.setTimeout(() => resolve({ success: false, error: 'Details request timed out.' }), 12000);
@@ -227,8 +226,7 @@ export function useDetailsHydration({
                         let timeoutId: number | null = null;
                         const result = await Promise.race([
                             window.electronAPI.getLogDetails({
-                                filePath,
-                                permalink: log.permalink
+                                filePath
                             }),
                             new Promise<{ success: boolean; details?: any; error?: string; terminal?: boolean }>((resolve) => {
                                 timeoutId = window.setTimeout(() => resolve({ success: false, error: 'Details request timed out.' }), 12000);

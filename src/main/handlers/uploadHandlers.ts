@@ -3,11 +3,10 @@ import path from 'node:path';
 import fs from 'fs';
 import { AUTH_RETRY_PAUSE_THRESHOLD, type UploadRetryQueueEntry, type UploadRetryRuntimeState, type UploadRetryQueuePayload } from '../uploadRetryQueue';
 import { BULK_PROCESS_CONCURRENCY } from '../../shared/constants';
-import { pruneDetailsForStats, hasUsableFightDetails, attachConditionMetrics } from '../detailsProcessing';
+import { hasUsableFightDetails } from '../detailsProcessing';
 
 // ─── Module-level state ─────────────────────────────────────────────────────
 
-const pendingDetailsRefreshByPermalink = new Map<string, Promise<{ details: any | null; terminal: boolean; errorCode?: string }>>();
 const missingDetailsLogByPath = new Map<string, number>();
 
 // ─── Handler options ───────────────────────────────────────────────────────────
@@ -24,10 +23,6 @@ export interface UploadHandlerOptions {
     loadUploadRetryState: () => UploadRetryRuntimeState;
     setUploadRetryPaused: (paused: boolean, reason: string | null) => void;
     getBulkLogDetails: (filePath: string) => any;
-    setBulkLogDetails: (filePath: string, details: any) => void;
-    getKnownFileHash: (filePath: string) => string | null;
-    updateDpsReportCacheDetails: (hash: string, details: any) => Promise<void>;
-    fetchDetailsFromPermalinkWithRetry: (permalink: string) => Promise<{ details: any | null; terminal: boolean; errorCode?: string }>;
 }
 
 // ─── Handler registration ──────────────────────────────────────────────────────
@@ -45,10 +40,6 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
         loadUploadRetryState,
         setUploadRetryPaused,
         getBulkLogDetails,
-        setBulkLogDetails,
-        getKnownFileHash,
-        updateDpsReportCacheDetails,
-        fetchDetailsFromPermalinkWithRetry,
     } = opts;
 
     ipcMain.on('start-watching', (_event, dirPath: string) => {
@@ -139,63 +130,25 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
         return { success: true, queue: getUploadRetryQueuePayload() };
     });
 
-    ipcMain.handle('get-log-details', async (_event, payload: { filePath: string; permalink?: string }) => {
+    /**
+     * Serve a log's details from the main-process store.
+     *
+     * This used to fall back to re-fetching the dps.report permalink when the
+     * stored copy looked stale. That fallback is gone with dps.report as a data
+     * source: its JSON carries no Axilog data, so the refresh could never
+     * satisfy a reader that needs it, and a stale-because-Axilog-less copy would
+     * have re-fetched on every hydration forever. Repair now goes through
+     * `log:reparse-axilog`, which re-parses the original `.zevtc`.
+     */
+    ipcMain.handle('get-log-details', async (_event, payload: { filePath: string }) => {
         const filePath = payload?.filePath;
-        const permalink = typeof payload?.permalink === 'string' ? payload.permalink.trim() : '';
         if (!filePath) {
             console.warn('[Main] get-log-details missing filePath');
             return { success: false, error: 'Missing filePath.' };
         }
         const details = getBulkLogDetails(filePath);
-        const detailsTargetsHaveBuffs = !Array.isArray(details?.targets) || details.targets.length <= 1 ||
-            details.targets.some((t: any) => Array.isArray(t?.buffs) && t.buffs.length > 0);
-        if (details && hasUsableFightDetails(details) && details.damageModMap && details.conditionMetrics && detailsTargetsHaveBuffs) {
+        if (details && hasUsableFightDetails(details)) {
             return { success: true, details };
-        }
-        if (permalink) {
-            let refreshPromise = pendingDetailsRefreshByPermalink.get(permalink);
-            if (!refreshPromise) {
-                const activePromise = (async () => {
-                    const refreshed = await fetchDetailsFromPermalinkWithRetry(permalink);
-                    if (!refreshed.details) return refreshed;
-                    attachConditionMetrics(refreshed.details);
-                    // Retain combat-replay positions only when the user's
-                    // parseCombatReplay setting is on; otherwise keep just the
-                    // coarse statsAll distance scalars (see pruneDetailsForStats).
-                    const keepReplayPositions = Boolean(store.get('eiParserSettings')?.parseCombatReplay);
-                    const resolved = pruneDetailsForStats(refreshed.details, { keepReplayPositions });
-                    setBulkLogDetails(filePath, resolved);
-                    const knownHash = getKnownFileHash(filePath);
-                    if (knownHash) {
-                        try {
-                            // Save pruned version to disk (not full) to reduce memory during future cache loads
-                            await updateDpsReportCacheDetails(knownHash, resolved);
-                        } catch {
-                            // Cache refresh failures should not block stats hydration.
-                        }
-                    }
-                    return { details: resolved, terminal: false };
-                })();
-                pendingDetailsRefreshByPermalink.set(permalink, activePromise);
-                activePromise
-                    .finally(() => {
-                        if (pendingDetailsRefreshByPermalink.get(permalink) === activePromise) {
-                            pendingDetailsRefreshByPermalink.delete(permalink);
-                        }
-                    })
-                    .catch(() => {
-                        // No-op: handled by caller.
-                    });
-                refreshPromise = activePromise;
-            }
-            const refreshed = await refreshPromise;
-            if (refreshed?.details) {
-                console.log(`[Main] get-log-details refreshed from permalink: ${filePath}`);
-                return { success: true, details: refreshed.details };
-            }
-            if (refreshed?.terminal) {
-                return { success: false, terminal: true, error: 'Fight has no usable details.' };
-            }
         }
         const now = Date.now();
         const lastLoggedAt = missingDetailsLogByPath.get(filePath) || 0;

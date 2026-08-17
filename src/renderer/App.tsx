@@ -189,6 +189,25 @@ function App() {
         logsRef,
     } = useLogsForStats({ logs });
 
+    /**
+     * An Axilog re-parse succeeded for these files. The healed details are
+     * already in the DetailsCache, so all that is left is to stop the log rows
+     * blaming the engine that is no longer responsible — and to hand the
+     * aggregation a new `logsForStats` array, which is what makes the streaming
+     * effect re-run and pick the fresh details up.
+     */
+    const handleLogsHealed = useCallback((filePaths: string[]) => {
+        if (filePaths.length === 0) return;
+        const healed = new Set(filePaths);
+        const mark = (entry: ILogData): ILogData => (
+            healed.has(String(entry.filePath || '')) && entry.parseSource !== 'axilog'
+                ? { ...entry, parseSource: 'axilog' as const }
+                : entry
+        );
+        setLogsDeferred((currentLogs) => currentLogs.map(mark));
+        setLogsForStats((currentLogs) => currentLogs.map(mark));
+    }, [setLogsDeferred, setLogsForStats]);
+
     // When logs change (new logs added from watcher/file-picker), inject any persisted replayDataUrl.
     useEffect(() => {
         const r2Map = r2ReplayUrlsRef.current;
@@ -218,7 +237,6 @@ function App() {
                 try {
                     const result = await window.electronAPI.getLogDetails({
                         filePath: log.filePath,
-                        permalink: log.permalink,
                     });
                     return result?.success ? result.details ?? null : null;
                 } catch {
@@ -293,6 +311,7 @@ function App() {
         lastComputedFlushId,
         aggregationProgress,
         aggregationDiagnostics,
+        axilogCoverage,
         requestFlush
     } = useStatsAggregationWorker({
         logs: logsForStats,
@@ -1035,14 +1054,15 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,
         view, appVersion, showTerminal, webUploadState, webUploadLogEntries,
         logsForStats, mvpWeights, disruptionMethod, statsViewSettings,
         computedStats, computedSkillUsageData, aggregationProgress,
-        aggregationDiagnostics, statsDataProgress, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
+        aggregationDiagnostics, axilogCoverage, handleLogsHealed,
+        statsDataProgress, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
         selectedWebhookId, developerSettingsTrigger, helpUpdatesFocusTrigger, parserSettingsFocusTrigger,
         showEiBanner, eiAutoManageStatus, eiAutoManageProgress,
         activityPanel, configurationPanel, filePickerCtx,

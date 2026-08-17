@@ -86,12 +86,11 @@ const SHIPPED_DEFAULT_BACKEND: ParserBackendId = 'axilog';
 /**
  * The two parse engines, in the order they are offered.
  *
- * The order is fixed and deliberately *not* default-dependent: Elite Insights
- * leads as the engine most users are already running, axilog follows as the
- * opt-in fast path. The `implications` lines are the user-visible consequences,
- * not a feature list — the honest summary of the read-surface re-audit in
- * `docs/axilog-cutover-report.md` is that the two engines agree on almost
- * everything, and the places they do not are worth naming rather than burying.
+ * Axilog leads because it is the default and the only engine that produces the
+ * data the stats views read. The `implications` lines are the user-visible
+ * consequences, not a feature list — Elite Insights' cost is no longer just the
+ * download and the wait, it is that logs parsed with it render empty in the
+ * migrated views, and that is the first thing someone choosing it should know.
  */
 const PARSER_BACKEND_OPTIONS: Array<{
     id: ParserBackendId;
@@ -100,23 +99,23 @@ const PARSER_BACKEND_OPTIONS: Array<{
     implications: string[];
 }> = [
         {
-            id: 'elite-insights',
-            label: 'Elite Insights',
-            summary: 'The original GW2 Elite Insights CLI, run as a separate process.',
-            implications: [
-                'The most complete statistics surface',
-                'Downloads ~90 MB on first use and needs a .NET runtime',
-                'Noticeably slower — seconds to minutes per log'
-            ]
-        },
-        {
             id: 'axilog',
-            label: 'axilog (faster)',
+            label: 'Axilog (default)',
             summary: 'Parses in-process in under a second. Nothing to download.',
             implications: [
                 'No .NET runtime or Elite Insights download — ships with the app',
                 'Seconds instead of minutes on large logs',
                 'A few Offense Detailed columns read whole-fight totals, and boon-overstack numbers read 0'
+            ]
+        },
+        {
+            id: 'elite-insights',
+            label: 'Elite Insights (legacy)',
+            summary: 'The original GW2 Elite Insights CLI, run as a separate process.',
+            implications: [
+                'Does not produce Axilog data — damage, positioning, boons and replay read empty',
+                'Downloads ~90 MB on first use and needs a .NET runtime',
+                'Noticeably slower — seconds to minutes per log'
             ]
         }
     ];
@@ -276,7 +275,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [eiUpdateCheckResult, setEiUpdateCheckResult] = useState<'none' | null>(null);
     const [eiReinstalling, setEiReinstalling] = useState(false);
     const [eiUninstalling, setEiUninstalling] = useState(false);
-    const [forceDpsReportOnly, setForceDpsReportOnly] = useState(false);
     const [autoManageEi, setAutoManageEi] = useState(true);
     const [parserBackend, setParserBackend] = useState<IParserBackendInfo | null>(null);
     const [githubRepoName, setGithubRepoName] = useState('');
@@ -594,9 +592,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         const loadedCommanderThresholds = (settings as { commanderThresholds?: Partial<CommanderThresholds> }).commanderThresholds;
         if (loadedCommanderThresholds && typeof loadedCommanderThresholds === 'object') {
             setCommanderThresholds({ ...DEFAULT_COMMANDER_THRESHOLDS, ...loadedCommanderThresholds });
-        }
-        if (typeof settings.forceDpsReportOnly === 'boolean') {
-            setForceDpsReportOnly(settings.forceDpsReportOnly);
         }
         window.electronAPI.getEiAutoManage().then(setAutoManageEi);
         setGithubRepoOwner(settings.githubRepoOwner || '');
@@ -986,7 +981,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             githubLogoPath: githubLogoPath || null,
             githubFavoriteRepos,
             allowLocalJson,
-            forceDpsReportOnly,
             r2AccountId: r2AccountId || null,
             r2AccessKeyId: r2AccessKeyId || null,
             r2SecretAccessKey: r2SecretAccessKey || null,
@@ -1035,7 +1029,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         githubToken,
         githubLogoPath,
         githubFavoriteRepos,
-        forceDpsReportOnly,
         r2AccountId,
         r2AccessKeyId,
         r2SecretAccessKey,
@@ -2809,7 +2802,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
                             {parserBackend && !parserBackend.axilogAvailable && (
                                 <div className="text-xs text-yellow-300 mt-3">
-                                    axilog has no prebuilt binary for this platform, so Elite Insights is being used
+                                    Axilog has no prebuilt binary for this platform, so Elite Insights is being used
                                     regardless of the selection above.
                                 </div>
                             )}
@@ -2819,7 +2812,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 {parserBackend?.backend === 'elite-insights' && !eiStatus.installed
                                     ? ' Elite Insights is not installed yet — use Install below before your next parse.'
                                     : ''}
-                                {parserBackend?.axilogVersion ? ` axilog ${parserBackend.axilogVersion}.` : ''}
+                                {parserBackend?.axilogVersion ? ` Axilog ${parserBackend.axilogVersion}.` : ''}
                             </div>
                         </div>
 
@@ -2830,16 +2823,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 description="Checks for updates on startup and installs automatically"
                                 enabled={autoManageEi}
                                 onChange={(v) => { setAutoManageEi(v); window.electronAPI.setEiAutoManage(v); }}
-                            />
-                        </div>
-
-                        {/* Force dps.report only toggle */}
-                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4">
-                            <Toggle
-                                label="Force dps.report Only"
-                                description="Bypass local EI parsing and use dps.report for all log processing"
-                                enabled={forceDpsReportOnly}
-                                onChange={(v) => setForceDpsReportOnly(v)}
                             />
                         </div>
 

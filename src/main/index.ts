@@ -39,7 +39,6 @@ import {
     buildManifestEntry,
     attachConditionMetrics,
     hasUsableFightDetails,
-    isDetailsPermalinkNotFound,
 } from './detailsProcessing';
 import {
     parseVersion,
@@ -79,6 +78,7 @@ import {
 import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers } from './handlers/githubHandlers';
 import { registerEiHandlers } from './handlers/eiHandlers';
+import { registerReparseHandlers } from './handlers/reparseHandlers';
 import { EiManager, DEFAULT_EI_SETTINGS, EiParserSettings } from './eiParser';
 import { AxilogManager, normalizeParserBackend, type ParserBackend } from './axilogParser';
 import { parseCliFlags } from './cliFlags';
@@ -236,12 +236,12 @@ let eiManager: EiManager | null = null
 let axilogManager: AxilogManager | null = null
 
 // ─── Parser backend selection ───────────────────────────────────────────────
-// `elite-insights` (the default) spawns the .NET CLI; `axilog` is the opt-in
-// in-process path via the @axiapps/axilog native bindings. axilog is far faster
-// and, as of 0.3.0, capability complete — 8 null-guarded residuals out of 83
-// audited read-surface rows — but making it the default is an owner call that
-// has not been made, so it stays opt-in. See DEFAULT_PARSER_BACKEND's doc
-// comment and docs/axilog-cutover-report.md.
+// `axilog` (the default) parses in-process via the @axiapps/axilog bindings;
+// `elite-insights` is the opt-out that spawns the .NET CLI. It is also the only
+// engine that emits Axilog data, which the migrated stats readers need — an
+// explicit Elite Insights selection is honoured, but its logs render empty in
+// the migrated views and say so via the coverage banner. See
+// DEFAULT_PARSER_BACKEND's doc comment and docs/axilog-cutover-report.md.
 const getParserBackend = (): ParserBackend => normalizeParserBackend(store.get('parserBackend'));
 
 /**
@@ -259,10 +259,10 @@ const isLocalParserAvailable = (): boolean => Boolean(getActiveParser()?.isInsta
 /**
  * True when the EI CLI download/update machinery should run at all.
  *
- * It stands down only while axilog is the *selected*, *available* backend — so
- * under the current EI default a fresh install downloads and auto-manages the
- * EI CLI exactly as it always has, and a user who opts into axilog stops
- * paying for a ~90 MB download they no longer use.
+ * It stands down while axilog is the *selected*, *available* backend — which
+ * under the axilog default is a fresh install, so nobody pays for the ~90 MB
+ * download by default any more. It resumes for a user who opts out to Elite
+ * Insights, and on a platform with no axilog binary, where EI is the fallback.
  */
 const shouldAutoManageEi = (): boolean =>
     Boolean(store.get('autoManageEi', true)) && !(getParserBackend() === 'axilog' && Boolean(axilogManager?.isInstalled()));
@@ -399,34 +399,6 @@ const getBulkLogDetails = (filePath: string) => {
     if (!baseName) return null;
     return bulkLogDetailsByBaseName.get(baseName) || null;
 };
-const fetchDetailsFromPermalinkWithRetry = async (permalink: string) => {
-    if (!uploader || !permalink) return { details: null as any | null, terminal: false };
-    try {
-        const fetched = await uploader.fetchDetailedJson(permalink);
-        if (fetched?.error) {
-            const code = String(fetched.error || '').toLowerCase();
-            const terminal = code === 'incomplete-json'
-                || code === 'invalid-json'
-                || code === 'empty-json-payload'
-                || isDetailsPermalinkNotFound(fetched);
-            return {
-                details: null as any | null,
-                terminal,
-                errorCode: code || undefined
-            };
-        }
-        if (fetched) {
-            const enriched = attachConditionMetrics(fetched);
-            if (hasUsableFightDetails(enriched)) {
-                return { details: enriched, terminal: false };
-            }
-            return { details: null as any | null, terminal: true };
-        }
-    } catch (err: any) {
-        console.warn('[Main] get-log-details permalink refresh failed:', err?.message || err);
-    }
-    return { details: null as any | null, terminal: false };
-};
 const globalManifest: Array<any> = [];
 const globalManifestPath = () => path.join(process.cwd(), 'dev', 'manifest.json');
 
@@ -549,6 +521,10 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 uploadTime: prunedDetails?.uploadTime || Date.now() / 1000,
                 status: hasUsableDetails ? 'calculating' : 'success',
                 detailsStatus: hasUsableDetails ? 'available' as const : 'idle' as const,
+                // An imported EI JSON never carries axilog's native container,
+                // so the migrated readers render it empty. Recording where the
+                // details came from is what lets the renderer say so.
+                parseSource: 'json-import' as const,
                 playerCount,
                 dashboardSummary,
                 squadGuilds
@@ -616,9 +592,10 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
     // ─── Local-parser-first path ────────────────────────────────────────────
     // When a local parser (EI by default, axilog when opted into) is available
     // and we don't have a full cache hit, parse locally and upload to
-    // dps.report in parallel for the permalink.
-    const forceDpsReportOnly = Boolean(store.get('forceDpsReportOnly', false));
-    if (!cachedHasUsableDetails && isLocalParserAvailable() && !forceDpsReportOnly) {
+    // dps.report in parallel for the permalink. This is the only path that
+    // produces stats; dps.report is never a parse source.
+    let localParseError: string | null = null;
+    if (!cachedHasUsableDetails && isLocalParserAvailable()) {
         win?.webContents.send('upload-status', { id: fileId, filePath, status: 'parsing' });
 
         // Set up local parse progress callback
@@ -764,6 +741,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 filePath,
                 status: hasUsableDetails ? 'calculating' : 'success',
                 detailsStatus: hasUsableDetails ? 'available' as const : 'idle' as const,
+                // Whichever engine actually ran. Only 'axilog' attaches native.
+                parseSource: getParserBackend(),
                 playerCount,
                 dashboardSummary,
                 squadGuilds
@@ -794,12 +773,24 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             activeUploads.delete(filePath);
             return;
         } catch (eiError: any) {
-            console.error(`[Main] EI parse failed for ${filePath}, falling back to dps.report:`, eiError?.message || eiError);
-            // Fall through to the existing dps.report flow below
+            // No parse fallback exists any more — dps.report's JSON carries no
+            // Axilog data. Fall through only to resolve the permalink and post
+            // the embed, then report the log as failed.
+            localParseError = eiError?.message || String(eiError) || 'Unknown parse error';
+            console.error(`[Main] Local parse failed for ${filePath}:`, localParseError);
         }
     }
 
-    // ─── dps.report path (fallback or primary when EI is not installed) ──────
+    // ─── Upload-only path ───────────────────────────────────────────────────
+    // Reached three ways: a full cache hit made the local parse unnecessary, no
+    // local parser is installed yet, or the local parse threw. In all three,
+    // dps.report is an upload target and nothing more — it supplies the
+    // permalink the Discord embed links its title to, never the stats.
+    //
+    // It used to be a parse fallback too. It cannot be one any more: its JSON
+    // carries no Axilog data, so every migrated reader renders a log sourced
+    // from it empty while the dashboard still shows a confident-looking total.
+    // A log we cannot parse locally is reported as such instead.
     win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
 
     try {
@@ -807,83 +798,51 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             throw new Error('Uploader not initialized.');
         }
 
-        let result = cached?.entry?.result || await uploader.upload(filePath);
-        let cacheRecomputedFrom404 = false;
+        const result = cached?.entry?.result || await uploader.upload(filePath);
 
-        if (result && !result.error) {
-            if (cached?.entry?.result) {
-                console.log(`[Main] Cache hit for ${filePath}. Using cached dps.report permalink.`);
-            } else {
-                console.log(`[Main] Upload successful: ${result.permalink}. Fetching details...`);
-            }
+        if (!result || result.error) {
+            markUploadRetryFailure(filePath, result?.error || 'Unknown upload error', result?.statusCode);
+            win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
+            console.log(`[Main] upload-complete error: ${filePath} msg=${result?.error || 'unknown'}`);
+            return;
+        }
 
-            const cachedDetails = cached?.jsonDetails;
-            // Re-fetch if cached details are missing fields added in later versions
-            const cachedTargetsLackBuffs = Array.isArray(cachedDetails?.targets) &&
-                cachedDetails.targets.length > 1 &&
-                !cachedDetails.targets.some((t: any) => Array.isArray(t?.buffs) && t.buffs.length > 0);
-            const needsRefresh = cachedDetails && (!cachedDetails.damageModMap || !cachedDetails.conditionMetrics || cachedTargetsLackBuffs);
-            let jsonDetails = (cachedDetails && !needsRefresh) ? cachedDetails : await uploader.fetchDetailedJson(result.permalink);
-            if (cached?.entry?.result && isDetailsPermalinkNotFound(jsonDetails)) {
-                console.warn(`[Cache] Cached permalink returned 404 for ${filePath}. Re-uploading to refresh permalink.`);
-                if (cacheKey) {
-                    invalidateDpsReportCacheEntry(cacheKey, 'permalink-404');
-                }
-                const refreshedResult = await uploader.upload(filePath);
-                if (refreshedResult && !refreshedResult.error) {
-                    result = refreshedResult;
-                    cacheRecomputedFrom404 = true;
-                    jsonDetails = await uploader.fetchDetailedJson(result.permalink);
-                } else {
-                    result = refreshedResult;
-                    jsonDetails = null;
-                }
-            }
-            if (!result || result.error) {
-                markUploadRetryFailure(filePath, result?.error || 'Unknown upload error', result?.statusCode);
-                win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
-                console.log(`[Main] upload-complete error: ${filePath} msg=${result?.error || 'unknown'}`);
-                return;
-            }
-            if (!jsonDetails || jsonDetails.error) {
-                const reason = jsonDetails?.error || 'null-response';
-                console.warn(`[Main] JSON details missing or error for ${filePath} (${result.permalink}): ${reason}`);
-            }
+        if (cached?.entry?.result) {
+            console.log(`[Main] Cache hit for ${filePath}. Using cached dps.report permalink.`);
+        } else {
+            console.log(`[Main] Upload successful: ${result.permalink}.`);
+        }
 
-            const isUnrecoverableDetailsError = Boolean(
-                jsonDetails?.error
-                && ['incomplete-json', 'invalid-json', 'empty-json-payload'].includes(String(jsonDetails.error))
-            );
-            if ((!jsonDetails || jsonDetails.error) && !isUnrecoverableDetailsError) {
-                const retryReason = jsonDetails?.error || 'null-response';
-                console.warn(`[Main] JSON details unresolved for ${filePath} (${result.permalink}): ${retryReason}`);
-            }
+        // Details come from the local cache or not at all. An entry written
+        // before the Axilog cutover has no carry-set; the coverage banner
+        // surfaces that and offers the re-parse that repairs it.
+        let cachedDetails = cached?.jsonDetails && !cached.jsonDetails.error ? cached.jsonDetails : null;
+        if (cachedDetails) {
+            cachedDetails = attachConditionMetrics(cachedDetails);
+        }
+        const hasUsableDetails = Boolean(cachedDetails && hasUsableFightDetails(cachedDetails));
+        const prunedDetails = hasUsableDetails ? pruneDetailsForStats(cachedDetails, statsPruneOptions()) : null;
+        cachedDetails = null;
 
-            if (jsonDetails && !jsonDetails.error) {
-                jsonDetails = attachConditionMetrics(jsonDetails);
-            }
+        if (cacheKey && !cached?.entry?.result) {
+            await saveDpsReportCacheEntry(cacheKey, result, prunedDetails);
+        }
 
-            const hasJsonPayload = Boolean(jsonDetails && !jsonDetails.error);
-            const hasUsableDetails = Boolean(hasJsonPayload && hasUsableFightDetails(jsonDetails));
-            const detailsErrorCode = String(jsonDetails?.error || '').toLowerCase();
-            const detailsKnownUnavailable = detailsErrorCode === 'incomplete-json'
-                || detailsErrorCode === 'invalid-json'
-                || detailsErrorCode === 'empty-json-payload'
-                || (hasJsonPayload && !hasUsableDetails);
-            // Prune immediately after enrichment so the full JSON can be GC'd.
-            // Discord embeds only read fields that survive pruning.
-            const prunedDetails = hasUsableDetails ? pruneDetailsForStats(jsonDetails, statsPruneOptions()) : null;
-            // Release full JSON reference — pruned version is sufficient for all
-            // downstream consumers (disk cache, Discord, in-memory cache, IPC).
-            jsonDetails = null;
-            const cacheableDetails = prunedDetails;
-            if (cacheKey && (!cached?.entry?.result || cacheRecomputedFrom404)) {
-                await saveDpsReportCacheEntry(cacheKey, result, cacheableDetails);
-            } else if (cacheKey && cached?.entry?.result && cacheableDetails) {
-                await updateDpsReportCacheDetails(cacheKey, cacheableDetails);
-            }
+        markUploadRetryResolved(filePath);
 
-            markUploadRetryResolved(filePath);
+        const selectedWebhookId = store.get('selectedWebhookId', null);
+        const webhookUrl = store.get('discordWebhookUrl', null);
+        const shouldSendDiscord = Boolean(selectedWebhookId) && typeof webhookUrl === 'string' && webhookUrl.length > 0;
+
+        if (shouldSendDiscord) {
+            const enemySplitSettings = {
+                image: false,
+                embed: false,
+                tiled: false,
+                ...(store.get('discordEnemySplitSettings') as any || {})
+            };
+            const globalSplitEnemiesByTeam = Boolean(store.get('discordSplitEnemiesByTeam', false));
+            const splitEnemiesByTeam = globalSplitEnemiesByTeam || Boolean(enemySplitSettings.embed);
 
             win?.webContents.send('upload-status', {
                 id: fileId,
@@ -895,104 +854,89 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 fightName: result.fightName
             });
 
-            const enemySplitSettings = {
-                image: false,
-                embed: false,
-                tiled: false,
-                ...(store.get('discordEnemySplitSettings') as any || {})
-            };
-            const globalSplitEnemiesByTeam = Boolean(store.get('discordSplitEnemiesByTeam', false));
-            const splitEnemiesByTeam = globalSplitEnemiesByTeam || Boolean(enemySplitSettings.embed);
-            const selectedWebhookId = store.get('selectedWebhookId', null);
-            const webhookUrl = store.get('discordWebhookUrl', null);
-            const shouldSendDiscord = Boolean(selectedWebhookId) && typeof webhookUrl === 'string' && webhookUrl.length > 0;
-            if (shouldSendDiscord) {
-                console.log('[Main] Preparing Discord embed delivery.');
-            }
-
-            if (shouldSendDiscord) {
-                try {
-                    const dedupeKey = cacheKey || result.id || filePath;
-                    const now = Date.now();
-                    const lastSentAt = recentDiscordSends.get(dedupeKey);
-                    if (lastSentAt && now - lastSentAt < DISCORD_DEDUPE_TTL_MS) {
-                        console.warn(`[Main] Skipping duplicate Discord post for ${filePath} (dedupe key: ${dedupeKey}).`);
-                    } else {
-                        recentDiscordSends.set(dedupeKey, now);
-                        if (recentDiscordSends.size > 500) {
-                            for (const [key, timestamp] of recentDiscordSends) {
-                                if (now - timestamp > DISCORD_DEDUPE_TTL_MS) {
-                                    recentDiscordSends.delete(key);
-                                }
+            try {
+                const dedupeKey = cacheKey || result.id || filePath;
+                const now = Date.now();
+                const lastSentAt = recentDiscordSends.get(dedupeKey);
+                if (lastSentAt && now - lastSentAt < DISCORD_DEDUPE_TTL_MS) {
+                    console.warn(`[Main] Skipping duplicate Discord post for ${filePath} (dedupe key: ${dedupeKey}).`);
+                } else {
+                    recentDiscordSends.set(dedupeKey, now);
+                    if (recentDiscordSends.size > 500) {
+                        for (const [key, timestamp] of recentDiscordSends) {
+                            if (now - timestamp > DISCORD_DEDUPE_TTL_MS) {
+                                recentDiscordSends.delete(key);
                             }
                         }
-                        await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam }, prunedDetails);
                     }
-                } catch (discordError: any) {
-                    console.error('[Main] Discord notification failed:', discordError?.message || discordError);
-                    // Still mark as success since upload worked, but log the Discord failure
+                    // `prunedDetails` is null when the local parse failed, which
+                    // posts the link-only embed rather than nothing at all.
+                    await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam }, prunedDetails);
                 }
-            } else {
-                const now = Date.now();
-                if (now - discordNoWebhookLogAt > 15000) {
-                    console.log('[Main] Discord notifications disabled: no webhook selected.');
-                    discordNoWebhookLogAt = now;
-                }
-            }
-
-            const hasDetails = hasUsableDetails;
-            const playerCount = Array.isArray(prunedDetails?.players) ? prunedDetails.players.length : undefined;
-            const dashboardSummary = prunedDetails ? buildDashboardSummaryFromDetails(prunedDetails) : undefined;
-            const squadGuilds = prunedDetails ? extractSquadGuilds(prunedDetails) : undefined;
-            const detailsSummary = {
-                fightName: prunedDetails?.fightName,
-                fightLabel: buildFightLabelFromDetails(prunedDetails),
-                encounterDuration: prunedDetails?.encounterDuration,
-                uploadTime: prunedDetails?.uploadTime,
-                success: prunedDetails?.success
-            };
-            if (prunedDetails) {
-                setBulkLogDetails(filePath, prunedDetails);
-                void updateGlobalManifest(prunedDetails, filePath);
-            }
-            // Pre-warm renderer memory cache (LRU only, no IndexedDB).
-            // Skip during bulk upload — IPC deserialization of 10-40MB objects blocks the renderer.
-            // Details flow via hydration after bulk upload ends.
-            if (prunedDetails && win?.webContents && !bulkUploadMode) {
-                win.webContents.send('details-prewarm', {
-                    logId: result.id || filePath,
-                    filePath,
-                    details: prunedDetails,
-                });
-            }
-            if (bulkUploadMode) {
-                win?.webContents.send('upload-complete', {
-                    ...result,
-                    ...detailsSummary,
-                    filePath,
-                    status: hasDetails ? 'calculating' : 'success',
-                    detailsStatus: detailsKnownUnavailable ? 'unavailable' as const : hasDetails ? 'available' as const : 'idle' as const,
-                    playerCount,
-                    dashboardSummary
-                });
-                console.log(`[Main] upload-complete (bulk): ${filePath} players=${playerCount ?? 'n/a'}`);
-            } else {
-                win?.webContents.send('upload-complete', {
-                    ...result,
-                    ...detailsSummary,
-                    filePath,
-                    status: hasDetails ? 'calculating' : 'success',
-                    detailsStatus: detailsKnownUnavailable ? 'unavailable' as const : hasDetails ? 'available' as const : 'idle' as const,
-                    playerCount,
-                    dashboardSummary
-                });
-                console.log(`[Main] upload-complete: ${filePath} summary sent`);
+            } catch (discordError: any) {
+                console.error('[Main] Discord notification failed:', discordError?.message || discordError);
             }
         } else {
-            markUploadRetryFailure(filePath, result?.error || 'Unknown upload error', result?.statusCode);
-            win?.webContents.send('upload-complete', { ...result, filePath, status: 'error' });
-            console.log(`[Main] upload-complete error: ${filePath} msg=${result?.error || 'unknown'}`);
+            const now = Date.now();
+            if (now - discordNoWebhookLogAt > 15000) {
+                console.log('[Main] Discord notifications disabled: no webhook selected.');
+                discordNoWebhookLogAt = now;
+            }
         }
+
+        // The log reached here because parsing it locally failed. The upload
+        // succeeded, so the permalink and the embed are live — but there are no
+        // stats, and saying so beats contributing zeros to every total.
+        if (localParseError) {
+            win?.webContents.send('upload-complete', {
+                ...result,
+                filePath,
+                status: 'error',
+                error: `Local parse failed: ${localParseError}`
+            });
+            console.log(`[Main] upload-complete parse-failure: ${filePath} msg=${localParseError}`);
+            return;
+        }
+
+        const playerCount = Array.isArray(prunedDetails?.players) ? prunedDetails.players.length : undefined;
+        const dashboardSummary = prunedDetails ? buildDashboardSummaryFromDetails(prunedDetails) : undefined;
+        const squadGuilds = prunedDetails ? extractSquadGuilds(prunedDetails) : undefined;
+        const detailsSummary = {
+            fightName: prunedDetails?.fightName,
+            fightLabel: buildFightLabelFromDetails(prunedDetails),
+            encounterDuration: prunedDetails?.encounterDuration,
+            uploadTime: prunedDetails?.uploadTime,
+            success: prunedDetails?.success
+        };
+        if (prunedDetails) {
+            setBulkLogDetails(filePath, prunedDetails);
+            void updateGlobalManifest(prunedDetails, filePath);
+        }
+        // Pre-warm renderer memory cache (LRU only, no IndexedDB).
+        // Skip during bulk upload — IPC deserialization of 10-40MB objects blocks the renderer.
+        // Details flow via hydration after bulk upload ends.
+        if (prunedDetails && win?.webContents && !bulkUploadMode) {
+            win.webContents.send('details-prewarm', {
+                logId: result.id || filePath,
+                filePath,
+                details: prunedDetails,
+            });
+        }
+        win?.webContents.send('upload-complete', {
+            ...result,
+            ...detailsSummary,
+            filePath,
+            status: hasUsableDetails ? 'calculating' : 'success',
+            detailsStatus: hasUsableDetails ? 'available' as const : 'idle' as const,
+            // Deliberately no `parseSource`: these details came off disk and the
+            // cache does not record which engine produced them. A log that makes
+            // no claim is checked against its details once they hydrate; one that
+            // claims wrongly is never rechecked.
+            playerCount,
+            dashboardSummary,
+            squadGuilds
+        });
+        console.log(`[Main] upload-complete${bulkUploadMode ? ' (bulk)' : ''}: ${filePath} players=${playerCount ?? 'n/a'}`);
     } catch (error: any) {
         console.error('[Main] Log processing failed:', error?.message || error);
         markUploadRetryFailure(filePath, error?.message || 'Unknown error during processing', error?.statusCode || error?.response?.status);
@@ -1848,10 +1792,6 @@ if (!gotTheLock) {
             loadUploadRetryState,
             setUploadRetryPaused,
             getBulkLogDetails,
-            setBulkLogDetails,
-            getKnownFileHash,
-            updateDpsReportCacheDetails,
-            fetchDetailsFromPermalinkWithRetry,
         });
         registerGithubHandlers({
             store,
@@ -1862,6 +1802,12 @@ if (!gotTheLock) {
             getWindow: () => win,
             getEiManager: () => eiManager!,
             getAxilogManager: () => axilogManager,
+        });
+        registerReparseHandlers({
+            getAxilogManager: () => axilogManager,
+            getBackend: () => getParserBackend(),
+            getPruneOptions: statsPruneOptions,
+            setBulkLogDetails,
         });
     })
 }
