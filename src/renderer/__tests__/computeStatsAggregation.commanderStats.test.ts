@@ -1,6 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import { computeStatsSync as computeStatsAggregation } from '../stats/incrementalAggregation';
 
+/**
+ * The commander's native position track, in WORLD INCHES.
+ *
+ * The movement metrics used to read `combatReplayData.positions` — canvas
+ * pixels — and divide by `combatReplayMetaData.inchToPixel`. This fixture
+ * never set that field, so the divisor defaulted to 1 and the assertions below
+ * were really measuring raw pixel deltas. The same coordinates are now world
+ * inches, which is what the numbers always claimed to be, so the expected
+ * values are unchanged.
+ *
+ * No `arena` here deliberately: it keeps the replay-map surface out of a test
+ * that is only about commander stats.
+ */
+const nativeTrack = (account: string, points: Array<[number, number]>) => ({
+    axilog: { schema: '1.0', version: 'test' },
+    entities: [{
+        id: 1, role: 'squad', account, character: 'Tag One',
+        profession: 'Firebrand', combat_participant: true, agent_addr: 1, instid: 1,
+    }],
+    catalogs: {},
+    coverage: { replay: 'present' },
+    blocks: {
+        replay: {
+            tracks: {
+                poll_ms: 300,
+                by_entity: {
+                    1: {
+                        samples: points.map(([x, y], i) => [i * 300, x, y]),
+                        down_intervals: [], dead_intervals: [], dc_intervals: [],
+                    },
+                },
+            },
+        },
+    },
+});
+
 describe('computeStatsAggregation (commander stats)', () => {
     it('aggregates commander-led fights into commanderStats with per-fight trends', () => {
         const commanderAccount = 'tag.1234';
@@ -11,6 +47,7 @@ describe('computeStatsAggregation (commander stats)', () => {
                 details: {
                     timeStartStd: '2026-02-10T01:00:00Z',
                     durationMS: 60_000,
+                    native: nativeTrack('tag.1234', [[0, 0], [100, 0], [100, 0], [200, 0], [200, 0]]),
                     buffMap: {
                         b1: { name: 'Might', classification: 'Boon', stacking: false }
                     },
@@ -24,7 +61,6 @@ describe('computeStatsAggregation (commander stats)', () => {
                             notInSquad: false,
                             activeTimes: [60_000],
                             combatReplayData: {
-                                positions: [[0, 0], [100, 0], [100, 0], [200, 0], [200, 0]],
                                 dead: [[15_000, 0]]
                             },
                             defenses: [{ downCount: 1, deadCount: 1, damageTaken: 12_000 }],
@@ -63,6 +99,7 @@ describe('computeStatsAggregation (commander stats)', () => {
                 details: {
                     timeStartStd: '2026-02-10T01:05:00Z',
                     durationMS: 120_000,
+                    native: nativeTrack('tag.1234', [[0, 0], [0, 0], [50, 0], [100, 0], [100, 0]]),
                     buffMap: {
                         b1: { name: 'Might', classification: 'Boon', stacking: false }
                     },
@@ -75,9 +112,6 @@ describe('computeStatsAggregation (commander stats)', () => {
                             hasCommanderTag: true,
                             notInSquad: false,
                             activeTimes: [120_000],
-                            combatReplayData: {
-                                positions: [[0, 0], [0, 0], [50, 0], [100, 0], [100, 0]]
-                            },
                             defenses: [{ downCount: 0, deadCount: 0, damageTaken: 6_000 }],
                             dpsAll: [{ damage: 30_000 }],
                             statsTargets: [[{ downed: 1, killed: 1 }, { downed: 1, killed: 0 }]],

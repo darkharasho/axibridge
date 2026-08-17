@@ -631,22 +631,67 @@ intervals the movement members already carried natively).
 **Oracle:** `src/test/__tests__/unit3bReplayMap.oracle.test.ts`, 8 tests, two allowlist entries
 (`ally member count`, `inch scale`).
 
-### Deferred out of unit 3b: `commanderMetrics`
+### Commander positions, migrated (2026-08-17)
 
-`src/shared/commanderMetrics/*` and `computeCommanderStats.ts` are now the last EI-position readers
-in the app. Scoping them against the code rather than the file list showed they are not a
-mechanical swap, for two reasons:
+`src/shared/commanderMetrics/*` was the last EI-position reader. `playerPosAt` and its
+`combatReplayData.start` frame derivation are deleted; `buildSquadTracks` joins native squad
+entities to their tracks and `squadPosAt` resolves at-or-before with a one-poll staleness bound.
+`computeCommanderFightData` no longer reads `combatReplayMetaData` at all -- not its `pollingRate`,
+not its pixel space.
 
-1. `playerPosAt(player, tSec, framesPerSec)` is keyed on an EI `Player` with no entity id, so
-   feeding it native tracks means changing `computeCommanderFightData`'s contract and threading an
-   account-to-track join through four files -- unit-scale work on a 2000-line EI-shaped subsystem
-   whose other 90% belongs to units 4-6.
-2. **There is a pre-existing unit bug there that must be fixed deliberately.** `cohesion.ts`
-   computes `distFromTag` in map PIXELS, and `firstSquadDeathEarly.ts` renders it as
-   `"<n>u from tag"` -- game units. Those differ by ~117x (one pixel spans ~117 world inches on
-   this fixture). The detector's thresholds appear tuned against the pixel value, so correcting the
-   unit without re-deriving them changes which fights trigger the detector. That trade-off belongs
-   with the commanderMetrics migration, not with the replay map.
+**The unit bug this exposed was worse than "thresholds need re-tuning".** Native samples are world
+inches, which is what every threshold in `commanderThresholds.ts` was already written in, so the
+fix was to stop projecting rather than to convert. Measured on `wvw-small.anon.zevtc` (38 squad,
+49s), at 0.008512 px/inch on a 523x750 canvas:
+
+| metric | EI (pixels) | native (game units) |
+|---|---|---|
+| `avgDistFromTag` | 10.20, rendered as "10u" | 1101u |
+| `peakSpreadStdev` | 58.82 vs `spreadBad` 600 | 5228u |
+| `timeSpread900PlusSec` | 0 of 50s | 0 < n <= duration |
+| `stragglersAtBomb` | 0 | discriminating |
+| `matchup.inTagBubbleAtEngage` | whole squad, always | < squadCount |
+
+`900u` is **7.66px** and `1500u` is **12.77px** on this arena, so those comparisons were
+unsatisfiable and the metrics were constants, not measurements. `600u` for the tag bubble spans
+~70,000 units in pixel space -- wider than the 61440x86016 map -- so `tagPct` was pinned at 100%.
+Four detectors (`fragmentedAtBomb`, `caughtOutDeaths`, `firstSquadDeathEarly`'s far-flag,
+`outcome`'s `caught-out` chip) could never fire.
+
+Thresholds were left unchanged. The per-player-second distance distribution in game units -- median
+599u, p75 778u, p90 992u -- lands squarely on the existing 600/900/1500 values, which is the
+evidence they were always game units and only the input scale was wrong.
+
+`computeCommanderStats.ts` moved too, and it was the one place already producing game units --
+it measured in pixels and divided by `combatReplayMetaData.inchToPixel`. That divisor is EI's
+3dp-rounded 0.009 against a true 0.008512, collapsed from an anisotropic projection onto one axis,
+so `distanceTraveled` / `movementPerMinute` / `stationaryPct` / `movementBurstCount` carried ~6% of
+scale error before any pixel rounding. Native samples need no divisor. The 1u / 25u
+stationary/burst thresholds are unchanged, since they were already compared against the converted
+value.
+
+With that, **no file under `src/renderer` or `src/shared` reads `combatReplayData.positions` or
+`combatReplayMetaData` any more.** The remaining `combatReplayMetaData` references in `src/main`
+are cache-validation markers, not position reads.
+
+**A second, independent defect surfaced while testing.** `computeSurvival` and
+`buildDeathsTimeline` each construct their own `DeathEvent` objects, and `computeCohesion` fills
+`distFromTag` on the timeline's only. `firstSquadDeathEarly` reads
+`survival.firstSquadDeath.distFromTag`, so it compared a permanent 0 against 900 and its evidence
+string always read `"0u from tag"`. The orchestrator now re-points survival's two death fields at
+the timeline entries, so the two surfaces share one object. Fixing the units alone would not have
+revived that detector.
+
+**Not addressed, and now visible.** Absent squad members distort the aggregates: one alive member
+sits ~18,000u away (a scout, or an afk in spawn), which is what drags the mean to 1101u against a
+median of 572u and inflates `peakSpreadStdev` to 5228u against a `spreadBad` of 600. Excluding
+dead and downed players was measured and moves nothing. Whether cohesion should use robust
+statistics or exclude non-participants is a product decision about what these cards mean, not a
+migration question -- but until it is answered, `fragmentedAtBomb` will fire at max severity on
+most fights.
+
+Also still open: `distFromTag` measures distance from the squad **centroid**, not the commander.
+Native exposes `commander.segments`, so the real tag position is available for the first time.
 
 `computePositioning` in `packages/bridge-metrics/src/positioning.ts` remains migrated-but-unused
 inside axibridge -- it is live public API of a published package, which is why it was ported rather

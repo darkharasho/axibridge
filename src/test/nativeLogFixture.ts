@@ -55,6 +55,13 @@ export interface NativeMemberSpec {
     commander?: boolean;
     /** Positions in RENDER-CANVAS PIXELS; inverted to world inches here. */
     pixels?: Array<[number, number]>;
+    /**
+     * Positions in WORLD INCHES (game units), stored verbatim. Use this instead
+     * of `pixels` for the commander metrics, whose thresholds are game-unit
+     * distances — "900u apart" is the assertion those tests want to make, and
+     * routing it through the pixel inverse would obscure it.
+     */
+    world?: Array<[number, number]>;
     /** Timestamp of `pixels[0]`. Defaults to one poll, as a real track does. */
     startMs?: number;
     down?: Array<[number, number]>;
@@ -108,12 +115,10 @@ export const buildNativeLog = (
         entities.push(entity);
 
         const start = m.startMs ?? pollMs;
-        if (m.pixels?.length) {
+        const samplePoints = m.world ?? m.pixels?.map(p => pixelToWorld(p[0], p[1], arena));
+        if (samplePoints?.length) {
             tracksByEntity[m.id] = {
-                samples: m.pixels.map((p, i) => {
-                    const [wx, wy] = pixelToWorld(p[0], p[1], arena);
-                    return [start + i * pollMs, wx, wy];
-                }),
+                samples: samplePoints.map(([wx, wy], i) => [start + i * pollMs, wx, wy]),
                 down_intervals: m.down ?? [],
                 dead_intervals: m.dead ?? [],
                 dc_intervals: [],

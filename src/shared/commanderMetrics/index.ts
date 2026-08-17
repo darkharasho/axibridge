@@ -1,13 +1,14 @@
 // src/shared/commanderMetrics/index.ts
 // Orchestrator: calls each section helper and assembles the final CommanderFightData.
 
-import type { ComputeCommanderFightData } from '../commanderTypes';
+import type { ComputeCommanderFightData, DeathEvent } from '../commanderTypes';
 import { computeMatchup } from './matchup';
 import { computeSurvival, buildDeathsTimeline } from './survival';
 import { buildSeries, computeBurst } from './burstAndSeries';
 import { computeCohesion } from './cohesion';
 import { buildStabUptimeSeries, computeSustain, computeEngage } from './sustainAndEngage';
 import { computeOutcome } from './outcome';
+import { buildSquadTracks } from './shared';
 
 export const computeCommanderFightData: ComputeCommanderFightData = (json, options) => {
   // --- root fields -------------------------------------------------------
@@ -18,12 +19,14 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, optio
 
   const seriesLen = Math.ceil(duration);
 
-  const pollingRate = json.combatReplayMetaData?.pollingRate ?? 300;
+  // Positions come from native tracks, in world inches. Nothing here reads
+  // `combatReplayMetaData` any more — not its pollingRate, not its pixel space.
+  const { tracks: squadTracks, pollMs } = buildSquadTracks(json);
 
   // Build squad players list early — shared across many sub-computations
   const squadPlayers = json.players.filter(p => !p.notInSquad);
 
-  const matchup = computeMatchup(json, squadPlayers, pollingRate, duration);
+  const matchup = computeMatchup(json, squadPlayers, squadTracks, pollMs, duration);
 
   const survival = computeSurvival(json, options);
 
@@ -45,12 +48,24 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, optio
 
   // Compute cohesion & positioning (also mutates deathsTimeline.distFromTag in place)
   const { cohesion, spreadStdev } = computeCohesion({
-    squadPlayers,
-    pollingRate,
+    squadTracks,
+    pollMs,
     seriesLen,
     bombWindows: burst.bombWindows,
     deathsTimeline,
   });
+
+  // `computeSurvival` and `buildDeathsTimeline` each construct their own
+  // DeathEvent objects from the same source, and computeCohesion fills
+  // distFromTag on the timeline's copies only. Re-point survival's two fields
+  // at the timeline entries so the value is shared rather than duplicated and
+  // stale — `firstSquadDeathEarly` renders
+  // `survival.firstSquadDeath.distFromTag`, which was therefore always 0 and
+  // its far-from-tag flag consequently dead.
+  const linkDeath = (d: DeathEvent | null): DeathEvent | null =>
+    d ? (deathsTimeline.find(e => e.account === d.account && e.tSec === d.tSec) ?? d) : d;
+  survival.firstSquadDeath = linkDeath(survival.firstSquadDeath);
+  survival.firstSupportDeath = linkDeath(survival.firstSupportDeath);
 
   // Build per-second Stability uptime series (needed by sustain, engage, and burst)
   const stabUptime = buildStabUptimeSeries(squadPlayers, seriesLen);

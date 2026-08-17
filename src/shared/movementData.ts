@@ -21,11 +21,11 @@ export { positionAt };
  *
  * This coexists with the EI view-model below rather than replacing it. The two
  * answer different questions: this one answers "where was entity N at time T",
- * which is all the stats compute modules need; `MovementData` additionally
- * carries names, professions, boon states, skill casts and health percents,
- * which the replay map renders. Unit 3b migrates that view-model onto `arena`
- * and `tracks` as one piece — the map's ~10 files are calibrated against
- * `wvwTiles.ts`'s `continentRect` and have to move together.
+ * which is all the stats and commander compute modules need; `MovementData`
+ * additionally carries names, professions, boon states, skill casts and health
+ * percents, which the replay map renders. Both now source their positions from
+ * here — the map projects them onto the arena's render canvas, while the
+ * commander metrics consume them as the world inches they already are.
  *
  * Note `tracks` is keyed by native ENTITY ID and includes enemy players, while
  * `MovementData.members` is a flat list keyed by name. They do not join

@@ -6,7 +6,9 @@ import type { CommanderFightData, DeathEvent, CommanderComputeOptions } from '..
 /**
  * Build the deathsTimeline: one DeathEvent per squad player who died at least
  * once, recorded at the time of their first death. Sorted chronologically.
- * distFromTag defaults to 0 (positional data is Task 6).
+ * `distFromTag` is left at 0 here and filled in by `computeCohesion`, which
+ * owns the position data. The orchestrator re-points `survival`'s two death
+ * fields at these entries afterwards so both surfaces share one object.
  */
 export function buildDeathsTimeline(
   json: DPSReportJSON,
