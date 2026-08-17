@@ -95,6 +95,66 @@ export const worldToPixel = (
     return [fx * w, (1 - fy) * h];
 };
 
+/**
+ * The largest dimension of the replay render canvas, in map pixels.
+ *
+ * This is not a rendering preference — it is the coordinate space every
+ * hand-calibrated map constant already lives in. `wvwLandmarks.ts` stores each
+ * WvW objective at a fixed pixel position (523×750 for the alpine borderlands,
+ * 716×750 for Eternal Battlegrounds), and `wvwTiles.ts` carries per-map
+ * `pixelOffset` values tuned by hand against that same canvas. GW2EI squeezed
+ * its arena image to a 750px max dimension and those constants were calibrated
+ * against the result.
+ *
+ * Native emits the arena un-squeezed (697×1000 on the reference fixture), so
+ * projecting at native size would silently invalidate every one of those
+ * constants. Reproducing EI's canvas keeps them exact.
+ */
+export const REPLAY_CANVAS_MAX = 750;
+
+/**
+ * The render canvas for an arena: its image scaled so the larger dimension is
+ * {@link REPLAY_CANVAS_MAX}, rounded.
+ *
+ * Reproduces GW2EI's `combatReplayMetaData.sizes` — 697×1000 becomes 523×750
+ * on the reference fixture, matching EI's `[523, 750]` exactly (EI rounds
+ * 522.75 up, and so does this). Rounding identically matters: the landmark
+ * table was calibrated against EI's rounded value, not the exact ratio.
+ */
+export const replayCanvas = (arena: ArenaProjection): [number, number] => {
+    const max = Math.max(arena.image_width, arena.image_height);
+    if (!(max > 0)) return [0, 0];
+    const k = REPLAY_CANVAS_MAX / max;
+    return [Math.round(arena.image_width * k), Math.round(arena.image_height * k)];
+};
+
+/**
+ * Exact pixels-per-world-inch, per axis, replacing EI's `inchToPixel`.
+ *
+ * Two separate corrections over the scalar it replaces:
+ *
+ * 1. **It is exact.** EI rounded `inchToPixel` to three decimals — `0.009`
+ *    against a true `0.008719` — so anything scaled by it was ~3% off.
+ * 2. **It is per-axis, because the projection is genuinely anisotropic.** The
+ *    reference fixture's world rect is 61440×86016 (ratio 0.714) while its
+ *    arena image is 697×1000 (ratio 0.697): x and y scales differ by ~2.4%.
+ *    EI collapsed that to one number, so a 600-range ring drawn with it was
+ *    both oversized and wrongly circular. A caller wanting one scalar must
+ *    choose an axis deliberately rather than be handed a hidden average.
+ */
+export const pixelsPerInch = (
+    arena: ArenaProjection,
+    canvas?: [number, number],
+): { x: number; y: number } => {
+    const [w, h] = canvas ?? replayCanvas(arena);
+    const worldW = arena.world_max_x - arena.world_min_x;
+    const worldH = arena.world_max_y - arena.world_min_y;
+    return {
+        x: worldW > 0 ? w / worldW : 0,
+        y: worldH > 0 ? h / worldH : 0,
+    };
+};
+
 const toIntervals = (raw: unknown): Array<[number, number]> => {
     if (!Array.isArray(raw)) return [];
     const out: Array<[number, number]> = [];
