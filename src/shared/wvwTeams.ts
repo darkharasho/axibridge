@@ -9,6 +9,12 @@
 //   - Drevarr/EVTC_parser/gw2_data.py
 //   - Drevarr/GW2_EI_log_combiner/config.py
 
+// Subpath, not the package root: `src/shared/**` is also compiled by
+// `electron/tsconfig.json`, whose Node10 resolver cannot see the root `exports`
+// map. Every other shared module imports this way for the same reason — see
+// `src/main/bridgeMetricsRoot.d.ts`.
+import { getEncounterTeamMap } from '@axiapps/bridge-metrics/nativeEncounter';
+
 export type WvwTeamColor = 'red' | 'green' | 'blue' | 'unknown';
 
 /** Authoritative per-log team→color map (0 means that team is absent). */
@@ -41,12 +47,22 @@ export function teamMapFromLog(log: unknown): WvwTeamMap | null {
   const data = (obj.wvWMapData ?? obj.wvwMapData) as
     | { redTeamID?: number; greenTeamID?: number; blueTeamID?: number }
     | undefined;
-  if (!data || typeof data !== 'object') return null;
-  return {
-    red: Number(data.redTeamID) || 0,
-    green: Number(data.greenTeamID) || 0,
-    blue: Number(data.blueTeamID) || 0,
-  };
+  const fromEi: WvwTeamMap | null = data && typeof data === 'object'
+    ? {
+      red: Number(data.redTeamID) || 0,
+      green: Number(data.greenTeamID) || 0,
+      blue: Number(data.blueTeamID) || 0,
+    }
+    : null;
+
+  // Native wins outright when present — it is not merged with `wvWMapData`,
+  // because a colour EI reports that native does not is a PLACEHOLDER, not a
+  // team. `to_ei_json` must fill EI's fixed red/blue/green shape, so when a
+  // colour fielded nobody it emits `representative_team_id(colour)` — a
+  // hardcoded 697/432/39 (axilog-ei/src/lib.rs:27). The committed fixture has
+  // no red player and still reports `redTeamID: 697`. Merging that in would
+  // put an id no agent in the log belongs to into the map.
+  return getEncounterTeamMap(log) ?? fromEi;
 }
 
 /**

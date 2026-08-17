@@ -16,8 +16,8 @@
  * caveats behind numbers that are present but not EI-identical.
  */
 
-import * as fs from 'fs';
 import type { EiParserSettings } from './eiParser';
+import { buildNativeCarrySet } from './nativeCarrySet';
 
 // ─── Backend selection ────────────────────────────────────────────────────────
 
@@ -387,22 +387,34 @@ const toStdTimestamp = (epochMs: number): string => {
 };
 
 /**
- * Fill in the handful of EI top-level/player fields axilog has no source for
- * but axibridge reads, using only information that is genuinely available.
+ * Project native encounter facts onto the legacy EI field names.
+ *
+ * Unit 2 moved the *display* readers of these facts onto `details.native`
+ * directly, but several consumers still read the EI spellings and belong to
+ * later units — `main/index.ts` persists `encounterDuration` into `ILogData`,
+ * `discord.ts` formats embeds from `timeStartStd`, and `ExpandableLogCard` /
+ * `dashboardUtils` read both. This function keeps those working by filling the
+ * old names from the new source, and dies with their readers in units 8 and 10.
  *
  * - `players[].name` — axilog spells the character name `character_name`;
  *   `playerIdentity.getPlayerAccountKey` and several displays fall back to
- *   `name`, so it is aliased rather than left undefined.
- * - `zone` — the map name, which axilog only surfaces embedded in `fightName`
- *   (`"Detailed WvW - Green Alpine Borderlands"`).
- * - `encounterDuration` — formatted from `durationMS`, which axilog does emit.
- * - `timeStart`/`timeEnd` (+ `*Std`) — arcdps closes the `.zevtc` when the
- *   fight ends, so the file's mtime is the fight END wall-clock; `timeStart`
- *   is that minus `durationMS`. Approximate by construction (EI reads a real
- *   log-start event axilog does not surface), and only ever consulted as a
- *   fallback after `uploadTime`, so a few seconds of skew is harmless.
+ *   `name`. Owned by unit 8.
+ * - `zone` — `encounter.map`, with the `fightName` prefix-strip left as the
+ *   fallback for a log whose native parse failed.
+ * - `encounterDuration` — formatted from `encounter.duration_ms`, falling back
+ *   to `durationMS`, which ei-json emits with the same value.
+ * - `timeStart`/`timeEnd` (+ `*Std`) — from `encounter.started_at_unix`, the
+ *   real fight start.
+ *
+ * **The `.zevtc`-mtime inference this function used to perform is gone.** It
+ * read the file's mtime as the fight end, which holds only for a log still
+ * sitting where arcdps wrote it: on the committed fixture — checked out by git
+ * — it was wrong by 204 days, and it was wrong by the same magnitude for any
+ * user log that had been copied, restored from backup or re-synced. When no
+ * native start is available the timestamps are now left undefined, so callers
+ * fall back to `uploadTime` instead of to a fabricated date.
  */
-export const applyEiCompatShims = (details: any, logPath: string): any => {
+export const applyEiCompatShims = (details: any, _logPath: string): any => {
     if (!details || typeof details !== 'object') return details;
 
     const players: any[] = Array.isArray(details.players) ? details.players : [];
@@ -412,36 +424,38 @@ export const applyEiCompatShims = (details: any, logPath: string): any => {
         }
     }
 
-    if (details.zone === undefined && typeof details.fightName === 'string') {
-        // `"Detailed WvW - Green Alpine Borderlands"` -> `"Green Alpine
-        // Borderlands"`. When `fightName` carries no `" - "` separator the
-        // regex simply does not match and the WHOLE name becomes the zone,
-        // which is the right fallback: axilog's `fightName` is built from the
-        // map name, so an unprefixed one already is the zone.
-        const zone = details.fightName.replace(/^.*?\s-\s/, '').trim();
-        if (zone) details.zone = zone;
+    const encounter = details.native?.encounter;
+    const nativeMap = typeof encounter?.map === 'string' ? encounter.map.trim() : '';
+
+    if (details.zone === undefined) {
+        if (nativeMap) {
+            details.zone = nativeMap;
+        } else if (typeof details.fightName === 'string') {
+            // `"Detailed WvW - Green Alpine Borderlands"` -> `"Green Alpine
+            // Borderlands"`. When `fightName` carries no `" - "` separator the
+            // regex simply does not match and the WHOLE name becomes the zone,
+            // which is the right fallback: axilog's `fightName` is built from
+            // the map name, so an unprefixed one already is the zone.
+            const zone = details.fightName.replace(/^.*?\s-\s/, '').trim();
+            if (zone) details.zone = zone;
+        }
     }
 
-    const durationMs = Number(details.durationMS);
+    const nativeDurationMs = Number(encounter?.duration_ms);
+    const durationMs = isFiniteNumber(nativeDurationMs) ? nativeDurationMs : Number(details.durationMS);
     if (isFiniteNumber(durationMs) && durationMs > 0 && details.encounterDuration === undefined) {
         details.encounterDuration = formatEncounterDuration(durationMs);
     }
 
-    if (details.timeEnd === undefined && details.timeStart === undefined) {
-        let mtimeMs: number | null = null;
-        try {
-            mtimeMs = fs.statSync(logPath).mtimeMs;
-        } catch {
-            mtimeMs = null;
-        }
-        if (isFiniteNumber(mtimeMs) && mtimeMs > 0) {
-            const endMs = mtimeMs;
-            const startMs = endMs - (isFiniteNumber(durationMs) && durationMs > 0 ? durationMs : 0);
-            details.timeStart = Math.floor(startMs / 1000);
-            details.timeEnd = Math.floor(endMs / 1000);
-            details.timeStartStd = toStdTimestamp(startMs);
-            details.timeEndStd = toStdTimestamp(endMs);
-        }
+    const startedAtUnix = Number(encounter?.started_at_unix);
+    if (details.timeEnd === undefined && details.timeStart === undefined
+        && isFiniteNumber(startedAtUnix) && startedAtUnix > 0) {
+        const startMs = startedAtUnix * 1000;
+        const endMs = startMs + (isFiniteNumber(durationMs) && durationMs > 0 ? durationMs : 0);
+        details.timeStart = Math.floor(startMs / 1000);
+        details.timeEnd = Math.floor(endMs / 1000);
+        details.timeStartStd = toStdTimestamp(startMs);
+        details.timeEndStd = toStdTimestamp(endMs);
     }
 
     return details;
@@ -452,6 +466,8 @@ export const applyEiCompatShims = (details: any, logPath: string): any => {
 /** The slice of `@axiapps/axilog` this module needs; injectable for tests. */
 export interface AxilogBinding {
     parseFileEi: (path: string, opts?: AxilogParseOptions) => any;
+    /** Native `ReportV1` parse. Optional so existing test doubles stay valid. */
+    parseFile?: (path: string, opts?: AxilogParseOptions) => unknown;
 }
 
 let cachedBinding: AxilogBinding | null | undefined;
@@ -531,6 +547,23 @@ export class AxilogManager {
         const started = Date.now();
         // Synchronous native call; wrapped so callers keep the Promise contract.
         const details = binding.parseFileEi(logPath, options);
+        // Carry native alongside EI for the duration of the migration. Migrated
+        // readers read `details.native`; unmigrated ones keep reading EI. Both
+        // halves come from ONE axilog version, so they cannot disagree about
+        // anything except shape. The EI half is deleted at Step N.
+        //
+        // A native failure must never fail the parse: EI-shaped compute is still
+        // the majority of the app. It degrades the migrated readers only.
+        if (typeof binding.parseFile === 'function') {
+            try {
+                const carry = buildNativeCarrySet(binding.parseFile(logPath, options));
+                if (carry) (details as any).native = carry;
+            } catch (err) {
+                this.parseProgressCallback?.(`[axilog] native parse failed for ${logId}: ${String(err)}\n`);
+            }
+        }
+        // After the carry-set: the shims project native encounter facts onto
+        // the legacy EI field names, so they need `details.native` in place.
         applyEiCompatShims(details, logPath);
         deriveDistanceScalars(details);
         this.parseProgressCallback?.(`[axilog] parsed ${logId} in ${Date.now() - started}ms\n`);

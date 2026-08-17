@@ -277,14 +277,37 @@ describe('applyEiCompatShims', () => {
         expect(details.encounterDuration).toBe('0m 49s 285ms');
     });
 
-    it('derives timeStart/timeEnd from the log file mtime and duration', () => {
-        // Any real file will do — only its mtime is read.
+    it('derives timeStart/timeEnd from the native encounter start', () => {
+        const details: any = {
+            players: [],
+            native: { axilog: {}, encounter: { started_at_unix: 1768702180, duration_ms: 10000 } },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.timeStart).toBe(1768702180);
+        expect(details.timeEnd).toBe(1768702190);
+        expect(details.timeStartStd).toBe('2026-01-18 02:09:40 +00');
+    });
+
+    it('no longer infers timestamps from the log file mtime', () => {
+        // The mtime is the fight end only for a log still sitting where arcdps
+        // wrote it. Copied, restored or re-synced logs got a date wrong by
+        // months — on the committed fixture, by 204 days. Absent beats invented:
+        // callers fall back to uploadTime.
         const details: any = { durationMS: 10000, players: [] };
         applyEiCompatShims(details, __filename);
-        const mtimeSeconds = Math.floor(fs.statSync(__filename).mtimeMs / 1000);
-        expect(details.timeEnd).toBe(mtimeSeconds);
-        expect(details.timeStart).toBe(details.timeEnd - 10);
-        expect(typeof details.timeStartStd).toBe('string');
+        expect(details.timeStart).toBeUndefined();
+        expect(details.timeEnd).toBeUndefined();
+        expect(details.timeStartStd).toBeUndefined();
+    });
+
+    it('prefers the native map over the fightName prefix-strip', () => {
+        const details: any = {
+            fightName: 'Detailed WvW - Eternal Battlegrounds',
+            players: [],
+            native: { axilog: {}, encounter: { map: 'Green Alpine Borderlands' } },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.zone).toBe('Green Alpine Borderlands');
     });
 
     it('never overwrites values the parser already supplied', () => {
@@ -308,6 +331,15 @@ describe('applyEiCompatShims', () => {
         const details: any = { durationMS: 1000, players: [] };
         expect(() => applyEiCompatShims(details, '/nope/does-not-exist.zevtc')).not.toThrow();
         expect(details.timeStart).toBeUndefined();
+    });
+
+    it('leaves timestamps undefined when the native parse failed', () => {
+        // No native, no invented date — the whole point of retiring the mtime.
+        const details: any = { durationMS: 1000, players: [], fightName: 'X - Y' };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.timeStart).toBeUndefined();
+        expect(details.zone).toBe('Y');
+        expect(details.encounterDuration).toBe('0m 1s 0ms');
     });
 });
 
@@ -615,5 +647,43 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         expect(Object.values(details.skillMap).every((s: any) => s.icon === undefined)).toBe(true);
         expect(Object.values(details.buffMap).every((b: any) => b.icon === undefined)).toBe(true);
         expect(Object.values(details.buffMap).every((b: any) => b.classification === undefined)).toBe(true);
+    });
+});
+
+describe('native carry-set at the seam', () => {
+    const fakeBinding = (native: any) => ({
+        parseFileEi: () => ({ players: [], durationMS: 1000 }),
+        parseFile: () => native,
+    });
+
+    it('attaches the pruned native report as details.native', async () => {
+        const mgr = new AxilogManager(fakeBinding({
+            axilog: { schema: '1.0' },
+            encounter: { map: 'Green Alpine Borderlands' },
+            entities: [],
+            coverage: {},
+            blocks: { replay: { tracks: [1, 2, 3] } },
+        }) as any);
+        const details: any = await mgr.parseLog(FIXTURE, 'log-1');
+        expect(details.native.encounter.map).toBe('Green Alpine Borderlands');
+        expect(details.native.blocks).toBeUndefined();
+    });
+
+    it('leaves details.native absent when the native parse throws', async () => {
+        const binding: any = {
+            parseFileEi: () => ({ players: [] }),
+            parseFile: () => { throw new Error('native boom'); },
+        };
+        const details: any = await new AxilogManager(binding).parseLog(FIXTURE, 'log-1');
+        // Absent, NOT null and NOT {}: readers must be able to tell
+        // "no native data" from "native data that is empty".
+        expect('native' in details).toBe(false);
+        expect(details.players).toEqual([]);
+    });
+
+    it('leaves details.native absent when the binding has no parseFile', async () => {
+        const details: any = await new AxilogManager({ parseFileEi: () => ({ players: [] }) } as any)
+            .parseLog(FIXTURE, 'log-1');
+        expect('native' in details).toBe(false);
     });
 });

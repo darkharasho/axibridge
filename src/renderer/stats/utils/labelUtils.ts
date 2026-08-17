@@ -1,3 +1,5 @@
+import { getEncounterZone } from '@axiapps/bridge-metrics';
+
 export { buildFightLabelV2, computeFightAvgPosition } from '../../../shared/mapUtils';
 export type { FightLabelInputs } from '../../../shared/mapUtils';
 
@@ -31,7 +33,11 @@ export const tokenizeLabel = (value: string): string[] =>
 
 export const resolveMapName = (details: any, log: any): string =>
     normalizeMapLabel(
-        details?.zone
+        // Native carries the map name as its own field. Everything below it is
+        // either a shim-derived `zone` or a `fightName` the prefix-stripping
+        // above has to undo.
+        getEncounterZone(details)
+        || details?.zone
         || details?.mapName
         || details?.map
         || details?.location

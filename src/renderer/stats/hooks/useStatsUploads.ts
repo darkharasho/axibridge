@@ -2,8 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { computeStatsSync } from '../incrementalAggregation';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import { isReplayElided } from '../../workers/replayTransfer';
-import { computePrimaryCommanderIdentity } from '../utils/computePrimaryCommander';
-import { computeDominantGuildId } from '../utils/computeDominantGuildId';
+import { buildReportMeta as buildReportMetaFromDetails } from '../utils/buildReportMeta';
 import { computeInitialWebhookSelection } from '../utils/reportWebhookSelection';
 
 export interface PublishWebhookOption {
@@ -90,65 +89,23 @@ export const useStatsUploads = ({
         };
     }, []);
 
-    const buildReportMeta = () => {
-        const commanderSet = new Set<string>();
-        let firstStart: Date | null = null;
-        let lastEnd: Date | null = null;
-
+    const collectDetails = (): any[] => {
         const detailsList: any[] = [];
         logs.forEach((log) => {
             const details = (detailsCache && log?.id ? detailsCache.peek(log.id) : null) || log.details;
             if (!details) return;
-            detailsList.push(details);
-            const timeStart = details.timeStartStd || details.timeStart || details.uploadTime || log.uploadTime;
-            const timeEnd = details.timeEndStd || details.timeEnd || details.uploadTime || log.uploadTime;
-            const startDate = timeStart ? new Date(timeStart) : null;
-            const endDate = timeEnd ? new Date(timeEnd) : null;
-            if (startDate && !Number.isNaN(startDate.getTime())) {
-                if (!firstStart || startDate < firstStart) firstStart = startDate;
-            }
-            if (endDate && !Number.isNaN(endDate.getTime())) {
-                if (!lastEnd || endDate > lastEnd) lastEnd = endDate;
-            }
-            const players = (details.players || []) as any[];
-            players.forEach((player) => {
-                if (player?.notInSquad) return;
-                if (player?.hasCommanderTag) {
-                    const name = player?.name || player?.account || 'Unknown';
-                    commanderSet.add(name);
-                }
-            });
+            // `uploadTime` lives on the log, not the details; carry it across so
+            // the pure builder keeps the same last-resort fallback it had here.
+            detailsList.push(
+                details.uploadTime === undefined && log.uploadTime !== undefined
+                    ? { ...details, uploadTime: log.uploadTime }
+                    : details,
+            );
         });
-
-        const commanders = Array.from(commanderSet).sort((a, b) => a.localeCompare(b));
-        const safeStart = firstStart || new Date();
-        const safeEnd = lastEnd || safeStart;
-        const dateStart = safeStart.toISOString();
-        const dateEnd = safeEnd.toISOString();
-        const dateLabel = `${safeStart.toLocaleString()} - ${safeEnd.toLocaleString()}`;
-
-        const pad = (value: number) => String(value).padStart(2, '0');
-        const reportId = `${safeStart.getFullYear()}${pad(safeStart.getMonth() + 1)}${pad(safeStart.getDate())}-${pad(safeStart.getHours())}${pad(safeStart.getMinutes())}${pad(safeStart.getSeconds())}-${Math.random().toString(36).slice(2, 6)}`;
-
-        const commanderIdentity = computePrimaryCommanderIdentity(detailsList);
-
-        return {
-            id: reportId,
-            title: commanders.length ? commanders.join(', ') : 'Unknown Commander',
-            commanders,
-            primaryCommander: commanderIdentity.name,
-            primaryCommanderAccount: commanderIdentity.account,
-            // TODO(unit 2): detailsList is still EI-shaped until the parse seam
-            // returns ReportV1. computeDominantGuildId now reads native
-            // entities[], so this call yields '' until then. Guild detection is
-            // degraded, not wrong, in the interim.
-            guildId: computeDominantGuildId(detailsList),
-            dateStart,
-            dateEnd,
-            dateLabel,
-            generatedAt: new Date().toISOString()
-        };
+        return detailsList;
     };
+
+    const buildReportMeta = () => buildReportMetaFromDetails(collectDetails());
 
     const buildReportStats = () => {
         const baseStats = {
