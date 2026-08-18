@@ -29,7 +29,8 @@ export default defineConfig({
         nativePositioning: 'src/nativePositioning.ts',
         nativeSeries: 'src/nativeSeries.ts',
         nativeDamage: 'src/nativeDamage.ts',
-        nativeBoons: 'src/nativeBoons.ts'
+        nativeBoons: 'src/nativeBoons.ts',
+        nativeConditions: 'src/nativeConditions.ts'
     },
     format: ['esm', 'cjs'],
     outExtension: ({ format }) => ({ js: format === 'cjs' ? '.cjs' : '.js' }),

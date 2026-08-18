@@ -32,7 +32,8 @@
         "./nativePositioning": { "types": "./dist/nativePositioning.d.ts", "import": "./dist/nativePositioning.js", "require": "./dist/nativePositioning.cjs" },
         "./nativeSeries": { "types": "./dist/nativeSeries.d.ts", "import": "./dist/nativeSeries.js", "require": "./dist/nativeSeries.cjs" },
         "./nativeDamage": { "types": "./dist/nativeDamage.d.ts", "import": "./dist/nativeDamage.js", "require": "./dist/nativeDamage.cjs" },
-        "./nativeBoons": { "types": "./dist/nativeBoons.d.ts", "import": "./dist/nativeBoons.js", "require": "./dist/nativeBoons.cjs" }
+        "./nativeBoons": { "types": "./dist/nativeBoons.d.ts", "import": "./dist/nativeBoons.js", "require": "./dist/nativeBoons.cjs" },
+        "./nativeConditions": { "types": "./dist/nativeConditions.d.ts", "import": "./dist/nativeConditions.js", "require": "./dist/nativeConditions.cjs" }
     },
     "typesVersions": {
         "*": { "*": ["dist/*.d.ts"] }
