@@ -2,84 +2,26 @@
  * E2E tests for the details hydration flow and dissolve overlay behaviour.
  *
  * Verifies that the loading overlay persists while fight details are being
- * hydrated from dps.report, and that stats populate with real player data
- * once hydration completes.
+ * hydrated, and that stats populate with real player data once hydration
+ * completes.
  *
  * Uses the app-mode test infrastructure (served React build + mocked
- * electronAPI).  Real EI JSON fixtures from test-fixtures/boon/ are served
- * via Playwright route interception.
+ * electronAPI), over real natively-parsed fixtures served from disk — see
+ * `helpers/logFixtures`.
  */
 import { test, expect, type Page } from '@playwright/test';
-import fs from 'fs';
-import path from 'path';
 import { createElectronAPIMock, type ElectronAPIMockOverrides } from './fixtures/electronAPIMock';
-
-// ── Fixture IDs (20260117 series — 7 real WvW fights) ─────────────
-const FIXTURE_IDS = [
-    '20260117-175120',
-    '20260117-180135',
-    '20260117-180259',
-    '20260117-180458',
-    '20260117-180636',
-    '20260117-180826',
-    '20260117-181030',
-];
-
-const FIXTURE_DIR = path.resolve(process.cwd(), 'test-fixtures/boon');
-
-/** Build metadata-only mock logs (no details field). */
-function makeMockLogs() {
-    return FIXTURE_IDS.map((id, i) => ({
-        id: `log-${id}`,
-        filePath: `/fake/logs/${id}.zevtc`,
-        fightName: 'Green Alpine Borderlands',
-        permalink: `https://dps.report/${id}`,
-        uploadTime: Date.now() - (FIXTURE_IDS.length - i) * 60_000,
-        encounterDuration: '60',
-        status: 'success',
-        dashboardSummary: {
-            hasPlayers: true,
-            hasTargets: true,
-            squadCount: 35 + i,
-            enemyCount: 40 + i,
-            isWin: i % 3 !== 0,
-            squadDeaths: 2,
-            enemyDeaths: 5,
-        },
-    }));
-}
+import { FIXTURE_IDS, makeFixtureLogs, serveLogFixtures } from './helpers/logFixtures';
 
 /** Set up page with mocked API and fixture route interception. */
 async function setupHydrationPage(page: Page, overrides: Partial<ElectronAPIMockOverrides> = {}) {
-    const mockOverrides: ElectronAPIMockOverrides = {
-        logs: makeMockLogs(),
+    await page.addInitScript(createElectronAPIMock, {
+        logs: makeFixtureLogs(),
         detailsFixtureIds: FIXTURE_IDS,
         detailsDelayMs: 200,
         ...overrides,
-    };
-
-    await page.addInitScript(createElectronAPIMock, mockOverrides);
-
-    // Intercept fixture requests and serve real EI JSON from disk
-    await page.route('**/__test-fixtures__/*.json', async (route) => {
-        const url = route.request().url();
-        const match = url.match(/__test-fixtures__\/(.+)\.json/);
-        if (!match) {
-            await route.abort();
-            return;
-        }
-        const fixtureId = match[1];
-        const filePath = path.join(FIXTURE_DIR, `${fixtureId}.json`);
-        if (!fs.existsSync(filePath)) {
-            await route.fulfill({ status: 404, body: 'Not found' });
-            return;
-        }
-        await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: fs.readFileSync(filePath, 'utf8'),
-        });
-    });
+    } as ElectronAPIMockOverrides);
+    await serveLogFixtures(page);
 
     await page.goto('/');
     await page.locator('.app-titlebar').waitFor({ state: 'visible', timeout: 10_000 });
@@ -162,8 +104,10 @@ test.describe('Details Hydration & Dissolve Overlay (HYDR-001–005)', () => {
             page.locator('.stats-particle-spinner')
         ).toBeHidden({ timeout: 45_000 });
 
-        // Find the fight breakdown section
-        const breakdown = page.getByText(/Fight Breakdown/i).first();
+        // Find the fight breakdown section. Scoped to visible: "Fight Breakdown"
+        // is also a nav-rail entry, which stays in the DOM while the rail is
+        // collapsed, so an unscoped `.first()` resolves to a hidden element.
+        const breakdown = page.locator('text=/Fight Breakdown/i >> visible=true').first();
         await expect(breakdown).toBeVisible({ timeout: 10_000 });
 
         // The header should show the correct fight count

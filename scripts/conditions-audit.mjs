@@ -14,14 +14,18 @@ const args = process.argv.slice(2);
 const allFlag = args.includes('--all');
 const jsonFlag = args.includes('--json');
 const sourceArgIndex = args.indexOf('--source');
-const sourceType = sourceArgIndex >= 0 ? args[sourceArgIndex + 1] : 'hosted';
+const sourceType = sourceArgIndex >= 0 ? args[sourceArgIndex + 1] : 'native';
 const outFlagIndex = args.indexOf('--out');
 const outPath = outFlagIndex >= 0 ? args[outFlagIndex + 1] : null;
-const hostedDir = args.includes('--hosted') ? args[args.indexOf('--hosted') + 1] : 'test-fixtures/boon';
+// Was `test-fixtures/boon` — hosted Elite Insights JSON pulled from
+// dps.report, which carries no `details.native` and so drives this metric's
+// `!native` early-return and nothing else. The natively-parsed fixtures
+// (`npm run generate:fixtures:native`) are the only input that exercises it.
+const nativeDir = args.includes('--native') ? args[args.indexOf('--native') + 1] : 'test-fixtures/native';
 const eiDir = args.includes('--ei') ? args[args.indexOf('--ei') + 1] : 'test-fixtures/boon-ei';
-const expectHostedDir = args.includes('--expect-hosted')
-    ? args[args.indexOf('--expect-hosted') + 1]
-    : 'test-fixtures/conditions/hosted';
+const expectNativeDir = args.includes('--expect-native')
+    ? args[args.indexOf('--expect-native') + 1]
+    : 'test-fixtures/conditions/native';
 const expectEiDir = args.includes('--expect-ei')
     ? args[args.indexOf('--expect-ei') + 1]
     : 'test-fixtures/conditions/ei';
@@ -89,12 +93,13 @@ const normalizeForCompare = (data) => {
 };
 
 const buildConditionsOutput = (log, source, inputFile) => {
-    const result = computeOutgoingConditions({
-        players: log.players || [],
-        targets: log.targets || [],
-        skillMap: log.skillMap || {},
-        buffMap: log.buffMap || {}
-    });
+    // `computeOutgoingConditions` reads `details.native` and takes the whole
+    // details object. It used to take a hand-assembled `{players, targets,
+    // skillMap, buffMap}` bag, and this call site was not updated when
+    // 8b9a864a moved it onto the native container — so every fixture computed
+    // nothing and mismatched a baseline recorded before the move. Pass the log
+    // through whole; there is no longer a subset to pick.
+    const result = computeOutgoingConditions({ details: log });
 
     const summary = Object.values(result.summary || {})
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -183,11 +188,14 @@ const runAudit = (files, source, expectDir) => {
 
 if (allFlag) {
     let failures = 0;
-    if (fs.existsSync(path.resolve(cwd, hostedDir))) {
-        const hostedFiles = fs.readdirSync(path.resolve(cwd, hostedDir))
+    if (fs.existsSync(path.resolve(cwd, nativeDir))) {
+        const nativeFiles = fs.readdirSync(path.resolve(cwd, nativeDir))
             .filter((name) => name.endsWith('.json'))
-            .map((name) => path.join(hostedDir, name));
-        failures += runAudit(hostedFiles, 'hosted', expectHostedDir);
+            .map((name) => path.join(nativeDir, name));
+        failures += runAudit(nativeFiles, 'native', expectNativeDir);
+    } else {
+        console.error(`conditions-audit: no fixtures at ${nativeDir} — run: npm run generate:fixtures:native`);
+        process.exitCode = 1;
     }
     if (fs.existsSync(path.resolve(cwd, eiDir))) {
         const eiFiles = fs.readdirSync(path.resolve(cwd, eiDir))
@@ -199,8 +207,8 @@ if (allFlag) {
         process.exitCode = 1;
     }
 } else if (inputPath) {
-    const source = sourceType === 'ei' ? 'ei' : 'hosted';
-    const expectDir = source === 'ei' ? expectEiDir : expectHostedDir;
+    const source = sourceType === 'ei' ? 'ei' : 'native';
+    const expectDir = source === 'ei' ? expectEiDir : expectNativeDir;
     const absPath = path.resolve(cwd, inputPath);
     const log = JSON.parse(fs.readFileSync(absPath, 'utf8'));
     const output = buildConditionsOutput(log, source, inputPath);

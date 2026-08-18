@@ -1,0 +1,1883 @@
+{
+  "source": "native",
+  "file": "test-fixtures/native/20260117-180135.json",
+  "generatedAt": "2026-08-18T19:56:35.002Z",
+  "meta": {
+    "buffStateApplicationsTotal": 2259,
+    "targetBuffEntriesSeen": 256,
+    "buffStateSourcesSeen": 805
+  },
+  "summary": [
+    {
+      "name": "Bleeding",
+      "applications": 173,
+      "damage": 21471,
+      "applicationsFromBuffs": 267
+    },
+    {
+      "name": "Blind",
+      "applications": 0,
+      "damage": 0,
+      "applicationsFromBuffs": 79
+    },
+    {
+      "name": "Burning",
+      "applications": 128,
+      "damage": 27723,
+      "applicationsFromBuffs": 172
+    },
+    {
+      "name": "Chill",
+      "applications": 1,
+      "damage": 0,
+      "applicationsFromBuffs": 191
+    },
+    {
+      "name": "Confusion",
+      "applications": 122,
+      "damage": 11327,
+      "applicationsFromBuffs": 93
+    },
+    {
+      "name": "Cripple",
+      "applications": 3,
+      "damage": 0,
+      "applicationsFromBuffs": 147
+    },
+    {
+      "name": "Fear",
+      "applications": 0,
+      "damage": 0,
+      "applicationsFromBuffs": 5
+    },
+    {
+      "name": "Immobilize",
+      "applications": 1,
+      "damage": 0,
+      "applicationsFromBuffs": 32
+    },
+    {
+      "name": "Poison",
+      "applications": 69,
+      "damage": 6652,
+      "applicationsFromBuffs": 200
+    },
+    {
+      "name": "Slow",
+      "applications": 0,
+      "damage": 0,
+      "applicationsFromBuffs": 35
+    },
+    {
+      "name": "Taunt",
+      "applications": 0,
+      "damage": 0,
+      "applicationsFromBuffs": 1
+    },
+    {
+      "name": "Torment",
+      "applications": 56,
+      "damage": 1938,
+      "applicationsFromBuffs": 56
+    },
+    {
+      "name": "Vulnerability",
+      "applications": 5,
+      "damage": 0,
+      "applicationsFromBuffs": 928
+    },
+    {
+      "name": "Weakness",
+      "applications": 2,
+      "damage": 0,
+      "applicationsFromBuffs": 53
+    }
+  ],
+  "players": [
+    {
+      "key": "AmberHollow.9854",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 8,
+          "damage": 1170,
+          "applicationsFromBuffs": 6,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 8,
+              "damage": 1170
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 9,
+          "skills": [
+            {
+              "name": "Chill",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 1,
+          "damage": 101,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 1,
+              "damage": 101
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Immobilize",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 24,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "AshenJet.4980",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 12,
+          "damage": 2028,
+          "applicationsFromBuffs": 6,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 12,
+              "damage": 2028
+            }
+          ]
+        },
+        {
+          "name": "Blind",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 11,
+          "skills": []
+        },
+        {
+          "name": "Burning",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 34,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 15,
+          "damage": 964,
+          "applicationsFromBuffs": 11,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 15,
+              "damage": 964
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 27,
+          "skills": []
+        },
+        {
+          "name": "Fear",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Poison",
+          "applications": 14,
+          "damage": 1888,
+          "applicationsFromBuffs": 55,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 14,
+              "damage": 1888
+            }
+          ]
+        },
+        {
+          "name": "Slow",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 102,
+          "skills": [
+            {
+              "name": "Vulnerability",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Weakness",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 3,
+          "skills": [
+            {
+              "name": "Weakness",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "AshenLaurel.2994",
+      "conditions": [
+        {
+          "name": "Blind",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 10,
+          "damage": 365,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 10,
+              "damage": 365
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 3,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 1,
+          "damage": 105,
+          "applicationsFromBuffs": 2,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 1,
+              "damage": 105
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "AshenRange.6264",
+      "conditions": []
+    },
+    {
+      "key": "BrightBeacon.9265",
+      "conditions": []
+    },
+    {
+      "key": "BrightRune.7739",
+      "conditions": [
+        {
+          "name": "Blind",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 9,
+          "skills": []
+        },
+        {
+          "name": "Burning",
+          "applications": 2,
+          "damage": 263,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 2,
+              "damage": 263
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 27,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 2,
+          "damage": 19,
+          "applicationsFromBuffs": 3,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 2,
+              "damage": 19
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 17,
+          "skills": []
+        },
+        {
+          "name": "Fear",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Poison",
+          "applications": 20,
+          "damage": 1680,
+          "applicationsFromBuffs": 57,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 20,
+              "damage": 1680
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 4,
+          "damage": 106,
+          "applicationsFromBuffs": 4,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 4,
+              "damage": 106
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 119,
+          "skills": [
+            {
+              "name": "Vulnerability",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 3,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "BrightSummit.6125",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 4,
+          "damage": 153,
+          "applicationsFromBuffs": 8,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 4,
+              "damage": 153
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 4,
+          "damage": 381,
+          "applicationsFromBuffs": 3,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 4,
+              "damage": 381
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 10,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "CloudShore.5668",
+      "conditions": [
+        {
+          "name": "Blind",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 3,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 4,
+          "damage": 101,
+          "applicationsFromBuffs": 3,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 4,
+              "damage": 101
+            }
+          ]
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "DaringCanyon.5440",
+      "conditions": []
+    },
+    {
+      "key": "DuskyGlen.1577",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 9,
+          "damage": 1798,
+          "applicationsFromBuffs": 6,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 9,
+              "damage": 1798
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 4,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 6,
+          "damage": 160,
+          "applicationsFromBuffs": 5,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 6,
+              "damage": 160
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "FeralSpark.2569",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 54,
+          "damage": 3243,
+          "applicationsFromBuffs": 98,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 54,
+              "damage": 3243
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 18,
+          "damage": 5549,
+          "applicationsFromBuffs": 37,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 18,
+              "damage": 5549
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 0,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 2,
+          "damage": 91,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 2,
+              "damage": 91
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 8,
+          "skills": [
+            {
+              "name": "Vulnerability",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "GildedBloom.1887",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 32,
+          "damage": 3487,
+          "applicationsFromBuffs": 65,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 32,
+              "damage": 3487
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 27,
+          "damage": 6918,
+          "applicationsFromBuffs": 53,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 27,
+              "damage": 6918
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 3,
+          "damage": 79,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 3,
+              "damage": 79
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 7,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "GildedJourney.8223",
+      "conditions": [
+        {
+          "name": "Blind",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 15,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 7,
+          "damage": 208,
+          "applicationsFromBuffs": 2,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 7,
+              "damage": 208
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        },
+        {
+          "name": "Immobilize",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 5,
+          "skills": []
+        },
+        {
+          "name": "Poison",
+          "applications": 1,
+          "damage": 48,
+          "applicationsFromBuffs": 4,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 1,
+              "damage": 48
+            }
+          ]
+        },
+        {
+          "name": "Taunt",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 3,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "HarborJet.5544",
+      "conditions": []
+    },
+    {
+      "key": "HiddenThorn.9126",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 3,
+          "damage": 165,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 3,
+              "damage": 165
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 5,
+          "damage": 150,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 5,
+              "damage": 150
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 3,
+          "damage": 124,
+          "applicationsFromBuffs": 2,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 3,
+              "damage": 124
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 50,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "IronHaven.2896",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 1,
+          "damage": 309,
+          "applicationsFromBuffs": 6,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 1,
+              "damage": 309
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 10,
+          "skills": []
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "IvoryDawn.4403",
+      "conditions": [
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 17,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Immobilize",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 4,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 2,
+          "damage": 51,
+          "applicationsFromBuffs": 2,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 2,
+              "damage": 51
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 65,
+          "skills": []
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "OakMeadow.2981",
+      "conditions": [
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 5,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 9,
+          "damage": 163,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 9,
+              "damage": 163
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 5,
+          "skills": []
+        },
+        {
+          "name": "Immobilize",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 4,
+          "skills": [
+            {
+              "name": "Immobilize",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Slow",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 19,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 3,
+          "damage": 58,
+          "applicationsFromBuffs": 2,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 3,
+              "damage": 58
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 48,
+          "skills": []
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 4,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "OakSpark.3206",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 12,
+          "damage": 861,
+          "applicationsFromBuffs": 2,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 12,
+              "damage": 861
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 7,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 8,
+          "damage": 436,
+          "applicationsFromBuffs": 10,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 8,
+              "damage": 436
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 10,
+          "skills": []
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 6,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "PlacidWillow.4120",
+      "conditions": [
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 3,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 9,
+          "damage": 200,
+          "applicationsFromBuffs": 3,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 9,
+              "damage": 200
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 3,
+          "skills": []
+        },
+        {
+          "name": "Slow",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 14,
+          "skills": []
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 9,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "RoyalFalcon.5152",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 10,
+          "damage": 216,
+          "applicationsFromBuffs": 5,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 10,
+              "damage": 216
+            }
+          ]
+        },
+        {
+          "name": "Blind",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 5,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Immobilize",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 5,
+          "skills": []
+        },
+        {
+          "name": "Poison",
+          "applications": 9,
+          "damage": 795,
+          "applicationsFromBuffs": 36,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 9,
+              "damage": 795
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 2,
+          "damage": 81,
+          "applicationsFromBuffs": 4,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 2,
+              "damage": 81
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 50,
+          "skills": [
+            {
+              "name": "Vulnerability",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 4,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "RusticCedar.1864",
+      "conditions": [
+        {
+          "name": "Blind",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 5,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 10,
+          "damage": 256,
+          "applicationsFromBuffs": 2,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 10,
+              "damage": 256
+            }
+          ]
+        },
+        {
+          "name": "Immobilize",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 1,
+          "damage": 21,
+          "applicationsFromBuffs": 5,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 1,
+              "damage": 21
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 6,
+          "skills": []
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "RusticWillow.5785",
+      "conditions": [
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 4,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 4,
+          "damage": 1006,
+          "applicationsFromBuffs": 6,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 4,
+              "damage": 1006
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 6,
+          "skills": []
+        },
+        {
+          "name": "Slow",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "ScarletSummit.2126",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 38,
+          "damage": 11326,
+          "applicationsFromBuffs": 60,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 38,
+              "damage": 11326
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 17,
+          "damage": 4743,
+          "applicationsFromBuffs": 33,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 17,
+              "damage": 4743
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 3,
+          "skills": []
+        },
+        {
+          "name": "Immobilize",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 42,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "StormMeadow.6379",
+      "conditions": [
+        {
+          "name": "Confusion",
+          "applications": 18,
+          "damage": 3723,
+          "applicationsFromBuffs": 35,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 18,
+              "damage": 3723
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 12,
+          "skills": []
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "SwiftShore.8351",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 3,
+          "damage": 687,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 3,
+              "damage": 687
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 12,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "UmberJet.2928",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 17,
+          "damage": 521,
+          "applicationsFromBuffs": 21,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 17,
+              "damage": 521
+            }
+          ]
+        },
+        {
+          "name": "Burning",
+          "applications": 21,
+          "damage": 3494,
+          "applicationsFromBuffs": 17,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 21,
+              "damage": 3494
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 4,
+          "skills": []
+        },
+        {
+          "name": "Cripple",
+          "applications": 2,
+          "damage": 0,
+          "applicationsFromBuffs": 7,
+          "skills": [
+            {
+              "name": "Cripple",
+              "hits": 2,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Immobilize",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 7,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 4,
+          "damage": 90,
+          "applicationsFromBuffs": 2,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 4,
+              "damage": 90
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "VelvetDrift.5549",
+      "conditions": [
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 6,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 2,
+          "damage": 40,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 2,
+              "damage": 40
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 7,
+          "skills": []
+        },
+        {
+          "name": "Fear",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Poison",
+          "applications": 6,
+          "damage": 304,
+          "applicationsFromBuffs": 10,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 6,
+              "damage": 304
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 12,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "VerdantRidge.8177",
+      "conditions": [
+        {
+          "name": "Blind",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 15,
+          "skills": []
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 5,
+          "skills": []
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 11,
+          "skills": []
+        },
+        {
+          "name": "Immobilize",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 5,
+          "damage": 125,
+          "applicationsFromBuffs": 4,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 5,
+              "damage": 125
+            }
+          ]
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 13,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "WildBloom.7060",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 1,
+          "damage": 30,
+          "applicationsFromBuffs": 3,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 1,
+              "damage": 30
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 12,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "WildDrift.3267",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 6,
+          "damage": 828,
+          "applicationsFromBuffs": 4,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 6,
+              "damage": 828
+            }
+          ]
+        },
+        {
+          "name": "Confusion",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Torment",
+          "applications": 3,
+          "damage": 97,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 3,
+              "damage": 97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "WiseBeacon.4080",
+      "conditions": [
+        {
+          "name": "Bleeding",
+          "applications": 6,
+          "damage": 497,
+          "applicationsFromBuffs": 4,
+          "skills": [
+            {
+              "name": "Bleeding",
+              "hits": 6,
+              "damage": 497
+            }
+          ]
+        },
+        {
+          "name": "Blind",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 10,
+          "skills": []
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 13,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 1,
+          "damage": 2,
+          "applicationsFromBuffs": 1,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 1,
+              "damage": 2
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 17,
+          "skills": []
+        },
+        {
+          "name": "Fear",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Poison",
+          "applications": 4,
+          "damage": 486,
+          "applicationsFromBuffs": 9,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 4,
+              "damage": 486
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 89,
+          "skills": []
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 2,
+          "skills": []
+        }
+      ]
+    },
+    {
+      "key": "WiseHorizon.8292",
+      "conditions": []
+    },
+    {
+      "key": "WovenThorn.5639",
+      "conditions": [
+        {
+          "name": "Burning",
+          "applications": 9,
+          "damage": 1697,
+          "applicationsFromBuffs": 6,
+          "skills": [
+            {
+              "name": "Burning",
+              "hits": 9,
+              "damage": 1697
+            }
+          ]
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 32,
+          "skills": []
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 109,
+          "skills": []
+        },
+        {
+          "name": "Weakness",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 4,
+          "skills": [
+            {
+              "name": "Weakness",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "WovenVale.8117",
+      "conditions": [
+        {
+          "name": "Blind",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 10,
+          "skills": []
+        },
+        {
+          "name": "Chill",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 20,
+          "skills": []
+        },
+        {
+          "name": "Confusion",
+          "applications": 15,
+          "damage": 2960,
+          "applicationsFromBuffs": 13,
+          "skills": [
+            {
+              "name": "Confusion",
+              "hits": 15,
+              "damage": 2960
+            }
+          ]
+        },
+        {
+          "name": "Cripple",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 13,
+          "skills": [
+            {
+              "name": "Cripple",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Fear",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 1,
+          "skills": []
+        },
+        {
+          "name": "Poison",
+          "applications": 15,
+          "damage": 1451,
+          "applicationsFromBuffs": 29,
+          "skills": [
+            {
+              "name": "Poison",
+              "hits": 15,
+              "damage": 1451
+            }
+          ]
+        },
+        {
+          "name": "Torment",
+          "applications": 5,
+          "damage": 213,
+          "applicationsFromBuffs": 7,
+          "skills": [
+            {
+              "name": "Torment",
+              "hits": 5,
+              "damage": 213
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability",
+          "applications": 1,
+          "damage": 0,
+          "applicationsFromBuffs": 132,
+          "skills": [
+            {
+              "name": "Vulnerability",
+              "hits": 1,
+              "damage": 0
+            }
+          ]
+        },
+        {
+          "name": "Weakness",
+          "applications": 0,
+          "damage": 0,
+          "applicationsFromBuffs": 3,
+          "skills": []
+        }
+      ]
+    }
+  ]
+}

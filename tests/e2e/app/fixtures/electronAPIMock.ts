@@ -198,12 +198,21 @@ export function createElectronAPIMock(overrides?: ElectronAPIMockOverrides): voi
             log('getLogDetails', args)
             const fixtureIds: string[] = o.detailsFixtureIds || []
             const delayMs: number = o.detailsDelayMs ?? 0
-            if (!fixtureIds.length) return Promise.resolve(null)
-            // Derive fixture id from the permalink (https://dps.report/<id>)
+            if (!fixtureIds.length) return Promise.resolve({ success: false, error: 'No fixtures configured' })
+            // The IPC contract is `{ filePath }` — see `get-log-details` in
+            // `src/main/handlers/uploadHandlers.ts` and the `electronAPI`
+            // declaration in `src/renderer/global.d.ts`. This used to read
+            // `payload.permalink`, which the renderer has never sent, so every
+            // request fell through to `null` and the app reported "7 of 7
+            // fights could not be loaded" — the replay and hydration specs were
+            // asserting against an app that had no fight data at all.
+            // Permalink is still accepted so a spec may pass either.
             const payload: any = args[0] || {}
-            const permalink: string = payload.permalink || ''
-            const fixtureId = permalink.replace(/^.*dps\.report\//, '')
-            if (!fixtureId || !fixtureIds.includes(fixtureId)) return Promise.resolve(null)
+            const source: string = payload.filePath || payload.permalink || ''
+            const fixtureId = source.replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '')
+            if (!fixtureId || !fixtureIds.includes(fixtureId)) {
+                return Promise.resolve({ success: false, error: `No fixture for ${source || '(empty payload)'}` })
+            }
             const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
             return delay(delayMs).then(() =>
                 fetch(`/__test-fixtures__/${fixtureId}.json`)

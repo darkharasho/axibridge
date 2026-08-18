@@ -14,10 +14,12 @@ test.describe('First-Time Experience (FTE-001–005)', () => {
         await expect(page.getByText(/Share your results/i)).toBeVisible();
     });
 
-    test('FTE-003: walkthrough has Learn More button', async ({ page }) => {
+    // The button reads "How-To Guide"; it was labelled "Learn More" when this
+    // was written. Same control — it still fires `onLearnMore` (WalkthroughModal).
+    test('FTE-003: walkthrough has How-To Guide button', async ({ page }) => {
         await setupAppPage(page, { walkthroughSeen: false });
         await expect(page.getByText(/Collect your logs/i)).toBeVisible({ timeout: 5000 });
-        await expect(page.getByRole('button', { name: /Learn More/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: /How-To Guide/i })).toBeVisible();
     });
 
     test('FTE-004: dismissing walkthrough calls saveSettings', async ({ page }) => {

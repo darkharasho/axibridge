@@ -2,83 +2,26 @@
  * E2E smoke test for the Map Replay feature (RPLY-001).
  *
  * Verifies that after stats aggregation completes:
- *   1. Navigating to the Map group shows the FightPicker listbox.
+ *   1. Navigating to the Replay category shows the FightPicker listbox.
  *   2. Clicking a fight card causes the replay canvas (svg.replay-canvas) to appear.
  *   3. The Play button is present and toggles to Pause after being clicked.
  *
- * Uses the app-mode test infrastructure (served React build + mocked electronAPI).
- * Real EI JSON fixtures from test-fixtures/boon/ are served via Playwright route
- * interception.  The boon fixtures include combatReplayMetaData and player
- * combatReplayData.positions, so they produce non-empty replayFights.
+ * Uses the app-mode test infrastructure (served React build + mocked electronAPI),
+ * over real natively-parsed fixtures served from disk — see `helpers/logFixtures`
+ * for why hosted EI JSON cannot drive this feature.
  */
 import { test, expect, type Page } from '@playwright/test';
-import fs from 'fs';
-import path from 'path';
 import { createElectronAPIMock } from './fixtures/electronAPIMock';
-
-// ── Fixture IDs (20260117 series — 7 real WvW fights) ─────────────────────────
-const FIXTURE_IDS = [
-    '20260117-175120',
-    '20260117-180135',
-    '20260117-180259',
-    '20260117-180458',
-    '20260117-180636',
-    '20260117-180826',
-    '20260117-181030',
-];
-
-const FIXTURE_DIR = path.resolve(process.cwd(), 'test-fixtures/boon');
-
-/** Build metadata-only mock logs (no details field). */
-function makeMockLogs() {
-    return FIXTURE_IDS.map((id, i) => ({
-        id: `log-${id}`,
-        filePath: `/fake/logs/${id}.zevtc`,
-        fightName: 'Green Alpine Borderlands',
-        permalink: `https://dps.report/${id}`,
-        uploadTime: Date.now() - (FIXTURE_IDS.length - i) * 60_000,
-        encounterDuration: '60',
-        status: 'success',
-        dashboardSummary: {
-            hasPlayers: true,
-            hasTargets: true,
-            squadCount: 35,
-            enemyCount: 40,
-            isWin: true,
-            squadDeaths: 2,
-            enemyDeaths: 5,
-        },
-    }));
-}
+import { FIXTURE_IDS, makeFixtureLogs, serveLogFixtures } from './helpers/logFixtures';
 
 /** Set up the page with mocked electronAPI and fixture route interception. */
 async function setupReplayPage(page: Page) {
     await page.addInitScript(createElectronAPIMock, {
-        logs: makeMockLogs(),
+        logs: makeFixtureLogs(),
         detailsFixtureIds: FIXTURE_IDS,
         detailsDelayMs: 50,
     });
-
-    // Intercept fixture requests and serve real EI JSON from disk
-    await page.route('**/__test-fixtures__/*.json', async (route) => {
-        const url = route.request().url();
-        const match = url.match(/__test-fixtures__\/(.+)\.json/);
-        if (!match) {
-            await route.abort();
-            return;
-        }
-        const fixtureId = match[1];
-        const filePath = path.join(FIXTURE_DIR, `${fixtureId}.json`);
-        if (!fs.existsSync(filePath)) {
-            await route.fulfill({ status: 404, body: 'Not found' });
-            return;
-        }
-        await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: fs.readFileSync(filePath, 'utf8'),
-        });
-    });
+    await serveLogFixtures(page);
 
     await page.goto('/');
     await page.locator('.app-titlebar').waitFor({ state: 'visible', timeout: 10_000 });
@@ -101,6 +44,16 @@ test.describe('Replay smoke test (RPLY-001)', () => {
         // Navigate to the Replay nav category (renamed from "Map" in the taxonomy redesign)
         await page.getByRole('button', { name: /^Replay$/i }).click();
 
+        // Clicking the nav entry leaves the pointer over the sidebar, which expands
+        // on hover and overlays the picker bar — the click below then retries until
+        // the test times out. Park the pointer over the content area first.
+        await page.mouse.move(900, 500);
+
+        // The fight picker starts collapsed (`pickerCollapsed` defaults to true in
+        // ReplayView) and the bar only offers the toggle — the listbox is not in the
+        // DOM until it is expanded. Selecting a card collapses it again.
+        await page.getByRole('button', { name: /Show all fights/i }).click();
+
         // The FightPicker listbox should be visible
         const listbox = page.getByRole('listbox');
         await expect(listbox).toBeVisible({ timeout: 5_000 });
@@ -115,13 +68,17 @@ test.describe('Replay smoke test (RPLY-001)', () => {
         // The replay canvas should render after a fight is selected
         await expect(page.locator('svg.replay-canvas')).toBeVisible({ timeout: 5_000 });
 
-        // The Play button should be present
-        const playBtn = page.getByRole('button', { name: /play/i }).first();
+        // The Play button should be present. The name must be anchored: /play/i
+        // also matches "Expand Player Breakdown", "Expand Player Comparison" and
+        // the other section headers further down the Stats page, so `.first()`
+        // picked one of those and expanded a section instead of starting
+        // playback — leaving no Pause button to find.
+        const playBtn = page.getByRole('button', { name: 'Play', exact: true });
         await expect(playBtn).toBeVisible();
 
-        // Click play — the Pause button should appear
+        // Click play — the same button relabels itself to Pause.
         await playBtn.click();
-        const pauseBtn = page.getByRole('button', { name: /pause/i }).first();
+        const pauseBtn = page.getByRole('button', { name: 'Pause', exact: true });
         await expect(pauseBtn).toBeVisible({ timeout: 3_000 });
 
         // Pause playback

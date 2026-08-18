@@ -10,76 +10,20 @@
  *      → click first party button → Spotlight: button appears
  *      → click spotlight button → it disappears
  *
- * Uses the same app-mode infrastructure as replay.spec.ts.
+ * Uses the same app-mode infrastructure and fixtures as replay.spec.ts.
  */
 import { test, expect, type Page } from '@playwright/test';
-import fs from 'fs';
-import path from 'path';
 import { createElectronAPIMock } from './fixtures/electronAPIMock';
-
-// ── Fixture IDs (20260117 series — 7 real WvW fights) ─────────────────────────
-const FIXTURE_IDS = [
-    '20260117-175120',
-    '20260117-180135',
-    '20260117-180259',
-    '20260117-180458',
-    '20260117-180636',
-    '20260117-180826',
-    '20260117-181030',
-];
-
-const FIXTURE_DIR = path.resolve(process.cwd(), 'test-fixtures/boon');
-
-/** Build metadata-only mock logs (no details field). */
-function makeMockLogs() {
-    return FIXTURE_IDS.map((id, i) => ({
-        id: `log-${id}`,
-        filePath: `/fake/logs/${id}.zevtc`,
-        fightName: 'Green Alpine Borderlands',
-        permalink: `https://dps.report/${id}`,
-        uploadTime: Date.now() - (FIXTURE_IDS.length - i) * 60_000,
-        encounterDuration: '60',
-        status: 'success',
-        dashboardSummary: {
-            hasPlayers: true,
-            hasTargets: true,
-            squadCount: 35,
-            enemyCount: 40,
-            isWin: true,
-            squadDeaths: 2,
-            enemyDeaths: 5,
-        },
-    }));
-}
+import { FIXTURE_IDS, makeFixtureLogs, serveLogFixtures } from './helpers/logFixtures';
 
 /** Set up the page with mocked electronAPI and fixture route interception. */
 async function setupReplayPage(page: Page) {
     await page.addInitScript(createElectronAPIMock, {
-        logs: makeMockLogs(),
+        logs: makeFixtureLogs(),
         detailsFixtureIds: FIXTURE_IDS,
         detailsDelayMs: 50,
     });
-
-    // Intercept fixture requests and serve real EI JSON from disk
-    await page.route('**/__test-fixtures__/*.json', async (route) => {
-        const url = route.request().url();
-        const match = url.match(/__test-fixtures__\/(.+)\.json/);
-        if (!match) {
-            await route.abort();
-            return;
-        }
-        const fixtureId = match[1];
-        const filePath = path.join(FIXTURE_DIR, `${fixtureId}.json`);
-        if (!fs.existsSync(filePath)) {
-            await route.fulfill({ status: 404, body: 'Not found' });
-            return;
-        }
-        await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: fs.readFileSync(filePath, 'utf8'),
-        });
-    });
+    await serveLogFixtures(page);
 
     await page.goto('/');
     await page.locator('.app-titlebar').waitFor({ state: 'visible', timeout: 10_000 });
@@ -98,6 +42,16 @@ async function navigateToReplayCanvas(page: Page) {
     // Navigate to the Replay nav category (renamed from "Map" in the taxonomy redesign)
     await page.getByRole('button', { name: /^Replay$/i }).click();
 
+    // Clicking the nav entry leaves the pointer over the sidebar, which expands
+    // on hover and overlays the picker bar — the click below then retries until
+    // the test times out. Park the pointer over the content area first.
+    await page.mouse.move(900, 500);
+
+    // The fight picker starts collapsed (`pickerCollapsed` defaults to true in
+    // ReplayView) and the bar only offers the toggle — the listbox is not in the
+    // DOM until it is expanded. Selecting a card collapses it again.
+    await page.getByRole('button', { name: /Show all fights/i }).click();
+
     // Select the first fight card
     const firstCard = page.getByRole('option').first();
     await expect(firstCard).toBeVisible({ timeout: 5_000 });
@@ -115,7 +69,7 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
         await navigateToReplayCanvas(page);
 
         // Open the Layers popover
-        await page.getByRole('button', { name: /layers/i }).click();
+        await page.getByTitle('Show layers').click();
 
         // Toggle "Centroid + spread ring"
         await page.getByLabel('Centroid + spread ring').check();
@@ -128,7 +82,7 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
         await setupReplayPage(page);
         await navigateToReplayCanvas(page);
 
-        await page.getByRole('button', { name: /layers/i }).click();
+        await page.getByTitle('Show layers').click();
 
         // Toggle "Tag range rings"
         await page.getByLabel('Tag range rings (600 / 1200)').check();
@@ -140,7 +94,7 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
         await setupReplayPage(page);
         await navigateToReplayCanvas(page);
 
-        await page.getByRole('button', { name: /layers/i }).click();
+        await page.getByTitle('Show layers').click();
 
         // Toggle "Squad health strip"
         await page.getByLabel('Squad health strip').check();
@@ -152,7 +106,7 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
         await setupReplayPage(page);
         await navigateToReplayCanvas(page);
 
-        await page.getByRole('button', { name: /layers/i }).click();
+        await page.getByTitle('Show layers').click();
 
         // Select the "Deaths" heatmap radio
         await page.getByLabel(/deaths/i).check();
@@ -161,27 +115,33 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
         await expect(page.locator('svg.replay-canvas foreignObject')).toBeVisible({ timeout: 3_000 });
     });
 
-    test('RPLY-002-e: All-parties panel, spotlight button, and spotlight dismiss', async ({ page }) => {
+    /**
+     * Was "All-parties panel, spotlight button, and spotlight dismiss".
+     *
+     * Neither the "All-parties panel" layer toggle nor `.replay-party-panel`
+     * exists in the renderer any more, so that test could not pass against any
+     * fixture. The party spotlight is half-removed rather than removed:
+     * `replaySpotlightParty` still exists on the stats store, ReplayView still
+     * dims off-party members by it and still renders the "Spotlight: Party N"
+     * dismiss chip — but `setReplaySpotlightParty` is now only ever called with
+     * `null`, so nothing can turn it ON. Restoring coverage means deciding
+     * whether the feature comes back or the dead state goes; it is not a test
+     * fix. Tracked, not silently dropped.
+     *
+     * What replaced it here is the surviving per-party surface: the squad panel
+     * groups members under "Party N" headings.
+     */
+    test('RPLY-002-e: squad panel opens and groups members by party', async ({ page }) => {
         await setupReplayPage(page);
         await navigateToReplayCanvas(page);
 
-        await page.getByRole('button', { name: /layers/i }).click();
+        // The squad panel starts collapsed (`panelCollapsed` defaults to true).
+        await page.getByTitle('Expand squad panel').click();
 
-        // Toggle "All-parties panel"
-        await page.getByLabel('All-parties panel').check();
+        const header = page.getByText(/Squad · \d+ members/);
+        await expect(header).toBeVisible({ timeout: 3_000 });
 
-        // The all-parties panel should appear
-        await expect(page.locator('.replay-party-panel.all-parties')).toBeVisible({ timeout: 3_000 });
-
-        // Click the first party button to trigger spotlight
-        await page.locator('.replay-party-panel.all-parties button').first().click();
-
-        // A "Spotlight: Party N" button should appear in the controls row
-        const spotlightBtn = page.getByRole('button', { name: /spotlight:/i });
-        await expect(spotlightBtn).toBeVisible({ timeout: 3_000 });
-
-        // Clicking the spotlight button removes it
-        await spotlightBtn.click();
-        await expect(spotlightBtn).toBeHidden({ timeout: 3_000 });
+        // Members are bucketed under "Party N" headings.
+        await expect(page.getByText(/^Party \d+$/).first()).toBeVisible({ timeout: 3_000 });
     });
 });
