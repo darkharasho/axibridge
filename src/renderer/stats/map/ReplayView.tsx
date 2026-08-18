@@ -6,7 +6,24 @@ import { WVW_LANDMARKS } from '../../../shared/wvwLandmarks';
 import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { getProfessionIconPath } from '../../classIconUtils';
 import commanderTagRaw from '../../../../public/svg/commander_tag.svg?raw';
-const COMMANDER_TAG_URI = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(commanderTagRaw)))}`;
+import { recolorCommanderTag } from '../../../shared/squadMarkers';
+const svgDataUri = (svg: string) =>
+    `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+const COMMANDER_TAG_URI = svgDataUri(commanderTagRaw);
+/**
+ * One data URI per tag colour, built once. Recolouring inside the render loop
+ * would re-base64 the whole SVG for every commander on every frame.
+ */
+const tagUriCache = new Map<string, string>();
+const commanderTagUri = (color?: string) => {
+    if (!color) return COMMANDER_TAG_URI;
+    let uri = tagUriCache.get(color);
+    if (!uri) {
+        uri = svgDataUri(recolorCommanderTag(commanderTagRaw, color));
+        tagUriCache.set(color, uri);
+    }
+    return uri;
+};
 
 import { HeatmapLayer } from './HeatmapLayer';
 import { SectorOutlineLayer, OWNER_COLORS } from './SectorOutlineLayer';
@@ -440,9 +457,10 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                                     browsers to silently skip rendering the image. */}
                                                 <g transform={`translate(${pos[0]} ${pos[1]}) scale(${1 / s})`}>
                                                 {member.isCommander ? (
-                                                    // Commanders: just the commander tag SVG, no profession icon
+                                                    // Commanders: just the commander tag SVG, no profession icon,
+                                                    // recoloured to the tag colour they actually ran.
                                                     <image
-                                                        href={COMMANDER_TAG_URI}
+                                                        href={commanderTagUri(member.tagColor)}
                                                         x={-iconR} y={-iconR}
                                                         width={iconR * 2} height={iconR * 2}
                                                     />
@@ -461,6 +479,22 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                                             ? <image href={iconSrc} x={-iconR} y={-iconR} width={iconR * 2} height={iconR * 2} />
                                                             : <circle cx={0} cy={0} r={iconR} fill="#60a5fa" opacity={0.9} />;
                                                     })()
+                                                )}
+                                                {/* Overhead squad marker (Arrow, Circle, ...), above the
+                                                    icon so it reads as an overhead marker does in game and
+                                                    never covers the profession art or the downed cross.
+                                                    Drawn for commanders too: a tag says who leads, a marker
+                                                    is a separate assignment they can also carry. */}
+                                                {member.squadMarker && (
+                                                    <image
+                                                        href={member.squadMarker.icon}
+                                                        x={-iconR * 0.6}
+                                                        y={-iconR * 2.2}
+                                                        width={iconR * 1.2}
+                                                        height={iconR * 1.2}
+                                                    >
+                                                        <title>{member.squadMarker.label}</title>
+                                                    </image>
                                                 )}
                                                 {/* Downed indicator: orange cross over the icon */}
                                                 {isDown && !member.isEnemy && (

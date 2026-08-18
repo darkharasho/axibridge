@@ -90,6 +90,8 @@ export interface NativeLogOptions {
     buffMap?: Record<string, unknown>;
     /** Extra top-level fields on the details object. */
     details?: Record<string, unknown>;
+    /** `native.encounter.markers[]` — squad markers and commander tags. */
+    markers?: Record<string, unknown>[];
 }
 
 /**
@@ -188,7 +190,7 @@ export const buildNativeLog = (
         ...(options.details ?? {}),
         native: {
             axilog: { schema: '1.0', version: 'test' },
-            encounter: {},
+            encounter: { markers: options.markers ?? [] },
             entities,
             catalogs: nativeCatalogs(options),
             coverage: { replay: 'present' },

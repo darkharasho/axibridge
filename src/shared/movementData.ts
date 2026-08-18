@@ -3,6 +3,7 @@
  * `electron/tsconfig.json`, whose Node10 resolver cannot see the root
  * `exports` map. See `src/main/bridgeMetricsRoot.d.ts`.
  */
+import { getCommanderTagColors, getSquadMarkers } from './squadMarkers';
 import {
     getArena, getPollMs, getPositionTracks, positionAt, worldToPixel,
     replayCanvas, pixelsPerInch,
@@ -123,6 +124,18 @@ export interface SquadMemberMovement {
     healthPercents?: [number, number][];
     /** Per-second damage taken deltas (index i = second i of the fight). */
     damageTaken1SPerSec?: number[];
+    /**
+     * The commander's tag colour as CSS hex, when this member carries a tag
+     * and axilog resolved its GUID. Recolours `commander_tag.svg`; absent
+     * means draw the default white tag.
+     */
+    tagColor?: string;
+    /**
+     * An overhead squad marker (Arrow, Circle, …) assigned to this member.
+     * Distinct from `tagColor` — a tag says "this is the commander", a marker
+     * is a transient assignment the commander hands out.
+     */
+    squadMarker?: { label: string; icon: string };
     skillCasts?: { id: number; time: number; duration: number }[];
 }
 
@@ -271,6 +284,11 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
     // once the native engine became the parser. `catalogs.skills` has had them
     // all along (418 of 508 resolve; the rest are ids neither generated icon
     // table has a record of).
+    // Resolved once for the whole log rather than per member: both are small
+    // maps built from one scan of `encounter.markers[]`.
+    const tagColors = getCommanderTagColors(details);
+    const squadMarkers = getSquadMarkers(details);
+
     const skillIcons: Record<number, { name: string; icon: string }> = {};
     for (const [key, val] of Object.entries(details?.native?.catalogs?.skills ?? {})) {
         const id = Number(key);
@@ -360,6 +378,8 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
             eliteSpec: e.elite_spec ?? '',
             group: e.subgroup ?? 0,
             isCommander: hasCommanderTag(e),
+            tagColor: tagColors.get(e.id),
+            squadMarker: squadMarkers.get(e.id),
             isLocal,
             isEnemy: false,
             inSquad,

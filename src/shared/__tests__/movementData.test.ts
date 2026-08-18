@@ -198,3 +198,40 @@ describe('positionAtOrBefore', () => {
         expect(positionAtOrBefore(track, 100, 300)).toBeNull();
     });
 });
+
+/**
+ * The replay map draws a commander's tag in the colour they actually ran, and
+ * an overhead squad marker above whoever is carrying it. Both ride on the
+ * member, so the join from `encounter.markers[].entity_id` to the member has
+ * to survive `buildMovementData` — the map cannot recover it later.
+ */
+describe('buildMovementData markers', () => {
+    it('carries the tag colour and squad marker onto the member', () => {
+        const movement = buildMovementData(buildNativeLog(
+            [{
+                id: 1, role: 'squad', account: 'Alice.0001', character: 'Alice',
+                profession: 'Guardian', subgroup: 1, commander: true, pixels: [[100, 100]],
+            }],
+            {
+                markers: [
+                    { entity_id: 1, marker_kind: 'commander_tag', marker_label: 'Purple', time_ms: 5 },
+                    { entity_id: 1, marker_kind: 'squad_marker', marker_label: 'Arrow', marker_icon: 'arrow.png', time_ms: 6 },
+                ],
+            },
+        ), { trackedBuffIds: trackedBuffs })!;
+        const member = movement.members[0];
+        expect(member.tagColor).toBe('#8e4ec6');
+        expect(member.squadMarker).toEqual({ label: 'Arrow', icon: 'arrow.png' });
+    });
+
+    it('leaves both absent when the log carries no markers', () => {
+        const movement = buildMovementData(buildNativeLog(
+            [{
+                id: 1, role: 'squad', account: 'Alice.0001', character: 'Alice',
+                profession: 'Guardian', subgroup: 1, pixels: [[100, 100]],
+            }],
+        ), { trackedBuffIds: trackedBuffs })!;
+        expect(movement.members[0].tagColor).toBeUndefined();
+        expect(movement.members[0].squadMarker).toBeUndefined();
+    });
+});
