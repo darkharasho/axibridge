@@ -542,11 +542,25 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
 
         // Every reader falls back to character_name/name.
         expect(every((p) => p.display_name !== undefined)).toBe(true);
-        // Skill/buff icon + classification metadata needs EI's bundled GW2 DB.
-        // These close via NATIVE `catalogs` in units 5 and 7 of the migration —
-        // to_ei_json does not map them, so on ei-json they stay absent.
-        expect(Object.values(details.skillMap).every((s: any) => s.icon === undefined)).toBe(true);
-        expect(Object.values(details.buffMap).every((b: any) => b.icon === undefined)).toBe(true);
+        // CLOSED, deliberately: `applyEiCompatShims` backfills icons onto both
+        // EI maps from `native.catalogs`. `to_ei_json` still emits none of its
+        // own -- this is the shim projecting native facts onto legacy field
+        // names, which is what that function is for.
+        //
+        // It had to close here rather than at each reader: ~20 surfaces read an
+        // icon straight off `skillMap`/`buffMap` (Top Outgoing/Incoming Skills,
+        // the boon selector, skill usage, heal effectiveness, commander stats),
+        // and every one of them rendered blank under the native engine.
+        //
+        // Skills are 418 of 508 on this fixture, not all: `/v2/skills` does not
+        // list every id an arcdps log carries. Assert a strong majority rather
+        // than a hardcoded count, which would just churn on every axilog bump.
+        const skillEntries = Object.values(details.skillMap) as any[];
+        const withIcon = skillEntries.filter((s) => typeof s.icon === 'string' && s.icon).length;
+        expect(withIcon).toBeGreaterThan(skillEntries.length * 0.75);
+        expect(Object.values(details.buffMap).every((b: any) => typeof b.icon === 'string' && b.icon)).toBe(true);
+        // Still absent, and still needs EI's bundled GW2 DB: native carries no
+        // buff `classification`.
         expect(Object.values(details.buffMap).every((b: any) => b.classification === undefined)).toBe(true);
     });
 });

@@ -1126,8 +1126,20 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             if (!acc.skillDamageMap[entry.id]) acc.skillDamageMap[entry.id] = { name, icon, damage: 0, hits: 0, downContribution: 0 };
             if (acc.skillDamageMap[entry.id].name.startsWith('Skill ') && !name.startsWith('Skill ')) acc.skillDamageMap[entry.id].name = name;
             if (!acc.skillDamageMap[entry.id].icon && icon) acc.skillDamageMap[entry.id].icon = icon;
-            acc.skillDamageMap[entry.id].damage += entry.totalDamage;
-            acc.skillDamageMap[entry.id].hits += entry.connectedHits;
+            acc.skillDamageMap[entry.id].damage += Number(entry.totalDamage || 0);
+            // `?? entry.hits`, and unguarded arithmetic was rendering "NaN hits".
+            //
+            // `targetDamageDist` rows carry no `connectedHits` -- axilog's
+            // per-target damage split has no connected-hits column at all
+            // (`per_target.by_skill` is crit/flank/hits/min/max/total) -- while
+            // `totalDamageDist` rows do. One `undefined` poisons the whole
+            // accumulator, and this was the only `+=` here without a guard.
+            //
+            // `hits` is the right fallback rather than 0: native `hits` counts
+            // LANDED hits, which is precisely what EI calls `connectedHits`
+            // (EI's own `hits` is the attempt count, native's `attempt_hits`).
+            // So a per-target row's `hits` already IS the value this wants.
+            acc.skillDamageMap[entry.id].hits += Number(entry.connectedHits ?? entry.hits ?? 0);
             acc.skillDamageMap[entry.id].downContribution += Number(entry.downContribution || 0);
         };
         const playerKey = identity.key;

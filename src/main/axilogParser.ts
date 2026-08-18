@@ -207,6 +207,32 @@ export const applyEiCompatShims = (details: any, _logPath: string): any => {
         }
     }
 
+    // Icons: `skillMap`/`buffMap` carry NONE from axilog's EI-shaped output --
+    // 0 of 508 skills and 0 of 26 buffs -- so every surface that reads an icon
+    // off them rendered blank once the native engine became the parser: the
+    // Top Outgoing/Incoming Skills cards, the boon selector, skill-usage,
+    // heal-effectiveness, commander stats, the player breakdown.
+    //
+    // Backfilling the two EI maps here rather than re-pointing each of those
+    // ~20 readers is the whole point of this function: it projects native facts
+    // onto the legacy EI field names. `catalogs.skills` has had icons all
+    // along; `catalogs.buffs` gained them in axilog 0.3.8.
+    //
+    // Only ever FILLS a missing icon -- an entry that already has one keeps it,
+    // so a real Elite Insights parse (which supplies its own) is untouched.
+    // Reaches new parses only; re-parse history to backfill stored logs.
+    const backfillIcons = (map: any, prefix: string, catalog: any) => {
+        if (!map || typeof map !== 'object' || !catalog) return;
+        for (const [key, entry] of Object.entries<any>(map)) {
+            if (!entry || typeof entry !== 'object' || entry.icon) continue;
+            const id = String(key).replace(new RegExp(`^${prefix}`), '');
+            const icon = catalog[id]?.icon;
+            if (typeof icon === 'string' && icon) entry.icon = icon;
+        }
+    };
+    backfillIcons(details.skillMap, 's', details.native?.catalogs?.skills);
+    backfillIcons(details.buffMap, 'b', details.native?.catalogs?.buffs);
+
     const encounter = details.native?.encounter;
     const nativeMap = typeof encounter?.map === 'string' ? encounter.map.trim() : '';
 

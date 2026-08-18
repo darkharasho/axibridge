@@ -484,11 +484,22 @@ Still degrading to `0` for per-target consumers: `dashboardMetrics.ts:80-92`'s
 - ~~**Boon overstack**~~, ~~**`statsAll[0].saved`**~~, ~~**enemy profession**~~ — **all three closed
   by axilog 0.3.2** (§1.6). Overstack attribution, the `saved` counter and enemy class labels now
   carry real data.
-- **Skill icons / auto-attack & proc classification** (`skillMap[].icon`/`.autoAttack`/
-  `.isTraitProc`) → APM's auto-attack exclusion and proc filtering see every skill as a non-auto,
-  non-proc cast. Needs EI's bundled GW2 skill DB.
-- **`buffMap[].icon`** → boon icons fall back to text labels. `.classification` is absent too but
-  benign (all readers default to `Boon`, correct for a boon-only map).
+- ~~**Skill icons**~~ and ~~**`buffMap[].icon`**~~ — **closed 2026-08-18**, by backfilling both EI
+  maps from `native.catalogs` in `applyEiCompatShims` rather than re-pointing each reader. This was
+  not a cosmetic gap: ~20 surfaces read an icon straight off `skillMap`/`buffMap` — Top Outgoing and
+  Incoming Skills, the boon selector, skill usage, heal effectiveness, commander stats, the player
+  breakdown, the replay squad panel — and every one of them rendered blank for the whole time axilog
+  was the parser, because `to_ei_json` emits **zero** icons (0 of 508 skills, 0 of 26 buffs).
+  Coverage is now 491 of 508 skills and 26 of 26 buffs. Three catalogs feed it, in axilog 0.3.9:
+  GW2EI's skill-icon override table first, then `/v2/skills`, then GW2EI's buff table.
+  The residual 17 are 6 arcdps synthetic ids plus 11 that neither ArenaNet nor GW2EI carries.
+  **Reaches new parses only** — re-parse history to backfill stored logs.
+- **Auto-attack & proc classification** (`skillMap[].autoAttack`/`.isTraitProc`) → APM's
+  auto-attack exclusion and proc filtering still see every skill as a non-auto, non-proc cast on the
+  EI map. Native `catalogs.skills[].auto_attack` carries it (361 of 508) and the replay panel reads
+  it directly; the EI-shaped readers have not been re-pointed.
+- **`buffMap[].classification`** → absent, but benign (all readers default to `Boon`, correct for a
+  boon-only map).
 - **`players[].display_name`** → every reader falls back to `character_name`.
 
 These are documented rather than faked, matching axilog's own stated policy: `ei-json` only emits
