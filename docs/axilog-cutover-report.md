@@ -941,6 +941,97 @@ figures should reach for this tolerance shape rather than re-deriving it.
 `.zevtc` mtime minus `durationMS`). All four are write-if-absent, so a future axilog release that
 emits them natively wins.
 
+### Unit 5b — conditions, migrated (2026-08-17)
+
+`computeOutgoingConditions` (`packages/bridge-metrics/src/conditionsMetrics.ts`) now takes
+`{ details }` and reads `blocks.conditions` and `blocks.damage.by_entity[].by_skill` through a new
+module, `packages/bridge-metrics/src/nativeConditions.ts`. Its return type is unchanged, so no
+consumer moved. `attachConditionMetrics` gates on `details.native`; its old precondition was
+`details.targets.length`, which a native container does not have, so leaving it would have made the
+whole function a silent no-op on every migrated log. Oracle:
+`src/test/__tests__/conditionsNative.oracle.test.ts`, 6/6 green, two allowlisted differences.
+
+**The state timeline is byte-identical.** `blocks.conditions.by_entity[target][buff].per_source
+.by_source[source]` carries the same `[[timeMs, stacks]]` step function EI does — 1158 of 1158
+source-state arrays that both sides hold match exactly. All three counting helpers
+(`countAppliedFromStates`, `countActiveStateEntries`, `computeUptimeFromStates`) are unchanged and
+still load-bearing.
+
+**There is no condition uptime scalar in the container.** Unlike `blocks.boons`, a conditions entry
+has exactly one field — `per_source` — across all 420 (entity, buff) pairs: no `uptime_pct`, no
+`avg_stacks`. `uptimeMs` stays derived from the timeline. Native models conditions purely as
+outgoing applications attributed to a source, which is what every consumer wants, but it also means
+**a condition on a squad member does not exist anywhere in the container.** Nothing asks for one.
+
+**The EI↔native entity join is `agent_addr` and `instid`, never `id`.** EI `targets[].id` equals
+native `agent_addr`; EI `instanceID` equals native `instid`. EI's `players[]` has **no `id` field at
+all**, so joining on it matches nothing and yields a clean zero-diff result over zero comparisons —
+this unit's first probe did exactly that and looked like a pass.
+
+**EI's `hits` is native's `outcomes.attempt_hits`, not native's `hits`.** Native splits the concept:
+`hits` counts landed hits, `attempt_hits` counts attempts including invulned/blocked/evaded. On the
+73 condition damage rows, `total`↔`total` and `connectedHits`↔`connected_hits` are 73/73 exact and
+`hits`↔`attempt_hits` is 73/73 exact, while `hits`↔`hits` mismatches on 17. The only rows where the
+distinction is observable are the 4 with `connected_hits === 0` — precisely the ones taking the
+consumer's fallback path — so a reader using native `hits` passes inspection and is still wrong.
+`getEntitySkillRows` in `nativeDamage.ts` returns native `hits`; unit 4 pinned its consumers against
+that, so unit 5b added its own reader rather than reusing it.
+
+**The condition-name trap the unit 5a plan predicted does not exist.** Native's catalog says
+`Crippled` and `Immobile` where the canon is `Cripple` and `Immobilize`, but `CONDITION_NAME_MAP`
+already carried both spellings. All 14 native condition names normalize correctly and are pinned as
+a table in `nativeConditions.test.ts`. The map moved to a leaf module, `conditionNames.ts`, to break
+the cycle the new import created; `conditionsMetrics.ts` re-exports `normalizeConditionLabel` so
+`StatsView.tsx` and `computeCommanderStats.ts` did not move.
+
+#### Allowlisted difference 1 — the npc ruling (native higher)
+
+`blocks.conditions` covers 15 npc entities EI's `targets[]` does not. EI emits exactly 32 targets,
+all `enemyPlayer: true`. Native additionally attributes **362 source-state arrays against npc
+targets** — Blood Fiends, Function Gyros, Juvenile pets — and **every one of the 362 is sourced from
+a `squad` entity**. Squad members do not condi-cleave their own pets, so these are enemy-side pets
+and minions and the applications are real; EI drops them because its curation is
+enemy-players-only.
+
+**Ruling: include npc targets.** `applicationsFromBuffs`, `applicationsFromBuffsActive` and
+`uptimeMs` all move **up** — e.g. squad-wide Vulnerability applications go 944 → 1362, uptime
+1291460 ms → 1761597 ms. `applications` and `damage` do not move; they were never per-target. Cost
+if wrong: condition-application leaderboards inflate for AoE condition builds relative to reports
+published before this change. Reversible by dropping `'npc'` from `CONDITION_TARGET_ROLES` in
+`nativeConditions.ts` — one line, deliberately named and documented for that purpose.
+
+#### Allowlisted difference 2 — EI credited condition damage by skill name (native lower)
+
+EI's damage half called `resolveConditionNameFromEntry(skillName, id, buffMap)`, which resolves an
+entry to a condition when the **skill name** merely tokenizes to one. Three skills in the reference
+fixture were booked as condition damage on that basis:
+
+| skill | credited to | hits | damage |
+|---|---|---|---|
+| `Burning Speed` | Burning | 5 | **11669** |
+| `Chilled to the Bone!` | Chill | 3 | 60 |
+| `Bleeding Edge` | Bleeding | 3 | 0 |
+
+`Burning Speed` is an Elementalist **strike** skill: 11669 points of strike damage were reported as
+Burning condition damage, ~17 % of the squad's true Burning total (67087). Native restricts to ids
+whose `catalogs.buffs[id].kind === 'condition'`, so it counts condition ticks only. Native is right
+and condition-damage figures drop accordingly. The oracle pins each magnitude exactly, so a future
+axilog build that reclassifies one of these ids fails the test rather than absorbing the change.
+
+**This flaw is not confined to the migrated function.** `resolveConditionNameFromEntry` still backs
+three call sites in `computePlayerAggregation.ts` (lines 1062, 1260, 1386) and one in
+`computeCommanderStats.ts:87`, all reading EI-shaped skill payloads. They belong to the aggregators
+unit, not this one, and are untouched here — but they carry the same name-matching behaviour and
+should be re-sourced from `catalogs.buffs[id].kind` when that unit lands.
+
+**A note on the oracle itself.** The EI baseline must be built the way production builds it —
+`parseFileEi` **followed by `applyEiCompatShims`**. The shim fills `players[].name` from
+`character_name`, and EI's buff-state half joins `statesPerSource` (keyed by character name) through
+it. Against raw `parseFileEi` output the join matches nothing, EI reports 0 sources and 0 uptime,
+and the oracle appears to prove that condition uptime was entirely dead. It was not; that was an
+artefact of skipping the shim. The oracle now asserts `buffStateSourcesSeen === 1158` on the EI side
+first, so the baseline cannot silently go hollow again.
+
 ---
 
 ## 6. Test evidence
