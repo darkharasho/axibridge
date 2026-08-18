@@ -119,17 +119,10 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
      * Was "All-parties panel, spotlight button, and spotlight dismiss".
      *
      * Neither the "All-parties panel" layer toggle nor `.replay-party-panel`
-     * exists in the renderer any more, so that test could not pass against any
-     * fixture. The party spotlight is half-removed rather than removed:
-     * `replaySpotlightParty` still exists on the stats store, ReplayView still
-     * dims off-party members by it and still renders the "Spotlight: Party N"
-     * dismiss chip — but `setReplaySpotlightParty` is now only ever called with
-     * `null`, so nothing can turn it ON. Restoring coverage means deciding
-     * whether the feature comes back or the dead state goes; it is not a test
-     * fix. Tracked, not silently dropped.
-     *
-     * What replaced it here is the surviving per-party surface: the squad panel
-     * groups members under "Party N" headings.
+     * exists in the renderer any more, so the original test could not pass. The
+     * spotlight itself survived that removal and is now driven from the squad
+     * panel's "Party N" headings instead, which is what these two tests cover:
+     * the grouping, and the spotlight round trip through the new control.
      */
     test('RPLY-002-e: squad panel opens and groups members by party', async ({ page }) => {
         await setupReplayPage(page);
@@ -143,5 +136,26 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
 
         // Members are bucketed under "Party N" headings.
         await expect(page.getByText(/^Party \d+$/).first()).toBeVisible({ timeout: 3_000 });
+    });
+
+    test('RPLY-002-f: party heading toggles the spotlight on and the chip dismisses it', async ({ page }) => {
+        await setupReplayPage(page);
+        await navigateToReplayCanvas(page);
+
+        await page.getByTitle('Expand squad panel').click();
+
+        // The heading is the only control that turns the spotlight on.
+        const heading = page.getByRole('button', { name: /^Party \d+$/ }).first();
+        await expect(heading).toBeVisible({ timeout: 3_000 });
+        await heading.click();
+
+        const chip = page.getByRole('button', { name: /^Spotlight: Party \d+/ });
+        await expect(chip).toBeVisible({ timeout: 3_000 });
+        await expect(heading).toHaveAttribute('aria-pressed', 'true');
+
+        // The chip clears it.
+        await chip.click();
+        await expect(chip).toBeHidden({ timeout: 3_000 });
+        await expect(heading).toHaveAttribute('aria-pressed', 'false');
     });
 });

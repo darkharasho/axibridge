@@ -14,6 +14,8 @@ export const ReplaySquadPanel: React.FC<ReplaySquadPanelProps> = ({ fight, colla
     const timeMs = useStatsStore(state => state.replayPlayhead.timeMs);
     const setReplayFollowTarget = useStatsStore(state => state.setReplayFollowTarget);
     const followTarget = useStatsStore(state => state.replayViewport.followTarget);
+    const spotlightParty = useStatsStore(state => state.replaySpotlightParty);
+    const setReplaySpotlightParty = useStatsStore(state => state.setReplaySpotlightParty);
 
     const allies = useMemo(
         () => fight.movementData.members.filter(m => !m.isEnemy && m.inSquad),
@@ -76,9 +78,24 @@ export const ReplaySquadPanel: React.FC<ReplaySquadPanelProps> = ({ fight, colla
             <div style={{ overflowY: 'auto', flex: 1, padding: '4px 0' }}>
                 {byParty.map(([group, members]) => (
                     <React.Fragment key={group}>
-                        <div style={{ padding: '5px 8px 2px', fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', marginTop: 2 }}>
+                        {/* The heading is the only way to turn the spotlight ON — the
+                            all-parties panel that used to own that control is gone. */}
+                        <button
+                            type="button"
+                            title={group === spotlightParty ? `Clear spotlight on Party ${group}` : `Spotlight Party ${group}`}
+                            aria-pressed={group === spotlightParty}
+                            onClick={() => setReplaySpotlightParty(group === spotlightParty ? null : group)}
+                            style={{
+                                display: 'block', width: '100%', textAlign: 'left',
+                                padding: '5px 8px 2px', fontSize: 9, fontWeight: 700,
+                                letterSpacing: '.07em', textTransform: 'uppercase',
+                                color: group === spotlightParty ? 'var(--status-warning)' : 'var(--text-muted)',
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                borderTop: '1px solid var(--border-subtle)', marginTop: 2,
+                            }}
+                        >
                             Party {group}
-                        </div>
+                        </button>
                         {members.map(m => (
                             <PartyMemberCard
                                 key={m.id}
