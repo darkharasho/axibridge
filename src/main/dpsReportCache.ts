@@ -308,3 +308,25 @@ export const updateDpsReportCacheDetails = async (
         // Ignore cache write errors.
     }
 };
+
+/**
+ * Read a cached details file straight off disk, ignoring the freshness TTL.
+ *
+ * This is the rehydration path, not the upload path. `loadDpsReportCacheEntry`
+ * treats an entry older than `DPS_REPORT_DETAILS_TTL_MS` as expired and deletes
+ * the file so the next upload re-fetches it — correct when a fresher copy can
+ * be obtained, wrong here, where the alternative to a stale copy is no fight at
+ * all. Callers only reach this after the in-memory cache has missed, so a
+ * day-old parse still beats an empty row. Never mutates the index.
+ */
+export const readCachedDetailsFile = async (store: StoreAdapter, hash: string): Promise<any | null> => {
+    if (!hash) return null;
+    const index = loadDpsReportCacheIndex(store);
+    const detailsPath = index[hash]?.detailsPath;
+    if (!detailsPath) return null;
+    try {
+        return JSON.parse(await fs.promises.readFile(detailsPath, 'utf8'));
+    } catch {
+        return null;
+    }
+};

@@ -63,6 +63,7 @@ import {
     loadDpsReportCacheEntry as loadDpsReportCacheEntryFn,
     saveDpsReportCacheEntry as saveDpsReportCacheEntryFn,
     updateDpsReportCacheDetails as updateDpsReportCacheDetailsFn,
+    readCachedDetailsFile as readCachedDetailsFileFn,
     type DpsReportCacheEntry,
 } from './dpsReportCache';
 
@@ -400,6 +401,41 @@ const getBulkLogDetails = (filePath: string) => {
     if (!baseName) return null;
     return bulkLogDetailsByBaseName.get(baseName) || null;
 };
+/**
+ * Rehydrate a log's details from the persistent on-disk cache.
+ *
+ * `bulkLogDetailsCache` is a memory-budgeted LRU: a session with a few dozen
+ * large logs will blow the 400MB budget and evict most of them. Before this
+ * existed, an evicted log was gone for good — `get-log-details` reported
+ * "Details not found", the log contributed no fight to any aggregate, and its
+ * row rendered with a blank date. The pruned details are still on disk, so read
+ * them back instead of treating LRU residency as the source of truth.
+ *
+ * The in-memory cache is only re-warmed when there is headroom; warming it
+ * while already over budget would just evict another 25% of the map and make
+ * the next reader pay the same disk round-trip.
+ */
+const loadPersistedLogDetails = async (filePath: string): Promise<any | null> => {
+    if (!filePath) return null;
+    try {
+        let hash = getKnownFileHash(filePath);
+        if (!hash) {
+            if (!fs.existsSync(filePath)) return null;
+            hash = await computeFileHash(filePath);
+            rememberFileHash(filePath, hash);
+        }
+        const details = await readCachedDetailsFileFn(store, hash);
+        if (!details || details.error || !hasUsableFightDetails(details)) return null;
+        if (process.memoryUsage().heapUsed < BULK_LOG_DETAILS_HEAP_BUDGET_BYTES) {
+            setBulkLogDetails(filePath, details);
+        }
+        return details;
+    } catch (err) {
+        console.warn(`[Main] Failed to rehydrate details for ${filePath}: ${String(err)}`);
+        return null;
+    }
+};
+
 const globalManifest: Array<any> = [];
 const globalManifestPath = () => path.join(process.cwd(), 'dev', 'manifest.json');
 
@@ -1799,6 +1835,7 @@ if (!gotTheLock) {
             loadUploadRetryState,
             setUploadRetryPaused,
             getBulkLogDetails,
+            loadPersistedLogDetails,
         });
         registerGithubHandlers({
             store,

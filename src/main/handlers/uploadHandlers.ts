@@ -8,6 +8,8 @@ import { hasUsableFightDetails } from '../detailsProcessing';
 // ─── Module-level state ─────────────────────────────────────────────────────
 
 const missingDetailsLogByPath = new Map<string, number>();
+/** Coalesces concurrent disk rehydrations of the same log (details files reach 27MB). */
+const inFlightRehydrations = new Map<string, Promise<any | null>>();
 
 // ─── Handler options ───────────────────────────────────────────────────────────
 
@@ -23,6 +25,7 @@ export interface UploadHandlerOptions {
     loadUploadRetryState: () => UploadRetryRuntimeState;
     setUploadRetryPaused: (paused: boolean, reason: string | null) => void;
     getBulkLogDetails: (filePath: string) => any;
+    loadPersistedLogDetails: (filePath: string) => Promise<any | null>;
 }
 
 // ─── Handler registration ──────────────────────────────────────────────────────
@@ -40,6 +43,7 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
         loadUploadRetryState,
         setUploadRetryPaused,
         getBulkLogDetails,
+        loadPersistedLogDetails,
     } = opts;
 
     ipcMain.on('start-watching', (_event, dirPath: string) => {
@@ -139,6 +143,12 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
      * satisfy a reader that needs it, and a stale-because-Axilog-less copy would
      * have re-fetched on every hydration forever. Repair now goes through
      * `log:reparse-axilog`, which re-parses the original `.zevtc`.
+     *
+     * A miss in the in-memory store is not the same as a missing log: that
+     * store is a memory-budgeted LRU, so a large session evicts most of its
+     * entries. Fall back to the persistent on-disk copy before reporting
+     * failure — otherwise every evicted log silently drops out of the fight
+     * count and renders without a timestamp.
      */
     ipcMain.handle('get-log-details', async (_event, payload: { filePath: string }) => {
         const filePath = payload?.filePath;
@@ -149,6 +159,17 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
         const details = getBulkLogDetails(filePath);
         if (details && hasUsableFightDetails(details)) {
             return { success: true, details };
+        }
+        let rehydrate = inFlightRehydrations.get(filePath);
+        if (!rehydrate) {
+            rehydrate = loadPersistedLogDetails(filePath).finally(() => {
+                inFlightRehydrations.delete(filePath);
+            });
+            inFlightRehydrations.set(filePath, rehydrate);
+        }
+        const persisted = await rehydrate;
+        if (persisted && hasUsableFightDetails(persisted)) {
+            return { success: true, details: persisted };
         }
         const now = Date.now();
         const lastLoggedAt = missingDetailsLogByPath.get(filePath) || 0;
