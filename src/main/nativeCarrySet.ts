@@ -29,6 +29,13 @@
  * and `catalogs.skills` is 82.1 KB (carried narrowly — `catalogs` wholesale
  * is 103.3 KB and also drags in unrelated catalogs).
  *
+ * Unit 5b (conditions) adds `blocks.conditions`, 88.8 KB on the same fixture.
+ * It was missed when 5b landed, which made `listConditionApplications` read an
+ * absent container and return nothing: outgoing condition applications and
+ * uptime were empty in the app while the oracle — which parses the FULL report,
+ * not the carry set — passed. Exactly the failure mode this list produced for
+ * unit 4.
+ *
  * Unit 5a (boons) adds `blocks.boons` and `catalogs.buffs`. Measured on the
  * same fixture: `blocks.boons` is 209.4 KB — this must be carried whole, not
  * narrowed to exclude the nested `per_source` (~90.9 KB of the total),
@@ -49,6 +56,7 @@ export const CARRIED_PATHS = [
     'catalogs.skills',
     'blocks.boons',
     'catalogs.buffs',
+    'blocks.conditions',
 ] as const;
 
 export type CarriedPath = (typeof CARRIED_PATHS)[number];

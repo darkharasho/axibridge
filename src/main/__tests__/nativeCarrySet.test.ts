@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { buildNativeCarrySet, CARRIED_PATHS } from '../nativeCarrySet';
+import { listConditionApplications, getEntityConditionDamageTakenRows } from '@axiapps/bridge-metrics/nativeConditions';
+import { computeOutgoingConditions } from '@axiapps/bridge-metrics/conditionsMetrics';
 import { AxilogManager } from '../axilogParser';
 import { DEFAULT_EI_SETTINGS } from '../eiParser';
 import {
@@ -173,6 +175,31 @@ describe.runIf(binding && fs.existsSync(COMMITTED_FIXTURE))(
             const anyUptime = squadEntities(details.native).some((e: any) =>
                 boonIds.some((id) => getEntityBuffUptime(details, e.id, id) > 0));
             expect(anyUptime).toBe(true);
+
+            // Unit 5b (conditions) — blocks.conditions. This path was NOT in
+            // CARRIED_PATHS when 5b landed, so outgoing condition applications
+            // and uptime were empty in the app while 5b's oracle passed: the
+            // oracle parses the FULL report, which the carry set is a subset
+            // of. That is the exact gap this guard exists to close.
+            expect(listConditionApplications(details).length).toBeGreaterThan(0);
+            const conditionResult = computeOutgoingConditions({ details });
+            expect(Object.keys(conditionResult.summary).length).toBeGreaterThan(0);
+            expect(conditionResult.meta.buffStateSourcesSeen).toBeGreaterThan(0);
+
+            // Unit 5c (incoming conditions) — blocks.damage's by_skill_taken.
+            // Carried already, but no reader above touches that sub-object, so
+            // narrowing `blocks.damage` later would go unnoticed without this.
+            const anyIncoming = squad.some((e: any) =>
+                getEntityConditionDamageTakenRows(details, e.id).length > 0);
+            expect(anyIncoming).toBe(true);
+
+            // Icons — `catalogs.skills[].icon` and `catalogs.buffs[].icon`
+            // back the replay squad panel. Both were EMPTY through
+            // `details.skillMap`/`buffMap`, which is what sent them here.
+            const skillCatalog: any = (details.native as any)?.catalogs?.skills ?? {};
+            expect(Object.values(skillCatalog).some((v: any) => v?.icon)).toBe(true);
+            const buffCatalog: any = (details.native as any)?.catalogs?.buffs ?? {};
+            expect(Object.values(buffCatalog).some((v: any) => v?.icon)).toBe(true);
         }, 120_000);
     },
 );

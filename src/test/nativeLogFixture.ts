@@ -80,6 +80,12 @@ export interface NativeLogOptions {
     durationMs?: number;
     pollMs?: number;
     arena?: ArenaProjection;
+    /**
+     * EI-shaped `s<id>` / `b<id>` maps. Projected onto `native.catalogs` too,
+     * because that is where the real readers look: axilog's EI-shaped output
+     * carries no icons at all, so `skillMap`/`buffMap` alone would model a
+     * parse that cannot happen.
+     */
     skillMap?: Record<string, unknown>;
     buffMap?: Record<string, unknown>;
     /** Extra top-level fields on the details object. */
@@ -91,6 +97,24 @@ export interface NativeLogOptions {
  * native container under `details.native`, and the EI rows the not-yet-migrated
  * fields (boons, casts, health, damage series) are still read from.
  */
+/**
+ * `skillMap`/`buffMap` restated as native catalogs: bare numeric ids, and
+ * `auto_attack` where EI spelled it `autoAttack`.
+ */
+const nativeCatalogs = (options: NativeLogOptions) => {
+    const strip = (map: Record<string, unknown> | undefined, prefix: string) => {
+        const out: Record<string, any> = {};
+        for (const [key, value] of Object.entries(map ?? {})) {
+            const id = Number(String(key).replace(new RegExp(`^${prefix}`), ''));
+            if (!Number.isFinite(id)) continue;
+            const info = value as any;
+            out[String(id)] = { ...info, auto_attack: info?.auto_attack ?? info?.autoAttack };
+        }
+        return out;
+    };
+    return { skills: strip(options.skillMap, 's'), buffs: strip(options.buffMap, 'b') };
+};
+
 export const buildNativeLog = (
     members: NativeMemberSpec[],
     options: NativeLogOptions = {},
@@ -166,7 +190,7 @@ export const buildNativeLog = (
             axilog: { schema: '1.0', version: 'test' },
             encounter: {},
             entities,
-            catalogs: {},
+            catalogs: nativeCatalogs(options),
             coverage: { replay: 'present' },
             blocks: {
                 replay: {

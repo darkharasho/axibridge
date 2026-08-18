@@ -265,11 +265,19 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
     if (!arena || tracks.size === 0) return null;
     const canvas = replayCanvas(arena);
 
+    // From the native catalog, not `details.skillMap`. axilog's EI-shaped
+    // output carries NO icons at all — 0 of 508 entries — so building these
+    // from `skillMap` left the replay squad panel with no skill art whatsoever
+    // once the native engine became the parser. `catalogs.skills` has had them
+    // all along (418 of 508 resolve; the rest are ids neither generated icon
+    // table has a record of).
     const skillIcons: Record<number, { name: string; icon: string }> = {};
-    for (const [key, val] of Object.entries(details?.skillMap ?? {})) {
-        const id = Number(String(key).replace(/^s/, ''));
+    for (const [key, val] of Object.entries(details?.native?.catalogs?.skills ?? {})) {
+        const id = Number(key);
         const info = val as any;
-        if (info?.icon && !info.autoAttack) {
+        // `auto_attack` is native's spelling of EI's `autoAttack`; auto-attacks
+        // are excluded because they would flood the cast strip.
+        if (Number.isFinite(id) && info?.icon && !info.auto_attack) {
             skillIcons[id] = { name: info.name, icon: info.icon };
         }
     }
@@ -392,11 +400,13 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
 
     if (!members.length) return null;
 
+    // Likewise from the native catalog rather than `details.buffMap`, which
+    // carries no icons either. `catalogs.buffs[].icon` arrived in axilog 0.3.8.
     const boonIcons: Record<number, { name: string; icon: string }> = {};
-    for (const [key, val] of Object.entries(details?.buffMap ?? {})) {
-        const id = Number(String(key).replace(/^b/, ''));
+    for (const [key, val] of Object.entries(details?.native?.catalogs?.buffs ?? {})) {
+        const id = Number(key);
         const info = val as any;
-        if (trackedBuffIds.has(id) && info?.icon) {
+        if (Number.isFinite(id) && trackedBuffIds.has(id) && info?.icon) {
             boonIcons[id] = { name: info.name, icon: info.icon };
         }
     }
