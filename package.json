@@ -19,7 +19,7 @@
         "dev:electron": "cross-env NODE_OPTIONS=--max-old-space-size=6144 wait-on tcp:5177 && tsc -p electron/tsconfig.json && electron .",
         "clean": "rm -rf dist-electron dist-react dist-web dist_out",
         "build": "npm run clean && npm run sync:metrics-spec && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build --config vite.web.config.ts && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc -p electron/tsconfig.json",
-        "typecheck": "cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc --noEmit && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc -p electron/tsconfig.json --noEmit",
+        "typecheck": "cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc --noEmit && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc -p electron/tsconfig.json --noEmit --tsBuildInfoFile node_modules/.cache/axibridge/electron.typecheck.tsbuildinfo",
         "validate": "npm run typecheck && npm run lint",
         "build:web": "npm run sync:metrics-spec && cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build --config vite.web.config.ts",
         "build:linux": "npm run build && electron-builder --linux",

@@ -1,6 +1,8 @@
 {
     "compilerOptions": {
         "target": "ESNext",
+        "incremental": true,
+        "tsBuildInfoFile": "../dist-electron/.tsbuildinfo",
         "module": "commonjs",
         "outDir": "../dist-electron",
         "rootDir": "../src",
