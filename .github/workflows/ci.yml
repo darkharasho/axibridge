@@ -7,6 +7,24 @@ on:
   pull_request:
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck and lint
+        run: npm run validate
+
   audit-boons:
     runs-on: ubuntu-latest
     steps:
@@ -43,6 +61,31 @@ jobs:
       - name: Audit combat metrics
         run: npm run audit:metrics
 
+  audit-conditions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Both audits read `test-fixtures/native/`, which is committed. They are
+      # the only coverage for the migrated condition readers: the fixtures under
+      # `test-fixtures/boon/` are Elite-Insights-shaped and carry no Axilog data,
+      # so those readers early-return and compute nothing against them.
+      - name: Audit conditions against baselines
+        run: npm run audit:conditions
+
+      - name: Audit condition consistency
+        run: npm run audit:conditions:consistency
+
   tests:
     runs-on: ubuntu-latest
     steps:
@@ -72,6 +115,10 @@ jobs:
 
       - name: Web E2E tests
         run: npm run test:e2e:web
+
+      # `pretest:e2e:app` builds dist-react, which the app config serves.
+      - name: App E2E tests
+        run: npm run test:e2e:app
 
       - name: Electron E2E tests
         run: xvfb-run -a npm run test:e2e:electron

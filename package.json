@@ -45,7 +45,7 @@
         "generate:fixtures:native": "NODE_OPTIONS=--max-old-space-size=6144 node scripts/generate-native-fixtures.mjs",
         "generate:wvw-sectors": "node scripts/generate-wvw-sectors.mjs",
         "generate:hires-tiles": "node scripts/generate-hires-tiles.mjs",
-        "prebuild:app:test": "cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build",
+        "build:app:test": "cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build",
         "build:electron:test": "vite build && tsc -p electron/tsconfig.json",
         "test:unit": "vitest run",
         "test:regression:stats": "vitest run src/main/__tests__/uploader.detailFetch.test.ts src/renderer/__tests__/StatsView.integration.test.tsx",
@@ -53,10 +53,11 @@
         "test:e2e": "npm run test:e2e:web && npm run test:e2e:app && npm run test:e2e:electron",
         "test:e2e:web": "playwright test --config playwright.web.config.ts",
         "pretest:e2e:electron": "npm run build:electron:test",
+        "pretest:e2e:app": "npm run build:app:test",
         "test:e2e:app": "playwright test --config playwright.app.config.ts",
         "test:e2e:electron": "playwright test --config playwright.electron.config.ts",
         "test:all": "npm run test:unit && npm run test:e2e:web && npm run test:e2e:app && npm run test:e2e:electron",
-        "ci:local": "npm run audit:boons && npm run audit:metrics && npm run audit:conditions:consistency && npm run test:unit && npm run test:e2e:web && npm run test:e2e:electron"
+        "ci:local": "npm run validate && npm run audit:boons && npm run audit:metrics && npm run audit:conditions && npm run audit:conditions:consistency && npm run test:unit && npm run test:e2e:web && npm run test:e2e:app && npm run test:e2e:electron"
     },
     "dependencies": {
         "@axiapps/axilog": "0.3.12",
