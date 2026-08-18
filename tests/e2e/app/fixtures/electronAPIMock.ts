@@ -422,6 +422,109 @@ export function createElectronAPIMock(overrides?: ElectronAPIMockOverrides): voi
             return noop
         },
 
+        // ── Parser backend & local Elite Insights ────────────────
+        // The renderer calls these during Settings' mount effect. When one is
+        // absent the effect throws, React unwinds the subtree, and every
+        // interaction assertion below it fails for a reason that has nothing
+        // to do with what it was testing.
+        getParserBackend: (...args: any[]) => {
+            log('getParserBackend', args)
+            return Promise.resolve({
+                backend: 'axilog',
+                default: 'axilog',
+                axilogAvailable: true,
+                axilogVersion: '0.3.2',
+                migratedFromEliteInsights: false,
+            })
+        },
+        setParserBackend: (...args: any[]) => {
+            log('setParserBackend', args)
+        },
+        ackParserMigrationNotice: (...args: any[]) => {
+            log('ackParserMigrationNotice', args)
+        },
+        reparseLogAxilog: (...args: any[]) => {
+            log('reparseLogAxilog', args)
+            return Promise.resolve({ success: false, error: 'not available in tests' })
+        },
+        getEiStatus: (...args: any[]) => {
+            log('getEiStatus', args)
+            return Promise.resolve({ installed: false, version: null, updateAvailable: null, installing: false, error: null })
+        },
+        installEi: (...args: any[]) => {
+            log('installEi', args)
+            return Promise.resolve({ installed: false, version: null, updateAvailable: null, installing: false, error: null })
+        },
+        updateEi: (...args: any[]) => {
+            log('updateEi', args)
+            return Promise.resolve({ installed: false, version: null, updateAvailable: null, installing: false, error: null })
+        },
+        reinstallEi: (...args: any[]) => {
+            log('reinstallEi', args)
+            return Promise.resolve({ installed: false, version: null, updateAvailable: null, installing: false, error: null })
+        },
+        uninstallEi: (...args: any[]) => {
+            log('uninstallEi', args)
+            return Promise.resolve({ installed: false, version: null, updateAvailable: null, installing: false, error: null })
+        },
+        getEiDiskUsage: (...args: any[]) => {
+            log('getEiDiskUsage', args)
+            return Promise.resolve({ bytes: 0 })
+        },
+        checkEiUpdate: (...args: any[]) => {
+            log('checkEiUpdate', args)
+            return Promise.resolve({ updateAvailable: false })
+        },
+        getEiSettings: (...args: any[]) => {
+            log('getEiSettings', args)
+            return Promise.resolve({
+                detailledWvW: true,
+                computeDamageModifiers: true,
+                parsePhases: true,
+                skipFailedTries: false,
+                anonymous: false,
+                customTooShort: 2200,
+                saveOutHTML: false,
+                parseCombatReplay: false,
+                lightTheme: false,
+                rawTimelineArrays: true,
+                singleThreaded: false,
+                memoryLimit: 0,
+            })
+        },
+        saveEiSettings: (...args: any[]) => {
+            log('saveEiSettings', args)
+        },
+        getEiAutoManage: (...args: any[]) => {
+            log('getEiAutoManage', args)
+            return Promise.resolve(true)
+        },
+        setEiAutoManage: (...args: any[]) => {
+            log('setEiAutoManage', args)
+        },
+
+        // ── R2 replay storage ────────────────────────────────────
+        fetchR2Json: (...args: any[]) => {
+            log('fetchR2Json', args)
+            return Promise.resolve(null)
+        },
+        saveR2ReplayUrls: (...args: any[]) => {
+            log('saveR2ReplayUrls', args)
+            return Promise.resolve(null)
+        },
+        openMobilePreview: (...args: any[]) => {
+            log('openMobilePreview', args)
+            return Promise.resolve(null)
+        },
+
+        // ── Renderer diagnostics ─────────────────────────────────
+        reportRendererError: (...args: any[]) => {
+            log('reportRendererError', args)
+        },
+        sendRendererDiagnostics: (...args: any[]) => {
+            log('sendRendererDiagnostics', args)
+        },
+
         // ── Misc (synchronous) ───────────────────────────────────
         resolveDroppedFilePath: (...args: any[]) => {
             log('resolveDroppedFilePath', args)
@@ -429,9 +532,33 @@ export function createElectronAPIMock(overrides?: ElectronAPIMockOverrides): voi
         },
     }
 
+    // Every `on*` method is a fire-and-forget subscription, so a no-op that
+    // returns a no-op unsubscribe is a faithful stand-in. Serving them from a
+    // Proxy means the preload can grow a new listener without this mock going
+    // stale: previously, one missing `on*` threw during App's mount effect,
+    // the error boundary swallowed the tree, and every test in this suite
+    // failed on `.app-titlebar` never appearing — 58 identical timeouts that
+    // said nothing about the 58 things they were meant to check.
+    //
+    // Deliberately limited to `on*`. Any other missing method still returns
+    // undefined and fails loudly, because silently resolving a data call would
+    // trade one clear failure for a confusing downstream one.
+    const apiWithListeners = new Proxy(api, {
+        get(target: any, prop: string | symbol) {
+            if (prop in target) return target[prop]
+            if (typeof prop === 'string' && /^on[A-Z]/.test(prop)) {
+                return (callback: any) => {
+                    log(prop, [callback])
+                    return noop
+                }
+            }
+            return undefined
+        },
+    })
+
     // Install on window
     Object.defineProperty(window, 'electronAPI', {
-        value: api,
+        value: apiWithListeners,
         writable: true,
     })
 }

@@ -98,8 +98,8 @@ test.describe('Replay smoke test (RPLY-001)', () => {
             page.locator('.stats-particle-spinner')
         ).toBeHidden({ timeout: 45_000 });
 
-        // Navigate to the Map nav group (contains the Replay section)
-        await page.getByRole('button', { name: /^Map$/i }).click();
+        // Navigate to the Replay nav category (renamed from "Map" in the taxonomy redesign)
+        await page.getByRole('button', { name: /^Replay$/i }).click();
 
         // The FightPicker listbox should be visible
         const listbox = page.getByRole('listbox');
