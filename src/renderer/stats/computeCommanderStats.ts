@@ -1,4 +1,4 @@
-import { resolveConditionNameFromEntry } from '../../shared/conditionsMetrics';
+import { normalizeConditionLabel, resolveBuffMetaById } from '../../shared/conditionsMetrics';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { formatDurationMs } from './utils/dashboardUtils';
@@ -84,7 +84,14 @@ const resolveSkillMeta = (entry: any, skillMap: Record<string, any>, buffMap: Re
     let icon = mapped?.icon;
     if (mapped?.name) name = mapped.name;
     if (name.startsWith('Skill ')) {
-        const conditionName = resolveConditionNameFromEntry(name, entry?.id, buffMap);
+        // By buff id only. `resolveConditionNameFromEntry` also falls back to
+        // tokenizing the skill NAME, which reads `Burning Speed` -- an
+        // Elementalist strike skill -- as the condition Burning. That fallback
+        // was unreachable here (the name is always the literal `Skill <id>` at
+        // this point, which tokenizes to nothing), but calling a
+        // name-tokenizing helper for an id lookup invites it to become
+        // reachable the moment the guard above changes.
+        const conditionName = normalizeConditionLabel(resolveBuffMetaById(buffMap, entry?.id)?.name);
         if (conditionName) {
             name = conditionName;
             icon = buffMap?.[`b${entry?.id}`]?.icon || icon;

@@ -68,19 +68,25 @@ export const buildConditionIconMap = (
     return map;
 };
 
-export const resolveConditionNameFromEntry = (
-    skillName: string,
-    id?: number,
-    buffMap?: Record<string, { name?: string }>
-) => {
-    if (id && buffMap) {
-        const buffName = resolveBuffMetaById(buffMap, id)?.name;
-        const resolved = getConditionName(buffName);
-        if (resolved) return resolved;
-    }
-    if (!skillName) return null;
-    return getConditionName(skillName);
-};
+/*
+ * `resolveConditionNameFromEntry` was removed here. It decided whether a
+ * damage entry was a condition by falling back to tokenizing the skill NAME
+ * when the buff-id lookup came up empty, so any strike skill named after a
+ * condition was counted as that condition. On the reference fixture this was
+ * not marginal: it credited `Burning Speed`, an Elementalist strike skill,
+ * with 74000 of the squad's 87397 reported incoming Burning "condition"
+ * damage.
+ *
+ * All four call sites are gone. Incoming and outgoing conditions now decide
+ * membership from `catalogs.buffs[id].kind === 'condition'` (see
+ * `nativeConditions.ts`); the two naming call sites in
+ * `computePlayerAggregation` were provably unreachable, because the only
+ * string they ever tokenized was the literal `Skill <id>`; and
+ * `computeCommanderStats` now does the buff-id lookup directly.
+ *
+ * A verbatim copy survives at `src/test/legacy/conditionsMetricsEi.ts` for
+ * the equality oracle, and is deleted with it.
+ */
 
 export type ConditionSkillEntry = { name: string; hits: number; damage: number; icon?: string };
 

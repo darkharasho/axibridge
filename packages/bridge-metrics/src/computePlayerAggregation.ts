@@ -3,7 +3,7 @@ import { getPlayerCleanses, getPlayerStrips, getPlayerOutgoingInterrupts, getPla
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeDownContribution as getPlayerDownContribution, computeSquadHealing as getPlayerSquadHealing, computeSquadBarrier as getPlayerSquadBarrier, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl } from './combatMetrics';
 import { Player } from './dpsReportTypes';
 import { DisruptionMethod } from './metricsSettings';
-import { buildConditionIconMap, computeOutgoingConditions, normalizeConditionLabel, resolveBuffMetaById, resolveConditionNameFromEntry } from './conditionsMetrics';
+import { buildConditionIconMap, computeOutgoingConditions, getDefaultConditionIcon, normalizeConditionLabel, resolveBuffMetaById } from './conditionsMetrics';
 import { NON_DAMAGING_CONDITIONS, OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS } from './statsMetrics';
 import { isResUtilitySkill } from './resUtility';
 import { PlayerSkillDamageEntry, PlayerHealingSkillEntry } from './aggregationTypes';
@@ -11,7 +11,8 @@ import { PROFESSION_COLORS } from './professionUtils';
 import { resolveFightTimestamp } from './timestampUtils';
 import { PlayerRoleClassification } from './roles';
 import { normalizeAccountName, partitionSquadPlayers } from './playerIdentity';
-import { getEntityProfession } from './nativeRoster';
+import { getEntityProfession, squadEntities } from './nativeRoster';
+import { getEntityConditionDamageTakenRows } from './nativeConditions';
 
 export interface PlayerStats {
     name: string;
@@ -1062,13 +1063,6 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 name = buffMeta.name;
                 icon = buffMeta.icon || icon;
             }
-            if (name.startsWith('Skill ')) {
-                const conditionName = resolveConditionNameFromEntry(name, entry.id, details.buffMap);
-                if (conditionName) {
-                    name = conditionName;
-                    icon = buffMeta?.icon || icon;
-                }
-            }
             return { name, icon };
         };
         const playerProfession = p.profession || 'Unknown';
@@ -1260,13 +1254,6 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                         name = buffMeta.name;
                         icon = buffMeta.icon || icon;
                     }
-                    if (name.startsWith('Skill ')) {
-                        const conditionName = resolveConditionNameFromEntry(name, entry.id, details.buffMap);
-                        if (conditionName) {
-                            name = conditionName;
-                            icon = buffMeta?.icon || icon;
-                        }
-                    }
                     if (!acc.incomingSkillDamageMap[entry.id]) acc.incomingSkillDamageMap[entry.id] = { name, icon, damage: 0, hits: 0 };
                     if (!acc.incomingSkillDamageMap[entry.id].name.startsWith('Skill ') || name.startsWith('Skill ')) acc.incomingSkillDamageMap[entry.id].name = name;
                     if (!acc.incomingSkillDamageMap[entry.id].icon && icon) acc.incomingSkillDamageMap[entry.id].icon = icon;
@@ -1375,28 +1362,40 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         acc.outgoingCondiTotals[cName] = ex;
     });
 
-    // Incoming conditions
-    squadPlayers.forEach((p: any) => {
-        const key = getPlayerIdentity(p, splitPlayersByClass).key;
+    // Incoming conditions, from `blocks.damage.by_entity[].by_skill_taken`.
+    //
+    // The EI path this replaces decided whether an entry WAS a condition by
+    // tokenizing the skill name, so any strike skill named after a condition
+    // was counted as incoming condition damage. On the reference fixture that
+    // was not a rounding error: `Burning Speed`, an Elementalist strike skill,
+    // contributed 74000 of the squad's 87397 reported incoming Burning
+    // "condition" damage -- 85% of the number. `Bleeding Edge` added 155 to
+    // Bleeding the same way. Native decides membership by
+    // `catalogs.buffs[id].kind === 'condition'`, so those are gone and the
+    // incoming condition-damage figures drop accordingly.
+    //
+    // Applications read `outcomes.attempt_hits`, not native `hits`: EI's
+    // `hits` counted attempts including invulned/blocked/evaded, and native
+    // splits the two.
+    for (const entity of squadEntities(details.native)) {
+        const key = getPlayerIdentity(
+            { account: entity?.account, name: entity?.character, profession: getEntityProfession(entity) },
+            splitPlayersByClass
+        ).key;
         const ps = acc.playerStats.get(key);
-        if (!ps || !p.totalDamageTaken) return;
-        p.totalDamageTaken.forEach((list: any) => list?.forEach((entry: any) => {
-            if (!entry?.id) return;
-            let sName = `Skill ${entry.id}`;
-            const sm = details.skillMap?.[`s${entry.id}`] || details.skillMap?.[`${entry.id}`];
-            if (sm?.name) sName = sm.name;
-            const buffMeta = resolveBuffMetaById(details.buffMap, entry.id);
-            if (sName.startsWith('Skill ') && buffMeta?.name) sName = buffMeta.name;
-            const finalName = resolveConditionNameFromEntry(sName, entry.id, details.buffMap);
-            if (!finalName) return;
-            const buffName = buffMeta?.name;
-            const conditionIcon = conditionIconMap.get(finalName) || buffMeta?.icon;
-            const skillIcon = sm?.icon || buffMeta?.icon || conditionIcon;
-            if (sName.startsWith('Skill ') && (buffName || finalName)) {
-                sName = buffName || finalName;
-            }
-            const hits = Number(entry.hits ?? 0);
-            const dmg = Number(entry.totalDamage ?? 0);
+        if (!ps) continue;
+        for (const row of getEntityConditionDamageTakenRows(details, entity.id)) {
+            const finalName = row.conditionName;
+            // Native `catalogs.buffs` carries no icon field, so these come from
+            // DEFAULT_CONDITION_ICONS -- which is where every icon the EI path
+            // produced came from too. `conditionIconMap` returns an EMPTY map
+            // when built from no buffMap, so it must not be consulted here.
+            const conditionIcon = getDefaultConditionIcon(finalName);
+            // For condition damage the skill IS the buff, so the per-skill
+            // breakdown carries exactly one row, named after the condition.
+            const sName = finalName;
+            const hits = row.attemptHits;
+            const dmg = row.damage;
 
             const summ = acc.incomingCondiTotals[finalName] || { name: finalName, icon: conditionIcon, applications: 0, damage: 0 };
             summ.applications += Number.isFinite(hits) ? hits : 0;
@@ -1407,15 +1406,15 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             const pEntry = ps.incomingConditions[finalName] || { applications: 0, damage: 0, skills: {}, icon: conditionIcon };
             pEntry.applications += Number.isFinite(hits) ? hits : 0;
             pEntry.damage += Number.isFinite(dmg) ? dmg : 0;
-            const skEntry = pEntry.skills[sName] || { name: sName, hits: 0, damage: 0, icon: skillIcon };
+            const skEntry = pEntry.skills[sName] || { name: sName, hits: 0, damage: 0, icon: conditionIcon };
             skEntry.hits += Number.isFinite(hits) ? hits : 0;
             skEntry.damage += Number.isFinite(dmg) ? dmg : 0;
-            if (!skEntry.icon && skillIcon) skEntry.icon = skillIcon;
+            if (!skEntry.icon && conditionIcon) skEntry.icon = conditionIcon;
             pEntry.skills[sName] = skEntry;
             if (!pEntry.icon && conditionIcon) pEntry.icon = conditionIcon;
             ps.incomingConditions[finalName] = pEntry;
-        }));
-    });
+        }
+    }
 
     const mitigationSource = (details as any).player_damage_mitigation || (details as any).playerDamageMitigation;
     const hasMitigationSource = mitigationSource && typeof mitigationSource === 'object' && Object.keys(mitigationSource).length > 0;

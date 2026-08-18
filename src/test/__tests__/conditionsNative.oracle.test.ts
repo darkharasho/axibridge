@@ -16,7 +16,8 @@ import { parseFile, parseFileEi } from '@axiapps/axilog';
 import { FIXTURE_PATH } from '../axilogOracle';
 import { applyEiCompatShims } from '../../main/axilogParser';
 import { computeOutgoingConditions } from '@axiapps/bridge-metrics';
-import { computeOutgoingConditionsEi } from '../legacy/conditionsMetricsEi';
+import { computeOutgoingConditionsEi, resolveConditionNameFromEntry as resolveConditionNameFromEntryEi } from '../legacy/conditionsMetricsEi';
+import { getEntityConditionDamageTakenRows, squadEntities } from '@axiapps/bridge-metrics';
 
 /**
  * Every difference this unit introduces, with the side that is right and the
@@ -121,5 +122,100 @@ describe('unit 5b conditions oracle', () => {
             ([name, row]) => (row.applicationsFromBuffs ?? 0) > (ei.summary[name]?.applicationsFromBuffs ?? 0),
         );
         expect(higher.length).toBeGreaterThan(0);
+    });
+});
+
+/**
+ * The INCOMING half, migrated with the aggregators unit.
+ *
+ * EI decided whether a `totalDamageTaken` entry was a condition by tokenizing
+ * the skill name, and on this fixture that was not a marginal error: it booked
+ * 74000 points of `Burning Speed` STRIKE damage as incoming Burning CONDITION
+ * damage — 85% of the number it reported. Native decides membership from
+ * `catalogs.buffs[id].kind === 'condition'`, reading
+ * `blocks.damage.by_entity[].by_skill_taken`.
+ *
+ * `blocks.conditions` cannot serve this side: it holds enemy and npc entities
+ * only, so a condition landing on a squad member is not in it at all.
+ */
+describe('unit 5c oracle — incoming conditions', () => {
+    /** EI-only incoming credit, by condition, from the name-matched skills. */
+    const EI_INCOMING_MISATTRIBUTION: Record<string, { hits: number; damage: number; skill: string }> = {
+        Burning: { hits: 38, damage: 74000, skill: 'Burning Speed' },
+        // 228, not the 155 a first pass read off a deduplicated probe: two of
+        // the three hits landed for 73 and 82, and a third for another 73 that
+        // the dedup collapsed away.
+        Bleeding: { hits: 3, damage: 228, skill: 'Bleeding Edge' },
+    };
+
+    const buildEi = () => {
+        const ei: any = applyEiCompatShims(parseFileEi(FIXTURE_PATH, { everything: true }), FIXTURE_PATH);
+        const totals: Record<string, { applications: number; damage: number }> = {};
+        for (const p of ei.players ?? []) {
+            if (p.notInSquad) continue;
+            for (const list of p.totalDamageTaken ?? []) {
+                for (const entry of list ?? []) {
+                    if (!entry?.id) continue;
+                    let sName = `Skill ${entry.id}`;
+                    const sm = ei.skillMap?.[`s${entry.id}`] ?? ei.skillMap?.[`${entry.id}`];
+                    if (sm?.name) sName = sm.name;
+                    const bm = ei.buffMap?.[`b${entry.id}`];
+                    if (sName.startsWith('Skill ') && bm?.name) sName = bm.name;
+                    const finalName = resolveConditionNameFromEntryEi(sName, entry.id, ei.buffMap);
+                    if (!finalName) continue;
+                    const t = totals[finalName] ?? { applications: 0, damage: 0 };
+                    t.applications += Number(entry.hits ?? 0);
+                    t.damage += Number(entry.totalDamage ?? 0);
+                    totals[finalName] = t;
+                }
+            }
+        }
+        return totals;
+    };
+
+    const buildNative = () => {
+        const details: any = { native: parseFile(FIXTURE_PATH, { everything: true }) };
+        const totals: Record<string, { applications: number; damage: number }> = {};
+        for (const entity of squadEntities(details.native)) {
+            for (const row of getEntityConditionDamageTakenRows(details, entity.id)) {
+                const t = totals[row.conditionName] ?? { applications: 0, damage: 0 };
+                t.applications += row.attemptHits;
+                t.damage += row.damage;
+                totals[row.conditionName] = t;
+            }
+        }
+        return totals;
+    };
+
+    it('finds the same conditions on both sides', () => {
+        expect(Object.keys(buildNative()).sort()).toEqual(Object.keys(buildEi()).sort());
+    });
+
+    it('agrees once EI’s name-matched strike skills are subtracted', () => {
+        const ei = buildEi();
+        const native = buildNative();
+        for (const [name, eiTotals] of Object.entries(ei)) {
+            const bogus = EI_INCOMING_MISATTRIBUTION[name] ?? { hits: 0, damage: 0 };
+            expect(native[name]?.damage, `${name} damage`).toBe(eiTotals.damage - bogus.damage);
+            expect(native[name]?.applications, `${name} applications`).toBe(eiTotals.applications - bogus.hits);
+        }
+    });
+
+    it('pins each misattribution to its exact magnitude', () => {
+        const ei = buildEi();
+        const native = buildNative();
+        // Non-vacuity: the whole point is that these are large, so a run where
+        // they came out zero would prove nothing.
+        expect(ei.Burning.damage - native.Burning.damage).toBe(74000);
+        expect(native.Burning.damage).toBeLessThan(ei.Burning.damage * 0.2);
+        expect(ei.Bleeding.damage - native.Bleeding.damage).toBe(228);
+    });
+
+    it('leaves conditions with no same-named strike skill untouched', () => {
+        const ei = buildEi();
+        const native = buildNative();
+        for (const name of ['Confusion', 'Poison', 'Torment']) {
+            expect(native[name], name).toEqual(ei[name]);
+        }
     });
 });

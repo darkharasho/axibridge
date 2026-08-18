@@ -86,15 +86,33 @@ export const listConditionApplications = (details: any): NativeConditionApplicat
     return out;
 };
 
-export const getEntityConditionDamageRows = (
+/**
+ * The conditions applied TO `entityId`, per condition, from
+ * `blocks.damage.by_entity[id].by_skill_taken`.
+ *
+ * This does NOT come from `blocks.conditions`: that container holds enemy and
+ * npc entities only, so a condition landing on a squad member does not appear
+ * in it at all. Damage-taken is where the incoming side lives, and its rows
+ * carry the same shape as the outgoing `by_skill` rows.
+ *
+ * Membership is decided by `catalogs.buffs[id].kind === 'condition'` — the
+ * skill id IS the buff id for condition damage. The EI path this replaces
+ * decided membership by tokenizing the skill NAME, which counted any strike
+ * skill named after a condition (`Burning Speed`, `Chilled to the Bone!`) as
+ * incoming condition damage.
+ */
+export const getEntityConditionDamageTakenRows = (
     details: any,
     entityId: number,
 ): NativeConditionDamageRow[] => {
-    const bySkill = nativeOf(details)?.blocks?.damage?.by_entity?.[String(entityId)]?.by_skill ?? {};
+    const bySkill = nativeOf(details)?.blocks?.damage?.by_entity?.[String(entityId)]?.by_skill_taken ?? {};
+    return collectConditionRows(details, bySkill);
+};
+
+const collectConditionRows = (details: any, bySkill: any): NativeConditionDamageRow[] => {
     const conditionIds = new Set(listConditionIds(details));
     const out: NativeConditionDamageRow[] = [];
-
-    for (const [skillId, row] of Object.entries<any>(bySkill)) {
+    for (const [skillId, row] of Object.entries<any>(bySkill ?? {})) {
         const id = Number(skillId);
         if (!conditionIds.has(id)) continue;
         const conditionName = normalizeConditionLabel(getBuffMeta(details, id)?.name);
@@ -109,4 +127,12 @@ export const getEntityConditionDamageRows = (
         });
     }
     return out;
+};
+
+export const getEntityConditionDamageRows = (
+    details: any,
+    entityId: number,
+): NativeConditionDamageRow[] => {
+    const bySkill = nativeOf(details)?.blocks?.damage?.by_entity?.[String(entityId)]?.by_skill ?? {};
+    return collectConditionRows(details, bySkill);
 };
