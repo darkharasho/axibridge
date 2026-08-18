@@ -3,7 +3,7 @@ import { getProfessionIconPath } from '../../classIconUtils';
 import commanderTagRaw from '../../../../public/svg/commander_tag.svg?raw';
 const COMMANDER_TAG_URI = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(commanderTagRaw)))}`;
 
-import { hpAt, statusAt, activeBoons, activeSkillsAt } from './partyMemberHelpers';
+import { hpAt, statusAt, activeBoons, activeSkillsAt, memberSpec } from './partyMemberHelpers';
 import type { MemberStatus } from './partyMemberHelpers';
 import type { SquadMemberMovement } from '../../../shared/movementData';
 
@@ -38,9 +38,7 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
     const boons = useMemo(() => activeBoons(member, timeMs), [member, timeMs]);
     const skillIds = useMemo(() => activeSkillsAt(member, timeMs), [member, timeMs]);
 
-    const specLabel = member.eliteSpec
-        ? String(member.eliteSpec)
-        : member.profession;
+    const spec = memberSpec(member);
     const statusSuffix = status === 'down' ? ' · DOWN' : status === 'dead' ? ' · DEAD' : '';
     const statusColor = status === 'down' ? 'var(--status-warning)' : status === 'dead' ? 'var(--status-error)' : 'var(--text-secondary)';
 
@@ -60,11 +58,15 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                 <div style={{ position: 'relative', flexShrink: 0, width: 24, height: 24 }}>
                     <img
-                        src={getProfessionIconPath(member.profession) ?? undefined}
-                        alt={member.profession}
+                        src={getProfessionIconPath(spec) ?? undefined}
+                        alt={spec}
                         width={24}
                         height={24}
-                        style={{ borderRadius: '50%', display: 'block' }}
+                        // The class SVGs are not square (Elementalist is 46×76mm)
+                        // and only the HTML width/height attributes do not pin an
+                        // <img>'s box: a portrait icon renders ~39px tall and
+                        // spills out of this 24px slot onto the HP bar below.
+                        style={{ width: 24, height: 24, objectFit: 'contain', borderRadius: '50%', display: 'block' }}
                     />
                     {member.isCommander && (
                         <img
@@ -82,7 +84,7 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
                         {member.name}
                     </div>
                     <div style={{ fontSize: 9, color: statusColor }}>
-                        {specLabel}{statusSuffix}
+                        {spec}{statusSuffix}
                     </div>
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: hpColor(hp, status), flexShrink: 0, width: 32, textAlign: 'right' }}>

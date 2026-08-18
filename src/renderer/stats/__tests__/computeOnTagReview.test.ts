@@ -49,6 +49,7 @@ const makeLog = (overrides: any = {}) => {
                     entities: entities.map((e: any) => ({
                         id: e.id, account: e.account,
                         profession: e.profession ?? 'Guardian', role: e.role ?? 'squad',
+                        ...(e.elite_spec ? { elite_spec: e.elite_spec } : {}),
                         ...(e.commander ? { commander: { guid: 'g', segments: [[0, 120_000]], variant: 'blue' } } : {}),
                     })),
                     blocks: {
@@ -364,5 +365,31 @@ describe('computeOnTagReview', () => {
             }),
         ]);
         expect(result.rows.map((r: any) => r.account)).toEqual(['Two.2222', 'One.3333', 'Cmdr.5678', 'Zero.1111']);
+    });
+});
+
+// Native splits the roster fields: `profession` is the BASE class and the spec
+// lives in `elite_spec`. EI's `players[].profession` is the spec name, which is
+// what `renderProfessionIcon`/`PROFESSION_COLORS` are keyed on — so reading
+// `entity.profession` here put an Elementalist icon on every Tempest row of the
+// On Tag Review table.
+describe('profession labelling', () => {
+    const review = (elite_spec?: string) => computeOnTagReview([
+        makeLog({
+            entities: [
+                { id: 1, account: 'Cmdr.0000', commander: true, positions: [[0, 0], [0, 0]] },
+                { id: 2, account: 'Player.1234', profession: 'Elementalist', elite_spec, positions: [[0, 0], [0, 0]] },
+            ],
+        }),
+    ]);
+
+    it('labels the row with the elite spec, not the base class', () => {
+        const row = review('Tempest').rows.find(r => r.account === 'Player.1234');
+        expect(row?.profession).toBe('Tempest');
+    });
+
+    it('falls back to the base class for an unspecced core character', () => {
+        const row = review().rows.find(r => r.account === 'Player.1234');
+        expect(row?.profession).toBe('Elementalist');
     });
 });

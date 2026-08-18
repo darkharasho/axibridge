@@ -7,7 +7,7 @@
  */
 import { buildNativeMovement, positionAt, positionAtOrBefore } from '../../shared/movementData';
 import { getDistanceScalars } from '@axiapps/bridge-metrics/nativePositioning';
-import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
+import { getEntityProfession, squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 
 export const ON_TAG_RANGE = 600;
 export const RUN_BACK_RANGE = 5000;
@@ -89,7 +89,11 @@ export const ingestLogOnTagReview = (log: any, fightIndex: number): OnTagReviewC
 
     for (const entity of squad) {
         const account = entity?.account || 'Unknown';
-        const profession = entity?.profession || 'Unknown';
+        // EI's `profession` is native's `elite_spec`, which is what the icon
+        // and colour lookups are keyed on. `getEntityProfession` applies that;
+        // reading `entity.profession` here yields the BASE class, so the row
+        // rendered an Elementalist icon for a Tempest.
+        const profession = getEntityProfession(entity) || 'Unknown';
         const isCommanderPlayer = entity.id === commander.id;
 
         const track = movement.tracks.get(entity.id) ?? null;

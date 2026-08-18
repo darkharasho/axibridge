@@ -5,6 +5,7 @@ import { getTileLayers, hasTileData } from '../../../shared/wvwTiles';
 import { WVW_LANDMARKS } from '../../../shared/wvwLandmarks';
 import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { getProfessionIconPath } from '../../classIconUtils';
+import { memberSpec } from './partyMemberHelpers';
 import commanderTagRaw from '../../../../public/svg/commander_tag.svg?raw';
 import { recolorCommanderTag } from '../../../shared/squadMarkers';
 const svgDataUri = (svg: string) =>
@@ -475,7 +476,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                                     />
                                                 ) : member.isEnemy ? (
                                                     (() => {
-                                                        const iconSrc = getProfessionIconPath(member.profession);
+                                                        const iconSrc = getProfessionIconPath(memberSpec(member));
                                                         const er = iconR * 0.75; // enemies 25% smaller than allies
                                                         return iconSrc
                                                             ? <image href={iconSrc} x={-er} y={-er} width={er * 2} height={er * 2} filter="url(#enemy-tint)" />
@@ -483,7 +484,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                                     })()
                                                 ) : (
                                                     (() => {
-                                                        const iconSrc = getProfessionIconPath(member.profession);
+                                                        const iconSrc = getProfessionIconPath(memberSpec(member));
                                                         return iconSrc
                                                             ? <image href={iconSrc} x={-iconR} y={-iconR} width={iconR * 2} height={iconR * 2} />
                                                             : <circle cx={0} cy={0} r={iconR} fill="#60a5fa" opacity={0.9} />;

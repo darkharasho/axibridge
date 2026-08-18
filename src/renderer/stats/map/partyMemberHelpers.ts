@@ -45,3 +45,17 @@ export function activeSkillsAt(member: SquadMemberMovement, timeMs: number): num
         .filter(c => c.time >= timeMs && c.time < timeMs + 1000)
         .map(c => c.id);
 }
+
+/**
+ * The name to look a profession icon/label up by.
+ *
+ * Native's `profession` is the BASE class ("Elementalist"); the elite spec
+ * lives in its own field. EI's `players[].profession` is the spec name, which
+ * is what `getProfessionIconPath` and `PROFESSION_COLORS` are keyed on (they
+ * fall back to the base themselves). Passing the raw native `profession` gets
+ * you the base-class icon for every specced player.
+ */
+export function memberSpec(member: SquadMemberMovement): string {
+    const spec = member.eliteSpec ? String(member.eliteSpec).trim() : '';
+    return spec || member.profession;
+}

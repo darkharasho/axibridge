@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hpAt, statusAt, activeBoons, activeSkillsAt } from '../partyMemberHelpers';
+import { hpAt, statusAt, activeBoons, activeSkillsAt, memberSpec } from '../partyMemberHelpers';
 import type { SquadMemberMovement } from '../../../../shared/movementData';
 
 const base: SquadMemberMovement = {
@@ -99,5 +99,25 @@ describe('activeSkillsAt', () => {
     it('returns empty array when no casts in window', () => {
         const m = { ...base, skillCasts: [{ id: 10, time: 5000, duration: 100 }] };
         expect(activeSkillsAt(m, 1000)).toEqual([]);
+    });
+});
+
+// The replay view-model keeps native's split roster fields: `profession` is the BASE
+// class ("Elementalist") and the spec lives in `eliteSpec`. EI's `players[].profession`
+// is the spec name, which is what `getProfessionIconPath`/`PROFESSION_COLORS` key on —
+// so feeding the raw native `profession` drew the base-class icon for every specced
+// player on the map and in the party panel.
+describe('memberSpec', () => {
+    it('prefers the elite spec over the base profession', () => {
+        expect(memberSpec({ ...base, profession: 'Elementalist', eliteSpec: 'Tempest' })).toBe('Tempest');
+    });
+    it('falls back to the base profession for an unspecced core character', () => {
+        expect(memberSpec({ ...base, profession: 'Elementalist', eliteSpec: '' })).toBe('Elementalist');
+    });
+    it('treats a whitespace-only spec as absent', () => {
+        expect(memberSpec({ ...base, profession: 'Guardian', eliteSpec: '   ' })).toBe('Guardian');
+    });
+    it('stringifies a numeric spec id rather than dropping it', () => {
+        expect(memberSpec({ ...base, profession: 'Guardian', eliteSpec: 62 })).toBe('62');
     });
 });

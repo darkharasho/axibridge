@@ -12,6 +12,7 @@ import { resolveFightTimestamp } from './timestampUtils';
 import { PlayerRoleClassification } from './roles';
 import { normalizeAccountName, partitionSquadPlayers } from './playerIdentity';
 import { getEntityProfession, squadEntities } from './nativeRoster';
+import { getDistanceScalars, NO_DISTANCE } from './nativePositioning';
 import { getEntityConditionDamageTakenRows } from './nativeConditions';
 
 export interface PlayerStats {
@@ -601,11 +602,47 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         });
     }
 
+    /**
+     * `distToCom`/`stackDist` keyed by normalized account, from the native
+     * replay block.
+     *
+     * axilog's ei-json emits NEITHER scalar in `statsAll` — verified against
+     * `wvw-small.anon.zevtc` on axilog 0.3.12 — so on a native parse every EI
+     * branch below falls through to the combat-replay reconstruction, which
+     * only ever assigns a distance inside its death/down loops. Players who
+     * never went down scored 0, which is why Closest to Tag read 0 for the
+     * whole squad. Real EI parses still populate `statsAll` and are unaffected:
+     * this map is only consulted once those branches miss.
+     */
+    const nativeDistanceByAccount = (() => {
+        const out = new Map<string, { distToCom: number | null; stackDist: number | null }>();
+        const scalars = getDistanceScalars(details);
+        if (scalars.size === 0) return out;
+        for (const entity of squadEntities(details?.native)) {
+            const scalar = scalars.get(entity.id);
+            if (!scalar) continue;
+            const account = normalizeAccountName(String(entity.account || ''));
+            if (!account || out.has(account)) continue;
+            out.set(account, scalar);
+        }
+        return out;
+    })();
+
+    const usableDistance = (value: number | null | undefined): number | null =>
+        typeof value === 'number' && Number.isFinite(value) && value !== NO_DISTANCE && value >= 0
+            ? value
+            : null;
+
     const getDistanceToTag = (p: any) => {
         const stats = p.statsAll?.[0];
         const commanderDist = resolveCommanderDistance(stats?.distToCom);
         if (commanderDist !== null) return Math.round(commanderDist);
         if (stats?.stackDist !== undefined) return Math.round(Number(stats.stackDist)) || 0;
+
+        const native = nativeDistanceByAccount.get(normalizeAccountName(String(p?.account || '')));
+        const nativeDist = usableDistance(native?.distToCom) ?? usableDistance(native?.stackDist);
+        if (nativeDist !== null) return Math.round(nativeDist);
+
         if (p.hasCommanderTag) return 0;
 
         const combatData = p.combatReplayData;

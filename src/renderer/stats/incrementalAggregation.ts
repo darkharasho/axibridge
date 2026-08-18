@@ -761,10 +761,38 @@ export class IncrementalAggregator {
 
         // Store only the fields buildBoonTables actually reads — the full
         // details object is far too large to keep for every log (OOM at ~89 logs).
+        //
+        // Unit 5a moved `buildBoonTables` onto native: it rosters from
+        // `squadEntities(details.native)` and reads generation out of
+        // `native.blocks.boons`, so the EI `selfBuffs`/`groupBuffs`/`squadBuffs`
+        // arrays this projection used to carry are no longer read. The
+        // projection was not updated with the reader, so every log reached
+        // `buildBoonTables` with `native` undefined — an empty roster, zero rows
+        // for every boon, and every boon table filtered out. That is the "0.0%
+        // uptime / No data available" on every boon card.
+        //
+        // The native slices are REFERENCED, never copied, so this pins only the
+        // sub-objects the boon math needs. `blocks.replay` is narrowed to
+        // `by_entity` on purpose: its sibling `tracks` is the position payload
+        // that dominates memory, and only `active_ms` is wanted here.
+        const nativeForBoons = details?.native
+            ? {
+                encounter: details.native.encounter,
+                entities: details.native.entities,
+                catalogs: { buffs: details.native.catalogs?.buffs },
+                blocks: {
+                    boons: details.native.blocks?.boons,
+                    replay: details.native.blocks?.replay
+                        ? { by_entity: details.native.blocks.replay.by_entity }
+                        : undefined,
+                },
+            }
+            : undefined;
         this.boonTableLogs.push({
             details: details ? {
                 durationMS: details.durationMS,
                 buffMap: details.buffMap,
+                native: nativeForBoons,
                 players: (details.players || []).map((p: any) => ({
                     account: p.account,
                     name: p.name,

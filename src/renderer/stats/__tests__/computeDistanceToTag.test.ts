@@ -374,3 +374,29 @@ describe('computeDistanceToTag (end-to-end)', () => {
         expect(out.rows[0].avg).toBe(250);
     });
 });
+
+// Native splits the roster fields: `profession` is the BASE class and the spec
+// lives in `elite_spec`. EI's `players[].profession` is the spec name, which is
+// what `renderProfessionIcon`/`PROFESSION_COLORS` are keyed on — so reading
+// `entity.profession` here put an Elementalist icon on every Tempest row of the
+// Squad Distance to Tag table.
+describe('profession labelling', () => {
+    it('labels the row with the elite spec, not the base class', () => {
+        const { log } = makeLog({
+            noTracks: true,
+            entities: [{ id: 1, account: 'A.1', profession: 'Elementalist', elite_spec: 'Tempest', stack_dist: 200 }],
+        });
+        log.details.native.entities[0].elite_spec = 'Tempest';
+        const out = ingestLogDistanceToTag(log, 0);
+        expect(out[0].profession).toBe('Tempest');
+    });
+
+    it('falls back to the base class for an unspecced core character', () => {
+        const { log } = makeLog({
+            noTracks: true,
+            entities: [{ id: 1, account: 'A.1', profession: 'Elementalist', stack_dist: 200 }],
+        });
+        const out = ingestLogDistanceToTag(log, 0);
+        expect(out[0].profession).toBe('Elementalist');
+    });
+});
