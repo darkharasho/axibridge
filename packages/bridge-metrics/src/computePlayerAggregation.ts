@@ -11,6 +11,7 @@ import { PROFESSION_COLORS } from './professionUtils';
 import { resolveFightTimestamp } from './timestampUtils';
 import { PlayerRoleClassification } from './roles';
 import { partitionSquadPlayers } from './playerIdentity';
+import { getEntityProfession } from './nativeRoster';
 
 export interface PlayerStats {
     name: string;
@@ -1326,12 +1327,16 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
     });
 
     // Conditions Logic
+    // The key must be spelled exactly as `acc.playerStats` is keyed, so the
+    // native entity is mapped onto the fields `getPlayerIdentity` reads:
+    // EI's `name` is native's `character`, and EI's `profession` is native's
+    // `elite_spec` (see `getEntityProfession`).
     const conditionResult = computeOutgoingConditions({
-        players: players as any,
-        targets: targets as any,
-        skillMap: details.skillMap,
-        buffMap: details.buffMap,
-        getPlayerKey: (pl: any) => getPlayerIdentity(pl, splitPlayersByClass).key
+        details,
+        getPlayerKey: (e: any) => getPlayerIdentity(
+            { account: e?.account, name: e?.character, profession: getEntityProfession(e) },
+            splitPlayersByClass
+        ).key
     });
     const conditionIconMap = buildConditionIconMap(details.buffMap);
     Object.entries(conditionResult.playerConditions).forEach(([k, totals]) => {

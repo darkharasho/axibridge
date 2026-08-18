@@ -309,16 +309,17 @@ export const buildManifestEntry = (details: any, filePath: string, index: number
  */
 export const attachConditionMetrics = (details: any): any => {
     if (!details || details.conditionMetrics) return details;
-    const players = Array.isArray(details.players) ? details.players : [];
-    const targets = Array.isArray(details.targets) ? details.targets : [];
-    if (!players.length || !targets.length) return details;
+    // Conditions come from `blocks.conditions`; a log parsed before the native
+    // migration has no container and no condition metrics to attach. The
+    // coverage banner and the whole-history re-parse in Settings are how those
+    // logs get one — do not try to synthesize it from the EI shape here.
+    //
+    // The old guard tested `details.targets.length`, which a native container
+    // does not have: leaving it in place made this a silent no-op on every
+    // migrated log.
+    if (!details.native) return details;
     try {
-        details.conditionMetrics = computeOutgoingConditions({
-            players,
-            targets,
-            skillMap: details.skillMap,
-            buffMap: details.buffMap
-        });
+        details.conditionMetrics = computeOutgoingConditions({ details });
     } catch (err: any) {
         console.warn('[Main] Condition metrics failed:', err?.message || err);
     }

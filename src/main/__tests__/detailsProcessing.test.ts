@@ -9,7 +9,36 @@ import {
     hasUsableFightDetails,
     isDetailsPermalinkNotFound,
     extractSquadGuilds,
+    attachConditionMetrics,
 } from '../detailsProcessing';
+import * as path from 'path';
+import { parseFile } from '@axiapps/axilog';
+
+const FIXTURE = path.resolve(__dirname, '../../../test-fixtures/axilog/wvw-small.anon.zevtc');
+
+describe('attachConditionMetrics', () => {
+    it('attaches metrics from a native container with no EI targets array', () => {
+        const details: any = { native: parseFile(FIXTURE, { everything: true }) };
+        attachConditionMetrics(details);
+        expect(Object.keys(details.conditionMetrics.summary).length).toBeGreaterThan(0);
+    });
+
+    // Conditions live only in `blocks.conditions`. A pre-migration log has no
+    // container, and half-filling the payload from the EI shape would leave a
+    // result that looks computed but is not.
+    it('leaves an EI-only payload alone rather than half-filling it', () => {
+        const details: any = { players: [{ account: 'a' }], targets: [{ buffs: [] }] };
+        attachConditionMetrics(details);
+        expect(details.conditionMetrics).toBeUndefined();
+    });
+
+    it('does not recompute when metrics are already attached', () => {
+        const sentinel = { summary: {}, playerConditions: {}, meta: {} };
+        const details: any = { native: {}, conditionMetrics: sentinel };
+        attachConditionMetrics(details);
+        expect(details.conditionMetrics).toBe(sentinel);
+    });
+});
 
 describe('extractSquadGuilds', () => {
     const ZERO = '00000000-0000-0000-0000-000000000000';
