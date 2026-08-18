@@ -4,7 +4,10 @@ import { SquadHealthStrip } from '../SquadHealthStrip';
 import type { ReplayFightPayload } from '../replayTypes';
 import type { SquadMemberMovement } from '../../../../shared/movementData';
 
+/** Auto-incrementing so no two fixture members ever share a React key. */
+let nextMemberId = 1;
 const mkMember = (o: Partial<SquadMemberMovement>): SquadMemberMovement => ({
+    id: nextMemberId++,
     name: 'A', account: 'A', profession: 'Guardian', eliteSpec: '', group: 1,
     isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
     firstPoll: 0, positions: [[0, 0]], downRanges: [], deadRanges: [], ...o,

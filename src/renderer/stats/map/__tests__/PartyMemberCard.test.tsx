@@ -3,7 +3,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { PartyMemberCard } from '../PartyMemberCard';
 import type { SquadMemberMovement } from '../../../../shared/movementData';
 
+/** Auto-incrementing so no two fixture members ever share a React key. */
+let nextMemberId = 1;
 const mkMember = (o: Partial<SquadMemberMovement> = {}): SquadMemberMovement => ({
+    id: nextMemberId++,
     name: 'TestPlayer', account: 'Test.1234', profession: 'Guardian', eliteSpec: '',
     group: 1, isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
     firstPoll: 0, positions: [], downRanges: [], deadRanges: [], ...o,

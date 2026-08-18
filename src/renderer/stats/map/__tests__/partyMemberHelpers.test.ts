@@ -3,7 +3,7 @@ import { hpAt, statusAt, activeBoons, activeSkillsAt, memberSpec } from '../part
 import type { SquadMemberMovement } from '../../../../shared/movementData';
 
 const base: SquadMemberMovement = {
-    name: 'A', account: 'A.1', profession: 'Guardian', eliteSpec: '', group: 1,
+    id: 1, name: 'A', account: 'A.1', profession: 'Guardian', eliteSpec: '', group: 1,
     isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
     firstPoll: 0, positions: [], downRanges: [], deadRanges: [],
 };

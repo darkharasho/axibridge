@@ -4,7 +4,10 @@ import { useHeatmapData, __clearHeatmapCache } from '../useHeatmapData';
 import type { ReplayFightPayload } from '../../replayTypes';
 import type { SquadMemberMovement } from '../../../../../shared/movementData';
 
+/** Auto-incrementing so no two fixture members ever share a React key. */
+let nextMemberId = 1;
 const mkMember = (over: Partial<SquadMemberMovement>): SquadMemberMovement => ({
+    id: nextMemberId++,
     name: 'A', account: 'A', profession: '', eliteSpec: '', group: 1,
     isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
     firstPoll: 0, positions: [], downRanges: [], deadRanges: [],

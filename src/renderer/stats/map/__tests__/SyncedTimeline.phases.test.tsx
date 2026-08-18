@@ -6,7 +6,10 @@ import { __clearSquadDerivedCache } from '../hooks/useSquadDerived';
 import type { ReplayFightPayload } from '../replayTypes';
 import type { SquadMemberMovement } from '../../../../shared/movementData';
 
+/** Auto-incrementing so no two fixture members ever share a React key. */
+let nextMemberId = 1;
 const mkMember = (o: Partial<SquadMemberMovement>): SquadMemberMovement => ({
+    id: nextMemberId++,
     name: 'A', account: 'A', profession: 'Guardian', eliteSpec: '', group: 1,
     isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
     firstPoll: 0, positions: Array.from({ length: 11 }, (_, i) => [100 + i * 5, 100] as [number, number]),

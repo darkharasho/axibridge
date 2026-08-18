@@ -36,8 +36,9 @@ describe('pickDefaultFightId', () => {
 });
 
 describe('findClosestMember', () => {
+    let nextId = 1;
     const m = (name: string, x: number, y: number): SquadMemberMovement => ({
-        name, account: name, profession: '', eliteSpec: '', group: 1,
+        id: nextId++, name, account: name, profession: '', eliteSpec: '', group: 1,
         isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
         firstPoll: 0, positions: [[x, y]], downRanges: [], deadRanges: [],
     });
@@ -59,7 +60,7 @@ describe('findClosestMember', () => {
 
     it('ignores members with no positions', () => {
         const ghost: SquadMemberMovement = {
-            name: 'Ghost', account: 'g', profession: '', eliteSpec: '', group: 1,
+            id: 99, name: 'Ghost', account: 'g', profession: '', eliteSpec: '', group: 1,
             isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
             firstPoll: 0, positions: [], downRanges: [], deadRanges: [],
         };

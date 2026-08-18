@@ -103,6 +103,33 @@ describe('buildMovementData', () => {
         expect(enemy.eliteSpec).toBe('Dragonhunter');
     });
 
+    it('gives same-named, account-less enemies distinct ids', () => {
+        // The replay map keys its SVG children on `id`. Enemies carry no
+        // account and their names are not distinct, so the old `name_account`
+        // key collided — and React's answer to a duplicate key is to duplicate
+        // or OMIT the child, i.e. an enemy marker silently stops drawing.
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'Ally.0001', character: 'Ally', pixels: [[0, 0]] },
+            { id: 2, role: 'enemy_player', name: 'Diamond Legend', pixels: [[500, 500]] },
+            { id: 3, role: 'enemy_player', name: 'Diamond Legend', pixels: [[520, 520]] },
+        ]);
+
+        const enemies = buildMovementData(details, { trackedBuffIds: trackedBuffs })!.members
+            .filter(m => m.isEnemy);
+
+        expect(enemies).toHaveLength(2);
+        expect(enemies.map(m => m.name)).toEqual(['Diamond Legend', 'Diamond Legend']);
+        expect(enemies.map(m => m.account)).toEqual(['', '']);
+        expect(new Set(enemies.map(m => m.id)).size).toBe(2);
+    });
+
+    it('carries the native entity id onto allies too, for the same keying', () => {
+        const details = buildNativeLog([
+            { id: 7, role: 'squad', account: 'Ally.0001', character: 'Ally', pixels: [[0, 0]] },
+        ]);
+        expect(buildMovementData(details, { trackedBuffIds: trackedBuffs })!.members[0].id).toBe(7);
+    });
+
     it('carries down and dead intervals from the native track', () => {
         const details = buildNativeLog([
             {

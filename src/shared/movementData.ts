@@ -91,6 +91,17 @@ export const positionAtOrBefore = (
 // ─── The replay map view-model ────────────────────────────────────────────────
 
 export interface SquadMemberMovement {
+    /**
+     * The native entity id — the only field on a member that is unique.
+     *
+     * Enemies carry no account and their character names are not distinct, so
+     * `name`/`account` do not identify a member. Using them as a React key
+     * collides between two same-named enemies, and React's documented response
+     * to a duplicate key is to duplicate or OMIT the child: an enemy marker
+     * silently fails to draw, or two enemies share one marker's identity across
+     * frames and smear their trails together. Key replay renders on this.
+     */
+    id: number;
     name: string;
     account: string;
     profession: string;
@@ -427,6 +438,7 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
         }
 
         members.push({
+            id: e.id,
             name: character,
             account: e.account ?? '',
             profession: e.profession ?? '',
@@ -457,6 +469,7 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
         const dense = denseTrack(track, pollingRate, arena, canvas, roundPos);
         if (!dense) continue;
         members.push({
+            id: e.id,
             name: (e as any).name ?? e.character ?? '',
             account: '',
             profession: e.profession ?? '',

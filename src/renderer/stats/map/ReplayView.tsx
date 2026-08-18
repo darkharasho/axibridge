@@ -446,7 +446,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
                                         return (
                                             <g
-                                                key={`${member.name}_${member.account}`}
+                                                key={member.id}
                                                 opacity={baseOpacity}
                                                 onMouseEnter={(e) => {
                                                     const rect = mapContainerRef.current?.getBoundingClientRect();
