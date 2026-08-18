@@ -1,3 +1,5 @@
+import { normalizeAccountName } from './playerIdentity';
+
 /**
  * Report-level aggregation over PUBLISHED report.json payloads ({ meta, stats }).
  * Defensive by design: published schemas vary across AxiBridge versions, so every
@@ -63,7 +65,7 @@ export const extractRunSummary = (report: unknown): RunSummary => {
 
     const byAccount = new Map<string, RunPlayerSummary>();
     const ensure = (row: any): RunPlayerSummary | null => {
-        const account = String(row?.account ?? '').trim();
+        const account = normalizeAccountName(String(row?.account ?? '').trim());
         if (!account || account === 'Unknown') return null;
         let entry = byAccount.get(account);
         if (!entry) {

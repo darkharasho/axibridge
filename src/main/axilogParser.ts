@@ -18,6 +18,7 @@
 
 import type { EiParserSettings } from './eiParser';
 import { buildNativeCarrySet } from './nativeCarrySet';
+import { normalizeAccountName } from '@axiapps/bridge-metrics/playerIdentity';
 
 // ─── Backend selection ────────────────────────────────────────────────────────
 
@@ -180,6 +181,29 @@ export const applyEiCompatShims = (details: any, _logPath: string): any => {
     for (const player of players) {
         if (player && typeof player === 'object' && player.name === undefined) {
             player.name = player.character_name;
+        }
+    }
+
+    // arcdps writes accounts into the agent name buffer as `:Name.1234`, and
+    // axilog carried that colon through until 0.3.7 — so accounts rendered as
+    // `:Name.1234` everywhere (reported from a Windows install). Stripping it
+    // here, on the details object itself, fixes every one of the ~30 sites that
+    // read `account` straight off an entity or player for display, rather than
+    // needing each of them to normalize.
+    //
+    // This only reaches logs parsed from now on. `normalizeAccountName` is also
+    // applied at the identity helpers in `@axiapps/bridge-metrics`, so a log
+    // already persisted with the colon still keys and labels onto the same
+    // person; re-parsing history rewrites the stored spelling as well.
+    for (const player of players) {
+        if (typeof player?.account === 'string') {
+            player.account = normalizeAccountName(player.account);
+        }
+    }
+    const nativeEntities: any[] = Array.isArray(details.native?.entities) ? details.native.entities : [];
+    for (const entity of nativeEntities) {
+        if (typeof entity?.account === 'string') {
+            entity.account = normalizeAccountName(entity.account);
         }
     }
 

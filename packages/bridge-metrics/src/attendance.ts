@@ -2,6 +2,7 @@
 // First-class per-raid attendance artifact (reports/attendance.json), published
 // alongside the rollup. Mirrors rollup.ts's builder/parser pattern. Pure — no
 // Electron/fs — so it stays unit-testable; the caller supplies generatedAt.
+import { normalizeAccountName } from './playerIdentity';
 import type { RollupReportPayload } from './rollup';
 
 export interface AttendanceAttendee {
@@ -33,7 +34,7 @@ export const buildAttendanceRaid = (payload: RollupReportPayload): AttendanceRai
     const attendees: AttendanceAttendee[] = [];
     const seen = new Set<string>();
     for (const r of rows) {
-        const account = String(r?.account || '').trim();
+        const account = normalizeAccountName(String(r?.account || '').trim());
         if (!account || seen.has(account)) continue;
         seen.add(account);
         attendees.push({

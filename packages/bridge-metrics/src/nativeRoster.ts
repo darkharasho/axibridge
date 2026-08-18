@@ -12,6 +12,8 @@
  * addrs across relogs, so one entity IS one person.
  */
 
+import { normalizeAccountName } from './playerIdentity';
+
 export type EntityRole = 'squad' | 'friendly_player' | 'enemy_player' | 'npc';
 
 /** The subset of a native entity this module reads. */
@@ -68,7 +70,8 @@ export const combatParticipantEnemies = (report: NativeReportLike): NativeEntity
  * for the duration of the migration.
  */
 export const getEntityAccountKey = (entity: NativeEntityLike | null | undefined): string | null => {
-    const account = typeof entity?.account === 'string' ? entity.account.trim() : '';
+    const raw = typeof entity?.account === 'string' ? entity.account.trim() : '';
+    const account = normalizeAccountName(raw);
     if (account && account !== 'Unknown') return `acct:${account}`;
     const character = typeof entity?.character === 'string' ? entity.character.trim() : '';
     if (character && character !== 'Unknown') return `name:${character}`;

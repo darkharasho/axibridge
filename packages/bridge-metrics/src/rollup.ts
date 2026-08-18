@@ -1,3 +1,5 @@
+import { normalizeAccountName } from './playerIdentity';
+
 export interface RollupProfessionUsage {
     profession: string;
     runs: number;
@@ -355,7 +357,7 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
                 ? report.stats.commanderStats.rows
                 : [];
             commanderRows.forEach((row: any) => {
-                const account = String(row?.account || row?.key || '').trim();
+                const account = normalizeAccountName(String(row?.account || row?.key || '').trim());
                 if (!account) return;
                 const existing = latestCommanderRowsByAccount.get(account);
                 if (!existing) {
@@ -386,7 +388,7 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
         includedSourceReports += group.length;
 
         attendanceRows.forEach((row) => {
-            const account = String(row?.account || '').trim();
+            const account = normalizeAccountName(String(row?.account || '').trim());
             if (!account || account === 'Unknown') return;
             const existing = players.get(account) || {
                 account,
@@ -427,7 +429,7 @@ export const buildRollupData = (reports: RollupReportPayload[]): RollupData => {
         });
 
         latestCommanderRowsByAccount.forEach(({ row, timestamp }) => {
-            const account = String(row?.account || row?.key || '').trim();
+            const account = normalizeAccountName(String(row?.account || row?.key || '').trim());
             if (!account) return;
             const existing = commanders.get(account) || {
                 account,

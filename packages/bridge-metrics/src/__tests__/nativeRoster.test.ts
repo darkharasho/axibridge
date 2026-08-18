@@ -60,7 +60,14 @@ describe('nativeRoster filters', () => {
 
 describe('getEntityAccountKey', () => {
     it('prefers the account', () => {
-        expect(getEntityAccountKey(entity({ account: ':A.1', character: 'Char' }))).toBe('acct::A.1');
+        expect(getEntityAccountKey(entity({ account: 'A.1', character: 'Char' }))).toBe('acct:A.1');
+    });
+
+    // arcdps spells accounts `:A.1`; axilog carried that colon through until
+    // 0.3.7. Both spellings must key onto one person, or a user with logs from
+    // either side of that fix sees every player split in two.
+    it('folds the pre-0.3.7 arcdps colon spelling onto the same key', () => {
+        expect(getEntityAccountKey(entity({ account: ':A.1', character: 'Char' }))).toBe('acct:A.1');
     });
 
     it('falls back to the character name', () => {

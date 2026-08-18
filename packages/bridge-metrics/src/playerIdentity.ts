@@ -17,11 +17,36 @@ export interface SquadPartition {
 }
 
 /**
+ * Strips the leading `:` arcdps writes in front of every account name.
+ *
+ * axilog carried that colon straight through until 0.3.7, so every log parsed
+ * by the native engine before then has `:Name.1234` baked into its persisted
+ * details, and every web report published from one shows the colon on screen.
+ * Fixing it in the parser only fixes new parses.
+ *
+ * That matters beyond cosmetics: the rollup keys cross-report player identity
+ * on the account string, so a user with reports from both eras would see every
+ * player split into two people — `:Name.1234` and `Name.1234` — with their
+ * history divided between them. Normalizing at the identity helpers folds the
+ * two spellings back onto one person.
+ *
+ * Only a leading colon is removed, and only when something survives it. An
+ * account that is empty (or a degenerate lone colon) means "unknown" to
+ * callers here, and must not be turned into the other.
+ */
+export const normalizeAccountName = (account: string): string => {
+    if (!account.startsWith(':')) return account;
+    const rest = account.slice(1);
+    return rest ? rest : account;
+};
+
+/**
  * Stable identity key for a player entry: account when known, else character
  * name, else null (the entry cannot be matched to any other entry).
  */
 export const getPlayerAccountKey = (player: any): string | null => {
-    const account = typeof player?.account === 'string' ? player.account.trim() : '';
+    const raw = typeof player?.account === 'string' ? player.account.trim() : '';
+    const account = normalizeAccountName(raw);
     if (account && account !== 'Unknown') return `acct:${account}`;
     const name = typeof player?.name === 'string' ? player.name.trim() : '';
     if (name && name !== 'Unknown') return `name:${name}`;

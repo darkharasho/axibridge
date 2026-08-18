@@ -1,6 +1,7 @@
 import { describe, it } from 'vitest';
 import {
     partitionSquadPlayers,
+    getPlayerAccountKey,
     squadEntities,
     friendlyPlayerEntities,
     enemyPlayerEntities,
@@ -68,9 +69,14 @@ describe('unit 1 oracle — roster & identity', () => {
 
     it('agrees on identity keys', () => {
         const { ei, native } = oracleFixture();
+        // Through the real EI-side helper, not a hand-rolled `acct:` template.
+        // The template silently hardcoded the key spelling, so it stopped
+        // agreeing with the native side the moment `getPlayerAccountKey` began
+        // folding the pre-axilog-0.3.7 `:Name.1234` account spelling — which is
+        // exactly the kind of production drift this oracle exists to catch.
         const eiKeys = ei.players
             .filter((p: any) => !p.notInSquad)
-            .map((p: any) => `acct:${p.account}`)
+            .map((p: any) => getPlayerAccountKey(p)!)
             .sort();
         const nativeKeys = squadEntities(native).map((e) => getEntityAccountKey(e)!).sort();
         expectEqualOrAllowlisted('identity keys', eiKeys, nativeKeys, ALLOWLIST);

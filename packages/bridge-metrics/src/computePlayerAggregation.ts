@@ -10,7 +10,7 @@ import { PlayerSkillDamageEntry, PlayerHealingSkillEntry } from './aggregationTy
 import { PROFESSION_COLORS } from './professionUtils';
 import { resolveFightTimestamp } from './timestampUtils';
 import { PlayerRoleClassification } from './roles';
-import { partitionSquadPlayers } from './playerIdentity';
+import { normalizeAccountName, partitionSquadPlayers } from './playerIdentity';
 import { getEntityProfession } from './nativeRoster';
 
 export interface PlayerStats {
@@ -325,7 +325,11 @@ const updateCumulativeCounts = (map: Map<string, DamageMitigationTotals>, key: s
 };
 
 const getPlayerIdentity = (player: any, splitPlayersByClass: boolean) => {
-    const baseAccount = (player?.account && player.account !== 'Unknown') ? player.account : (player?.name || 'Unknown');
+    // `normalizeAccountName` folds the pre-axilog-0.3.7 `:Name.1234` spelling
+    // onto `Name.1234`, so a persisted log parsed before that fix keys and
+    // labels the same person as a fresh one.
+    const rawAccount = (player?.account && player.account !== 'Unknown') ? player.account : (player?.name || 'Unknown');
+    const baseAccount = normalizeAccountName(String(rawAccount));
     const profession = resolveProfessionLabel(player?.profession || 'Unknown');
     const isSplit = splitPlayersByClass && profession !== 'Unknown';
     const key = isSplit ? `${baseAccount}::${profession}` : baseAccount;

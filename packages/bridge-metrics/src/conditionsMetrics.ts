@@ -1,3 +1,4 @@
+import { normalizeAccountName } from './playerIdentity';
 import { getConditionName, normalizeConditionLabel } from './conditionNames';
 import { getEntityConditionDamageRows, listConditionApplications } from './nativeConditions';
 import { squadEntities } from './nativeRoster';
@@ -125,7 +126,7 @@ type GetPlayerKey = (player: any) => string | null;
  * Native entities carry `character`; EI players carried `name`.
  */
 const defaultGetPlayerKey: GetPlayerKey = (player) => {
-    const account = player?.account || 'Unknown';
+    const account = normalizeAccountName(String(player?.account || 'Unknown'));
     if (account && account !== 'Unknown') return account;
     return player?.character || player?.name || null;
 };
