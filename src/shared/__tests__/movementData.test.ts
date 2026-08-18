@@ -235,3 +235,61 @@ describe('buildMovementData markers', () => {
         expect(movement.members[0].squadMarker).toBeUndefined();
     });
 });
+
+/**
+ * Ground markers cross two coordinate systems on the way in, and getting
+ * either wrong is silent: the marker just lands somewhere plausible but wrong.
+ */
+describe('buildMovementData ground markers', () => {
+    const squad = [{
+        id: 1, role: 'squad' as const, account: 'Alice.0001', character: 'Alice',
+        profession: 'Guardian', subgroup: 1, pixels: [[100, 100]] as Array<[number, number]>,
+    }];
+
+    it('rebases arcdps session time onto fight-relative time', () => {
+        // `start_ms`/`end_ms` are session time like `commander.segments`, while
+        // everything else on MovementData is fight-relative. Without the
+        // rebase a marker placed 2s into the fight reads as 33847418ms and
+        // never appears.
+        const movement = buildMovementData(buildNativeLog(squad, {
+            logStartMs: 1_000_000,
+            groundMarkers: [{ index: 4, name: 'star', x: 0, y: 0, z: 0, start_ms: 1_002_000, end_ms: 1_005_000 }],
+        }), { trackedBuffIds: trackedBuffs })!;
+        expect(movement.groundMarkers).toHaveLength(1);
+        expect(movement.groundMarkers[0].startMs).toBe(2000);
+        expect(movement.groundMarkers[0].endMs).toBe(5000);
+    });
+
+    it('clamps a marker placed before the fight to t=0 rather than dropping it', () => {
+        // It was on screen at t=0, which is what the replay needs to know.
+        const movement = buildMovementData(buildNativeLog(squad, {
+            logStartMs: 1_000_000,
+            groundMarkers: [{ index: 0, name: 'arrow', x: 0, y: 0, z: 0, start_ms: 900_000 }],
+        }), { trackedBuffIds: trackedBuffs })!;
+        expect(movement.groundMarkers[0].startMs).toBe(0);
+        expect(movement.groundMarkers[0].endMs).toBeNull();
+    });
+
+    it('projects world inches into the same canvas pixels members use', () => {
+        // A marker dropped on a player must land on that player. The fixture
+        // puts Alice at canvas pixel [100, 100]; a ground marker at her world
+        // position has to come back to the same pixel.
+        const details = buildNativeLog(squad, { groundMarkers: [] });
+        const withMember = buildMovementData(details, { trackedBuffIds: trackedBuffs })!;
+        const [ax, ay] = withMember.members[0].positions[0];
+
+        // `samples` are `[timeMs, worldX, worldY]`.
+        const [, wx, wy] = (details as any).native.blocks.replay.tracks.by_entity[1].samples[0];
+        const movement = buildMovementData(buildNativeLog(squad, {
+            groundMarkers: [{ index: 1, name: 'circle', x: wx, y: wy, z: 0, start_ms: 0 }],
+        }), { trackedBuffIds: trackedBuffs })!;
+
+        expect(movement.groundMarkers[0].x).toBeCloseTo(ax, 0);
+        expect(movement.groundMarkers[0].y).toBeCloseTo(ay, 0);
+    });
+
+    it('is empty, not throwing, when the log carries none', () => {
+        const movement = buildMovementData(buildNativeLog(squad), { trackedBuffIds: trackedBuffs })!;
+        expect(movement.groundMarkers).toEqual([]);
+    });
+});

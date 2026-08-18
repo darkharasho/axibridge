@@ -16,7 +16,7 @@ const mkFight = (over: Partial<ReplayFightPayload>): ReplayFightPayload => ({
     nearestLandmark: null, squadSize: 0, kills: 0, deaths: 0,
     movementData: {
         pollingRate: 1000, durationMs: 10_000, pixelsPerInch: { x: 1, y: 1 },
-        members: [], boonIcons: {}, skillIcons: {},
+        members: [], boonIcons: {}, skillIcons: {}, groundMarkers: [],
     },
     dpsSamples: [], killEvents: [],
     damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],

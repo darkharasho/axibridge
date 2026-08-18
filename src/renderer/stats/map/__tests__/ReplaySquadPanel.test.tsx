@@ -16,7 +16,7 @@ const mkFight = (members: SquadMemberMovement[]): ReplayFightPayload => ({
     fightId: 'f1', fightIndex: 0, label: 'x', timestampMs: 0, durationMs: 5000,
     mapKey: null, mapImageUrl: null, mapSize: [600, 600], avgPosition: null,
     nearestLandmark: null, squadSize: members.length, kills: 0, deaths: 0,
-    movementData: { pollingRate: 1000, durationMs: 5000, pixelsPerInch: { x: 1, y: 1 }, members, boonIcons: {}, skillIcons: {} },
+    movementData: { pollingRate: 1000, durationMs: 5000, pixelsPerInch: { x: 1, y: 1 }, members, boonIcons: {}, skillIcons: {}, groundMarkers: [] },
     dpsSamples: [], killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
     sectorOwners: null,
 });

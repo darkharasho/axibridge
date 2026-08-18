@@ -154,6 +154,26 @@ export interface MovementData {
     members: SquadMemberMovement[];
     boonIcons: Record<number, { name: string; icon: string }>;
     skillIcons: Record<number, { name: string; icon: string }>;
+    /**
+     * Ground-placed squad markers, already projected onto the render canvas
+     * and rebased to fight-relative time.
+     *
+     * Separate from a member's `squadMarker`: that one rides above a player,
+     * this one is dropped on the terrain and stays where it was put.
+     */
+    groundMarkers: GroundMarkerPlacement[];
+}
+
+export interface GroundMarkerPlacement {
+    /** `arrow`, `circle`, ... */
+    name: string;
+    icon?: string;
+    /** Render-canvas pixels, the same space member positions use. */
+    x: number;
+    y: number;
+    /** Fight-relative ms. `endMs` is null for a marker never removed. */
+    startMs: number;
+    endMs: number | null;
 }
 
 export interface BuildMovementDataOptions {
@@ -266,6 +286,40 @@ function normalizeCumulative(val: any): number[] {
     return [];
 }
 
+/**
+ * `encounter.ground_markers[]` projected onto the render canvas and rebased
+ * to fight-relative time.
+ *
+ * Two conversions, both easy to get silently wrong:
+ *
+ * - `start_ms`/`end_ms` are arcdps **session** time, like `commander.segments`
+ *   and unlike everything else on this object. `encounter.log_start_ms` is the
+ *   origin. A marker placed BEFORE the fight starts rebases negative, so it
+ *   clamps to 0 rather than being dropped — it was on screen at t=0, which is
+ *   what the replay needs to know.
+ * - Positions are world inches; members are canvas pixels. Projecting through
+ *   the same `worldToPixel` the tracks use keeps them in one space, so a
+ *   marker lands where the commander actually put it relative to the squad.
+ */
+const buildGroundMarkers = (
+    details: any,
+    arena: any,
+    canvas: [number, number],
+): GroundMarkerPlacement[] => {
+    const raw = details?.native?.encounter?.ground_markers;
+    if (!Array.isArray(raw) || !arena) return [];
+    const origin = Number(details?.native?.encounter?.log_start_ms ?? 0);
+    const out: GroundMarkerPlacement[] = [];
+    for (const m of raw) {
+        if (typeof m?.x !== 'number' || typeof m?.y !== 'number') continue;
+        const [px, py] = worldToPixel(arena, m.x, m.y, canvas);
+        const startMs = Math.max(0, Number(m.start_ms ?? 0) - origin);
+        const endMs = m.end_ms == null ? null : Math.max(0, Number(m.end_ms) - origin);
+        out.push({ name: String(m.name ?? ''), icon: m.icon, x: px, y: py, startMs, endMs });
+    }
+    return out;
+};
+
 export function buildMovementData(details: any, options: BuildMovementDataOptions): MovementData | null {
     const { trackedBuffIds, localAccount, localName, precisePositions } = options;
     const roundPos = precisePositions
@@ -288,6 +342,7 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
     // maps built from one scan of `encounter.markers[]`.
     const tagColors = getCommanderTagColors(details);
     const squadMarkers = getSquadMarkers(details);
+    const groundMarkers = buildGroundMarkers(details, arena, canvas);
 
     const skillIcons: Record<number, { name: string; icon: string }> = {};
     for (const [key, val] of Object.entries(details?.native?.catalogs?.skills ?? {})) {
@@ -432,6 +487,7 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
     }
 
     return {
+        groundMarkers,
         pollingRate, durationMs,
         pixelsPerInch: pixelsPerInch(arena, canvas),
         members, boonIcons, skillIcons,

@@ -26,6 +26,7 @@ const commanderTagUri = (color?: string) => {
 };
 
 import { HeatmapLayer } from './HeatmapLayer';
+import { GroundMarkerLayer } from './GroundMarkerLayer';
 import { SectorOutlineLayer, OWNER_COLORS } from './SectorOutlineLayer';
 import { sectorIdAt } from '../../../shared/sectorLookup';
 import type { WvwOwner } from '../../../shared/wvwSectors';
@@ -395,6 +396,14 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         />
                                     )}
                                     <HeatmapLayer raster={heatmap} mapWidth={mapWidth} mapHeight={mapHeight} mode={layers.heatmap} />
+                                    {/* Under the member icons on purpose — a
+                                        rally marker is exactly where everyone
+                                        will be standing. */}
+                                    <GroundMarkerLayer
+                                        markers={selectedFight.movementData.groundMarkers}
+                                        timeMs={playhead.timeMs}
+                                        scale={viewport.scale}
+                                    />
                                     {selectedFight.mapKey && (WVW_LANDMARKS[selectedFight.mapKey] ?? []).map(lm => {
                                         const owner = landmarkOwners[lm.name];
                                         const ownerColor = owner ? OWNER_COLORS[owner] : null;

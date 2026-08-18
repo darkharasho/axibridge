@@ -92,6 +92,10 @@ export interface NativeLogOptions {
     details?: Record<string, unknown>;
     /** `native.encounter.markers[]` — squad markers and commander tags. */
     markers?: Record<string, unknown>[];
+    /** `native.encounter.ground_markers[]` — terrain-placed squad markers. */
+    groundMarkers?: Record<string, unknown>[];
+    /** `native.encounter.log_start_ms` — the arcdps session-time origin. */
+    logStartMs?: number;
 }
 
 /**
@@ -190,7 +194,11 @@ export const buildNativeLog = (
         ...(options.details ?? {}),
         native: {
             axilog: { schema: '1.0', version: 'test' },
-            encounter: { markers: options.markers ?? [] },
+            encounter: {
+                markers: options.markers ?? [],
+                ground_markers: options.groundMarkers ?? [],
+                log_start_ms: options.logStartMs ?? 0,
+            },
             entities,
             catalogs: nativeCatalogs(options),
             coverage: { replay: 'present' },

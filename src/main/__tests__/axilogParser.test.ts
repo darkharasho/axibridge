@@ -531,6 +531,32 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         }
     });
 
+    /// Ground markers, from a REAL log rather than a synthetic one.
+    ///
+    /// I first reported this fixture as having none — it has six, and they
+    /// were invisible only because `CBTS_SQUADMARKER` was never decoded. What
+    /// they contain happens to exercise every decode rule at once: one arrow,
+    /// moved five times, then left in place.
+    it('decodes the fixture\'s ground markers into contiguous windows', () => {
+        const markers = details.native?.encounter?.ground_markers ?? [];
+        expect(markers.length).toBe(6);
+        // All one shape, all with art.
+        expect(new Set(markers.map((m: any) => m.name))).toEqual(new Set(['arrow']));
+        expect(markers.every((m: any) => typeof m.icon === 'string' && m.icon)).toBe(true);
+
+        // A MOVED marker closes the old window where the new one opens, so the
+        // windows tile without gaps. A gap would mean a removal was invented;
+        // an overlap would mean two arrows existed at once, which the game
+        // does not allow.
+        for (let i = 1; i < markers.length; i += 1) {
+            expect(markers[i].start_ms, `window ${i} must abut window ${i - 1}`)
+                .toBe(markers[i - 1].end_ms);
+        }
+        // Only the last is still placed at log end; every other one closed.
+        expect(markers[markers.length - 1].end_ms).toBeUndefined();
+        expect(markers.slice(0, -1).every((m: any) => typeof m.end_ms === 'number')).toBe(true);
+    });
+
     it('leaves the documented residual gaps absent rather than faked', () => {
         // The inverse pin: §4 of the cutover report promises these are MISSING,
         // and the doc comment on DEFAULT_PARSER_BACKEND justifies the flip on
