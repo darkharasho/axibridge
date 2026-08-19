@@ -128,3 +128,40 @@ describe('readCachedDetailsFile', () => {
         expect(await readCachedDetailsFile(store, '')).toBeNull();
     });
 });
+
+describe('readCachedDetailsFile re-applies the EI compat shims', () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+        resetDpsReportCachePruneThrottle();
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'axibridge-reshim-test-'));
+    });
+
+    /**
+     * The shims run once, at parse time. Anything cached before a shim existed
+     * keeps the un-shimmed spelling forever, and rehydration used to hand that
+     * copy straight to the stats pipeline.
+     *
+     * The leading-colon strip is the case that surfaced it: a log cached before
+     * that shim landed rehydrates as `:Name.1234`, a log parsed after it as
+     * `Name.1234`, and the ~30 display sites that read `account` straight off a
+     * player or entity render the same person as two people.
+     */
+    it('strips the arcdps leading colon from a details file cached before the shim existed', async () => {
+        const detailsPath = path.join(tmpDir, 'preshim.json');
+        fs.writeFileSync(detailsPath, JSON.stringify({
+            players: [{ account: ':Izathel.4058', character_name: 'Izzy' }],
+            native: { entities: [{ account: ':Izathel.4058' }] }
+        }));
+        const store = makeStore({
+            [DPS_REPORT_CACHE_KEY]: {
+                preshim: { hash: 'preshim', createdAt: Date.now(), result: { permalink: 'p' }, detailsPath, detailsCachedAt: Date.now() }
+            }
+        });
+
+        const details = await readCachedDetailsFile(store, 'preshim');
+
+        expect(details.players[0].account).toBe('Izathel.4058');
+        expect(details.native.entities[0].account).toBe('Izathel.4058');
+    });
+});

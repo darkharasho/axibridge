@@ -12,6 +12,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import type { StoreAdapter } from './uploadRetryQueue';
 import type { UploadResult } from './uploader';
+import { applyEiCompatShims } from './axilogParser';
 
 // ─── Extended adapter (needed for store.delete in clearDpsReportCache) ────────
 
@@ -318,6 +319,16 @@ export const updateDpsReportCacheDetails = async (
  * be obtained, wrong here, where the alternative to a stale copy is no fight at
  * all. Callers only reach this after the in-memory cache has missed, so a
  * day-old parse still beats an empty row. Never mutates the index.
+ *
+ * The EI compat shims are re-applied on the way out. They run once, at parse
+ * time, so a details file written before a given shim existed keeps the
+ * un-shimmed spelling for as long as it sits in the cache — and this is the
+ * only path back out of that cache. The leading-colon strip is what surfaced
+ * it: a log cached before that shim rehydrates as `:Name.1234` while a freshly
+ * parsed one is `Name.1234`, and the ~30 sites that read `account` straight off
+ * a player or entity then render one person as two. The shims are idempotent
+ * and fill only absent fields, so re-running them costs a walk of `players[]`
+ * and heals every future shim addition the same way.
  */
 export const readCachedDetailsFile = async (store: StoreAdapter, hash: string): Promise<any | null> => {
     if (!hash) return null;
@@ -325,7 +336,7 @@ export const readCachedDetailsFile = async (store: StoreAdapter, hash: string): 
     const detailsPath = index[hash]?.detailsPath;
     if (!detailsPath) return null;
     try {
-        return JSON.parse(await fs.promises.readFile(detailsPath, 'utf8'));
+        return applyEiCompatShims(JSON.parse(await fs.promises.readFile(detailsPath, 'utf8')), detailsPath);
     } catch {
         return null;
     }
