@@ -1,22 +1,14 @@
 # Release Notes
 
-Version v3.0.1 — August 18, 2026
+Version v3.0.2 — August 19, 2026
 
-## Healing breakdown stops calling everyone "partial"
+## Settings no longer undersells the Axilog engine
 
-The healing tables now read the actual arcdps healing-extension roster, so a
-player who genuinely isn't running the addon is marked partial and everyone
-else isn't. Before this, the check keyed off whether a player had any healing
-recorded at all — which meant almost the whole squad got flagged, since heals
-relayed by peers count too.
+The parse engine card in Settings was still warning about two Axilog limitations that
+have been fixed for a while now — boon overstack numbers reading 0, and some per-target
+Offense Detailed columns falling back to whole-fight totals. Both were closed a few
+Axilog versions back; only the text hadn't caught up. If that warning was steering you
+toward the legacy Elite Insights engine, it shouldn't have been.
 
-NOTE: this comes from new parse output, so it only applies to logs parsed from
-here on. Already-uploaded logs keep showing partial until you re-parse them.
-
-## Fixes
-
-- Players no longer show up twice in profession-grouped lists — once as
-  `:Name.1234` and once as `Name.1234` — with their numbers split between the
-  two rows. Logs cached before the leading-colon fix landed were rehydrating
-  with the old spelling; they're now corrected as they're read, so existing
-  logs heal themselves with no re-parse needed.
+NOTE: nothing about how your logs are parsed changed in this release — the numbers were
+already correct. This is the description catching up to them.
