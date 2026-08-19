@@ -106,7 +106,7 @@ const PARSER_BACKEND_OPTIONS: Array<{
             implications: [
                 'No .NET runtime or Elite Insights download — ships with the app',
                 'Seconds instead of minutes on large logs',
-                'A few Offense Detailed columns read whole-fight totals, and boon-overstack numbers read 0'
+                'A few per-target Offense Detailed columns read whole-fight totals or blank'
             ]
         },
         {

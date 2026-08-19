@@ -126,7 +126,7 @@ no consumer consequence · **—** = residual gap. ✅ marks a row the first aud
 | `support[0].boonStripsTime` | E ✅ | strip duration now modelled |
 | `statsTargets[i][0].totalDmg` | E | |
 | `statsTargets[i][0].killed`, `.downed`, `.downContribution`, `.againstDownedCount`, `.interrupts`, `.connectedDamageCount`, `.connectedDmg` | E ✅ | the per-target split. Fixes the original audit's `isWin` problem outright — see §4.2 |
-| `statsTargets[i][0]` — EI's other 30 fields (`directDmg`, `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`, `flankingRate`, `glanceRate`, `missed`, `evaded`, `blocked`, `invulned`, `againstDownedDamage`, `appliedCrowdControl*`, …) | **—** | **the largest residual.** 8 of EI's 38 per-target fields are emitted; 8 of the 15 affected Offense Detailed columns now take a whole-fight `statsAll[0]` fallback, leaving 7 blank. See §4.1 |
+| `statsTargets[i][0]` — `directDmg`, `connectedDirectDamageCount`, `criticalRate`, `criticalDmg`, `flankingRate`, `glanceRate`, `missed`, `evaded`, `blocked`, `invulned`, `againstDownedDamage`, `appliedCrowdControl*` | E ✅ | **closed at axilog 0.3.4.** All 15 affected Offense Detailed columns read real per-target numbers; the `statsAll[0]` fallback that stood in for 8 of them is deleted. See §4.1 |
 | `buffUptimes[].id`, `.buffData[0].uptime`, `.buffData[0].presence` | E | 0/444 cells over the 2 pp tolerance vs EI |
 | `buffUptimes[].states`, `.statesPerSource` | E ✅ | 504/504 entries carry both |
 | `selfBuffs`, `groupBuffs`, `squadBuffs` — `[].buffData[0].generation` | E ✅ | boon-generation attribution |
@@ -375,9 +375,23 @@ false, the note adds a line pointing at the Install button directly below it.
 Every gap in §1 is null-guarded at the read site — the re-audit found no path that throws or
 produces `NaN`. Worst first.
 
-### 4.1 `statsTargets`' field subset — 15 blank columns, now 7
+### 4.1 ~~`statsTargets`' field subset — 15 blank columns, now 7~~ RESOLVED (axilog 0.3.4)
 
-axilog emits 8 of the 38 fields EI puts on each `statsTargets[i][0]` entry:
+**Closed upstream.** axilog's EI adapter now emits the full per-target offensive split on every
+`statsTargets[i][0]` row — all 15 columns, including the 7 that had no `statsAll[0]` equivalent to
+borrow from (`directDmg`, `missed`, `evaded`, `blocked`, `invulned` and both
+`appliedCrowdControl*DownContribution`s). The numbers come from
+`axilog_core::analysis::per_target::PerTargetOffense`, serialized as `PerTargetDetail` on the v1
+native format's `blocks.damage.by_entity[].per_target[].detail` and joined onto the EI shape by
+`crates/axilog-ei/src/lib.rs`; they are gated on `skill_damage` (which `axilogParser.ts` forces on),
+and omitted rather than zero-filled when the gate is off.
+
+The `statsAll[0]` fallback described below, and its two guards, were deleted in `80433f66`
+("refactor: drop the statsAll offense fallback, dead at axilog 0.3.4") along with
+`offenseStatsAllFallback.test.ts`. `computePlayerAggregation.ts` now reads `p.statsTargets`
+unconditionally. **The rest of this section is history**, kept for the reasoning trail.
+
+Historically, axilog emitted 8 of the 38 fields EI puts on each `statsTargets[i][0]` entry:
 `totalDmg`, `connectedDmg`, `connectedDamageCount`, `downed`, `killed`, `downContribution`,
 `againstDownedCount`, `interrupts`.
 
@@ -446,7 +460,7 @@ sourcing from `statsTargets` costs nothing; axilog emits one entry per real enem
 genuinely differ. Fully closing it still needs axilog to fill the per-target stat set — follow-up 2,
 now scoped to the remaining 7.
 
-Tests: `src/renderer/stats/__tests__/offenseStatsAllFallback.test.ts` (11), covering both backends
+Tests (deleted with the fallback): `src/renderer/stats/__tests__/offenseStatsAllFallback.test.ts` (11), covering both backends
 and both guards — the axilog shape filling all 8 (once, not once per target) with matched rate
 denominators and the 7 staying blank; the EI shape leaving genuine per-target zeroes alone; and an
 empty, absent or wholly unpopulated `statsTargets` getting no substitution at all.
@@ -1091,9 +1105,6 @@ shipped default when the host exposes no parser API at all (the web build), and 
 `SHIPPED_DEFAULT_BACKEND`: it asserts against the imported `DEFAULT_PARSER_BACKEND` rather than a
 literal, so flipping the default without updating the renderer mirror fails there.
 
-`src/renderer/stats/__tests__/offenseStatsAllFallback.test.ts` — **11 tests** for §4.1's `statsAll`
-fallback, across both backends and both guards. See §4.1.
-
 `src/renderer/__tests__/App.firstTimeExperience.test.tsx` — the walkthrough's step 4 copy is pinned
 default-neutral: it sells local parsing, says the parse engine is set up automatically (true under
 either default — EI is auto-installed, axilog ships with the app) and names both engines without
@@ -1133,14 +1144,9 @@ Gates:
    Damage and Top Skills surfaces all display or rank by it unqualified. A tooltip naming the
    methodology costs nothing and stops the app making a claim it does not honour. This is the highest
    -value item on the list precisely because nothing looks broken.
-2. **~~Close the `statsTargets` field-subset gap.~~ PARTIALLY RESOLVED — 8 of 15 done (§4.1).**
-   `OFFENSE_METRICS` now falls back to the whole-fight `statsAll[0]` figure, presence-gated and
-   scoped to the all-targets rollup, for the 8 columns whose equivalent exists there. **7 remain**:
-   `directDmg`, `missed`, `evaded`, `blocked`, `invulned`,
-   `appliedCrowdControlDownContribution`, `appliedCrowdControlDurationDownContribution`. These need
-   axilog to fill the per-target stat set — nothing in axibridge can supply them. Note the boundary
-   recorded in §4.1: the fallback is only valid because no per-target filter exists over these
-   columns or the `offenseTotals` rollup; introducing one means revisiting it.
+2. **~~Close the `statsTargets` field-subset gap.~~ RESOLVED (axilog 0.3.4, §4.1).** axilog fills
+   the per-target stat set for all 15 columns; the interim `statsAll[0]` fallback and its
+   per-target-filter boundary caveat are both gone.
 3. **~~Decide the fixture question.~~ RESOLVED — owner-authorized (2026-08-10): committed.**
    `test-fixtures/axilog/wvw-small.anon.zevtc` is in-tree behind
    `!test-fixtures/axilog/*.anon.zevtc`, verified PII-free first, and the real-parse block now runs
