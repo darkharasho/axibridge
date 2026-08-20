@@ -96,6 +96,21 @@ describe('skillOptions', () => {
         expect(skill?.name).toBe('Skill 1001');
     });
 
+    it('labels the default dodge action when the skill map has no name', () => {
+        const log = makeLog({
+            skillMap: {},
+            players: [{
+                account: 'Alice.1234',
+                profession: 'Guardian',
+                activeTimes: [30000],
+                rotation: [{ id: 23275, skills: [{ time: 100 }] }],
+            }],
+        });
+        const result = computeSkillUsageData([log]);
+        const dodge = result.skillOptions.find((s) => s.id === 's23275');
+        expect(dodge?.name).toBe('Dodge');
+    });
+
     it('includes icon from skillMap when present', () => {
         const result = computeSkillUsageData([makeLog()]);
         const sword = result.skillOptions.find((s) => s.id === 's1001');

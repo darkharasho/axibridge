@@ -1,6 +1,10 @@
 import { SkillUsageLogRecord, SkillUsagePlayer, SkillUsageSummary } from './statsTypes';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 
+const SPECIAL_SKILL_NAMES: Record<number, string> = {
+    23275: 'Dodge',
+};
+
 export interface SkillUsageAccumulator {
     skillTotals: Map<string, number>;
     playerMap: Map<string, SkillUsagePlayer>;
@@ -57,7 +61,7 @@ export function ingestLogSkillUsage(log: any, acc: SkillUsageAccumulator): void 
             const count = rot.skills?.length || 0;
             if (count <= 0) return;
             const sId = `s${rot.id}`;
-            const sName = skillMap[sId]?.name || `Skill ${rot.id}`;
+            const sName = skillMap[sId]?.name || SPECIAL_SKILL_NAMES[rot.id] || `Skill ${rot.id}`;
             const sIcon = skillMap[sId]?.icon;
             pr!.skillTotals[sId] = (pr!.skillTotals[sId] || 0) + count;
             acc.skillTotals.set(sId, (acc.skillTotals.get(sId) || 0) + count);
