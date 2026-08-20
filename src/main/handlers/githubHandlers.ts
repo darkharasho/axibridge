@@ -17,11 +17,11 @@ import { type IReportWebhook, selectReportWebhooks } from '../../shared/reportWe
 import { resolveGuild } from '../guildDirectory';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MAX_GITHUB_BLOB_BYTES = 90 * 1024 * 1024;
 // GitHub's blob API encodes content as base64, adding ~33% overhead.
 // A 50 MB raw file becomes ~67 MB base64 — safely under GitHub's ~100 MB request limit.
 // 90 MB was too large: it produced ~120 MB base64 payloads that GitHub rejects with 422.
-const MAX_GITHUB_REPORT_JSON_BYTES = 50 * 1024 * 1024;
+export const MAX_GITHUB_BLOB_BYTES = 50 * 1024 * 1024;
+const MAX_GITHUB_REPORT_JSON_BYTES = MAX_GITHUB_BLOB_BYTES;
 const GITHUB_DEVICE_CLIENT_ID = process.env.GITHUB_DEVICE_CLIENT_ID || 'Ov23liFh1ih9LAcnLACw';
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
 
@@ -453,18 +453,34 @@ interface R2Config {
     publicUrl: string;
 }
 
-const getR2Config = (store: any): R2Config | null => {
-    const accountId = store.get('r2AccountId') as string | null | undefined;
-    const accessKeyId = store.get('r2AccessKeyId') as string | null | undefined;
-    const secretAccessKey = store.get('r2SecretAccessKey') as string | null | undefined;
-    const bucketName = store.get('r2BucketName') as string | null | undefined;
-    const publicUrl = store.get('r2PublicUrl') as string | null | undefined;
-    if (!accountId || !accessKeyId || !secretAccessKey || !bucketName || !publicUrl) {
-        log.info(`[Main] R2 config incomplete — accountId=${!!accountId} accessKeyId=${!!accessKeyId} secretAccessKey=${!!secretAccessKey} bucketName=${!!bucketName} publicUrl=${!!publicUrl}`);
-        return null;
+// Credentials are pasted from the Cloudflare dashboard, so trim: a trailing
+// space or newline survives the "is it set?" check but corrupts the SigV4
+// signature, which used to surface only as an opaque R2 PUT failure.
+const R2_FIELDS = [
+    { key: 'r2AccountId', label: 'Account ID', prop: 'accountId' },
+    { key: 'r2AccessKeyId', label: 'Access Key ID', prop: 'accessKeyId' },
+    { key: 'r2SecretAccessKey', label: 'Secret Access Key', prop: 'secretAccessKey' },
+    { key: 'r2BucketName', label: 'Bucket Name', prop: 'bucketName' },
+    { key: 'r2PublicUrl', label: 'Public URL', prop: 'publicUrl' }
+] as const;
+
+export const resolveR2Config = (store: any): { config: R2Config | null; missingFields: string[] } => {
+    const resolved: Record<string, string> = {};
+    const missingFields: string[] = [];
+    for (const { key, label, prop } of R2_FIELDS) {
+        const value = store.get(key) as string | null | undefined;
+        const trimmed = typeof value === 'string' ? value.trim() : '';
+        if (!trimmed) missingFields.push(label);
+        else resolved[prop] = trimmed;
     }
-    return { accountId, accessKeyId, secretAccessKey, bucketName, publicUrl };
+    if (missingFields.length > 0) {
+        log.info(`[Main] R2 config incomplete — missing: ${missingFields.join(', ')}`);
+        return { config: null, missingFields };
+    }
+    return { config: resolved as unknown as R2Config, missingFields };
 };
+
+const getR2Config = (store: any): R2Config | null => resolveR2Config(store).config;
 
 const r2SignedRequest = (
     method: string,
@@ -641,6 +657,39 @@ const formatBytes = (value: number) => {
         unitIndex += 1;
     }
     return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
+
+/**
+ * Decide where a report's replay.json lives. R2 is preferred; Pages is the
+ * fallback. A Pages-hosted replay travels through the GitHub blob API, which
+ * rejects anything past MAX_GITHUB_BLOB_BYTES with a 422 — so an oversized
+ * replay is dropped rather than allowed to fail the whole upload.
+ */
+export const planReplayHosting = ({ replayBytes, r2Url, reportId, baseUrl }: {
+    replayBytes: number;
+    r2Url: string | null;
+    reportId: string;
+    baseUrl: string | null;
+}): { mode: 'r2' | 'pages' | 'dropped'; url: string | null; warning: string | null } => {
+    if (r2Url) {
+        return { mode: 'r2', url: r2Url, warning: null };
+    }
+    if (replayBytes > MAX_GITHUB_BLOB_BYTES) {
+        return {
+            mode: 'dropped',
+            url: null,
+            warning:
+                `Replay data (${formatBytes(replayBytes)}) is too large to host on GitHub Pages ` +
+                `(limit ${formatBytes(MAX_GITHUB_BLOB_BYTES)}) — publishing the report without the map replay. ` +
+                `Configure Cloudflare R2 in Settings to keep replays on large sessions.`
+        };
+    }
+    const relativePath = `reports/${reportId}/replay.json`;
+    return {
+        mode: 'pages',
+        url: baseUrl ? `${baseUrl.replace(/\/$/, '')}/${relativePath}` : relativePath,
+        warning: null
+    };
 };
 
 const buildWebReportPayload = (
@@ -1724,7 +1773,15 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const glassmorphicValue = !!store.get('glassmorphic', false);
 
             // R2: if configured, strip replayFights from the main payload and upload separately.
-            const r2Config = getR2Config(store);
+            const { config: r2Config, missingFields: r2MissingFields } = resolveR2Config(store);
+            if (!r2Config && r2MissingFields.length < R2_FIELDS.length) {
+                // Partially configured: the user believes R2 is on, so say why it isn't.
+                sendWebUploadStatus(
+                    'Warning',
+                    `R2 is partially configured (missing: ${r2MissingFields.join(', ')}) — replay data will be hosted on GitHub Pages instead.`,
+                    37
+                );
+            }
             if (r2Config) {
                 // Ensure CORS is set so the web viewer can fetch replay.json from the browser.
                 const pagesBaseUrl = (store.get('githubPagesBaseUrl') as string | null | undefined) || null;
@@ -1780,15 +1837,24 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                         sendWebUploadStatus('Warning', `R2 upload failed: ${r2Result.error}`, 39);
                     }
                 }
-                if (r2Url) {
-                    (builtReport.payload.stats as any).replayDataUrl = r2Url;
+                const replayPlan = planReplayHosting({
+                    replayBytes: replayBuffer.length,
+                    r2Url,
+                    reportId: reportMeta.id,
+                    baseUrl
+                });
+                if (replayPlan.warning) {
+                    log.warn(`[Main] ${replayPlan.warning}`);
+                    sendWebUploadStatus('Warning', replayPlan.warning, 39);
+                }
+                if (replayPlan.mode === 'dropped') {
+                    // Publishing the report without the replay beats a hard 422 on the
+                    // whole upload; the viewer simply hides the map replay.
+                    delete (builtReport.payload.stats as any).replayDataUrl;
+                    replayBuffer = null;
                 } else {
-                    // No R2 (or upload failed): publish replay.json to Pages alongside report.json.
-                    replayHostedOnPages = true;
-                    const pagesReplayUrl = baseUrl
-                        ? `${baseUrl.replace(/\/$/, '')}/reports/${reportMeta.id}/replay.json`
-                        : `reports/${reportMeta.id}/replay.json`;
-                    (builtReport.payload.stats as any).replayDataUrl = pagesReplayUrl;
+                    replayHostedOnPages = replayPlan.mode === 'pages';
+                    (builtReport.payload.stats as any).replayDataUrl = replayPlan.url;
                 }
                 builtReport.jsonBuffer = Buffer.from(JSON.stringify(builtReport.payload), 'utf8');
             }

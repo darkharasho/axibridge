@@ -1010,11 +1010,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             githubLogoPath: githubLogoPath || null,
             githubFavoriteRepos,
             allowLocalJson,
-            r2AccountId: r2AccountId || null,
-            r2AccessKeyId: r2AccessKeyId || null,
-            r2SecretAccessKey: r2SecretAccessKey || null,
-            r2BucketName: r2BucketName || null,
-            r2PublicUrl: r2PublicUrl || null,
+            r2AccountId: r2AccountId.trim() || null,
+            r2AccessKeyId: r2AccessKeyId.trim() || null,
+            r2SecretAccessKey: r2SecretAccessKey.trim() || null,
+            r2BucketName: r2BucketName.trim() || null,
+            r2PublicUrl: r2PublicUrl.trim() || null,
             r2PreciseReplay,
         });
         onEmbedStatSettingsSaved?.(embedStats);
