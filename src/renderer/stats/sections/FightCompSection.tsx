@@ -113,9 +113,9 @@ export const FightCompSection = ({
                                             >
                                                 {fight.isWin === true ? 'Win' : fight.isWin === false ? 'Loss' : 'Unknown'}
                                             </span>
-                                            <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">{fight.label}</div>
+                                            <div className="fight-comp-fight-label text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">{fight.label}</div>
                                             <div className="text-xs font-semibold truncate">{fight.mapName || 'Unknown Map'}</div>
-                                            <div className="text-[10px] text-[color:var(--text-secondary)] truncate">{fight.duration || '--:--'} · {formatTimestamp(fight.timestamp)}</div>
+                                            <div className="fight-comp-fight-meta text-[10px] text-[color:var(--text-secondary)] truncate">{fight.duration || '--:--'} · {formatTimestamp(fight.timestamp)}</div>
                                         </button>
                                     );
                                 })}
@@ -128,9 +128,9 @@ export const FightCompSection = ({
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.78fr)] gap-2.5 min-w-0">
                                     <div className="fight-comp-card rounded-[var(--radius-md)] overflow-hidden">
-                                        <div className="px-2.5 py-1.5 bg-[var(--bg-hover)] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] flex items-center justify-between gap-2">
+                                        <div className="fight-comp-card-header px-2.5 py-1.5 bg-[var(--bg-hover)] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] flex items-center justify-between gap-2">
                                             <span>Squad Parties</span>
-                                            <span className="inline-flex items-center rounded-md border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-1.5 py-0.5 text-[9px] font-semibold tracking-normal text-[color:var(--text-secondary)]">
+                                            <span className="fight-comp-count-badge inline-flex items-center rounded-md border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-1.5 py-0.5 text-[9px] font-semibold tracking-normal text-[color:var(--text-secondary)]">
                                                 {squadPlayerCount}
                                             </span>
                                         </div>
@@ -192,9 +192,9 @@ export const FightCompSection = ({
                                     </div>
 
                                     <div className="fight-comp-card rounded-[var(--radius-md)] overflow-hidden">
-                                        <div className="px-2.5 py-1.5 bg-[var(--bg-hover)] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] flex items-center justify-between gap-2">
+                                        <div className="fight-comp-card-header px-2.5 py-1.5 bg-[var(--bg-hover)] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] flex items-center justify-between gap-2">
                                             <span>Enemy Classes</span>
-                                            <span className="inline-flex items-center rounded-md border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-1.5 py-0.5 text-[9px] font-semibold tracking-normal text-[color:var(--text-secondary)]">
+                                            <span className="fight-comp-count-badge inline-flex items-center rounded-md border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-1.5 py-0.5 text-[9px] font-semibold tracking-normal text-[color:var(--text-secondary)]">
                                                 {enemyPlayerCount}
                                             </span>
                                         </div>

@@ -1315,6 +1315,32 @@ body.web-report .stats-view .fight-comp-class-icon--squad {
     color: var(--text-secondary);
 }
 
+/* Fight Comp has compact, information-dense labels. In glass mode the generic
+   slate hover surface makes its secondary text blend into the panel, so give
+   the roster's reading surfaces an intentionally darker base and brighter ink. */
+body.glass-surfaces .stats-view .fight-comp-fight-nav-item:not(.text-cyan-100) {
+    background-color: rgba(15, 18, 25, 0.62) !important;
+    color: var(--text-primary) !important;
+}
+
+body.glass-surfaces .stats-view .fight-comp-fight-label,
+body.glass-surfaces .stats-view .fight-comp-fight-meta {
+    color: var(--text-secondary) !important;
+}
+
+body.glass-surfaces .stats-view .fight-comp-card-header {
+    background-color: rgba(15, 18, 25, 0.72) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--text-primary) !important;
+}
+
+body.glass-surfaces .stats-view .fight-comp-count-badge,
+body.glass-surfaces .stats-view .fight-comp-party-badge {
+    background-color: rgba(15, 18, 25, 0.58) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: var(--text-primary) !important;
+}
+
 /* Keep MVP crown icon wrappers circular in web report across theme overrides. */
 body.web-report #top-players .mvp-gold-icon-ring,
 body.web-report #top-players .mvp-gold-icon-badge {
