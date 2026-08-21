@@ -8,7 +8,7 @@ import {
     getPlayerCleanses,
     getPlayerDamageTaken,
     getPlayerDeaths,
-    getPlayerDistanceToTag,
+    createDistanceToTagResolver,
     getPlayerDodges,
     getPlayerMissed,
     getPlayerBlocked,
@@ -766,7 +766,11 @@ export class DiscordNotifier {
                         });
                     };
 
-                    const getDistanceToTag = (p: any) => getPlayerDistanceToTag(p);
+                    // Resolves against the native replay block as well as `statsAll`:
+                    // an axilog parse populates no distance scalars in `statsAll`, which
+                    // made this list print 0 for the whole squad.
+                    const resolveDistanceToTag = createDistanceToTagResolver(jsonDetails);
+                    const getDistanceToTag = (p: any) => resolveDistanceToTag(p) ?? 0;
                     const getResurrects = (p: any) => getPlayerResurrects(p);
                     const getBreakbarDamage = (p: any) => getPlayerBreakbarDamage(p);
                     const getDamageTaken = (p: any) => getPlayerDamageTaken(p);

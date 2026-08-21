@@ -1,5 +1,5 @@
 
-import { getPlayerCleanses, getPlayerStrips, getPlayerOutgoingInterrupts, getPlayerDamageTaken, getPlayerBreakbarDamage, getPlayerBlocked, getPlayerEvaded, getPlayerMissed, getTargetStatTotal, resolveCommanderDistance, getVindicatorDodgeCasts } from './dashboardMetrics';
+import { getPlayerCleanses, getPlayerStrips, getPlayerOutgoingInterrupts, getPlayerDamageTaken, getPlayerBreakbarDamage, getPlayerBlocked, getPlayerEvaded, getPlayerMissed, getTargetStatTotal, createDistanceToTagResolver, getVindicatorDodgeCasts } from './dashboardMetrics';
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeDownContribution as getPlayerDownContribution, computeSquadHealing as getPlayerSquadHealing, computeSquadBarrier as getPlayerSquadBarrier, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl } from './combatMetrics';
 import { Player } from './dpsReportTypes';
 import { DisruptionMethod } from './metricsSettings';
@@ -12,7 +12,6 @@ import { resolveFightTimestamp } from './timestampUtils';
 import { PlayerRoleClassification } from './roles';
 import { normalizeAccountName, partitionSquadPlayers } from './playerIdentity';
 import { getEntityProfession, squadEntities } from './nativeRoster';
-import { getDistanceScalars, NO_DISTANCE } from './nativePositioning';
 import { getEntityConditionDamageTakenRows } from './nativeConditions';
 
 export interface PlayerStats {
@@ -603,45 +602,20 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
     }
 
     /**
-     * `distToCom`/`stackDist` keyed by normalized account, from the native
-     * replay block.
+     * `statsAll` first, then the native replay block's `dist_to_com`/`stack_dist`.
      *
      * axilog's ei-json emits NEITHER scalar in `statsAll` — verified against
      * `wvw-small.anon.zevtc` on axilog 0.3.12 — so on a native parse every EI
-     * branch below falls through to the combat-replay reconstruction, which
-     * only ever assigns a distance inside its death/down loops. Players who
-     * never went down scored 0, which is why Closest to Tag read 0 for the
-     * whole squad. Real EI parses still populate `statsAll` and are unaffected:
-     * this map is only consulted once those branches miss.
+     * branch falls through to the combat-replay reconstruction below, which only
+     * ever assigns a distance inside its death/down loops. Players who never went
+     * down scored 0, which is why Closest to Tag read 0 for the whole squad. Real
+     * EI parses populate `statsAll` and are unaffected.
      */
-    const nativeDistanceByAccount = (() => {
-        const out = new Map<string, { distToCom: number | null; stackDist: number | null }>();
-        const scalars = getDistanceScalars(details);
-        if (scalars.size === 0) return out;
-        for (const entity of squadEntities(details?.native)) {
-            const scalar = scalars.get(entity.id);
-            if (!scalar) continue;
-            const account = normalizeAccountName(String(entity.account || ''));
-            if (!account || out.has(account)) continue;
-            out.set(account, scalar);
-        }
-        return out;
-    })();
-
-    const usableDistance = (value: number | null | undefined): number | null =>
-        typeof value === 'number' && Number.isFinite(value) && value !== NO_DISTANCE && value >= 0
-            ? value
-            : null;
+    const resolveDistanceToTag = createDistanceToTagResolver(details);
 
     const getDistanceToTag = (p: any) => {
-        const stats = p.statsAll?.[0];
-        const commanderDist = resolveCommanderDistance(stats?.distToCom);
-        if (commanderDist !== null) return Math.round(commanderDist);
-        if (stats?.stackDist !== undefined) return Math.round(Number(stats.stackDist)) || 0;
-
-        const native = nativeDistanceByAccount.get(normalizeAccountName(String(p?.account || '')));
-        const nativeDist = usableDistance(native?.distToCom) ?? usableDistance(native?.stackDist);
-        if (nativeDist !== null) return Math.round(nativeDist);
+        const resolved = resolveDistanceToTag(p);
+        if (resolved !== null) return resolved;
 
         if (p.hasCommanderTag) return 0;
 

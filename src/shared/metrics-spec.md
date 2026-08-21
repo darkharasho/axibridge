@@ -448,11 +448,18 @@ Implementation: `src/shared/dashboardMetrics.ts` (getPlayerResurrects).
 ## Distance to Tag
 
 `distanceToTag = statsAll[0].distToCom` if present; otherwise use
-`statsAll[0].stackDist`. If both are missing but combat replay positions are
-available, compute the average distance to the commander tag over the
-available timeline. Otherwise `0`.
+`statsAll[0].stackDist`. A native (axilog) parse populates neither: its scalars
+live on `native.blocks.replay.by_entity[<entityId>].dist_to_com` /
+`.stack_dist` (world inches, with `-1` meaning "no commander"), matched to the
+player by account, or by character name when the row carries no account. If all
+of those are missing but combat replay positions are available, compute the
+average distance to the commander tag over the available timeline. Otherwise
+`0`.
 
-Implementation: `src/shared/dashboardMetrics.ts` (getPlayerDistanceToTag).
+Implementation: `createDistanceToTagResolver` in
+`packages/bridge-metrics/src/dashboardMetrics.ts` — use it wherever the fight
+`details` are in hand (Discord embeds, per-log card, stats aggregation).
+`getPlayerDistanceToTag` reads `statsAll` only and returns `0` on native logs.
 
 ## Kills / Downs / Against Downed (Target Stats)
 

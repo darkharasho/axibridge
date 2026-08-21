@@ -1,6 +1,7 @@
 import { Player } from './dpsReportTypes';
 import { computeDownContribution, computeOutgoingCrowdControl, computeSquadBarrier, computeSquadHealing, resolveDisruptionValue } from './combatMetrics';
 import { DisruptionMethod, DEFAULT_DISRUPTION_METHOD } from './metricsSettings';
+import { buildNativeDistanceLookup } from './nativePositioning';
 
 export const getPlayerDamage = (player: Player) =>
     player.dpsAll?.[0]?.damage || 0;
@@ -39,6 +40,28 @@ export const getPlayerDistanceToTag = (player: Player) => {
         return distToCom;
     }
     return stats?.stackDist || 0;
+};
+
+/**
+ * Distance to tag for one fight, resolving BOTH parse shapes.
+ *
+ * `getPlayerDistanceToTag` reads only `statsAll`, which a native (axilog) parse
+ * never populates — its scalars live on `native.blocks.replay.by_entity`. Any
+ * caller holding the fight `details` should use this instead, or it prints 0
+ * for the whole squad on native logs (the Discord embed and the per-log card
+ * both did). Returns `null` when neither source knows the distance, so callers
+ * can tell "unknown" from a genuine 0 (a commander's own distance).
+ */
+export const createDistanceToTagResolver = (details: any) => {
+    const nativeLookup = buildNativeDistanceLookup(details);
+    return (player: Player): number | null => {
+        const stats = player?.statsAll?.[0] as any;
+        const commanderDist = resolveCommanderDistance(stats?.distToCom);
+        if (commanderDist !== null) return Math.round(commanderDist);
+        if (stats?.stackDist !== undefined) return Math.round(Number(stats.stackDist)) || 0;
+        const native = nativeLookup(player as any);
+        return native === null ? null : Math.round(native);
+    };
 };
 
 export const getPlayerBreakbarDamage = (player: Player) =>

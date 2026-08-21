@@ -1,4 +1,6 @@
 import { getNativeReport } from './nativeEncounter';
+import { squadEntities } from './nativeRoster';
+import { normalizeAccountName } from './playerIdentity';
 
 /**
  * Native replay readers.
@@ -261,4 +263,49 @@ export const getDistanceScalars = (details: any): Map<number, DistanceScalars> =
         });
     }
     return out;
+};
+
+/**
+ * Per-player `distToCom`/`stackDist` from the native replay block, keyed by
+ * normalized account (and by character name for rows whose account is blank).
+ *
+ * On a native (axilog) parse `statsAll` carries no distance scalars at all, so
+ * any caller that reads only `statsAll` scores every player 0 — that is what
+ * made the Discord "Distance to Tag" list, and the per-log card, print 0 for
+ * the whole squad. Callers layer this behind their `statsAll` read, so real EI
+ * parses are untouched.
+ */
+export const buildNativeDistanceLookup = (
+    details: any,
+): ((player: { account?: string; name?: string } | null | undefined) => number | null) => {
+    const scalars = getDistanceScalars(details);
+    if (scalars.size === 0) return () => null;
+
+    const usable = (value: number | null | undefined): number | null =>
+        typeof value === 'number' && Number.isFinite(value) && value !== NO_DISTANCE && value >= 0
+            ? value
+            : null;
+
+    const byAccount = new Map<string, number>();
+    const byCharacter = new Map<string, number>();
+    for (const entity of squadEntities(getNativeReport(details) as any)) {
+        const scalar = scalars.get(entity.id);
+        if (!scalar) continue;
+        const distance = usable(scalar.distToCom) ?? usable(scalar.stackDist);
+        if (distance === null) continue;
+        const account = normalizeAccountName(String(entity.account || ''));
+        if (account && !byAccount.has(account)) byAccount.set(account, distance);
+        const character = String(entity.character || '');
+        if (character && !byCharacter.has(character)) byCharacter.set(character, distance);
+    }
+    if (byAccount.size === 0 && byCharacter.size === 0) return () => null;
+
+    return (player) => {
+        const account = normalizeAccountName(String(player?.account || ''));
+        const fromAccount = account ? byAccount.get(account) : undefined;
+        if (fromAccount !== undefined) return fromAccount;
+        const name = String(player?.name || '');
+        const fromName = name ? byCharacter.get(name) : undefined;
+        return fromName ?? null;
+    };
 };
