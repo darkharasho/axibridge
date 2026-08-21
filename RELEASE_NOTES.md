@@ -1,11 +1,11 @@
 # Release Notes
 
-Version v3.0.7 — August 21, 2026
+Version v3.0.8 — August 21, 2026
 
-## Conduit, Galeshot, and Antiquary now show up correctly
+## Raid, strike and fractal fights are named again
 
-The new parser was missing three elite specs, so a Conduit showed as a plain Revenant, a Galeshot as a plain Ranger, and an Antiquary as a plain Thief. Everything else about those players — damage, boons, cleanses — was already correct; only the class label was wrong.
+Every PvE log was coming through as "World vs World" — Samarog, Kanaxai, Whispering Shadow, all of them. The parser only knew how to name a fight after its map, and it had exactly one map table: the WvW one, which answers "World vs World" no matter what you ask it.
 
-The reason it slipped by is that a missing spec doesn't read as "unknown", it reads as "core build", so it looked like perfectly valid data.
+Fights now carry their own name, so a Samarog log says Samarog. This covers raid bosses, the older strikes, fractal CMs and golem practice runs, and multi-boss fights like Twin Largos and Bandit Trio get the name of the encounter rather than whichever half of it happened to trigger the log.
 
-NOTE: This applies to logs parsed from here on. Fights already sitting in your history keep the old label until they're re-parsed.
+NOTE: This applies to logs parsed from here on. Fights already in your history keep the old name until they're re-parsed.

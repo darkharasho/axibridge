@@ -159,8 +159,9 @@ const toStdTimestamp = (epochMs: number): string => {
  * - `players[].name` — axilog spells the character name `character_name`;
  *   `playerIdentity.getPlayerAccountKey` and several displays fall back to
  *   `name`. Owned by unit 8.
- * - `zone` — `encounter.map`, with the `fightName` prefix-strip left as the
- *   fallback for a log whose native parse failed.
+ * - `zone` — `encounter.encounter_name` for a PvE log (the boss/encounter
+ *   name), `encounter.map` for WvW, with the `fightName` prefix-strip left
+ *   as the fallback for a log whose native parse failed.
  * - `encounterDuration` — formatted from `encounter.duration_ms`, falling back
  *   to `durationMS`, which ei-json emits with the same value.
  * - `timeStart`/`timeEnd` (+ `*Std`) — from `encounter.started_at_unix`, the
@@ -236,8 +237,24 @@ export const applyEiCompatShims = (details: any, _logPath: string): any => {
     const encounter = details.native?.encounter;
     const nativeMap = typeof encounter?.map === 'string' ? encounter.map.trim() : '';
 
+    // PvE encounters name themselves; only WvW names itself after its map.
+    // axilog 1.5.0 added `encounter_name` (plus `kind`/`trigger_id`/
+    // `success`) and, in the same change, started emitting an EMPTY
+    // `encounter.map` for PvE logs -- because the WvW map table it used to
+    // fall through returned the literal "World vs World" for every raid,
+    // strike and fractal map id. That is the bug users saw: a night of Wing
+    // 1-4 raids listed as four "World vs World" fights.
+    //
+    // Reading `encounter_name` first rather than relying on the empty-map
+    // fallback below keeps this correct if a future axilog ever does learn
+    // PvE map names and fills `map` in again.
+    const nativeEncounterName =
+        typeof encounter?.encounter_name === 'string' ? encounter.encounter_name.trim() : '';
+
     if (details.zone === undefined) {
-        if (nativeMap) {
+        if (nativeEncounterName) {
+            details.zone = nativeEncounterName;
+        } else if (nativeMap) {
             details.zone = nativeMap;
         } else if (typeof details.fightName === 'string') {
             // `"Detailed WvW - Green Alpine Borderlands"` -> `"Green Alpine

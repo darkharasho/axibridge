@@ -187,6 +187,46 @@ describe('applyEiCompatShims', () => {
         expect(details.zone).toBe('Green Alpine Borderlands');
     });
 
+    it('names a PvE fight after its encounter, not its map', () => {
+        // The reported bug: a night of Wing 1-4 raids listed as four "World
+        // vs World" fights. axilog had no PvE identification at all, so
+        // `encounter.map` came back as the WvW table's fallback string for
+        // every raid map id, and `zone` read it straight through.
+        const details: any = {
+            fightName: 'Gorseval the Multifarious',
+            players: [],
+            native: {
+                axilog: {},
+                encounter: {
+                    kind: 'raid_wing',
+                    map: '',
+                    map_id: 1062,
+                    encounter_name: 'Gorseval the Multifarious',
+                    trigger_id: 15429,
+                    sub_category: 'SpiritVale',
+                    success: true,
+                },
+            },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.zone).toBe('Gorseval the Multifarious');
+    });
+
+    it('prefers encounter_name over a map name if axilog ever supplies both', () => {
+        // axilog blanks `map` for PvE today, so the empty-map fallback would
+        // reach the same answer by accident. Reading `encounter_name` FIRST
+        // is what keeps this correct if a PvE map-name table lands later.
+        const details: any = {
+            players: [],
+            native: {
+                axilog: {},
+                encounter: { kind: 'raid_wing', map: 'Spirit Vale', encounter_name: 'Gorseval the Multifarious' },
+            },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.zone).toBe('Gorseval the Multifarious');
+    });
+
     it('never overwrites values the parser already supplied', () => {
         const details: any = {
             fightName: 'X - Y',
