@@ -111,6 +111,57 @@ describe('skillOptions', () => {
         expect(dodge?.name).toBe('Dodge');
     });
 
+    it('labels the default dodge when the skill map holds the "Skill <id>" placeholder', () => {
+        // axilog names a skill from the arcdps log's own skill table and
+        // synthesizes `Skill <id>` when that table named nothing — a truthy
+        // string, so a plain `skillMap[id]?.name || …` chain takes it and the
+        // override never fires. Every log parsed before axilog learned the
+        // dodge name is persisted in exactly this shape.
+        const log = makeLog({
+            skillMap: { s23275: { name: 'Skill 23275', icon: 'dodge.png' } },
+            players: [{
+                account: 'Alice.1234',
+                profession: 'Berserker',
+                activeTimes: [30000],
+                rotation: [{ id: 23275, skills: [{ time: 100 }] }],
+            }],
+        });
+        const result = computeSkillUsageData([log]);
+        const dodge = result.skillOptions.find((s) => s.id === 's23275');
+        expect(dodge?.name).toBe('Dodge');
+        expect(dodge?.icon).toBe('dodge.png');
+    });
+
+    it('keeps the "Skill <id>" placeholder for an id with no override', () => {
+        // The GW2-API naming gap is axilog's to close; here the placeholder is
+        // still the honest answer, and must not be mistaken for a real name.
+        const log = makeLog({
+            skillMap: { s14404: { name: 'Skill 14404' } },
+            players: [{
+                account: 'Alice.1234',
+                profession: 'Berserker',
+                activeTimes: [30000],
+                rotation: [{ id: 14404, skills: [{ time: 100 }] }],
+            }],
+        });
+        const result = computeSkillUsageData([log]);
+        expect(result.skillOptions.find((s) => s.id === 's14404')?.name).toBe('Skill 14404');
+    });
+
+    it('does not mistake a real name that merely starts with "Skill" for a placeholder', () => {
+        const log = makeLog({
+            skillMap: { s23275: { name: 'Skill 999' } },
+            players: [{
+                account: 'Alice.1234',
+                profession: 'Berserker',
+                activeTimes: [30000],
+                rotation: [{ id: 23275, skills: [{ time: 100 }] }],
+            }],
+        });
+        const result = computeSkillUsageData([log]);
+        expect(result.skillOptions.find((s) => s.id === 's23275')?.name).toBe('Skill 999');
+    });
+
     it('includes icon from skillMap when present', () => {
         const result = computeSkillUsageData([makeLog()]);
         const sword = result.skillOptions.find((s) => s.id === 's1001');

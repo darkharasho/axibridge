@@ -5,6 +5,26 @@ const SPECIAL_SKILL_NAMES: Record<number, string> = {
     23275: 'Dodge',
 };
 
+/**
+ * True when `name` is not a real skill name — absent, blank, or the
+ * `"Skill <id>"` placeholder.
+ *
+ * axilog names a skill from the arcdps log's own skill table and synthesizes
+ * `"Skill <id>"` for every id that table left unnamed (its GW2-API catalog
+ * supplies icons and auto-attack status, but no names). That placeholder is a
+ * truthy string, so a plain `skillMap[sId]?.name || FALLBACK` chain takes it
+ * and no override downstream ever fires — which is why the dodge action still
+ * rendered as "Skill 23275" after it was given a label.
+ *
+ * Matched against THIS id only: `"Skill 999"` sitting on id 23275 is a real
+ * name (however odd), not a placeholder.
+ */
+export const isPlaceholderSkillName = (name: unknown, id: number): boolean => {
+    if (typeof name !== 'string') return true;
+    const trimmed = name.trim();
+    return trimmed === '' || trimmed === `Skill ${id}`;
+};
+
 export interface SkillUsageAccumulator {
     skillTotals: Map<string, number>;
     playerMap: Map<string, SkillUsagePlayer>;
@@ -61,7 +81,10 @@ export function ingestLogSkillUsage(log: any, acc: SkillUsageAccumulator): void 
             const count = rot.skills?.length || 0;
             if (count <= 0) return;
             const sId = `s${rot.id}`;
-            const sName = skillMap[sId]?.name || SPECIAL_SKILL_NAMES[rot.id] || `Skill ${rot.id}`;
+            const mappedName = skillMap[sId]?.name;
+            const sName = isPlaceholderSkillName(mappedName, rot.id)
+                ? (SPECIAL_SKILL_NAMES[rot.id] || `Skill ${rot.id}`)
+                : mappedName;
             const sIcon = skillMap[sId]?.icon;
             pr!.skillTotals[sId] = (pr!.skillTotals[sId] || 0) + count;
             acc.skillTotals.set(sId, (acc.skillTotals.get(sId) || 0) + count);

@@ -1027,12 +1027,56 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 // source: 'statsTargets' — summed over EVERY target this rollup
                 // sees, with no predicate.
                 const denomField = m.denomField || m.weightField || 'connectedDamageCount';
+                let sawTarget = false;
+                let sawDenomField = false;
                 if (p.statsTargets) {
                     p.statsTargets.forEach((t: any) => {
                         if (!t?.[0]) return;
+                        sawTarget = true;
+                        if (t[0][denomField] !== undefined) sawDenomField = true;
                         val += Number(t[0][m.field!] ?? 0);
                         denom += Number(t[0][denomField] ?? 0);
                     });
+                }
+                // A rate whose DENOMINATOR is not reported per target renders a
+                // hard 0 however good the numerator is. axilog splits
+                // `criticalRate` (the count of critical hits) per target but
+                // keeps its denominator `critableDirectDamageCount` on
+                // `statsAll[0]` only, which zeroed the Critical Rate column for
+                // every player. Where the whole-fight pair exists, use it.
+                //
+                // Substituting BOTH halves is the point: a whole-fight
+                // numerator over a per-target denominator — or the reverse —
+                // is not a rate, it is a ratio of two different populations.
+                //
+                // THREE guards, all load-bearing:
+                //
+                // `sawTarget` — there must be a populated per-target entry to
+                // have been silent about. An empty or absent statsTargets is a
+                // fight with no tracked target roster, not a field-subset
+                // payload, and substituting there would swap in statsAll's
+                // NPC/guard/siege-inclusive whole-fight numbers with nothing to
+                // justify them. Same guard, same reasoning as the enemy
+                // downs/kills substitution in detailsProcessing.ts.
+                //
+                // `!sawDenomField` — presence, never value. A player who took
+                // no critable swing at any tracked target has a real 0
+                // denominator and must keep it. Elite Insights emits the full
+                // per-target set with zeroes included, so this branch cannot
+                // fire on an EI payload that carries a target roster.
+                //
+                // `statsAll[denomField] !== undefined` — never trade a missing
+                // denominator for another missing one, which would leave the
+                // numerator whole-fight and the weight 0.
+                if (
+                    m.isRate
+                    && sawTarget
+                    && !sawDenomField
+                    && statsAll
+                    && (statsAll as any)[denomField] !== undefined
+                ) {
+                    val = Number((statsAll as any)[m.field!] ?? 0);
+                    denom = Number((statsAll as any)[denomField] ?? 0);
                 }
             }
             if (Number.isFinite(val)) {
@@ -1052,7 +1096,15 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 .flatMap((list: any) => list || [])
                 .reduce((sum: number, entry: any) => {
                     if (!entry?.id) return sum;
-                    return entry.id === battleStandardSkillId ? sum + (entry?.connectedHits || 0) : sum;
+                    if (entry.id !== battleStandardSkillId) return sum;
+                    // `connectedHits` when the backend reports it (Elite
+                    // Insights always does, zeroes included — a real 0 must
+                    // stay 0). axilog's targetDamageDist entries carry only
+                    // `hits`; its miss/block/evade/invuln flags live on
+                    // totalDamageDist alone, so `hits` is both the best
+                    // available count and, per target, the connected one.
+                    const hits = entry.connectedHits ?? entry.hits;
+                    return sum + (Number(hits) || 0);
                 }, 0);
             s.offenseTotals.battleStandardHits = (s.offenseTotals.battleStandardHits || 0) + connectedHits;
         }
