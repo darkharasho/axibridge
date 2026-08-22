@@ -6,7 +6,7 @@ import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FileP
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { AppLayout } from './app/AppLayout';
-import { selectSlicedLogs } from './app/selectSlicedLogs';
+import { selectSlicedLogs, computeIngestedIds, hasIngestedAllSlicedLogs } from './app/selectSlicedLogs';
 import { useLogsForStats } from './app/hooks/useLogsForStats';
 import { useFilePicker } from './app/hooks/useFilePicker';
 import { useWebUpload } from './app/hooks/useWebUpload';
@@ -390,7 +390,7 @@ function App() {
         // Compare against the array the worker was actually given. Using the
         // unsliced length here wedges this effect permanently whenever a slice
         // is active, and `calculating` logs never promote to `success`.
-        if (lastComputedLogCount < slicedLogsForStats.length) {
+        if (!hasIngestedAllSlicedLogs(lastComputedLogCount, slicedLogsForStats.length)) {
             return;
         }
         if (lastComputedAt < lastUploadCompleteAtRef.current) {
@@ -464,18 +464,12 @@ function App() {
 
         if (isActive && phase === 'streaming') {
             if (streamed === 0) return;
-            // Build set of log identifiers that the worker has ingested
-            // (first `streamed` entries in slicedLogsForStats order). This must
-            // walk the *sliced* array — `streamed` is the worker's own ingest
-            // counter over whatever array it was actually given, so indexing
-            // the unsliced `logsForStats` here would promote logs the worker
-            // never saw and strand genuinely ingested ones in `calculating`.
-            const ingestedIds = new Set<string>();
-            for (let i = 0; i < Math.min(streamed, slicedLogsForStats.length); i++) {
-                const log = slicedLogsForStats[i];
-                const id = String(log?.filePath || log?.id || '');
-                if (id) ingestedIds.add(id);
-            }
+            // Build the set of log identifiers the worker has ingested so far.
+            // Must walk the *sliced* array — `streamed` is the worker's own
+            // ingest counter over whatever array it was actually given, so
+            // indexing the unsliced `logsForStats` here would promote logs the
+            // worker never saw and strand genuinely ingested ones in `calculating`.
+            const ingestedIds = computeIngestedIds(slicedLogsForStats, streamed);
             if (ingestedIds.size === 0) return;
 
             setLogsDeferred((currentLogs) => {
