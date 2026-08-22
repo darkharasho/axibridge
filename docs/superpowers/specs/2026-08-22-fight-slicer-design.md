@@ -41,6 +41,10 @@ slice quietly pointing at different fights.
 The state lives in the store rather than in `StatsView` local state so every
 section, and the search palette, read one source and cannot disagree.
 
+Stale keys are harmless by construction — an excluded key naming a log that is no
+longer loaded simply matches nothing. The set is cleared when the log set is
+cleared, so a new session never starts partially sliced.
+
 ### Recompute
 
 `StatsView` derives `slicedLogs = logs.filter(l => !excluded.has(key(l)))` and passes
