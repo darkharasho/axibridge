@@ -6,6 +6,7 @@ import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FileP
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { AppLayout } from './app/AppLayout';
+import { selectSlicedLogs } from './app/selectSlicedLogs';
 import { useLogsForStats } from './app/hooks/useLogsForStats';
 import { useFilePicker } from './app/hooks/useFilePicker';
 import { useWebUpload } from './app/hooks/useWebUpload';
@@ -209,6 +210,16 @@ function App() {
         logsRef,
     } = useLogsForStats({ logs });
 
+    const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
+    // The aggregation input, after the ephemeral fight slice. Filtering *after*
+    // useLogsForStats deliberately bypasses that hook's 400ms/2500ms publish
+    // debounce, so slice toggles respond immediately rather than waiting on
+    // ingest churn.
+    const slicedLogsForStats = useMemo(
+        () => selectSlicedLogs(logsForStats, excludedFightKeys),
+        [logsForStats, excludedFightKeys]
+    );
+
     /**
      * An Axilog re-parse succeeded for these files. The healed details are
      * already in the DetailsCache, so all that is left is to stop the log rows
@@ -334,7 +345,7 @@ function App() {
         axilogCoverage,
         requestFlush
     } = useStatsAggregationWorker({
-        logs: logsForStats,
+        logs: slicedLogsForStats,
         mvpWeights,
         statsViewSettings,
         disruptionMethod,
@@ -348,7 +359,8 @@ function App() {
         const store = useStatsStore.getState();
         if (computedStats) {
             const inputsHash = hashAggregationSettings(mvpWeights, statsViewSettings, disruptionMethod)
-                + ':logs' + logsForStats.length;
+                + ':logs' + slicedLogsForStats.length
+                + ':slice' + [...excludedFightKeys].sort().join(',');
             store.setResult(
                 { stats: computedStats, skillUsageData: computedSkillUsageData },
                 inputsHash,
@@ -356,7 +368,7 @@ function App() {
         }
         store.setProgress(aggregationProgress);
         store.setDiagnostics(aggregationDiagnostics ?? null);
-    }, [computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, mvpWeights, statsViewSettings, disruptionMethod, logsForStats.length]);
+    }, [computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, mvpWeights, statsViewSettings, disruptionMethod, slicedLogsForStats.length, excludedFightKeys]);
 
     const lastUploadCompleteAtRef = useRef(0);
     const bulkStatsAwaitingRef = useRef(false);
@@ -375,7 +387,10 @@ function App() {
         if (lastComputedToken !== activeToken) {
             return;
         }
-        if (lastComputedLogCount < logsForStats.length) {
+        // Compare against the array the worker was actually given. Using the
+        // unsliced length here wedges this effect permanently whenever a slice
+        // is active, and `calculating` logs never promote to `success`.
+        if (lastComputedLogCount < slicedLogsForStats.length) {
             return;
         }
         if (lastComputedAt < lastUploadCompleteAtRef.current) {
@@ -403,7 +418,7 @@ function App() {
         });
         bulkStatsAwaitingRef.current = false;
         bulkFlushIdRef.current = null;
-    }, [computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, logsForStats.length, setLogsDeferred, aggregationProgress]);
+    }, [computeTick, lastComputedLogCount, lastComputedToken, activeToken, lastComputedAt, lastComputedFlushId, slicedLogsForStats.length, setLogsDeferred, aggregationProgress]);
 
     const { fetchLogDetails, scheduleDetailsHydration } = useDetailsHydration({
         viewRef,
@@ -450,10 +465,14 @@ function App() {
         if (isActive && phase === 'streaming') {
             if (streamed === 0) return;
             // Build set of log identifiers that the worker has ingested
-            // (first `streamed` entries in logsForStats order)
+            // (first `streamed` entries in slicedLogsForStats order). This must
+            // walk the *sliced* array — `streamed` is the worker's own ingest
+            // counter over whatever array it was actually given, so indexing
+            // the unsliced `logsForStats` here would promote logs the worker
+            // never saw and strand genuinely ingested ones in `calculating`.
             const ingestedIds = new Set<string>();
-            for (let i = 0; i < Math.min(streamed, logsForStats.length); i++) {
-                const log = logsForStats[i];
+            for (let i = 0; i < Math.min(streamed, slicedLogsForStats.length); i++) {
+                const log = slicedLogsForStats[i];
                 const id = String(log?.filePath || log?.id || '');
                 if (id) ingestedIds.add(id);
             }
@@ -485,7 +504,7 @@ function App() {
                 return changed ? next : currentLogs;
             });
         }
-    }, [logs, setLogsDeferred, aggregationProgress, logsForStats]);
+    }, [logs, setLogsDeferred, aggregationProgress, slicedLogsForStats]);
 
     useEffect(() => {
         if (bulkUploadMode && calculatingCount > 1) {
