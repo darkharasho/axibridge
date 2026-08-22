@@ -107,6 +107,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         isBulkUploadActive,
         setAllowLocalJson,
         setR2PreciseReplay,
+        setEiSettings,
     } = ctx;
 
     const [activeNavView, setActiveNavView] = useState(view);
@@ -443,6 +444,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onGlassmorphicSaved={setGlassmorphic}
                                 onParticlesEnabledSaved={setParticlesEnabled}
                                 onAllowLocalJsonSaved={setAllowLocalJson}
+                                onEiSettingsSaved={setEiSettings}
                                 onR2PreciseReplaySaved={setR2PreciseReplay}
                                 particlesEnabled={particlesEnabled}
                                 developerSettingsTrigger={developerSettingsTrigger}

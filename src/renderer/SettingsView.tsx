@@ -173,6 +173,8 @@ interface SettingsViewProps {
     onGlassmorphicSaved?: (glass: boolean) => void;
     onParticlesEnabledSaved?: (enabled: boolean) => void;
     onAllowLocalJsonSaved?: (enabled: boolean) => void;
+    /** Keeps App's copy (the dashboard Quick Settings card) in sync with edits made here. */
+    onEiSettingsSaved?: (settings: IEiParserSettings) => void;
     onR2PreciseReplaySaved?: (enabled: boolean) => void;
     colorPalette?: ColorPalette;
     glassSurfaces?: boolean;
@@ -259,7 +261,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onEiSettingsSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [reportWebhooks, setReportWebhooks] = useState<IReportWebhook[]>([]);
@@ -812,6 +814,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         const updated = { ...eiSettings, [key]: value };
         setEiSettings(updated);
         window.electronAPI.saveEiSettings({ [key]: value });
+        onEiSettingsSaved?.(updated);
     };
 
     const handleExportSettings = async () => {

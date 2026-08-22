@@ -13,6 +13,9 @@ import { useAppUpdater } from './app/hooks/useAppUpdater';
 import { useDashboardStats } from './app/hooks/useDashboardStats';
 import { useStatsDataProgress } from './app/hooks/useStatsDataProgress';
 import { useSettings } from './app/hooks/useSettings';
+import { useEiSettings } from './app/hooks/useEiSettings';
+import type { IStatsViewSettings } from './global.d';
+import { QuickSettingsCard } from './app/QuickSettingsCard';
 import { useUploadRetryQueue } from './app/hooks/useUploadRetryQueue';
 import { useAppNavigation } from './app/hooks/useAppNavigation';
 
@@ -82,6 +85,23 @@ function App() {
     });
 
     const appVersion = whatsNewVersion;
+
+    // EI parser settings — backs the dashboard Quick Settings card.
+    const { eiSettings, setEiSettings, setEiSetting } = useEiSettings();
+
+    // Quick Settings writes must persist immediately (SettingsView batches its
+    // stats-view edits behind a Save button; a dashboard toggle cannot).
+    const setQuickStatsViewSettings = useCallback((next: IStatsViewSettings) => {
+        setStatsViewSettings(next);
+        handleUpdateSettings({ statsViewSettings: next });
+    }, [setStatsViewSettings, handleUpdateSettings]);
+
+    const quickSettingsContext = useMemo(() => ({
+        eiSettings,
+        setEiSetting,
+        statsViewSettings,
+        setStatsViewSettings: setQuickStatsViewSettings,
+    }), [eiSettings, setEiSetting, statsViewSettings, setQuickStatsViewSettings]);
 
     // Upload Retry Queue
     const {
@@ -812,6 +832,9 @@ function App() {
                     </div>
                 </div>
             </div>
+
+            {/* Quick Settings card */}
+            <QuickSettingsCard context={quickSettingsContext} />
         </motion.div>
     );
 
@@ -1054,7 +1077,7 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setEiSettings, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,
