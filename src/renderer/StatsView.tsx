@@ -14,6 +14,8 @@ import { SectionPanel } from './stats/ui/SectionPanel';
 import { useStatsNavigation, STATS_TOC_GROUPS } from './stats/hooks/useStatsNavigation';
 import { GROUP_ACCENT_COLORS } from './stats/sectionColors';
 import { useStatsStore } from './stats/statsStore';
+import { statsLogKey } from './stats/utils/statsLogKey';
+import { selectSlicedLogs } from './app/selectSlicedLogs';
 import { useStatsUploads } from './stats/hooks/useStatsUploads';
 import { useStatsAggregationWorker, type AggregationDiagnosticsState, type AggregationProgressState } from './stats/hooks/useStatsAggregationWorker';
 import { isReplayElided } from './workers/replayTransfer';
@@ -83,6 +85,7 @@ import { PlayerComparisonSection } from './stats/sections/PlayerComparisonSectio
 import { ReplaySection } from './stats/sections/ReplaySection';
 import type { TagDistanceDeathFightSummary } from './stats/computeTagDistanceDeaths';
 import { StatsHeader } from './stats/ui/StatsHeader';
+import { FightSliceTray, FightSliceBanner } from './stats/components/FightSliceTray';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
 import { prefetchIconUrls, renderProfessionIcon as renderProfessionIconShared } from './stats/ui/StatsViewShared';
@@ -245,6 +248,14 @@ function resolveReplayFights(stats: any): any[] {
     });
 }
 
+/**
+ * The raw-log derivations below (spike/burst chart data, heal-effectiveness
+ * fallback) must honour the ephemeral fight slice, but an embedded StatsView
+ * renders a historical report and must never see the live session's slice.
+ */
+export const deriveStatsViewLogs = (logs: any[], excluded: Set<string>, embedded: boolean): any[] =>
+    embedded ? logs : selectSlicedLogs(logs, excluded);
+
 export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
@@ -318,6 +329,14 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const storeProgress = useStatsStore((s) => s.progress);
     const storeDiagnostics = useStatsStore((s) => s.diagnostics);
     const activeCategory = useStatsStore((s) => s.activeCategory);
+
+    // Raw-log derivations below must honour the fight slice, but an embedded
+    // StatsView renders a historical report and must never see the live slice.
+    const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
+    const derivationLogs = useMemo(
+        () => deriveStatsViewLogs(logs, excludedFightKeys, embedded),
+        [embedded, logs, excludedFightKeys]
+    );
 
     // For embedded consumers (web report, FightReportHistoryView), use the prop directly.
     // For the desktop path (non-embedded), prefer the store and fall back to the prop.
@@ -766,8 +785,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const healEffectivenessFights = useMemo(() => {
         const precomputed = Array.isArray((safeStats as any)?.healEffectiveness) ? (safeStats as any).healEffectiveness : [];
         if (precomputed.length > 0) return precomputed;
-        return computeHealEffectivenessData(logs);
-    }, [safeStats, logs]);
+        return computeHealEffectivenessData(derivationLogs);
+    }, [safeStats, derivationLogs]);
 
     const tagDistanceDeathsData: TagDistanceDeathFightSummary[] = useMemo(() => {
         return Array.isArray((safeStats as any)?.tagDistanceDeaths) ? (safeStats as any).tagDistanceDeaths : [];
@@ -810,6 +829,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     // Universal search palette (Ctrl/Cmd+K). Mounted unconditionally so it works
     // identically in desktop, embedded History, and embedded web hosts.
     const [searchOpen, setSearchOpen] = useState(false);
+    // Fight-slice tray (desktop-only; gated on !embedded everywhere it renders).
+    const [sliceTrayOpen, setSliceTrayOpen] = useState(false);
     const searchIndex = useMemo(() => buildSearchIndex({
         players: safeStats.playerSkillBreakdowns ?? [],
         // Filtered ONLY by noEgo exclusions — deliberately NOT by the embedded
@@ -846,7 +867,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         initialWebhookSelection,
         handleWebUpload,
         handleWebUploadToTarget,
-        handleDevMockUpload
+        handleDevMockUpload,
+        publishBlockedReason
     } = useStatsUploads({
         logs,
         stats: safeStats,
@@ -1460,7 +1482,7 @@ type SpikeFight = {
         const fights: SpikeFight[] = [];
         const playerMap = new Map<string, SpikePlayer>();
 
-        logs.forEach((log) => {
+        derivationLogs.forEach((log) => {
             const details = getDetails(log);
             if (!details || !details.players) return;
             const fightIndex = fights.length + 1;
@@ -1606,7 +1628,7 @@ type SpikeFight = {
         });
 
         return { fights, players };
-    }, [logs, safeStats, needsSpikeData, spikeDamageBasis]);
+    }, [derivationLogs, safeStats, needsSpikeData, spikeDamageBasis]);
 
     const allDamageData = useMemo<AllDamageData>(() => {
         if (!needsAllDamageData) return { fights: [], players: [] };
@@ -4153,10 +4175,28 @@ type SpikeFight = {
             return {
                 ...fight,
                 enemyClassCounts: match?.enemyClassCounts || {},
-                isWin: typeof match?.isWin === 'boolean' ? match.isWin : undefined
+                isWin: typeof match?.isWin === 'boolean' ? match.isWin : undefined,
+                fullLabel: match?.fullLabel
             };
         });
     }, [squadCompByFight, fightBreakdownRows]);
+
+    const mergeFightRoster = useStatsStore((s) => s.mergeFightRoster);
+    useEffect(() => {
+        if (embedded) return;
+        mergeFightRoster(
+            fightCompByFight.map((fight: any) => ({
+                id: String(fight.id),
+                label: String(fight.fullLabel || fight.mapName || fight.label || ''),
+                timestamp: Number(fight.timestamp || 0),
+                duration: String(fight.duration || ''),
+                isWin: fight.isWin,
+                enemyClassCounts: fight.enemyClassCounts,
+            })),
+            logs.map((log, index) => statsLogKey(log, index)),
+        );
+    }, [embedded, fightCompByFight, logs, mergeFightRoster]);
+
     const sortedSquadClassData = useMemo(() => [...squadClassData].sort(sortByCountDesc), [squadClassData]);
     const sortedEnemyClassData = useMemo(() => [...enemyClassData].sort(sortByCountDesc), [enemyClassData]);
 
@@ -4273,7 +4313,9 @@ type SpikeFight = {
                 initialWebhookSelection={initialWebhookSelection}
                 canUploadWeb={canUploadWeb}
                 actionsDisabled={statsActionsDisabled}
+                publishBlockedReason={publishBlockedReason}
                 onSearchClick={() => setSearchOpen(true)}
+                onToggleSliceTray={embedded ? undefined : () => setSliceTrayOpen((open) => !open)}
             />
 
             <AxilogCoverageBanner
@@ -4299,6 +4341,10 @@ type SpikeFight = {
                 devMockAvailable={devMockAvailable}
                 devMockUploadState={devMockUploadState}
             />
+
+            {!embedded && sliceTrayOpen && <FightSliceTray onClose={() => setSliceTrayOpen(false)} />}
+            {!embedded && <FightSliceBanner />}
+
             {/* Processing indicator: particle spinner with witty remarks (desktop) */}
             {(aggregationSettling.active || detailsProgress.active) && !embedded && (
                 <div className="mb-3 flex items-center justify-end gap-3 text-xs min-w-0">

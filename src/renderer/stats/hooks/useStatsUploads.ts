@@ -4,12 +4,25 @@ import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import { isReplayElided } from '../../workers/replayTransfer';
 import { buildReportMeta as buildReportMetaFromDetails } from '../utils/buildReportMeta';
 import { computeInitialWebhookSelection } from '../utils/reportWebhookSelection';
+import { useStatsStore } from '../statsStore';
 
 export interface PublishWebhookOption {
     id: string;
     name: string;
     isForum: boolean;
 }
+
+/**
+ * Publish always publishes every fight. The aggregation result handed to this hook
+ * is the SLICED result, so while a slice is active there is no unsliced stats body
+ * to publish — Phase A has only one live aggregation. Publish is therefore refused
+ * until the user clears the slice.
+ */
+export const canPublishWithSlice = (excludedFightKeys: Set<string>): boolean =>
+    excludedFightKeys.size === 0;
+
+export const PUBLISH_BLOCKED_BY_SLICE_REASON =
+    'Clear the fight slice to publish. Reports always contain every fight.';
 
 interface UseStatsUploadsProps {
     logs: any[];
@@ -29,6 +42,10 @@ export const useStatsUploads = ({
     onWebUpload
 }: UseStatsUploadsProps) => {
     const detailsCache = useContext(DetailsCacheContext);
+    const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
+    const publishBlockedReason = canPublishWithSlice(excludedFightKeys)
+        ? null
+        : PUBLISH_BLOCKED_BY_SLICE_REASON;
 
     const [devMockUploadState, setDevMockUploadState] = useState<{
         uploading: boolean;
@@ -142,6 +159,14 @@ export const useStatsUploads = ({
     const runWebUpload = async (repoFullName?: string, reportWebhookIds?: string[]) => {
         if (embedded) return;
         if (!onWebUpload) return;
+        // Publish always publishes every fight; while a slice is active the live
+        // aggregation result is the sliced one, so there is no unsliced stats body
+        // to send. The UI disables the button and surfaces publishBlockedReason as
+        // its tooltip; this is the belt-and-suspenders guard for any other caller.
+        if (publishBlockedReason) {
+            console.warn('[StatsView] Web upload blocked: a fight slice is active.');
+            return;
+        }
         // Replay data is dropped from in-flight worker results and only settles on
         // the final flush. Uploading before then publishes a report with no combat
         // replay (replay.json 404). Defer until the aggregation settles. The web
@@ -229,6 +254,7 @@ export const useStatsUploads = ({
         initialWebhookSelection,
         handleWebUpload,
         handleWebUploadToTarget,
-        handleDevMockUpload
+        handleDevMockUpload,
+        publishBlockedReason
     };
 };

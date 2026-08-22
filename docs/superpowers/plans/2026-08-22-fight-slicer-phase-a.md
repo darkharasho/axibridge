@@ -1013,12 +1013,24 @@ git commit -m "feat: add fight slice pill, tray and banner"
 
 ---
 
-### Task 6: Pin publish behaviour, and harden the hash
+### Task 6: Block publish while a slice is active, and harden the hash
 
-Publish must keep publishing every fight. It does so today only because the publish
-path reads `webUploadLogEntries` (`src/renderer/StatsView.tsx:4294`), a different
-prop from the `logs` being filtered. That is accidental and load-bearing, so it gets
-a test.
+**This task was rewritten mid-execution. The original rationale was factually wrong.**
+
+The plan originally asserted that publish keeps publishing every fight for free,
+because the publish path reads `webUploadLogEntries` rather than the filtered `logs`.
+That is false. `webUploadLogEntries` feeds only the publish popover's log list. The
+report *body* comes from `stats: safeStats` (`StatsView.tsx:850`), which
+`useStatsUploads.ts:110-113` spreads into `baseStats` and `:168` sends as the
+published `stats`. After Task 3, `safeStats` is the **sliced** aggregation. Publishing
+under an active slice would therefore emit a report whose stats cover only the kept
+fights while its `meta` and `logIds` still describe every fight.
+
+The binding constraint is "publish always publishes all". Publishing unsliced stats
+*while* sliced would need a second concurrent unsliced aggregation, which Phase A
+deliberately excludes. So publish is **disabled while a slice is active**, with a
+tooltip directing the user to clear the slice first. A slice can never reach publish
+because publish cannot run.
 
 The `AggregationLRUCache` key collision is **not** a live bug — nothing in `src/`
 imports `AggregationLRUCache` outside its own test, and the `inputsHash` written to
@@ -1030,6 +1042,7 @@ and do not describe it in the commit message as a bug fix.
 - Modify: `src/renderer/stats/statsStore.ts` (the duplicate copy at line 5)
 - Modify: `src/renderer/stats/__tests__/aggregationCache.test.ts`
 - Create: `src/renderer/app/__tests__/publishIgnoresSlice.test.ts`
+- Modify: `src/renderer/stats/hooks/useStatsUploads.ts` (guard the publish entry points)
 
 **Interfaces:**
 - Consumes: `excludedFightKeys` (Task 2), `selectSlicedLogs` (Task 3).
@@ -1063,42 +1076,83 @@ existing `describe('hashAggregationSettings')` block:
 Create `src/renderer/app/__tests__/publishIgnoresSlice.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { useStatsStore } from '../../stats/statsStore';
 import { selectSlicedLogs } from '../selectSlicedLogs';
 
 /**
  * Publish must always publish every fight, never the active slice.
  *
- * It does so because the publish path reads `webUploadLogEntries`, a different
- * prop from the `logs` the slice filters. That separation is accidental and
- * load-bearing — this test fails loudly if someone "helpfully" routes the
- * sliced array into the publish payload.
+ * After Task 3 the aggregation result IS the sliced result, and the published
+ * report body is built from that result. There is therefore no way to publish
+ * unsliced stats while a slice is active without a second aggregation, which
+ * Phase A excludes. Publish is blocked instead.
  */
-describe('publish ignores the active slice', () => {
-    const logs = [{ filePath: 'a' }, { filePath: 'b' }, { filePath: 'c' }];
-
-    it('slicing the aggregation input leaves the publish input untouched', () => {
-        const webUploadLogEntries = [...logs];
-        const sliced = selectSlicedLogs(logs, new Set(['b']));
-        expect(sliced).toHaveLength(2);
-        expect(webUploadLogEntries).toHaveLength(3);
+describe('publish is unreachable while a slice is active', () => {
+    beforeEach(() => {
+        useStatsStore.setState(useStatsStore.getInitialState());
     });
 
-    it('the publish payload builder is not fed the sliced array', async () => {
-        const source = await import('node:fs').then(fs =>
-            fs.readFileSync('src/renderer/StatsView.tsx', 'utf8'));
-        expect(source).toContain('logEntries={webUploadLogEntries}');
-        expect(source).not.toContain('logEntries={slicedLogsForStats}');
+    it('reports publish as blocked exactly when the slice is non-empty', () => {
+        expect(useStatsStore.getState().excludedFightKeys.size > 0).toBe(false);
+        useStatsStore.getState().toggleFightExcluded('b');
+        expect(useStatsStore.getState().excludedFightKeys.size > 0).toBe(true);
+        useStatsStore.getState().clearFightSlice();
+        expect(useStatsStore.getState().excludedFightKeys.size > 0).toBe(false);
+    });
+
+    it('slicing the aggregation input leaves the untouched log list intact', () => {
+        const logs = [{ filePath: 'a' }, { filePath: 'b' }, { filePath: 'c' }];
+        const sliced = selectSlicedLogs(logs, new Set(['b']));
+        expect(sliced).toHaveLength(2);
+        expect(logs).toHaveLength(3);
     });
 });
 ```
+
+Additionally, add a test in the same file that mounts nothing but asserts the guard
+exists in the publish hook — see Step 2a for the guard itself. Write it only after
+Step 2a so it tests real behaviour rather than source text:
+
+```ts
+    it('the publish hook refuses to upload while sliced', async () => {
+        const { canPublishWithSlice } = await import('../../stats/hooks/useStatsUploads');
+        expect(canPublishWithSlice(new Set())).toBe(true);
+        expect(canPublishWithSlice(new Set(['b']))).toBe(false);
+    });
+```
+
+- [ ] **Step 2a: Add the publish guard**
+
+In `src/renderer/stats/hooks/useStatsUploads.ts`, export a pure predicate beside the
+hook:
+
+```ts
+/**
+ * Publish always publishes every fight. The aggregation result handed to this hook
+ * is the SLICED result, so while a slice is active there is no unsliced stats body
+ * to publish — Phase A has only one live aggregation. Publish is therefore refused
+ * until the user clears the slice.
+ */
+export const canPublishWithSlice = (excludedFightKeys: Set<string>): boolean =>
+    excludedFightKeys.size === 0;
+```
+
+Read `excludedFightKeys` from `useStatsStore` inside the hook, and return a
+`publishBlockedReason: string | null` alongside the existing values — `null` when
+publishable, otherwise `'Clear the fight slice to publish. Reports always contain
+every fight.'`. Make every publish entry point (`handleWebUpload`,
+`handleWebUploadToTarget`) return early without uploading when it is non-null.
+
+Task 5's publish affordance must disable itself and surface that string as its
+tooltip. If Task 5 has already landed, update it here.
 
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run src/renderer/stats/__tests__/aggregationCache.test.ts src/renderer/app/__tests__/publishIgnoresSlice.test.ts`
 Expected: the three hash tests FAIL (fourth argument ignored, so the first assertion
-gets two equal hashes). The publish tests should PASS already — they are regression
-guards for behaviour that is currently correct.
+gets two equal hashes), and the `canPublishWithSlice` test FAILS (not yet exported).
+The two store/selector tests should PASS already.
 
 - [ ] **Step 3: Add the slice to both hash copies**
 
@@ -1169,6 +1223,113 @@ git commit -m "feat: include fight slice in aggregation hash, pin publish behavi
 
 ---
 
+### Task 7: Slice the two StatsView derivations that read raw logs
+
+**Added mid-execution.** The spec claimed no section reads raw `logs`; two do, so
+after Task 3 they would keep showing every fight while every other card shows the
+slice. The plan's own manual-verification item 2 requires otherwise.
+
+- `src/renderer/StatsView.tsx:1463` — spike/burst damage chart data, built by
+  `logs.forEach(...)`.
+- `src/renderer/StatsView.tsx:769` — heal effectiveness, which falls back to
+  `computeHealEffectivenessData(logs)` when the precomputed array is absent.
+
+**Files:**
+- Modify: `src/renderer/StatsView.tsx` (those two memos only)
+- Create: `src/renderer/stats/__tests__/statsViewDerivationsSlice.test.ts`
+
+**Interfaces:**
+- Consumes: `excludedFightKeys` (Task 2), `statsLogKey` (Task 1), `selectSlicedLogs`
+  (Task 3).
+- Produces: nothing new.
+
+Slice at the derivation site, **not** by filtering the `logs` prop. That prop is also
+the user's session log list, the source of the publish `meta`/`logIds`, and
+`CommanderView`'s input; slicing it upstream would silently slice all three —
+including publish metadata, which is exactly the defect Task 6 exists to prevent.
+
+Gate on `!embedded`. `excludedFightKeys` is global store state, while an embedded
+`StatsView` renders a historical report that must never be sliced by the live
+session's selection.
+
+`CommanderView` stays unsliced: it is a separate view with no slice affordance, and
+slicing it invisibly would be worse than leaving it whole.
+
+- [ ] **Step 1: Write the failing test**
+
+Create `src/renderer/stats/__tests__/statsViewDerivationsSlice.test.ts`. Test the
+selection rule directly rather than mounting `StatsView`, which is far too large to
+render in a unit test:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { selectSlicedLogs } from '../../app/selectSlicedLogs';
+
+const derivationLogs = (logs: any[], excluded: Set<string>, embedded: boolean) =>
+    embedded ? logs : selectSlicedLogs(logs, excluded);
+
+describe('StatsView raw-log derivations respect the slice', () => {
+    const logs = [{ filePath: 'a' }, { filePath: 'b' }, { filePath: 'c' }];
+
+    it('excludes unchecked fights in the live session', () => {
+        expect(derivationLogs(logs, new Set(['b']), false).map((l) => l.filePath))
+            .toEqual(['a', 'c']);
+    });
+
+    it('ignores the slice when embedded', () => {
+        expect(derivationLogs(logs, new Set(['b']), true)).toBe(logs);
+    });
+
+    it('is identity when nothing is excluded', () => {
+        expect(derivationLogs(logs, new Set(), false)).toBe(logs);
+    });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/renderer/stats/__tests__/statsViewDerivationsSlice.test.ts`
+Expected: FAIL — cannot resolve the test file's own import path until it is created,
+then PASS once written. If it passes immediately, the helper is a tautology: move the
+`derivationLogs` rule into `StatsView.tsx` and import it here instead.
+
+- [ ] **Step 3: Apply the rule in StatsView**
+
+In `src/renderer/StatsView.tsx`, add one memo near the top of the component:
+
+```ts
+    // Raw-log derivations below must honour the fight slice, but an embedded
+    // StatsView renders a historical report and must never see the live slice.
+    const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
+    const derivationLogs = useMemo(
+        () => (embedded ? logs : selectSlicedLogs(logs, excludedFightKeys)),
+        [embedded, logs, excludedFightKeys]
+    );
+```
+
+Then replace `logs` with `derivationLogs` in exactly two places: the `logs.forEach(...)`
+at the spike/burst memo and the `computeHealEffectivenessData(logs)` fallback — and in
+both memos' dependency arrays. Change nothing else that reads `logs`.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `npx vitest run src/renderer/stats src/renderer/app`
+Expected: PASS.
+
+Run: `npm run validate`
+Expected: exit 0.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/renderer/StatsView.tsx \
+        src/renderer/stats/__tests__/statsViewDerivationsSlice.test.ts
+git commit -m "fix: apply the fight slice to StatsView's raw-log derivations"
+```
+
+
+---
+
 ## Manual verification
 
 Automated tests cannot cover the worker round-trip. After Task 6, run `npm run dev`
@@ -1182,8 +1343,9 @@ and confirm by hand:
 4. In DevTools, confirm slice toggles do **not** re-send full log payloads: the
    worker's `payloadStore` should serve them as `ref` messages, so a toggle settles
    in roughly `23ms × sliced log count`.
-5. Publish while a slice is active. The published report must contain **every**
-   fight.
+5. Try to publish while a slice is active. The publish control must be **disabled**,
+   with a tooltip telling you to clear the slice first. Clear the slice, publish, and
+   confirm the report contains every fight.
 6. Start a bulk upload, slice mid-ingest, and confirm logs still promote from
    `calculating` to `success` — the Task 3 gate fix.
 7. Clear all logs, then load a new session — the new session starts unsliced.

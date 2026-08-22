@@ -20,12 +20,18 @@ interface CacheOptions {
  * Create a hash of settings for cache key generation.
  * Only includes keys that affect aggregation output.
  */
-export function hashAggregationSettings(mvpWeights: any, statsViewSettings: any, disruptionMethod: any): string {
-    const key = JSON.stringify({
-        mvpWeights,
-        statsViewSettings,
-        disruptionMethod
-    });
+export function hashAggregationSettings(
+    mvpWeights: any,
+    statsViewSettings: any,
+    disruptionMethod: any,
+    excludedFightKeys?: Set<string>
+): string {
+    // Sorted so the hash depends on which fights are excluded, not on the order
+    // the user clicked them.
+    const slice = excludedFightKeys && excludedFightKeys.size > 0
+        ? [...excludedFightKeys].sort()
+        : null;
+    const key = JSON.stringify({ mvpWeights, statsViewSettings, disruptionMethod, slice });
     // Use simple character distribution to create unique hash
     let hash = 0;
     for (let i = 0; i < key.length; i++) {

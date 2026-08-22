@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ChevronDown, Search, Sparkles, Trophy, UploadCloud } from 'lucide-react';
 import { PublishWebhookPopover } from './PublishWebhookPopover';
 import type { PublishWebhookOption } from '../hooks/useStatsUploads';
+import { FightSlicePill } from '../components/FightSliceTray';
 
 type StatsHeaderProps = {
     embedded: boolean;
@@ -19,8 +20,12 @@ type StatsHeaderProps = {
     initialWebhookSelection?: string[];
     canUploadWeb?: boolean;
     actionsDisabled?: boolean;
+    /** Non-null when a fight slice is active; publish is blocked and this string is the tooltip. */
+    publishBlockedReason?: string | null;
     /** Opens the universal search palette. Desktop-only chrome, like the rest of this row. */
     onSearchClick?: () => void;
+    /** Toggles the fight-slice tray. Desktop-only chrome, like the rest of this row. */
+    onToggleSliceTray?: () => void;
 };
 
 export const StatsHeader = ({
@@ -38,12 +43,14 @@ export const StatsHeader = ({
     initialWebhookSelection = [],
     canUploadWeb = true,
     actionsDisabled = false,
-    onSearchClick
+    publishBlockedReason = null,
+    onSearchClick,
+    onToggleSliceTray
 }: StatsHeaderProps) => {
-    const uploadDisabled = uploadingWeb || actionsDisabled || !canUploadWeb;
+    const uploadDisabled = uploadingWeb || actionsDisabled || !canUploadWeb || !!publishBlockedReason;
     const uploadDisabledReason = actionsDisabled
         ? 'Stats are still loading. Actions will enable when the dashboard is ready.'
-        : (!canUploadWeb ? 'Add at least one fight before uploading a web report.' : '');
+        : (publishBlockedReason || (!canUploadWeb ? 'Add at least one fight before uploading a web report.' : ''));
     const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
     const [publishOpen, setPublishOpen] = useState(false);
     const [publishTarget, setPublishTarget] = useState<string | null>(null);
@@ -117,12 +124,14 @@ export const StatsHeader = ({
                         onClick={onSearchClick}
                         title="Search (Ctrl+K)"
                         aria-label="Search"
-                        className="p-2 rounded-[4px] transition-colors hover:bg-[var(--bg-hover)]"
+                        className="inline-flex h-[26px] items-center gap-1.5 rounded-full px-3.5 text-[11px] font-semibold transition-colors hover:bg-[var(--bg-hover)]"
                         style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
                     >
-                        <Search className="w-4 h-4" />
+                        <Search className="w-3.5 h-3.5" />
+                        Search
                     </button>
                 )}
+                {onToggleSliceTray && <FightSlicePill onClick={onToggleSliceTray} />}
                 {devMockAvailable && (
                     <button
                         onClick={onDevMockUpload}
@@ -185,9 +194,9 @@ export const StatsHeader = ({
                             onCancel={() => setPublishOpen(false)}
                         />
                     )}
-                    {!canUploadWeb && !actionsDisabled && (
+                    {!actionsDisabled && (publishBlockedReason || !canUploadWeb) && (
                         <div className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md px-2 py-1 text-[11px] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-hover)', color: 'var(--text-secondary)' }}>
-                            Add at least one fight before uploading a web report.
+                            {publishBlockedReason || 'Add at least one fight before uploading a web report.'}
                         </div>
                     )}
                 </div>
