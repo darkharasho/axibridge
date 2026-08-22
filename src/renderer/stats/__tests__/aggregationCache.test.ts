@@ -30,6 +30,24 @@ describe('AggregationLRUCache', () => {
             const hash2 = hashAggregationSettings({ offensiveDps: 2.0 }, {}, 'disruption');
             expect(hash1).not.toBe(hash2);
         });
+
+        it('distinguishes two different slices of equal size', () => {
+            const a = hashAggregationSettings({}, {}, 'disruption', new Set(['f1', 'f2']));
+            const b = hashAggregationSettings({}, {}, 'disruption', new Set(['f3', 'f4']));
+            expect(a).not.toBe(b);
+        });
+
+        it('is order-independent within a slice', () => {
+            const a = hashAggregationSettings({}, {}, 'disruption', new Set(['f2', 'f1']));
+            const b = hashAggregationSettings({}, {}, 'disruption', new Set(['f1', 'f2']));
+            expect(a).toBe(b);
+        });
+
+        it('is unchanged for existing three-argument callers', () => {
+            const a = hashAggregationSettings({}, {}, 'disruption');
+            const b = hashAggregationSettings({}, {}, 'disruption', new Set());
+            expect(a).toBe(b);
+        });
     });
 
     describe('get/set operations', () => {

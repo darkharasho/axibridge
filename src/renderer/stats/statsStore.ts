@@ -2,8 +2,18 @@ import { create } from 'zustand';
 import type { AggregationProgressState, AggregationDiagnosticsState } from './hooks/useStatsAggregationWorker';
 
 // Hash function moved from aggregationCache.ts — used by App.tsx store sync
-export function hashAggregationSettings(mvpWeights: any, statsViewSettings: any, disruptionMethod: any): string {
-    const key = JSON.stringify({ mvpWeights, statsViewSettings, disruptionMethod });
+export function hashAggregationSettings(
+    mvpWeights: any,
+    statsViewSettings: any,
+    disruptionMethod: any,
+    excludedFightKeys?: Set<string>
+): string {
+    // Sorted so the hash depends on which fights are excluded, not on the order
+    // the user clicked them.
+    const slice = excludedFightKeys && excludedFightKeys.size > 0
+        ? [...excludedFightKeys].sort()
+        : null;
+    const key = JSON.stringify({ mvpWeights, statsViewSettings, disruptionMethod, slice });
     let hash = 0;
     for (let i = 0; i < key.length; i++) {
         hash = ((hash << 5) - hash) + key.charCodeAt(i);

@@ -850,7 +850,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         initialWebhookSelection,
         handleWebUpload,
         handleWebUploadToTarget,
-        handleDevMockUpload
+        handleDevMockUpload,
+        publishBlockedReason
     } = useStatsUploads({
         logs,
         stats: safeStats,
@@ -4294,6 +4295,7 @@ type SpikeFight = {
                 initialWebhookSelection={initialWebhookSelection}
                 canUploadWeb={canUploadWeb}
                 actionsDisabled={statsActionsDisabled}
+                publishBlockedReason={publishBlockedReason}
                 onSearchClick={() => setSearchOpen(true)}
                 onToggleSliceTray={embedded ? undefined : () => setSliceTrayOpen((open) => !open)}
             />

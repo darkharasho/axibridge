@@ -20,6 +20,8 @@ type StatsHeaderProps = {
     initialWebhookSelection?: string[];
     canUploadWeb?: boolean;
     actionsDisabled?: boolean;
+    /** Non-null when a fight slice is active; publish is blocked and this string is the tooltip. */
+    publishBlockedReason?: string | null;
     /** Opens the universal search palette. Desktop-only chrome, like the rest of this row. */
     onSearchClick?: () => void;
     /** Toggles the fight-slice tray. Desktop-only chrome, like the rest of this row. */
@@ -41,13 +43,14 @@ export const StatsHeader = ({
     initialWebhookSelection = [],
     canUploadWeb = true,
     actionsDisabled = false,
+    publishBlockedReason = null,
     onSearchClick,
     onToggleSliceTray
 }: StatsHeaderProps) => {
-    const uploadDisabled = uploadingWeb || actionsDisabled || !canUploadWeb;
+    const uploadDisabled = uploadingWeb || actionsDisabled || !canUploadWeb || !!publishBlockedReason;
     const uploadDisabledReason = actionsDisabled
         ? 'Stats are still loading. Actions will enable when the dashboard is ready.'
-        : (!canUploadWeb ? 'Add at least one fight before uploading a web report.' : '');
+        : (publishBlockedReason || (!canUploadWeb ? 'Add at least one fight before uploading a web report.' : ''));
     const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
     const [publishOpen, setPublishOpen] = useState(false);
     const [publishTarget, setPublishTarget] = useState<string | null>(null);
@@ -190,9 +193,9 @@ export const StatsHeader = ({
                             onCancel={() => setPublishOpen(false)}
                         />
                     )}
-                    {!canUploadWeb && !actionsDisabled && (
+                    {!actionsDisabled && (publishBlockedReason || !canUploadWeb) && (
                         <div className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md px-2 py-1 text-[11px] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-hover)', color: 'var(--text-secondary)' }}>
-                            Add at least one fight before uploading a web report.
+                            {publishBlockedReason || 'Add at least one fight before uploading a web report.'}
                         </div>
                     )}
                 </div>

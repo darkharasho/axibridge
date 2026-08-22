@@ -363,9 +363,9 @@ function App() {
     useEffect(() => {
         const store = useStatsStore.getState();
         if (computedStats) {
-            const inputsHash = hashAggregationSettings(mvpWeights, statsViewSettings, disruptionMethod)
-                + ':logs' + slicedLogsForStats.length
-                + ':slice' + [...excludedFightKeys].sort().join(',');
+            const inputsHash = hashAggregationSettings(
+                mvpWeights, statsViewSettings, disruptionMethod, excludedFightKeys
+            ) + ':logs' + slicedLogsForStats.length;
             store.setResult(
                 { stats: computedStats, skillUsageData: computedSkillUsageData },
                 inputsHash,
