@@ -73,4 +73,41 @@ describe('StatsHeader', () => {
 
         expect(screen.queryByRole('button', { name: 'Search' })).toBeNull();
     });
+
+    it('disables the publish button and surfaces the slice reason when a slice is active', () => {
+        render(
+            <StatsHeader
+                embedded={false}
+                totalLogs={4}
+                devMockAvailable={false}
+                devMockUploadState={{ uploading: false }}
+                onDevMockUpload={() => {}}
+                uploadingWeb={false}
+                onWebUpload={() => {}}
+                publishBlockedReason="Clear the fight slice to publish. Reports always contain every fight."
+            />
+        );
+
+        const button = screen.getByRole('button', { name: /Upload to Web/i });
+        expect(button).toBeDisabled();
+        expect(screen.getByTitle('Clear the fight slice to publish. Reports always contain every fight.')).toBeInTheDocument();
+    });
+
+    it('leaves the publish button enabled when publishBlockedReason is null', () => {
+        render(
+            <StatsHeader
+                embedded={false}
+                totalLogs={4}
+                devMockAvailable={false}
+                devMockUploadState={{ uploading: false }}
+                onDevMockUpload={() => {}}
+                uploadingWeb={false}
+                onWebUpload={() => {}}
+                publishBlockedReason={null}
+            />
+        );
+
+        const button = screen.getByRole('button', { name: /Upload to Web/i });
+        expect(button).not.toBeDisabled();
+    });
 });
