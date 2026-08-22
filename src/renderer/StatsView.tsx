@@ -4175,7 +4175,8 @@ type SpikeFight = {
             return {
                 ...fight,
                 enemyClassCounts: match?.enemyClassCounts || {},
-                isWin: typeof match?.isWin === 'boolean' ? match.isWin : undefined
+                isWin: typeof match?.isWin === 'boolean' ? match.isWin : undefined,
+                fullLabel: match?.fullLabel
             };
         });
     }, [squadCompByFight, fightBreakdownRows]);
@@ -4186,7 +4187,7 @@ type SpikeFight = {
         mergeFightRoster(
             fightCompByFight.map((fight: any) => ({
                 id: String(fight.id),
-                label: String(fight.label || ''),
+                label: String(fight.fullLabel || fight.mapName || fight.label || ''),
                 timestamp: Number(fight.timestamp || 0),
                 duration: String(fight.duration || ''),
                 isWin: fight.isWin,

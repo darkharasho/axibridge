@@ -54,7 +54,6 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
     const excluded = useStatsStore((s) => s.excludedFightKeys);
     const toggleFightExcluded = useStatsStore((s) => s.toggleFightExcluded);
     const setFightsExcluded = useStatsStore((s) => s.setFightsExcluded);
-    const clearFightSlice = useStatsStore((s) => s.clearFightSlice);
     const [query, setQuery] = useState('');
 
     const visible = useMemo(() => {
@@ -63,7 +62,20 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
         return roster.filter((f) => f.label.toLowerCase().includes(needle));
     }, [roster, query]);
 
-    const allIds = roster.map((f) => f.id);
+    // Roster is already sorted by timestamp (see mergeFightRoster), so the
+    // ordinal reflects each fight's chronological position regardless of
+    // whether the text filter is currently narrowing the visible list.
+    const ordinalById = useMemo(() => {
+        const map = new Map<string, number>();
+        roster.forEach((f, i) => map.set(f.id, i + 1));
+        return map;
+    }, [roster]);
+
+    // All / None / Invert operate on the filtered (visible) subset, not the
+    // whole roster — with the filter box sitting right next to these buttons,
+    // scoping them to the full roster while the list is narrowed would silently
+    // affect fights the user can't currently see.
+    const visibleIds = visible.map((f) => f.id);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === 'Escape') {
@@ -79,14 +91,14 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
         >
             <div className="flex items-center gap-2 border-b border-[color:var(--border-subtle)] px-3 py-2">
                 <span className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">Fights</span>
-                <button type="button" onClick={() => clearFightSlice()} className="slice-mini">All</button>
-                <button type="button" onClick={() => setFightsExcluded(allIds, true)} className="slice-mini">None</button>
+                <button type="button" onClick={() => setFightsExcluded(visibleIds, false)} className="slice-mini">All</button>
+                <button type="button" onClick={() => setFightsExcluded(visibleIds, true)} className="slice-mini">None</button>
                 <button
                     type="button"
                     className="slice-mini"
                     onClick={() => {
-                        const nowExcluded = allIds.filter((id) => !excluded.has(id));
-                        const nowIncluded = allIds.filter((id) => excluded.has(id));
+                        const nowExcluded = visibleIds.filter((id) => !excluded.has(id));
+                        const nowIncluded = visibleIds.filter((id) => excluded.has(id));
                         setFightsExcluded(nowIncluded, false);
                         setFightsExcluded(nowExcluded, true);
                     }}
@@ -96,8 +108,12 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
                 <button
                     type="button"
                     className="slice-mini"
-                    onClick={() => setFightsExcluded(
-                        roster.filter((f) => f.isWin !== true).map((f) => f.id), true)}
+                    onClick={() => {
+                        const visibleWinIds = visible.filter((f) => f.isWin === true).map((f) => f.id);
+                        const visibleLossIds = visible.filter((f) => f.isWin !== true).map((f) => f.id);
+                        setFightsExcluded(visibleLossIds, true);
+                        setFightsExcluded(visibleWinIds, false);
+                    }}
                 >
                     Wins only
                 </button>
@@ -109,9 +125,10 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
                 />
                 <button type="button" onClick={onClose} className="slice-mini ml-auto">Close</button>
             </div>
-            <div className="grid grid-cols-4 gap-2 p-3">
+            <div className="grid grid-cols-4 gap-2 p-3 max-h-[50vh] overflow-y-auto">
                 {visible.map((fight) => {
                     const isExcluded = excluded.has(fight.id);
+                    const ordinal = ordinalById.get(fight.id);
                     return (
                         <label
                             key={fight.id}
@@ -126,9 +143,9 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
                                 onChange={() => toggleFightExcluded(fight.id)}
                             />
                             <span className="min-w-0">
-                                <span className="block text-[11.5px] font-semibold">{fight.label}</span>
+                                <span className="block text-[11.5px] font-semibold truncate" title={fight.label}>{fight.label}</span>
                                 <span className="block text-[10px] text-[color:var(--text-secondary)]">
-                                    {formatClock(fight.timestamp)} · {fight.duration}
+                                    {ordinal ? `F${ordinal} · ` : ''}{formatClock(fight.timestamp)} · {fight.duration}
                                     {fight.isWin === true ? ' · Win' : fight.isWin === false ? ' · Loss' : ''}
                                 </span>
                                 <span className="mt-1 flex flex-wrap gap-0.5">

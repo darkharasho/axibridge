@@ -52,10 +52,48 @@ describe('FightSliceTray', () => {
         expect(useStatsStore.getState().excludedFightKeys.size).toBe(0);
     });
 
+    it('matches a real map-shaped label ("EBG: Klovan"), not just a "F1" ordinal', () => {
+        // Guards the regression: production used to overwrite fightRoster labels
+        // with ordinals ("F1", "F2", ...), which the filter box could never match
+        // against its own "map or landmark" placeholder text.
+        render(<FightSliceTray onClose={() => {}} />);
+        fireEvent.change(screen.getByPlaceholderText(/filter/i), { target: { value: 'EBG' } });
+        expect(screen.getByText('EBG: Klovan')).toBeInTheDocument();
+        expect(screen.queryByText('Red BL: Bravost')).not.toBeInTheDocument();
+        // The ordinal survives as a secondary "F1" marker alongside the map label.
+        expect(screen.getByText(/F1/)).toBeInTheDocument();
+    });
+
     it('wins-only excludes losses', () => {
         render(<FightSliceTray onClose={() => {}} />);
         fireEvent.click(screen.getByRole('button', { name: /wins only/i }));
         expect([...useStatsStore.getState().excludedFightKeys]).toEqual(['b']);
+    });
+
+    it('wins-only re-includes wins after None, so the two compose', () => {
+        render(<FightSliceTray onClose={() => {}} />);
+        fireEvent.click(screen.getByRole('button', { name: 'None' }));
+        expect(useStatsStore.getState().excludedFightKeys.size).toBe(2);
+        fireEvent.click(screen.getByRole('button', { name: /wins only/i }));
+        // 'a' is the win and must be re-included; 'b' is the loss and stays excluded.
+        expect([...useStatsStore.getState().excludedFightKeys]).toEqual(['b']);
+    });
+
+    it('All / None / Invert only act on the fights currently passing the filter', () => {
+        render(<FightSliceTray onClose={() => {}} />);
+        fireEvent.change(screen.getByPlaceholderText(/filter/i), { target: { value: 'Bravost' } });
+
+        fireEvent.click(screen.getByRole('button', { name: 'None' }));
+        // Only 'b' (Bravost) is visible under the filter, so only it gets excluded.
+        expect([...useStatsStore.getState().excludedFightKeys]).toEqual(['b']);
+
+        fireEvent.click(screen.getByRole('button', { name: 'All' }));
+        expect(useStatsStore.getState().excludedFightKeys.size).toBe(0);
+
+        fireEvent.click(screen.getByRole('button', { name: 'None' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Invert' }));
+        // Inverting under the filter flips only the visible fight ('b') back in.
+        expect(useStatsStore.getState().excludedFightKeys.size).toBe(0);
     });
 });
 
