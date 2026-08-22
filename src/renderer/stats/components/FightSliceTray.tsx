@@ -56,15 +56,17 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
     const setFightsExcluded = useStatsStore((s) => s.setFightsExcluded);
     const [query, setQuery] = useState('');
 
+    // The roster is stored oldest-first (see mergeFightRoster); the tray shows
+    // it newest-first so the fight you just finished is the first card. Only the
+    // display order flips — ordinals below still count from the oldest fight.
     const visible = useMemo(() => {
         const needle = query.trim().toLowerCase();
-        if (!needle) return roster;
-        return roster.filter((f) => f.label.toLowerCase().includes(needle));
+        const matched = needle ? roster.filter((f) => f.label.toLowerCase().includes(needle)) : roster;
+        return [...matched].reverse();
     }, [roster, query]);
 
-    // Roster is already sorted by timestamp (see mergeFightRoster), so the
-    // ordinal reflects each fight's chronological position regardless of
-    // whether the text filter is currently narrowing the visible list.
+    // Ordinals come from the chronological roster, not the reversed/filtered
+    // view, so a fight keeps the same number however the list is ordered.
     const ordinalById = useMemo(() => {
         const map = new Map<string, number>();
         roster.forEach((f, i) => map.set(f.id, i + 1));

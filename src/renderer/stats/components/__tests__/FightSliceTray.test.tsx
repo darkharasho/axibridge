@@ -22,6 +22,17 @@ describe('FightSliceTray', () => {
         expect(screen.getByText('Red BL: Bravost')).toBeInTheDocument();
     });
 
+    it('renders the newest fight first, but keeps chronological ordinals', () => {
+        render(<FightSliceTray onClose={() => {}} />);
+        const labels = screen.getAllByTitle(/EBG: Klovan|Red BL: Bravost/).map((el) => el.textContent);
+        // 'b' is the later fight (timestamp 2000) and must lead the list...
+        expect(labels).toEqual(['Red BL: Bravost', 'EBG: Klovan']);
+        // ...while still carrying F2, so the number tracks when the fight happened
+        // rather than where it happens to sit on screen.
+        const newest = screen.getByLabelText('Red BL: Bravost').closest('.slice-card');
+        expect(newest?.textContent).toContain('F2');
+    });
+
     it('shows each enemy profession as an icon with its count, not a bare swatch', () => {
         render(<FightSliceTray onClose={() => {}} />);
         // The count must be readable without hovering — the old swatch put it in a
