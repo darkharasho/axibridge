@@ -22,6 +22,25 @@ describe('FightSliceTray', () => {
         expect(screen.getByText('Red BL: Bravost')).toBeInTheDocument();
     });
 
+    it('shows each enemy profession as an icon with its count, not a bare swatch', () => {
+        render(<FightSliceTray onClose={() => {}} />);
+        // The count must be readable without hovering — the old swatch put it in a
+        // title attribute only, which screen readers and glancing users never saw.
+        expect(screen.getByText('\u00d74')).toBeInTheDocument();
+        expect(screen.getByText('\u00d72')).toBeInTheDocument();
+        const necro = screen.getByTitle('Necromancer: 4');
+        expect(necro).toBeInTheDocument();
+        expect(necro.querySelector('img')).toBeTruthy();
+    });
+
+    it('keeps a real checkbox per card even though the whole card is the hit target', () => {
+        render(<FightSliceTray onClose={() => {}} />);
+        const boxes = screen.getAllByRole('checkbox');
+        expect(boxes).toHaveLength(2);
+        expect(boxes[0].tagName).toBe('INPUT');
+        expect(boxes[0].closest('label')?.className).toContain('slice-card');
+    });
+
     it('still lists a fight after it is unchecked', () => {
         render(<FightSliceTray onClose={() => {}} />);
         fireEvent.click(screen.getByRole('checkbox', { name: /EBG: Klovan/i }));

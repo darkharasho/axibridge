@@ -124,12 +124,14 @@ export const StatsHeader = ({
                         onClick={onSearchClick}
                         title="Search (Ctrl+K)"
                         aria-label="Search"
-                        className="p-2 rounded-[4px] transition-colors hover:bg-[var(--bg-hover)]"
+                        className="inline-flex h-[26px] items-center gap-1.5 rounded-full px-3.5 text-[11px] font-semibold transition-colors hover:bg-[var(--bg-hover)]"
                         style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
                     >
-                        <Search className="w-4 h-4" />
+                        <Search className="w-3.5 h-3.5" />
+                        Search
                     </button>
                 )}
+                {onToggleSliceTray && <FightSlicePill onClick={onToggleSliceTray} />}
                 {devMockAvailable && (
                     <button
                         onClick={onDevMockUpload}
@@ -140,7 +142,6 @@ export const StatsHeader = ({
                         {devMockUploadState.uploading ? 'Building...' : 'Dev Mock Upload'}
                     </button>
                 )}
-                {onToggleSliceTray && <FightSlicePill onClick={onToggleSliceTray} />}
                 <div className="relative group" title={uploadDisabledReason} ref={uploadMenuRef}>
                     <div className="flex items-stretch">
                         <button

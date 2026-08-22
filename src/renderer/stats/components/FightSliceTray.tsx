@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useStatsStore } from '../statsStore';
-import { getProfessionColor } from '../../../shared/professionUtils';
+import { renderProfessionIcon } from '../ui/StatsViewShared';
 
 const formatClock = (timestamp: number) => {
     if (!Number.isFinite(timestamp) || timestamp <= 0) return '--:--';
@@ -18,7 +18,7 @@ export const FightSlicePill = ({ onClick }: { onClick: () => void }) => {
         <button
             type="button"
             onClick={onClick}
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${active
+            className={`inline-flex h-[26px] items-center gap-2 rounded-full border px-3.5 text-[11px] font-semibold transition-colors ${active
                 ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg-strong)] text-[color:var(--text-primary)]'
                 : 'border-[color:var(--border-default)] bg-[var(--bg-card)] text-[color:var(--text-secondary)]'}`}
         >
@@ -132,35 +132,39 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
                     return (
                         <label
                             key={fight.id}
-                            className={`flex items-start gap-2 rounded-[var(--radius-md)] border p-2 ${isExcluded
+                            className={`slice-card relative block cursor-pointer rounded-[var(--radius-md)] border py-2 pl-2 pr-6 ${isExcluded
                                 ? 'border-[color:var(--border-default)] bg-[var(--bg-card-inner)] opacity-40'
                                 : 'border-[color:var(--accent-border)] bg-[var(--accent-bg)]'}`}
                         >
+                            {/* The input covers the whole card so the card itself is the hit
+                                target, but it stays a real checkbox for keyboard and screen
+                                readers. `slice-card` supplies the visible tick badge. */}
                             <input
                                 type="checkbox"
                                 aria-label={fight.label}
                                 checked={!isExcluded}
                                 onChange={() => toggleFightExcluded(fight.id)}
                             />
-                            <span className="min-w-0">
-                                <span className="block text-[11.5px] font-semibold truncate" title={fight.label}>{fight.label}</span>
-                                <span className="block text-[10px] text-[color:var(--text-secondary)]">
-                                    {ordinal ? `F${ordinal} · ` : ''}{formatClock(fight.timestamp)} · {fight.duration}
-                                    {fight.isWin === true ? ' · Win' : fight.isWin === false ? ' · Loss' : ''}
-                                </span>
-                                <span className="mt-1 flex flex-wrap gap-0.5">
-                                    {Object.entries(fight.enemyClassCounts || {})
-                                        .sort((a, b) => b[1] - a[1])
-                                        .slice(0, 6)
-                                        .map(([profession, count]) => (
-                                            <span
-                                                key={profession}
-                                                title={`${profession}: ${count}`}
-                                                className="h-3 w-3 rounded-[2px]"
-                                                style={{ background: getProfessionColor(profession) }}
-                                            />
-                                        ))}
-                                </span>
+                            <span className="slice-card-badge" aria-hidden="true" />
+                            <span className="block text-[11.5px] font-semibold truncate" title={fight.label}>{fight.label}</span>
+                            <span className="block text-[10px] text-[color:var(--text-secondary)]">
+                                {ordinal ? `F${ordinal} · ` : ''}{formatClock(fight.timestamp)} · {fight.duration}
+                                {fight.isWin === true ? ' · Win' : fight.isWin === false ? ' · Loss' : ''}
+                            </span>
+                            <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                                {Object.entries(fight.enemyClassCounts || {})
+                                    .sort((a, b) => b[1] - a[1])
+                                    .slice(0, 6)
+                                    .map(([profession, count]) => (
+                                        <span
+                                            key={profession}
+                                            title={`${profession}: ${count}`}
+                                            className="inline-flex items-center gap-0.5 text-[9.5px] text-[color:var(--text-secondary)]"
+                                        >
+                                            {renderProfessionIcon(profession, undefined, 'w-3.5 h-3.5 object-contain')}
+                                            <span aria-label={`${count} ${profession}`}>&times;{count}</span>
+                                        </span>
+                                    ))}
                             </span>
                         </label>
                     );
