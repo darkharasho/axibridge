@@ -15,6 +15,7 @@ import { useStatsNavigation, STATS_TOC_GROUPS } from './stats/hooks/useStatsNavi
 import { GROUP_ACCENT_COLORS } from './stats/sectionColors';
 import { useStatsStore } from './stats/statsStore';
 import { statsLogKey } from './stats/utils/statsLogKey';
+import { selectSlicedLogs } from './app/selectSlicedLogs';
 import { useStatsUploads } from './stats/hooks/useStatsUploads';
 import { useStatsAggregationWorker, type AggregationDiagnosticsState, type AggregationProgressState } from './stats/hooks/useStatsAggregationWorker';
 import { isReplayElided } from './workers/replayTransfer';
@@ -247,6 +248,14 @@ function resolveReplayFights(stats: any): any[] {
     });
 }
 
+/**
+ * The raw-log derivations below (spike/burst chart data, heal-effectiveness
+ * fallback) must honour the ephemeral fight slice, but an embedded StatsView
+ * renders a historical report and must never see the live session's slice.
+ */
+export const deriveStatsViewLogs = (logs: any[], excluded: Set<string>, embedded: boolean): any[] =>
+    embedded ? logs : selectSlicedLogs(logs, excluded);
+
 export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
@@ -320,6 +329,14 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const storeProgress = useStatsStore((s) => s.progress);
     const storeDiagnostics = useStatsStore((s) => s.diagnostics);
     const activeCategory = useStatsStore((s) => s.activeCategory);
+
+    // Raw-log derivations below must honour the fight slice, but an embedded
+    // StatsView renders a historical report and must never see the live slice.
+    const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
+    const derivationLogs = useMemo(
+        () => deriveStatsViewLogs(logs, excludedFightKeys, embedded),
+        [embedded, logs, excludedFightKeys]
+    );
 
     // For embedded consumers (web report, FightReportHistoryView), use the prop directly.
     // For the desktop path (non-embedded), prefer the store and fall back to the prop.
@@ -768,8 +785,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const healEffectivenessFights = useMemo(() => {
         const precomputed = Array.isArray((safeStats as any)?.healEffectiveness) ? (safeStats as any).healEffectiveness : [];
         if (precomputed.length > 0) return precomputed;
-        return computeHealEffectivenessData(logs);
-    }, [safeStats, logs]);
+        return computeHealEffectivenessData(derivationLogs);
+    }, [safeStats, derivationLogs]);
 
     const tagDistanceDeathsData: TagDistanceDeathFightSummary[] = useMemo(() => {
         return Array.isArray((safeStats as any)?.tagDistanceDeaths) ? (safeStats as any).tagDistanceDeaths : [];
@@ -1465,7 +1482,7 @@ type SpikeFight = {
         const fights: SpikeFight[] = [];
         const playerMap = new Map<string, SpikePlayer>();
 
-        logs.forEach((log) => {
+        derivationLogs.forEach((log) => {
             const details = getDetails(log);
             if (!details || !details.players) return;
             const fightIndex = fights.length + 1;
@@ -1611,7 +1628,7 @@ type SpikeFight = {
         });
 
         return { fights, players };
-    }, [logs, safeStats, needsSpikeData, spikeDamageBasis]);
+    }, [derivationLogs, safeStats, needsSpikeData, spikeDamageBasis]);
 
     const allDamageData = useMemo<AllDamageData>(() => {
         if (!needsAllDamageData) return { fights: [], players: [] };
