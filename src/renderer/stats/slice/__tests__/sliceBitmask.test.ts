@@ -44,4 +44,21 @@ describe('sliceBitmask', () => {
     it('ignores ordinals outside the width when encoding', () => {
         expect(decodeSliceMask(encodeSliceMask([0, 99, -1], 3), 3)).toEqual([0]);
     });
+
+    it('rejects a token encoded at width 7 when decoded at width 8 (same-byte-bucket)', () => {
+        const token = encodeSliceMask([0, 2, 5], 7);
+        expect(decodeSliceMask(token, 8)).toBeNull();
+    });
+
+    it('rejects a token encoded at width 8 when decoded at width 7 (same-byte-bucket)', () => {
+        const token = encodeSliceMask([0, 2, 5], 8);
+        expect(decodeSliceMask(token, 7)).toBeNull();
+    });
+
+    it('empty slice rejects at neighboring width', () => {
+        const token7 = encodeSliceMask([], 7);
+        expect(decodeSliceMask(token7, 8)).toBeNull();
+        const token8 = encodeSliceMask([], 8);
+        expect(decodeSliceMask(token8, 7)).toBeNull();
+    });
 });

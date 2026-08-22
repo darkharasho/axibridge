@@ -3,9 +3,11 @@
  * slice. Bit `i` set means `fights[i]` is included; bytes are little-endian by
  * ordinal, so the first fight is the low bit of the first byte.
  *
- * The first byte of the payload is the width, which is what lets a stale link
- * (a report republished with more fights) be rejected instead of silently
- * decoding into the wrong fights.
+ * The payload is a bitmask of `width + 1` bits: bits [0, width) encode included
+ * ordinals, and bit at index `width` is a terminator bit (always set). This
+ * terminator distinguishes stale links (e.g., width 7 vs 8) within the same byte
+ * bucket, ensuring a report republished with one more fight rejects rather than
+ * silently decoding into the wrong ordinals.
  */
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -47,12 +49,14 @@ const fromBase64Url = (token: string): number[] | null => {
 };
 
 export function encodeSliceMask(includedOrdinals: number[], width: number): string {
-    const byteCount = Math.ceil(Math.max(0, width) / 8);
+    const byteCount = Math.ceil((Math.max(0, width) + 1) / 8);
     const bytes = new Array(byteCount).fill(0);
     includedOrdinals.forEach((ordinal) => {
         if (!Number.isInteger(ordinal) || ordinal < 0 || ordinal >= width) return;
         bytes[ordinal >> 3] |= 1 << (ordinal & 7);
     });
+    // Set terminator bit at index width
+    bytes[width >> 3] |= 1 << (width & 7);
     return toBase64Url(bytes);
 }
 
@@ -60,8 +64,24 @@ export function decodeSliceMask(token: string, width: number): number[] | null {
     if (!token) return null;
     const bytes = fromBase64Url(token);
     if (!bytes) return null;
-    const expectedByteCount = Math.ceil(Math.max(0, width) / 8);
-    if (bytes.length !== expectedByteCount) return null;
+
+    // Find the highest set bit (the terminator)
+    let highestBit = -1;
+    for (let i = bytes.length - 1; i >= 0; i--) {
+        if (bytes[i] !== 0) {
+            for (let bit = 7; bit >= 0; bit--) {
+                if (bytes[i] & (1 << bit)) {
+                    highestBit = i * 8 + bit;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    // The terminator bit must be at index width
+    if (highestBit !== width) return null;
+
     const included: number[] = [];
     for (let ordinal = 0; ordinal < width; ordinal++) {
         if (bytes[ordinal >> 3] & (1 << (ordinal & 7))) included.push(ordinal);
