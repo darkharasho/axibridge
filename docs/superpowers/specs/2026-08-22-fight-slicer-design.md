@@ -47,9 +47,21 @@ cleared, so a new session never starts partially sliced.
 
 ### Recompute
 
-`StatsView` derives `slicedLogs = logs.filter(l => !excluded.has(key(l)))` and passes
-that to `useStatsAggregationWorker` in place of `logs`. Nothing downstream changes:
-every section already reads the aggregation result rather than raw logs.
+`App.tsx` owns the aggregation input, not `StatsView` — `useLogsForStats` produces
+`logsForStats`, `App.tsx:337` feeds it to `useStatsAggregationWorker`, and
+`StatsView` only receives the computed result. So the filter goes in `App.tsx`:
+
+```ts
+const slicedLogsForStats = useMemo(
+    () => logsForStats.filter(l => !excludedFightKeys.has(statsLogKey(l))),
+    [logsForStats, excludedFightKeys]
+);
+```
+
+Filtering *after* `useLogsForStats` deliberately bypasses that hook's 400ms/2500ms
+publish debounce, so slice toggles respond immediately and independently of ingest
+churn. Nothing downstream changes: every section already reads the aggregation
+result rather than raw logs.
 
 This is cheaper than it looks. The worker holds a module-level `payloadStore` of
 full log payloads keyed by identity, which deliberately survives `reset`
@@ -83,20 +95,38 @@ cannot reach it. Publish keeps publishing every fight with no guard required.
 
 This is load-bearing and accidental, so it gets a test.
 
-### Aggregation cache — required fix
+### Bulk-settle gate — required fix
+
+`App.tsx:378` gates the promotion of `calculating` logs to `success` on
+`lastComputedLogCount < logsForStats.length`. `lastComputedLogCount` is what the
+worker actually ingested, which under a slice is the *sliced* count. With a slice
+active during ingest that comparison is permanently true, the effect returns early
+every time, and logs never leave `calculating` — the same stuck-ingestion failure
+class as the earlier Upload-to-Web regressions.
+
+The gate must compare against the sliced array's length, i.e. the same array handed
+to the worker. Everywhere `logsForStats.length` is used to reason about *what the
+worker has seen* (`App.tsx:378` and its dependency array at `App.tsx:406`) must move
+to `slicedLogsForStats.length`. Uses that reason about the whole session stay on
+`logsForStats`.
+
+This is the highest-risk part of the change and gets a dedicated test.
+
+### Aggregation cache — opportunistic, not required
 
 `AggregationLRUCache` keys entries on `` `${logCount}:${settingsHash}` ``
-(`src/renderer/stats/aggregationCache.ts:55`), and `hashAggregationSettings` covers
-only `mvpWeights`, `statsViewSettings` and `disruptionMethod` — nothing identifying
-*which* logs were aggregated.
+(`src/renderer/stats/aggregationCache.ts:55`), which would collide between two
+distinct slices of equal size. However, nothing in `src/` imports
+`AggregationLRUCache` outside its own test file, and the `inputsHash` written to
+`statsStore` (`App.tsx:350`) is never read in production. The collision is therefore
+unreachable today.
 
-That is safe today only because log count moves monotonically during ingest. With a
-slicer it is not: slicing fights 1–4 and then fights 5–8 both key `4:<identical
-hash>`, so the second slice is served the first slice's numbers — silently, with
-plausible values.
+`hashAggregationSettings` is also duplicated verbatim in `aggregationCache.ts:22`
+and `statsStore.ts:5`.
 
-Fold a slice signature (sorted excluded keys, hashed) into
-`hashAggregationSettings`. This must land with the feature, not after it.
+Fold a slice signature into both copies anyway — it is a few lines, and it stops the
+dead code becoming a live bug the moment someone wires the cache up. It is *not* a
+correctness fix for this feature and must not be described as one.
 
 ## UI
 
@@ -125,6 +155,8 @@ v1.
 
 ## Testing
 
+- Bulk settle: with a slice active and logs in `calculating`, the promotion effect
+  still runs and promotes — the regression guard for the `App.tsx:378` gate.
 - `hashAggregationSettings` produces different keys for two distinct slices of equal
   size — the collision case, explicitly.
 - Publish ignores the active slice.
