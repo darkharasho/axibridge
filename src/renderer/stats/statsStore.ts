@@ -121,6 +121,19 @@ const initialState = {
     fightRoster: [] as FightRosterEntry[],
 };
 
+/** Shallow-compares two enemyClassCounts maps: same keys, same values. Cheap by
+ *  design — mergeFightRoster runs on every aggregation, so this must not deep-clone
+ *  or serialize. A fresh object with identical counts still compares equal, which
+ *  keeps the no-op path (and its array-identity guarantee) intact. */
+function sameEnemyClassCounts(a?: Record<string, number>, b?: Record<string, number>): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    if (aKeys.length !== bKeys.length) return false;
+    return aKeys.every((key) => a[key] === b[key]);
+}
+
 export const useStatsStore = create<StatsStoreState>()((set) => ({
     ...initialState,
 
@@ -202,7 +215,8 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
                 return prev?.id === entry.id
                     && prev.label === entry.label
                     && prev.isWin === entry.isWin
-                    && prev.duration === entry.duration;
+                    && prev.duration === entry.duration
+                    && sameEnemyClassCounts(prev.enemyClassCounts, entry.enemyClassCounts);
             });
         return unchanged ? {} : { fightRoster: next };
     }),

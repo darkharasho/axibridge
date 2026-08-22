@@ -52,4 +52,24 @@ describe('fight roster', () => {
         useStatsStore.getState().mergeFightRoster([fight('a', 1)], ['a']);
         expect(useStatsStore.getState().fightRoster).toBe(before);
     });
+
+    it('preserves array identity when enemyClassCounts is a fresh object with the same values', () => {
+        // StatsView rebuilds enemyClassCounts from scratch on every effect run, so a
+        // truly-unchanged fight still arrives as a brand-new object each merge.
+        useStatsStore.getState().mergeFightRoster([fight('a', 1)], ['a']);
+        const before = useStatsStore.getState().fightRoster;
+        useStatsStore.getState().mergeFightRoster(
+            [{ ...fight('a', 1), enemyClassCounts: { Necromancer: 3 } }], ['a']);
+        expect(useStatsStore.getState().fightRoster).toBe(before);
+    });
+
+    it('treats a changed enemyClassCounts as a real change, not a no-op', () => {
+        useStatsStore.getState().mergeFightRoster([fight('a', 1)], ['a']);
+        const before = useStatsStore.getState().fightRoster;
+        useStatsStore.getState().mergeFightRoster(
+            [{ ...fight('a', 1), enemyClassCounts: { Necromancer: 3, Guardian: 1 } }], ['a']);
+        const roster = useStatsStore.getState().fightRoster;
+        expect(roster).not.toBe(before);
+        expect(roster[0].enemyClassCounts).toEqual({ Necromancer: 3, Guardian: 1 });
+    });
 });
