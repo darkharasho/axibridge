@@ -35,4 +35,13 @@ describe('statsStore fight slice', () => {
         useStatsStore.getState().clearFightSlice();
         expect(useStatsStore.getState().excludedFightKeys.size).toBe(0);
     });
+
+    it('clearFightSlice also empties the roster', () => {
+        useStatsStore.getState().mergeFightRoster(
+            [{ id: 'a', label: 'A', timestamp: 1, duration: '1:00' }], ['a']);
+        useStatsStore.getState().setFightsExcluded(['a'], true);
+        useStatsStore.getState().resetFightSlicing();
+        expect(useStatsStore.getState().excludedFightKeys.size).toBe(0);
+        expect(useStatsStore.getState().fightRoster).toEqual([]);
+    });
 });

@@ -220,6 +220,11 @@ function App() {
         [logsForStats, excludedFightKeys]
     );
 
+    const resetFightSlicing = useStatsStore((s) => s.resetFightSlicing);
+    useEffect(() => {
+        if (logs.length === 0) resetFightSlicing();
+    }, [logs.length, resetFightSlicing]);
+
     /**
      * An Axilog re-parse succeeded for these files. The healed details are
      * already in the DetailsCache, so all that is left is to stop the log rows

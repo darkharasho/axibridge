@@ -14,6 +14,7 @@ import { SectionPanel } from './stats/ui/SectionPanel';
 import { useStatsNavigation, STATS_TOC_GROUPS } from './stats/hooks/useStatsNavigation';
 import { GROUP_ACCENT_COLORS } from './stats/sectionColors';
 import { useStatsStore } from './stats/statsStore';
+import { statsLogKey } from './stats/utils/statsLogKey';
 import { useStatsUploads } from './stats/hooks/useStatsUploads';
 import { useStatsAggregationWorker, type AggregationDiagnosticsState, type AggregationProgressState } from './stats/hooks/useStatsAggregationWorker';
 import { isReplayElided } from './workers/replayTransfer';
@@ -4157,6 +4158,23 @@ type SpikeFight = {
             };
         });
     }, [squadCompByFight, fightBreakdownRows]);
+
+    const mergeFightRoster = useStatsStore((s) => s.mergeFightRoster);
+    useEffect(() => {
+        if (embedded) return;
+        mergeFightRoster(
+            fightCompByFight.map((fight: any) => ({
+                id: String(fight.id),
+                label: String(fight.label || ''),
+                timestamp: Number(fight.timestamp || 0),
+                duration: String(fight.duration || ''),
+                isWin: fight.isWin,
+                enemyClassCounts: fight.enemyClassCounts,
+            })),
+            logs.map((log, index) => statsLogKey(log, index)),
+        );
+    }, [embedded, fightCompByFight, logs, mergeFightRoster]);
+
     const sortedSquadClassData = useMemo(() => [...squadClassData].sort(sortByCountDesc), [squadClassData]);
     const sortedEnemyClassData = useMemo(() => [...enemyClassData].sort(sortByCountDesc), [enemyClassData]);
 

@@ -12,6 +12,15 @@ export function hashAggregationSettings(mvpWeights: any, statsViewSettings: any,
     return Math.abs(hash).toString(36);
 }
 
+export interface FightRosterEntry {
+    id: string;
+    label: string;
+    timestamp: number;
+    duration: string;
+    isWin?: boolean;
+    enemyClassCounts?: Record<string, number>;
+}
+
 interface StatsStoreState {
     result: any | null;
     inputsHash: string | null;
@@ -50,6 +59,13 @@ interface StatsStoreState {
     toggleFightExcluded: (key: string) => void;
     setFightsExcluded: (keys: string[], excluded: boolean) => void;
     clearFightSlice: () => void;
+    resetFightSlicing: () => void;
+
+    /** Every fight currently loaded, whether or not the active slice includes it.
+     *  The slice picker reads this, not the aggregation — a fight the user has
+     *  unchecked leaves the aggregation and would otherwise become un-recheckable. */
+    fightRoster: FightRosterEntry[];
+    mergeFightRoster: (fights: FightRosterEntry[], validKeys: string[]) => void;
 
     setResult: (result: any, inputsHash: string) => void;
     setProgress: (progress: AggregationProgressState) => void;
@@ -102,6 +118,7 @@ const initialState = {
     },
     replaySpotlightParty: null,
     excludedFightKeys: new Set<string>(),
+    fightRoster: [] as FightRosterEntry[],
 };
 
 export const useStatsStore = create<StatsStoreState>()((set) => ({
@@ -167,6 +184,28 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
         return { excludedFightKeys: next };
     }),
     clearFightSlice: () => set({ excludedFightKeys: new Set<string>() }),
+    resetFightSlicing: () => set({ excludedFightKeys: new Set<string>(), fightRoster: [] }),
+
+    mergeFightRoster: (fights, validKeys) => set((state) => {
+        const valid = new Set(validKeys);
+        const byId = new Map<string, FightRosterEntry>();
+        state.fightRoster.forEach((entry) => {
+            if (valid.has(entry.id)) byId.set(entry.id, entry);
+        });
+        fights.forEach((entry) => {
+            if (entry?.id && valid.has(entry.id)) byId.set(entry.id, entry);
+        });
+        const next = [...byId.values()].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        const unchanged = next.length === state.fightRoster.length
+            && next.every((entry, i) => {
+                const prev = state.fightRoster[i];
+                return prev?.id === entry.id
+                    && prev.label === entry.label
+                    && prev.isWin === entry.isWin
+                    && prev.duration === entry.duration;
+            });
+        return unchanged ? {} : { fightRoster: next };
+    }),
 
     getInitialState: () => initialState,
 }));
