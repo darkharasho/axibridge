@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ChevronDown, Search, Sparkles, Trophy, UploadCloud } from 'lucide-react';
 import { PublishWebhookPopover } from './PublishWebhookPopover';
 import type { PublishWebhookOption } from '../hooks/useStatsUploads';
+import { FightSlicePill } from '../components/FightSliceTray';
 
 type StatsHeaderProps = {
     embedded: boolean;
@@ -21,6 +22,8 @@ type StatsHeaderProps = {
     actionsDisabled?: boolean;
     /** Opens the universal search palette. Desktop-only chrome, like the rest of this row. */
     onSearchClick?: () => void;
+    /** Toggles the fight-slice tray. Desktop-only chrome, like the rest of this row. */
+    onToggleSliceTray?: () => void;
 };
 
 export const StatsHeader = ({
@@ -38,7 +41,8 @@ export const StatsHeader = ({
     initialWebhookSelection = [],
     canUploadWeb = true,
     actionsDisabled = false,
-    onSearchClick
+    onSearchClick,
+    onToggleSliceTray
 }: StatsHeaderProps) => {
     const uploadDisabled = uploadingWeb || actionsDisabled || !canUploadWeb;
     const uploadDisabledReason = actionsDisabled
@@ -133,6 +137,7 @@ export const StatsHeader = ({
                         {devMockUploadState.uploading ? 'Building...' : 'Dev Mock Upload'}
                     </button>
                 )}
+                {onToggleSliceTray && <FightSlicePill onClick={onToggleSliceTray} />}
                 <div className="relative group" title={uploadDisabledReason} ref={uploadMenuRef}>
                     <div className="flex items-stretch">
                         <button

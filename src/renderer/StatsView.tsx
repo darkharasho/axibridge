@@ -84,6 +84,7 @@ import { PlayerComparisonSection } from './stats/sections/PlayerComparisonSectio
 import { ReplaySection } from './stats/sections/ReplaySection';
 import type { TagDistanceDeathFightSummary } from './stats/computeTagDistanceDeaths';
 import { StatsHeader } from './stats/ui/StatsHeader';
+import { FightSliceTray, FightSliceBanner } from './stats/components/FightSliceTray';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
 import { prefetchIconUrls, renderProfessionIcon as renderProfessionIconShared } from './stats/ui/StatsViewShared';
@@ -811,6 +812,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     // Universal search palette (Ctrl/Cmd+K). Mounted unconditionally so it works
     // identically in desktop, embedded History, and embedded web hosts.
     const [searchOpen, setSearchOpen] = useState(false);
+    // Fight-slice tray (desktop-only; gated on !embedded everywhere it renders).
+    const [sliceTrayOpen, setSliceTrayOpen] = useState(false);
     const searchIndex = useMemo(() => buildSearchIndex({
         players: safeStats.playerSkillBreakdowns ?? [],
         // Filtered ONLY by noEgo exclusions — deliberately NOT by the embedded
@@ -4292,6 +4295,7 @@ type SpikeFight = {
                 canUploadWeb={canUploadWeb}
                 actionsDisabled={statsActionsDisabled}
                 onSearchClick={() => setSearchOpen(true)}
+                onToggleSliceTray={embedded ? undefined : () => setSliceTrayOpen((open) => !open)}
             />
 
             <AxilogCoverageBanner
@@ -4317,6 +4321,10 @@ type SpikeFight = {
                 devMockAvailable={devMockAvailable}
                 devMockUploadState={devMockUploadState}
             />
+
+            {!embedded && sliceTrayOpen && <FightSliceTray onClose={() => setSliceTrayOpen(false)} />}
+            {!embedded && <FightSliceBanner />}
+
             {/* Processing indicator: particle spinner with witty remarks (desktop) */}
             {(aggregationSettling.active || detailsProgress.active) && !embedded && (
                 <div className="mb-3 flex items-center justify-end gap-3 text-xs min-w-0">

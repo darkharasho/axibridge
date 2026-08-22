@@ -1507,6 +1507,16 @@ body.web-report #top-players .mvp-gold-icon-badge {
   animation: tooltip-in var(--duration-fast) var(--ease-out-expo) both;
 }
 
+.slice-mini {
+  border: 1px solid var(--border-default);
+  background: var(--bg-card-inner);
+  border-radius: var(--radius-md);
+  padding: 3px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 /* ── Glass mode transition smoothing ── */
 
 body.glass-surfaces .stats-view,
