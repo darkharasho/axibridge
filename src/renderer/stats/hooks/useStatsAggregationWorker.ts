@@ -5,6 +5,7 @@ import { reinjectElidedReplayFights } from '../../workers/replayTransfer';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import type { DetailsCache } from '../../cache/DetailsCache';
 import { LogPayloadCache } from '../utils/logPayloadRetention';
+import { statsLogKey } from '../utils/statsLogKey';
 import {
     detailsHaveAxilogData,
     summarizeAxilogCoverage,
@@ -529,7 +530,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     // still hydrating is not missing Axilog data, and counting
                     // it would flash a warning that retracts itself.
                     if (details) coverageEntriesRef.current.push({ log, hasAxilog: detailsHaveAxilogData(details) });
-                    const payloadKey = String(log?.filePath || log?.id || `idx-${index}`);
+                    const payloadKey = statsLogKey(log, index);
                     const entry = getPayloadEntryForWorker(log, details, index);
                     if (entry.sent) {
                         // Unchanged since last transfer — the worker still holds it.

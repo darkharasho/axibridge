@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import { isLogPendingIngestion } from '../../stats/hooks/useStatsAggregationWorker';
+import { statsLogKey } from '../../stats/utils/statsLogKey';
 
 interface UseLogsForStatsOptions {
     logs: ILogData[];
@@ -32,7 +33,7 @@ export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
             const details = detailsCache?.peek(log?.id) ?? null;
             const detailsId = details ? getStatsObjectId(details) : 0;
             const logId = details ? 0 : getStatsObjectId(log);
-            const identifier = String(log?.filePath || log?.id || `idx-${index}`);
+            const identifier = statsLogKey(log, index);
             const permalink = String(log?.permalink || (details as any)?.permalink || '');
             const uploadTime = Number(log?.uploadTime || (details as any)?.uploadTime || 0);
             const successValue = (details as any)?.success;
@@ -59,13 +60,13 @@ export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
         if (previous.length === 0) return entries;
         const previousByIdentity = new Map<string, ILogData>();
         previous.forEach((entry, index) => {
-            const identity = String(entry?.filePath || entry?.id || `idx-${index}`);
+            const identity = statsLogKey(entry, index);
             if (!identity) return;
             previousByIdentity.set(identity, entry);
         });
         let changed = false;
         const merged = entries.map((entry, index) => {
-            const identity = String(entry?.filePath || entry?.id || `idx-${index}`);
+            const identity = statsLogKey(entry, index);
             const previousEntry = previousByIdentity.get(identity);
             if (!previousEntry) return entry;
             const shouldCarryStatsLoaded = entry.detailsStatus !== 'loaded' && previousEntry.detailsStatus === 'loaded';
