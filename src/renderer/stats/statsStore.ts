@@ -43,6 +43,14 @@ interface StatsStoreState {
     };
     replaySpotlightParty: number | null;
 
+    /** Log keys (see statsLogKey) excluded from aggregation. Empty = no slice.
+     *  Ephemeral by design: never persisted, dies with the session. */
+    excludedFightKeys: Set<string>;
+
+    toggleFightExcluded: (key: string) => void;
+    setFightsExcluded: (keys: string[], excluded: boolean) => void;
+    clearFightSlice: () => void;
+
     setResult: (result: any, inputsHash: string) => void;
     setProgress: (progress: AggregationProgressState) => void;
     setDiagnostics: (diagnostics: AggregationDiagnosticsState | null) => void;
@@ -93,6 +101,7 @@ const initialState = {
         heatmap: 'off' as const,
     },
     replaySpotlightParty: null,
+    excludedFightKeys: new Set<string>(),
 };
 
 export const useStatsStore = create<StatsStoreState>()((set) => ({
@@ -147,6 +156,18 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
         },
         replaySpotlightParty: null,
     })),
+    toggleFightExcluded: (key) => set((state) => {
+        const next = new Set(state.excludedFightKeys);
+        if (next.has(key)) next.delete(key); else next.add(key);
+        return { excludedFightKeys: next };
+    }),
+    setFightsExcluded: (keys, excluded) => set((state) => {
+        const next = new Set(state.excludedFightKeys);
+        keys.forEach((key) => { if (excluded) next.add(key); else next.delete(key); });
+        return { excludedFightKeys: next };
+    }),
+    clearFightSlice: () => set({ excludedFightKeys: new Set<string>() }),
+
     getInitialState: () => initialState,
 }));
 
