@@ -192,11 +192,21 @@ export type SpikeDamagePlayer = {
     peakSkillName: string;
 };
 
+export interface SpikeDamagePlayerSeed {
+    account: string;
+    characterName: string;
+    profession: string;
+}
+
 export interface SpikeDamageAccumulator {
     fights: SpikeDamageFight[];
     playerMap: Map<string, SpikeDamagePlayer>;
     /** Running fight index counter. */
     fightIndex: number;
+    /** Per-fight player identity, parallel to `fights`. Not part of any
+     *  finalize output — this exists so a slice frame can re-run the player
+     *  fold without the original log. */
+    fightSeeds: Array<Record<string, SpikeDamagePlayerSeed>>;
 }
 
 export interface SpikeDamageIngestOptions {
@@ -208,7 +218,64 @@ export function createSpikeDamageAccumulator(): SpikeDamageAccumulator {
         fights: [],
         playerMap: new Map(),
         fightIndex: 0,
+        fightSeeds: [],
     };
+}
+
+/**
+ * Fold one fight's player values into the running player map.
+ *
+ * Shared by `ingestLogSpikeDamage` and `mergeSpikeDamageFrame` on purpose:
+ * one fold means slice-mode peaks cannot drift from all-fights peaks.
+ */
+export function foldSpikeFightIntoPlayers(
+    fight: SpikeDamageFight,
+    seeds: Record<string, SpikeDamagePlayerSeed>,
+    playerMap: Map<string, SpikeDamagePlayer>,
+): void {
+    Object.entries(fight.values).forEach(([key, value]) => {
+        const seed = seeds[key] || { account: key, characterName: '', profession: 'Unknown' };
+        const existing = playerMap.get(key) || {
+            key,
+            account: seed.account,
+            displayName: seed.account,
+            characterName: seed.characterName,
+            profession: seed.profession,
+            professionList: [seed.profession],
+            logs: 0,
+            peakHit: 0,
+            peak1s: 0,
+            peak5s: 0,
+            peak30s: 0,
+            peakHitDown: 0,
+            peak1sDown: 0,
+            peak5sDown: 0,
+            peak30sDown: 0,
+            peakFightLabel: '',
+            peakSkillName: '',
+        };
+        existing.logs += 1;
+        if (!existing.professionList.includes(seed.profession)) {
+            existing.professionList.push(seed.profession);
+        }
+        if (!existing.characterName && seed.characterName) {
+            existing.characterName = seed.characterName;
+        }
+        const hit = Number(value.hit || 0);
+        if (hit > existing.peakHit) {
+            existing.peakHit = hit;
+            existing.peakFightLabel = fight.fullLabel;
+            existing.peakSkillName = value.skillName || 'Unknown Skill';
+        }
+        if (value.burst1s > existing.peak1s) existing.peak1s = value.burst1s;
+        if (value.burst5s > existing.peak5s) existing.peak5s = value.burst5s;
+        if (value.burst30s > existing.peak30s) existing.peak30s = value.burst30s;
+        if (value.hitDown > existing.peakHitDown) existing.peakHitDown = value.hitDown;
+        if (value.burst1sDown > existing.peak1sDown) existing.peak1sDown = value.burst1sDown;
+        if (value.burst5sDown > existing.peak5sDown) existing.peak5sDown = value.burst5sDown;
+        if (value.burst30sDown > existing.peak30sDown) existing.peak30sDown = value.burst30sDown;
+        playerMap.set(key, existing);
+    });
 }
 
 export function ingestLogSpikeDamage(log: any, acc: SpikeDamageAccumulator, options: SpikeDamageIngestOptions = {}): void {
@@ -223,6 +290,7 @@ export function ingestLogSpikeDamage(log: any, acc: SpikeDamageAccumulator, opti
         avgPosition: computeFightAvgPosition(details),
     });
     const values: Record<string, SpikeDamageFightValue> = {};
+    const seeds: Record<string, SpikeDamagePlayerSeed> = {};
     const members = squadEntities(details?.native);
     members.forEach((entity) => {
         const account = String(entity?.account || entity?.character || 'Unknown');
@@ -289,46 +357,7 @@ export function ingestLogSpikeDamage(log: any, acc: SpikeDamageAccumulator, opti
             deathIndices5s: markerIndices(replay?.dead, bucketCount),
             skillRows
         };
-
-        const existing = acc.playerMap.get(key) || {
-            key,
-            account,
-            displayName: account,
-            characterName,
-            profession,
-            professionList: [profession],
-            logs: 0,
-            peakHit: 0,
-            peak1s: 0,
-            peak5s: 0,
-            peak30s: 0,
-            peakHitDown: 0,
-            peak1sDown: 0,
-            peak5sDown: 0,
-            peak30sDown: 0,
-            peakFightLabel: '',
-            peakSkillName: ''
-        };
-        existing.logs += 1;
-        if (!existing.professionList.includes(profession)) {
-            existing.professionList.push(profession);
-        }
-        if (!existing.characterName && characterName) {
-            existing.characterName = characterName;
-        }
-        if (hit > existing.peakHit) {
-            existing.peakHit = hit;
-            existing.peakFightLabel = fullLabel;
-            existing.peakSkillName = spike.skillName || 'Unknown Skill';
-        }
-        if (burst1s > existing.peak1s) existing.peak1s = burst1s;
-        if (burst5s > existing.peak5s) existing.peak5s = burst5s;
-        if (burst30s > existing.peak30s) existing.peak30s = burst30s;
-        if (hitDown > existing.peakHitDown) existing.peakHitDown = hitDown;
-        if (burst1sDown > existing.peak1sDown) existing.peak1sDown = burst1sDown;
-        if (burst5sDown > existing.peak5sDown) existing.peak5sDown = burst5sDown;
-        if (burst30sDown > existing.peak30sDown) existing.peak30sDown = burst30sDown;
-        acc.playerMap.set(key, existing);
+        seeds[key] = { account, characterName, profession };
     });
 
     const maxHit = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.hit || 0)), 0);
@@ -339,7 +368,7 @@ export function ingestLogSpikeDamage(log: any, acc: SpikeDamageAccumulator, opti
     const max1sDown = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.burst1sDown || 0)), 0);
     const max5sDown = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.burst5sDown || 0)), 0);
     const max30sDown = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.burst30sDown || 0)), 0);
-    acc.fights.push({
+    const fight: SpikeDamageFight = {
         id: log.filePath || log.id || `fight-${index + 1}`,
         shortLabel: `F${index + 1}`,
         fullLabel,
@@ -353,7 +382,10 @@ export function ingestLogSpikeDamage(log: any, acc: SpikeDamageAccumulator, opti
         max1sDown,
         max5sDown,
         max30sDown
-    });
+    };
+    acc.fights.push(fight);
+    acc.fightSeeds.push(seeds);
+    foldSpikeFightIntoPlayers(fight, seeds, acc.playerMap);
 }
 
 export function finalizeSpikeDamage(acc: SpikeDamageAccumulator): { fights: SpikeDamageFight[]; players: SpikeDamagePlayer[] } {
@@ -370,6 +402,25 @@ export function finalizeSpikeDamage(acc: SpikeDamageAccumulator): { fights: Spik
         .map((fight, i) => ({ ...fight, shortLabel: `F${i + 1}` }));
 
     return { fights, players };
+}
+
+export interface SpikeDamageFrame {
+    fight: SpikeDamageFight;
+    seeds: Record<string, SpikeDamagePlayerSeed>;
+}
+
+export function extractSpikeDamageFrame(acc: SpikeDamageAccumulator): SpikeDamageFrame {
+    if (acc.fights.length !== 1) {
+        throw new Error(`extractSpikeDamageFrame expects exactly one fight, got ${acc.fights.length}`);
+    }
+    return { fight: acc.fights[0], seeds: acc.fightSeeds[0] || {} };
+}
+
+export function mergeSpikeDamageFrame(target: SpikeDamageAccumulator, frame: SpikeDamageFrame): void {
+    target.fightIndex += 1;
+    target.fights.push(frame.fight);
+    target.fightSeeds.push(frame.seeds);
+    foldSpikeFightIntoPlayers(frame.fight, frame.seeds, target.playerMap);
 }
 
 export function computeSpikeDamageData(validLogs: any[], splitPlayersByClass = false) {
