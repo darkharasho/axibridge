@@ -632,7 +632,45 @@ is not already present. `embedded` is skipped because `FightReportHistoryView`
 mounts `StatsView` with `embedded` for historical reports, which must not disturb
 the live session's roster.
 
-- [ ] **Step 6: Verify**
+- [ ] **Step 6: Clear the slice when the log set empties**
+
+A stale exclusion key naming a log that is no longer loaded is harmless — it simply
+matches nothing. But a *new* session must never start partially sliced, so the set
+is dropped when the logs go to zero.
+
+Add the test to `src/renderer/stats/__tests__/statsStore.slice.test.ts`:
+
+```ts
+    it('clearFightSlice also empties the roster', () => {
+        useStatsStore.getState().mergeFightRoster(
+            [{ id: 'a', label: 'A', timestamp: 1, duration: '1:00' }], ['a']);
+        useStatsStore.getState().setFightsExcluded(['a'], true);
+        useStatsStore.getState().resetFightSlicing();
+        expect(useStatsStore.getState().excludedFightKeys.size).toBe(0);
+        expect(useStatsStore.getState().fightRoster).toEqual([]);
+    });
+```
+
+Add the action to `src/renderer/stats/statsStore.ts` — interface
+`resetFightSlicing: () => void;` and body:
+
+```ts
+    resetFightSlicing: () => set({ excludedFightKeys: new Set<string>(), fightRoster: [] }),
+```
+
+Then in `src/renderer/App.tsx`, beside the `slicedLogsForStats` memo from Task 3:
+
+```ts
+    const resetFightSlicing = useStatsStore((s) => s.resetFightSlicing);
+    useEffect(() => {
+        if (logs.length === 0) resetFightSlicing();
+    }, [logs.length, resetFightSlicing]);
+```
+
+Run: `npx vitest run src/renderer/stats/__tests__/statsStore.slice.test.ts`
+Expected: PASS.
+
+- [ ] **Step 7: Verify**
 
 Run: `npx vitest run src/renderer/stats src/renderer/__tests__`
 Expected: PASS.
@@ -640,12 +678,13 @@ Expected: PASS.
 Run: `npm run validate`
 Expected: exit 0.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/renderer/stats/statsStore.ts \
         src/renderer/stats/__tests__/statsStore.roster.test.ts \
-        src/renderer/StatsView.tsx
+        src/renderer/stats/__tests__/statsStore.slice.test.ts \
+        src/renderer/StatsView.tsx src/renderer/App.tsx
 git commit -m "feat: track a sticky fight roster for the slice picker"
 ```
 
@@ -1147,5 +1186,6 @@ and confirm by hand:
    fight.
 6. Start a bulk upload, slice mid-ingest, and confirm logs still promote from
    `calculating` to `success` — the Task 3 gate fix.
-7. Open a historical report in Fight Report History. No slice pill, tray or banner
+7. Clear all logs, then load a new session — the new session starts unsliced.
+8. Open a historical report in Fight Report History. No slice pill, tray or banner
    appears, and the live session's slice is unaffected.
