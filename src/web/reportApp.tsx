@@ -16,11 +16,11 @@ import { MetricDistributionCard } from '../renderer/stats/components/MetricDistr
 import type { SquadStatPlayer } from '../shared/squadStats';
 import type { ReportPayload, ReportIndexEntry } from '../shared/reportTypes';
 import { expandIconIndex, normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
-import { fetchSliceSidecar } from '../renderer/stats/slice/fetchSliceSidecar';
 import { encodeSliceMask, decodeSliceMask } from '../renderer/stats/slice/sliceBitmask';
 import { useStatsStore } from '../renderer/stats/statsStore';
 import type { SliceSidecar } from '../renderer/stats/slice/sliceTypes';
 import { useSliceRecompute } from './hooks/useSliceRecompute';
+import { useSliceSidecarLoader } from './hooks/useSliceSidecarLoader';
 import {
     ShieldCheck,
     CalendarDays,
@@ -322,11 +322,6 @@ export function ReportApp() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
-    const [sliceState, setSliceState] = useState<{
-        status: 'idle' | 'loading' | 'ready' | 'unavailable';
-        sidecar: SliceSidecar | null;
-        message: string | null;
-    }>({ status: 'idle', sidecar: null, message: null });
     const requestedView = useMemo(() => (initialSearchParams.get('view') || '').trim().toLowerCase(), [initialSearchParams]);
     const reportId = useMemo(
         () => initialSearchParams.get('report') || window.location.pathname.match(/\/reports\/([^/]+)\/?$/)?.[1] || null,
@@ -683,25 +678,17 @@ export function ReportApp() {
     const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
     const mergeFightRoster = useStatsStore((s) => s.mergeFightRoster);
 
-    const loadSliceSidecar = useCallback(async (): Promise<SliceSidecar | null> => {
-        if (sliceState.sidecar) return sliceState.sidecar;
-        const url = (report?.stats as any)?.sliceDataUrl;
-        if (!url) {
-            setSliceState({ status: 'unavailable', sidecar: null, message: 'This report was published without slice data.' });
-            return null;
-        }
-        setSliceState({ status: 'loading', sidecar: null, message: null });
-        const result = await fetchSliceSidecar(url, (report?.stats as any)?.sliceSettingsHash || null);
-        if (!result.ok) {
-            setSliceState({ status: 'unavailable', sidecar: null, message: result.message });
-            return null;
-        }
-        // The tray reads fightRoster, so the sidecar's frozen publish order
-        // becomes the roster — ordinals and tray cards agree by construction.
-        mergeFightRoster(result.sidecar.fights, result.sidecar.fights.map((f) => f.id));
-        setSliceState({ status: 'ready', sidecar: result.sidecar, message: null });
-        return result.sidecar;
-    }, [report, sliceState.sidecar, mergeFightRoster]);
+    // The tray reads fightRoster, so the sidecar's frozen publish order becomes
+    // the roster — ordinals and tray cards agree by construction.
+    const handleSidecarLoaded = useCallback((sidecar: SliceSidecar) => {
+        mergeFightRoster(sidecar.fights, sidecar.fights.map((f) => f.id));
+    }, [mergeFightRoster]);
+
+    const { sliceState, loadSliceSidecar } = useSliceSidecarLoader({
+        url: (report?.stats as any)?.sliceDataUrl,
+        settingsHash: (report?.stats as any)?.sliceSettingsHash || null,
+        onSidecar: handleSidecarLoaded,
+    });
 
     const includedOrdinals = useMemo(() => {
         const sidecar = sliceState.sidecar;
