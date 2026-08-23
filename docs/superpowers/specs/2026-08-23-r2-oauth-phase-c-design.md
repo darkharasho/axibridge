@@ -65,8 +65,9 @@ PUT /accounts/{account_id}/r2/buckets/{bucket_name}/objects/{object_key}
 It takes a plain `Authorization: Bearer` token. So an OAuth access token holding
 `workers-r2.write` can upload a sidecar with **no API token and no SigV4 at all**.
 
-Confirmed empirically: an OAuth access token (Wrangler's, as a stand-in) authenticates
-successfully against `GET /accounts/{id}/r2/buckets`. OAuth bearer → R2 REST API works.
+Confirmed empirically, twice: first on Wrangler's token as a stand-in, then on a real
+third-party client holding `workers-r2.write` (probe 2), which drove the entire
+provisioning sequence. OAuth bearer → R2 REST API works.
 
 Constraints that come with this path:
 
@@ -109,6 +110,10 @@ The R2 scopes that *do* exist:
 | `workers-r2-bucket-item.write` | Workers R2 Storage Bucket Item Write |
 | `workers-r2-bucket-item.read` | Workers R2 Storage Bucket Item Read |
 
+Only the first is needed: `workers-r2.write` implies read, and the `bucket-item` pair
+grants the S3 API only — it cannot create a bucket, enable `r2.dev`, or set CORS. Both
+verified in probe 2.
+
 `POST /accounts/{id}/r2/temp-access-credentials` is not a way around this: it requires
 `parentAccessKeyId`, so it derives from an API token that must already exist.
 
@@ -148,7 +153,11 @@ GA on 2026-06-03. Desktop applications are an explicitly supported client type:
 So AxiBridge registers its own public client — no client secret shipped in the
 binary, no borrowing of Wrangler's client ID.
 
-Registration is a one-time act by the maintainer, not the user:
+Registration is a one-time act by the maintainer, not the user. It can be done in the
+dashboard, or via `POST /accounts/{id}/oauth_clients` — but that endpoint needs Super
+Administrator, Administrator, or the `OAuth Clients Write` permission, which **Wrangler's
+own OAuth grant does not have** (it returns a bare `10000 Authentication error`). Use the
+dashboard unless a token with that permission already exists.
 
 - Create the client under **Manage account → OAuth clients**
 - `grant_types: ["authorization_code"]`, `response_types: ["code"]`,
@@ -277,6 +286,13 @@ One failure mode is invisible from the client side and worth handling by name:
 account that simply does not appear in the consent screen's account list. A user in a
 guild-owned Cloudflare account may hit this and have no idea why their account is
 missing; the empty-account-list message should name it.
+
+A second one is invisible for a different reason: a `403` whose body is the plain text
+`error code: 1010` is Cloudflare's WAF rejecting the request's User-Agent, not an
+authorization failure. It can strike the token exchange, any REST call, or the public
+`r2.dev` verification read. Detect it by body text and say "blocked by Cloudflare, not a
+permissions problem" — never "sign in again", which is the wrong remedy and loses the
+user's session for nothing.
 
 ## Open questions
 
