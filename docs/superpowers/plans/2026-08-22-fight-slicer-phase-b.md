@@ -1,5 +1,11 @@
 # Fight Slicer Phase B — Web Report Slicing Implementation Plan
 
+> **Status: SHIPPED.** All 21 tasks landed and merged to `main` in PR #41
+> (merge commit `4149e1f8`, 2026-08-23). The checkboxes below were never ticked
+> during subagent-driven implementation — the commit log, not this file, is the
+> record of what was built. Kept for the design rationale and the global
+> constraints, which still bind.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let a viewer of a published AxiBridge web report select a subset of fights and see every stat recomputed for just those fights, and share that selection as a URL.
