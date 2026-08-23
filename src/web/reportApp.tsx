@@ -18,9 +18,9 @@ import type { ReportPayload, ReportIndexEntry } from '../shared/reportTypes';
 import { expandIconIndex, normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
 import { fetchSliceSidecar } from '../renderer/stats/slice/fetchSliceSidecar';
 import { encodeSliceMask, decodeSliceMask } from '../renderer/stats/slice/sliceBitmask';
-import { mergeSliceFrames } from '../renderer/stats/slice/mergeSliceFrames';
 import { useStatsStore } from '../renderer/stats/statsStore';
 import type { SliceSidecar } from '../renderer/stats/slice/sliceTypes';
+import { useSliceRecompute } from './hooks/useSliceRecompute';
 import {
     ShieldCheck,
     CalendarDays,
@@ -703,26 +703,29 @@ export function ReportApp() {
         return result.sidecar;
     }, [report, sliceState.sidecar, mergeFightRoster]);
 
-    const slicedStats = useMemo(() => {
+    const includedOrdinals = useMemo(() => {
         const sidecar = sliceState.sidecar;
         if (!sidecar || excludedFightKeys.size === 0) return null;
         const included = sidecar.fights
             .map((fight, ordinal) => ({ fight, ordinal }))
             .filter(({ fight }) => !excludedFightKeys.has(fight.id))
             .map(({ ordinal }) => ordinal);
-        if (included.length === 0) return null;
-        return mergeSliceFrames({
-            sidecar,
-            includedOrdinals: included,
-            // Task 15 review round 2 (R15-6): the viewer has no settings of
-            // its own in slice mode, so it must hash/merge from the SAME
-            // published values the sidecar was built under, or its
-            // settingsHash can never agree with the publisher's.
-            mvpWeights: (report?.stats as any)?.mvpWeights,
-            statsViewSettings: (report?.stats as any)?.statsViewSettings,
-            disruptionMethod: (report?.stats as any)?.disruptionMethod,
-        }).stats;
-    }, [sliceState.sidecar, excludedFightKeys, report]);
+        return included.length > 0 ? included : null;
+    }, [sliceState.sidecar, excludedFightKeys]);
+
+    // Task 15 review round 2 (R15-6): the viewer has no settings of its own
+    // in slice mode, so it must hash/merge from the SAME published values the
+    // sidecar was built under, or its settingsHash can never agree with the
+    // publisher's. Merging 25 frames and running finalize() costs about what
+    // a full aggregation costs, so — unlike Task 18's synchronous useMemo —
+    // this now round-trips through the stats worker (Task 20).
+    const { stats: slicedStats, computing: sliceComputing } = useSliceRecompute({
+        sidecar: sliceState.sidecar,
+        includedOrdinals,
+        mvpWeights: (report?.stats as any)?.mvpWeights,
+        statsViewSettings: (report?.stats as any)?.statsViewSettings,
+        disruptionMethod: (report?.stats as any)?.disruptionMethod,
+    });
 
     const requestedSlice = useMemo(() => (initialSearchParams.get('slice') || '').trim(), [initialSearchParams]);
     const [sliceLinkStatus, setSliceLinkStatus] = useState<string | null>(null);
@@ -1887,9 +1890,9 @@ export function ReportApp() {
                     </div>
                     <div ref={statsWrapperRef} onWheelCapture={handleStatsWheel} className="flex-1 min-w-0">
                         <div id="stats-view-top">
-                            {(sliceLinkStatus || sliceState.message) && (
+                            {(sliceLinkStatus || sliceState.message || sliceComputing) && (
                                 <div className="mb-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300">
-                                    {sliceLinkStatus || sliceState.message}
+                                    {sliceLinkStatus || sliceState.message || (sliceComputing ? 'Recomputing…' : null)}
                                 </div>
                             )}
                             <StatsView
