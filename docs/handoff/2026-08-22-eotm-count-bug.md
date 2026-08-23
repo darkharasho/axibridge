@@ -139,7 +139,7 @@ One upstream defect, not three:
 Shipped as **axilog v1.5.1**; AxiBridge's `@axiapps/axilog` pin is bumped to
 `1.5.1` (exact, no caret). Downstream consumers that parse whole logs through
 `axilog_api` went out alongside it: **arcdps-axipulse v0.4.3** and
-**axipulse v0.4.1**.
+**axipulse v0.2.1**.
 
 Verified end-to-end through AxiBridge's own parse path
 (`parseFileEi` → `partitionSquadPlayers`) across all 12 EotM logs:
