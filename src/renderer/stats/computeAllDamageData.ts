@@ -53,6 +53,13 @@ export interface AllDamageAccumulator {
     playerAgg: Map<string, AllDamagePlayer>;
     /** Running fight index counter. */
     fightIndex: number;
+    /**
+     * Squad member order for each entry in `fights` (index-aligned), captured
+     * before `fight.players` is sorted by damage. Needed so a solo
+     * accumulator's frame can carry the same fold order `ingestLogAllDamage`
+     * used, rather than falling back to `fight.players`' damage order.
+     */
+    fightMemberOrders: string[][];
 }
 
 export interface AllDamageIngestOptions {
@@ -112,6 +119,7 @@ export function createAllDamageAccumulator(): AllDamageAccumulator {
         fights: [],
         playerAgg: new Map(),
         fightIndex: 0,
+        fightMemberOrders: [],
     };
 }
 
@@ -120,12 +128,26 @@ export function createAllDamageAccumulator(): AllDamageAccumulator {
  * `ingestLogAllDamage` and `mergeAllDamageFrame`, so slice-mode totals cannot
  * drift from all-fights totals. Every field it needs already lives on the
  * bucket, which is why this module's frame carries no seeds.
+ *
+ * `fight.players` ships sorted by `totalDamage` descending (that ordering is
+ * part of the public `AllDamageData` shape), but folding in that order would
+ * make first-insertion order into `playerAgg` — and therefore the tie-break
+ * among players whose MERGED totals end up byte-identical, since
+ * `finalizeAllDamage`'s sort is stable — depend on per-fight damage order
+ * instead of squad member order. `order`, when given, is the list of player
+ * keys in the order they were originally built (native's member order); the
+ * fold visits buckets in that order instead of `fight.players`' sorted order.
  */
 export function foldAllDamageFightIntoPlayers(
     fight: AllDamageFight,
     playerAgg: Map<string, AllDamagePlayer>,
+    order?: string[],
 ): void {
-    fight.players.forEach((bucket) => {
+    const bucketsByKey = order ? new Map(fight.players.map((b) => [b.key, b])) : null;
+    const buckets = bucketsByKey
+        ? order!.map((key) => bucketsByKey.get(key)).filter((b): b is AllDamagePlayerBucket => Boolean(b))
+        : fight.players;
+    buckets.forEach((bucket) => {
         const existing = playerAgg.get(bucket.key);
         if (existing) {
             existing.logs += 1;
@@ -221,6 +243,12 @@ export function ingestLogAllDamage(log: any, acc: AllDamageAccumulator, options:
         fightTotalDown += totalDownContribution;
     });
 
+    // Member order, captured before the damage sort below — this is the order
+    // `foldAllDamageFightIntoPlayers` must fold in, both here and from a
+    // frame, so tie-break order among players is squad order, not damage
+    // order (see that function's doc comment).
+    const memberOrder = fightPlayers.map((p) => p.key);
+
     // Sort players within fight by total damage descending
     fightPlayers.sort((a, b) => b.totalDamage - a.totalDamage);
 
@@ -238,7 +266,8 @@ export function ingestLogAllDamage(log: any, acc: AllDamageAccumulator, options:
         players: fightPlayers,
     };
     acc.fights.push(fight);
-    foldAllDamageFightIntoPlayers(fight, acc.playerAgg);
+    acc.fightMemberOrders.push(memberOrder);
+    foldAllDamageFightIntoPlayers(fight, acc.playerAgg, memberOrder);
 }
 
 export function finalizeAllDamage(acc: AllDamageAccumulator): AllDamageData {
@@ -256,19 +285,29 @@ export function finalizeAllDamage(acc: AllDamageAccumulator): AllDamageData {
 
 export interface AllDamageFrame {
     fight: AllDamageFight;
+    /**
+     * Player keys in squad member order, i.e. the order `ingestLogAllDamage`
+     * built them in before sorting `fight.players` by damage. Carried so
+     * `mergeAllDamageFrame` folds in the same order `ingestLogAllDamage` does
+     * — without it, merge would fall back to `fight.players`' damage order,
+     * which only agrees with member order when no fight sorts its players
+     * differently from squad order.
+     */
+    memberOrder: string[];
 }
 
 export function extractAllDamageFrame(acc: AllDamageAccumulator): AllDamageFrame {
     if (acc.fights.length !== 1) {
         throw new Error(`extractAllDamageFrame expects exactly one fight, got ${acc.fights.length}`);
     }
-    return { fight: acc.fights[0] };
+    return { fight: acc.fights[0], memberOrder: acc.fightMemberOrders[0] };
 }
 
 export function mergeAllDamageFrame(target: AllDamageAccumulator, frame: AllDamageFrame): void {
     target.fightIndex += 1;
     target.fights.push(frame.fight);
-    foldAllDamageFightIntoPlayers(frame.fight, target.playerAgg);
+    target.fightMemberOrders.push(frame.memberOrder);
+    foldAllDamageFightIntoPlayers(frame.fight, target.playerAgg, frame.memberOrder);
 }
 
 export function computeAllDamageData(validLogs: any[], splitPlayersByClass = false): AllDamageData {
