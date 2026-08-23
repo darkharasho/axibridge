@@ -132,6 +132,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     mockWebReport: (payload: { meta: any; stats: any }) => ipcRenderer.invoke('mock-web-report', payload),
     getGithubPagesBuildStatus: (payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => ipcRenderer.invoke('get-github-pages-build-status', payload),
     isR2Configured: () => ipcRenderer.invoke('get-r2-configured'),
+    getCloudflareStatus: () => ipcRenderer.invoke('get-cloudflare-status'),
+    startCloudflareOAuth: (payload?: { corsOrigin?: string }) => ipcRenderer.invoke('start-cloudflare-oauth', payload),
+    selectCloudflareAccount: (payload: { accountId: string; accountName?: string; corsOrigin?: string }) =>
+        ipcRenderer.invoke('select-cloudflare-account', payload),
+    cancelCloudflareOAuth: () => ipcRenderer.invoke('cancel-cloudflare-oauth'),
+    disconnectCloudflare: () => ipcRenderer.invoke('disconnect-cloudflare'),
     onWebUploadStatus: (callback: (data: any) => void) => {
         ipcRenderer.on('web-upload-status', (_event, value) => callback(value));
         return () => ipcRenderer.removeAllListeners('web-upload-status');

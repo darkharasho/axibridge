@@ -78,6 +78,7 @@ import {
 } from './handlers/settingsHandlers';
 import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers } from './handlers/githubHandlers';
+import { registerCloudflareHandlers } from './handlers/cloudflareHandlers';
 import { registerEiHandlers } from './handlers/eiHandlers';
 import { registerReparseHandlers } from './handlers/reparseHandlers';
 import { EiManager, DEFAULT_EI_SETTINGS, EiParserSettings } from './eiParser';
@@ -1841,6 +1842,10 @@ if (!gotTheLock) {
             loadPersistedLogDetails,
         });
         registerGithubHandlers({
+            store,
+            getWindow: () => win,
+        });
+        registerCloudflareHandlers({
             store,
             getWindow: () => win,
         });

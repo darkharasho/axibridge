@@ -273,7 +273,27 @@ export const DEFAULT_GLASS_SURFACES = false;
 export const DEFAULT_GLASSMORPHIC = false;
 export const DEFAULT_PARTICLES_ENABLED = true;
 
-export interface IElectronAPI {
+export export interface CloudflareStatus {
+    connected: boolean;
+    accountId: string;
+    accountName: string;
+    bucketName: string;
+    publicUrl: string;
+    /** False in a build with no OAuth client baked in — the connect button cannot work. */
+    clientConfigured: boolean;
+}
+
+export interface CloudflareAccountOption {
+    id: string;
+    name: string;
+}
+
+export type CloudflareConnectResult =
+    | { success: true; status: CloudflareStatus; adoptedExisting?: boolean; needsAccountChoice?: undefined }
+    | { success: true; needsAccountChoice: true; accounts: CloudflareAccountOption[]; status?: undefined }
+    | { success: false; error: string; helpUrl?: string; cancelled?: boolean };
+
+interface IElectronAPI {
     selectDirectory: () => Promise<string | null>;
     startWatching: (path: string) => void;
     onLogDetected: (callback: (path: string) => void) => () => void;
@@ -434,6 +454,13 @@ export interface IElectronAPI {
         hostingEnabled?: boolean;
         mode?: 'manual' | 'oauth';
     }>;
+
+    // Cloudflare OAuth ("Sign in with Cloudflare") — provisions R2 without hand-copied keys.
+    getCloudflareStatus: () => Promise<CloudflareStatus>;
+    startCloudflareOAuth: (payload?: { corsOrigin?: string }) => Promise<CloudflareConnectResult>;
+    selectCloudflareAccount: (payload: { accountId: string; accountName?: string; corsOrigin?: string }) => Promise<CloudflareConnectResult>;
+    cancelCloudflareOAuth: () => Promise<{ success: boolean }>;
+    disconnectCloudflare: () => Promise<{ success: boolean; status?: CloudflareStatus }>;
     onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number }) => void) => () => void;
     exportSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     importSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
