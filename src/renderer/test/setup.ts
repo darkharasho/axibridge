@@ -46,40 +46,65 @@ afterAll(() => {
     (console.warn as unknown as { mockRestore?: () => void }).mockRestore?.();
 });
 
-Object.defineProperty(window, 'electronAPI', {
-    value: {
-        openExternal: () => {},
-        mockWebReport: () => Promise.resolve({ success: false }),
-        uploadWebReport: () => Promise.resolve({ success: false })
-    },
-    writable: true
-});
-
-if (!window.matchMedia) {
-    window.matchMedia = () => ({
-        matches: false,
-        media: '',
-        onchange: null,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-        dispatchEvent: () => false
+// Skip jsdom-specific setup in Node environment
+if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'electronAPI', {
+        value: {
+            openExternal: () => {},
+            mockWebReport: () => Promise.resolve({ success: false }),
+            uploadWebReport: () => Promise.resolve({ success: false })
+        },
+        writable: true
     });
+
+    if (!window.matchMedia) {
+        window.matchMedia = () => ({
+            matches: false,
+            media: '',
+            onchange: null,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            addListener: () => {},
+            removeListener: () => {},
+            dispatchEvent: () => false
+        });
+    }
+
+    class ResizeObserverMock {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    }
+
+    if (!('ResizeObserver' in window)) {
+        // @ts-ignore
+        window.ResizeObserver = ResizeObserverMock;
+    }
+
+    if (!HTMLCanvasElement.prototype.getContext) {
+        // @ts-ignore
+        HTMLCanvasElement.prototype.getContext = () => null;
+    }
 }
 
-class ResizeObserverMock {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-}
+// Provide Web Stream APIs for tests that need them (e.g., fetchSliceSidecar in jsdom).
+// Note: The fetchSliceSidecar test runs in Node environment (via @vitest-environment node),
+// so it has native access to these APIs. This is for other tests in jsdom that may need them.
+try {
+    const webStreams = require('node:stream/web');
 
-if (!('ResizeObserver' in window)) {
-    // @ts-ignore
-    window.ResizeObserver = ResizeObserverMock;
-}
-
-if (!HTMLCanvasElement.prototype.getContext) {
-    // @ts-ignore
-    HTMLCanvasElement.prototype.getContext = () => null;
+    if (!globalThis.DecompressionStream) {
+        (globalThis as any).DecompressionStream = webStreams.DecompressionStream;
+    }
+    if (!globalThis.ReadableStream) {
+        (globalThis as any).ReadableStream = webStreams.ReadableStream;
+    }
+    if (!globalThis.TransformStream) {
+        (globalThis as any).TransformStream = webStreams.TransformStream;
+    }
+    if (!globalThis.WritableStream) {
+        (globalThis as any).WritableStream = webStreams.WritableStream;
+    }
+} catch {
+    // If node:stream/web is not available, proceed without these polyfills
 }
