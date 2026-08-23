@@ -17,11 +17,16 @@ R2 is not a feature toggle — it is a credential-presence check. `resolveR2Conf
 r2AccountId  r2AccessKeyId  r2SecretAccessKey  r2BucketName  r2PublicUrl
 ```
 
-Getting those five values means: create a Cloudflare account, enable R2, create a
-bucket, enable the bucket's public development URL, open **Manage R2 API Tokens**,
-create a token, and copy four opaque strings plus a `pub-<hash>.r2.dev` hostname into
-Settings — with the secret access key shown exactly once. Any transcription error
-surfaces later as a SigV4 signature failure at publish time, not at entry time.
+Getting those five values means: create a Cloudflare account, **put a credit card on
+file**, enable R2, create a bucket, enable the bucket's public development URL, open
+**Manage R2 API Tokens**, create a token, and copy four opaque strings plus a
+`pub-<hash>.r2.dev` hostname into Settings — with the secret access key shown exactly
+once. Any transcription error surfaces later as a SigV4 signature failure at publish
+time, not at entry time.
+
+The card is not a detail, and it is the step this design cannot remove — see
+"Enabling R2 needs a payment method" below. Phase C removes the *copying*, not the
+*signing up*.
 
 The cost of not doing it is asymmetric and, until recently, undocumented in the UI.
 Per `planSidecarHosting` (`githubHandlers.ts:677`):
@@ -116,6 +121,43 @@ verified in probe 2.
 
 `POST /accounts/{id}/r2/temp-access-credentials` is not a way around this: it requires
 `parentAccessKeyId`, so it derives from an API token that must already exist.
+
+### Enabling R2 needs a payment method — verified on a genuinely fresh account
+
+This was open question 1, and it resolves **yes**.
+
+On a brand-new Cloudflare account that had never touched R2, an OAuth bearer with the
+full first-party scope set gets the same answer from both the read and the write call:
+
+```
+GET  /accounts/{id}/r2/buckets   -> 403
+POST /accounts/{id}/r2/buckets   -> 403
+{"success":false,"errors":[{"code":10042,
+  "message":"Please enable R2 through the Cloudflare Dashboard."}],"result":null}
+```
+
+And the dashboard's enable flow **requires a credit card on file**, even though R2's
+free tier is 10 GB with no egress charges. There is no API path around it: no scope, no
+endpoint, and the error is returned before any bucket-management logic runs.
+
+Two consequences, one narrow and one that goes to the premise:
+
+- **Narrow:** `10042` is a stable, matchable error code. Provisioning must detect it
+  specifically and deep-link to the account's R2 dashboard page, rather than surfacing a
+  generic 403 that reads like a permissions problem.
+- **Broad:** "Sign in with Cloudflare" cannot be hands-off for a user who does not
+  already have R2 enabled. The honest before/after is not "seven steps become one":
+
+  | | today | with Phase C |
+  |---|---|---|
+  | user already has R2 enabled | 5 copied fields | one button |
+  | user does not | account + card + enable + bucket + public URL + token + 5 copied fields | account + card + enable, then one button |
+
+  The remaining manual steps are the ones with the highest drop-off. Phase C is a large
+  win for the first row and a modest one for the second, and the second row is the
+  population the phase was pitched at. That does not kill the design, but it should be
+  weighed against the cost — a second upload path, a live-session dependency on the
+  publish path, and a domain purchase for OAuth client verification — before building.
 
 ### What this changes
 
@@ -280,6 +322,12 @@ than dead-ending. In particular: consent declined, no accounts authorized, R2 no
 enabled on the account, bucket name taken by an unrelated bucket, and insufficient
 permissions on the granted scopes.
 
+**R2-not-enabled is the common case, not an edge case** — it is where every new user
+starts. Detect error code `10042` by code and say what is actually required, including
+the card, with a deep link to the account's R2 page. Do not let a user consent, wait,
+and then receive a bare 403; and do not promise a setup that is free of the dashboard
+when it is not.
+
 One failure mode is invisible from the client side and worth handling by name:
 **account administrators can disable OAuth access to account resources** entirely
 (*Manage Account → Members → Settings → Public OAuth App access*). The symptom is an
@@ -296,18 +344,12 @@ user's session for nothing.
 
 ## Open questions
 
-Questions 2 and 4 from the first draft are now answered — see the verified section
-above — and the "does the third-party scope actually work" question is now answered
-too, by the second probe below. What remains:
+The first draft's questions 2 and 4 are answered in the verified section above; "does
+the third-party scope actually work" is answered by probe 2 below; and "does R2 need a
+payment method" is answered — yes — by the fresh-account test above. **Every technical
+prerequisite is now settled.** What remains is one product decision and four details:
 
-1. **Does enabling R2 on a fresh account require a payment method?** The docs say
-   "You must purchase R2 before you can generate an API token", which is Cloudflare's
-   wording for the free-tier enable click — R2's free tier is 10 GB with no egress
-   charges. Whether a card must be on file is unverified and decides whether the flow
-   is fully hands-off or ends in one unavoidable dashboard deep-link. **Verify against
-   a genuinely fresh account before building.** This is now the only remaining
-   prerequisite.
-2. **Making the client public is irreversible, and needs a domain we do not own.**
+1. **Making the client public is irreversible, and needs a domain we do not own.**
    New OAuth clients default to `visibility: private`, and a private client can only be
    authorized by members of the registering account — useless for shipping. Promotion is
    `PATCH /accounts/{id}/oauth_clients/{cid} {"visibility":"public"}` and is **permanent**;
@@ -319,18 +361,18 @@ too, by the second probe below. What remains:
    prerequisite for Phase C**, alongside the logo, client URL, policy URL and ToS URL the
    consent screen requires. Decide the domain before registering the production client,
    because the choice cannot be undone.
-3. **Whether the 1,200-per-5-minutes REST limit counts object operations.** The limit
+2. **Whether the 1,200-per-5-minutes REST limit counts object operations.** The limit
    is stated as "across all R2 REST API operations on your account", while a separate
    footnote says the bucket-management rate limit does *not* apply to object reads and
    writes. AxiBridge writes two or three objects per publish either way, so this is a
    sizing question, not a blocker.
-4. **Access/refresh token lifetimes**, and whether refresh tokens rotate. Now more
+3. **Access/refresh token lifetimes**, and whether refresh tokens rotate. Now more
    important than in the first draft: publishing depends on refresh succeeding.
-5. **Loopback redirect URIs** — confirm Cloudflare accepts `http://127.0.0.1` with a
+4. **Loopback redirect URIs** — confirm Cloudflare accepts `http://127.0.0.1` with a
    dynamic port for public clients. The docs show only an `https://example.com`
    example. If only fixed ports are allowed, the listener needs a reserved port with a
    fallback.
-6. **Bucket adoption semantics** when `axibridge-reports` already exists — adopt,
+5. **Bucket adoption semantics** when `axibridge-reports` already exists — adopt,
    suffix, or ask.
 
 ## Probe 1: full provisioning round trip on a first-party OAuth bearer, 2026-08-23
