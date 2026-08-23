@@ -18,6 +18,8 @@ export const CLOUDFLARE_API_BASE = '/client/v4';
 export const CF_ERR_R2_NOT_ENABLED = 10042;
 export const CF_ERR_AUTHENTICATION = 10000;
 export const CF_ERR_UNAUTHORIZED_RESOURCE = 9109;
+/** "The bucket you tried to create already exists, and you own it." Not a failure. */
+export const CF_ERR_BUCKET_EXISTS = 10004;
 
 export type CloudflareFailureKind =
     | 'waf-blocked'
