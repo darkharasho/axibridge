@@ -14,6 +14,7 @@ import { SectionPanel } from './stats/ui/SectionPanel';
 import { useStatsNavigation, STATS_TOC_GROUPS } from './stats/hooks/useStatsNavigation';
 import { GROUP_ACCENT_COLORS } from './stats/sectionColors';
 import { useStatsStore } from './stats/statsStore';
+import { isReplayUnsliceable } from './stats/slice/replaySlicing';
 import { statsLogKey } from './stats/utils/statsLogKey';
 import { selectSlicedLogs } from './app/selectSlicedLogs';
 import { useStatsUploads } from './stats/hooks/useStatsUploads';
@@ -143,6 +144,10 @@ interface StatsViewProps {
      *  the current selection. Absent everywhere else, so the banner's copy
      *  control only appears where a link is actually meaningful. */
     onCopySliceLink?: () => void;
+    /** Published-report only: the slice recompute failed or refused, so the
+     *  stats being rendered are the FULL report's. The banner switches to an
+     *  honest "Slice unavailable" line rather than claiming a subset. */
+    sliceUnavailable?: boolean;
 }
 
 const sidebarListClass = 'space-y-0.5 max-h-72 overflow-y-auto';
@@ -267,7 +272,7 @@ function resolveReplayFights(stats: any): any[] {
 export const deriveStatsViewLogs = (logs: any[], excluded: Set<string>, embedded: boolean): any[] =>
     embedded ? logs : selectSlicedLogs(logs, excluded);
 
-export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray, onCopySliceLink }: StatsViewProps) {
+export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray, onCopySliceLink, sliceUnavailable = false }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
     useEffect(() => {
@@ -416,6 +421,40 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         }
         return r2ReplayFights ?? [];
     }, [stats, r2ReplayFights]);
+
+    /**
+     * The combat replay cannot be sliced.
+     *
+     * `r2ReplayFights` is fetched once from the report's `replayDataUrl` and
+     * cached; it always holds EVERY fight in the session. Sliced stats carry no
+     * `replayFights` of their own (frames deliberately exclude replay payloads
+     * — they are 66% of report.json and none of the merge maths needs them), so
+     * `getReplayFights()` above falls through to that whole-session cache. The
+     * result would be a replay playing all 7 fights while every other section
+     * on the page shows the 3 the user picked, with nothing saying so.
+     *
+     * Filtering the cache by slice is not viable: the replay payload is keyed
+     * on its own fight identities, not the sidecar's roster ordinals. So the
+     * section is replaced by an explicit note while a slice is active.
+     *
+     * Scoped narrowly on purpose: when `stats.replayFights` IS populated the
+     * replay came from the same (already-sliced) aggregation as everything else
+     * — that is the desktop path, and it stays fully functional under a slice.
+     */
+    const replayUnsliceable = isReplayUnsliceable({
+        replayFights: (stats as any)?.replayFights,
+        excludedFightCount: excludedFightKeys.size,
+    });
+
+    const replaySliceNotice = (
+        <div className="flex flex-col items-center justify-center w-full gap-2 text-center px-6">
+            <span className="text-sm text-gray-300">Combat replay is not available while a fight slice is active.</span>
+            <span className="text-xs text-gray-500 max-w-md">
+                The replay covers the full session and cannot be narrowed to the selected fights.
+                Clear the slice to watch it.
+            </span>
+        </div>
+    );
 
     const aggregationSettling = useMemo(() => {
         // Prefer real aggregation progress over the generic "Preparing" placeholder.
@@ -4364,7 +4403,7 @@ type SpikeFight = {
             />
 
             {(!embedded || sliceEnabled) && sliceTrayOpen && <FightSliceTray onClose={() => setSliceTrayOpen(false)} />}
-            {(!embedded || sliceEnabled) && <FightSliceBanner onCopyLink={onCopySliceLink} />}
+            {(!embedded || sliceEnabled) && <FightSliceBanner onCopyLink={onCopySliceLink} unavailable={sliceUnavailable} />}
 
             {/* Processing indicator: particle spinner with witty remarks (desktop) */}
             {(aggregationSettling.active || detailsProgress.active) && !embedded && (
@@ -4416,6 +4455,8 @@ type SpikeFight = {
                             <span className="text-sm text-rose-400">Failed to load replay data.</span>
                             {r2ReplayError && <span className="text-xs text-rose-300/70">{r2ReplayError}</span>}
                         </div>
+                    ) : replayUnsliceable ? (
+                        replaySliceNotice
                     ) : (
                         <div style={{ display: 'contents' }}>
                             {r2ReplayStatus === 'loading' && (
@@ -5393,7 +5434,7 @@ type SpikeFight = {
                         ])}
 
                         {renderGroup('replay', [
-                            { id: 'replay', element: <div style={{ height: '88vh', minHeight: 500, maxHeight: 1000, display: 'flex', width: '100%' }}>{r2ReplayStatus === 'loading' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#9ca3af' }}>Loading replay data...</div> : r2ReplayStatus === 'error' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#fb7185' }}>Failed to load replay data.</div> : <ReplaySection fights={getReplayFights()} />}</div> },
+                            { id: 'replay', element: <div style={{ height: '88vh', minHeight: 500, maxHeight: 1000, display: 'flex', width: '100%' }}>{replayUnsliceable ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>{replaySliceNotice}</div> : r2ReplayStatus === 'loading' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#9ca3af' }}>Loading replay data...</div> : r2ReplayStatus === 'error' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', fontSize: '0.875rem', color: '#fb7185' }}>Failed to load replay data.</div> : <ReplaySection fights={getReplayFights()} />}</div> },
                         ])}
                     </>
                 )}
