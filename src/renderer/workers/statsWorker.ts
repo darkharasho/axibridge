@@ -193,6 +193,26 @@ self.onmessage = (event: MessageEvent) => {
         currentPreciseReplay = Boolean(data.payload?.preciseReplay);
         return;
     }
+    if (data?.type === 'mergeFrames') {
+        // The published web report's slice path: no logs, just pre-finalize
+        // frames for the fights the viewer selected.
+        const settings = data.settings || {};
+        aggregator = new IncrementalAggregator({
+            mvpWeights: settings.mvpWeights,
+            statsViewSettings: settings.statsViewSettings,
+            disruptionMethod: settings.disruptionMethod,
+        });
+        const frames = Array.isArray(data.frames) ? data.frames : [];
+        frames.forEach((frame: any) => aggregator!.mergeFrame(frame));
+        ingestedLogCount = frames.length;
+        ingestedLogIds = frames.map((_: any, i: number) => `slice-${i}`);
+        ingestedOwnedLogIds = [];
+        expectedLogCount = frames.length;
+        droppedLogMessages = 0;
+        // Slice mode never renders the map replay, so skip the replay transfer.
+        computeAndPost(true);
+        return;
+    }
     if (data?.type === 'log') {
         if (!aggregator) {
             aggregator = new IncrementalAggregator();
