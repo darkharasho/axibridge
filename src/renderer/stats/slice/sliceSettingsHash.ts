@@ -18,8 +18,17 @@
  * (a genuine settings mismatch that happens to hash equal, silently slicing
  * under the wrong settings). That hash's failure mode is "recompute, no
  * harm." This one's failure mode is "renders wrong numbers with no visible
- * error," so it gets two independent 32-bit hashes concatenated rather than
- * one.
+ * error," so it concatenates two 32-bit digests rather than one.
+ *
+ * The two digests must come from *structurally different* mixers, not the same
+ * recurrence under two seeds. Reseeding `h = h*31 + c` buys nothing: the
+ * recurrence is affine in the seed, so for two inputs of equal length
+ * `h_seed(s) - h_seed(t)` is independent of `seed` — every collision under one
+ * seed is a collision under the other, and the concatenation carries 32 bits of
+ * resistance while claiming 64. FNV-1a (xor, then multiply, 16777619) and djb2
+ * (multiply by 33, then xor) differ in operation order, constants and the
+ * position at which the input byte enters the state, so their collision sets
+ * are not related by construction.
  */
 
 const canonicalize = (value: unknown): unknown => {
@@ -35,20 +44,33 @@ const canonicalize = (value: unknown): unknown => {
     return value;
 };
 
-// A single FNV/djb2-style rolling hash, seeded differently per call so two
-// independent runs over the same string are (in practice) independent.
-const rollingHash = (input: string, seed: number): number => {
-    let hash = seed | 0;
+// FNV-1a: xor the input byte into the state, THEN multiply by the FNV prime.
+const fnv1a = (input: string): number => {
+    let hash = 0x811c9dc5;
     for (let i = 0; i < input.length; i++) {
-        hash = ((hash << 5) - hash) + input.charCodeAt(i);
-        hash = hash | 0;
+        const code = input.charCodeAt(i);
+        hash ^= code & 0xff;
+        hash = Math.imul(hash, 0x01000193);
+        hash ^= (code >>> 8) & 0xff;
+        hash = Math.imul(hash, 0x01000193);
+    }
+    return hash >>> 0;
+};
+
+// djb2 (xor variant): multiply the state by 33 FIRST, then xor the input byte
+// in. Different constant, different operation order, different entry point for
+// the input — so a collision here is unrelated to a collision under fnv1a.
+const djb2 = (input: string): number => {
+    let hash = 5381;
+    for (let i = 0; i < input.length; i++) {
+        hash = (Math.imul(hash, 33) ^ input.charCodeAt(i)) | 0;
     }
     return hash >>> 0;
 };
 
 export function hashSliceSettings(mvpWeights: unknown, statsViewSettings: unknown, disruptionMethod: unknown): string {
     const canonicalKey = JSON.stringify(canonicalize({ mvpWeights, statsViewSettings, disruptionMethod }));
-    const low = rollingHash(canonicalKey, 0);
-    const high = rollingHash(canonicalKey, 0x9e3779b9);
+    const low = djb2(canonicalKey);
+    const high = fnv1a(canonicalKey);
     return `${high.toString(36)}-${low.toString(36)}`;
 }
