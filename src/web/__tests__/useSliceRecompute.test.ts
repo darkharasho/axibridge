@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useSliceRecompute } from '../hooks/useSliceRecompute';
 
 const posted: any[] = [];
@@ -61,8 +61,26 @@ describe('useSliceRecompute', () => {
             sidecar: SIDECAR, includedOrdinals: [0], mvpWeights: undefined, statsViewSettings: {}, disruptionMethod: undefined,
         }));
         await waitFor(() => expect(handler).toBeTruthy());
-        handler!({ data: { type: 'result', token: 9999, result: { stats: { stale: true } } } });
+
+        // `act` is load-bearing: without it the assertion runs before React has
+        // flushed, so `stats` reads null whether the token guard exists or not
+        // and the test passes for the wrong reason.
+        await act(async () => {
+            handler!({ data: { type: 'result', token: 9999, result: { stats: { stale: true } } } });
+        });
         expect(result.current.stats).toBeNull();
+        // A superseded reply must not end the computing state either — the
+        // request it belonged to is not the one still outstanding.
+        expect(result.current.computing).toBe(true);
+
+        // Discriminator: the same handler, with the live token, DOES apply.
+        // Without this the test cannot tell a working guard from a dead handler.
+        const token = posted[posted.length - 1].token;
+        await act(async () => {
+            handler!({ data: { type: 'result', token, result: { stats: { fresh: true } } } });
+        });
+        expect(result.current.stats).toEqual({ fresh: true });
+        expect(result.current.computing).toBe(false);
     });
 
     it('includes the publisher mvpWeights in the posted settings', async () => {
