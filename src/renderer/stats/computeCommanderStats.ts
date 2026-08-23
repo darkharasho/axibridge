@@ -263,7 +263,7 @@ const collectIncomingBoonRows = (player: any, buffMap: Record<string, any>, dura
         .sort((a, b) => b.uptimePct - a.uptimePct || b.uptimeMs - a.uptimeMs || a.name.localeCompare(b.name));
 };
 
-type CommanderEntry = {
+export type CommanderEntry = {
     key: string;
     account: string;
     characterNames: Set<string>;
@@ -712,13 +712,99 @@ export function ingestLogCommanderStats(log: any, idx: number, commanders: Map<s
     });
 }
 
-export function computeCommanderStats(sortedFightLogsWithDetails: any[]) {
-const commanders = new Map<string, CommanderEntry>();
+/**
+ * Merge one fight's commander state into a running map.
+ *
+ * `ingestLogCommanderStats` only ever adds, so merging is addition: fight-row
+ * arrays concatenate, counters and durations sum, identity strings are
+ * first-wins, and the two per-skill/per-boon incoming maps fold entry-by-entry
+ * using the same rules `ingestLogCommanderStats` itself uses when a second
+ * fight touches the same skill/boon id. `finalizeCommanderStats` sorts fight
+ * rows by timestamp itself, so nothing here renumbers labels.
+ */
+export function mergeCommanderStatsInto(
+    target: Map<string, CommanderEntry>,
+    source: Map<string, CommanderEntry>,
+): void {
+    source.forEach((incoming, account) => {
+        const existing = target.get(account);
+        if (!existing) {
+            // CommanderEntry is plain data (no Infinity/-Infinity/NaN seeds,
+            // no functions), so structuredClone is safe here and also gives
+            // us real Map/Set clones instead of shallow references.
+            target.set(account, structuredClone(incoming));
+            return;
+        }
 
-sortedFightLogsWithDetails.forEach(({ log }, idx) => {
-    ingestLogCommanderStats(log, idx, commanders);
-});
+        // identity strings -> first-wins
+        if (!existing.key) existing.key = incoming.key;
+        if (!existing.account) existing.account = incoming.account;
+        if (!existing.primaryProfession || existing.primaryProfession === 'Unknown') {
+            existing.primaryProfession = incoming.primaryProfession;
+        }
 
+        // characterNames -> union
+        incoming.characterNames.forEach((name) => existing.characterNames.add(name));
+
+        // professionTimeMs -> sum per profession key
+        Object.entries(incoming.professionTimeMs).forEach(([profession, ms]) => {
+            existing.professionTimeMs[profession] = (existing.professionTimeMs[profession] || 0) + ms;
+        });
+
+        // counters / totals -> sum
+        existing.fights += incoming.fights;
+        existing.wins += incoming.wins;
+        existing.losses += incoming.losses;
+        existing.totalDurationMs += incoming.totalDurationMs;
+        existing.totalSquadCount += incoming.totalSquadCount;
+        existing.totalEnemyCount += incoming.totalEnemyCount;
+        existing.totalKills += incoming.totalKills;
+        existing.totalDowns += incoming.totalDowns;
+        existing.totalCommanderDowns += incoming.totalCommanderDowns;
+        existing.totalCommanderDeaths += incoming.totalCommanderDeaths;
+        existing.totalAlliesDown += incoming.totalAlliesDown;
+        existing.totalAlliesDead += incoming.totalAlliesDead;
+        existing.totalDamageTaken += incoming.totalDamageTaken;
+        existing.totalIncomingBarrierAbsorbed += incoming.totalIncomingBarrierAbsorbed;
+        existing.totalIncomingStrips += incoming.totalIncomingStrips;
+        existing.totalIncomingCC += incoming.totalIncomingCC;
+        existing.boonWeightedPctMs += incoming.boonWeightedPctMs;
+        existing.boonDurationMs += incoming.boonDurationMs;
+        existing.boonEntriesSeen += incoming.boonEntriesSeen;
+
+        // incomingSkillMap -> per-id fold, mirroring ingestLogCommanderStats
+        incoming.incomingSkillMap.forEach((skillRow, id) => {
+            const existingSkill = existing.incomingSkillMap.get(id);
+            if (!existingSkill) {
+                existing.incomingSkillMap.set(id, { ...skillRow });
+                return;
+            }
+            existingSkill.damage += skillRow.damage;
+            existingSkill.hits += skillRow.hits;
+            if (existingSkill.name.startsWith('Skill ') && !skillRow.name.startsWith('Skill ')) {
+                existingSkill.name = skillRow.name;
+            }
+            if (!existingSkill.icon && skillRow.icon) existingSkill.icon = skillRow.icon;
+        });
+
+        // incomingBoonMap -> per-id fold, mirroring ingestLogCommanderStats
+        incoming.incomingBoonMap.forEach((boonRow, id) => {
+            const existingBoon = existing.incomingBoonMap.get(id);
+            if (!existingBoon) {
+                existing.incomingBoonMap.set(id, { ...boonRow });
+                return;
+            }
+            existingBoon.uptimePctWeightedMs += boonRow.uptimePctWeightedMs;
+            existingBoon.durationMs += boonRow.durationMs;
+            if (!existingBoon.icon && boonRow.icon) existingBoon.icon = boonRow.icon;
+        });
+
+        // fightRows -> per-fight array, concatenate
+        existing.fightRows.push(...incoming.fightRows);
+    });
+}
+
+export function finalizeCommanderStats(commanders: Map<string, CommanderEntry>) {
 const rows = Array.from(commanders.values())
     .map((entry) => {
         const professions = Object.keys(entry.professionTimeMs)
@@ -829,4 +915,14 @@ const rows = Array.from(commanders.values())
 
 return { rows };
 
+}
+
+export function computeCommanderStats(sortedFightLogsWithDetails: any[]) {
+    const commanders = new Map<string, CommanderEntry>();
+
+    sortedFightLogsWithDetails.forEach(({ log }, idx) => {
+        ingestLogCommanderStats(log, idx, commanders);
+    });
+
+    return finalizeCommanderStats(commanders);
 }
