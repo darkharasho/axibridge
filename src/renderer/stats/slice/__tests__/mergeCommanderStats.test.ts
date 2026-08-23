@@ -9,6 +9,7 @@ import { encodeState, decodeState } from '../stateCodec';
 import fixture1 from '../../../../../test-fixtures/native/20260117-175120.json';
 import fixture2 from '../../../../../test-fixtures/native/20260117-180135.json';
 import fixture3 from '../../../../../test-fixtures/native/20260117-180259.json';
+import { buildFrameLabelSeed, resolveFrameFightLabels } from '../frameLabels';
 
 const LOGS = [fixture1, fixture2, fixture3].map((details, i) => ({
     id: `log-${i}`,
@@ -28,7 +29,7 @@ const framed = (logs: any[], viaJson = false) => {
         const solo = new Map<string, CommanderEntry>();
         ingestLogCommanderStats(log, i, solo);
         const source = viaJson ? decodeState(JSON.parse(JSON.stringify(encodeState(solo)))) : solo;
-        mergeCommanderStatsInto(target, source);
+        mergeCommanderStatsInto(target, source, resolveFrameFightLabels(buildFrameLabelSeed(log), i));
     });
     return finalizeCommanderStats(target);
 };
@@ -185,11 +186,22 @@ const makeSecondCommander = (overrides: Partial<CommanderEntry> = {}): Commander
     ...overrides,
 });
 
+/**
+ * The synthetic entries below are not built from a log, so their labels are
+ * hand-written. Feed the merge a seed that names a zone and matches each row's
+ * id, so restating the labels at the merge ordinal reproduces exactly what the
+ * fixtures already say and the pins keep testing the merge rules, not labelling.
+ */
+const syntheticLabels = (index: number, fightId: string) => resolveFrameFightLabels({
+    fightName: 'Synthetic Zone', logFightName: '', encounterName: '',
+    filePath: fightId, logId: '', durationMs: 0,
+}, index);
+
 describe('commander stats merge synthetic pins', () => {
     it('sums every counter/total field with values that distinguish sum from first-wins and from last-wins', () => {
         const target = new Map<string, CommanderEntry>();
-        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]));
-        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]), syntheticLabels(0, 'fight-1'));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]), syntheticLabels(1, 'fight-2'));
         const merged = target.get('Commander.1234')!;
 
         expect(merged.fights).toBe(3);
@@ -215,8 +227,8 @@ describe('commander stats merge synthetic pins', () => {
 
     it('unions characterNames, sums per-profession time (including a brand-new key), and keeps primaryProfession first-wins', () => {
         const target = new Map<string, CommanderEntry>();
-        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]));
-        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]), syntheticLabels(0, 'fight-1'));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]), syntheticLabels(1, 'fight-2'));
         const merged = target.get('Commander.1234')!;
 
         expect(Array.from(merged.characterNames.values()).sort()).toEqual(['AltOne', 'AltTwo']);
@@ -228,8 +240,8 @@ describe('commander stats merge synthetic pins', () => {
 
     it('folds incomingSkillMap and incomingBoonMap entry-by-entry, including boon stacking first-wins', () => {
         const target = new Map<string, CommanderEntry>();
-        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]));
-        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]), syntheticLabels(0, 'fight-1'));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]), syntheticLabels(1, 'fight-2'));
         const merged = target.get('Commander.1234')!;
 
         const skill = merged.incomingSkillMap.get('1')!;
@@ -250,8 +262,8 @@ describe('commander stats merge synthetic pins', () => {
 
     it('concatenates fightRows rather than keeping only one frame\'s rows', () => {
         const target = new Map<string, CommanderEntry>();
-        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]));
-        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]), syntheticLabels(0, 'fight-1'));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]), syntheticLabels(1, 'fight-2'));
         const merged = target.get('Commander.1234')!;
 
         expect(merged.fightRows.map((row) => row.id)).toEqual(['fight-1', 'fight-2']);

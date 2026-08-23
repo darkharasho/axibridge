@@ -41,6 +41,7 @@ import { createBoonUptimeTimelineAccumulator, ingestLogBoonUptimeTimeline, final
 import { createStabPerformanceAccumulator, ingestLogStabPerformance, finalizeStabPerformance, extractStabPerformanceFrame, mergeStabPerformanceFrame } from './computeStabPerformance';
 
 import { encodeState, decodeState } from './slice/stateCodec';
+import { applyLabel, buildFrameLabelSeed, resolveFrameFightLabels, type FrameLabelSeed } from './slice/frameLabels';
 import type { SliceFrame } from './slice/sliceTypes';
 
 import { computeSpecialTables } from './computeSpecialTables';
@@ -565,6 +566,14 @@ export class IncrementalAggregator {
 
     // Stored boon table logs (minimal - just details reference for buildBoonTables)
     private boonTableLogs: StoredBoonTableLog[] = [];
+    /**
+     * The raw ingredients of every ordinal-derived id and label, captured for
+     * the LAST log ingested. Only `exportFrame` reads it — and `exportFrame`
+     * only accepts a solo aggregator — so a multi-log aggregator simply carries
+     * the most recent one and `finalize()` never sees it. All primitives, so
+     * this pins nothing large in memory and adds no measurable ingest cost.
+     */
+    private frameLabelSeed: FrameLabelSeed | null = null;
     private replayPayloads: ReplayFightPayload[] = [];
 
     constructor(options: IncrementalAggregatorOptions = {}) {
@@ -619,6 +628,8 @@ export class IncrementalAggregator {
 
         const idx = this.logCount;
         this.logCount++;
+
+        this.frameLabelSeed = buildFrameLabelSeed(log);
 
         const hasDetail = this.hasDetailedRoster(log);
 
@@ -878,6 +889,7 @@ export class IncrementalAggregator {
         return encodeState({
             logCount: this.logCount,
             validLogCount: this.validLogCount,
+            labelSeed: this.frameLabelSeed,
             logMetas: this.logMetas,
             timelineEntries: this.timelineEntries,
             fightBreakdowns: this.fightBreakdowns,
@@ -913,7 +925,8 @@ export class IncrementalAggregator {
         const frame: any = decodeState(rawFrame);
         const index = this.logCount;
         this.logCount += 1;
-        this.rewriteFrameIndexLabels(frame, index);
+        const labels = resolveFrameFightLabels(frame.labelSeed, index);
+        this.applyFrameLabels(frame, labels);
         this.validLogCount += Number(frame.validLogCount || 0);
 
         const appendIndexed = (target: any[], entries: any[] | undefined) => {
@@ -946,8 +959,14 @@ export class IncrementalAggregator {
         Object.entries(frame.mergedDamageModMap || {}).forEach(([key, value]) => {
             if (!this.mergedDamageModMap[key]) this.mergedDamageModMap[key] = value as any;
         });
-        (frame.personalDamageModKeys instanceof Set ? frame.personalDamageModKeys : new Set<string>())
-            .forEach((key: string) => this.personalDamageModKeys.add(key));
+        if (frame.personalDamageModKeys !== undefined && !(frame.personalDamageModKeys instanceof Set)) {
+            // decodeState turns a `__set` payload back into a real Set. Anything
+            // else here means the frame lost its Map/Set encoding somewhere —
+            // most likely a raw `JSON.stringify` that skipped `encodeState` —
+            // and every Set- and Map-shaped section is silently `{}`. Fail loudly.
+            throw new Error('mergeFrame: personalDamageModKeys is not a Set; the frame was not encoded with encodeState');
+        }
+        (frame.personalDamageModKeys as Set<string> | undefined)?.forEach((key: string) => this.personalDamageModKeys.add(key));
         Object.entries(frame.mapCounts || {}).forEach(([name, count]) => {
             this.mapCounts[name] = (this.mapCounts[name] || 0) + Number(count || 0);
         });
@@ -956,15 +975,15 @@ export class IncrementalAggregator {
         });
 
         if (frame.playerAcc) mergePlayerAggregationAccumulators(this.playerAcc, frame.playerAcc);
-        if (frame.commanderStatsAcc) mergeCommanderStatsInto(this.commanderStatsAcc, frame.commanderStatsAcc);
+        if (frame.commanderStatsAcc) mergeCommanderStatsInto(this.commanderStatsAcc, frame.commanderStatsAcc, labels);
 
-        if (frame.spike) mergeSpikeDamageFrame(this.spikeAcc, frame.spike);
-        if (frame.allDamage) mergeAllDamageFrame(this.allDamageAcc, frame.allDamage);
-        if (frame.stripSpikes) mergeStripSpikesFrame(this.stripSpikesAcc, frame.stripSpikes);
-        if (frame.incomingStrike) mergeIncomingStrikeFrame(this.incomingStrikeAcc, frame.incomingStrike);
+        if (frame.spike) mergeSpikeDamageFrame(this.spikeAcc, frame.spike, labels);
+        if (frame.allDamage) mergeAllDamageFrame(this.allDamageAcc, frame.allDamage, labels);
+        if (frame.stripSpikes) mergeStripSpikesFrame(this.stripSpikesAcc, frame.stripSpikes, labels);
+        if (frame.incomingStrike) mergeIncomingStrikeFrame(this.incomingStrikeAcc, frame.incomingStrike, labels);
         if (frame.skillUsage) mergeSkillUsageFrame(this.skillUsageAcc, frame.skillUsage);
-        if (frame.boonTimeline) mergeBoonTimelineFrame(this.boonTimelineAcc, frame.boonTimeline);
-        if (frame.boonUptime) mergeBoonUptimeFrame(this.boonUptimeAcc, frame.boonUptime);
+        if (frame.boonTimeline) mergeBoonTimelineFrame(this.boonTimelineAcc, frame.boonTimeline, labels);
+        if (frame.boonUptime) mergeBoonUptimeFrame(this.boonUptimeAcc, frame.boonUptime, labels);
         if (frame.stabPerformance) mergeStabPerformanceFrame(this.stabPerfAcc, frame.stabPerformance);
     }
 
@@ -1697,72 +1716,55 @@ export class IncrementalAggregator {
     // ---- Private helpers ----
 
     /**
-     * Rewrite the display strings `ingestLog` derived from the running log
-     * index, which `finalize()` does not renumber.
+     * Restate this aggregator's OWN ordinal-derived ids and labels at the merge
+     * ordinal. The eight module accumulators do the same for the strings they
+     * own, from the same `labels` object — see `slice/frameLabels.ts`.
      *
-     * `finalize()` renumbers `shortLabel` on fight breakdowns, fight diff modes,
-     * heal effectiveness, tag-distance deaths and squad comp — those need
-     * nothing here. Three strings escape it:
+     * Nothing here pattern-matches a baked string. `labels` is produced by
+     * re-evaluating the very expressions `ingestLog*` used, against the raw
+     * ingredients the frame carries in `labelSeed`, at the merge ordinal. The
+     * `fullLabel*` / `breakdown*` fields are `null` whenever the log supplied a
+     * real zone or encounter name, in which case the ingested string is already
+     * ordinal-free and `applyLabel` leaves it untouched.
      *
-     *  - `commanderStats` fight rows carry `shortLabel: F${idx + 1}` straight
-     *    through `finalizeCommanderStats` into `fightsData`. A frame is always
-     *    built by a solo aggregator, so this is always `F1`; rewriting it to the
-     *    merge index is exact, not a guess.
-     *  - `fightBreakdown.label` and the id fallbacks are only index-derived when
-     *    the log had no `encounterName` / `filePath` / `id` at all, so they are
-     *    rewritten only when they still equal the index-0 fallback.
-     *
-     * Not rewritten: `fullLabel` strings built by `buildFightLabelV2`. Those
-     * take the index only when `details.fightName`, `log.fightName` AND
-     * `log.encounterName` are all missing — a log that unlabelled is already
-     * mislabelled on the non-slice path, and the value is not recoverable from
-     * the frame.
+     * `shortLabel` is not restated on the aggregator's own arrays: `finalize()`
+     * renumbers it for fight breakdowns, fight diff modes, heal effectiveness,
+     * tag-distance deaths and squad comp after sorting, and overwriting it here
+     * would be dead work.
      */
-    private rewriteFrameIndexLabels(frame: any, index: number): void {
-        const retarget = (obj: any, key: string, soloValue: string, mergedValue: string) => {
-            if (obj && obj[key] === soloValue) obj[key] = mergedValue;
-        };
-
+    private applyFrameLabels(frame: any, labels: ReturnType<typeof resolveFrameFightLabels>): void {
         (frame.fightBreakdowns || []).forEach((stored: any) => {
-            retarget(stored?.result, 'label', 'Fight 1', `Fight ${index + 1}`);
-            retarget(stored?.result, 'zone', 'Fight 1', `Fight ${index + 1}`);
-            // A log with no `details` at all reaches `buildFightLabelV2` with no
-            // position, so its fullLabel is the bare zone fallback.
-            retarget(stored?.result, 'fullLabel', 'Fight 1', `Fight ${index + 1}`);
-            retarget(stored?.result, 'id', 'fight-0', `fight-${index}`);
+            applyLabel(stored?.result, 'id', labels.filePathFightId);
+            applyLabel(stored?.result, 'label', labels.breakdownLabel);
+            applyLabel(stored?.result, 'fullLabel', labels.breakdownFullLabel);
         });
         (frame.fightDiffModes || []).forEach((stored: any) => {
-            retarget(stored?.result, 'id', 'fight-1', `fight-${index + 1}`);
+            applyLabel(stored?.result, 'id', labels.fightId);
         });
         (frame.healEffectivenessResults || []).forEach((stored: any) => {
-            retarget(stored?.result, 'id', 'fight-1', `fight-${index + 1}`);
+            applyLabel(stored?.result, 'id', labels.fightId);
+            applyLabel(stored?.result, 'fullLabel', labels.fullLabel);
         });
         (frame.squadCompEntries || []).forEach((stored: any) => {
-            retarget(stored?.result, 'id', 'fight-1', `fight-${index + 1}`);
+            applyLabel(stored?.result, 'id', labels.fightId);
         });
         (frame.tagDistanceDeathsResults || []).forEach((stored: any) => {
-            retarget(stored?.result, 'fightId', 'fight-0', `fight-${index}`);
+            applyLabel(stored?.result, 'fightId', labels.filePathFightId);
+            applyLabel(stored?.result, 'fullLabel', labels.fullLabelEncounterOnly);
             (stored?.result?.events || []).forEach((event: any) => {
-                retarget(event, 'fightId', 'fight-0', `fight-${index}`);
+                applyLabel(event, 'fightId', labels.filePathFightId);
+                applyLabel(event, 'fullLabel', labels.fullLabelEncounterOnly);
             });
         });
         (frame.distanceToTagContribs || []).forEach((stored: any) => {
-            (stored?.contributions || []).forEach((c: any) => retarget(c, 'fightId', 'fight-0', `fight-${index}`));
+            (stored?.contributions || []).forEach((c: any) => applyLabel(c, 'fightId', labels.filePathFightId));
         });
         (frame.onTagReviewContribs || []).forEach((stored: any) => {
-            (stored?.contributions || []).forEach((c: any) => retarget(c, 'fightId', 'fight-0', `fight-${index}`));
+            (stored?.contributions || []).forEach((c: any) => applyLabel(c, 'fightId', labels.filePathFightId));
         });
         (frame.incomingDamageEntries || []).forEach((entry: any) => {
-            retarget(entry, 'fightId', 'fight-1', `fight-${index + 1}`);
+            applyLabel(entry, 'fightId', labels.fightId);
         });
-        if (frame.commanderStatsAcc instanceof Map) {
-            frame.commanderStatsAcc.forEach((entry: any) => {
-                (entry?.fightRows || []).forEach((row: any) => {
-                    row.shortLabel = `F${index + 1}`;
-                    retarget(row, 'id', 'fight-1', `fight-${index + 1}`);
-                });
-            });
-        }
     }
 
     private hasDetailedRoster(log: any): boolean {

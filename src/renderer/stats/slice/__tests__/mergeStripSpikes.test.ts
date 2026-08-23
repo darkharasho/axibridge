@@ -10,6 +10,7 @@ import { encodeState, decodeState } from '../stateCodec';
 import fixture1 from '../../../../../test-fixtures/native/20260117-175120.json';
 import fixture2 from '../../../../../test-fixtures/native/20260117-180135.json';
 import fixture3 from '../../../../../test-fixtures/native/20260117-180259.json';
+import { buildFrameLabelSeed, resolveFrameFightLabels } from '../frameLabels';
 
 const LOGS = [fixture1, fixture2, fixture3].map((details, i) => ({
     id: `log-${i}`,
@@ -33,7 +34,7 @@ const framedFinalize = (logs: any[], viaJson = false) => {
         return viaJson ? decodeState(JSON.parse(JSON.stringify(encodeState(frame)))) : frame;
     });
     const merged = createStripSpikesAccumulator();
-    frames.forEach((frame) => mergeStripSpikesFrame(merged, frame));
+    frames.forEach((frame, i) => mergeStripSpikesFrame(merged, frame, resolveFrameFightLabels(buildFrameLabelSeed(logs[i]), i)));
     return finalizeStripSpikes(merged);
 };
 

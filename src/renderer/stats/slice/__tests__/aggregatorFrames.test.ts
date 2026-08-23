@@ -53,13 +53,33 @@ const comparable = (stats: any) => {
 };
 
 /**
- * Deep-equal is order-insensitive for object keys but not for arrays, and
- * `toEqual` also treats `undefined` properties as absent. Key order is the
- * defect class this branch keeps hitting, so pin the serialized form too.
+ * Serialize the way the published report.json is serialized, but with every
+ * value JSON would otherwise flatten tagged first. Key order is the defect
+ * class this branch keeps hitting and `toEqual` is order-insensitive for object
+ * keys, so this pins order as well as content.
+ *
+ * Tagged because bare `JSON.stringify` erases them and two genuinely different
+ * results would compare equal: `Set` and `Map` both render as `{}` (there are
+ * Sets inside `stats`), `-0` renders as `0` (real `-0` values occur in
+ * `roleClassifications[].factors[].contribution`), and `Infinity`/`NaN` render
+ * as `null`.
+ *
+ * NOT tagged: `undefined`-valued properties. Those do not exist in the
+ * published artifact on either path — `JSON.stringify` drops them — so tagging
+ * them would fail the comparison on a difference no consumer can observe (the
+ * frame's JSON hop drops `icon: undefined`, the direct path keeps the key with
+ * an undefined value). The paired `toEqual` treats them the same way.
  */
-const canonical = (value: any) => JSON.stringify(value, (_k, v) => (
-    typeof v === 'number' && !Number.isFinite(v) ? `__nonfinite:${String(v)}` : v
-));
+const canonical = (value: any) => JSON.stringify(value, (_k, v) => {
+    if (typeof v === 'number') {
+        if (!Number.isFinite(v)) return `__nonfinite:${String(v)}`;
+        if (Object.is(v, -0)) return '__negzero';
+        return v;
+    }
+    if (v instanceof Set) return { __set: [...v] };
+    if (v instanceof Map) return { __map: [...v.entries()] };
+    return v;
+});
 
 describe('aggregator frame export/merge', () => {
     it('reproduces the all-fights aggregation from per-fight frames', () => {
@@ -78,9 +98,14 @@ describe('aggregator frame export/merge', () => {
         expect(comparable(framedStats([LOGS[2]]))).toEqual(comparable(direct));
     });
 
-    it('reproduces the all-fights aggregation byte-for-byte, key order included', () => {
+    it('reproduces the all-fights aggregation exactly once serialized, key and array order included', () => {
         const direct = computeStatsSync({ logs: LOGS }).stats;
-        expect(canonical(comparable(framedStats(LOGS)))).toBe(canonical(comparable(direct)));
+        const serialized = canonical(comparable(direct));
+        // The tags have to be load-bearing, or this leg would pass on two
+        // different results that merely serialize the same.
+        expect(serialized).toContain('__set');
+        expect(serialized).toContain('__negzero');
+        expect(canonical(comparable(framedStats(LOGS)))).toBe(serialized);
     });
 
     it('reproduces skillUsageData, which finalize returns alongside stats', () => {
@@ -296,5 +321,86 @@ describe('aggregator frame export/merge', () => {
 
         const direct = computeStatsSync({ logs: [LOGS[0]] }).stats;
         expect(comparable(mergeAll([roundTripped]).finalize().stats)).toEqual(comparable(direct));
+    });
+});
+
+describe('ordinal-derived labels (the zone-fallback probe)', () => {
+    /**
+     * Strip the zone names, so every `buildFightLabelV2` call in every module
+     * falls back to `Fight ${ordinal}` and every id chain falls back to
+     * `fight-${ordinal}`. Before the labels were threaded into the module merge
+     * functions this produced 100 divergent strings (128 with the ids also
+     * stripped) across boonTimeline, boonUptimeTimeline, spikeDamage,
+     * stripSpikes, incomingStrikeDamage, allDamage, commanderStats,
+     * healEffectiveness and tagDistanceDeaths — every frame claiming to be
+     * fight 1.
+     */
+    const stripped = (log: any, alsoIds: boolean) => {
+        const { fightName: _fightName, ...details } = log.details;
+        // `fightName` is the only zone source these fixtures have; `fightName`
+        // on the log and `encounterName` are already absent.
+        return alsoIds ? { details } : { id: log.id, filePath: log.filePath, details };
+    };
+
+    it.each([
+        ['with ids intact', false],
+        ['with filePath and id also stripped', true],
+    ])('reproduces the direct aggregation %s', (_name, alsoIds) => {
+        const logs = [LOGS[0], LOGS[1]].map((log) => stripped(log, alsoIds as boolean));
+        const direct = computeStatsSync({ logs }).stats;
+        const framed = framedStats(logs);
+        expect(comparable(framed)).toEqual(comparable(direct));
+        expect(canonical(comparable(framed))).toBe(canonical(comparable(direct)));
+    });
+
+    it('renumbers fullLabel and the peakFightLabel derived from it', () => {
+        const logs = [LOGS[0], LOGS[1]].map((log) => stripped(log, false));
+        const direct = computeStatsSync({ logs }).stats;
+        const framed = framedStats(logs);
+
+        // The fallback really did fire, so these assertions are not vacuous.
+        expect(direct.spikeDamage.fights.map((f: any) => f.fullLabel))
+            .toEqual(['Fight 1 (1:40)', 'Fight 2 (0:49)']);
+        expect(framed.spikeDamage.fights.map((f: any) => f.fullLabel))
+            .toEqual(direct.spikeDamage.fights.map((f: any) => f.fullLabel));
+
+        const peaks = (stats: any) => stats.spikeDamage.players.map((p: any) => p.peakFightLabel);
+        expect(new Set(peaks(direct)).size).toBeGreaterThan(1);
+        expect(peaks(framed)).toEqual(peaks(direct));
+        expect(peaks(framed)).not.toContain('Fight 1 (0:49)');
+
+        expect(framed.stripSpikes.players.map((p: any) => p.peakFightLabel))
+            .toEqual(direct.stripSpikes.players.map((p: any) => p.peakFightLabel));
+        expect(framed.incomingStrikeDamage.players.map((p: any) => p.peakFightLabel))
+            .toEqual(direct.incomingStrikeDamage.players.map((p: any) => p.peakFightLabel));
+        expect(framed.boonTimeline.map((b: any) => b.fights.map((f: any) => f.fullLabel)))
+            .toEqual(direct.boonTimeline.map((b: any) => b.fights.map((f: any) => f.fullLabel)));
+        expect(framed.commanderStats.rows.map((r: any) => r.fightsData.map((f: any) => f.fullLabel)))
+            .toEqual(direct.commanderStats.rows.map((r: any) => r.fightsData.map((f: any) => f.fullLabel)));
+    });
+
+    it('leaves a real zone name alone rather than pattern-matching it', () => {
+        // The retired string matcher rewrote anything that merely LOOKED like
+        // the ordinal fallback. A log genuinely named "Fight 1" must survive.
+        const logs = [LOGS[0], LOGS[1]].map((log) => ({
+            ...log,
+            details: { ...log.details, fightName: 'Fight 1' },
+        }));
+        const direct = computeStatsSync({ logs }).stats;
+        const framed = framedStats(logs);
+        expect(framed.spikeDamage.fights.map((f: any) => f.fullLabel))
+            .toEqual(direct.spikeDamage.fights.map((f: any) => f.fullLabel));
+        // Both fights keep the zone the log gave them; neither is renumbered.
+        expect(framed.spikeDamage.fights.every((f: any) => f.fullLabel.startsWith('Fight 1'))).toBe(true);
+        expect(comparable(framed)).toEqual(comparable(direct));
+    });
+
+    it('rejects a frame that was serialized without encodeState', () => {
+        const solo = new IncrementalAggregator();
+        solo.ingestLog(LOGS[0]);
+        // Skipping encodeState is the mistake that flattens every Map and Set
+        // to `{}`; it must fail loudly rather than merge a hollow frame.
+        const hollow = JSON.parse(JSON.stringify({ ...(solo as any), personalDamageModKeys: new Set(['d1']) }));
+        expect(() => new IncrementalAggregator().mergeFrame(hollow)).toThrow(/encodeState|labelSeed/);
     });
 });

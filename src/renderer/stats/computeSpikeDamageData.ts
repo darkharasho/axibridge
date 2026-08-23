@@ -5,6 +5,7 @@ import {
 } from '@axiapps/bridge-metrics';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
+import { applyLabel, type FrameFightLabels } from './slice/frameLabels';
 
 /**
  * Strike-damage skill rows for one entity, per-target first.
@@ -416,7 +417,18 @@ export function extractSpikeDamageFrame(acc: SpikeDamageAccumulator): SpikeDamag
     return { fight: acc.fights[0], seeds: acc.fightSeeds[0] || {} };
 }
 
-export function mergeSpikeDamageFrame(target: SpikeDamageAccumulator, frame: SpikeDamageFrame): void {
+
+/**
+ * `labels` re-states the ordinal-derived strings at the merge ordinal. A frame
+ * is always built by a solo aggregator, so `fight.id` / `shortLabel` are baked
+ * at ordinal 0 and `fullLabel` carries the `Fight 1` zone fallback whenever the
+ * log named no zone. They are rewritten BEFORE the player fold, so the fold's
+ * `peakFightLabel` picks up the corrected string for free.
+ */
+export function mergeSpikeDamageFrame(target: SpikeDamageAccumulator, frame: SpikeDamageFrame, labels: FrameFightLabels): void {
+    applyLabel(frame.fight, 'id', labels.fightId);
+    applyLabel(frame.fight, 'shortLabel', labels.shortLabel);
+    applyLabel(frame.fight, 'fullLabel', labels.fullLabel);
     target.fightIndex += 1;
     target.fights.push(frame.fight);
     target.fightSeeds.push(frame.seeds);

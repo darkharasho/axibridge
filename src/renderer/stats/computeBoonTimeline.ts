@@ -4,6 +4,7 @@ import {
 import { getEntityBoonGenerationMs } from '../../shared/boonGeneration';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
+import { applyLabel, type FrameFightLabels } from './slice/frameLabels';
 
 export type BoonPlayer = {
     key: string;
@@ -425,7 +426,19 @@ export function extractBoonTimelineFrame(acc: BoonTimelineAccumulator): BoonTime
  * and merging is adding it in. `fights` concatenates; `finalizeBoonTimeline`
  * re-sorts and renumbers.
  */
-export function mergeBoonTimelineFrame(target: BoonTimelineAccumulator, frame: BoonTimelineFrame): void {
+
+/**
+ * `labels` re-states the ordinal-derived strings at the merge ordinal. Every
+ * boon bucket repeats the same per-fight row, so the rewrite walks all of them.
+ */
+export function mergeBoonTimelineFrame(target: BoonTimelineAccumulator, frame: BoonTimelineFrame, labels: FrameFightLabels): void {
+    frame.boonBuckets.forEach((sourceBucket) => {
+        sourceBucket.fights.forEach((fight: any) => {
+            applyLabel(fight, 'id', labels.fightId);
+            applyLabel(fight, 'shortLabel', labels.shortLabel);
+            applyLabel(fight, 'fullLabel', labels.fullLabel);
+        });
+    });
     target.logIndex += 1;
     frame.boonBuckets.forEach((sourceBucket, boonId) => {
         let bucket = target.boonBuckets.get(boonId);

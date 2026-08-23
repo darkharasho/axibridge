@@ -3,6 +3,7 @@ import {
 } from '@axiapps/bridge-metrics';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
+import { applyLabel, type FrameFightLabels } from './slice/frameLabels';
 
 export type UptimePlayer = {
     key: string;
@@ -314,7 +315,19 @@ export function extractBoonUptimeFrame(acc: BoonUptimeTimelineAccumulator): Boon
  * value always wins — a frame built under different settings is rejected far
  * earlier, by the sidecar's settingsHash check.
  */
-export function mergeBoonUptimeFrame(target: BoonUptimeTimelineAccumulator, frame: BoonUptimeFrame): void {
+
+/**
+ * `labels` re-states the ordinal-derived strings at the merge ordinal. Every
+ * boon bucket repeats the same per-fight row, so the rewrite walks all of them.
+ */
+export function mergeBoonUptimeFrame(target: BoonUptimeTimelineAccumulator, frame: BoonUptimeFrame, labels: FrameFightLabels): void {
+    frame.boonBuckets.forEach((sourceBucket) => {
+        sourceBucket.fights.forEach((fight: any) => {
+            applyLabel(fight, 'id', labels.fightId);
+            applyLabel(fight, 'shortLabel', labels.shortLabel);
+            applyLabel(fight, 'fullLabel', labels.fullLabel);
+        });
+    });
     target.logIndex += 1;
     frame.boonBuckets.forEach((sourceBucket, boonId) => {
         let bucket = target.boonBuckets.get(boonId);

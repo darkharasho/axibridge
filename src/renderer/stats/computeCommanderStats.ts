@@ -6,6 +6,7 @@ import { resolveProfessionLabel } from './computePlayerAggregation';
 import { partitionSquadPlayers } from '../../shared/playerIdentity';
 import { buildNativeMovement } from '../../shared/movementData';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
+import { applyLabel, type FrameFightLabels } from './slice/frameLabels';
 
 const isBoon = (meta?: { classification?: string }) => {
     if (!meta?.classification) return true;
@@ -725,7 +726,19 @@ export function ingestLogCommanderStats(log: any, idx: number, commanders: Map<s
 export function mergeCommanderStatsInto(
     target: Map<string, CommanderEntry>,
     source: Map<string, CommanderEntry>,
+    labels: FrameFightLabels,
 ): void {
+    // `ingestLogCommanderStats` bakes the running log ordinal into every fight
+    // row's `id` / `shortLabel` / `fullLabel`, and `finalizeCommanderStats` only
+    // re-SORTS those rows — it never renumbers them. A frame is built by a solo
+    // aggregator, so restate them at the merge ordinal before folding.
+    source.forEach((incoming) => {
+        incoming.fightRows.forEach((row: any) => {
+            applyLabel(row, 'id', labels.fightId);
+            applyLabel(row, 'shortLabel', labels.shortLabel);
+            applyLabel(row, 'fullLabel', labels.fullLabelWithEncounter);
+        });
+    });
     source.forEach((incoming, account) => {
         const existing = target.get(account);
         if (!existing) {
