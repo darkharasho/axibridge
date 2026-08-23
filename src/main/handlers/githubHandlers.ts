@@ -2,7 +2,7 @@ import { ipcMain, app, BrowserWindow } from 'electron';
 import fs from 'fs';
 import path from 'node:path';
 import https from 'node:https';
-import { createHash, createHmac } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { spawn } from 'node:child_process';
 import log from 'electron-log';
@@ -16,6 +16,19 @@ import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } 
 import { postReportToWebhooks, type ReportWebhookPostResult } from '../reportWebhooks';
 import { type IReportWebhook, selectReportWebhooks } from '../../shared/reportWebhooks';
 import { resolveGuild } from '../guildDirectory';
+import { type R2Config } from '../cloudflare/r2SigV4';
+import {
+    createManualUploader,
+    createOAuthUploader,
+    type R2AuthMode,
+    type R2Uploader
+} from '../cloudflare/uploader';
+import { CLOUDFLARE_OAUTH_CLIENT_ID } from '../cloudflare/oauth';
+import {
+    CF_ACCOUNT_ID_KEY,
+    getAccessToken as getCloudflareAccessToken,
+    isSessionConnected
+} from '../cloudflare/session';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // GitHub's blob API encodes content as base64, adding ~33% overhead.
@@ -446,14 +459,6 @@ const withPagesPath = (pagesPath: string, repoPath: string) => {
 
 // ─── Cloudflare R2 helpers ────────────────────────────────────────────────────
 
-interface R2Config {
-    accountId: string;
-    accessKeyId: string;
-    secretAccessKey: string;
-    bucketName: string;
-    publicUrl: string;
-}
-
 // Credentials are pasted from the Cloudflare dashboard, so trim: a trailing
 // space or newline survives the "is it set?" check but corrupts the SigV4
 // signature, which used to surface only as an opaque R2 PUT failure.
@@ -481,167 +486,70 @@ export const resolveR2Config = (store: any): { config: R2Config | null; missingF
     return { config: resolved as unknown as R2Config, missingFields };
 };
 
-const getR2Config = (store: any): R2Config | null => resolveR2Config(store).config;
+// Hosting is opt-out rather than opt-in: a user who filled in credentials wants
+// them used. The flag exists so a publish can be sent to Pages alone without
+// tearing the credentials out and pasting them back afterwards.
+export const isR2HostingEnabled = (store: any): boolean => store.get('r2HostingEnabled') !== false;
 
-const r2SignedRequest = (
-    method: string,
-    config: R2Config,
-    bucketRelativePath: string,
-    canonicalQueryString: string,
-    contentType: string,
-    body: Buffer
-): { hostname: string; path: string; headers: Record<string, string | number> } => {
-    const region = 'auto';
-    const service = 's3';
-    const host = `${config.accountId}.r2.cloudflarestorage.com`;
-    const requestPath = `/${config.bucketName}${bucketRelativePath}`;
+export const resolveR2AuthMode = (store: any): R2AuthMode =>
+    store.get('r2AuthMode') === 'oauth' ? 'oauth' : 'manual';
 
-    const now = new Date();
-    const amzDate = now.toISOString().replace(/[:\-]|\.\d{3}/g, '').slice(0, 15) + 'Z';
-    const dateStamp = amzDate.slice(0, 8);
+interface R2UploaderResolution {
+    uploader: R2Uploader | null;
+    missingFields: string[];
+    /**
+     * The user set R2 up part-way. Distinct from "not configured": it is worth
+     * interrupting a publish to say why R2 was skipped, but only when they
+     * clearly meant to use it.
+     */
+    partiallyConfigured: boolean;
+}
 
-    const bodyHash = createHash('sha256').update(body).digest('hex');
+/** The three things OAuth mode needs beyond the grant itself. */
+const OAUTH_FIELD_COUNT = 3;
 
-    let canonicalHeaders: string;
-    let signedHeaders: string;
-    if (contentType) {
-        canonicalHeaders = `content-type:${contentType}\nhost:${host}\nx-amz-content-sha256:${bodyHash}\nx-amz-date:${amzDate}\n`;
-        signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
-    } else {
-        canonicalHeaders = `host:${host}\nx-amz-content-sha256:${bodyHash}\nx-amz-date:${amzDate}\n`;
-        signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+/**
+ * The single question the publish path asks: "can I write to R2 right now, and
+ * through what?" Both credential modes collapse to one uploader here so that no
+ * call site has to know which transport it got, or that OAuth exists at all.
+ */
+export const resolveR2Uploader = (store: any): R2UploaderResolution => {
+    if (!isR2HostingEnabled(store)) {
+        log.info('[Main] R2 hosting is switched off — skipping R2 for this publish');
+        return { uploader: null, missingFields: [], partiallyConfigured: false };
     }
 
-    const canonicalRequest = [method, requestPath, canonicalQueryString, canonicalHeaders, signedHeaders, bodyHash].join('\n');
-    const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
-    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, createHash('sha256').update(canonicalRequest).digest('hex')].join('\n');
+    if (resolveR2AuthMode(store) === 'oauth') {
+        const accountId = String(store.get(CF_ACCOUNT_ID_KEY) ?? '').trim();
+        const bucketName = String(store.get('r2BucketName') ?? '').trim();
+        const publicUrl = String(store.get('r2PublicUrl') ?? '').trim();
+        const missingFields: string[] = [];
+        if (!isSessionConnected(store)) missingFields.push('Cloudflare sign-in');
+        if (!bucketName) missingFields.push('Bucket Name');
+        if (!publicUrl) missingFields.push('Public URL');
+        if (missingFields.length > 0) {
+            log.info(`[Main] R2 OAuth config incomplete — missing: ${missingFields.join(', ')}`);
+            return { uploader: null, missingFields, partiallyConfigured: missingFields.length < OAUTH_FIELD_COUNT };
+        }
+        return {
+            uploader: createOAuthUploader({
+                accountId,
+                bucketName,
+                publicUrl,
+                getAccessToken: () => getCloudflareAccessToken(store, CLOUDFLARE_OAUTH_CLIENT_ID)
+            }),
+            missingFields: [],
+            partiallyConfigured: false
+        };
+    }
 
-    const hmac = (k: Buffer | string, data: string) => createHmac('sha256', k).update(data).digest();
-    const kDate = hmac(`AWS4${config.secretAccessKey}`, dateStamp);
-    const kRegion = hmac(kDate, region);
-    const kService = hmac(kRegion, service);
-    const kSigning = hmac(kService, 'aws4_request');
-    const signature = createHmac('sha256', kSigning).update(stringToSign).digest('hex');
-
-    const authorizationHeader = `AWS4-HMAC-SHA256 Credential=${config.accessKeyId}/${credentialScope},SignedHeaders=${signedHeaders},Signature=${signature}`;
-
-    const headers: Record<string, string | number> = {
-        'Authorization': authorizationHeader,
-        'x-amz-content-sha256': bodyHash,
-        'x-amz-date': amzDate,
+    const { config, missingFields } = resolveR2Config(store);
+    return {
+        uploader: config ? createManualUploader(config) : null,
+        missingFields,
+        // Nothing filled in at all is "not using R2", not "using R2 wrong".
+        partiallyConfigured: !config && missingFields.length < R2_FIELDS.length
     };
-    if (contentType) headers['Content-Type'] = contentType;
-    if (body.length > 0) headers['Content-Length'] = body.length;
-
-    const fullPath = canonicalQueryString ? `${requestPath}?${canonicalQueryString}` : requestPath;
-    return { hostname: host, path: fullPath, headers };
-};
-
-const r2EnsureBucketCors = async (config: R2Config, newOrigin: string): Promise<{ success: boolean; error?: string }> => {
-    const emptyBody = Buffer.alloc(0);
-
-    // 1. GET existing CORS config
-    const getOpts = r2SignedRequest('GET', config, '', 'cors=', '', emptyBody);
-    const existingXml = await new Promise<string | null>((resolve) => {
-        const req = https.request({ method: 'GET', hostname: getOpts.hostname, path: getOpts.path, headers: getOpts.headers }, (res) => {
-            let data = '';
-            res.on('data', (chunk) => (data += chunk));
-            res.on('end', () => resolve((res.statusCode === 200) ? data : null));
-        });
-        req.on('error', () => resolve(null));
-        req.end();
-    });
-
-    // 2. Parse existing AllowedOrigin values
-    const existingOrigins: string[] = [];
-    if (existingXml) {
-        const matches = existingXml.match(/<AllowedOrigin>(.*?)<\/AllowedOrigin>/g) ?? [];
-        for (const m of matches) existingOrigins.push(m.replace(/<\/?AllowedOrigin>/g, ''));
-    }
-
-    // 3. If origin (or wildcard) already present, nothing to do
-    if (existingOrigins.includes(newOrigin) || existingOrigins.includes('*')) {
-        log.info(`[Main] R2 CORS already includes origin ${newOrigin}, skipping update`);
-        return { success: true };
-    }
-
-    // 4. Build updated XML: preserve all existing rules, append a new rule for the new origin
-    const newRule = [
-        '  <CORSRule>',
-        `    <AllowedOrigin>${newOrigin}</AllowedOrigin>`,
-        '    <AllowedMethod>GET</AllowedMethod>',
-        '    <AllowedHeader>*</AllowedHeader>',
-        '  </CORSRule>',
-    ].join('\n');
-
-    let updatedXml: string;
-    if (existingXml && existingXml.includes('</CORSConfiguration>')) {
-        updatedXml = existingXml.replace('</CORSConfiguration>', `${newRule}\n</CORSConfiguration>`);
-    } else {
-        updatedXml = `<?xml version="1.0" encoding="UTF-8"?>\n<CORSConfiguration>\n${newRule}\n</CORSConfiguration>`;
-    }
-
-    // 5. PUT updated config
-    const putBody = Buffer.from(updatedXml, 'utf-8');
-    const putOpts = r2SignedRequest('PUT', config, '', 'cors=', 'application/xml', putBody);
-    return new Promise((resolve) => {
-        const req = https.request({ method: 'PUT', hostname: putOpts.hostname, path: putOpts.path, headers: putOpts.headers }, (res) => {
-            let data = '';
-            res.on('data', (chunk) => (data += chunk));
-            res.on('end', () => {
-                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                    log.info(`[Main] R2 CORS updated — added origin ${newOrigin} to bucket ${config.bucketName}`);
-                    resolve({ success: true });
-                } else {
-                    resolve({ success: false, error: `R2 PutBucketCors failed: HTTP ${res.statusCode} — ${data.slice(0, 200)}` });
-                }
-            });
-        });
-        req.on('error', (err: Error) => resolve({ success: false, error: `R2 CORS request error: ${err.message}` }));
-        req.write(putBody);
-        req.end();
-    });
-};
-
-const r2PutObject = (key: string, body: Buffer, contentType: string, config: R2Config): Promise<{ success: boolean; url?: string; error?: string }> => {
-    const opts = r2SignedRequest('PUT', config, `/${key}`, '', contentType, body);
-    return new Promise((resolve) => {
-        const req = https.request({ method: 'PUT', hostname: opts.hostname, path: opts.path, headers: opts.headers }, (res) => {
-            let data = '';
-            res.on('data', (chunk) => (data += chunk));
-            res.on('end', () => {
-                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                    const publicBase = config.publicUrl.replace(/\/$/, '');
-                    resolve({ success: true, url: `${publicBase}/${key}` });
-                } else {
-                    resolve({ success: false, error: `R2 PUT failed: HTTP ${res.statusCode} — ${data.slice(0, 200)}` });
-                }
-            });
-        });
-        req.on('error', (err: Error) => resolve({ success: false, error: `R2 request error: ${err.message}` }));
-        req.write(body);
-        req.end();
-    });
-};
-
-const r2DeleteObject = (key: string, config: R2Config): Promise<{ success: boolean; error?: string }> => {
-    const emptyBody = Buffer.alloc(0);
-    const opts = r2SignedRequest('DELETE', config, `/${key}`, '', '', emptyBody);
-    return new Promise((resolve) => {
-        const req = https.request({ method: 'DELETE', hostname: opts.hostname, path: opts.path, headers: opts.headers }, (res) => {
-            let data = '';
-            res.on('data', (chunk) => (data += chunk));
-            res.on('end', () => {
-                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                    resolve({ success: true });
-                } else {
-                    resolve({ success: false, error: `R2 DELETE failed: HTTP ${res.statusCode} — ${data.slice(0, 200)}` });
-                }
-            });
-        });
-        req.on('error', (err: Error) => resolve({ success: false, error: `R2 DELETE error: ${err.message}` }));
-        req.end();
-    });
 };
 
 // ─── Report payload builder ────────────────────────────────────────────────────
@@ -1398,10 +1306,10 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             await updateGithubRef(owner, repo, branch, token, newCommit.sha);
 
             // Best-effort: delete replay objects from R2 if configured
-            const r2Config = getR2Config(store);
-            if (r2Config) {
+            const { uploader: r2 } = resolveR2Uploader(store);
+            if (r2) {
                 await Promise.allSettled(
-                    ids.map((id) => r2DeleteObject(`reports/${id}/replay.json`, r2Config))
+                    ids.map((id) => r2.deleteObject(`reports/${id}/replay.json`))
                 );
             }
 
@@ -1491,7 +1399,10 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
     // just "are all the fields present" like the upload path itself checks.
     ipcMain.handle('get-r2-configured', async () => {
         try {
-            return { configured: !!getR2Config(store) };
+            // "Configured" means "R2 will actually be used for this publish" —
+            // it folds in the auth mode and the hosting toggle, because a slice
+            // sidecar built for a bucket we won't write to is wasted work.
+            return { configured: !!resolveR2Uploader(store).uploader };
         } catch {
             return { configured: false };
         }
@@ -1804,8 +1715,8 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const glassmorphicValue = !!store.get('glassmorphic', false);
 
             // R2: if configured, strip replayFights from the main payload and upload separately.
-            const { config: r2Config, missingFields: r2MissingFields } = resolveR2Config(store);
-            if (!r2Config && r2MissingFields.length < R2_FIELDS.length) {
+            const { uploader: r2, missingFields: r2MissingFields, partiallyConfigured } = resolveR2Uploader(store);
+            if (partiallyConfigured) {
                 // Partially configured: the user believes R2 is on, so say why it isn't.
                 sendWebUploadStatus(
                     'Warning',
@@ -1813,13 +1724,13 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                     37
                 );
             }
-            if (r2Config) {
+            if (r2) {
                 // Ensure CORS is set so the web viewer can fetch replay.json from the browser.
                 const pagesBaseUrl = (store.get('githubPagesBaseUrl') as string | null | undefined) || null;
                 // CORS AllowedOrigin must be scheme+host only (no path). Extract the origin
                 // from the full GitHub Pages URL so "https://user.github.io/repo/" → "https://user.github.io".
                 const corsOrigin = pagesBaseUrl ? new URL(pagesBaseUrl).origin : '*';
-                const corsResult = await r2EnsureBucketCors(r2Config, corsOrigin);
+                const corsResult = await r2.ensureCors(corsOrigin);
                 if (!corsResult.success) {
                     const corsWarning = `[WARN] (non-blocking) R2 CORS setup failed (${corsResult.error ?? 'unknown error'}). ` +
                         `Upload will continue; the replay viewer may not load in the browser until CORS is configured. ` +
@@ -1840,7 +1751,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 sourceStats = { ...sourceStats };
                 delete sourceStats.replayFights;
                 log.info(`[Main] ${rawReplayFights.length} replay fight(s) found (${formatBytes(replayBuffer.length)}) — splitting out of report.json.`);
-            } else if (r2Config) {
+            } else if (r2) {
                 log.info('[Main] R2 configured but no replay fights found in stats — skipping R2 upload. Enable Combat Replay in Parser Settings and re-process logs.');
                 sendWebUploadStatus('Packaging', 'R2 configured — no replay data found (Combat Replay may be disabled in Parser Settings)', 39);
             }
@@ -1856,10 +1767,10 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             let replayHostedOnPages = false;
             if (replayBuffer) {
                 let r2Url: string | null = null;
-                if (r2Config) {
+                if (r2) {
                     sendWebUploadStatus('Uploading', 'Uploading replay data to R2...', 38);
                     const r2Key = `reports/${reportMeta.id}/replay.json`;
-                    const r2Result = await r2PutObject(r2Key, replayBuffer, 'application/json', r2Config);
+                    const r2Result = await r2.putObject(r2Key, replayBuffer, 'application/json');
                     if (r2Result.success && r2Result.url) {
                         r2Url = r2Result.url;
                         log.info(`[Main] R2 replay upload succeeded: ${r2Result.url} (${formatBytes(replayBuffer.length)})`);
@@ -1902,13 +1813,13 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 // user who has already configured R2 to go configure it sends them
                 // looking in the wrong place.
                 let sliceUploadFailed = false;
-                if (r2Config) {
+                if (r2) {
                     sendWebUploadStatus('Uploading', 'Uploading fight slice data to R2...', 39);
                     const sliceKey = `reports/${reportMeta.id}/slice.json.gz`;
                     // Content-Type only, no Content-Encoding: the viewer inflates
                     // these bytes itself with DecompressionStream('gzip'), so the
                     // browser must NOT transparently inflate them first.
-                    const sliceResult = await r2PutObject(sliceKey, sliceBuffer, 'application/gzip', r2Config);
+                    const sliceResult = await r2.putObject(sliceKey, sliceBuffer, 'application/gzip');
                     if (sliceResult.success && sliceResult.url) {
                         sliceR2Url = sliceResult.url;
                         log.info(`[Main] R2 slice upload succeeded: ${sliceResult.url} (${formatBytes(sliceBuffer.length)})`);

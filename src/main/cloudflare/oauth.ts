@@ -21,6 +21,13 @@ export const CLOUDFLARE_REVOKE_URL = 'https://dash.cloudflare.com/oauth2/revoke'
  *
  * Do not add scopes "to be safe". Each one widens what the consent screen asks for.
  */
+/**
+ * The registered OAuth client. Not a secret — it travels in the authorize URL —
+ * but it is environment-specific, so the env var wins during development against
+ * a private client on the maintainer's own account.
+ */
+export const CLOUDFLARE_OAUTH_CLIENT_ID = process.env.CLOUDFLARE_OAUTH_CLIENT_ID || '';
+
 export const CLOUDFLARE_OAUTH_SCOPES = ['workers-r2.write', 'memberships.read', 'offline_access'] as const;
 
 /**
@@ -140,6 +147,16 @@ interface TokenResponse {
 }
 
 /**
+ * `oauthError` carries the machine-readable OAuth code (`invalid_grant` and
+ * friends) separately from the display message, so callers can tell "this
+ * refresh token is dead, re-authorise" from "the network was down" without
+ * pattern-matching on prose.
+ */
+export type TokenEndpointResult =
+    | { ok: true; tokens: TokenSet }
+    | { ok: false; error: string; oauthError?: string };
+
+/**
  * Token endpoint calls are form-encoded, unauthenticated (public client), and — like
  * every other Cloudflare request — must carry an explicit User-Agent. A default
  * agent gets a WAF 403 here, which reads exactly like a broken OAuth configuration.
@@ -147,7 +164,7 @@ interface TokenResponse {
 const postTokenEndpoint = async (
     url: string,
     form: Record<string, string>
-): Promise<{ ok: true; tokens: TokenSet } | { ok: false; error: string }> => {
+): Promise<TokenEndpointResult> => {
     const body = new URLSearchParams(form).toString();
     let response: Response;
     try {
@@ -183,7 +200,7 @@ const postTokenEndpoint = async (
 
     if (!response.ok || parsed.error) {
         const detail = parsed.error_description || parsed.error || `HTTP ${response.status}`;
-        return { ok: false, error: `Cloudflare rejected the token request: ${detail}` };
+        return { ok: false, error: `Cloudflare rejected the token request: ${detail}`, oauthError: parsed.error };
     }
     if (!parsed.access_token) {
         return { ok: false, error: 'Cloudflare returned no access token.' };

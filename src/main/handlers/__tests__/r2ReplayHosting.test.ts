@@ -11,7 +11,7 @@ vi.mock('electron-log', () => ({
     default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
 }));
 
-import { MAX_GITHUB_BLOB_BYTES, planSidecarHosting, resolveR2Config } from '../githubHandlers';
+import { MAX_GITHUB_BLOB_BYTES, planSidecarHosting, resolveR2Config, resolveR2Uploader } from '../githubHandlers';
 
 const makeStore = (values: Record<string, unknown>) => ({
     get: (key: string) => values[key]
@@ -116,5 +116,73 @@ describe('MAX_GITHUB_BLOB_BYTES', () => {
     // base64 inflates by ~33%; GitHub rejects requests past ~100 MB with a 422.
     it('leaves the base64-encoded blob under 100 MB', () => {
         expect(Math.ceil(MAX_GITHUB_BLOB_BYTES / 3) * 4).toBeLessThan(100 * 1024 * 1024);
+    });
+});
+
+
+describe('resolveR2Uploader', () => {
+    it('hands back a SigV4 uploader for a complete manual config', () => {
+        const { uploader, partiallyConfigured } = resolveR2Uploader(makeStore(FULL));
+        expect(uploader?.mode).toBe('manual');
+        expect(uploader?.bucketName).toBe('bucket');
+        expect(partiallyConfigured).toBe(false);
+    });
+
+    it('refuses to upload when hosting is switched off, even fully configured', () => {
+        const { uploader, missingFields, partiallyConfigured } = resolveR2Uploader(
+            makeStore({ ...FULL, r2HostingEnabled: false })
+        );
+        expect(uploader).toBeNull();
+        // Nothing is missing — the user turned it off — so the publish path must
+        // not nag about a half-finished setup.
+        expect(missingFields).toEqual([]);
+        expect(partiallyConfigured).toBe(false);
+    });
+
+    it('treats an absent toggle as on, so existing installs keep working', () => {
+        expect(resolveR2Uploader(makeStore(FULL)).uploader).not.toBeNull();
+        expect(resolveR2Uploader(makeStore({ ...FULL, r2HostingEnabled: true })).uploader).not.toBeNull();
+    });
+
+    it('flags a half-filled manual config as partially configured', () => {
+        const { uploader, partiallyConfigured } = resolveR2Uploader(
+            makeStore({ ...FULL, r2PublicUrl: '' })
+        );
+        expect(uploader).toBeNull();
+        expect(partiallyConfigured).toBe(true);
+    });
+
+    it('does not nag when no R2 field has ever been filled in', () => {
+        expect(resolveR2Uploader(makeStore({})).partiallyConfigured).toBe(false);
+    });
+
+    it('builds an OAuth uploader without any access key pair', () => {
+        const { uploader } = resolveR2Uploader(makeStore({
+            r2AuthMode: 'oauth',
+            cloudflareAccountId: 'acct',
+            cloudflareTokenSet: { accessToken: 'a', expiresAt: Date.now() + 600_000 },
+            r2BucketName: 'bucket',
+            r2PublicUrl: 'https://pub-x.r2.dev'
+        }));
+        // The whole point of the phase: no accessKeyId, no secretAccessKey.
+        expect(uploader?.mode).toBe('oauth');
+        expect(uploader?.publicUrl).toBe('https://pub-x.r2.dev');
+    });
+
+    it('names the sign-in as missing when OAuth mode has no session', () => {
+        const { uploader, missingFields } = resolveR2Uploader(makeStore({
+            r2AuthMode: 'oauth',
+            r2BucketName: 'bucket',
+            r2PublicUrl: 'https://pub-x.r2.dev'
+        }));
+        expect(uploader).toBeNull();
+        expect(missingFields).toEqual(['Cloudflare sign-in']);
+    });
+
+    it('ignores stale manual credentials once OAuth mode is selected', () => {
+        const { uploader } = resolveR2Uploader(makeStore({ ...FULL, r2AuthMode: 'oauth' }));
+        // Manual keys are all present, but the mode says OAuth and there is no
+        // session — falling back to the old keys would be a silent mode switch.
+        expect(uploader).toBeNull();
     });
 });
