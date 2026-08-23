@@ -395,12 +395,26 @@ describe('ordinal-derived labels (the zone-fallback probe)', () => {
         expect(comparable(framed)).toEqual(comparable(direct));
     });
 
-    it('rejects a frame that was serialized without encodeState', () => {
+    it('rejects a frame whose Set sections were serialized without encodeState', () => {
         const solo = new IncrementalAggregator();
         solo.ingestLog(LOGS[0]);
-        // Skipping encodeState is the mistake that flattens every Map and Set
-        // to `{}`; it must fail loudly rather than merge a hollow frame.
-        const hollow = JSON.parse(JSON.stringify({ ...(solo as any), personalDamageModKeys: new Set(['d1']) }));
-        expect(() => new IncrementalAggregator().mergeFrame(hollow)).toThrow(/encodeState|labelSeed/);
+        const frame: any = JSON.parse(JSON.stringify(solo.exportFrame()));
+        // A bare `JSON.stringify` renders a Set as `{}` — the silent, total
+        // data loss `encodeState` exists to prevent. Everything else about this
+        // frame is intact, `labelSeed` included, so it reaches the Set guard
+        // instead of tripping the labelSeed check first; and the matcher has no
+        // alternation that could be satisfied by any other error.
+        frame.personalDamageModKeys = {};
+        expect(() => new IncrementalAggregator().mergeFrame(frame)).toThrow(/encodeState/);
+    });
+
+    it('rejects a frame that carries no labelSeed', () => {
+        const solo = new IncrementalAggregator();
+        solo.ingestLog(LOGS[0]);
+        const frame: any = JSON.parse(JSON.stringify(solo.exportFrame()));
+        delete frame.labelSeed;
+        // Without the seed every ordinal-derived label would silently stay at
+        // the solo aggregator's `Fight 1`.
+        expect(() => new IncrementalAggregator().mergeFrame(frame)).toThrow(/labelSeed/);
     });
 });
