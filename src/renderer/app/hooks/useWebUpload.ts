@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_WEB_UPLOAD_STATE, type IWebUploadState } from '../../global.d';
+import type { SliceSidecar } from '../../stats/slice/sliceTypes';
 
 export type LogEntry = { elapsed: string; text: string; isError: boolean; isWarn: boolean };
 
@@ -122,7 +123,7 @@ export function useWebUpload(opts?: {
         }, 2500);
     }, [webUploadState.stage]);
 
-    const handleWebUpload = useCallback(async (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; logIds?: string[]; reportWebhookIds?: string[]; sliceSidecar?: any }) => {
+    const handleWebUpload = useCallback(async (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; logIds?: string[]; reportWebhookIds?: string[]; sliceSidecar?: SliceSidecar }) => {
         if (!window.electronAPI?.uploadWebReport) {
             setWebUploadState((prev) => ({
                 ...prev,

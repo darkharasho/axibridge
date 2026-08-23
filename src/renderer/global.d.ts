@@ -1,5 +1,6 @@
 import type { ColorPalette } from '../shared/webThemes';
 import type { IReportWebhook } from '../shared/reportWebhooks';
+import type { SliceSidecar } from './stats/slice/sliceTypes';
 
 export interface IWebhook {
     id: string;
@@ -420,9 +421,10 @@ export interface IElectronAPI {
     ensureGithubTemplate: () => Promise<{ success: boolean; updated?: boolean; error?: string }>;
     selectGithubLogo: () => Promise<string | null>;
     applyGithubLogo: (payload?: { logoPath?: string }) => Promise<{ success: boolean; updated?: boolean; error?: string }>;
-    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: any }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string; webhookResults?: Array<{ id: string; name: string; ok: boolean; error?: string }> }>;
+    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: SliceSidecar }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string; webhookResults?: Array<{ id: string; name: string; ok: boolean; error?: string }> }>;
     mockWebReport: (payload: { meta: any; stats: any }) => Promise<{ success: boolean; url?: string; error?: string }>;
     getGithubPagesBuildStatus: (payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; status?: string; updatedAt?: string; errorMessage?: string; error?: string }>;
+    isR2Configured: () => Promise<{ configured: boolean }>;
     onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number }) => void) => () => void;
     exportSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     importSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;

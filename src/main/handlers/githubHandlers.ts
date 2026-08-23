@@ -1485,6 +1485,18 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         }
     });
 
+    // Cheap, synchronous-ish existence check for the renderer to gate the
+    // (relatively expensive: ~300ms build + 10MB+ structured clone over IPC)
+    // slice sidecar build on. Does not validate the credentials against R2 —
+    // just "are all the fields present" like the upload path itself checks.
+    ipcMain.handle('get-r2-configured', async () => {
+        try {
+            return { configured: !!getR2Config(store) };
+        } catch {
+            return { configured: false };
+        }
+    });
+
     ipcMain.handle('ensure-github-template', async () => {
         try {
             const token = store.get('githubToken') as string | undefined;

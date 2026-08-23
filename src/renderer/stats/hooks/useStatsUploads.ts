@@ -6,6 +6,7 @@ import { buildReportMeta as buildReportMetaFromDetails } from '../utils/buildRep
 import { computeInitialWebhookSelection } from '../utils/reportWebhookSelection';
 import { useStatsStore } from '../statsStore';
 import { buildSliceSidecar } from '../slice/buildSliceSidecar';
+import type { SliceSidecar } from '../slice/sliceTypes';
 
 export interface PublishWebhookOption {
     id: string;
@@ -33,7 +34,7 @@ interface UseStatsUploadsProps {
     mvpWeights?: any;
     disruptionMethod?: any;
     embedded: boolean;
-    onWebUpload?: (payload: { meta: any; stats: any; logIds?: string[]; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: any }) => Promise<void> | void;
+    onWebUpload?: (payload: { meta: any; stats: any; logIds?: string[]; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: SliceSidecar }) => Promise<void> | void;
 }
 
 export const useStatsUploads = ({
@@ -112,10 +113,18 @@ export const useStatsUploads = ({
         };
     }, []);
 
+    // Shared with `collectDetails` and the slice sidecar builder: the cache is
+    // the source of truth for a log's details, `log.details` is only the
+    // last-resort fallback. A log whose details were evicted from the cache
+    // (a documented failure mode on this project) must be treated as
+    // unavailable, not silently aggregated from a stale/empty `log.details`.
+    const resolveDetailsForLog = (log: any): any | null =>
+        (detailsCache && log?.id ? detailsCache.peek(log.id) : null) || log.details || null;
+
     const collectDetails = (): any[] => {
         const detailsList: any[] = [];
         logs.forEach((log) => {
-            const details = (detailsCache && log?.id ? detailsCache.peek(log.id) : null) || log.details;
+            const details = resolveDetailsForLog(log);
             if (!details) return;
             // `uploadTime` lives on the log, not the details; carry it across so
             // the pure builder keeps the same last-resort fallback it had here.
@@ -128,6 +137,25 @@ export const useStatsUploads = ({
         return detailsList;
     };
 
+    // The slice sidecar builder wants `{id, filePath, details}` wrapper shapes
+    // (for `statsLogKey`/roster matching), unlike `collectDetails` which
+    // returns bare details. Same cache-first resolution as `collectDetails` —
+    // a log with no resolvable details is skipped (not zero-filled) so a
+    // sidecar frame is never silently built from nothing.
+    const collectSliceLogs = (): { logs: any[]; skipped: number } => {
+        const sliceLogs: any[] = [];
+        let skipped = 0;
+        logs.forEach((log) => {
+            const details = resolveDetailsForLog(log);
+            if (!details) {
+                skipped++;
+                return;
+            }
+            sliceLogs.push({ id: log?.id, filePath: log?.filePath, details });
+        });
+        return { logs: sliceLogs, skipped };
+    };
+
     const buildReportMeta = () => buildReportMetaFromDetails(collectDetails());
 
     const buildReportStats = () => {
@@ -135,6 +163,14 @@ export const useStatsUploads = ({
             ...stats,
             skillUsageData,
             statsViewSettings: activeStatsViewSettings,
+            // Slice mode is publisher-settings-authoritative: `buildSliceSidecar`
+            // hashes exactly these two values (read back off `uploadStats` below,
+            // never off these hook props directly) so the published report and
+            // its sidecar can never disagree about what they were built under.
+            // The viewer has no settings of its own to compare against — it
+            // reads these back out of `report.stats` and hashes THEM.
+            mvpWeights,
+            disruptionMethod,
         };
         // Never publish the transient elision marker as report content.
         delete (baseStats as any).replayFightsElided;
@@ -197,13 +233,46 @@ export const useStatsUploads = ({
             }
             // The web slicer's payload. Publishing is already blocked while a
             // slice is active, so `logs` here is always the full night.
-            const sliceSidecar = buildSliceSidecar({
-                logs,
-                roster: fightRoster,
-                mvpWeights,
-                statsViewSettings: activeStatsViewSettings,
-                disruptionMethod,
-            });
+            //
+            // Building it is not free (a fresh single-log aggregation per
+            // fight, then a multi-MB structured clone over the upload IPC and
+            // a level-9 gzip in main) and is entirely wasted work when R2 is
+            // not configured — the sidecar is R2-only and is dropped
+            // unconditionally on that path. So gate the BUILD itself, not
+            // just the gzip, on an R2-configured check.
+            //
+            // A build failure must not abort the publish: the report
+            // publishes exactly as it does today either way, just without a
+            // slicer.
+            let sliceSidecar: SliceSidecar | undefined;
+            try {
+                const r2Status = await window.electronAPI?.isR2Configured?.();
+                if (r2Status?.configured) {
+                    const { logs: sliceLogs, skipped } = collectSliceLogs();
+                    if (skipped > 0) {
+                        console.warn(
+                            `[StatsView] Slice sidecar: ${skipped} log(s) had no cached details ` +
+                            `(evicted or never loaded) and were excluded from the fight slicer.`
+                        );
+                    }
+                    // Hash from exactly what `uploadStats` carries (not from the
+                    // raw hook props) — those are the same values the report
+                    // publishes as `stats.mvpWeights`/`stats.statsViewSettings`/
+                    // `stats.disruptionMethod`, so the sidecar's settingsHash is
+                    // guaranteed to agree with what a viewer re-hashes from the
+                    // published report, by construction.
+                    sliceSidecar = buildSliceSidecar({
+                        logs: sliceLogs,
+                        roster: fightRoster,
+                        mvpWeights: (uploadStats as any).mvpWeights,
+                        statsViewSettings: (uploadStats as any).statsViewSettings,
+                        disruptionMethod: (uploadStats as any).disruptionMethod,
+                    });
+                }
+            } catch (sliceErr) {
+                console.warn('[StatsView] Slice sidecar build failed — publishing without the fight slicer.', sliceErr);
+                sliceSidecar = undefined;
+            }
             await onWebUpload({
                 meta,
                 stats: uploadStats,
@@ -211,7 +280,7 @@ export const useStatsUploads = ({
                 ...(normalizedRepoFullName ? { repoFullName: normalizedRepoFullName } : {}),
                 ...(repoParts.length === 2 ? { repoOwner: repoParts[0], repoName: repoParts[1] } : {}),
                 ...(Array.isArray(reportWebhookIds) ? { reportWebhookIds } : {}),
-                sliceSidecar,
+                ...(sliceSidecar ? { sliceSidecar } : {}),
             });
         } catch (err) {
             console.error('[StatsView] Web upload failed:', err);

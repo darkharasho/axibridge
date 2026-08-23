@@ -31,12 +31,19 @@ const LOGS = [
  * a free R2 tier. Measured 2026-08-22 on this same 7-fight fixture series:
  * ~268 KB/fight average, largest single frame ~360 KB gz (37-42 player
  * rosters). That is above the spec's original ~124 KB/fight aspiration but
- * nowhere near "a section started carrying raw log details" territory — that
- * failure mode reads in the MEGABYTES per frame, not hundreds of KB. The
- * binding cost here is the viewer's tray-open fetch (one gzip download), not
- * R2 storage, so 400 KB/fight is generous headroom without being a blank
- * check: a section ballooning to raw `details`/replay-track size would still
- * blow through it by 10x+.
+ * nowhere near a raw-`details` leak, which reads in the MEGABYTES per frame
+ * (901 KB/fight measured leaking `log.details` wholesale into a frame — a
+ * 2.25x trip of this budget) rather than hundreds of KB. The binding cost
+ * here is the viewer's tray-open fetch (one gzip download), not R2 storage,
+ * so 400 KB/fight is generous headroom without being a blank check for that
+ * failure mode.
+ *
+ * What this assertion does NOT catch: a narrower leak, such as the frame's
+ * own replay track (`this.replayPayloads`), only moved the measured total
+ * from 268 to 316 KB/fight — still comfortably under 400 KB. That leak is
+ * caught by the sibling "carries no replay tracks" test below, via a
+ * substring check, not by size. Size and content are complementary guards;
+ * neither alone is sufficient.
  *
  * A per-section breakdown (see task-15-report.md) found `playerAcc` (~27%)
  * and `boonTableLogs` (~18%) are the two largest sections, matching Task 12's
@@ -47,8 +54,9 @@ const LOGS = [
  * See the task-15 report for the numbers; this budget is set independent of
  * that trim landing.
  *
- * If this fails: something now serializes `details` (or a replay track) into a
- * frame. Find it and narrow the projection. Do NOT raise the budget.
+ * If this fails: something now serializes `details` (or a large amount of
+ * replay-scale data) into a frame. Find it and narrow the projection. Do NOT
+ * raise the budget.
  */
 const MAX_GZIPPED_BYTES_PER_FIGHT = 400 * 1024;
 
