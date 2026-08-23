@@ -275,7 +275,7 @@ missing; the empty-account-list message should name it.
 ## Open questions
 
 Questions 2 and 4 from the first draft are now answered — see the verified section
-above. What remains:
+above, and the end-to-end probe below. What remains:
 
 1. **Does enabling R2 on a fresh account require a payment method?** The docs say
    "You must purchase R2 before you can generate an API token", which is Cloudflare's
@@ -284,11 +284,14 @@ above. What remains:
    is fully hands-off or ends in one unavoidable dashboard deep-link. **Verify against
    a genuinely fresh account before building.** This is now the only remaining
    prerequisite.
-2. **Does `PUT .../objects/{key}` actually accept an OAuth bearer token?** Reads were
-   confirmed (`GET /accounts/{id}/r2/buckets` succeeds on an OAuth token); the write
-   was not tested, because testing it means writing an object into a real bucket. This
-   is load-bearing for the whole design and needs one round-trip put/delete against a
-   scratch bucket before anything is built.
+2. **Whether a *third-party* client holding `workers-r2.write` gets the same access
+   the probe demonstrated.** The probe (below) ran on wrangler's OAuth session, whose
+   grant is the first-party scope set (`workers:write`, `account:read`, …) — not the
+   third-party catalog scope `workers-r2.write`. So what is proven is that *the
+   endpoints accept an OAuth bearer token at all*, which was the real doubt; what is
+   not proven is that this specific scope name maps onto these specific endpoints.
+   Cheap to settle: register the OAuth client, consent once, re-run the same six calls.
+   Do that before writing implementation code, not after.
 3. **Whether the 1,200-per-5-minutes REST limit counts object operations.** The limit
    is stated as "across all R2 REST API operations on your account", while a separate
    footnote says the bucket-management rate limit does *not* apply to object reads and
@@ -302,6 +305,34 @@ above. What remains:
    fallback.
 6. **Bucket adoption semantics** when `axibridge-reports` already exists — adopt,
    suffix, or ask.
+
+## Probe: full provisioning round trip on an OAuth bearer, 2026-08-23
+
+Run against a live Cloudflare account with an OAuth access token (wrangler's session —
+see open question 2 for what that qualifies). Every call is the one the design proposes,
+in order. All six succeeded, and the scratch bucket was deleted afterwards.
+
+| # | Call | Result |
+|---|------|--------|
+| 1 | `POST /accounts/{id}/r2/buckets` | 200, bucket created |
+| 2 | `PUT  /accounts/{id}/r2/buckets/{b}/objects/probe%2Fslice.json.gz` | 200, `{"key":"probe/slice.json.gz","size":"45","etag":"2082cd45…"}` |
+| 3 | `GET  /accounts/{id}/r2/buckets/{b}/objects/…` | 200, **byte-identical** to what was sent |
+| 4 | `PUT  /accounts/{id}/r2/buckets/{b}/domains/managed` | 200, `pub-<hash>.r2.dev` returned |
+| 5 | `PUT  /accounts/{id}/r2/buckets/{b}/cors` | 200 |
+| 6 | `GET  https://pub-<hash>.r2.dev/probe/slice.json.gz` | 200, valid gzip, `Access-Control-Allow-Origin: *`, `Vary: Origin` |
+
+Two details that matter beyond "it worked":
+
+- **The sidecar encoding contract survives the REST path.** The object came back with
+  `Content-Type: application/gzip` and **no `Content-Encoding`** — exactly the shape
+  Phase B requires, and the shape the SigV4 path produces today. The REST endpoint does
+  not rewrite or re-encode the body.
+- **`domains/managed` returns the public hostname in its own response**, so provisioning
+  does not need a follow-up `GET` to learn the URL. Step 4c of the flow collapses to one
+  call.
+
+Teardown (`DELETE` object → disable managed domain → `DELETE` bucket) also returned 200
+throughout, which is what Disconnect and any failed-provisioning rollback will need.
 
 ## What this does not change
 
