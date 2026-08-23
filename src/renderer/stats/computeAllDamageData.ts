@@ -115,6 +115,40 @@ export function createAllDamageAccumulator(): AllDamageAccumulator {
     };
 }
 
+/**
+ * Fold one fight's player buckets into the running player aggregate. Shared by
+ * `ingestLogAllDamage` and `mergeAllDamageFrame`, so slice-mode totals cannot
+ * drift from all-fights totals. Every field it needs already lives on the
+ * bucket, which is why this module's frame carries no seeds.
+ */
+export function foldAllDamageFightIntoPlayers(
+    fight: AllDamageFight,
+    playerAgg: Map<string, AllDamagePlayer>,
+): void {
+    fight.players.forEach((bucket) => {
+        const existing = playerAgg.get(bucket.key);
+        if (existing) {
+            existing.logs += 1;
+            existing.totalDamage += bucket.totalDamage;
+            existing.totalDownContribution += bucket.totalDownContribution;
+            if (!existing.professionList.includes(bucket.profession) && bucket.profession !== 'Unknown') {
+                existing.professionList.push(bucket.profession);
+            }
+        } else {
+            playerAgg.set(bucket.key, {
+                key: bucket.key,
+                account: bucket.account,
+                displayName: bucket.displayName,
+                profession: bucket.profession,
+                professionList: [bucket.profession].filter((p) => p !== 'Unknown'),
+                logs: 1,
+                totalDamage: bucket.totalDamage,
+                totalDownContribution: bucket.totalDownContribution,
+            });
+        }
+    });
+}
+
 export function ingestLogAllDamage(log: any, acc: AllDamageAccumulator, options: AllDamageIngestOptions = {}): void {
     const splitPlayersByClass = options.splitPlayersByClass ?? false;
     const details = log?.details;
@@ -185,28 +219,6 @@ export function ingestLogAllDamage(log: any, acc: AllDamageAccumulator, options:
 
         fightTotalDamage += totalDamage;
         fightTotalDown += totalDownContribution;
-
-        // Aggregate player totals
-        const existing = acc.playerAgg.get(key);
-        if (existing) {
-            existing.logs += 1;
-            existing.totalDamage += totalDamage;
-            existing.totalDownContribution += totalDownContribution;
-            if (!existing.professionList.includes(profession) && profession !== 'Unknown') {
-                existing.professionList.push(profession);
-            }
-        } else {
-            acc.playerAgg.set(key, {
-                key,
-                account,
-                displayName: characterName || account,
-                profession,
-                professionList: [profession].filter((p) => p !== 'Unknown'),
-                logs: 1,
-                totalDamage,
-                totalDownContribution,
-            });
-        }
     });
 
     // Sort players within fight by total damage descending
@@ -214,7 +226,7 @@ export function ingestLogAllDamage(log: any, acc: AllDamageAccumulator, options:
 
     const isWin = members.length > 0 ? getFightOutcome(details) : null;
 
-    acc.fights.push({
+    const fight: AllDamageFight = {
         id: String(log?.filePath || log?.id || `fight-${index + 1}`),
         shortLabel: `F${index + 1}`,
         fullLabel,
@@ -224,7 +236,9 @@ export function ingestLogAllDamage(log: any, acc: AllDamageAccumulator, options:
         durationMs,
         isWin,
         players: fightPlayers,
-    });
+    };
+    acc.fights.push(fight);
+    foldAllDamageFightIntoPlayers(fight, acc.playerAgg);
 }
 
 export function finalizeAllDamage(acc: AllDamageAccumulator): AllDamageData {
@@ -238,6 +252,23 @@ export function finalizeAllDamage(acc: AllDamageAccumulator): AllDamageData {
         .map((fight, i) => ({ ...fight, shortLabel: `F${i + 1}` }));
 
     return { fights, players };
+}
+
+export interface AllDamageFrame {
+    fight: AllDamageFight;
+}
+
+export function extractAllDamageFrame(acc: AllDamageAccumulator): AllDamageFrame {
+    if (acc.fights.length !== 1) {
+        throw new Error(`extractAllDamageFrame expects exactly one fight, got ${acc.fights.length}`);
+    }
+    return { fight: acc.fights[0] };
+}
+
+export function mergeAllDamageFrame(target: AllDamageAccumulator, frame: AllDamageFrame): void {
+    target.fightIndex += 1;
+    target.fights.push(frame.fight);
+    foldAllDamageFightIntoPlayers(frame.fight, target.playerAgg);
 }
 
 export function computeAllDamageData(validLogs: any[], splitPlayersByClass = false): AllDamageData {
