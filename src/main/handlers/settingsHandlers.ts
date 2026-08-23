@@ -182,6 +182,9 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             r2BucketName: store.get('r2BucketName', null),
             r2PublicUrl: store.get('r2PublicUrl', null),
             r2PreciseReplay: store.get('r2PreciseReplay', false),
+            // Defaults on: an install that already has credentials was using R2
+            // before this flag existed, and must keep doing so.
+            r2HostingEnabled: store.get('r2HostingEnabled', true),
             r2ReplayUrls: store.get('r2ReplayUrls', {}) as Record<string, string>,
         };
     });

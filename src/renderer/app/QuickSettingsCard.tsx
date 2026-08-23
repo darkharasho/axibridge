@@ -52,7 +52,7 @@ export function QuickSettingsCard({ context }: { context: QuickSettingsContext }
                 Quick Settings
             </div>
             <div className="space-y-0">
-                {QUICK_SETTINGS.map((setting, index) => {
+                {QUICK_SETTINGS.filter((setting) => setting.isRelevant?.(context) ?? true).map((setting, index) => {
                     const ready = setting.isReady(context);
                     return (
                         <div

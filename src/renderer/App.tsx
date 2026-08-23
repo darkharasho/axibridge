@@ -65,6 +65,7 @@ function App() {
         disruptionMethod, setDisruptionMethod,
         allowLocalJson, setAllowLocalJson,
         r2PreciseReplay, setR2PreciseReplay,
+        r2HostingEnabled, setR2HostingEnabled,
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
         glassmorphic, setGlassmorphic,
@@ -97,12 +98,32 @@ function App() {
         handleUpdateSettings({ statsViewSettings: next });
     }, [setStatsViewSettings, handleUpdateSettings]);
 
+    // Whether R2 credentials exist at all. Only the main process knows — the
+    // renderer never sees the secret half — so it is asked once at mount and
+    // again whenever Settings saves.
+    const [r2CredentialsPresent, setR2CredentialsPresent] = useState<boolean | null>(null);
+    const refreshR2Status = useCallback(() => {
+        window.electronAPI?.isR2Configured?.()
+            .then((status) => setR2CredentialsPresent(Boolean(status?.credentialsPresent)))
+            .catch(() => setR2CredentialsPresent(false));
+    }, []);
+    useEffect(() => { refreshR2Status(); }, [refreshR2Status]);
+
+    const setQuickR2HostingEnabled = useCallback((value: boolean) => {
+        setR2HostingEnabled(value);
+        handleUpdateSettings({ r2HostingEnabled: value });
+    }, [setR2HostingEnabled, handleUpdateSettings]);
+
     const quickSettingsContext = useMemo(() => ({
         eiSettings,
         setEiSetting,
         statsViewSettings,
         setStatsViewSettings: setQuickStatsViewSettings,
-    }), [eiSettings, setEiSetting, statsViewSettings, setQuickStatsViewSettings]);
+        r2Hosting: r2CredentialsPresent === null
+            ? null
+            : { credentialsPresent: r2CredentialsPresent, enabled: r2HostingEnabled },
+        setR2HostingEnabled: setQuickR2HostingEnabled,
+    }), [eiSettings, setEiSetting, statsViewSettings, setQuickStatsViewSettings, r2CredentialsPresent, r2HostingEnabled, setQuickR2HostingEnabled]);
 
     // Upload Retry Queue
     const {
@@ -1095,7 +1116,7 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setEiSettings, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setR2HostingEnabled, refreshR2Status, setEiSettings, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,

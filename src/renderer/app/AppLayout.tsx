@@ -107,6 +107,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         isBulkUploadActive,
         setAllowLocalJson,
         setR2PreciseReplay,
+        setR2HostingEnabled,
+        refreshR2Status,
         setEiSettings,
     } = ctx;
 
@@ -434,7 +436,13 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         )}
                         {view === 'settings' && (
                             <SettingsView
-                                onBack={() => setView('dashboard')}
+                                onBack={() => {
+                                    // Credentials may have just been added or
+                                    // cleared, which decides whether the R2 row
+                                    // belongs in Quick Settings at all.
+                                    refreshR2Status?.();
+                                    setView('dashboard');
+                                }}
                                 onEmbedStatSettingsSaved={setEmbedStatSettings}
                                 onMvpWeightsSaved={stableSetMvpWeights}
                                 onStatsViewSettingsSaved={stableSetStatsViewSettings}
@@ -446,6 +454,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onAllowLocalJsonSaved={setAllowLocalJson}
                                 onEiSettingsSaved={setEiSettings}
                                 onR2PreciseReplaySaved={setR2PreciseReplay}
+                                onR2HostingEnabledSaved={setR2HostingEnabled}
                                 particlesEnabled={particlesEnabled}
                                 developerSettingsTrigger={developerSettingsTrigger}
                                 helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}

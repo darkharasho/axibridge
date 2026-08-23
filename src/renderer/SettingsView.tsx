@@ -176,6 +176,7 @@ interface SettingsViewProps {
     /** Keeps App's copy (the dashboard Quick Settings card) in sync with edits made here. */
     onEiSettingsSaved?: (settings: IEiParserSettings) => void;
     onR2PreciseReplaySaved?: (enabled: boolean) => void;
+    onR2HostingEnabledSaved?: (enabled: boolean) => void;
     colorPalette?: ColorPalette;
     glassSurfaces?: boolean;
     glassmorphic?: boolean;
@@ -261,7 +262,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onEiSettingsSaved, onR2PreciseReplaySaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onEiSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [reportWebhooks, setReportWebhooks] = useState<IReportWebhook[]>([]);
@@ -332,6 +333,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [r2BucketName, setR2BucketName] = useState('');
     const [r2PublicUrl, setR2PublicUrl] = useState('');
     const [r2PreciseReplay, setR2PreciseReplay] = useState(false);
+    const [r2HostingEnabled, setR2HostingEnabled] = useState(true);
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
     const [githubLogoStatus, setGithubLogoStatus] = useState<string | null>(null);
     const [githubLogoStatusKind, setGithubLogoStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
@@ -621,6 +623,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         setR2BucketName(settings.r2BucketName || '');
         setR2PublicUrl(settings.r2PublicUrl || '');
         setR2PreciseReplay(settings.r2PreciseReplay ?? false);
+        setR2HostingEnabled(settings.r2HostingEnabled ?? true);
         if (Array.isArray(settings.reportWebhooks)) {
             setReportWebhooks(settings.reportWebhooks);
         }
@@ -1019,6 +1022,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             r2BucketName: r2BucketName.trim() || null,
             r2PublicUrl: r2PublicUrl.trim() || null,
             r2PreciseReplay,
+            r2HostingEnabled,
         });
         onEmbedStatSettingsSaved?.(embedStats);
         onMvpWeightsSaved?.(mvpWeights);
@@ -1067,6 +1071,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         r2BucketName,
         r2PublicUrl,
         r2PreciseReplay,
+        r2HostingEnabled,
         hasLoaded
     ]);
 
@@ -2034,6 +2039,18 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         {r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl && (
                             <>
                                 <p className="mt-3 text-xs text-emerald-400">R2 configured — replay and fight slice data will be stored in R2 on next upload, and published reports can be sliced by fight.</p>
+                                <div className="mt-3">
+                                    <Toggle
+                                        enabled={r2HostingEnabled}
+                                        onChange={(v) => {
+                                            setR2HostingEnabled(v);
+                                            window.electronAPI?.saveSettings?.({ r2HostingEnabled: v });
+                                            onR2HostingEnabledSaved?.(v);
+                                        }}
+                                        label="Host replay data on R2"
+                                        description="Off keeps these credentials but publishes to GitHub Pages alone — no map replay and no per-fight slicing. Also available in Quick Settings on the dashboard."
+                                    />
+                                </div>
                                 <div className="mt-3">
                                     <Toggle
                                         enabled={r2PreciseReplay}

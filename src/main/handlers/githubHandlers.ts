@@ -513,12 +513,7 @@ const OAUTH_FIELD_COUNT = 3;
  * through what?" Both credential modes collapse to one uploader here so that no
  * call site has to know which transport it got, or that OAuth exists at all.
  */
-export const resolveR2Uploader = (store: any): R2UploaderResolution => {
-    if (!isR2HostingEnabled(store)) {
-        log.info('[Main] R2 hosting is switched off — skipping R2 for this publish');
-        return { uploader: null, missingFields: [], partiallyConfigured: false };
-    }
-
+const resolveR2Credentials = (store: any): R2UploaderResolution => {
     if (resolveR2AuthMode(store) === 'oauth') {
         const accountId = String(store.get(CF_ACCOUNT_ID_KEY) ?? '').trim();
         const bucketName = String(store.get('r2BucketName') ?? '').trim();
@@ -549,6 +544,32 @@ export const resolveR2Uploader = (store: any): R2UploaderResolution => {
         missingFields,
         // Nothing filled in at all is "not using R2", not "using R2 wrong".
         partiallyConfigured: !config && missingFields.length < R2_FIELDS.length
+    };
+};
+
+export const resolveR2Uploader = (store: any): R2UploaderResolution => {
+    if (!isR2HostingEnabled(store)) {
+        log.info('[Main] R2 hosting is switched off — skipping R2 for this publish');
+        return { uploader: null, missingFields: [], partiallyConfigured: false };
+    }
+    return resolveR2Credentials(store);
+};
+
+/**
+ * What the UI needs to describe R2 without asking three separate questions.
+ *
+ * `credentialsPresent` deliberately ignores the hosting toggle: the toggle's own
+ * row is shown only when R2 is set up, and folding the toggle into that answer
+ * would make switching it off hide the switch that turns it back on.
+ */
+export const describeR2Status = (store: any) => {
+    const credentials = resolveR2Credentials(store);
+    const hostingEnabled = isR2HostingEnabled(store);
+    return {
+        configured: hostingEnabled && !!credentials.uploader,
+        credentialsPresent: !!credentials.uploader,
+        hostingEnabled,
+        mode: resolveR2AuthMode(store)
     };
 };
 
@@ -1402,7 +1423,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             // "Configured" means "R2 will actually be used for this publish" —
             // it folds in the auth mode and the hosting toggle, because a slice
             // sidecar built for a bucket we won't write to is wasted work.
-            return { configured: !!resolveR2Uploader(store).uploader };
+            return describeR2Status(store);
         } catch {
             return { configured: false };
         }

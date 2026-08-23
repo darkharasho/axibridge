@@ -25,16 +25,27 @@ const makeContext = (overrides?: Partial<QuickSettingsContext>): QuickSettingsCo
     setEiSetting: vi.fn(),
     statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS },
     setStatsViewSettings: vi.fn(),
+    r2Hosting: null,
+    setR2HostingEnabled: vi.fn(),
     ...overrides,
 });
 
 describe('QuickSettingsCard', () => {
-    it('renders one switch per registry entry', () => {
-        render(<QuickSettingsCard context={makeContext()} />);
-        expect(screen.getAllByRole('switch')).toHaveLength(QUICK_SETTINGS.length);
-        for (const setting of QUICK_SETTINGS) {
+    it('renders one switch per relevant registry entry', () => {
+        const context = makeContext({ r2Hosting: { credentialsPresent: true, enabled: true } });
+        const relevant = QUICK_SETTINGS.filter((s) => s.isRelevant?.(context) ?? true);
+        render(<QuickSettingsCard context={context} />);
+        expect(screen.getAllByRole('switch')).toHaveLength(relevant.length);
+        for (const setting of relevant) {
             expect(screen.getByRole('switch', { name: setting.label })).toBeInTheDocument();
         }
+    });
+
+    it('omits a setting that does not apply rather than showing a dead switch', () => {
+        // No R2 credentials: the hosting row would be permanently unusable.
+        render(<QuickSettingsCard context={makeContext()} />);
+        expect(screen.queryByRole('switch', { name: /Host Replay on R2/i })).not.toBeInTheDocument();
+        expect(screen.getAllByRole('switch')).toHaveLength(QUICK_SETTINGS.length - 1);
     });
 
     it('reflects each setting current value as aria-checked', () => {

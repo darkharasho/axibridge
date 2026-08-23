@@ -9,12 +9,27 @@ import type { IEiParserSettings, IStatsViewSettings } from '../global.d';
  * expected to be *persisting* setters supplied by App, not raw React state
  * setters. Descriptors stay pure routing; where a value lands is App's problem.
  */
+/**
+ * R2 hosting state, or null while it is still being read from the main process.
+ *
+ * `credentialsPresent` is deliberately independent of `enabled` — the row is
+ * shown only when R2 is set up, and if switching it off also hid the row there
+ * would be no way to switch it back on.
+ */
+export interface QuickR2Hosting {
+    credentialsPresent: boolean;
+    enabled: boolean;
+}
+
 export interface QuickSettingsContext {
     /** Null until `getEiSettings` resolves; EI-backed rows stay disabled meanwhile. */
     eiSettings: IEiParserSettings | null;
     setEiSetting: (key: keyof IEiParserSettings, value: boolean) => void;
     statsViewSettings: IStatsViewSettings;
     setStatsViewSettings: (next: IStatsViewSettings) => void;
+    /** Null until the main process answers; the R2 row stays hidden meanwhile. */
+    r2Hosting: QuickR2Hosting | null;
+    setR2HostingEnabled: (value: boolean) => void;
 }
 
 export interface QuickSetting {
@@ -30,6 +45,12 @@ export interface QuickSetting {
     write: (ctx: QuickSettingsContext, value: boolean) => void;
     /** False while this entry's backing store is still loading. */
     isReady: (ctx: QuickSettingsContext) => boolean;
+    /**
+     * Whether this setting applies at all. Defaults to always. Used to keep
+     * rows that mean nothing for the current setup out of the card entirely,
+     * rather than showing a permanently disabled switch.
+     */
+    isRelevant?: (ctx: QuickSettingsContext) => boolean;
 }
 
 const eiToggle = (
@@ -88,4 +109,15 @@ export const QUICK_SETTINGS: QuickSetting[] = [
         'Split Players by Class',
         'One row per class instead of combining each player.',
     ),
+    {
+        id: 'r2HostingEnabled',
+        label: 'Host Replay on R2',
+        hint: 'Upload replay and fight slice data to Cloudflare R2. Off publishes to GitHub Pages alone, '
+            + 'without the map replay or per-fight slicing.',
+        kind: 'boolean',
+        read: (ctx) => Boolean(ctx.r2Hosting?.enabled),
+        write: (ctx, value) => ctx.setR2HostingEnabled(value),
+        isReady: (ctx) => ctx.r2Hosting !== null,
+        isRelevant: (ctx) => Boolean(ctx.r2Hosting?.credentialsPresent),
+    },
 ];

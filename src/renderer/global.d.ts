@@ -321,6 +321,7 @@ export interface IElectronAPI {
         r2BucketName?: string | null;
         r2PublicUrl?: string | null;
         r2PreciseReplay?: boolean;
+        r2HostingEnabled?: boolean;
         r2ReplayUrls?: Record<string, string>;
         reportWebhooks?: IReportWebhook[];
         reportWebhookSelection?: string[];
@@ -370,6 +371,7 @@ export interface IElectronAPI {
         r2BucketName?: string | null;
         r2PublicUrl?: string | null;
         r2PreciseReplay?: boolean;
+        r2HostingEnabled?: boolean;
         reportWebhooks?: IReportWebhook[];
         reportWebhookSelection?: string[];
         reportWebhookSeen?: string[];
@@ -424,7 +426,14 @@ export interface IElectronAPI {
     uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: SliceSidecar }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string; webhookResults?: Array<{ id: string; name: string; ok: boolean; error?: string }> }>;
     mockWebReport: (payload: { meta: any; stats: any }) => Promise<{ success: boolean; url?: string; error?: string }>;
     getGithubPagesBuildStatus: (payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => Promise<{ success: boolean; status?: string; updatedAt?: string; errorMessage?: string; error?: string }>;
-    isR2Configured: () => Promise<{ configured: boolean }>;
+    isR2Configured: () => Promise<{
+        /** R2 will actually be used: credentials present *and* hosting enabled. */
+        configured: boolean;
+        /** Credentials present, regardless of the hosting toggle. */
+        credentialsPresent?: boolean;
+        hostingEnabled?: boolean;
+        mode?: 'manual' | 'oauth';
+    }>;
     onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number }) => void) => () => void;
     exportSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     importSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
