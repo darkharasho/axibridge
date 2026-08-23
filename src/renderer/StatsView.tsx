@@ -139,6 +139,10 @@ interface StatsViewProps {
     /** Published web report only: awaited before the tray opens, so the first
      *  open is what triggers the sidecar fetch (Task 18) rather than report load. */
     onOpenSliceTray?: () => Promise<unknown>;
+    /** Published web report only: builds and copies a shareable slice link for
+     *  the current selection. Absent everywhere else, so the banner's copy
+     *  control only appears where a link is actually meaningful. */
+    onCopySliceLink?: () => void;
 }
 
 const sidebarListClass = 'space-y-0.5 max-h-72 overflow-y-auto';
@@ -263,7 +267,7 @@ function resolveReplayFights(stats: any): any[] {
 export const deriveStatsViewLogs = (logs: any[], excluded: Set<string>, embedded: boolean): any[] =>
     embedded ? logs : selectSlicedLogs(logs, excluded);
 
-export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray }: StatsViewProps) {
+export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray, onCopySliceLink }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
     useEffect(() => {
@@ -4360,7 +4364,7 @@ type SpikeFight = {
             />
 
             {(!embedded || sliceEnabled) && sliceTrayOpen && <FightSliceTray onClose={() => setSliceTrayOpen(false)} />}
-            {(!embedded || sliceEnabled) && <FightSliceBanner />}
+            {(!embedded || sliceEnabled) && <FightSliceBanner onCopyLink={onCopySliceLink} />}
 
             {/* Processing indicator: particle spinner with witty remarks (desktop) */}
             {(aggregationSettling.active || detailsProgress.active) && !embedded && (

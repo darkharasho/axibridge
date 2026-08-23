@@ -29,7 +29,7 @@ export const FightSlicePill = ({ onClick }: { onClick: () => void }) => {
     );
 };
 
-export const FightSliceBanner = () => {
+export const FightSliceBanner = ({ onCopyLink }: { onCopyLink?: () => void } = {}) => {
     const roster = useStatsStore((s) => s.fightRoster);
     const excluded = useStatsStore((s) => s.excludedFightKeys);
     const clearFightSlice = useStatsStore((s) => s.clearFightSlice);
@@ -38,13 +38,24 @@ export const FightSliceBanner = () => {
     return (
         <div className="flex items-center gap-2 border-b border-[color:var(--accent-border)] bg-[var(--accent-bg)] px-4 py-1.5 text-[11px] font-semibold text-[color:var(--text-primary)]">
             <span>Sliced view — {included} of {roster.length} fights</span>
-            <button
-                type="button"
-                onClick={clearFightSlice}
-                className="ml-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]"
-            >
-                Clear slice
-            </button>
+            <span className="ml-auto flex items-center gap-2">
+                {onCopyLink && (
+                    <button
+                        type="button"
+                        onClick={onCopyLink}
+                        className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]"
+                    >
+                        Copy slice link
+                    </button>
+                )}
+                <button
+                    type="button"
+                    onClick={clearFightSlice}
+                    className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]"
+                >
+                    Clear slice
+                </button>
+            </span>
         </div>
     );
 };

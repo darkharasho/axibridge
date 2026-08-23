@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { useStatsStore, type FightRosterEntry } from '../../statsStore';
 import { FightSliceTray, FightSliceBanner } from '../FightSliceTray';
@@ -144,5 +144,19 @@ describe('FightSliceBanner', () => {
         render(<FightSliceBanner />);
         fireEvent.click(screen.getByRole('button', { name: /clear slice/i }));
         expect(useStatsStore.getState().excludedFightKeys.size).toBe(0);
+    });
+
+    it('renders no copy control when no handler is supplied', () => {
+        useStatsStore.getState().setFightsExcluded(['b'], true);
+        render(<FightSliceBanner />);
+        expect(screen.queryByRole('button', { name: /copy slice link/i })).not.toBeInTheDocument();
+    });
+
+    it('renders a copy control when a handler is supplied and calls it', () => {
+        useStatsStore.getState().setFightsExcluded(['b'], true);
+        const onCopyLink = vi.fn();
+        render(<FightSliceBanner onCopyLink={onCopyLink} />);
+        fireEvent.click(screen.getByRole('button', { name: /copy slice link/i }));
+        expect(onCopyLink).toHaveBeenCalledTimes(1);
     });
 });

@@ -17,6 +17,7 @@ import type { SquadStatPlayer } from '../shared/squadStats';
 import type { ReportPayload, ReportIndexEntry } from '../shared/reportTypes';
 import { expandIconIndex, normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
 import { fetchSliceSidecar } from '../renderer/stats/slice/fetchSliceSidecar';
+import { encodeSliceMask, decodeSliceMask } from '../renderer/stats/slice/sliceBitmask';
 import { mergeSliceFrames } from '../renderer/stats/slice/mergeSliceFrames';
 import { useStatsStore } from '../renderer/stats/statsStore';
 import type { SliceSidecar } from '../renderer/stats/slice/sliceTypes';
@@ -722,6 +723,52 @@ export function ReportApp() {
             disruptionMethod: (report?.stats as any)?.disruptionMethod,
         }).stats;
     }, [sliceState.sidecar, excludedFightKeys, report]);
+
+    const requestedSlice = useMemo(() => (initialSearchParams.get('slice') || '').trim(), [initialSearchParams]);
+    const [sliceLinkStatus, setSliceLinkStatus] = useState<string | null>(null);
+    const deepLinkApplied = useRef(false);
+
+    // Landing on a slice= URL paints the full report first, then applies the
+    // slice once the sidecar resolves — blocking first paint on a multi-megabyte
+    // fetch is a worse trade than a brief flash of unsliced numbers.
+    useEffect(() => {
+        if (!requestedSlice || deepLinkApplied.current || !report) return;
+        deepLinkApplied.current = true;
+        setSliceLinkStatus('Applying slice…');
+        void (async () => {
+            const sidecar = await loadSliceSidecar();
+            if (!sidecar) { setSliceLinkStatus(null); return; }
+            const included = decodeSliceMask(requestedSlice, sidecar.fights.length);
+            if (!included) {
+                // A stale link degrades to the truth, never to wrong numbers.
+                setSliceLinkStatus('This slice link does not match the report — showing all fights.');
+                return;
+            }
+            const includedIds = new Set(included.map((ordinal) => sidecar.fights[ordinal]?.id).filter(Boolean));
+            useStatsStore.getState().setFightsExcluded(
+                sidecar.fights.filter((f) => !includedIds.has(f.id)).map((f) => f.id),
+                true,
+            );
+            setSliceLinkStatus(null);
+        })();
+    }, [requestedSlice, report, loadSliceSidecar]);
+
+    const handleCopySliceLink = useCallback(() => {
+        const sidecar = sliceState.sidecar;
+        if (!sidecar) return;
+        const included = sidecar.fights
+            .map((fight, ordinal) => ({ fight, ordinal }))
+            .filter(({ fight }) => !excludedFightKeys.has(fight.id))
+            .map(({ ordinal }) => ordinal);
+        const url = new URL(window.location.href);
+        // Query, not hash: the hash is the section-anchor channel, and a slice
+        // has to survive jumping to a section.
+        url.searchParams.set('slice', encodeSliceMask(included, sidecar.fights.length));
+        void navigator.clipboard?.writeText(url.toString());
+        setSliceLinkStatus('Slice link copied.');
+        window.setTimeout(() => setSliceLinkStatus(null), 2000);
+    }, [sliceState.sidecar, excludedFightKeys]);
+
     const scrollToSection = (id: string) => {
         if (id === 'report-top') {
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1823,6 +1870,11 @@ export function ReportApp() {
                     </div>
                     <div ref={statsWrapperRef} onWheelCapture={handleStatsWheel} className="flex-1 min-w-0">
                         <div id="stats-view-top">
+                            {(sliceLinkStatus || sliceState.message) && (
+                                <div className="mb-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300">
+                                    {sliceLinkStatus || sliceState.message}
+                                </div>
+                            )}
                             <StatsView
                                 logs={[]}
                                 onBack={() => { }}
@@ -1832,6 +1884,7 @@ export function ReportApp() {
                                 embedded
                                 sliceEnabled={Boolean((report.stats as any)?.sliceDataUrl)}
                                 onOpenSliceTray={loadSliceSidecar}
+                                onCopySliceLink={handleCopySliceLink}
                                 sectionVisibility={sectionVisibilityFn}
                                 dashboardTitle={dashboardTitleText}
                                 onRequestCategory={(categoryId) => startTransition(() => setActiveGroup(categoryId))}
