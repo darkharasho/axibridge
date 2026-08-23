@@ -5,6 +5,7 @@ import { isReplayElided } from '../../workers/replayTransfer';
 import { buildReportMeta as buildReportMetaFromDetails } from '../utils/buildReportMeta';
 import { computeInitialWebhookSelection } from '../utils/reportWebhookSelection';
 import { useStatsStore } from '../statsStore';
+import { buildSliceSidecar } from '../slice/buildSliceSidecar';
 
 export interface PublishWebhookOption {
     id: string;
@@ -29,8 +30,10 @@ interface UseStatsUploadsProps {
     stats: any;
     skillUsageData: any;
     activeStatsViewSettings: any;
+    mvpWeights?: any;
+    disruptionMethod?: any;
     embedded: boolean;
-    onWebUpload?: (payload: { meta: any; stats: any; logIds?: string[]; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[] }) => Promise<void> | void;
+    onWebUpload?: (payload: { meta: any; stats: any; logIds?: string[]; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: any }) => Promise<void> | void;
 }
 
 export const useStatsUploads = ({
@@ -38,11 +41,14 @@ export const useStatsUploads = ({
     stats,
     skillUsageData,
     activeStatsViewSettings,
+    mvpWeights,
+    disruptionMethod,
     embedded,
     onWebUpload
 }: UseStatsUploadsProps) => {
     const detailsCache = useContext(DetailsCacheContext);
     const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
+    const fightRoster = useStatsStore((s) => s.fightRoster);
     const publishBlockedReason = canPublishWithSlice(excludedFightKeys)
         ? null
         : PUBLISH_BLOCKED_BY_SLICE_REASON;
@@ -189,13 +195,23 @@ export const useStatsUploads = ({
                     reportWebhookSeen: reportWebhooks.map((hook) => hook.id)
                 });
             }
+            // The web slicer's payload. Publishing is already blocked while a
+            // slice is active, so `logs` here is always the full night.
+            const sliceSidecar = buildSliceSidecar({
+                logs,
+                roster: fightRoster,
+                mvpWeights,
+                statsViewSettings: activeStatsViewSettings,
+                disruptionMethod,
+            });
             await onWebUpload({
                 meta,
                 stats: uploadStats,
                 logIds: logs.map((l) => l.permalink).filter(Boolean),
                 ...(normalizedRepoFullName ? { repoFullName: normalizedRepoFullName } : {}),
                 ...(repoParts.length === 2 ? { repoOwner: repoParts[0], repoName: repoParts[1] } : {}),
-                ...(Array.isArray(reportWebhookIds) ? { reportWebhookIds } : {})
+                ...(Array.isArray(reportWebhookIds) ? { reportWebhookIds } : {}),
+                sliceSidecar,
             });
         } catch (err) {
             console.error('[StatsView] Web upload failed:', err);

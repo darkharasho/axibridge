@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'node:path';
 import https from 'node:https';
 import { createHash, createHmac } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
 import { spawn } from 'node:child_process';
 import log from 'electron-log';
 import {
@@ -1706,7 +1707,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         };
     });
 
-    ipcMain.handle('upload-web-report', async (_event, payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[] }) => {
+    ipcMain.handle('upload-web-report', async (_event, payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: any }) => {
         try {
             if (!hasWebReportContent(payload)) {
                 return { success: false, error: 'Cannot upload an empty web report. Add at least one fight before publishing.' };
@@ -1874,6 +1875,50 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 } else {
                     replayHostedOnPages = replayPlan.mode === 'pages';
                     (builtReport.payload.stats as any).replayDataUrl = replayPlan.url;
+                }
+                builtReport.jsonBuffer = Buffer.from(JSON.stringify(builtReport.payload), 'utf8');
+            }
+
+            // Slice sidecar — R2 only. With no R2 the report publishes exactly as
+            // it always has and the published viewer simply has no slicer.
+            const sliceSidecar = (payload as any)?.sliceSidecar;
+            if (sliceSidecar && Array.isArray(sliceSidecar.frames) && sliceSidecar.frames.length > 0) {
+                const sliceBuffer = gzipSync(Buffer.from(JSON.stringify(sliceSidecar), 'utf8'), { level: 9 });
+                let sliceR2Url: string | null = null;
+                if (r2Config) {
+                    sendWebUploadStatus('Uploading', 'Uploading fight slice data to R2...', 39);
+                    const sliceKey = `reports/${reportMeta.id}/slice.json.gz`;
+                    // Content-Type only, no Content-Encoding: the viewer inflates
+                    // these bytes itself with DecompressionStream('gzip'), so the
+                    // browser must NOT transparently inflate them first.
+                    const sliceResult = await r2PutObject(sliceKey, sliceBuffer, 'application/gzip', r2Config);
+                    if (sliceResult.success && sliceResult.url) {
+                        sliceR2Url = sliceResult.url;
+                        log.info(`[Main] R2 slice upload succeeded: ${sliceResult.url} (${formatBytes(sliceBuffer.length)})`);
+                    } else {
+                        log.warn(`[Main] R2 slice upload failed: ${sliceResult.error} — publishing without the web slicer.`);
+                    }
+                }
+                const slicePlan = planSidecarHosting({
+                    kind: 'slice',
+                    bytes: sliceBuffer.length,
+                    r2Url: sliceR2Url,
+                    reportId: reportMeta.id,
+                    baseUrl
+                });
+                if (slicePlan.mode === 'r2' && slicePlan.url) {
+                    (builtReport.payload.stats as any).sliceDataUrl = slicePlan.url;
+                    // The viewer compares this against the sidecar's own hash and
+                    // disables slicing on a mismatch rather than rendering numbers
+                    // computed under different settings.
+                    (builtReport.payload.stats as any).sliceSettingsHash = sliceSidecar.settingsHash;
+                } else {
+                    delete (builtReport.payload.stats as any).sliceDataUrl;
+                    delete (builtReport.payload.stats as any).sliceSettingsHash;
+                    if (slicePlan.warning) {
+                        log.info(`[Main] ${slicePlan.warning}`);
+                        sendWebUploadStatus('Packaging', slicePlan.warning, 39);
+                    }
                 }
                 builtReport.jsonBuffer = Buffer.from(JSON.stringify(builtReport.payload), 'utf8');
             }

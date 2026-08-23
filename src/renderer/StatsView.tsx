@@ -874,6 +874,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         stats: safeStats,
         skillUsageData,
         activeStatsViewSettings: statsViewSettings || DEFAULT_STATS_VIEW_SETTINGS,
+        mvpWeights,
+        disruptionMethod,
         embedded,
         onWebUpload
     });
