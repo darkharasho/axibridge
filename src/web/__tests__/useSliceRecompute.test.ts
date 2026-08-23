@@ -24,7 +24,15 @@ vi.stubGlobal('Worker', FakeWorker as any);
 // The settings triple every test below passes to the hook. The hook re-hashes
 // it and refuses to merge unless it matches the sidecar's own `settingsHash`
 // (M1), so the fixture carries the real hash rather than a placeholder.
-const SETTINGS = { mvpWeights: undefined, statsViewSettings: {}, disruptionMethod: undefined };
+// Every field is NON-DEGENERATE on purpose. With `statsViewSettings: {}` and
+// `disruptionMethod: undefined`, a hash that silently dropped either one still
+// matched — only the mvpWeights position discriminated, so M1's guard was 1/3
+// covered. These values make all three positions load-bearing.
+const SETTINGS = {
+    mvpWeights: { dps: 0.4, cleanses: 0.35, strips: 0.25 },
+    statsViewSettings: { showDowned: true, minDuration: 30 },
+    disruptionMethod: 'cc-duration',
+};
 
 const SIDECAR: any = {
     version: 1,

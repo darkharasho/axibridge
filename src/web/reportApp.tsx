@@ -20,6 +20,7 @@ import { encodeSliceMask, decodeSliceMask } from '../renderer/stats/slice/sliceB
 import { useStatsStore } from '../renderer/stats/statsStore';
 import type { SliceSidecar } from '../renderer/stats/slice/sliceTypes';
 import { useSliceRecompute } from './hooks/useSliceRecompute';
+import { computeIncludedOrdinals } from '../renderer/stats/slice/computeIncludedOrdinals';
 import { useSliceSidecarLoader } from './hooks/useSliceSidecarLoader';
 import {
     ShieldCheck,
@@ -690,20 +691,10 @@ export function ReportApp() {
         onSidecar: handleSidecarLoaded,
     });
 
-    const includedOrdinals = useMemo(() => {
-        const sidecar = sliceState.sidecar;
-        if (!sidecar || excludedFightKeys.size === 0) return null;
-        // An EMPTY array is returned deliberately. `null` here means "no slice
-        // active"; `[]` means "the slice selects no fights", which the tray's
-        // None button and an empty shared bitmask both reach. Folding `[]` into
-        // `null` used to make a zero-fight slice render the FULL report under a
-        // "Sliced view — 0 of N fights" banner. The recompute handles the empty
-        // selection and returns the real zero-fight aggregation.
-        return sidecar.fights
-            .map((fight, ordinal) => ({ fight, ordinal }))
-            .filter(({ fight }) => !excludedFightKeys.has(fight.id))
-            .map(({ ordinal }) => ordinal);
-    }, [sliceState.sidecar, excludedFightKeys]);
+    const includedOrdinals = useMemo(
+        () => computeIncludedOrdinals(sliceState.sidecar, excludedFightKeys),
+        [sliceState.sidecar, excludedFightKeys],
+    );
 
     // Task 15 review round 2 (R15-6): the viewer has no settings of its own
     // in slice mode, so it must hash/merge from the SAME published values the
