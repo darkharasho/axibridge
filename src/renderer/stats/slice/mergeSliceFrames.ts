@@ -1,5 +1,5 @@
 import { IncrementalAggregator } from '../incrementalAggregation';
-import { hashAggregationSettings } from '../statsStore';
+import { hashSliceSettings } from './sliceSettingsHash';
 import type { SliceSidecar } from './sliceTypes';
 
 /**
@@ -26,9 +26,16 @@ export class SliceSettingsMismatchError extends Error {
  *
  * `includedOrdinals` is sanitized before use so a malformed selection degrades
  * safely instead of producing silently-wrong numbers:
- *  - out-of-range ordinals (negative, or >= frame count) are dropped;
- *  - non-integer ordinals (floats, NaN) are dropped — `Number.isInteger`
- *    rejects both;
+ *  - the range/integer filter (`Number.isInteger(ordinal) && 0 <= ordinal <
+ *    frames.length`) rejects a value that isn't actually a valid array index
+ *    at all — most importantly a *non-number* like the string `"2"`, which a
+ *    URL/bitmask decode could plausibly hand back. `sidecar.frames['2']`
+ *    resolves via JS's string-coercing property access to the SAME frame as
+ *    `sidecar.frames[2]`, so without this filter a stringly-typed ordinal
+ *    would merge silently instead of being rejected. Actual out-of-range
+ *    integers (negative, or >= frame count) are *also* caught by the `if
+ *    (frame)` guard below on their own — the filter's job is specifically the
+ *    non-number case that guard cannot see;
  *  - duplicate ordinals are deduped so a repeated ordinal is merged exactly
  *    once (merging it twice would double-count that fight's contribution);
  *  - an empty (or entirely-invalid) selection is not an error — it produces
@@ -42,7 +49,7 @@ export function mergeSliceFrames({ sidecar, includedOrdinals, mvpWeights, statsV
     statsViewSettings: any;
     disruptionMethod: any;
 }): { stats: any; skillUsageData: any } {
-    const expectedHash = hashAggregationSettings(mvpWeights, statsViewSettings, disruptionMethod);
+    const expectedHash = hashSliceSettings(mvpWeights, statsViewSettings, disruptionMethod);
     if (expectedHash !== sidecar.settingsHash) {
         throw new SliceSettingsMismatchError();
     }

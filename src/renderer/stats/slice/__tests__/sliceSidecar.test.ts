@@ -33,6 +33,21 @@ const ROSTER = LOGS.map((log, i) => ({
     duration: '1:00',
 }));
 
+/**
+ * `computeStabPerformance`'s sibling `combatMetrics` writes `stabGeneration`
+ * back onto `details.players` as a side effect of player aggregation, and
+ * `ingestLogFightDiffMode` reads it — but ingest calls the diff-mode reader
+ * BEFORE player aggregation, so the very first pass over a given `details`
+ * object reports 0 squad stability and every later pass reports the real
+ * number. `LOGS` is a module-level array shared by every aggregation in this
+ * file, so whichever comparison ran first would win — and running any single
+ * test in isolation (`-t`, `.only`, sharding) would make it the "first" pass
+ * and fail. Matches `aggregatorFrames.test.ts`: warm the fixtures once up
+ * front so both sides of every comparison read the same input regardless of
+ * run order.
+ */
+computeStatsSync({ logs: LOGS });
+
 const SETTINGS = { mvpWeights: undefined, statsViewSettings: undefined, disruptionMethod: undefined };
 
 const sidecar = () => buildSliceSidecar({ logs: LOGS, roster: ROSTER, ...SETTINGS });
@@ -105,6 +120,34 @@ describe('slice sidecar', () => {
         expect(comparable(merged)).toEqual(comparable(direct));
     });
 
+    // The three tests above document intended behaviour, but none of them
+    // actually PROVES the range/integer filter in `mergeSliceFrames.ts` does
+    // anything: `frames[-1]`, `frames[1.5]`, `frames[NaN]` and `frames[99]`
+    // are all `undefined` in JS, so the `if (frame)` fallback that already
+    // exists absorbs every one of those cases with or without the filter.
+    // (Review round 1, finding 1 — confirmed by deleting the filter and
+    // re-running the file: all three still passed.)
+    //
+    // The filter's actual, distinguishing job is rejecting a *non-number*
+    // ordinal such as the string `'2'`. JS array indexing coerces a numeric
+    // string key, so `sidecar.frames['2']` resolves to the exact same
+    // element as `sidecar.frames[2]` — `if (frame)` alone would happily
+    // merge it. `Number.isInteger('2')` is `false` (it rejects non-`number`
+    // types outright, no coercion), so the filter drops it. This is the one
+    // case where deleting the filter changes the result, which is what makes
+    // it an actual pin rather than a decoration.
+    it('rejects a non-numeric ordinal instead of resolving it via array string-key coercion', () => {
+        const out = JSON.parse(JSON.stringify(sidecar()));
+        const merged = mergeSliceFrames({ sidecar: out, includedOrdinals: ['2', '2'] as any, ...SETTINGS }).stats;
+        // With the filter: both copies of '2' are dropped (not integers) ->
+        // zero fights merged. Without the filter: dedup collapses the two
+        // '2's to one, `frames['2']` resolves to frame 2, and it merges ->
+        // the single-fight-2 result. These two outcomes are different, so
+        // this assertion distinguishes "filter present" from "filter absent".
+        const direct = computeStatsSync({ logs: [] }).stats;
+        expect(comparable(merged)).toEqual(comparable(direct));
+    });
+
     it('dedupes a duplicated ordinal instead of double-merging it', () => {
         const out = JSON.parse(JSON.stringify(sidecar()));
         const merged = mergeSliceFrames({ sidecar: out, includedOrdinals: [2, 2, 2], ...SETTINGS }).stats;
@@ -138,5 +181,32 @@ describe('slice sidecar', () => {
         const customSettings = { mvpWeights: undefined, statsViewSettings: { splitPlayersByClass: true }, disruptionMethod: undefined };
         const out = JSON.parse(JSON.stringify(buildSliceSidecar({ logs: LOGS, roster: ROSTER, ...customSettings })));
         expect(() => mergeSliceFrames({ sidecar: out, includedOrdinals: [0], ...customSettings })).not.toThrow();
+    });
+
+    it('builds an empty sidecar from an empty log list instead of throwing', () => {
+        const out = buildSliceSidecar({ logs: [], roster: [], ...SETTINGS });
+        expect(out.fights).toEqual([]);
+        expect(out.frames).toEqual([]);
+        const revived = JSON.parse(JSON.stringify(out));
+        expect(() => mergeSliceFrames({ sidecar: revived, includedOrdinals: [0], ...SETTINGS })).not.toThrow();
+        const merged = mergeSliceFrames({ sidecar: revived, includedOrdinals: [0], ...SETTINGS }).stats;
+        const direct = computeStatsSync({ logs: [] }).stats;
+        expect(comparable(merged)).toEqual(comparable(direct));
+    });
+
+    it('does not throw building or merging an unparseable log', () => {
+        const brokenLogs = [{ id: 'broken-0', filePath: 'broken-0.zevtc', details: null }];
+        const brokenRoster = brokenLogs.map((log, i) => ({
+            id: statsLogKey(log, i),
+            label: 'Fight 1',
+            timestamp: i + 1,
+            duration: '--:--',
+        }));
+        let out: ReturnType<typeof buildSliceSidecar> | undefined;
+        expect(() => { out = buildSliceSidecar({ logs: brokenLogs, roster: brokenRoster, ...SETTINGS }); }).not.toThrow();
+        expect(out!.fights).toHaveLength(1);
+        expect(out!.frames).toHaveLength(1);
+        const revived = JSON.parse(JSON.stringify(out));
+        expect(() => mergeSliceFrames({ sidecar: revived, includedOrdinals: [0], ...SETTINGS })).not.toThrow();
     });
 });

@@ -1,6 +1,7 @@
 import { IncrementalAggregator } from '../incrementalAggregation';
-import { hashAggregationSettings, type FightRosterEntry } from '../statsStore';
+import type { FightRosterEntry } from '../statsStore';
 import { statsLogKey } from '../utils/statsLogKey';
+import { hashSliceSettings } from './sliceSettingsHash';
 import { SLICE_SIDECAR_VERSION, type SliceSidecar, type SliceFrame } from './sliceTypes';
 
 /**
@@ -34,6 +35,13 @@ export function buildSliceSidecar({ logs, roster, mvpWeights, statsViewSettings,
     const frames: SliceFrame[] = [];
     roster.forEach((entry) => {
         const log = logsByKey.get(entry.id);
+        // Skipping (not padding) a roster entry with no matching log keeps
+        // `fights`/`frames` aligned to EACH OTHER, which is what ordinal
+        // addressing actually needs — but it means an ordinal is an index
+        // into `sidecar.fights`, never into the published report's own
+        // `fightRoster`. If any entries are ever skipped here, those two
+        // rosters diverge; any viewer/bitmask code must mint and read
+        // ordinals from `sidecar.fights`, not from the report roster.
         if (!log) return;
         const solo = new IncrementalAggregator({ mvpWeights, statsViewSettings, disruptionMethod });
         solo.ingestLog(log);
@@ -43,7 +51,7 @@ export function buildSliceSidecar({ logs, roster, mvpWeights, statsViewSettings,
 
     return {
         version: SLICE_SIDECAR_VERSION,
-        settingsHash: hashAggregationSettings(mvpWeights, statsViewSettings, disruptionMethod),
+        settingsHash: hashSliceSettings(mvpWeights, statsViewSettings, disruptionMethod),
         fights,
         frames,
     };

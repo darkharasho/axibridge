@@ -527,19 +527,16 @@ export function mergeBoonTimelineFrame(target: BoonTimelineAccumulator, frame: B
         // logs — is metadata (unions/integer sums), not a float accumulation,
         // so merging it in one shot is exact. `totals` was already replayed
         // above and must not be touched again here.
+        //
+        // No `!existing` fallback: every `players` entry here was created
+        // moments ago by the event replay loop above (every player is
+        // touched by at least one of its own events), so `existing` is
+        // guaranteed. A defensive clone-and-continue branch would silently
+        // paper over a future divergence between the event stream and
+        // `players` instead of surfacing it — let a violation of that
+        // invariant throw here rather than hide.
         sourceBucket.players.forEach((sourcePlayer, key) => {
-            const existing = bucket!.players.get(key);
-            if (!existing) {
-                // No event touched this key this fight — shouldn't happen,
-                // since every `players` entry is created alongside at least
-                // one event, but fall back to a full clone defensively.
-                bucket!.players.set(key, {
-                    ...sourcePlayer,
-                    professionList: [...sourcePlayer.professionList],
-                    totals: { ...sourcePlayer.totals },
-                });
-                return;
-            }
+            const existing = bucket!.players.get(key)!;
             existing.logs += sourcePlayer.logs;
             sourcePlayer.professionList.forEach((profession) => {
                 if (!existing.professionList.includes(profession)) existing.professionList.push(profession);
