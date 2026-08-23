@@ -660,13 +660,22 @@ const formatBytes = (value: number) => {
 };
 
 /**
- * Decide where a report's replay.json lives. R2 is preferred; Pages is the
- * fallback. A Pages-hosted replay travels through the GitHub blob API, which
- * rejects anything past MAX_GITHUB_BLOB_BYTES with a 422 — so an oversized
- * replay is dropped rather than allowed to fail the whole upload.
+ * Decide where a report's out-of-band artifact lives.
+ *
+ * Replays prefer R2 and fall back to GitHub Pages, since one artifact on Pages
+ * is affordable and losing the replay outright costs a feature. A Pages-hosted
+ * replay travels through the GitHub blob API, which 422s past
+ * MAX_GITHUB_BLOB_BYTES, so an oversized one is dropped rather than allowed to
+ * fail the whole upload.
+ *
+ * Slice sidecars are R2-only, deliberately. A Pages fallback would spend ~1.56x
+ * of the repo's storage budget per report — precisely the cost the web slicer
+ * was designed to avoid. With no R2 the report publishes exactly as it does
+ * today and simply has no slicer.
  */
-export const planReplayHosting = ({ replayBytes, r2Url, reportId, baseUrl }: {
-    replayBytes: number;
+export const planSidecarHosting = ({ kind, bytes, r2Url, reportId, baseUrl }: {
+    kind: 'replay' | 'slice';
+    bytes: number;
     r2Url: string | null;
     reportId: string;
     baseUrl: string | null;
@@ -674,12 +683,21 @@ export const planReplayHosting = ({ replayBytes, r2Url, reportId, baseUrl }: {
     if (r2Url) {
         return { mode: 'r2', url: r2Url, warning: null };
     }
-    if (replayBytes > MAX_GITHUB_BLOB_BYTES) {
+    if (kind === 'slice') {
         return {
             mode: 'dropped',
             url: null,
             warning:
-                `Replay data (${formatBytes(replayBytes)}) is too large to host on GitHub Pages ` +
+                'Fight slicing in the published report needs Cloudflare R2 — configure it in Settings. ' +
+                'The report itself publishes normally either way.'
+        };
+    }
+    if (bytes > MAX_GITHUB_BLOB_BYTES) {
+        return {
+            mode: 'dropped',
+            url: null,
+            warning:
+                `Replay data (${formatBytes(bytes)}) is too large to host on GitHub Pages ` +
                 `(limit ${formatBytes(MAX_GITHUB_BLOB_BYTES)}) — publishing the report without the map replay. ` +
                 `Configure Cloudflare R2 in Settings to keep replays on large sessions.`
         };
@@ -1837,8 +1855,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                         sendWebUploadStatus('Warning', `R2 upload failed: ${r2Result.error}`, 39);
                     }
                 }
-                const replayPlan = planReplayHosting({
-                    replayBytes: replayBuffer.length,
+                const replayPlan = planSidecarHosting({
+                    kind: 'replay',
+                    bytes: replayBuffer.length,
                     r2Url,
                     reportId: reportMeta.id,
                     baseUrl

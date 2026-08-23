@@ -11,7 +11,7 @@ vi.mock('electron-log', () => ({
     default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
 }));
 
-import { MAX_GITHUB_BLOB_BYTES, planReplayHosting, resolveR2Config } from '../githubHandlers';
+import { MAX_GITHUB_BLOB_BYTES, planSidecarHosting, resolveR2Config } from '../githubHandlers';
 
 const makeStore = (values: Record<string, unknown>) => ({
     get: (key: string) => values[key]
@@ -65,33 +65,50 @@ describe('resolveR2Config', () => {
     });
 });
 
-describe('planReplayHosting', () => {
-    const base = { reportId: 'rep1', baseUrl: 'https://user.github.io/repo' };
+describe('planSidecarHosting', () => {
+    const BASE = 'https://user.github.io/repo';
 
-    it('uses the R2 url when the R2 upload succeeded', () => {
-        const plan = planReplayHosting({ ...base, replayBytes: 900 * 1024 * 1024, r2Url: 'https://pub-x.r2.dev/reports/rep1/replay.json' });
-        expect(plan.mode).toBe('r2');
-        expect(plan.url).toBe('https://pub-x.r2.dev/reports/rep1/replay.json');
-        expect(plan.warning).toBeNull();
+    it('prefers R2 for a replay', () => {
+        expect(planSidecarHosting({
+            kind: 'replay', bytes: 1024, r2Url: 'https://pub-x.r2.dev/reports/a/replay.json',
+            reportId: 'a', baseUrl: BASE,
+        })).toEqual({ mode: 'r2', url: 'https://pub-x.r2.dev/reports/a/replay.json', warning: null });
     });
 
-    it('falls back to Pages when R2 is unavailable and the replay fits in a blob', () => {
-        const plan = planReplayHosting({ ...base, replayBytes: 4 * 1024 * 1024, r2Url: null });
+    it('falls back to Pages for a replay with no R2', () => {
+        const plan = planSidecarHosting({ kind: 'replay', bytes: 1024, r2Url: null, reportId: 'a', baseUrl: BASE });
         expect(plan.mode).toBe('pages');
-        expect(plan.url).toBe('https://user.github.io/repo/reports/rep1/replay.json');
-        expect(plan.warning).toBeNull();
+        expect(plan.url).toBe(`${BASE}/reports/a/replay.json`);
     });
 
-    it('drops the replay instead of failing the upload when it exceeds the blob limit', () => {
-        const plan = planReplayHosting({ ...base, replayBytes: MAX_GITHUB_BLOB_BYTES + 1, r2Url: null });
+    it('drops an oversized Pages replay rather than failing the upload with a 422', () => {
+        const plan = planSidecarHosting({
+            kind: 'replay', bytes: MAX_GITHUB_BLOB_BYTES + 1, r2Url: null, reportId: 'a', baseUrl: BASE,
+        });
         expect(plan.mode).toBe('dropped');
         expect(plan.url).toBeNull();
-        expect(plan.warning).toMatch(/replay/i);
+        expect(plan.warning).toMatch(/Cloudflare R2/);
     });
 
-    it('uses a relative Pages url when no base url is known', () => {
-        const plan = planReplayHosting({ ...base, baseUrl: null, replayBytes: 1024, r2Url: null });
-        expect(plan.url).toBe('reports/rep1/replay.json');
+    it('prefers R2 for a slice sidecar', () => {
+        expect(planSidecarHosting({
+            kind: 'slice', bytes: 1024, r2Url: 'https://pub-x.r2.dev/reports/a/slice.json.gz',
+            reportId: 'a', baseUrl: BASE,
+        })).toEqual({ mode: 'r2', url: 'https://pub-x.r2.dev/reports/a/slice.json.gz', warning: null });
+    });
+
+    it('never falls back to Pages for a slice sidecar', () => {
+        // The whole point: a Pages-hosted sidecar would spend the repo storage
+        // budget this design exists to protect. No R2 means no web slicer.
+        const plan = planSidecarHosting({ kind: 'slice', bytes: 1024, r2Url: null, reportId: 'a', baseUrl: BASE });
+        expect(plan.mode).toBe('dropped');
+        expect(plan.url).toBeNull();
+        expect(plan.warning).toMatch(/Cloudflare R2/);
+    });
+
+    it('drops a slice sidecar with no R2 regardless of how small it is', () => {
+        const plan = planSidecarHosting({ kind: 'slice', bytes: 1, r2Url: null, reportId: 'a', baseUrl: null });
+        expect(plan.mode).toBe('dropped');
     });
 });
 
