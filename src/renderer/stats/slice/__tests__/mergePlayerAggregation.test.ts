@@ -55,6 +55,51 @@ const finalized = (acc: any) => {
     return acc;
 };
 
+/**
+ * Structural diff that forgives ONE difference and nothing else: a key missing
+ * on one side versus present-but-`undefined` on the other. That is precisely
+ * what `JSON.stringify` erases (ingest writes an explicit `icon: undefined` for
+ * every skill the log had no artwork for), and it is behaviourally invisible.
+ *
+ * Everything else stays exact. Numbers go through `Object.is`, so `Infinity`,
+ * `NaN` and `-0` are all distinguishable — normalising both sides through the
+ * same lossy JSON pass instead would have hidden a real lost sentinel. Map and
+ * Set iteration order is compared too, because the `finalize*` sorts in this
+ * codebase are stable with no secondary key.
+ */
+const diffNodes = (a: any, b: any, path = '$', out: string[] = []): string[] => {
+    if (a === undefined && b === undefined) return out;
+    if (a instanceof Map || b instanceof Map) {
+        if (!(a instanceof Map) || !(b instanceof Map)) { out.push(`${path}: Map vs non-Map`); return out; }
+        const aKeys = [...a.keys()];
+        const bKeys = [...b.keys()];
+        if (aKeys.length !== bKeys.length || aKeys.some((k, i) => !Object.is(k, bKeys[i]))) {
+            out.push(`${path}: Map keys/order differ`);
+            return out;
+        }
+        aKeys.forEach((k) => diffNodes(a.get(k), b.get(k), `${path}.get(${String(k)})`, out));
+        return out;
+    }
+    if (a instanceof Set || b instanceof Set) {
+        if (!(a instanceof Set) || !(b instanceof Set)) { out.push(`${path}: Set vs non-Set`); return out; }
+        return diffNodes([...a], [...b], path, out);
+    }
+    if (Array.isArray(a) || Array.isArray(b)) {
+        if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+            out.push(`${path}: array shape differs`);
+            return out;
+        }
+        a.forEach((v, i) => diffNodes(v, b[i], `${path}[${i}]`, out));
+        return out;
+    }
+    if (a && b && typeof a === 'object' && typeof b === 'object') {
+        [...new Set([...Object.keys(a), ...Object.keys(b)])].forEach((k) => diffNodes(a[k], b[k], `${path}.${k}`, out));
+        return out;
+    }
+    if (!Object.is(a, b)) out.push(`${path}: ${String(a)} !== ${String(b)}`);
+    return out;
+};
+
 describe('player aggregation merge equivalence', () => {
     it('gives every PlayerStats field produced by a real log a merge rule', () => {
         // Guards the silent failure mode: an upstream field added to PlayerStats
@@ -65,6 +110,20 @@ describe('player aggregation merge equivalence', () => {
         expect(Object.keys(sample).length).toBeGreaterThan(40);
         const missing = Object.keys(sample).filter((key) => !(key in PLAYER_STATS_MERGE_RULES));
         expect(missing).toEqual([]);
+    });
+
+    it('refuses to guess at a PlayerStats field with no rule', () => {
+        // The table is the contract. Defaulting an unknown key to 'sum' would
+        // turn a string field added upstream into NaN in every sliced report.
+        expect(Object.isFrozen(PLAYER_STATS_MERGE_RULES)).toBe(true);
+        const target = createPlayerAggregationAccumulators();
+        const source = createPlayerAggregationAccumulators();
+        const solo = soloAcc(LOGS[0]);
+        const [key, stats] = [...solo.playerStats.entries()][0];
+        target.playerStats.set(key, { ...stats } as any);
+        source.playerStats.set(key, { ...stats, someNewUpstreamField: 'Fresh Air' } as any);
+        expect(() => mergePlayerAggregationAccumulators(target, source))
+            .toThrow(/someNewUpstreamField/);
     });
 
     it('has real, non-empty state to compare', () => {
@@ -121,17 +180,30 @@ describe('player aggregation merge equivalence', () => {
     });
 
     it('survives a JSON round trip through the state codec', () => {
-        // Compared in the codec's own domain: `JSON.stringify` drops keys whose
-        // value is `undefined` (every `icon` a log had no artwork for), so a
-        // decoded frame is missing keys the direct accumulator carries as
-        // explicit `undefined`. Normalising BOTH sides through the same encode
-        // /decode makes that one difference disappear without weakening
-        // anything else — every number, name, Map entry and array order is
-        // still compared exactly, and a value that actually changed still
-        // fails. The Infinity sentinel is pinned separately below, because JSON
-        // turns it into `null` on both sides.
-        const roundTrip = (acc: any) => JSON.parse(JSON.stringify(encodeState(acc)));
-        expect(roundTrip(finalized(mergedAcc(LOGS, true)))).toEqual(roundTrip(finalized(ingestAll(LOGS))));
+        // Compared with `diffNodes`, which forgives exactly one thing —
+        // a key that is missing on one side and `undefined` on the other,
+        // which is all `JSON.stringify` legitimately erases. Every number is
+        // compared with `Object.is`, so `Infinity`, `NaN` and `-0` all stay
+        // exact: a sentinel that decoded to `null` and was not restored shows
+        // up here as a diff rather than being normalised away.
+        expect(diffNodes(finalized(mergedAcc(LOGS, true)), finalized(ingestAll(LOGS)))).toEqual([]);
+    });
+
+    it('restores the Infinity min sentinel on skills only one frame ever saw', () => {
+        // The regression this pins: a skill row present in a single frame is
+        // cloned wholesale, so nothing on the both-sides-present merge path
+        // ever looks at its `min` — after JSON it would keep `null` where the
+        // direct path holds `Infinity`. `computeSpecialTables` tests
+        // `s.min === Infinity`, so that divergence is load-bearing.
+        const merged: any = mergedAcc(LOGS, true);
+        const direct: any = ingestAll(LOGS);
+        const sentinels = (acc: any) => [...acc.playerSkillBreakdownMap.values()]
+            .flatMap((row: any) => [...row.skills.values()].filter((sk: any) => sk.min === Infinity)).length;
+        expect(sentinels(direct)).toBeGreaterThan(0);
+        expect(sentinels(merged)).toBe(sentinels(direct));
+        const nulls = (acc: any) => [...acc.playerSkillBreakdownMap.values()]
+            .flatMap((row: any) => [...row.skills.values()].filter((sk: any) => !Number.isFinite(sk.min) && sk.min !== Infinity)).length;
+        expect(nulls(merged)).toBe(0);
     });
 
     it('replays casts that a per-fight frame could not attribute on its own', () => {
@@ -384,13 +456,35 @@ describe('player aggregation merge rules pinned synthetically', () => {
 });
 
 describe('player aggregation frame size', () => {
-    it('reports the per-fight sidecar cost', async () => {
+    it('reports the per-fight sidecar cost, measured on a real zerg fight', async () => {
         const { gzipSync } = await import('node:zlib');
-        const json = JSON.stringify(encodeState(soloAcc(LOGS[0])));
-        const gzipped = gzipSync(Buffer.from(json)).length;
-        // Informational, not a gate — the 200 KB gzipped budget is per fight
-        // across ALL slice modules combined, and this is the largest of them.
-        console.log(`player aggregation frame: ${json.length} bytes JSON, ${gzipped} bytes gzipped`);
-        expect(json.length).toBeGreaterThan(0);
+        const measure = (log: any, label: string) => {
+            const json = JSON.stringify(encodeState(soloAcc(log)));
+            const gzipped = gzipSync(Buffer.from(json)).length;
+            const players = (log.details.players || []).filter((p: any) => !p.notInSquad).length;
+            console.log(
+                `player aggregation frame [${label}, ${players} players]: `
+                + `${json.length} bytes JSON, ${gzipped} bytes gzipped`,
+            );
+            return gzipped;
+        };
+        measure(LOGS[0], '20260117-175120');
+        // Read at runtime, not `import`ed: this fixture is 30 MB and a static
+        // JSON import of it makes `tsc --noEmit` exhaust an 8 GB heap.
+        const { readFileSync } = await import('node:fs');
+        const biggestFixture = JSON.parse(readFileSync(
+            `${process.cwd()}/test-fixtures/native/20260128-190427.json`,
+            'utf8',
+        ));
+        const biggest = measure(
+            { id: 'big', filePath: 'big.zevtc', details: biggestFixture },
+            '20260128-190427',
+        );
+        // Informational, not a gate. The 200 KB gzipped budget is per fight
+        // across ALL slice modules combined, and this module alone consumes
+        // most of it at full squad size — see task-10-report.md. Deliberately
+        // NOT enforced here: sizing it down is a later design decision, and a
+        // failing assertion would only invite trimming data to make it pass.
+        expect(biggest).toBeGreaterThan(0);
     });
 });

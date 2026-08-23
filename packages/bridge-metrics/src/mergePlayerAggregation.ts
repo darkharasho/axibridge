@@ -54,7 +54,11 @@ export type MergeRule =
  * A field produced by a real log with no rule here is a test failure, not a
  * silent drop — see the coverage test in mergePlayerAggregation.test.ts.
  */
-export const PLAYER_STATS_MERGE_RULES: Record<string, MergeRule> = {
+const IS_PRODUCTION = typeof process !== 'undefined'
+    && typeof process.env === 'object'
+    && process.env?.NODE_ENV === 'production';
+
+export const PLAYER_STATS_MERGE_RULES: Readonly<Record<string, MergeRule>> = Object.freeze({
     name: 'first',
     account: 'first',
     characterNames: 'setUnion',
@@ -114,7 +118,7 @@ export const PLAYER_STATS_MERGE_RULES: Record<string, MergeRule> = {
     damageModTotals: 'recordDeepSum',
     incomingDamageModTotals: 'recordDeepSum',
     roleClassification: 'derived',
-};
+});
 
 /** Sum every numeric leaf of `source` into `target`, first-wins for strings. */
 export const deepSumInto = (target: any, source: any): void => {
@@ -200,7 +204,22 @@ const mergePlayerStatsInto = (target: PlayerStats, source: PlayerStats): void =>
     else if (sourceTs > 0 && sourceTs === targetTs) lastDuration = Math.max(lastDuration, sourceDuration);
 
     Object.entries(source as any).forEach(([key, value]) => {
-        const rule = PLAYER_STATS_MERGE_RULES[key] || 'sum';
+        const rule = PLAYER_STATS_MERGE_RULES[key];
+        if (!rule) {
+            // Defaulting to 'sum' would turn a string field added upstream into
+            // NaN in every sliced report — the exact silent corruption the rule
+            // table exists to prevent. Fail loudly wherever failing is safe.
+            if (!IS_PRODUCTION) {
+                throw new Error(
+                    `mergePlayerAggregationAccumulators: PlayerStats field "${key}" has no entry in `
+                    + 'PLAYER_STATS_MERGE_RULES. Add one (see the coverage test in mergePlayerAggregation.test.ts).',
+                );
+            }
+            // In a published report, degrade rather than blank the page: sum
+            // numbers, keep the first value for anything else.
+            (target as any)[key] = applyRule(typeof value === 'number' ? 'sum' : 'first', (target as any)[key], value);
+            return;
+        }
         (target as any)[key] = applyRule(rule, (target as any)[key], value);
     });
 
@@ -299,6 +318,29 @@ const mergeRecordOfEntries = <T>(
     });
 };
 
+/**
+ * A skill row that only ONE frame ever saw is copied verbatim, so nothing on
+ * the merge path below ever inspects its `min` — and a frame that came back
+ * through JSON carries `null` there, because JSON has no `Infinity`. The
+ * sentinel has to be restored while cloning or a sliced accumulator ends up
+ * with `null` where an unsliced one holds `Infinity`, which
+ * `computeSpecialTables` tests for by identity.
+ *
+ * Restoring it here rather than in `stateCodec` is deliberate: the codec is
+ * shared by every slice module and knows nothing about which fields are
+ * sentinels. `min` is a fact about `PlayerSkillDamageEntry`, so it belongs with
+ * the code that owns that type's merge semantics.
+ */
+const clonePlayerSkillEntry = (entry: PlayerSkillDamageEntry): PlayerSkillDamageEntry => ({
+    ...entry,
+    min: asMinSentinel(entry.min),
+});
+
+const clonePlayerBreakdownRow = <T extends { skills: Map<string, PlayerSkillDamageEntry> }>(row: T): T => ({
+    ...cloneDeep(row),
+    skills: new Map([...row.skills].map(([id, entry]) => [id, clonePlayerSkillEntry(entry)])),
+});
+
 const mergePlayerSkillEntryInto = (existing: PlayerSkillDamageEntry, incoming: PlayerSkillDamageEntry): void => {
     existing.name = upgradeSkillName(existing.name, incoming.name);
     if (!existing.icon && incoming.icon) existing.icon = incoming.icon;
@@ -381,6 +423,11 @@ const mergeMitigationRowsInto = <T extends DamageMitigationRow>(
 /**
  * Merge one fight's player aggregation state into a running accumulator.
  *
+ * ORDER MATTERS. Frames must be merged in the same order the direct path would
+ * have ingested them — chronological fight order — because `first` / `lastKnown`
+ * rules, the pending-cast replay and Map insertion order (which the stable
+ * `finalize*` sorts carry through to the output) all depend on it.
+ *
  * `target` is mutated in place; `source` is only read (values copied out of it
  * are deep-cloned, so a frame can be merged into several different slices).
  * Call `finalizePlayerAggregation` on the result, never on the inputs —
@@ -407,8 +454,8 @@ export function mergePlayerAggregationAccumulators(
     mergeMapInto(target.playerSkillBreakdownMap, source.playerSkillBreakdownMap, (existing, incoming) => {
         existing.totalFightMs += incoming.totalFightMs;
         addToList(existing.professionList, incoming.professionList);
-        mergeMapInto(existing.skills, incoming.skills, mergePlayerSkillEntryInto, cloneDeep);
-    }, cloneDeep);
+        mergeMapInto(existing.skills, incoming.skills, mergePlayerSkillEntryInto, clonePlayerSkillEntry);
+    }, clonePlayerBreakdownRow);
 
     mergeMapInto(target.healingBreakdownMap, source.healingBreakdownMap, (existing, incoming) => {
         existing.hasHealAddon = existing.hasHealAddon || incoming.hasHealAddon;
