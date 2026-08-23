@@ -5,7 +5,7 @@ import { getEntityBoonGenerationMs } from '../../shared/boonGeneration';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 
-type BoonPlayer = {
+export type BoonPlayer = {
     key: string;
     account: string;
     displayName: string;
@@ -39,7 +39,7 @@ type BoonFight = {
     values: Record<string, BoonFightValue>;
     maxTotal: number;
 };
-type BoonBucket = {
+export type BoonBucket = {
     id: string;
     name: string;
     icon?: string;
@@ -404,4 +404,78 @@ export function computeBoonTimeline(validLogs: any[]) {
     }
 
     return finalizeBoonTimeline(acc);
+}
+
+export interface BoonTimelineFrame {
+    boonBuckets: Map<string, BoonBucket>;
+}
+
+export function extractBoonTimelineFrame(acc: BoonTimelineAccumulator): BoonTimelineFrame {
+    if (acc.logIndex !== 1) {
+        throw new Error(`extractBoonTimelineFrame expects exactly one log, got ${acc.logIndex}`);
+    }
+    return { boonBuckets: acc.boonBuckets };
+}
+
+/**
+ * Merge one fight's boon buckets into a running accumulator.
+ *
+ * Every `BoonPlayer` field is a sum or a union — `ingestLogBoonTimeline` only
+ * ever adds — so a single-log frame's player map IS that fight's contribution
+ * and merging is adding it in. `fights` concatenates; `finalizeBoonTimeline`
+ * re-sorts and renumbers.
+ */
+export function mergeBoonTimelineFrame(target: BoonTimelineAccumulator, frame: BoonTimelineFrame): void {
+    target.logIndex += 1;
+    frame.boonBuckets.forEach((sourceBucket, boonId) => {
+        let bucket = target.boonBuckets.get(boonId);
+        if (!bucket) {
+            bucket = {
+                id: sourceBucket.id,
+                name: sourceBucket.name,
+                icon: sourceBucket.icon,
+                stacking: sourceBucket.stacking,
+                players: new Map<string, BoonPlayer>(),
+                fights: []
+            };
+            target.boonBuckets.set(boonId, bucket);
+        } else {
+            if ((!bucket.name || bucket.name === boonId) && sourceBucket.name) bucket.name = sourceBucket.name;
+            if (!bucket.icon && sourceBucket.icon) bucket.icon = sourceBucket.icon;
+            if (!bucket.stacking && sourceBucket.stacking) bucket.stacking = true;
+        }
+        sourceBucket.fights.forEach((fight) => bucket!.fights.push(fight));
+        sourceBucket.players.forEach((sourcePlayer, key) => {
+            const existing = bucket!.players.get(key);
+            if (!existing) {
+                bucket!.players.set(key, {
+                    ...sourcePlayer,
+                    professionList: [...sourcePlayer.professionList],
+                    totals: { ...sourcePlayer.totals },
+                });
+                return;
+            }
+            existing.logs += sourcePlayer.logs;
+            // `totalBuffs` is not merged as a pre-summed value: ingestLogBoonTimeline
+            // builds it by adding selfBuffs then squadBuffs (see the category loop
+            // above, and addBoonCategoryGeneration) onto the SAME running total that
+            // carries over between fights. IEEE754 addition isn't associative, so
+            // merging `sourcePlayer.totals.totalBuffs` in one shot regroups the sum
+            // differently from that continuous per-fight accumulation and can drift by
+            // an ULP. Replaying the same two-step (self, then squad) addition order
+            // here reproduces the direct-ingest float bit-for-bit.
+            existing.totals.groupBuffs += sourcePlayer.totals.groupBuffs;
+            existing.totals.totalBuffs += sourcePlayer.totals.selfBuffs;
+            existing.totals.selfBuffs += sourcePlayer.totals.selfBuffs;
+            existing.totals.totalBuffs += sourcePlayer.totals.squadBuffs;
+            existing.totals.squadBuffs += sourcePlayer.totals.squadBuffs;
+            sourcePlayer.professionList.forEach((profession) => {
+                if (!existing.professionList.includes(profession)) existing.professionList.push(profession);
+            });
+            if ((!existing.profession || existing.profession === 'Unknown')
+                && sourcePlayer.profession && sourcePlayer.profession !== 'Unknown') {
+                existing.profession = sourcePlayer.profession;
+            }
+        });
+    });
 }
