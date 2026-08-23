@@ -1897,6 +1897,11 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             if (sliceSidecar && Array.isArray(sliceSidecar.frames) && sliceSidecar.frames.length > 0) {
                 const sliceBuffer = gzipSync(Buffer.from(JSON.stringify(sliceSidecar), 'utf8'), { level: 9 });
                 let sliceR2Url: string | null = null;
+                // Distinguishes "R2 is not configured" from "R2 is configured and
+                // the upload failed" — the two need different advice, and telling a
+                // user who has already configured R2 to go configure it sends them
+                // looking in the wrong place.
+                let sliceUploadFailed = false;
                 if (r2Config) {
                     sendWebUploadStatus('Uploading', 'Uploading fight slice data to R2...', 39);
                     const sliceKey = `reports/${reportMeta.id}/slice.json.gz`;
@@ -1908,6 +1913,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                         sliceR2Url = sliceResult.url;
                         log.info(`[Main] R2 slice upload succeeded: ${sliceResult.url} (${formatBytes(sliceBuffer.length)})`);
                     } else {
+                        sliceUploadFailed = true;
                         log.warn(`[Main] R2 slice upload failed: ${sliceResult.error} — publishing without the web slicer.`);
                     }
                 }
@@ -1927,9 +1933,20 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 } else {
                     delete (builtReport.payload.stats as any).sliceDataUrl;
                     delete (builtReport.payload.stats as any).sliceSettingsHash;
-                    if (slicePlan.warning) {
-                        log.info(`[Main] ${slicePlan.warning}`);
-                        sendWebUploadStatus('Packaging', slicePlan.warning, 39);
+                    // These two ride along ONLY so the viewer can merge frames
+                    // under the publisher's settings. With no sliceDataUrl there
+                    // is nothing to merge, so they are dead weight in report.json.
+                    // (The renderer already strips them when R2 is unconfigured;
+                    // this covers the upload-failed path, where it could not know.)
+                    delete (builtReport.payload.stats as any).mvpWeights;
+                    delete (builtReport.payload.stats as any).disruptionMethod;
+                    const sliceWarning = sliceUploadFailed
+                        ? 'Fight slice data could not be uploaded to Cloudflare R2 — publishing the report without '
+                        + 'the web slicer. The report itself publishes normally; check the log for the R2 error.'
+                        : slicePlan.warning;
+                    if (sliceWarning) {
+                        log.info(`[Main] ${sliceWarning}`);
+                        sendWebUploadStatus('Packaging', sliceWarning, 39);
                     }
                 }
                 builtReport.jsonBuffer = Buffer.from(JSON.stringify(builtReport.payload), 'utf8');
