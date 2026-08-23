@@ -4,8 +4,9 @@ import {
 import { getEntityBoonGenerationMs } from '../../shared/boonGeneration';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
+import { applyLabel, type FrameFightLabels } from './slice/frameLabels';
 
-type BoonPlayer = {
+export type BoonPlayer = {
     key: string;
     account: string;
     displayName: string;
@@ -30,6 +31,18 @@ type BoonFightValue = {
     bucketWeights5s: number[];
     buckets5s: number[];
 };
+/**
+ * One raw `addBoonCategoryGeneration` call captured in the exact order it was
+ * applied to `boonBuckets.players` during ingest. `category` is an index into
+ * `['selfBuffs', 'groupBuffs', 'squadBuffs']` — kept numeric to stay small.
+ *
+ * A frame is always exactly one log (see `extractBoonTimelineFrame`), so this
+ * is one fight's complete, ordered event stream. It exists purely so a slice
+ * merge can replay it — see `mergeBoonTimelineFrame` — and is stripped back
+ * out in `finalizeBoonTimeline` so it never reaches the published `stats`
+ * output for non-slice builds.
+ */
+type BoonRawEvent = { key: string; category: 0 | 1 | 2; value: number };
 type BoonFight = {
     id: string;
     shortLabel: string;
@@ -38,8 +51,9 @@ type BoonFight = {
     durationMs: number;
     values: Record<string, BoonFightValue>;
     maxTotal: number;
+    events: BoonRawEvent[];
 };
-type BoonBucket = {
+export type BoonBucket = {
     id: string;
     name: string;
     icon?: string;
@@ -200,6 +214,8 @@ export function ingestLogBoonTimeline(log: any, acc: BoonTimelineAccumulator, _b
     const fightValuesByBoon = new Map<string, Map<string, { selfBuffs: number; groupBuffs: number; squadBuffs: number; totalBuffs: number }>>();
     const fightBucketTimelineByBoon = new Map<string, Map<string, number[]>>();
     const fightPlayerSeenByBoon = new Map<string, Set<string>>();
+    const fightRawEventsByBoon = new Map<string, BoonRawEvent[]>();
+    const categories: Array<'selfBuffs' | 'groupBuffs' | 'squadBuffs'> = ['selfBuffs', 'groupBuffs', 'squadBuffs'];
 
     members.forEach((entity: any) => {
         const key = entity.account || entity.character || 'Unknown';
@@ -207,7 +223,6 @@ export function ingestLogBoonTimeline(log: any, acc: BoonTimelineAccumulator, _b
         const profession = getEntityProfession(entity) || 'Unknown';
         const group = entity.subgroup ?? 0;
         const groupCount = Math.max(1, Number(groupCounts.get(group) || 1));
-        const categories: Array<'selfBuffs' | 'groupBuffs' | 'squadBuffs'> = ['selfBuffs', 'groupBuffs', 'squadBuffs'];
 
         listBoonIds(details).forEach((boonIdNum) => {
             const meta = getBuffMeta(details, boonIdNum);
@@ -258,6 +273,14 @@ export function ingestLogBoonTimeline(log: any, acc: BoonTimelineAccumulator, _b
                 };
                 addBoonCategoryGeneration(allEntry.totals, category, generationMs);
                 boonBucket.players.set('__all__', allEntry);
+                // Record the raw event in the same order it was just applied
+                // above (player entry, then `__all__`) so a later slice merge
+                // can replay it bit-for-bit — see `BoonRawEvent`.
+                const categoryIndex = categories.indexOf(category) as 0 | 1 | 2;
+                const rawEvents = fightRawEventsByBoon.get(boonId) || [];
+                rawEvents.push({ key, category: categoryIndex, value: generationMs });
+                rawEvents.push({ key: '__all__', category: categoryIndex, value: generationMs });
+                fightRawEventsByBoon.set(boonId, rawEvents);
                 const fightValues = fightValuesByBoon.get(boonId) || new Map<string, { selfBuffs: number; groupBuffs: number; squadBuffs: number; totalBuffs: number }>();
                 const playerFightTotals = fightValues.get(key) || createBoonCategoryTotals();
                 addBoonCategoryGeneration(playerFightTotals, category, generationMs);
@@ -358,7 +381,8 @@ export function ingestLogBoonTimeline(log: any, acc: BoonTimelineAccumulator, _b
             timestamp: resolveFightTimestamp(details, log),
             durationMs,
             values,
-            maxTotal
+            maxTotal,
+            events: fightRawEventsByBoon.get(boonId) || []
         });
     });
 }
@@ -385,7 +409,12 @@ export function finalizeBoonTimeline(acc: BoonTimelineAccumulator): any {
                 // Reassign shortLabels after sort so F1=oldest, F2=next, etc.
                 // Labels are assigned during ingestion by insertion order, which may
                 // not match chronological order, causing scrambled fight numbers.
-                .map((fight, i) => ({ ...fight, shortLabel: `F${i + 1}` }))
+                //
+                // `events` is dropped here: it is raw per-generation-event data
+                // that only exists so a slice merge can replay it bit-exactly
+                // (see `BoonRawEvent`); the published `stats` output never reads
+                // it and it would otherwise meaningfully bloat every report.
+                .map(({ events: _events, ...fight }, i) => ({ ...fight, shortLabel: `F${i + 1}` }))
         }))
         .filter((boon) => boon.players.length > 0 && boon.fights.length > 0)
         .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
@@ -404,4 +433,118 @@ export function computeBoonTimeline(validLogs: any[]) {
     }
 
     return finalizeBoonTimeline(acc);
+}
+
+export interface BoonTimelineFrame {
+    boonBuckets: Map<string, BoonBucket>;
+}
+
+export function extractBoonTimelineFrame(acc: BoonTimelineAccumulator): BoonTimelineFrame {
+    if (acc.logIndex !== 1) {
+        throw new Error(`extractBoonTimelineFrame expects exactly one log, got ${acc.logIndex}`);
+    }
+    return { boonBuckets: acc.boonBuckets };
+}
+
+/**
+ * Merge one fight's boon buckets into a running accumulator.
+ *
+ * Every `BoonPlayer` field is a sum or a union — `ingestLogBoonTimeline` only
+ * ever adds — so a single-log frame's player map IS that fight's contribution
+ * and merging is adding it in. `fights` concatenates; `finalizeBoonTimeline`
+ * re-sorts and renumbers.
+ */
+
+/**
+ * `labels` re-states the ordinal-derived strings at the merge ordinal. Every
+ * boon bucket repeats the same per-fight row, so the rewrite walks all of them.
+ */
+export function mergeBoonTimelineFrame(target: BoonTimelineAccumulator, frame: BoonTimelineFrame, labels: FrameFightLabels): void {
+    frame.boonBuckets.forEach((sourceBucket) => {
+        sourceBucket.fights.forEach((fight: any) => {
+            applyLabel(fight, 'id', labels.fightId);
+            applyLabel(fight, 'shortLabel', labels.shortLabel);
+            applyLabel(fight, 'fullLabel', labels.fullLabel);
+        });
+    });
+    target.logIndex += 1;
+    frame.boonBuckets.forEach((sourceBucket, boonId) => {
+        let bucket = target.boonBuckets.get(boonId);
+        if (!bucket) {
+            bucket = {
+                id: sourceBucket.id,
+                name: sourceBucket.name,
+                icon: sourceBucket.icon,
+                stacking: sourceBucket.stacking,
+                players: new Map<string, BoonPlayer>(),
+                fights: []
+            };
+            target.boonBuckets.set(boonId, bucket);
+        } else {
+            if ((!bucket.name || bucket.name === boonId) && sourceBucket.name) bucket.name = sourceBucket.name;
+            if (!bucket.icon && sourceBucket.icon) bucket.icon = sourceBucket.icon;
+            if (!bucket.stacking && sourceBucket.stacking) bucket.stacking = true;
+        }
+        sourceBucket.fights.forEach((fight) => bucket!.fights.push(fight));
+
+        // Replay this fight's raw per-event boon generation onto the running
+        // cross-fight totals, in the exact order `ingestLogBoonTimeline` would
+        // have applied them directly. A frame is always exactly one log (see
+        // `extractBoonTimelineFrame`), so `fights[0].events` is that fight's
+        // complete, ordered event stream.
+        //
+        // This is NOT the same as merging `sourcePlayer.totals` in one shot:
+        // `totals` is itself the pre-reduced sum of many small per-event
+        // additions that started from zero inside the solo frame aggregator.
+        // A direct multi-log run never resets between fights — its running
+        // total carries a nonzero value into this fight's events — so adding
+        // the whole pre-reduced fight total in one step regroups the
+        // floating-point arithmetic differently and can drift by an ULP or
+        // more (observed on `test-fixtures/native/` at 5+ merged fights: a
+        // `squadBuffs` total came out `9298732` direct vs
+        // `9298731.999999998` from a one-shot merge). Replaying the
+        // individual events reproduces the direct-ingest float bit-for-bit.
+        const categoryNames: Array<'selfBuffs' | 'groupBuffs' | 'squadBuffs'> = ['selfBuffs', 'groupBuffs', 'squadBuffs'];
+        const events: BoonRawEvent[] = (sourceBucket.fights[0] as any)?.events || [];
+        events.forEach((event) => {
+            let entry = bucket!.players.get(event.key);
+            if (!entry) {
+                entry = {
+                    key: event.key,
+                    account: event.key === '__all__' ? 'All' : event.key,
+                    displayName: event.key === '__all__' ? 'All' : event.key,
+                    profession: event.key === '__all__' ? 'All' : 'Unknown',
+                    professionList: [],
+                    logs: 0,
+                    totals: createBoonCategoryTotals(),
+                };
+                bucket!.players.set(event.key, entry);
+            }
+            addBoonCategoryGeneration(entry.totals, categoryNames[event.category], event.value);
+        });
+
+        // Everything else about a player row — profession, professionList,
+        // logs — is metadata (unions/integer sums), not a float accumulation,
+        // so merging it in one shot is exact. `totals` was already replayed
+        // above and must not be touched again here.
+        //
+        // No `!existing` fallback: every `players` entry here was created
+        // moments ago by the event replay loop above (every player is
+        // touched by at least one of its own events), so `existing` is
+        // guaranteed. A defensive clone-and-continue branch would silently
+        // paper over a future divergence between the event stream and
+        // `players` instead of surfacing it — let a violation of that
+        // invariant throw here rather than hide.
+        sourceBucket.players.forEach((sourcePlayer, key) => {
+            const existing = bucket!.players.get(key)!;
+            existing.logs += sourcePlayer.logs;
+            sourcePlayer.professionList.forEach((profession) => {
+                if (!existing.professionList.includes(profession)) existing.professionList.push(profession);
+            });
+            if ((!existing.profession || existing.profession === 'Unknown')
+                && sourcePlayer.profession && sourcePlayer.profession !== 'Unknown') {
+                existing.profession = sourcePlayer.profession;
+            }
+        });
+    });
 }

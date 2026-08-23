@@ -29,7 +29,7 @@ export const FightSlicePill = ({ onClick }: { onClick: () => void }) => {
     );
 };
 
-export const FightSliceBanner = () => {
+export const FightSliceBanner = ({ onCopyLink, unavailable = false }: { onCopyLink?: () => void; unavailable?: boolean } = {}) => {
     const roster = useStatsStore((s) => s.fightRoster);
     const excluded = useStatsStore((s) => s.excludedFightKeys);
     const clearFightSlice = useStatsStore((s) => s.clearFightSlice);
@@ -37,14 +37,31 @@ export const FightSliceBanner = () => {
     const included = roster.length - roster.filter((f) => excluded.has(f.id)).length;
     return (
         <div className="flex items-center gap-2 border-b border-[color:var(--accent-border)] bg-[var(--accent-bg)] px-4 py-1.5 text-[11px] font-semibold text-[color:var(--text-primary)]">
-            <span>Sliced view — {included} of {roster.length} fights</span>
-            <button
-                type="button"
-                onClick={clearFightSlice}
-                className="ml-auto rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]"
-            >
-                Clear slice
-            </button>
+            {/* `unavailable` means the published viewer's slice recompute failed
+                or refused, so the tables below are the FULL report. Saying
+                "Sliced view — N of M fights" over them is the one thing this
+                banner must never do. */}
+            {unavailable
+                ? <span>Slice unavailable — showing all {roster.length} fights</span>
+                : <span>Sliced view — {included} of {roster.length} fights</span>}
+            <span className="ml-auto flex items-center gap-2">
+                {onCopyLink && (
+                    <button
+                        type="button"
+                        onClick={onCopyLink}
+                        className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]"
+                    >
+                        Copy slice link
+                    </button>
+                )}
+                <button
+                    type="button"
+                    onClick={clearFightSlice}
+                    className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]"
+                >
+                    Clear slice
+                </button>
+            </span>
         </div>
     );
 };

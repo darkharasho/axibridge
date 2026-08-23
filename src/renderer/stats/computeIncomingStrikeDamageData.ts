@@ -5,6 +5,7 @@ import {
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { resolveProfessionLabel } from './computePlayerAggregation';
+import { applyLabel, type FrameFightLabels } from './slice/frameLabels';
 
 /**
  * The enemy's own biggest strike, from `by_skill[].max`.
@@ -158,6 +159,48 @@ export function createIncomingStrikeDamageAccumulator(): IncomingStrikeDamageAcc
     };
 }
 
+/**
+ * Fold one fight's per-profession values into the running player map. Shared by
+ * `ingestLogIncomingStrikeDamage` and `mergeIncomingStrikeFrame`. This map is
+ * keyed by profession, so the fight object already carries every identity field
+ * the fold needs - hence no seeds.
+ */
+export function foldIncomingStrikeFightIntoPlayers(
+    fight: IncomingStrikeFight,
+    playerMap: Map<string, IncomingStrikePlayer>,
+): void {
+    Object.entries(fight.values).forEach(([profession, value]) => {
+        const existing = playerMap.get(profession) || {
+            key: profession,
+            account: profession,
+            displayName: profession,
+            characterName: '',
+            profession,
+            professionList: [profession],
+            logs: 0,
+            peakHit: 0,
+            peak1s: 0,
+            peak5s: 0,
+            peak30s: 0,
+            totalDamage: 0,
+            peakFightLabel: '',
+            peakSkillName: ''
+        };
+        existing.totalDamage += Number(value.totalDamage || 0);
+        existing.logs += 1;
+        const hit = Number(value.hit || 0);
+        if (hit > existing.peakHit) {
+            existing.peakHit = hit;
+            existing.peakFightLabel = fight.fullLabel;
+            existing.peakSkillName = value.skillName || 'Unknown Skill';
+        }
+        if (value.burst1s > existing.peak1s) existing.peak1s = value.burst1s;
+        if (value.burst5s > existing.peak5s) existing.peak5s = value.burst5s;
+        if (value.burst30s > existing.peak30s) existing.peak30s = value.burst30s;
+        playerMap.set(profession, existing);
+    });
+}
+
 export function ingestLogIncomingStrikeDamage(log: any, acc: IncomingStrikeDamageAccumulator): void {
     const details = log?.details;
     if (!details) return;
@@ -268,34 +311,6 @@ export function ingestLogIncomingStrikeDamage(log: any, acc: IncomingStrikeDamag
                 .sort((a, b) => b.damage - a.damage)
                 .slice(0, 50)
         };
-
-        const existing = acc.playerMap.get(key) || {
-            key,
-            account: profession,
-            displayName: profession,
-            characterName: '',
-            profession,
-            professionList: [profession],
-            logs: 0,
-            peakHit: 0,
-            peak1s: 0,
-            peak5s: 0,
-            peak30s: 0,
-            totalDamage: 0,
-            peakFightLabel: '',
-            peakSkillName: ''
-        };
-        existing.totalDamage += totalDamage;
-        existing.logs += 1;
-        if (hit > existing.peakHit) {
-            existing.peakHit = hit;
-            existing.peakFightLabel = fullLabel;
-            existing.peakSkillName = entry.skillName || 'Unknown Skill';
-        }
-        if (burst1s > existing.peak1s) existing.peak1s = burst1s;
-        if (burst5s > existing.peak5s) existing.peak5s = burst5s;
-        if (burst30s > existing.peak30s) existing.peak30s = burst30s;
-        acc.playerMap.set(key, existing);
     });
 
     const maxHit = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.hit || 0)), 0);
@@ -303,7 +318,7 @@ export function ingestLogIncomingStrikeDamage(log: any, acc: IncomingStrikeDamag
     const max5s = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.burst5s || 0)), 0);
     const max30s = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.burst30s || 0)), 0);
     const maxTotal = Object.values(values).reduce((best, value) => Math.max(best, Number(value?.totalDamage || 0)), 0);
-    acc.fights.push({
+    const fight: IncomingStrikeFight = {
         id: log.filePath || log.id || `fight-${index + 1}`,
         shortLabel: `F${index + 1}`,
         fullLabel,
@@ -314,7 +329,9 @@ export function ingestLogIncomingStrikeDamage(log: any, acc: IncomingStrikeDamag
         max5s,
         max30s,
         maxTotal
-    });
+    };
+    acc.fights.push(fight);
+    foldIncomingStrikeFightIntoPlayers(fight, acc.playerMap);
 }
 
 export function finalizeIncomingStrikeDamage(acc: IncomingStrikeDamageAccumulator): { fights: IncomingStrikeFight[]; players: IncomingStrikePlayer[] } {
@@ -331,6 +348,38 @@ export function finalizeIncomingStrikeDamage(acc: IncomingStrikeDamageAccumulato
         .map((fight, i) => ({ ...fight, shortLabel: `F${i + 1}` }));
 
     return { fights, players };
+}
+
+export interface IncomingStrikeFrame {
+    fight: IncomingStrikeFight;
+}
+
+export function extractIncomingStrikeFrame(acc: IncomingStrikeDamageAccumulator): IncomingStrikeFrame {
+    if (acc.fights.length !== 1) {
+        throw new Error(`extractIncomingStrikeFrame expects exactly one fight, got ${acc.fights.length}`);
+    }
+    return { fight: acc.fights[0] };
+}
+
+
+/**
+ * `labels` re-states the ordinal-derived strings at the merge ordinal. A frame
+ * is always built by a solo aggregator, so `fight.id` / `shortLabel` are baked
+ * at ordinal 0 and `fullLabel` carries the `Fight 1` zone fallback whenever the
+ * log named no zone. They are rewritten BEFORE the player fold, so the fold's
+ * `peakFightLabel` picks up the corrected string for free.
+ */
+export function mergeIncomingStrikeFrame(
+    target: IncomingStrikeDamageAccumulator,
+    frame: IncomingStrikeFrame,
+    labels: FrameFightLabels,
+): void {
+    applyLabel(frame.fight, 'id', labels.fightId);
+    applyLabel(frame.fight, 'shortLabel', labels.shortLabel);
+    applyLabel(frame.fight, 'fullLabel', labels.fullLabel);
+    target.fightIndex += 1;
+    target.fights.push(frame.fight);
+    foldIncomingStrikeFightIntoPlayers(frame.fight, target.playerMap);
 }
 
 export function computeIncomingStrikeDamageData(validLogs: any[]) {

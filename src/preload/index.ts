@@ -119,9 +119,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ensureGithubTemplate: () => ipcRenderer.invoke('ensure-github-template'),
     selectGithubLogo: () => ipcRenderer.invoke('select-github-logo'),
     applyGithubLogo: (payload?: { logoPath?: string }) => ipcRenderer.invoke('apply-github-logo', payload),
-    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[] }) => ipcRenderer.invoke('upload-web-report', payload),
+    // `sliceSidecar` is typed `any` here (not the renderer's `SliceSidecar`)
+    // deliberately: this file compiles under `electron/tsconfig.json`
+    // (shared with `src/main`), which has no `jsx`/module settings for the
+    // renderer graph. A type-only import of a renderer type pulls its whole
+    // dependency chain into that compile and breaks it (confirmed: caused
+    // ~80 unrelated TS errors in files several hops away, e.g.
+    // `useStatsAggregationWorker.ts`'s `--jsx`/`import.meta` errors). Same
+    // cross-process-boundary excuse the review already accepted for
+    // `githubHandlers.ts`.
+    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: any }) => ipcRenderer.invoke('upload-web-report', payload),
     mockWebReport: (payload: { meta: any; stats: any }) => ipcRenderer.invoke('mock-web-report', payload),
     getGithubPagesBuildStatus: (payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => ipcRenderer.invoke('get-github-pages-build-status', payload),
+    isR2Configured: () => ipcRenderer.invoke('get-r2-configured'),
     onWebUploadStatus: (callback: (data: any) => void) => {
         ipcRenderer.on('web-upload-status', (_event, value) => callback(value));
         return () => ipcRenderer.removeAllListeners('web-upload-status');

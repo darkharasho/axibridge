@@ -15,6 +15,7 @@ import {
     ingestLogPlayerData,
     finalizePlayerAggregation,
     resolveProfessionLabel,
+    mergePlayerAggregationAccumulators,
     PlayerStats,
     DamageMitigationRow,
     DamageMitigationTotals,
@@ -22,22 +23,26 @@ import {
 import type { PlayerAggregationAccumulators, PlayerAggregationOptions } from './computePlayerAggregation';
 
 import { ingestLogFightBreakdown } from './computeFightBreakdown';
-import { ingestLogCommanderStats } from './computeCommanderStats';
+import { ingestLogCommanderStats, mergeCommanderStatsInto } from './computeCommanderStats';
 import { ingestLogFightDiffMode } from './computeFightDiffMode';
 import { ingestLogTagDistanceDeaths } from './computeTagDistanceDeaths';
 import { ingestLogDistanceToTag, finalizeDistanceToTag, type DistanceToTagResult } from './computeDistanceToTag';
 import { ingestLogOnTagReview, finalizeOnTagReview, type OnTagReviewResult } from './computeOnTagReview';
 import { ingestLogHealEffectiveness } from './computeHealEffectivenessData';
 
-import { createSpikeDamageAccumulator, ingestLogSpikeDamage, finalizeSpikeDamage } from './computeSpikeDamageData';
-import { createAllDamageAccumulator, ingestLogAllDamage, finalizeAllDamage } from './computeAllDamageData';
-import { createStripSpikesAccumulator, ingestLogStripSpikes, finalizeStripSpikes } from './computeStripSpikesData';
-import { createIncomingStrikeDamageAccumulator, ingestLogIncomingStrikeDamage, finalizeIncomingStrikeDamage } from './computeIncomingStrikeDamageData';
-import { createSkillUsageAccumulator, ingestLogSkillUsage, finalizeSkillUsage } from './computeSkillUsageData';
+import { createSpikeDamageAccumulator, ingestLogSpikeDamage, finalizeSpikeDamage, extractSpikeDamageFrame, mergeSpikeDamageFrame } from './computeSpikeDamageData';
+import { createAllDamageAccumulator, ingestLogAllDamage, finalizeAllDamage, extractAllDamageFrame, mergeAllDamageFrame } from './computeAllDamageData';
+import { createStripSpikesAccumulator, ingestLogStripSpikes, finalizeStripSpikes, extractStripSpikesFrame, mergeStripSpikesFrame } from './computeStripSpikesData';
+import { createIncomingStrikeDamageAccumulator, ingestLogIncomingStrikeDamage, finalizeIncomingStrikeDamage, extractIncomingStrikeFrame, mergeIncomingStrikeFrame } from './computeIncomingStrikeDamageData';
+import { createSkillUsageAccumulator, ingestLogSkillUsage, finalizeSkillUsage, extractSkillUsageFrame, mergeSkillUsageFrame } from './computeSkillUsageData';
 
-import { createBoonTimelineAccumulator, ingestLogBoonTimeline, finalizeBoonTimeline } from './computeBoonTimeline';
-import { createBoonUptimeTimelineAccumulator, ingestLogBoonUptimeTimeline, finalizeBoonUptimeTimeline } from './computeBoonUptimeTimeline';
-import { createStabPerformanceAccumulator, ingestLogStabPerformance, finalizeStabPerformance } from './computeStabPerformance';
+import { createBoonTimelineAccumulator, ingestLogBoonTimeline, finalizeBoonTimeline, extractBoonTimelineFrame, mergeBoonTimelineFrame } from './computeBoonTimeline';
+import { createBoonUptimeTimelineAccumulator, ingestLogBoonUptimeTimeline, finalizeBoonUptimeTimeline, extractBoonUptimeFrame, mergeBoonUptimeFrame } from './computeBoonUptimeTimeline';
+import { createStabPerformanceAccumulator, ingestLogStabPerformance, finalizeStabPerformance, extractStabPerformanceFrame, mergeStabPerformanceFrame } from './computeStabPerformance';
+
+import { encodeState, decodeState } from './slice/stateCodec';
+import { applyLabel, buildFrameLabelSeed, resolveFrameFightLabels, type FrameLabelSeed } from './slice/frameLabels';
+import type { SliceFrame } from './slice/sliceTypes';
 
 import { computeSpecialTables } from './computeSpecialTables';
 import { classifyPlayerRoles } from './classifyPlayerRoles';
@@ -561,6 +566,14 @@ export class IncrementalAggregator {
 
     // Stored boon table logs (minimal - just details reference for buildBoonTables)
     private boonTableLogs: StoredBoonTableLog[] = [];
+    /**
+     * The raw ingredients of every ordinal-derived id and label, captured for
+     * the LAST log ingested. Only `exportFrame` reads it — and `exportFrame`
+     * only accepts a solo aggregator — so a multi-log aggregator simply carries
+     * the most recent one and `finalize()` never sees it. All primitives, so
+     * this pins nothing large in memory and adds no measurable ingest cost.
+     */
+    private frameLabelSeed: FrameLabelSeed | null = null;
     private replayPayloads: ReplayFightPayload[] = [];
 
     constructor(options: IncrementalAggregatorOptions = {}) {
@@ -615,6 +628,8 @@ export class IncrementalAggregator {
 
         const idx = this.logCount;
         this.logCount++;
+
+        this.frameLabelSeed = buildFrameLabelSeed(log);
 
         const hasDetail = this.hasDetailedRoster(log);
 
@@ -831,6 +846,145 @@ export class IncrementalAggregator {
         // sorted by timestamp in the finalize function. So the idx only affects
         // the fallback id.
         ingestLogCommanderStats(log, idx, this.commanderStatsAcc);
+    }
+
+    /**
+     * Snapshot this aggregator's pre-finalize state as a slice frame.
+     *
+     * Only valid on an aggregator that ingested exactly one log — a frame IS a
+     * single fight's contribution. Everything here is *pre*-finalize by
+     * construction: leaderboards, MVPs, topStats, role classifications and boon
+     * leaderboards are derived inside `finalize()` from this state, so they are
+     * absent from a frame not because they were stripped but because they do
+     * not exist yet.
+     *
+     * Replay payloads are deliberately excluded: they are roughly two thirds of
+     * report.json and slice mode never needs them.
+     */
+    exportFrame(): SliceFrame {
+        if (this.options.precomputedStats) {
+            throw new Error('exportFrame is not supported on a precomputed-stats aggregator');
+        }
+        if (this.logCount !== 1) {
+            throw new Error(`exportFrame expects exactly one log, got ${this.logCount}`);
+        }
+        // An invalid log (no detailed roster) never reaches the module
+        // accumulators, and their extractors throw on zero fights. Omit those
+        // sections entirely; `mergeFrame` skips whatever is absent.
+        const moduleSections = this.validLogCount === 1
+            ? {
+                spike: extractSpikeDamageFrame(this.spikeAcc),
+                allDamage: extractAllDamageFrame(this.allDamageAcc),
+                stripSpikes: extractStripSpikesFrame(this.stripSpikesAcc),
+                incomingStrike: extractIncomingStrikeFrame(this.incomingStrikeAcc),
+                skillUsage: extractSkillUsageFrame(this.skillUsageAcc),
+                boonTimeline: extractBoonTimelineFrame(this.boonTimelineAcc),
+                boonUptime: extractBoonUptimeFrame(this.boonUptimeAcc),
+                stabPerformance: extractStabPerformanceFrame(this.stabPerfAcc),
+                playerAcc: this.playerAcc,
+                commanderStatsAcc: this.commanderStatsAcc,
+            }
+            : {};
+
+        return encodeState({
+            logCount: this.logCount,
+            validLogCount: this.validLogCount,
+            labelSeed: this.frameLabelSeed,
+            logMetas: this.logMetas,
+            timelineEntries: this.timelineEntries,
+            fightBreakdowns: this.fightBreakdowns,
+            fightDiffModes: this.fightDiffModes,
+            healEffectivenessResults: this.healEffectivenessResults,
+            tagDistanceDeathsResults: this.tagDistanceDeathsResults,
+            distanceToTagContribs: this.distanceToTagContribs,
+            onTagReviewContribs: this.onTagReviewContribs,
+            incomingDamageEntries: this.incomingDamageEntries,
+            squadCompEntries: this.squadCompEntries,
+            boonTableLogs: this.boonTableLogs,
+            mergedDamageModMap: this.mergedDamageModMap,
+            personalDamageModKeys: this.personalDamageModKeys,
+            mapCounts: this.mapCounts,
+            enemyNameCounts: this.enemyNameCounts,
+            ...moduleSections,
+        }) as SliceFrame;
+    }
+
+    /**
+     * Merge one slice frame into this aggregator. Call once per selected fight,
+     * then `finalize()`.
+     *
+     * `originalIndex` is rewritten to the running merge count: every frame was
+     * built by a solo aggregator and so carries `0`, and `finalize()` uses it as
+     * the tie-break in `sortByFightOrder`. Without the rewrite every merged
+     * entry claims to be fight zero and the tie-break stops discriminating.
+     */
+    mergeFrame(rawFrame: SliceFrame): void {
+        if (this.options.precomputedStats) {
+            throw new Error('mergeFrame is not supported on a precomputed-stats aggregator');
+        }
+        const frame: any = decodeState(rawFrame);
+        const index = this.logCount;
+        this.logCount += 1;
+        const labels = resolveFrameFightLabels(frame.labelSeed, index);
+        this.applyFrameLabels(frame, labels);
+        this.validLogCount += Number(frame.validLogCount || 0);
+
+        const appendIndexed = (target: any[], entries: any[] | undefined) => {
+            (entries || []).forEach((entry) => {
+                target.push(entry && typeof entry === 'object' && 'originalIndex' in entry
+                    ? { ...entry, originalIndex: index }
+                    : entry);
+            });
+        };
+
+        appendIndexed(this.logMetas, frame.logMetas);
+        appendIndexed(this.timelineEntries, frame.timelineEntries);
+        appendIndexed(this.fightBreakdowns, frame.fightBreakdowns);
+        appendIndexed(this.fightDiffModes, frame.fightDiffModes);
+        // The remaining per-log arrays are keyed by `timestamp` alone — they
+        // carry no `originalIndex` — so they only ever concatenate.
+        appendIndexed(this.healEffectivenessResults, frame.healEffectivenessResults);
+        appendIndexed(this.tagDistanceDeathsResults, frame.tagDistanceDeathsResults);
+        appendIndexed(this.distanceToTagContribs, frame.distanceToTagContribs);
+        appendIndexed(this.onTagReviewContribs, frame.onTagReviewContribs);
+        appendIndexed(this.incomingDamageEntries, frame.incomingDamageEntries);
+        appendIndexed(this.squadCompEntries, frame.squadCompEntries);
+        // A narrow per-log projection (durationMS / buffMap / trimmed native /
+        // trimmed players) that `buildBoonTables` re-reads wholesale at
+        // finalize, so it concatenates with no re-weighting.
+        (frame.boonTableLogs || []).forEach((entry: any) => this.boonTableLogs.push(entry));
+
+        // Scalar collections. `damageModMap` is first-wins exactly as ingest is;
+        // the two count maps sum.
+        Object.entries(frame.mergedDamageModMap || {}).forEach(([key, value]) => {
+            if (!this.mergedDamageModMap[key]) this.mergedDamageModMap[key] = value as any;
+        });
+        if (frame.personalDamageModKeys !== undefined && !(frame.personalDamageModKeys instanceof Set)) {
+            // decodeState turns a `__set` payload back into a real Set. Anything
+            // else here means the frame lost its Map/Set encoding somewhere —
+            // most likely a raw `JSON.stringify` that skipped `encodeState` —
+            // and every Set- and Map-shaped section is silently `{}`. Fail loudly.
+            throw new Error('mergeFrame: personalDamageModKeys is not a Set; the frame was not encoded with encodeState');
+        }
+        (frame.personalDamageModKeys as Set<string> | undefined)?.forEach((key: string) => this.personalDamageModKeys.add(key));
+        Object.entries(frame.mapCounts || {}).forEach(([name, count]) => {
+            this.mapCounts[name] = (this.mapCounts[name] || 0) + Number(count || 0);
+        });
+        Object.entries(frame.enemyNameCounts || {}).forEach(([name, count]) => {
+            this.enemyNameCounts[name] = (this.enemyNameCounts[name] || 0) + Number(count || 0);
+        });
+
+        if (frame.playerAcc) mergePlayerAggregationAccumulators(this.playerAcc, frame.playerAcc);
+        if (frame.commanderStatsAcc) mergeCommanderStatsInto(this.commanderStatsAcc, frame.commanderStatsAcc, labels);
+
+        if (frame.spike) mergeSpikeDamageFrame(this.spikeAcc, frame.spike, labels);
+        if (frame.allDamage) mergeAllDamageFrame(this.allDamageAcc, frame.allDamage, labels);
+        if (frame.stripSpikes) mergeStripSpikesFrame(this.stripSpikesAcc, frame.stripSpikes, labels);
+        if (frame.incomingStrike) mergeIncomingStrikeFrame(this.incomingStrikeAcc, frame.incomingStrike, labels);
+        if (frame.skillUsage) mergeSkillUsageFrame(this.skillUsageAcc, frame.skillUsage);
+        if (frame.boonTimeline) mergeBoonTimelineFrame(this.boonTimelineAcc, frame.boonTimeline, labels);
+        if (frame.boonUptime) mergeBoonUptimeFrame(this.boonUptimeAcc, frame.boonUptime, labels);
+        if (frame.stabPerformance) mergeStabPerformanceFrame(this.stabPerfAcc, frame.stabPerformance);
     }
 
     /** Finalize aggregation and return the result. */
@@ -1560,6 +1714,58 @@ export class IncrementalAggregator {
     }
 
     // ---- Private helpers ----
+
+    /**
+     * Restate this aggregator's OWN ordinal-derived ids and labels at the merge
+     * ordinal. The eight module accumulators do the same for the strings they
+     * own, from the same `labels` object — see `slice/frameLabels.ts`.
+     *
+     * Nothing here pattern-matches a baked string. `labels` is produced by
+     * re-evaluating the very expressions `ingestLog*` used, against the raw
+     * ingredients the frame carries in `labelSeed`, at the merge ordinal. The
+     * `fullLabel*` / `breakdown*` fields are `null` whenever the log supplied a
+     * real zone or encounter name, in which case the ingested string is already
+     * ordinal-free and `applyLabel` leaves it untouched.
+     *
+     * `shortLabel` is not restated on the aggregator's own arrays: `finalize()`
+     * renumbers it for fight breakdowns, fight diff modes, heal effectiveness,
+     * tag-distance deaths and squad comp after sorting, and overwriting it here
+     * would be dead work.
+     */
+    private applyFrameLabels(frame: any, labels: ReturnType<typeof resolveFrameFightLabels>): void {
+        (frame.fightBreakdowns || []).forEach((stored: any) => {
+            applyLabel(stored?.result, 'id', labels.filePathFightId);
+            applyLabel(stored?.result, 'label', labels.breakdownLabel);
+            applyLabel(stored?.result, 'fullLabel', labels.breakdownFullLabel);
+        });
+        (frame.fightDiffModes || []).forEach((stored: any) => {
+            applyLabel(stored?.result, 'id', labels.fightId);
+        });
+        (frame.healEffectivenessResults || []).forEach((stored: any) => {
+            applyLabel(stored?.result, 'id', labels.fightId);
+            applyLabel(stored?.result, 'fullLabel', labels.fullLabel);
+        });
+        (frame.squadCompEntries || []).forEach((stored: any) => {
+            applyLabel(stored?.result, 'id', labels.fightId);
+        });
+        (frame.tagDistanceDeathsResults || []).forEach((stored: any) => {
+            applyLabel(stored?.result, 'fightId', labels.filePathFightId);
+            applyLabel(stored?.result, 'fullLabel', labels.fullLabelEncounterOnly);
+            (stored?.result?.events || []).forEach((event: any) => {
+                applyLabel(event, 'fightId', labels.filePathFightId);
+                applyLabel(event, 'fullLabel', labels.fullLabelEncounterOnly);
+            });
+        });
+        (frame.distanceToTagContribs || []).forEach((stored: any) => {
+            (stored?.contributions || []).forEach((c: any) => applyLabel(c, 'fightId', labels.filePathFightId));
+        });
+        (frame.onTagReviewContribs || []).forEach((stored: any) => {
+            (stored?.contributions || []).forEach((c: any) => applyLabel(c, 'fightId', labels.filePathFightId));
+        });
+        (frame.incomingDamageEntries || []).forEach((entry: any) => {
+            applyLabel(entry, 'fightId', labels.fightId);
+        });
+    }
 
     private hasDetailedRoster(log: any): boolean {
         const players = Array.isArray(log?.details?.players) ? log.details.players : [];

@@ -46,40 +46,43 @@ afterAll(() => {
     (console.warn as unknown as { mockRestore?: () => void }).mockRestore?.();
 });
 
-Object.defineProperty(window, 'electronAPI', {
-    value: {
-        openExternal: () => {},
-        mockWebReport: () => Promise.resolve({ success: false }),
-        uploadWebReport: () => Promise.resolve({ success: false })
-    },
-    writable: true
-});
-
-if (!window.matchMedia) {
-    window.matchMedia = () => ({
-        matches: false,
-        media: '',
-        onchange: null,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-        dispatchEvent: () => false
+// Skip jsdom-specific setup in Node environment
+if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'electronAPI', {
+        value: {
+            openExternal: () => {},
+            mockWebReport: () => Promise.resolve({ success: false }),
+            uploadWebReport: () => Promise.resolve({ success: false })
+        },
+        writable: true
     });
-}
 
-class ResizeObserverMock {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-}
+    if (!window.matchMedia) {
+        window.matchMedia = () => ({
+            matches: false,
+            media: '',
+            onchange: null,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            addListener: () => {},
+            removeListener: () => {},
+            dispatchEvent: () => false
+        });
+    }
 
-if (!('ResizeObserver' in window)) {
-    // @ts-ignore
-    window.ResizeObserver = ResizeObserverMock;
-}
+    class ResizeObserverMock {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    }
 
-if (!HTMLCanvasElement.prototype.getContext) {
-    // @ts-ignore
-    HTMLCanvasElement.prototype.getContext = () => null;
+    if (!('ResizeObserver' in window)) {
+        // @ts-ignore
+        window.ResizeObserver = ResizeObserverMock;
+    }
+
+    if (!HTMLCanvasElement.prototype.getContext) {
+        // @ts-ignore
+        HTMLCanvasElement.prototype.getContext = () => null;
+    }
 }

@@ -1979,16 +1979,19 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         />
                     </SettingsSection>
 
-                    {/* Cloudflare R2 Replay Storage */}
+                    {/* Cloudflare R2 — hosts the out-of-band report sidecars */}
                     <SettingsSection
-                        title="Cloudflare R2 — Replay Storage"
+                        title="Cloudflare R2 — Replay &amp; Slice Storage"
                         icon={Key}
                         delay={0.09}
                         sectionId="r2-storage"
                         hidden={settingsSearchHidden.has('r2-storage')}
                     >
+                        <p className="text-sm text-gray-400 mb-2">
+                            Optional. When configured, the bulky out-of-band parts of a published report — map replay data and fight slice data — are uploaded to R2 instead of GitHub Pages, keeping the report repository small. Requires a Cloudflare R2 bucket with public access enabled.
+                        </p>
                         <p className="text-sm text-gray-400 mb-4">
-                            Optional. When configured, map replay data is uploaded to R2 instead of GitHub Pages, keeping report files small. Requires a Cloudflare R2 bucket with public access enabled.
+                            Without R2, map replays still publish to GitHub Pages and are dropped only when too large for it, but <span className="text-gray-300">fight slicing in the published report is unavailable</span> — slice data is never written to Pages, because it would cost more repository storage than the whole report. The report itself publishes normally either way.
                         </p>
                         <div className="space-y-3">
                             {([
@@ -2015,7 +2018,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         )}
                         {r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl && (
                             <>
-                                <p className="mt-3 text-xs text-emerald-400">R2 configured — replay data will be stored in R2 on next upload.</p>
+                                <p className="mt-3 text-xs text-emerald-400">R2 configured — replay and fight slice data will be stored in R2 on next upload, and published reports can be sliced by fight.</p>
                                 <div className="mt-3">
                                     <Toggle
                                         enabled={r2PreciseReplay}

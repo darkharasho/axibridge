@@ -470,6 +470,13 @@ export interface PlayerAggregationAccumulators {
     globalEnemySkillStats: Map<number, { totalDamage: number; connectedHits: number; minTotal: number; minCount: number }>;
     mitigationCumulativeCounts: Map<string, DamageMitigationTotals>;
     mitigationMinionCumulativeCounts: Map<string, DamageMitigationTotals>;
+    /**
+     * Rotation cast counts that found no matching skill row when their log was
+     * ingested, keyed by player then skill. Write-only for the direct path; the
+     * slice merge replays them so a per-fight frame does not lose casts that a
+     * sequential ingest would have credited to an earlier fight's skill row.
+     */
+    pendingSkillCasts: Map<string, Map<string, number>>;
     wins: number;
     losses: number;
     totalSquadSizeAccum: number;
@@ -499,6 +506,7 @@ export const createPlayerAggregationAccumulators = (): PlayerAggregationAccumula
     globalEnemySkillStats: new Map(),
     mitigationCumulativeCounts: new Map(),
     mitigationMinionCumulativeCounts: new Map(),
+    pendingSkillCasts: new Map(),
     wins: 0,
     losses: 0,
     totalSquadSizeAccum: 0,
@@ -1313,6 +1321,22 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 const skillEntry = playerBreakdown!.skills.get(skillId);
                 if (skillEntry) {
                     skillEntry.casts += count;
+                } else {
+                    // A cast of a skill that dealt no damage in ANY log so far
+                    // has nowhere to land, and this line is order-dependent: in
+                    // a sequential ingest the entry may already exist from an
+                    // EARLIER log, so the cast counts. A per-fight slice frame
+                    // has no earlier log, so it would silently lose the cast.
+                    // Park it here instead; `mergePlayerAggregationAccumulators`
+                    // replays it against the entries the earlier fights created.
+                    // Nothing in the direct path reads this map, so the
+                    // non-sliced numbers are unchanged.
+                    let pending = acc.pendingSkillCasts.get(playerKey);
+                    if (!pending) {
+                        pending = new Map<string, number>();
+                        acc.pendingSkillCasts.set(playerKey, pending);
+                    }
+                    pending.set(skillId, (pending.get(skillId) || 0) + count);
                 }
             });
         }
@@ -1736,3 +1760,10 @@ export const computePlayerAggregation = ({
         totalEnemyDowns: acc.totalEnemyDowns,
     };
 };
+
+export {
+    mergePlayerAggregationAccumulators,
+    PLAYER_STATS_MERGE_RULES,
+    deepSumInto,
+    type MergeRule,
+} from './mergePlayerAggregation';

@@ -94,21 +94,22 @@ src/
     SettingsView.tsx
     global.d.ts          # All shared TypeScript interfaces and default values (ILogData, IWebhook, etc.)
     stats/
-      computeStatsAggregation.ts  # Core stats computation (called directly or via worker)
+      incrementalAggregation.ts   # Core stats computation: IncrementalAggregator + computeStatsSync
       statsTypes.ts               # Stats-specific types
       statsMetrics.ts             # OFFENSE/DEFENSE/SUPPORT metric definitions
       statsTaxonomy.ts            # 11-category nav taxonomy + section/legacy-anchor resolver
       hooks/                      # React hooks for stats (aggregation, navigation, uploads, etc.)
       sections/                   # One component per stats section (OffenseSection, DefenseSection, etc.)
       search/                     # Universal search palette: index builder, matcher, jump-and-flash
-      utils/                      # dashboardUtils, pruneStatsLog, statsSyncRecovery
+      utils/                      # dashboardUtils, buildReportMeta, statsLogKey, axilogCoverage
     workers/
-      statsWorker.ts   # Web Worker that runs computeStatsAggregation off the main thread (>8 logs)
+      statsWorker.ts   # Web Worker that streams logs through IncrementalAggregator off the main thread (>8 logs)
     app/
       AppLayout.tsx         # Shell layout
       hooks/useWebUpload.ts # GitHub Pages upload flow via electronAPI
       hooks/useFilePicker.ts
-      hooks/useDevDatasets.ts
+      hooks/useLogQueue.ts        # Upload queue state
+      hooks/useDetailsHydration.ts # Fetches + caches EI details, owns detailsStatus
   web/           # Standalone web report viewer
     reportApp.tsx  # Web report root – loads report.json, renders StatsView + rollup
     rollup.ts      # Cross-report commander/player aggregate types and builder
@@ -119,7 +120,7 @@ src/
 1. **Log detection**: `LogWatcher` (chokidar) emits `log-detected` → main process IPC sends to renderer.
 2. **Upload**: `Uploader` queues .evtc/.zevtc files, posts to `dps.report/uploadContent`, then fetches EI JSON via `dps.report/getJson`. Max 3 concurrent uploads, 1 concurrent detail fetch.
 3. **State**: All `ILogData` entries live in renderer state (App.tsx). Persisted via `electronAPI.saveLogs`.
-4. **Stats computation**: `computeStatsAggregation` is the single aggregation function. For >8 logs it runs in a Web Worker (`statsWorker.ts`); otherwise inline. The `useStatsAggregationWorker` hook manages both paths.
+4. **Stats computation**: `incrementalAggregation.ts` is the single codepath — `IncrementalAggregator` folds logs in one at a time, and `computeStatsSync` wraps it for one-shot use. For >8 logs it streams through a Web Worker (`statsWorker.ts`); otherwise it runs inline. The `useStatsAggregationWorker` hook manages both paths and falls back to inline `computeStatsSync` if the worker fails.
 5. **Discord**: Main process receives screenshot/embed requests from renderer → `DiscordNotifier` posts to configured webhooks.
 6. **Web report**: Main process builds a static `dist-web/` site with `report.json` embedded, then pushes to GitHub Pages via git.
 

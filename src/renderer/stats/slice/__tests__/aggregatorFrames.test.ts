@@ -1,0 +1,420 @@
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { IncrementalAggregator, computeStatsSync } from '../../incrementalAggregation';
+
+/**
+ * Read at runtime rather than `import`ed: a static import of these fixtures
+ * gives `tsc --noEmit` a multi-megabyte structural literal to infer, and this
+ * file's four of them are enough to push `npm run typecheck` past its 8 GB heap.
+ */
+const fixture = (name: string) => JSON.parse(
+    readFileSync(resolve(process.cwd(), `test-fixtures/native/${name}.json`), 'utf8'),
+);
+
+const LOGS = ['20260117-175120', '20260117-180135', '20260117-180259', '20260117-180458'].map(fixture).map((details, i) => ({
+    id: `log-${i}`,
+    filePath: `test-${i}.zevtc`,
+    details,
+}));
+
+/**
+ * `computeStabPerformance`'s sibling `combatMetrics` writes `stabGeneration`
+ * back onto `details.players` as a side effect of player aggregation, and
+ * `ingestLogFightDiffMode` reads it — but ingest calls the diff-mode reader
+ * BEFORE player aggregation, so the very first pass over a given `details`
+ * object reports 0 squad stability and every later pass reports the real
+ * number. The fixtures are module-level imports shared by every aggregation in
+ * this file, so whichever path ran first would win. That is a pre-existing
+ * product wart, not a slicing question: warm the fixtures once up front so both
+ * sides of every comparison read the same input.
+ */
+computeStatsSync({ logs: LOGS });
+
+/** Frames as they actually travel: through JSON, exactly like the sidecar. */
+const framesFor = (logs: any[]) => logs.map((log) => {
+    const solo = new IncrementalAggregator();
+    solo.ingestLog(log);
+    return JSON.parse(JSON.stringify(solo.exportFrame()));
+});
+
+const mergeAll = (frames: any[]) => {
+    const merged = new IncrementalAggregator();
+    frames.forEach((frame) => merged.mergeFrame(frame));
+    return merged;
+};
+
+const framedStats = (logs: any[]) => mergeAll(framesFor(logs)).finalize().stats;
+
+/** replayFights is excluded from frames by design — drop it from both sides. */
+const comparable = (stats: any) => {
+    const { replayFights, ...rest } = stats || {};
+    return rest;
+};
+
+/**
+ * Serialize the way the published report.json is serialized, but with every
+ * value JSON would otherwise flatten tagged first. Key order is the defect
+ * class this branch keeps hitting and `toEqual` is order-insensitive for object
+ * keys, so this pins order as well as content.
+ *
+ * Tagged because bare `JSON.stringify` erases them and two genuinely different
+ * results would compare equal: `Set` and `Map` both render as `{}` (there are
+ * Sets inside `stats`), `-0` renders as `0` (real `-0` values occur in
+ * `roleClassifications[].factors[].contribution`), and `Infinity`/`NaN` render
+ * as `null`.
+ *
+ * NOT tagged: `undefined`-valued properties. Those do not exist in the
+ * published artifact on either path — `JSON.stringify` drops them — so tagging
+ * them would fail the comparison on a difference no consumer can observe (the
+ * frame's JSON hop drops `icon: undefined`, the direct path keeps the key with
+ * an undefined value). The paired `toEqual` treats them the same way.
+ */
+const canonical = (value: any) => JSON.stringify(value, (_k, v) => {
+    if (typeof v === 'number') {
+        if (!Number.isFinite(v)) return `__nonfinite:${String(v)}`;
+        if (Object.is(v, -0)) return '__negzero';
+        return v;
+    }
+    if (v instanceof Set) return { __set: [...v] };
+    if (v instanceof Map) return { __map: [...v.entries()] };
+    return v;
+});
+
+describe('aggregator frame export/merge', () => {
+    it('reproduces the all-fights aggregation from per-fight frames', () => {
+        const direct = computeStatsSync({ logs: LOGS }).stats;
+        expect(comparable(framedStats(LOGS))).toEqual(comparable(direct));
+    });
+
+    it('reproduces a three-of-four slice', () => {
+        const subset = [LOGS[0], LOGS[1], LOGS[3]];
+        const direct = computeStatsSync({ logs: subset }).stats;
+        expect(comparable(framedStats(subset))).toEqual(comparable(direct));
+    });
+
+    it('reproduces a single-fight slice', () => {
+        const direct = computeStatsSync({ logs: [LOGS[2]] }).stats;
+        expect(comparable(framedStats([LOGS[2]]))).toEqual(comparable(direct));
+    });
+
+    it('reproduces the all-fights aggregation exactly once serialized, key and array order included', () => {
+        const direct = computeStatsSync({ logs: LOGS }).stats;
+        const serialized = canonical(comparable(direct));
+        // The tags have to be load-bearing, or this leg would pass on two
+        // different results that merely serialize the same.
+        expect(serialized).toContain('__set');
+        expect(serialized).toContain('__negzero');
+        expect(canonical(comparable(framedStats(LOGS)))).toBe(serialized);
+    });
+
+    it('reproduces skillUsageData, which finalize returns alongside stats', () => {
+        const direct = computeStatsSync({ logs: LOGS }).skillUsageData;
+        expect(mergeAll(framesFor(LOGS)).finalize().skillUsageData).toEqual(direct);
+    });
+
+    it('recomputes derived sections that frames never carried', () => {
+        // The whole point of shipping pre-finalize state: leaderboards, MVPs,
+        // topStats, role classifications and boon leaderboards are absent from
+        // every frame and reappear after finalize.
+        const derived = [
+            'leaderboards', 'boonLeaderboards', 'roleClassifications',
+            'offensiveMvp', 'defensiveMvp', 'mvp',
+            'topSkills', 'topStatsPerSecond', 'topStatsPerMinute',
+            'maxDownContrib', 'closestToTag',
+        ];
+        const frame = framesFor([LOGS[0]])[0];
+        derived.forEach((key) => expect(frame).not.toHaveProperty(key));
+
+        const stats = framedStats(LOGS);
+        derived.forEach((key) => expect(stats[key]).toBeTruthy());
+        expect(stats.leaderboards.damage.length).toBeGreaterThan(0);
+        expect(stats.roleClassifications.length).toBeGreaterThan(0);
+    });
+
+    it('carries no replay payload in a frame', () => {
+        // replayFights is ~66% of report.json; a frame that carried it would
+        // blow the sidecar budget on its own.
+        const frame = framesFor([LOGS[0]])[0];
+        expect(frame).not.toHaveProperty('replayPayloads');
+        expect(JSON.stringify(frame)).not.toContain('replayFights');
+    });
+
+    it('refuses to export a frame from an aggregator that ingested more than one log', () => {
+        const acc = new IncrementalAggregator();
+        LOGS.forEach((log) => acc.ingestLog(log));
+        expect(() => acc.exportFrame()).toThrow(/exactly one log/i);
+    });
+
+    it('refuses to export a frame from an aggregator that ingested nothing', () => {
+        expect(() => new IncrementalAggregator().exportFrame()).toThrow(/exactly one log/i);
+    });
+
+    describe('originalIndex renumbering', () => {
+        // Every frame is built by a solo aggregator, so every entry in it
+        // claims originalIndex 0. `sortByFightOrder` uses originalIndex as its
+        // only tie-break, so a merged aggregator that left them all at 0 would
+        // be relying on Array.prototype.sort stability for fight order rather
+        // than on the key finalize actually reads.
+        const indexed = ['logMetas', 'timelineEntries', 'fightBreakdowns', 'fightDiffModes'] as const;
+
+        it('every solo frame carries originalIndex 0', () => {
+            const frame = framesFor([LOGS[1]])[0];
+            indexed.forEach((key) => {
+                const entries = (frame as any)[key];
+                expect(entries.length).toBe(1);
+                expect(entries[0].originalIndex).toBe(0);
+            });
+        });
+
+        it('renumbers to the running merge count on every indexed array', () => {
+            const merged = mergeAll(framesFor(LOGS)) as any;
+            indexed.forEach((key) => {
+                expect(merged[key].map((e: any) => e.originalIndex)).toEqual([0, 1, 2, 3]);
+            });
+            expect(merged.logCount).toBe(4);
+            expect(merged.validLogCount).toBe(4);
+        });
+
+        it('matches the originalIndex a direct ingest would have assigned', () => {
+            const direct = new IncrementalAggregator() as any;
+            LOGS.forEach((log) => direct.ingestLog(log));
+            const merged = mergeAll(framesFor(LOGS)) as any;
+            indexed.forEach((key) => {
+                expect(merged[key].map((e: any) => e.originalIndex))
+                    .toEqual(direct[key].map((e: any) => e.originalIndex));
+            });
+        });
+
+        it('breaks ties by merge order when timestamps are equal', () => {
+            // Logs with no roster resolve to timestamp 0, so sortByFightOrder
+            // falls all the way through to originalIndex.
+            const tied = [
+                { id: 'a', filePath: 'a.zevtc', dashboardSummary: { squadCount: 5, enemyCount: 11 } },
+                { id: 'b', filePath: 'b.zevtc', dashboardSummary: { squadCount: 7, enemyCount: 22 } },
+                { id: 'c', filePath: 'c.zevtc', dashboardSummary: { squadCount: 9, enemyCount: 33 } },
+            ];
+            const squadOf = (stats: any) => stats.timelineData.map((row: any) => row.squadCount);
+
+            expect(squadOf(framedStats(tied))).toEqual([5, 7, 9]);
+            expect(squadOf(framedStats([tied[2], tied[0], tied[1]]))).toEqual([9, 5, 7]);
+
+            const frames = framesFor(tied);
+            const merged = mergeAll([frames[2], frames[0], frames[1]]) as any;
+            expect(merged.timelineEntries.map((e: any) => e.originalIndex)).toEqual([0, 1, 2]);
+            expect(squadOf(merged.finalize().stats)).toEqual([9, 5, 7]);
+        });
+    });
+
+    it('unions personalDamageModKeys and first-wins damageModMap across frames', () => {
+        // No native fixture carries personalDamageMods, so inject them onto a
+        // shallow details copy (the players array stays shared by reference).
+        const withMods = (log: any, mods: Record<string, number[]>, modMap: Record<string, any>) => ({
+            ...log,
+            details: { ...log.details, personalDamageMods: mods, damageModMap: modMap },
+        });
+        const logs = [
+            withMods(LOGS[0], { Guardian: [111, 222] }, { d111: { name: 'first', icon: 'a', description: '', incoming: false } }),
+            withMods(LOGS[1], { Necromancer: [222, 333] }, { d111: { name: 'second', icon: 'b', description: '', incoming: true } }),
+        ];
+
+        const frame = framesFor([logs[0]])[0];
+        expect(frame.personalDamageModKeys).toHaveProperty('__set');
+        expect((frame.personalDamageModKeys as any).__set).toEqual(['d111', 'd222']);
+
+        const stats = framedStats(logs);
+        expect(stats.personalDamageModKeys).toEqual(['d111', 'd222', 'd333']);
+        // damageModMap is first-wins on merge exactly as it is on ingest.
+        expect(stats.damageModMap.d111.name).toBe('first');
+        expect(comparable(stats)).toEqual(comparable(computeStatsSync({ logs }).stats));
+    });
+
+    it('sums mapCounts and enemyNameCounts across frames', () => {
+        const merged = mergeAll(framesFor(LOGS)) as any;
+        const direct = new IncrementalAggregator() as any;
+        LOGS.forEach((log) => direct.ingestLog(log));
+        expect(merged.mapCounts).toEqual(direct.mapCounts);
+        expect(merged.enemyNameCounts).toEqual(direct.enemyNameCounts);
+        expect(Object.values(merged.mapCounts).reduce((a: any, b: any) => a + b, 0)).toBe(4);
+    });
+
+    it('concatenates boonTableLogs and the stab-performance accumulator', () => {
+        const merged = mergeAll(framesFor(LOGS)) as any;
+        expect(merged.boonTableLogs).toHaveLength(4);
+        expect(merged.stabPerfAcc.fights).toHaveLength(4);
+        const direct = new IncrementalAggregator() as any;
+        LOGS.forEach((log) => direct.ingestLog(log));
+        expect(merged.stabPerfAcc.fights.map((f: any) => f.id))
+            .toEqual(direct.stabPerfAcc.fights.map((f: any) => f.id));
+    });
+
+    it('renumbers the commander fight-row shortLabel, which finalize never touches', () => {
+        // ingestLogCommanderStats bakes `F${idx + 1}` into every fight row and
+        // finalizeCommanderStats only re-SORTS them, so without the rewrite
+        // every merged fight would report itself as F1.
+        const direct = computeStatsSync({ logs: LOGS }).stats.commanderStats.rows;
+        const framed = framedStats(LOGS).commanderStats.rows;
+        const labels = framed[0].fightsData.map((f: any) => f.shortLabel);
+        expect(labels.length).toBeGreaterThan(1);
+        expect(new Set(labels).size).toBe(labels.length); // not all 'F1'
+        expect(framed.map((r: any) => r.fightsData.map((f: any) => f.shortLabel)))
+            .toEqual(direct.map((r: any) => r.fightsData.map((f: any) => f.shortLabel)));
+    });
+
+    it('keeps the Infinity min sentinel across the JSON boundary', () => {
+        // `min` on a skill breakdown row is seeded to Infinity and JSON has no
+        // Infinity, so a round-tripped frame carries `null` there. If the merge
+        // took that null at face value the sentinel would be lost silently —
+        // and it never surfaces in `stats`, so no output comparison can see it.
+        const nonFinitePaths = (acc: any) => {
+            const found: string[] = [];
+            const walk = (v: any, p: string, d = 0) => {
+                if (d > 25 || found.length > 200) return;
+                if (typeof v === 'number') { if (!Number.isFinite(v)) found.push(`${p}=${v}`); return; }
+                if (v instanceof Map) { v.forEach((x, k) => walk(x, `${p}.${String(k)}`, d + 1)); return; }
+                if (Array.isArray(v)) { v.forEach((x, i) => walk(x, `${p}[${i}]`, d + 1)); return; }
+                if (v && typeof v === 'object') { Object.keys(v).forEach((k) => walk(v[k], `${p}.${k}`, d + 1)); }
+            };
+            walk(acc.playerSkillBreakdownMap, 'playerSkillBreakdownMap');
+            return found.sort();
+        };
+
+        const direct = new IncrementalAggregator() as any;
+        LOGS.forEach((log) => direct.ingestLog(log));
+        const merged = mergeAll(framesFor(LOGS)) as any;
+
+        const expected = nonFinitePaths(direct.playerAcc);
+        expect(expected.length).toBeGreaterThan(0);
+        expect(expected.every((p: string) => p.endsWith('=Infinity'))).toBe(true);
+        expect(nonFinitePaths(merged.playerAcc)).toEqual(expected);
+    });
+
+    it('exports a frame for a log with no detailed roster, omitting module sections', () => {
+        const solo = new IncrementalAggregator();
+        solo.ingestLog({ id: 'x', filePath: 'x.zevtc', dashboardSummary: { squadCount: 3, enemyCount: 4 } });
+        const frame = solo.exportFrame() as any;
+        expect(frame.validLogCount).toBe(0);
+        ['spike', 'allDamage', 'stripSpikes', 'incomingStrike', 'skillUsage',
+            'boonTimeline', 'boonUptime', 'stabPerformance', 'playerAcc', 'commanderStatsAcc']
+            .forEach((key) => expect(frame).not.toHaveProperty(key));
+        expect(frame.logMetas).toHaveLength(1);
+    });
+
+    it('reproduces a mixed valid/invalid roster aggregation', () => {
+        const mixed = [LOGS[0], { id: 'x', filePath: 'x.zevtc', dashboardSummary: { squadCount: 3, enemyCount: 4 } }, LOGS[3]];
+        const direct = computeStatsSync({ logs: mixed }).stats;
+        expect(comparable(framedStats(mixed))).toEqual(comparable(direct));
+    });
+
+    it('survives the JSON boundary for every Map- and Set-shaped section', () => {
+        // encodeState/decodeState is the only thing standing between the
+        // sidecar and a silent `{}` for playerStats, the commander map and
+        // personalDamageModKeys.
+        const raw = new IncrementalAggregator();
+        raw.ingestLog(LOGS[0]);
+        const frame = raw.exportFrame() as any;
+        const roundTripped = JSON.parse(JSON.stringify(frame));
+
+        expect(frame.playerAcc.playerStats).toHaveProperty('__map');
+        expect((frame.playerAcc.playerStats as any).__map.length).toBeGreaterThan(0);
+        expect(frame.commanderStatsAcc).toHaveProperty('__map');
+
+        const direct = computeStatsSync({ logs: [LOGS[0]] }).stats;
+        expect(comparable(mergeAll([roundTripped]).finalize().stats)).toEqual(comparable(direct));
+    });
+});
+
+describe('ordinal-derived labels (the zone-fallback probe)', () => {
+    /**
+     * Strip the zone names, so every `buildFightLabelV2` call in every module
+     * falls back to `Fight ${ordinal}` and every id chain falls back to
+     * `fight-${ordinal}`. Before the labels were threaded into the module merge
+     * functions this produced 100 divergent strings (128 with the ids also
+     * stripped) across boonTimeline, boonUptimeTimeline, spikeDamage,
+     * stripSpikes, incomingStrikeDamage, allDamage, commanderStats,
+     * healEffectiveness and tagDistanceDeaths — every frame claiming to be
+     * fight 1.
+     */
+    const stripped = (log: any, alsoIds: boolean) => {
+        const { fightName: _fightName, ...details } = log.details;
+        // `fightName` is the only zone source these fixtures have; `fightName`
+        // on the log and `encounterName` are already absent.
+        return alsoIds ? { details } : { id: log.id, filePath: log.filePath, details };
+    };
+
+    it.each([
+        ['with ids intact', false],
+        ['with filePath and id also stripped', true],
+    ])('reproduces the direct aggregation %s', (_name, alsoIds) => {
+        const logs = [LOGS[0], LOGS[1]].map((log) => stripped(log, alsoIds as boolean));
+        const direct = computeStatsSync({ logs }).stats;
+        const framed = framedStats(logs);
+        expect(comparable(framed)).toEqual(comparable(direct));
+        expect(canonical(comparable(framed))).toBe(canonical(comparable(direct)));
+    });
+
+    it('renumbers fullLabel and the peakFightLabel derived from it', () => {
+        const logs = [LOGS[0], LOGS[1]].map((log) => stripped(log, false));
+        const direct = computeStatsSync({ logs }).stats;
+        const framed = framedStats(logs);
+
+        // The fallback really did fire, so these assertions are not vacuous.
+        expect(direct.spikeDamage.fights.map((f: any) => f.fullLabel))
+            .toEqual(['Fight 1 (1:40)', 'Fight 2 (0:49)']);
+        expect(framed.spikeDamage.fights.map((f: any) => f.fullLabel))
+            .toEqual(direct.spikeDamage.fights.map((f: any) => f.fullLabel));
+
+        const peaks = (stats: any) => stats.spikeDamage.players.map((p: any) => p.peakFightLabel);
+        expect(new Set(peaks(direct)).size).toBeGreaterThan(1);
+        expect(peaks(framed)).toEqual(peaks(direct));
+        expect(peaks(framed)).not.toContain('Fight 1 (0:49)');
+
+        expect(framed.stripSpikes.players.map((p: any) => p.peakFightLabel))
+            .toEqual(direct.stripSpikes.players.map((p: any) => p.peakFightLabel));
+        expect(framed.incomingStrikeDamage.players.map((p: any) => p.peakFightLabel))
+            .toEqual(direct.incomingStrikeDamage.players.map((p: any) => p.peakFightLabel));
+        expect(framed.boonTimeline.map((b: any) => b.fights.map((f: any) => f.fullLabel)))
+            .toEqual(direct.boonTimeline.map((b: any) => b.fights.map((f: any) => f.fullLabel)));
+        expect(framed.commanderStats.rows.map((r: any) => r.fightsData.map((f: any) => f.fullLabel)))
+            .toEqual(direct.commanderStats.rows.map((r: any) => r.fightsData.map((f: any) => f.fullLabel)));
+    });
+
+    it('leaves a real zone name alone rather than pattern-matching it', () => {
+        // The retired string matcher rewrote anything that merely LOOKED like
+        // the ordinal fallback. A log genuinely named "Fight 1" must survive.
+        const logs = [LOGS[0], LOGS[1]].map((log) => ({
+            ...log,
+            details: { ...log.details, fightName: 'Fight 1' },
+        }));
+        const direct = computeStatsSync({ logs }).stats;
+        const framed = framedStats(logs);
+        expect(framed.spikeDamage.fights.map((f: any) => f.fullLabel))
+            .toEqual(direct.spikeDamage.fights.map((f: any) => f.fullLabel));
+        // Both fights keep the zone the log gave them; neither is renumbered.
+        expect(framed.spikeDamage.fights.every((f: any) => f.fullLabel.startsWith('Fight 1'))).toBe(true);
+        expect(comparable(framed)).toEqual(comparable(direct));
+    });
+
+    it('rejects a frame whose Set sections were serialized without encodeState', () => {
+        const solo = new IncrementalAggregator();
+        solo.ingestLog(LOGS[0]);
+        const frame: any = JSON.parse(JSON.stringify(solo.exportFrame()));
+        // A bare `JSON.stringify` renders a Set as `{}` — the silent, total
+        // data loss `encodeState` exists to prevent. Everything else about this
+        // frame is intact, `labelSeed` included, so it reaches the Set guard
+        // instead of tripping the labelSeed check first; and the matcher has no
+        // alternation that could be satisfied by any other error.
+        frame.personalDamageModKeys = {};
+        expect(() => new IncrementalAggregator().mergeFrame(frame)).toThrow(/encodeState/);
+    });
+
+    it('rejects a frame that carries no labelSeed', () => {
+        const solo = new IncrementalAggregator();
+        solo.ingestLog(LOGS[0]);
+        const frame: any = JSON.parse(JSON.stringify(solo.exportFrame()));
+        delete frame.labelSeed;
+        // Without the seed every ordinal-derived label would silently stay at
+        // the solo aggregator's `Fight 1`.
+        expect(() => new IncrementalAggregator().mergeFrame(frame)).toThrow(/labelSeed/);
+    });
+});

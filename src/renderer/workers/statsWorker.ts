@@ -193,6 +193,42 @@ self.onmessage = (event: MessageEvent) => {
         currentPreciseReplay = Boolean(data.payload?.preciseReplay);
         return;
     }
+    if (data?.type === 'mergeFrames') {
+        // The published web report's slice path: no logs, just pre-finalize
+        // frames for the fights the viewer selected.
+        //
+        // The whole body is guarded. `mergeFrame` has at least three reachable
+        // throw sites (frame label resolution, the personalDamageModKeys set
+        // guard, and the unknown-field rule-table guard in
+        // mergePlayerAggregation), and this worker is the ONLY thing standing
+        // between them and the viewer. Posting nothing on a throw leaves the
+        // caller's `computing` flag stuck true and its `stats` null forever,
+        // which renders as the full report under a "Sliced view — N of M
+        // fights" banner. An explicit `error` reply lets the viewer say the
+        // slice is unavailable instead of quietly lying.
+        try {
+            const settings = data.settings || {};
+            aggregator = new IncrementalAggregator({
+                mvpWeights: settings.mvpWeights,
+                statsViewSettings: settings.statsViewSettings,
+                disruptionMethod: settings.disruptionMethod,
+            });
+            const frames = Array.isArray(data.frames) ? data.frames : [];
+            frames.forEach((frame: any) => aggregator!.mergeFrame(frame));
+            ingestedLogCount = frames.length;
+            ingestedLogIds = frames.map((_: any, i: number) => `slice-${i}`);
+            ingestedOwnedLogIds = [];
+            expectedLogCount = frames.length;
+            droppedLogMessages = 0;
+            // Slice mode never renders the map replay, so skip the replay transfer.
+            computeAndPost(true);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            console.error('[StatsWorker] mergeFrames threw:', err);
+            (self as any).postMessage({ type: 'error', token: currentToken, message });
+        }
+        return;
+    }
     if (data?.type === 'log') {
         if (!aggregator) {
             aggregator = new IncrementalAggregator();

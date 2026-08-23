@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'node:path';
 import https from 'node:https';
 import { createHash, createHmac } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
 import { spawn } from 'node:child_process';
 import log from 'electron-log';
 import {
@@ -660,13 +661,22 @@ const formatBytes = (value: number) => {
 };
 
 /**
- * Decide where a report's replay.json lives. R2 is preferred; Pages is the
- * fallback. A Pages-hosted replay travels through the GitHub blob API, which
- * rejects anything past MAX_GITHUB_BLOB_BYTES with a 422 — so an oversized
- * replay is dropped rather than allowed to fail the whole upload.
+ * Decide where a report's out-of-band artifact lives.
+ *
+ * Replays prefer R2 and fall back to GitHub Pages, since one artifact on Pages
+ * is affordable and losing the replay outright costs a feature. A Pages-hosted
+ * replay travels through the GitHub blob API, which 422s past
+ * MAX_GITHUB_BLOB_BYTES, so an oversized one is dropped rather than allowed to
+ * fail the whole upload.
+ *
+ * Slice sidecars are R2-only, deliberately. A Pages fallback would spend ~1.56x
+ * of the repo's storage budget per report — precisely the cost the web slicer
+ * was designed to avoid. With no R2 the report publishes exactly as it does
+ * today and simply has no slicer.
  */
-export const planReplayHosting = ({ replayBytes, r2Url, reportId, baseUrl }: {
-    replayBytes: number;
+export const planSidecarHosting = ({ kind, bytes, r2Url, reportId, baseUrl }: {
+    kind: 'replay' | 'slice';
+    bytes: number;
     r2Url: string | null;
     reportId: string;
     baseUrl: string | null;
@@ -674,12 +684,21 @@ export const planReplayHosting = ({ replayBytes, r2Url, reportId, baseUrl }: {
     if (r2Url) {
         return { mode: 'r2', url: r2Url, warning: null };
     }
-    if (replayBytes > MAX_GITHUB_BLOB_BYTES) {
+    if (kind === 'slice') {
         return {
             mode: 'dropped',
             url: null,
             warning:
-                `Replay data (${formatBytes(replayBytes)}) is too large to host on GitHub Pages ` +
+                'Fight slicing in the published report needs Cloudflare R2 — configure it in Settings. ' +
+                'The report itself publishes normally either way.'
+        };
+    }
+    if (bytes > MAX_GITHUB_BLOB_BYTES) {
+        return {
+            mode: 'dropped',
+            url: null,
+            warning:
+                `Replay data (${formatBytes(bytes)}) is too large to host on GitHub Pages ` +
                 `(limit ${formatBytes(MAX_GITHUB_BLOB_BYTES)}) — publishing the report without the map replay. ` +
                 `Configure Cloudflare R2 in Settings to keep replays on large sessions.`
         };
@@ -1466,6 +1485,18 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         }
     });
 
+    // Cheap, synchronous-ish existence check for the renderer to gate the
+    // (relatively expensive: ~300ms build + 10MB+ structured clone over IPC)
+    // slice sidecar build on. Does not validate the credentials against R2 —
+    // just "are all the fields present" like the upload path itself checks.
+    ipcMain.handle('get-r2-configured', async () => {
+        try {
+            return { configured: !!getR2Config(store) };
+        } catch {
+            return { configured: false };
+        }
+    });
+
     ipcMain.handle('ensure-github-template', async () => {
         try {
             const token = store.get('githubToken') as string | undefined;
@@ -1688,7 +1719,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         };
     });
 
-    ipcMain.handle('upload-web-report', async (_event, payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[] }) => {
+    ipcMain.handle('upload-web-report', async (_event, payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: any }) => {
         try {
             if (!hasWebReportContent(payload)) {
                 return { success: false, error: 'Cannot upload an empty web report. Add at least one fight before publishing.' };
@@ -1837,8 +1868,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                         sendWebUploadStatus('Warning', `R2 upload failed: ${r2Result.error}`, 39);
                     }
                 }
-                const replayPlan = planReplayHosting({
-                    replayBytes: replayBuffer.length,
+                const replayPlan = planSidecarHosting({
+                    kind: 'replay',
+                    bytes: replayBuffer.length,
                     r2Url,
                     reportId: reportMeta.id,
                     baseUrl
@@ -1855,6 +1887,67 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 } else {
                     replayHostedOnPages = replayPlan.mode === 'pages';
                     (builtReport.payload.stats as any).replayDataUrl = replayPlan.url;
+                }
+                builtReport.jsonBuffer = Buffer.from(JSON.stringify(builtReport.payload), 'utf8');
+            }
+
+            // Slice sidecar — R2 only. With no R2 the report publishes exactly as
+            // it always has and the published viewer simply has no slicer.
+            const sliceSidecar = (payload as any)?.sliceSidecar;
+            if (sliceSidecar && Array.isArray(sliceSidecar.frames) && sliceSidecar.frames.length > 0) {
+                const sliceBuffer = gzipSync(Buffer.from(JSON.stringify(sliceSidecar), 'utf8'), { level: 9 });
+                let sliceR2Url: string | null = null;
+                // Distinguishes "R2 is not configured" from "R2 is configured and
+                // the upload failed" — the two need different advice, and telling a
+                // user who has already configured R2 to go configure it sends them
+                // looking in the wrong place.
+                let sliceUploadFailed = false;
+                if (r2Config) {
+                    sendWebUploadStatus('Uploading', 'Uploading fight slice data to R2...', 39);
+                    const sliceKey = `reports/${reportMeta.id}/slice.json.gz`;
+                    // Content-Type only, no Content-Encoding: the viewer inflates
+                    // these bytes itself with DecompressionStream('gzip'), so the
+                    // browser must NOT transparently inflate them first.
+                    const sliceResult = await r2PutObject(sliceKey, sliceBuffer, 'application/gzip', r2Config);
+                    if (sliceResult.success && sliceResult.url) {
+                        sliceR2Url = sliceResult.url;
+                        log.info(`[Main] R2 slice upload succeeded: ${sliceResult.url} (${formatBytes(sliceBuffer.length)})`);
+                    } else {
+                        sliceUploadFailed = true;
+                        log.warn(`[Main] R2 slice upload failed: ${sliceResult.error} — publishing without the web slicer.`);
+                    }
+                }
+                const slicePlan = planSidecarHosting({
+                    kind: 'slice',
+                    bytes: sliceBuffer.length,
+                    r2Url: sliceR2Url,
+                    reportId: reportMeta.id,
+                    baseUrl
+                });
+                if (slicePlan.mode === 'r2' && slicePlan.url) {
+                    (builtReport.payload.stats as any).sliceDataUrl = slicePlan.url;
+                    // The viewer compares this against the sidecar's own hash and
+                    // disables slicing on a mismatch rather than rendering numbers
+                    // computed under different settings.
+                    (builtReport.payload.stats as any).sliceSettingsHash = sliceSidecar.settingsHash;
+                } else {
+                    delete (builtReport.payload.stats as any).sliceDataUrl;
+                    delete (builtReport.payload.stats as any).sliceSettingsHash;
+                    // These two ride along ONLY so the viewer can merge frames
+                    // under the publisher's settings. With no sliceDataUrl there
+                    // is nothing to merge, so they are dead weight in report.json.
+                    // (The renderer already strips them when R2 is unconfigured;
+                    // this covers the upload-failed path, where it could not know.)
+                    delete (builtReport.payload.stats as any).mvpWeights;
+                    delete (builtReport.payload.stats as any).disruptionMethod;
+                    const sliceWarning = sliceUploadFailed
+                        ? 'Fight slice data could not be uploaded to Cloudflare R2 — publishing the report without '
+                        + 'the web slicer. The report itself publishes normally; check the log for the R2 error.'
+                        : slicePlan.warning;
+                    if (sliceWarning) {
+                        log.info(`[Main] ${sliceWarning}`);
+                        sendWebUploadStatus('Packaging', sliceWarning, 39);
+                    }
                 }
                 builtReport.jsonBuffer = Buffer.from(JSON.stringify(builtReport.payload), 'utf8');
             }

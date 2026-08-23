@@ -232,3 +232,26 @@ export function ingestLogStabPerformance(log: any, acc: StabPerfAccumulator): vo
 export function finalizeStabPerformance(acc: StabPerfAccumulator): { fights: StabPerfFightData[] } {
     return { fights: acc.fights };
 }
+
+/**
+ * Slice frame for the stab-performance accumulator.
+ *
+ * The accumulator is nothing but a per-fight array (`{ fights: [] }`) and
+ * `finalizeStabPerformance` returns it unchanged, so a frame is one fight's
+ * entry and merging is concatenation — no re-weighting, no renumbering.
+ */
+export interface StabPerformanceFrame {
+    fights: StabPerfFightData[];
+}
+
+export function extractStabPerformanceFrame(acc: StabPerfAccumulator): StabPerformanceFrame {
+    if (acc.fights.length > 1) {
+        throw new Error(`extractStabPerformanceFrame expects at most one fight, got ${acc.fights.length}`);
+    }
+    return { fights: acc.fights };
+}
+
+/** The accumulator is a bare per-fight array, so merging is concatenation. */
+export function mergeStabPerformanceFrame(target: StabPerfAccumulator, frame: StabPerformanceFrame): void {
+    (frame?.fights || []).forEach((fight) => target.fights.push(fight));
+}

@@ -136,3 +136,66 @@ export const computeSkillUsageData = (validLogs: any[]): SkillUsageSummary => {
     for (const log of validLogs) ingestLogSkillUsage(log, acc);
     return finalizeSkillUsage(acc);
 };
+
+export interface SkillUsageFrame {
+    acc: SkillUsageAccumulator;
+}
+
+export function extractSkillUsageFrame(acc: SkillUsageAccumulator): SkillUsageFrame {
+    if (acc.logRecords.length !== 1) {
+        throw new Error(`extractSkillUsageFrame expects exactly one log, got ${acc.logRecords.length}`);
+    }
+    return { acc };
+}
+
+/**
+ * Merge one fight's skill usage into a running accumulator.
+ *
+ * Two metadata rules, and they are opposites — `skillNameMap` is `set`
+ * unconditionally during ingest, so the LAST log wins; the icon, auto-attack
+ * and proc maps are `has()`-guarded, so the FIRST log wins. Merging frames in
+ * fight order reproduces both.
+ */
+export function mergeSkillUsageFrame(target: SkillUsageAccumulator, frame: SkillUsageFrame): void {
+    const source = frame.acc;
+
+    source.skillTotals.forEach((total, sId) => {
+        target.skillTotals.set(sId, (target.skillTotals.get(sId) || 0) + total);
+    });
+
+    source.playerMap.forEach((sourcePlayer, key) => {
+        const existing = target.playerMap.get(key);
+        if (!existing) {
+            target.playerMap.set(key, {
+                ...sourcePlayer,
+                professionList: [...sourcePlayer.professionList],
+                skillTotals: { ...sourcePlayer.skillTotals },
+            });
+            return;
+        }
+        existing.logs += sourcePlayer.logs;
+        existing.totalActiveSeconds = (existing.totalActiveSeconds || 0) + (sourcePlayer.totalActiveSeconds || 0);
+        Object.entries(sourcePlayer.skillTotals).forEach(([sId, count]) => {
+            existing.skillTotals[sId] = (existing.skillTotals[sId] || 0) + count;
+        });
+        sourcePlayer.professionList.forEach((profession) => {
+            if (!existing.professionList.includes(profession)) existing.professionList.push(profession);
+        });
+    });
+
+    source.logRecords.forEach((record) => target.logRecords.push(record));
+
+    // Last-wins.
+    source.skillNameMap.forEach((name, sId) => target.skillNameMap.set(sId, name));
+
+    // First-wins.
+    source.skillIconMap.forEach((icon, sId) => {
+        if (!target.skillIconMap.has(sId)) target.skillIconMap.set(sId, icon);
+    });
+    source.skillAutoAttackMap.forEach((autoAttack, sId) => {
+        if (!target.skillAutoAttackMap.has(sId)) target.skillAutoAttackMap.set(sId, autoAttack);
+    });
+    source.skillProcMap.forEach((proc, sId) => {
+        if (!target.skillProcMap.has(sId)) target.skillProcMap.set(sId, proc);
+    });
+}

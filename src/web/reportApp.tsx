@@ -16,6 +16,12 @@ import { MetricDistributionCard } from '../renderer/stats/components/MetricDistr
 import type { SquadStatPlayer } from '../shared/squadStats';
 import type { ReportPayload, ReportIndexEntry } from '../shared/reportTypes';
 import { expandIconIndex, normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
+import { encodeSliceMask, decodeSliceMask } from '../renderer/stats/slice/sliceBitmask';
+import { useStatsStore } from '../renderer/stats/statsStore';
+import type { SliceSidecar } from '../renderer/stats/slice/sliceTypes';
+import { useSliceRecompute } from './hooks/useSliceRecompute';
+import { computeIncludedOrdinals } from '../renderer/stats/slice/computeIncludedOrdinals';
+import { useSliceSidecarLoader } from './hooks/useSliceSidecarLoader';
 import {
     ShieldCheck,
     CalendarDays,
@@ -670,6 +676,102 @@ export function ReportApp() {
         () => `Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`,
         [activeGroupDef]
     );
+    const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
+    const mergeFightRoster = useStatsStore((s) => s.mergeFightRoster);
+
+    // The tray reads fightRoster, so the sidecar's frozen publish order becomes
+    // the roster — ordinals and tray cards agree by construction.
+    const handleSidecarLoaded = useCallback((sidecar: SliceSidecar) => {
+        mergeFightRoster(sidecar.fights, sidecar.fights.map((f) => f.id));
+    }, [mergeFightRoster]);
+
+    const { sliceState, loadSliceSidecar } = useSliceSidecarLoader({
+        url: (report?.stats as any)?.sliceDataUrl,
+        settingsHash: (report?.stats as any)?.sliceSettingsHash || null,
+        onSidecar: handleSidecarLoaded,
+    });
+
+    const includedOrdinals = useMemo(
+        () => computeIncludedOrdinals(sliceState.sidecar, excludedFightKeys),
+        [sliceState.sidecar, excludedFightKeys],
+    );
+
+    // Task 15 review round 2 (R15-6): the viewer has no settings of its own
+    // in slice mode, so it must hash/merge from the SAME published values the
+    // sidecar was built under, or its settingsHash can never agree with the
+    // publisher's. Merging 25 frames and running finalize() costs about what
+    // a full aggregation costs, so — unlike Task 18's synchronous useMemo —
+    // this now round-trips through the stats worker (Task 20).
+    const { stats: slicedStats, computing: sliceComputing, error: sliceError } = useSliceRecompute({
+        sidecar: sliceState.sidecar,
+        includedOrdinals,
+        mvpWeights: (report?.stats as any)?.mvpWeights,
+        statsViewSettings: (report?.stats as any)?.statsViewSettings,
+        disruptionMethod: (report?.stats as any)?.disruptionMethod,
+    });
+
+    const requestedSlice = useMemo(() => (initialSearchParams.get('slice') || '').trim(), [initialSearchParams]);
+    const [sliceLinkStatus, setSliceLinkStatus] = useState<string | null>(null);
+    const deepLinkApplied = useRef(false);
+
+    // Landing on a slice= URL paints the full report first, then applies the
+    // slice once the sidecar resolves — blocking first paint on a multi-megabyte
+    // fetch is a worse trade than a brief flash of unsliced numbers.
+    useEffect(() => {
+        if (!requestedSlice || deepLinkApplied.current || !report) return;
+        deepLinkApplied.current = true;
+        setSliceLinkStatus('Applying slice…');
+        void (async () => {
+            const sidecar = await loadSliceSidecar();
+            if (!sidecar) { setSliceLinkStatus(null); return; }
+            const included = decodeSliceMask(requestedSlice, sidecar.fights.length);
+            if (!included) {
+                // A stale link degrades to the truth, never to wrong numbers.
+                setSliceLinkStatus('This slice link does not match the report — showing all fights.');
+                return;
+            }
+            const includedIds = new Set(included.map((ordinal) => sidecar.fights[ordinal]?.id).filter(Boolean));
+            useStatsStore.getState().setFightsExcluded(
+                sidecar.fights.filter((f) => !includedIds.has(f.id)).map((f) => f.id),
+                true,
+            );
+            setSliceLinkStatus(null);
+        })();
+    }, [requestedSlice, report, loadSliceSidecar]);
+
+    const handleCopySliceLink = useCallback(() => {
+        const sidecar = sliceState.sidecar;
+        if (!sidecar) return;
+        const included = sidecar.fights
+            .map((fight, ordinal) => ({ fight, ordinal }))
+            .filter(({ fight }) => !excludedFightKeys.has(fight.id))
+            .map(({ ordinal }) => ordinal);
+        const url = new URL(window.location.href);
+        // Query, not hash: the hash is the section-anchor channel, and a slice
+        // has to survive jumping to a section.
+        url.searchParams.set('slice', encodeSliceMask(included, sidecar.fights.length));
+        // Only claim success once the write actually resolves. The clipboard API
+        // is absent outside a secure context and can reject on a denied
+        // permission, and telling someone their link is copied when it is not
+        // costs them the slice they just built.
+        const written = navigator.clipboard?.writeText(url.toString());
+        if (!written) {
+            setSliceLinkStatus('Could not copy — copy the address bar URL instead.');
+            window.setTimeout(() => setSliceLinkStatus(null), 4000);
+            return;
+        }
+        void written.then(
+            () => {
+                setSliceLinkStatus('Slice link copied.');
+                window.setTimeout(() => setSliceLinkStatus(null), 2000);
+            },
+            () => {
+                setSliceLinkStatus('Could not copy — copy the address bar URL instead.');
+                window.setTimeout(() => setSliceLinkStatus(null), 4000);
+            },
+        );
+    }, [sliceState.sidecar, excludedFightKeys]);
+
     const scrollToSection = (id: string) => {
         if (id === 'report-top') {
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1771,13 +1873,25 @@ export function ReportApp() {
                     </div>
                     <div ref={statsWrapperRef} onWheelCapture={handleStatsWheel} className="flex-1 min-w-0">
                         <div id="stats-view-top">
+                            {(sliceLinkStatus || sliceError || sliceState.message || sliceComputing) && (
+                                <div className="mb-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300">
+                                    {sliceLinkStatus || sliceError || sliceState.message || (sliceComputing ? 'Recomputing…' : null)}
+                                </div>
+                            )}
                             <StatsView
                                 logs={[]}
                                 onBack={() => { }}
                                 mvpWeights={undefined}
-                                precomputedStats={report.stats}
+                                precomputedStats={slicedStats || report.stats}
                                 statsViewSettings={report.stats?.statsViewSettings}
                                 embedded
+                                sliceEnabled={Boolean((report.stats as any)?.sliceDataUrl)}
+                                // The recompute failed or refused, so the numbers
+                                // on screen are the full report's. Tell the banner,
+                                // so it says so instead of claiming a slice.
+                                sliceUnavailable={Boolean(sliceError)}
+                                onOpenSliceTray={loadSliceSidecar}
+                                onCopySliceLink={handleCopySliceLink}
                                 sectionVisibility={sectionVisibilityFn}
                                 dashboardTitle={dashboardTitleText}
                                 onRequestCategory={(categoryId) => startTransition(() => setActiveGroup(categoryId))}
