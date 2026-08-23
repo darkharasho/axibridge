@@ -155,8 +155,11 @@ Registration is a one-time act by the maintainer, not the user:
   `token_endpoint_auth_method: "none"`
 - Redirect URI: a loopback listener, `http://127.0.0.1:<ephemeral>/oauth/callback`
 - Scopes: `workers-r2.write` (account-wide R2 admin — the REST object endpoints do not
-  accept object-scoped grants), `memberships.read` to enumerate authorizable accounts,
-  and `offline_access` for a refresh token
+  accept object-scoped grants, and this scope **implies read**, so no separate
+  `workers-r2.read` is needed), `memberships.read` to enumerate authorizable accounts,
+  and `offline_access` for a refresh token. In the dashboard picker these live under
+  **Workers R2 Storage**; *not* "Workers R2 Storage Bucket Item", which is S3-API-only
+  and cannot provision. Verified end to end — see probe 2.
 - **Domain verification is required before the client can be made public.** A private
   client only works for members of the registering account, which is useless here.
   This needs a DNS TXT record on a domain we control, plus a logo, client URL, policy
@@ -188,7 +191,10 @@ plainly that third-party clients get authorization code and nothing else.)
    `BrowserWindow` — an embedded browser for a third-party consent screen is both a
    phishing-training pattern and increasingly blocked by identity providers.
 3. On callback: validate `state`, exchange the code + verifier for an access token
-   (and refresh token) at the token endpoint.
+   (and refresh token) at the token endpoint. **Send an explicit `User-Agent` on this
+   and every other Cloudflare request** — Cloudflare's WAF answers default library
+   user-agents with `403 / error code: 1010`, which surfaces here looking like an OAuth
+   failure. See probe 2.
 4. Call the REST API with the access token to:
    a. `GET /accounts` — list accounts the user authorized, and let them pick if more
       than one;
@@ -275,7 +281,8 @@ missing; the empty-account-list message should name it.
 ## Open questions
 
 Questions 2 and 4 from the first draft are now answered — see the verified section
-above, and the end-to-end probe below. What remains:
+above — and the "does the third-party scope actually work" question is now answered
+too, by the second probe below. What remains:
 
 1. **Does enabling R2 on a fresh account require a payment method?** The docs say
    "You must purchase R2 before you can generate an API token", which is Cloudflare's
@@ -284,14 +291,18 @@ above, and the end-to-end probe below. What remains:
    is fully hands-off or ends in one unavoidable dashboard deep-link. **Verify against
    a genuinely fresh account before building.** This is now the only remaining
    prerequisite.
-2. **Whether a *third-party* client holding `workers-r2.write` gets the same access
-   the probe demonstrated.** The probe (below) ran on wrangler's OAuth session, whose
-   grant is the first-party scope set (`workers:write`, `account:read`, …) — not the
-   third-party catalog scope `workers-r2.write`. So what is proven is that *the
-   endpoints accept an OAuth bearer token at all*, which was the real doubt; what is
-   not proven is that this specific scope name maps onto these specific endpoints.
-   Cheap to settle: register the OAuth client, consent once, re-run the same six calls.
-   Do that before writing implementation code, not after.
+2. **Making the client public is irreversible, and needs a domain we do not own.**
+   New OAuth clients default to `visibility: private`, and a private client can only be
+   authorized by members of the registering account — useless for shipping. Promotion is
+   `PATCH /accounts/{id}/oauth_clients/{cid} {"visibility":"public"}` and is **permanent**;
+   the verified domain is frozen afterwards (the route may change later, the domain may
+   not). Verification is a `TXT` record containing the full
+   `cloudflare_oauth_client_publisher=<code>` string, polled by Cloudflare for **up to two
+   days**. AxiBridge's only domains today are `darkharasho.github.io` and `github.com`,
+   neither of which can carry a `TXT` record — so **owning a real domain is a shipping
+   prerequisite for Phase C**, alongside the logo, client URL, policy URL and ToS URL the
+   consent screen requires. Decide the domain before registering the production client,
+   because the choice cannot be undone.
 3. **Whether the 1,200-per-5-minutes REST limit counts object operations.** The limit
    is stated as "across all R2 REST API operations on your account", while a separate
    footnote says the bucket-management rate limit does *not* apply to object reads and
@@ -306,11 +317,12 @@ above, and the end-to-end probe below. What remains:
 6. **Bucket adoption semantics** when `axibridge-reports` already exists — adopt,
    suffix, or ask.
 
-## Probe: full provisioning round trip on an OAuth bearer, 2026-08-23
+## Probe 1: full provisioning round trip on a first-party OAuth bearer, 2026-08-23
 
-Run against a live Cloudflare account with an OAuth access token (wrangler's session —
-see open question 2 for what that qualifies). Every call is the one the design proposes,
-in order. All six succeeded, and the scratch bucket was deleted afterwards.
+Run against a live Cloudflare account with an OAuth access token from wrangler's
+first-party session. This proved *the endpoints accept an OAuth bearer at all*; probe 2
+below proves the third-party scope. Every call is the one the design proposes, in order.
+All six succeeded, and the scratch bucket was deleted afterwards.
 
 | # | Call | Result |
 |---|------|--------|
@@ -333,6 +345,56 @@ Two details that matter beyond "it worked":
 
 Teardown (`DELETE` object → disable managed domain → `DELETE` bucket) also returned 200
 throughout, which is what Disconnect and any failed-provisioning rollback will need.
+
+## Probe 2: the same round trip on a real third-party client, 2026-08-23
+
+Open question 2 from the first draft is **closed, affirmatively.** A self-managed OAuth
+client was registered under the maintainer's account (public client, `authorization_code`
+only, `token_endpoint_auth_method: "none"`, loopback redirect URI on an ephemeral port),
+and the full PKCE-S256 consent + provisioning sequence was driven against it.
+
+The token came back with a refresh token and this grant, verbatim:
+
+```
+GRANTED SCOPES: workers-r2.write memberships.read offline_access
+```
+
+Cloudflare granted exactly the dot-delimited catalog scopes requested — no silent
+substitution, no widening. On that token, every provisioning call from the design
+returned 200: bucket create, object `PUT`, object `GET`, `domains/managed`, `cors`, and
+the public unauthenticated fetch over `r2.dev`. Teardown returned 200 throughout and the
+account was verified back at its original bucket count.
+
+Three findings worth carrying into implementation:
+
+- **`workers-r2.write` implies read.** The object `GET` succeeded on a grant containing
+  no `workers-r2.read`. The consent screen therefore stays at two visible scopes; do not
+  add the read scope "to be safe", it only makes the prompt scarier.
+- **The scope names in the dashboard picker are not the catalog names.** "Workers R2
+  Storage" is `workers-r2.{metadata_read,read,write}`; "Workers R2 Storage Bucket Item"
+  is `workers-r2-bucket-item.{read,write}` and is **S3-API-only** — it cannot create
+  buckets, enable `r2.dev`, or set CORS. It is the narrower-looking option that does not
+  work. "Data Catalog" (`r2-catalog.*`) and "SQL" (`r2-catalog-sql.read`) are unrelated.
+- **Cloudflare's WAF bans default library User-Agents.** `Python-urllib/3.x` — and by
+  extension a bare Node/Electron request — gets a `403` with the `text/plain` body
+  `error code: 1010` from both `dash.cloudflare.com` and `*.r2.dev`. It does *not* need a
+  browser UA; a plain custom one (`AxiBridge/1.0 (+https://github.com/darkharasho/axibridge)`)
+  passes. This is the trap to remember, because the failure surfaces at the **token
+  exchange** and looks exactly like a broken OAuth configuration when it is not one. Set
+  an explicit `User-Agent` on every Cloudflare request the app makes.
+
+**One anomaly, unexplained.** On the first run, step 3's read-back compared unequal while
+still reporting `Content-Type: application/gzip`. The obvious candidate — a stale object
+served after reusing a just-deleted bucket name — was tested directly and **disproven**
+(delete-and-recreate reads back correctly on the first attempt). Six subsequent reads with
+identical code all compared equal, so it is not reproducible and no cause is claimed here.
+It does not block the design, but if provisioning step 6's verification read ever fails in
+the field, start from this note rather than assuming a new bug.
+
+For completeness: the first run's step 6 failure was **not** a Cloudflare behaviour. The
+probe script built that one request inline without the `User-Agent` every other call
+carried, so it hit the WAF rule above and the empty error body trivially compared unequal.
+One script bug, not two findings.
 
 ## What this does not change
 
