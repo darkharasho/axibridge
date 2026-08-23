@@ -3792,7 +3792,11 @@ Recompute whenever the selection changes:
         return mergeSliceFrames({
             sidecar,
             includedOrdinals: included,
-            mvpWeights: undefined,
+            // Task 15 review round 2 (R15-6): the viewer has no settings of
+            // its own in slice mode, so it must hash/merge from the SAME
+            // published values the sidecar was built under, or its
+            // settingsHash can never agree with the publisher's.
+            mvpWeights: (report?.stats as any)?.mvpWeights,
             statsViewSettings: (report?.stats as any)?.statsViewSettings,
             disruptionMethod: (report?.stats as any)?.disruptionMethod,
         }).stats;

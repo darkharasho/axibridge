@@ -163,14 +163,6 @@ export const useStatsUploads = ({
             ...stats,
             skillUsageData,
             statsViewSettings: activeStatsViewSettings,
-            // Slice mode is publisher-settings-authoritative: `buildSliceSidecar`
-            // hashes exactly these two values (read back off `uploadStats` below,
-            // never off these hook props directly) so the published report and
-            // its sidecar can never disagree about what they were built under.
-            // The viewer has no settings of its own to compare against — it
-            // reads these back out of `report.stats` and hashes THEM.
-            mvpWeights,
-            disruptionMethod,
         };
         // Never publish the transient elision marker as report content.
         delete (baseStats as any).replayFightsElided;
@@ -248,6 +240,17 @@ export const useStatsUploads = ({
             try {
                 const r2Status = await window.electronAPI?.isR2Configured?.();
                 if (r2Status?.configured) {
+                    // `mvpWeights`/`disruptionMethod` exist in the published
+                    // payload SOLELY so a viewer can reproduce the sidecar's
+                    // settingsHash — with no sidecar (no R2) they are pure
+                    // bloat that breaks "the report publishes byte-for-byte
+                    // as it does today" on the no-R2 path (regression caught
+                    // in review round 2). So they're only attached here, once
+                    // R2 is confirmed configured, never in `buildReportStats`
+                    // itself.
+                    (uploadStats as any).mvpWeights = mvpWeights;
+                    (uploadStats as any).disruptionMethod = disruptionMethod;
+
                     const { logs: sliceLogs, skipped } = collectSliceLogs();
                     if (skipped > 0) {
                         console.warn(
@@ -255,12 +258,13 @@ export const useStatsUploads = ({
                             `(evicted or never loaded) and were excluded from the fight slicer.`
                         );
                     }
-                    // Hash from exactly what `uploadStats` carries (not from the
-                    // raw hook props) — those are the same values the report
-                    // publishes as `stats.mvpWeights`/`stats.statsViewSettings`/
-                    // `stats.disruptionMethod`, so the sidecar's settingsHash is
-                    // guaranteed to agree with what a viewer re-hashes from the
-                    // published report, by construction.
+                    // Hash from exactly what `uploadStats` now carries (not
+                    // from the raw hook props) — those are the same values
+                    // the report publishes as `stats.mvpWeights`/
+                    // `stats.statsViewSettings`/`stats.disruptionMethod`, so
+                    // the sidecar's settingsHash is guaranteed to agree with
+                    // what a viewer re-hashes from the published report, by
+                    // construction.
                     sliceSidecar = buildSliceSidecar({
                         logs: sliceLogs,
                         roster: fightRoster,
@@ -272,6 +276,11 @@ export const useStatsUploads = ({
             } catch (sliceErr) {
                 console.warn('[StatsView] Slice sidecar build failed — publishing without the fight slicer.', sliceErr);
                 sliceSidecar = undefined;
+                // The mvpWeights/disruptionMethod bloat guard applies to
+                // failure too: don't leave them attached to `uploadStats` if
+                // the sidecar build itself failed after attaching them.
+                delete (uploadStats as any).mvpWeights;
+                delete (uploadStats as any).disruptionMethod;
             }
             await onWebUpload({
                 meta,
