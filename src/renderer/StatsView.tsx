@@ -132,6 +132,13 @@ interface StatsViewProps {
     };
     /** Called with the file paths of logs an Axilog re-parse repaired. */
     onLogsHealed?: (filePaths: string[]) => void;
+    /** Published web report only: true when the report shipped a slice sidecar,
+     *  so the pill/tray/banner should render even though the view is embedded.
+     *  A historical FightReportHistoryView (also embedded) leaves this unset. */
+    sliceEnabled?: boolean;
+    /** Published web report only: awaited before the tray opens, so the first
+     *  open is what triggers the sidecar fetch (Task 18) rather than report load. */
+    onOpenSliceTray?: () => Promise<unknown>;
 }
 
 const sidebarListClass = 'space-y-0.5 max-h-72 overflow-y-auto';
@@ -256,7 +263,7 @@ function resolveReplayFights(stats: any): any[] {
 export const deriveStatsViewLogs = (logs: any[], excluded: Set<string>, embedded: boolean): any[] =>
     embedded ? logs : selectSlicedLogs(logs, excluded);
 
-export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed }: StatsViewProps) {
+export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
     useEffect(() => {
@@ -4317,7 +4324,15 @@ type SpikeFight = {
                 actionsDisabled={statsActionsDisabled}
                 publishBlockedReason={publishBlockedReason}
                 onSearchClick={() => setSearchOpen(true)}
-                onToggleSliceTray={embedded ? undefined : () => setSliceTrayOpen((open) => !open)}
+                onToggleSliceTray={(!embedded || sliceEnabled) ? () => {
+                    setSliceTrayOpen((open) => {
+                        const next = !open;
+                        if (next && onOpenSliceTray) {
+                            void onOpenSliceTray();
+                        }
+                        return next;
+                    });
+                } : undefined}
             />
 
             <AxilogCoverageBanner
@@ -4344,8 +4359,8 @@ type SpikeFight = {
                 devMockUploadState={devMockUploadState}
             />
 
-            {!embedded && sliceTrayOpen && <FightSliceTray onClose={() => setSliceTrayOpen(false)} />}
-            {!embedded && <FightSliceBanner />}
+            {(!embedded || sliceEnabled) && sliceTrayOpen && <FightSliceTray onClose={() => setSliceTrayOpen(false)} />}
+            {(!embedded || sliceEnabled) && <FightSliceBanner />}
 
             {/* Processing indicator: particle spinner with witty remarks (desktop) */}
             {(aggregationSettling.active || detailsProgress.active) && !embedded && (

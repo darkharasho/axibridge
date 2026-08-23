@@ -16,6 +16,10 @@ import { MetricDistributionCard } from '../renderer/stats/components/MetricDistr
 import type { SquadStatPlayer } from '../shared/squadStats';
 import type { ReportPayload, ReportIndexEntry } from '../shared/reportTypes';
 import { expandIconIndex, normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
+import { fetchSliceSidecar } from '../renderer/stats/slice/fetchSliceSidecar';
+import { mergeSliceFrames } from '../renderer/stats/slice/mergeSliceFrames';
+import { useStatsStore } from '../renderer/stats/statsStore';
+import type { SliceSidecar } from '../renderer/stats/slice/sliceTypes';
 import {
     ShieldCheck,
     CalendarDays,
@@ -317,6 +321,11 @@ export function ReportApp() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
+    const [sliceState, setSliceState] = useState<{
+        status: 'idle' | 'loading' | 'ready' | 'unavailable';
+        sidecar: SliceSidecar | null;
+        message: string | null;
+    }>({ status: 'idle', sidecar: null, message: null });
     const requestedView = useMemo(() => (initialSearchParams.get('view') || '').trim().toLowerCase(), [initialSearchParams]);
     const reportId = useMemo(
         () => initialSearchParams.get('report') || window.location.pathname.match(/\/reports\/([^/]+)\/?$/)?.[1] || null,
@@ -670,6 +679,49 @@ export function ReportApp() {
         () => `Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`,
         [activeGroupDef]
     );
+    const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
+    const mergeFightRoster = useStatsStore((s) => s.mergeFightRoster);
+
+    const loadSliceSidecar = useCallback(async (): Promise<SliceSidecar | null> => {
+        if (sliceState.sidecar) return sliceState.sidecar;
+        const url = (report?.stats as any)?.sliceDataUrl;
+        if (!url) {
+            setSliceState({ status: 'unavailable', sidecar: null, message: 'This report was published without slice data.' });
+            return null;
+        }
+        setSliceState({ status: 'loading', sidecar: null, message: null });
+        const result = await fetchSliceSidecar(url, (report?.stats as any)?.sliceSettingsHash || null);
+        if (!result.ok) {
+            setSliceState({ status: 'unavailable', sidecar: null, message: result.message });
+            return null;
+        }
+        // The tray reads fightRoster, so the sidecar's frozen publish order
+        // becomes the roster — ordinals and tray cards agree by construction.
+        mergeFightRoster(result.sidecar.fights, result.sidecar.fights.map((f) => f.id));
+        setSliceState({ status: 'ready', sidecar: result.sidecar, message: null });
+        return result.sidecar;
+    }, [report, sliceState.sidecar, mergeFightRoster]);
+
+    const slicedStats = useMemo(() => {
+        const sidecar = sliceState.sidecar;
+        if (!sidecar || excludedFightKeys.size === 0) return null;
+        const included = sidecar.fights
+            .map((fight, ordinal) => ({ fight, ordinal }))
+            .filter(({ fight }) => !excludedFightKeys.has(fight.id))
+            .map(({ ordinal }) => ordinal);
+        if (included.length === 0) return null;
+        return mergeSliceFrames({
+            sidecar,
+            includedOrdinals: included,
+            // Task 15 review round 2 (R15-6): the viewer has no settings of
+            // its own in slice mode, so it must hash/merge from the SAME
+            // published values the sidecar was built under, or its
+            // settingsHash can never agree with the publisher's.
+            mvpWeights: (report?.stats as any)?.mvpWeights,
+            statsViewSettings: (report?.stats as any)?.statsViewSettings,
+            disruptionMethod: (report?.stats as any)?.disruptionMethod,
+        }).stats;
+    }, [sliceState.sidecar, excludedFightKeys, report]);
     const scrollToSection = (id: string) => {
         if (id === 'report-top') {
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1775,9 +1827,11 @@ export function ReportApp() {
                                 logs={[]}
                                 onBack={() => { }}
                                 mvpWeights={undefined}
-                                precomputedStats={report.stats}
+                                precomputedStats={slicedStats || report.stats}
                                 statsViewSettings={report.stats?.statsViewSettings}
                                 embedded
+                                sliceEnabled={Boolean((report.stats as any)?.sliceDataUrl)}
+                                onOpenSliceTray={loadSliceSidecar}
                                 sectionVisibility={sectionVisibilityFn}
                                 dashboardTitle={dashboardTitleText}
                                 onRequestCategory={(categoryId) => startTransition(() => setActiveGroup(categoryId))}
