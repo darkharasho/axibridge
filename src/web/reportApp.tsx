@@ -764,9 +764,26 @@ export function ReportApp() {
         // Query, not hash: the hash is the section-anchor channel, and a slice
         // has to survive jumping to a section.
         url.searchParams.set('slice', encodeSliceMask(included, sidecar.fights.length));
-        void navigator.clipboard?.writeText(url.toString());
-        setSliceLinkStatus('Slice link copied.');
-        window.setTimeout(() => setSliceLinkStatus(null), 2000);
+        // Only claim success once the write actually resolves. The clipboard API
+        // is absent outside a secure context and can reject on a denied
+        // permission, and telling someone their link is copied when it is not
+        // costs them the slice they just built.
+        const written = navigator.clipboard?.writeText(url.toString());
+        if (!written) {
+            setSliceLinkStatus('Could not copy — copy the address bar URL instead.');
+            window.setTimeout(() => setSliceLinkStatus(null), 4000);
+            return;
+        }
+        void written.then(
+            () => {
+                setSliceLinkStatus('Slice link copied.');
+                window.setTimeout(() => setSliceLinkStatus(null), 2000);
+            },
+            () => {
+                setSliceLinkStatus('Could not copy — copy the address bar URL instead.');
+                window.setTimeout(() => setSliceLinkStatus(null), 4000);
+            },
+        );
     }, [sliceState.sidecar, excludedFightKeys]);
 
     const scrollToSection = (id: string) => {
