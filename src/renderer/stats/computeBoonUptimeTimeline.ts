@@ -4,7 +4,7 @@ import {
 import { resolveFightTimestamp } from './utils/timestampUtils';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 
-type UptimePlayer = {
+export type UptimePlayer = {
     key: string;
     account: string;
     displayName: string;
@@ -28,7 +28,7 @@ type UptimeFight = {
     values: Record<string, UptimeFightValue>;
     maxTotal: number;
 };
-type UptimeBucket = {
+export type UptimeBucket = {
     id: string;
     name: string;
     icon?: string;
@@ -293,4 +293,68 @@ export function computeBoonUptimeTimeline(
     }
 
     return finalizeBoonUptimeTimeline(acc);
+}
+
+export interface BoonUptimeFrame {
+    boonBuckets: Map<string, UptimeBucket>;
+}
+
+export function extractBoonUptimeFrame(acc: BoonUptimeTimelineAccumulator): BoonUptimeFrame {
+    if (acc.logIndex !== 1) {
+        throw new Error(`extractBoonUptimeFrame expects exactly one log, got ${acc.logIndex}`);
+    }
+    return { boonBuckets: acc.boonBuckets };
+}
+
+/**
+ * Merge one fight's uptime buckets into a running accumulator.
+ *
+ * `total` and `logs` are sums; `peak` is a max, mirroring the ingest fold.
+ * `intervalMs` comes from settings rather than from the log, so the target's
+ * value always wins — a frame built under different settings is rejected far
+ * earlier, by the sidecar's settingsHash check.
+ */
+export function mergeBoonUptimeFrame(target: BoonUptimeTimelineAccumulator, frame: BoonUptimeFrame): void {
+    target.logIndex += 1;
+    frame.boonBuckets.forEach((sourceBucket, boonId) => {
+        let bucket = target.boonBuckets.get(boonId);
+        if (!bucket) {
+            bucket = {
+                id: sourceBucket.id,
+                name: sourceBucket.name,
+                icon: sourceBucket.icon,
+                stacking: sourceBucket.stacking,
+                intervalMs: sourceBucket.stacking
+                    ? target.defaultStackingIntervalMs
+                    : target.defaultBoonIntervalMs,
+                players: new Map<string, UptimePlayer>(),
+                fights: [],
+            };
+            target.boonBuckets.set(boonId, bucket);
+        } else {
+            if ((!bucket.name || bucket.name === boonId) && sourceBucket.name) bucket.name = sourceBucket.name;
+            if (!bucket.icon && sourceBucket.icon) bucket.icon = sourceBucket.icon;
+        }
+        sourceBucket.fights.forEach((fight) => bucket!.fights.push(fight));
+        sourceBucket.players.forEach((sourcePlayer, key) => {
+            const existing = bucket!.players.get(key);
+            if (!existing) {
+                bucket!.players.set(key, {
+                    ...sourcePlayer,
+                    professionList: [...sourcePlayer.professionList],
+                });
+                return;
+            }
+            existing.logs += sourcePlayer.logs;
+            existing.total += sourcePlayer.total;
+            existing.peak = Math.max(existing.peak, sourcePlayer.peak);
+            sourcePlayer.professionList.forEach((profession) => {
+                if (!existing.professionList.includes(profession)) existing.professionList.push(profession);
+            });
+            if ((!existing.profession || existing.profession === 'Unknown')
+                && sourcePlayer.profession && sourcePlayer.profession !== 'Unknown') {
+                existing.profession = sourcePlayer.profession;
+            }
+        });
+    });
 }
