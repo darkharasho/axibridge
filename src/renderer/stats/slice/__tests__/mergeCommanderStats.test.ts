@@ -52,67 +52,185 @@ describe('commander stats merge equivalence', () => {
     });
 });
 
+/**
+ * Fix round 1: the native fixtures only ever produce zero (or equal-across-frames)
+ * values for several CommanderEntry fields, so a sum bug that degrades to
+ * first-wins or last-wins would pass silently. Every field below uses two
+ * distinct, positive, per-frame values so that sum(a,b), a, and b are all
+ * pairwise distinct -- a wrong merge rule cannot coincidentally match the
+ * expected sum.
+ */
+const makeFightRow = (overrides: Partial<CommanderEntry['fightRows'][number]> = {}): CommanderEntry['fightRows'][number] => ({
+    id: 'fight-x',
+    shortLabel: 'F1',
+    fullLabel: 'Fight X',
+    timestamp: 0,
+    mapName: 'EBG',
+    durationMs: 1000,
+    duration: '0:01',
+    isWin: true,
+    squadCount: 10,
+    enemyCount: 10,
+    kills: 1,
+    downs: 1,
+    commanderDowns: 0,
+    commanderDeaths: 0,
+    alliesDown: 0,
+    alliesDead: 0,
+    damageTaken: 0,
+    damageTakenPerMinute: 0,
+    incomingBarrierAbsorbed: 0,
+    incomingBarrierAbsorbedPerMinute: 0,
+    incomingStrips: 0,
+    incomingStripsPerMinute: 0,
+    incomingCC: 0,
+    incomingCCPerMinute: 0,
+    timeToFirstEnemyDownMs: null,
+    timeToFirstEnemyDeathMs: null,
+    downToKillConversionMs: null,
+    hadEarlyDown: null,
+    wasStalledPush: null,
+    downToKillConversionPct: null,
+    failedDownEstimate: 0,
+    distanceTraveled: null,
+    movementPerMinute: null,
+    stationaryPct: null,
+    movementBurstCount: null,
+    commanderDiedAtMs: null,
+    squadDeathsAfterTagDeath: null,
+    enemyKillsAfterTagDeath: null,
+    collapsedAfterTagDeath: null,
+    recoveredAfterTagDeath: null,
+    boonUptimePct: 0,
+    boonEntries: 0,
+    incomingDamageBySkill: [],
+    incomingBoonUptimes: [],
+    incomingDamageBuckets5s: [],
+    incomingBoonBuckets5s: [],
+    ...overrides,
+});
+
+const makeCommander = (overrides: Partial<CommanderEntry> = {}): CommanderEntry => ({
+    key: 'Commander.1234',
+    account: 'Commander.1234',
+    characterNames: new Set(['AltOne']),
+    primaryProfession: 'Guardian',
+    professionTimeMs: { Guardian: 1000 },
+    fights: 1,
+    wins: 1,
+    losses: 1,
+    totalDurationMs: 1000,
+    totalSquadCount: 10,
+    totalEnemyCount: 12,
+    totalKills: 14,
+    totalDowns: 16,
+    totalCommanderDowns: 3,
+    totalCommanderDeaths: 2,
+    totalAlliesDown: 18,
+    totalAlliesDead: 4,
+    totalDamageTaken: 1000,
+    totalIncomingBarrierAbsorbed: 100,
+    totalIncomingStrips: 20,
+    totalIncomingCC: 22,
+    boonWeightedPctMs: 50000,
+    boonDurationMs: 1000,
+    boonEntriesSeen: 24,
+    incomingSkillMap: new Map([
+        ['1', { id: '1', name: 'Skill 1', icon: undefined, damage: 100, hits: 2 }],
+    ]),
+    incomingBoonMap: new Map([
+        ['b1', { id: 'b1', name: 'Might', icon: undefined, uptimePctWeightedMs: 50, durationMs: 1000, stacking: false }],
+    ]),
+    fightRows: [makeFightRow({ id: 'fight-1', shortLabel: 'F1' })],
+    ...overrides,
+});
+
+// Frame B's values are all distinct from frame A's (see makeCommander above)
+// and both are positive, so sum(A, B) != A and sum(A, B) != B for every field
+// below -- a first-wins or last-wins bug cannot pass these assertions.
+const makeSecondCommander = (overrides: Partial<CommanderEntry> = {}): CommanderEntry => makeCommander({
+    characterNames: new Set(['AltTwo']),
+    primaryProfession: 'Firebrand',
+    professionTimeMs: { Guardian: 500, Firebrand: 200 },
+    fights: 2,
+    wins: 3,
+    losses: 4,
+    totalDurationMs: 2000,
+    totalSquadCount: 30,
+    totalEnemyCount: 32,
+    totalKills: 34,
+    totalDowns: 36,
+    totalCommanderDowns: 5,
+    totalCommanderDeaths: 7,
+    totalAlliesDown: 38,
+    totalAlliesDead: 6,
+    totalDamageTaken: 3000,
+    totalIncomingBarrierAbsorbed: 200,
+    totalIncomingStrips: 40,
+    totalIncomingCC: 42,
+    boonWeightedPctMs: 30000,
+    boonDurationMs: 500,
+    boonEntriesSeen: 44,
+    incomingSkillMap: new Map([
+        // Same skill id: real name should win over the generic "Skill N" placeholder,
+        // and damage/hits should sum rather than overwrite.
+        ['1', { id: '1', name: 'Real Skill Name', icon: 'icon.png', damage: 50, hits: 1 }],
+    ]),
+    incomingBoonMap: new Map([
+        // Same boon id, stacking DIFFERS from frame A (false) so first-wins is
+        // distinguishable from "always take incoming's stacking" (true).
+        ['b1', { id: 'b1', name: 'Might', icon: 'might.png', uptimePctWeightedMs: 30, durationMs: 500, stacking: true }],
+    ]),
+    fightRows: [makeFightRow({ id: 'fight-2', shortLabel: 'F2', timestamp: 1 })],
+    ...overrides,
+});
+
 describe('commander stats merge synthetic pins', () => {
-    it('unions characterNames, sums per-profession time, and folds incoming skill/boon maps entry-by-entry when the same commander account appears across fights (fixture-uncovered rule surface)', () => {
-        const makeCommander = (overrides: Partial<CommanderEntry> = {}): CommanderEntry => ({
-            key: 'Commander.1234',
-            account: 'Commander.1234',
-            characterNames: new Set(['AltOne']),
-            primaryProfession: 'Guardian',
-            professionTimeMs: { Guardian: 1000 },
-            fights: 1,
-            wins: 1,
-            losses: 0,
-            totalDurationMs: 1000,
-            totalSquadCount: 10,
-            totalEnemyCount: 10,
-            totalKills: 5,
-            totalDowns: 5,
-            totalCommanderDowns: 0,
-            totalCommanderDeaths: 0,
-            totalAlliesDown: 1,
-            totalAlliesDead: 0,
-            totalDamageTaken: 1000,
-            totalIncomingBarrierAbsorbed: 100,
-            totalIncomingStrips: 2,
-            totalIncomingCC: 3,
-            boonWeightedPctMs: 50000,
-            boonDurationMs: 1000,
-            boonEntriesSeen: 4,
-            incomingSkillMap: new Map([
-                ['1', { id: '1', name: 'Skill 1', icon: undefined, damage: 100, hits: 2 }],
-            ]),
-            incomingBoonMap: new Map([
-                ['b1', { id: 'b1', name: 'Might', icon: undefined, uptimePctWeightedMs: 50, durationMs: 1000, stacking: true }],
-            ]),
-            fightRows: [],
-            ...overrides,
-        });
-
+    it('sums every counter/total field with values that distinguish sum from first-wins and from last-wins', () => {
         const target = new Map<string, CommanderEntry>();
-        const first = makeCommander();
-        mergeCommanderStatsInto(target, new Map([['Commander.1234', first]]));
-
-        const second = makeCommander({
-            characterNames: new Set(['AltTwo']),
-            professionTimeMs: { Guardian: 500, Firebrand: 200 },
-            fights: 1,
-            wins: 0,
-            losses: 1,
-            incomingSkillMap: new Map([
-                // Same skill id: real name should win over the generic "Skill N" placeholder,
-                // and damage/hits should sum rather than overwrite.
-                ['1', { id: '1', name: 'Real Skill Name', icon: 'icon.png', damage: 50, hits: 1 }],
-            ]),
-            incomingBoonMap: new Map([
-                ['b1', { id: 'b1', name: 'Might', icon: 'might.png', uptimePctWeightedMs: 30, durationMs: 500, stacking: true }],
-            ]),
-        });
-        mergeCommanderStatsInto(target, new Map([['Commander.1234', second]]));
-
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]));
         const merged = target.get('Commander.1234')!;
+
+        expect(merged.fights).toBe(3);
+        expect(merged.wins).toBe(4);
+        expect(merged.losses).toBe(5);
+        expect(merged.totalDurationMs).toBe(3000);
+        expect(merged.totalSquadCount).toBe(40);
+        expect(merged.totalEnemyCount).toBe(44);
+        expect(merged.totalKills).toBe(48);
+        expect(merged.totalDowns).toBe(52);
+        expect(merged.totalCommanderDowns).toBe(8);
+        expect(merged.totalCommanderDeaths).toBe(9);
+        expect(merged.totalAlliesDown).toBe(56);
+        expect(merged.totalAlliesDead).toBe(10);
+        expect(merged.totalDamageTaken).toBe(4000);
+        expect(merged.totalIncomingBarrierAbsorbed).toBe(300);
+        expect(merged.totalIncomingStrips).toBe(60);
+        expect(merged.totalIncomingCC).toBe(64);
+        expect(merged.boonWeightedPctMs).toBe(80000);
+        expect(merged.boonDurationMs).toBe(1500);
+        expect(merged.boonEntriesSeen).toBe(68);
+    });
+
+    it('unions characterNames, sums per-profession time (including a brand-new key), and keeps primaryProfession first-wins', () => {
+        const target = new Map<string, CommanderEntry>();
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]));
+        const merged = target.get('Commander.1234')!;
+
         expect(Array.from(merged.characterNames.values()).sort()).toEqual(['AltOne', 'AltTwo']);
         expect(merged.professionTimeMs).toEqual({ Guardian: 1500, Firebrand: 200 });
+        // primaryProfession is first-wins-unless-Unknown: frame A's 'Guardian'
+        // (not 'Unknown') must survive frame B's 'Firebrand'.
+        expect(merged.primaryProfession).toBe('Guardian');
+    });
+
+    it('folds incomingSkillMap and incomingBoonMap entry-by-entry, including boon stacking first-wins', () => {
+        const target = new Map<string, CommanderEntry>();
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]));
+        const merged = target.get('Commander.1234')!;
 
         const skill = merged.incomingSkillMap.get('1')!;
         expect(skill.damage).toBe(150);
@@ -124,9 +242,18 @@ describe('commander stats merge synthetic pins', () => {
         expect(boon.uptimePctWeightedMs).toBe(80);
         expect(boon.durationMs).toBe(1500);
         expect(boon.icon).toBe('might.png');
+        // stacking is set only at creation and never revisited by ingest, so
+        // merge must leave frame A's `false` alone even though frame B's
+        // same-id entry carries `true`.
+        expect(boon.stacking).toBe(false);
+    });
 
-        expect(merged.fights).toBe(2);
-        expect(merged.wins).toBe(1);
-        expect(merged.losses).toBe(1);
+    it('concatenates fightRows rather than keeping only one frame\'s rows', () => {
+        const target = new Map<string, CommanderEntry>();
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeCommander()]]));
+        mergeCommanderStatsInto(target, new Map([['Commander.1234', makeSecondCommander()]]));
+        const merged = target.get('Commander.1234')!;
+
+        expect(merged.fightRows.map((row) => row.id)).toEqual(['fight-1', 'fight-2']);
     });
 });

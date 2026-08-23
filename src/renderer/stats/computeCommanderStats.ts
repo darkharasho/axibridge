@@ -737,6 +737,11 @@ export function mergeCommanderStatsInto(
         }
 
         // identity strings -> first-wins
+        // key/account are defensive, not load-bearing: `existing` is only ever
+        // reached via `target.get(account)` above, so `existing.key` and
+        // `existing.account` are always already truthy (they equal the map
+        // key `account` itself). These two lines can't be exercised by any
+        // real call.
         if (!existing.key) existing.key = incoming.key;
         if (!existing.account) existing.account = incoming.account;
         if (!existing.primaryProfession || existing.primaryProfession === 'Unknown') {
