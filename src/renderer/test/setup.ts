@@ -86,25 +86,3 @@ if (typeof window !== 'undefined') {
         HTMLCanvasElement.prototype.getContext = () => null;
     }
 }
-
-// Provide Web Stream APIs for tests that need them (e.g., fetchSliceSidecar in jsdom).
-// Note: The fetchSliceSidecar test runs in Node environment (via @vitest-environment node),
-// so it has native access to these APIs. This is for other tests in jsdom that may need them.
-try {
-    const webStreams = require('node:stream/web');
-
-    if (!globalThis.DecompressionStream) {
-        (globalThis as any).DecompressionStream = webStreams.DecompressionStream;
-    }
-    if (!globalThis.ReadableStream) {
-        (globalThis as any).ReadableStream = webStreams.ReadableStream;
-    }
-    if (!globalThis.TransformStream) {
-        (globalThis as any).TransformStream = webStreams.TransformStream;
-    }
-    if (!globalThis.WritableStream) {
-        (globalThis as any).WritableStream = webStreams.WritableStream;
-    }
-} catch {
-    // If node:stream/web is not available, proceed without these polyfills
-}
