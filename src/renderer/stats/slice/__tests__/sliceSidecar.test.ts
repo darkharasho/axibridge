@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { computeStatsSync } from '../../incrementalAggregation';
 import { buildSliceSidecar } from '../buildSliceSidecar';
 import { mergeSliceFrames, SliceSettingsMismatchError } from '../mergeSliceFrames';
+import { hashSliceSettings } from '../sliceSettingsHash';
 import { statsLogKey } from '../../utils/statsLogKey';
 import { SLICE_SIDECAR_VERSION } from '../sliceTypes';
 
@@ -90,6 +91,34 @@ describe('slice sidecar', () => {
             const merged = mergeSliceFrames({ sidecar: out, includedOrdinals: ordinals, ...SETTINGS }).stats;
             expect(comparable(merged)).toEqual(comparable(direct));
         });
+    });
+
+    /**
+     * Every other equivalence assertion in this file runs under the
+     * all-`undefined` settings triple, which is also the triple that produces
+     * the aggregator's internal defaults — so a merge path that silently
+     * ignored `settings` entirely would pass all of them. This one merges
+     * under a NON-default triple (`splitPlayersByClass: true`, which changes
+     * the player row identity, plus `disruptionMethod: 'duration'`, which
+     * changes how disruption is scored) and demands the same exact equality
+     * against a direct `computeStatsSync` run under those same settings.
+     */
+    it('reproduces a subset exactly under a non-default settings triple', () => {
+        const custom = {
+            mvpWeights: undefined,
+            statsViewSettings: { splitPlayersByClass: true } as any,
+            disruptionMethod: 'duration' as any,
+        };
+        const out = JSON.parse(JSON.stringify(
+            buildSliceSidecar({ logs: LOGS, roster: ROSTER, ...custom }),
+        ));
+        expect(out.settingsHash).toBe(
+            hashSliceSettings(custom.mvpWeights, custom.statsViewSettings, custom.disruptionMethod),
+        );
+        const ordinals = [1, 3, 5];
+        const direct = computeStatsSync({ logs: ordinals.map((i) => LOGS[i]), ...custom }).stats;
+        const merged = mergeSliceFrames({ sidecar: out, includedOrdinals: ordinals, ...custom }).stats;
+        expect(comparable(merged)).toEqual(comparable(direct));
     });
 
     it('reproduces a single-fight slice', () => {
