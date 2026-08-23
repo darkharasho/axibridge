@@ -1993,6 +1993,21 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <p className="text-sm text-gray-400 mb-4">
                             Without R2, map replays still publish to GitHub Pages and are dropped only when too large for it, but <span className="text-gray-300">fight slicing in the published report is unavailable</span> — slice data is never written to Pages, because it would cost more repository storage than the whole report. The report itself publishes normally either way.
                         </p>
+                        {!(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl) && (
+                            <div className="mb-4 rounded-[6px] border border-amber-400/25 bg-amber-400/5 px-3.5 py-3">
+                                <p className="text-xs font-semibold text-amber-400 mb-2">Setting up R2 requires a payment method on your Cloudflare account</p>
+                                <ol className="list-decimal pl-4 space-y-0.5 text-xs text-gray-400">
+                                    <li>Create a <span className="text-gray-300">Cloudflare account</span> (free).</li>
+                                    <li><span className="text-gray-300">Add a payment method.</span> Cloudflare requires a card on file before R2 can be enabled — even on the free tier.</li>
+                                    <li>Open <span className="text-gray-300">R2 Object Storage</span> in the dashboard and click <span className="text-gray-300">Enable</span>.</li>
+                                    <li><span className="text-gray-300">Create a bucket</span>, any name.</li>
+                                    <li>In the bucket's <span className="text-gray-300">Settings</span>, enable the <span className="text-gray-300">Public Development URL</span> and copy the <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-[11px] text-cyan-300">pub-&hellip;.r2.dev</code> address.</li>
+                                    <li>Go to <span className="text-gray-300">R2 &rarr; Manage R2 API Tokens &rarr; Create API Token</span> with <span className="text-gray-300">Object Read &amp; Write</span>, and copy the Access Key ID and Secret Access Key. <span className="text-gray-300">The secret is shown only once.</span></li>
+                                    <li>Copy your <span className="text-gray-300">Account ID</span> from the dashboard home page.</li>
+                                </ol>
+                                <p className="mt-2.5 text-[11px] text-gray-500">R2's free tier covers 10 GB of storage with no bandwidth charges, which is far more than published reports use. The card is Cloudflare's requirement to enable the service, not a charge from AxiBridge.</p>
+                            </div>
+                        )}
                         <div className="space-y-3">
                             {([
                                 { label: 'Account ID', value: r2AccountId, set: setR2AccountId, placeholder: 'Found on the Cloudflare dashboard home page' },
