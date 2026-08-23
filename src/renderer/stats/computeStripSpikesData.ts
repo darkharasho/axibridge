@@ -40,11 +40,20 @@ export type StripSpikesData = {
     players: StripPlayer[];
 };
 
+export interface StripSpikesPlayerSeed {
+    account: string;
+    characterName: string;
+    profession: string;
+}
+
 export interface StripSpikesAccumulator {
     fights: StripFight[];
     playerMap: Map<string, StripPlayer>;
     /** Running fight index counter (incremented per ingested log with details). */
     fightIndex: number;
+    /** Per-fight player identity, parallel to `fights`. Slice frames only —
+     *  never part of any finalize output. */
+    fightSeeds: Array<Record<string, StripSpikesPlayerSeed>>;
 }
 
 export function createStripSpikesAccumulator(): StripSpikesAccumulator {
@@ -52,11 +61,61 @@ export function createStripSpikesAccumulator(): StripSpikesAccumulator {
         fights: [],
         playerMap: new Map(),
         fightIndex: 0,
+        fightSeeds: [],
     };
 }
 
 export interface StripSpikesIngestOptions {
     splitPlayersByClass?: boolean;
+}
+
+/**
+ * Fold one fight's strip values into the running player map. Shared by
+ * `ingestLogStripSpikes` and `mergeStripSpikesFrame` so slice-mode totals
+ * cannot drift from all-fights totals.
+ */
+export function foldStripFightIntoPlayers(
+    fight: StripFight,
+    seeds: Record<string, StripSpikesPlayerSeed>,
+    playerMap: Map<string, StripPlayer>,
+): void {
+    Object.entries(fight.values).forEach(([key, value]) => {
+        const seed = seeds[key] || { account: key, characterName: '', profession: 'Unknown' };
+        const { strips, stripTime, stripDownContrib } = value;
+        const existing = playerMap.get(key);
+        if (existing) {
+            existing.logs += 1;
+            existing.totalStrips += strips;
+            existing.totalStripTime += stripTime;
+            existing.totalStripDownContrib += stripDownContrib;
+            if (!existing.professionList.includes(seed.profession)) {
+                existing.professionList.push(seed.profession);
+            }
+            if (strips > existing.peakStrips) {
+                existing.peakStrips = strips;
+                existing.peakFightLabel = fight.fullLabel;
+            }
+            if (stripTime > existing.peakStripTime) existing.peakStripTime = stripTime;
+            if (stripDownContrib > existing.peakStripDownContrib) existing.peakStripDownContrib = stripDownContrib;
+        } else {
+            playerMap.set(key, {
+                key,
+                account: seed.account,
+                displayName: seed.account,
+                characterName: seed.characterName,
+                profession: seed.profession,
+                professionList: [seed.profession],
+                logs: 1,
+                totalStrips: strips,
+                totalStripTime: stripTime,
+                totalStripDownContrib: stripDownContrib,
+                peakStrips: strips,
+                peakStripTime: stripTime,
+                peakStripDownContrib: stripDownContrib,
+                peakFightLabel: fight.fullLabel,
+            });
+        }
+    });
 }
 
 export function ingestLogStripSpikes(log: any, acc: StripSpikesAccumulator, options: StripSpikesIngestOptions = {}): void {
@@ -75,6 +134,7 @@ export function ingestLogStripSpikes(log: any, acc: StripSpikesAccumulator, opti
     const timestamp = resolveFightTimestamp(details, log);
 
     const values: Record<string, StripFightValue> = {};
+    const seeds: Record<string, StripSpikesPlayerSeed> = {};
     let maxStrips = 0;
     let maxStripTime = 0;
     let maxStripDownContrib = 0;
@@ -93,47 +153,14 @@ export function ingestLogStripSpikes(log: any, acc: StripSpikesAccumulator, opti
         const stripDownContrib = Number(support?.boonStripDownContribution || 0);
 
         values[key] = { strips, stripTime, stripDownContrib };
+        seeds[key] = { account, characterName, profession };
 
         if (strips > maxStrips) maxStrips = strips;
         if (stripTime > maxStripTime) maxStripTime = stripTime;
         if (stripDownContrib > maxStripDownContrib) maxStripDownContrib = stripDownContrib;
-
-        const existing = acc.playerMap.get(key);
-        if (existing) {
-            existing.logs += 1;
-            existing.totalStrips += strips;
-            existing.totalStripTime += stripTime;
-            existing.totalStripDownContrib += stripDownContrib;
-            if (!existing.professionList.includes(profession)) {
-                existing.professionList.push(profession);
-            }
-            if (strips > existing.peakStrips) {
-                existing.peakStrips = strips;
-                existing.peakFightLabel = fullLabel;
-            }
-            if (stripTime > existing.peakStripTime) existing.peakStripTime = stripTime;
-            if (stripDownContrib > existing.peakStripDownContrib) existing.peakStripDownContrib = stripDownContrib;
-        } else {
-            acc.playerMap.set(key, {
-                key,
-                account,
-                displayName: account,
-                characterName,
-                profession,
-                professionList: [profession],
-                logs: 1,
-                totalStrips: strips,
-                totalStripTime: stripTime,
-                totalStripDownContrib: stripDownContrib,
-                peakStrips: strips,
-                peakStripTime: stripTime,
-                peakStripDownContrib: stripDownContrib,
-                peakFightLabel: fullLabel,
-            });
-        }
     });
 
-    acc.fights.push({
+    const fight: StripFight = {
         id: fightId,
         shortLabel,
         fullLabel,
@@ -142,7 +169,10 @@ export function ingestLogStripSpikes(log: any, acc: StripSpikesAccumulator, opti
         maxStrips,
         maxStripTime,
         maxStripDownContrib,
-    });
+    };
+    acc.fights.push(fight);
+    acc.fightSeeds.push(seeds);
+    foldStripFightIntoPlayers(fight, seeds, acc.playerMap);
 }
 
 export function finalizeStripSpikes(acc: StripSpikesAccumulator): StripSpikesData {
@@ -160,6 +190,25 @@ export function finalizeStripSpikes(acc: StripSpikesAccumulator): StripSpikesDat
         .map((fight, i) => ({ ...fight, shortLabel: `F${i + 1}` }));
 
     return { fights, players };
+}
+
+export interface StripSpikesFrame {
+    fight: StripFight;
+    seeds: Record<string, StripSpikesPlayerSeed>;
+}
+
+export function extractStripSpikesFrame(acc: StripSpikesAccumulator): StripSpikesFrame {
+    if (acc.fights.length !== 1) {
+        throw new Error(`extractStripSpikesFrame expects exactly one fight, got ${acc.fights.length}`);
+    }
+    return { fight: acc.fights[0], seeds: acc.fightSeeds[0] || {} };
+}
+
+export function mergeStripSpikesFrame(target: StripSpikesAccumulator, frame: StripSpikesFrame): void {
+    target.fightIndex += 1;
+    target.fights.push(frame.fight);
+    target.fightSeeds.push(frame.seeds);
+    foldStripFightIntoPlayers(frame.fight, frame.seeds, target.playerMap);
 }
 
 export function computeStripSpikesData(validLogs: any[], splitPlayersByClass = false): StripSpikesData {
