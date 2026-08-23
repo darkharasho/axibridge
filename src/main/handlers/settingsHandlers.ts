@@ -5,6 +5,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { LEGACY_THEME_TO_PALETTE } from '../../shared/webThemes';
 import { DEFAULT_DISRUPTION_METHOD, type DisruptionMethod } from '../../shared/metricsSettings';
+import { isR2SliceEnabled } from './githubHandlers';
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -185,6 +186,9 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             // Defaults on: an install that already has credentials was using R2
             // before this flag existed, and must keep doing so.
             r2HostingEnabled: store.get('r2HostingEnabled', true),
+            // Resolved rather than read raw, so the "inherit the pre-split
+            // toggle" rule lives in exactly one place.
+            r2SliceEnabled: isR2SliceEnabled(store),
             r2ReplayUrls: store.get('r2ReplayUrls', {}) as Record<string, string>,
         };
     });

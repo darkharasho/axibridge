@@ -44,7 +44,7 @@ describe('useStatsUploads: byte-identical-without-R2 (settings-triple bloat)', (
     const publish = async (configured: boolean | undefined) => {
         (window as any).electronAPI = {
             ...originalElectronAPI,
-            ...(configured === undefined ? {} : { isR2Configured: async () => ({ configured }) }),
+            ...(configured === undefined ? {} : { isR2Configured: async () => ({ configured, sliceConfigured: configured }) }),
         };
         const onWebUpload = vi.fn();
         const { result } = renderHook(() => useStatsUploads({

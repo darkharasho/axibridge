@@ -239,7 +239,9 @@ export const useStatsUploads = ({
             let sliceSidecar: SliceSidecar | undefined;
             try {
                 const r2Status = await window.electronAPI?.isR2Configured?.();
-                if (r2Status?.configured) {
+                // `sliceConfigured`, not `configured`: R2 may be connected and
+                // hosting replays while the user has switched the slicer off.
+                if (r2Status?.sliceConfigured) {
                     // `mvpWeights`/`disruptionMethod` exist in the published
                     // payload SOLELY so a viewer can reproduce the sidecar's
                     // settingsHash — with no sidecar (no R2) they are pure

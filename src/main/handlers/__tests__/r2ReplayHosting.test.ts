@@ -11,7 +11,15 @@ vi.mock('electron-log', () => ({
     default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
 }));
 
-import { MAX_GITHUB_BLOB_BYTES, planSidecarHosting, resolveR2Config, resolveR2Uploader } from '../githubHandlers';
+import {
+    MAX_GITHUB_BLOB_BYTES,
+    describeR2Status,
+    isR2ReplayEnabled,
+    isR2SliceEnabled,
+    planSidecarHosting,
+    resolveR2Config,
+    resolveR2Uploader
+} from '../githubHandlers';
 
 const makeStore = (values: Record<string, unknown>) => ({
     get: (key: string) => values[key]
@@ -184,5 +192,75 @@ describe('resolveR2Uploader', () => {
         // Manual keys are all present, but the mode says OAuth and there is no
         // session — falling back to the old keys would be a silent mode switch.
         expect(uploader).toBeNull();
+    });
+});
+
+describe('replay and slice hosting flags', () => {
+    // Replay and slice are separate R2 objects built by separate codepaths —
+    // the slice sidecar folds its own aggregator per fight and never reads a
+    // replay position — so a user who wants one without the other must be able
+    // to say so.
+    it('lets slice hosting stay on while replay hosting is off', () => {
+        const store = makeStore({ ...FULL, r2HostingEnabled: false, r2SliceEnabled: true });
+        expect(isR2ReplayEnabled(store)).toBe(false);
+        expect(isR2SliceEnabled(store)).toBe(true);
+        // One artifact still wants R2, so the credentials must still resolve.
+        expect(resolveR2Uploader(store).uploader).not.toBeNull();
+    });
+
+    it('lets replay hosting stay on while slice hosting is off', () => {
+        const store = makeStore({ ...FULL, r2HostingEnabled: true, r2SliceEnabled: false });
+        expect(isR2ReplayEnabled(store)).toBe(true);
+        expect(isR2SliceEnabled(store)).toBe(false);
+        expect(resolveR2Uploader(store).uploader).not.toBeNull();
+    });
+
+    it('leaves R2 alone entirely when both artifacts are switched off', () => {
+        const store = makeStore({ ...FULL, r2HostingEnabled: false, r2SliceEnabled: false });
+        const { uploader, missingFields, partiallyConfigured } = resolveR2Uploader(store);
+        expect(uploader).toBeNull();
+        expect(missingFields).toEqual([]);
+        expect(partiallyConfigured).toBe(false);
+    });
+
+    it('inherits the old single toggle for an install that predates the split', () => {
+        // Before the split, `r2HostingEnabled` gated slices too. An upgrade that
+        // read an absent `r2SliceEnabled` as its own default would silently take
+        // the web slicer away from every user who had R2 on.
+        expect(isR2SliceEnabled(makeStore({ ...FULL, r2HostingEnabled: true }))).toBe(true);
+        expect(isR2SliceEnabled(makeStore({ ...FULL, r2HostingEnabled: false }))).toBe(false);
+        // Neither key set at all: R2 hosting has always been opt-out.
+        expect(isR2SliceEnabled(makeStore(FULL))).toBe(true);
+    });
+});
+
+describe('describeR2Status', () => {
+    it('reports each artifact separately so the UI can render two switches', () => {
+        const status = describeR2Status(makeStore({ ...FULL, r2HostingEnabled: false, r2SliceEnabled: true }));
+        expect(status).toMatchObject({
+            credentialsPresent: true,
+            replayEnabled: false,
+            sliceEnabled: true,
+            replayConfigured: false,
+            sliceConfigured: true
+        });
+    });
+
+    it('keeps credentialsPresent independent of both toggles', () => {
+        // The toggles' own rows are shown only when R2 is set up; folding them
+        // into this answer would hide the switches that turn them back on.
+        const status = describeR2Status(makeStore({ ...FULL, r2HostingEnabled: false, r2SliceEnabled: false }));
+        expect(status.credentialsPresent).toBe(true);
+        expect(status.configured).toBe(false);
+    });
+
+    it('reports nothing configured without credentials, whatever the toggles say', () => {
+        const status = describeR2Status(makeStore({ r2HostingEnabled: true, r2SliceEnabled: true }));
+        expect(status).toMatchObject({
+            credentialsPresent: false,
+            replayConfigured: false,
+            sliceConfigured: false,
+            configured: false
+        });
     });
 });

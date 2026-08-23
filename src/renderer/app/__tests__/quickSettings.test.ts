@@ -24,18 +24,20 @@ const makeContext = (overrides?: Partial<QuickSettingsContext>): QuickSettingsCo
     statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS },
     setStatsViewSettings: vi.fn(),
     r2Hosting: null,
-    setR2HostingEnabled: vi.fn(),
+    setR2ReplayEnabled: vi.fn(),
+    setR2SliceEnabled: vi.fn(),
     ...overrides,
 });
 
 describe('QUICK_SETTINGS registry', () => {
-    it('exposes the five dashboard toggles with stable ids', () => {
+    it('exposes the six dashboard toggles with stable ids', () => {
         expect(QUICK_SETTINGS.map((s) => s.id)).toEqual([
             'parseCombatReplay',
             'anonymous',
             'noEgoMode',
             'splitPlayersByClass',
             'r2HostingEnabled',
+            'r2SliceEnabled',
         ]);
     });
 
@@ -50,7 +52,7 @@ describe('QUICK_SETTINGS registry', () => {
         const ctx = makeContext({
             eiSettings: { ...EI_SETTINGS, parseCombatReplay: false, anonymous: true },
             statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, noEgoMode: true, splitPlayersByClass: false },
-            r2Hosting: { credentialsPresent: true, enabled: false },
+            r2Hosting: { credentialsPresent: true, replayEnabled: false, sliceEnabled: true },
         });
         const read = Object.fromEntries(QUICK_SETTINGS.map((s) => [s.id, s.read(ctx)]));
         expect(read).toEqual({
@@ -59,6 +61,7 @@ describe('QUICK_SETTINGS registry', () => {
             noEgoMode: true,
             splitPlayersByClass: false,
             r2HostingEnabled: false,
+            r2SliceEnabled: true,
         });
     });
 
@@ -83,7 +86,7 @@ describe('QUICK_SETTINGS registry', () => {
 
     it('round-trips read-after-write for every entry', () => {
         for (const setting of QUICK_SETTINGS) {
-            const r2Hosting = { credentialsPresent: true, enabled: false };
+            const r2Hosting = { credentialsPresent: true, replayEnabled: false, sliceEnabled: false };
             let ctx = makeContext({ r2Hosting });
             const next = !setting.read(ctx);
             ctx = makeContext({
@@ -94,8 +97,11 @@ describe('QUICK_SETTINGS registry', () => {
                 setStatsViewSettings: vi.fn((value) => {
                     ctx = { ...ctx, statsViewSettings: value };
                 }),
-                setR2HostingEnabled: vi.fn((value) => {
-                    ctx = { ...ctx, r2Hosting: { credentialsPresent: true, enabled: value } };
+                setR2ReplayEnabled: vi.fn((value) => {
+                    ctx = { ...ctx, r2Hosting: { ...ctx.r2Hosting!, replayEnabled: value } };
+                }),
+                setR2SliceEnabled: vi.fn((value) => {
+                    ctx = { ...ctx, r2Hosting: { ...ctx.r2Hosting!, sliceEnabled: value } };
                 }),
             });
             setting.write(ctx, next);
@@ -117,30 +123,68 @@ describe('QUICK_SETTINGS registry', () => {
     });
 });
 
-describe('the R2 hosting toggle', () => {
+describe('the R2 hosting toggles', () => {
     const r2 = QUICK_SETTINGS.find((s) => s.id === 'r2HostingEnabled')!;
+    const slice = QUICK_SETTINGS.find((s) => s.id === 'r2SliceEnabled')!;
 
-    it('is irrelevant until R2 credentials exist', () => {
-        expect(r2.isRelevant?.(makeContext())).toBe(false);
-        expect(r2.isRelevant?.(makeContext({ r2Hosting: { credentialsPresent: false, enabled: true } }))).toBe(false);
+    it('keeps both rows off the card until the user has connected R2', () => {
+        for (const setting of [r2, slice]) {
+            expect(setting.isRelevant?.(makeContext())).toBe(false);
+            expect(setting.isRelevant?.(makeContext({
+                r2Hosting: { credentialsPresent: false, replayEnabled: true, sliceEnabled: true },
+            }))).toBe(false);
+        }
     });
 
     it('stays relevant while switched off, so it can be switched back on', () => {
-        const ctx = makeContext({ r2Hosting: { credentialsPresent: true, enabled: false } });
-        expect(r2.isRelevant?.(ctx)).toBe(true);
+        const ctx = makeContext({ r2Hosting: { credentialsPresent: true, replayEnabled: false, sliceEnabled: false } });
+        for (const setting of [r2, slice]) {
+            expect(setting.isRelevant?.(ctx)).toBe(true);
+            expect(setting.read(ctx)).toBe(false);
+        }
+    });
+
+    it('writes each artifact through its own setter, never the other one', () => {
+        const ctx = makeContext({ r2Hosting: { credentialsPresent: true, replayEnabled: true, sliceEnabled: true } });
+        r2.write(ctx, false);
+        expect(ctx.setR2ReplayEnabled).toHaveBeenCalledWith(false);
+        expect(ctx.setR2SliceEnabled).not.toHaveBeenCalled();
+
+        const ctx2 = makeContext({ r2Hosting: { credentialsPresent: true, replayEnabled: true, sliceEnabled: true } });
+        slice.write(ctx2, false);
+        expect(ctx2.setR2SliceEnabled).toHaveBeenCalledWith(false);
+        expect(ctx2.setR2ReplayEnabled).not.toHaveBeenCalled();
+    });
+
+    it('reads each artifact independently, so one off does not read as both off', () => {
+        const ctx = makeContext({ r2Hosting: { credentialsPresent: true, replayEnabled: false, sliceEnabled: true } });
         expect(r2.read(ctx)).toBe(false);
+        expect(slice.read(ctx)).toBe(true);
+    });
+
+    it('says what it hosts, so neither row reads as the other artifact', () => {
+        // The pre-split single switch was labelled for replay while it silently
+        // gated slices too — the confusion this split exists to remove.
+        expect(r2.label).toMatch(/replay/i);
+        expect(r2.label).not.toMatch(/slice/i);
+        expect(slice.label).toMatch(/slice/i);
+        expect(slice.label).not.toMatch(/replay/i);
     });
 
     it('is not ready before the main process has answered', () => {
         expect(r2.isReady(makeContext())).toBe(false);
-        expect(r2.isReady(makeContext({ r2Hosting: { credentialsPresent: true, enabled: true } }))).toBe(true);
+        expect(slice.isReady(makeContext())).toBe(false);
+        const ready = makeContext({ r2Hosting: { credentialsPresent: true, replayEnabled: true, sliceEnabled: true } });
+        expect(r2.isReady(ready)).toBe(true);
+        expect(slice.isReady(ready)).toBe(true);
     });
 
-    it('routes writes to the R2 setter alone', () => {
-        const ctx = makeContext({ r2Hosting: { credentialsPresent: true, enabled: true } });
-        r2.write(ctx, false);
-        expect(ctx.setR2HostingEnabled).toHaveBeenCalledWith(false);
-        expect(ctx.setEiSetting).not.toHaveBeenCalled();
-        expect(ctx.setStatsViewSettings).not.toHaveBeenCalled();
+    it('routes writes to the R2 setters alone', () => {
+        for (const setting of [r2, slice]) {
+            const ctx = makeContext({ r2Hosting: { credentialsPresent: true, replayEnabled: true, sliceEnabled: true } });
+            setting.write(ctx, false);
+            expect(ctx.setEiSetting).not.toHaveBeenCalled();
+            expect(ctx.setStatsViewSettings).not.toHaveBeenCalled();
+        }
     });
 });

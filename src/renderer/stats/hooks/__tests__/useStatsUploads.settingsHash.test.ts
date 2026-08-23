@@ -70,7 +70,7 @@ describe('useStatsUploads: publish-time slice settings hash', () => {
         originalElectronAPI = (window as any).electronAPI;
         (window as any).electronAPI = {
             ...originalElectronAPI,
-            isR2Configured: async () => ({ configured: true }),
+            isR2Configured: async () => ({ configured: true, sliceConfigured: true }),
         };
     });
 

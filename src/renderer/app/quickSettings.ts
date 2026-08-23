@@ -12,13 +12,17 @@ import type { IEiParserSettings, IStatsViewSettings } from '../global.d';
 /**
  * R2 hosting state, or null while it is still being read from the main process.
  *
- * `credentialsPresent` is deliberately independent of `enabled` — the row is
- * shown only when R2 is set up, and if switching it off also hid the row there
- * would be no way to switch it back on.
+ * `credentialsPresent` is deliberately independent of the two enabled flags —
+ * the rows are shown only when R2 is connected, and if switching one off also
+ * hid its row there would be no way to switch it back on.
+ *
+ * Replay and slice are separate R2 objects written by separate codepaths, so
+ * each carries its own flag rather than sharing one "hosting" switch.
  */
 export interface QuickR2Hosting {
     credentialsPresent: boolean;
-    enabled: boolean;
+    replayEnabled: boolean;
+    sliceEnabled: boolean;
 }
 
 export interface QuickSettingsContext {
@@ -27,9 +31,10 @@ export interface QuickSettingsContext {
     setEiSetting: (key: keyof IEiParserSettings, value: boolean) => void;
     statsViewSettings: IStatsViewSettings;
     setStatsViewSettings: (next: IStatsViewSettings) => void;
-    /** Null until the main process answers; the R2 row stays hidden meanwhile. */
+    /** Null until the main process answers; the R2 rows stay hidden meanwhile. */
     r2Hosting: QuickR2Hosting | null;
-    setR2HostingEnabled: (value: boolean) => void;
+    setR2ReplayEnabled: (value: boolean) => void;
+    setR2SliceEnabled: (value: boolean) => void;
 }
 
 export interface QuickSetting {
@@ -110,13 +115,26 @@ export const QUICK_SETTINGS: QuickSetting[] = [
         'One row per class instead of combining each player.',
     ),
     {
+        // Keyed to `r2HostingEnabled`, the original single toggle. It always
+        // said "replay" on the tin; now it only does replay.
         id: 'r2HostingEnabled',
         label: 'Host Replay on R2',
-        hint: 'Upload replay and fight slice data to Cloudflare R2. Off publishes to GitHub Pages alone, '
-            + 'without the map replay or per-fight slicing.',
+        hint: 'Upload map replay data to Cloudflare R2. Off publishes the replay to GitHub Pages instead, '
+            + 'where it is dropped if too large.',
         kind: 'boolean',
-        read: (ctx) => Boolean(ctx.r2Hosting?.enabled),
-        write: (ctx, value) => ctx.setR2HostingEnabled(value),
+        read: (ctx) => Boolean(ctx.r2Hosting?.replayEnabled),
+        write: (ctx, value) => ctx.setR2ReplayEnabled(value),
+        isReady: (ctx) => ctx.r2Hosting !== null,
+        isRelevant: (ctx) => Boolean(ctx.r2Hosting?.credentialsPresent),
+    },
+    {
+        id: 'r2SliceEnabled',
+        label: 'Host Fight Slices on R2',
+        hint: 'Upload per-fight slice data to Cloudflare R2, so a published report can be filtered by fight. '
+            + 'Off publishes the report without the slicer — slice data is never written to GitHub Pages.',
+        kind: 'boolean',
+        read: (ctx) => Boolean(ctx.r2Hosting?.sliceEnabled),
+        write: (ctx, value) => ctx.setR2SliceEnabled(value),
         isReady: (ctx) => ctx.r2Hosting !== null,
         isRelevant: (ctx) => Boolean(ctx.r2Hosting?.credentialsPresent),
     },

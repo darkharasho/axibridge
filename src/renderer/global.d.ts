@@ -342,6 +342,7 @@ export interface IElectronAPI {
         r2PublicUrl?: string | null;
         r2PreciseReplay?: boolean;
         r2HostingEnabled?: boolean;
+        r2SliceEnabled?: boolean;
         r2ReplayUrls?: Record<string, string>;
         reportWebhooks?: IReportWebhook[];
         reportWebhookSelection?: string[];
@@ -392,6 +393,7 @@ export interface IElectronAPI {
         r2PublicUrl?: string | null;
         r2PreciseReplay?: boolean;
         r2HostingEnabled?: boolean;
+        r2SliceEnabled?: boolean;
         reportWebhooks?: IReportWebhook[];
         reportWebhookSelection?: string[];
         reportWebhookSeen?: string[];
@@ -449,9 +451,13 @@ export interface IElectronAPI {
     isR2Configured: () => Promise<{
         /** R2 will actually be used: credentials present *and* hosting enabled. */
         configured: boolean;
-        /** Credentials present, regardless of the hosting toggle. */
+        /** Credentials present, regardless of either hosting toggle. */
         credentialsPresent?: boolean;
-        hostingEnabled?: boolean;
+        replayEnabled?: boolean;
+        sliceEnabled?: boolean;
+        /** Credentials present *and* that artifact's toggle is on. */
+        replayConfigured?: boolean;
+        sliceConfigured?: boolean;
         mode?: 'manual' | 'oauth';
     }>;
 

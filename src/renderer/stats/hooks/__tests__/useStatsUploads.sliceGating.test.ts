@@ -8,6 +8,10 @@
  *
  * This pins: no R2 configured (or the check unavailable) → no `sliceSidecar`
  * key in the `onWebUpload` payload at all. R2 configured → it's present.
+ *
+ * The gate reads `sliceConfigured`, not `configured`: replay and slice hosting
+ * are separately switchable, so R2 can be connected and hosting replays while
+ * the user has switched the slicer off — and that must skip the build too.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -62,7 +66,7 @@ describe('useStatsUploads: R2-gated slice sidecar build', () => {
     it('omits sliceSidecar when R2 is not configured', async () => {
         (window as any).electronAPI = {
             ...originalElectronAPI,
-            isR2Configured: async () => ({ configured: false }),
+            isR2Configured: async () => ({ configured: false, sliceConfigured: false }),
         };
         const payload = await publish();
         expect(payload.sliceSidecar).toBeUndefined();
@@ -78,10 +82,31 @@ describe('useStatsUploads: R2-gated slice sidecar build', () => {
     it('includes sliceSidecar when R2 is configured', async () => {
         (window as any).electronAPI = {
             ...originalElectronAPI,
-            isR2Configured: async () => ({ configured: true }),
+            isR2Configured: async () => ({ configured: true, sliceConfigured: true }),
         };
         const payload = await publish();
         expect(payload.sliceSidecar).toBeTruthy();
         expect(payload.sliceSidecar.frames.length).toBe(1);
+    });
+
+    it('omits sliceSidecar when R2 hosts replays but the slicer is switched off', async () => {
+        // The expensive half of the split: with slice hosting off, main would
+        // drop the sidecar anyway, so building it is pure wasted work — a
+        // per-fight aggregation pass and a multi-MB clone over IPC.
+        (window as any).electronAPI = {
+            ...originalElectronAPI,
+            isR2Configured: async () => ({
+                configured: true,
+                credentialsPresent: true,
+                replayConfigured: true,
+                sliceConfigured: false,
+            }),
+        };
+        const payload = await publish();
+        expect(payload.sliceSidecar).toBeUndefined();
+        // The two settings keys ride along ONLY to reproduce the sidecar's
+        // settingsHash; with no sidecar they are bloat in report.json.
+        expect(payload.stats.mvpWeights).toBeUndefined();
+        expect(payload.stats.disruptionMethod).toBeUndefined();
     });
 });

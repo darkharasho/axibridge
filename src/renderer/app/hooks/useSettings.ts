@@ -23,6 +23,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [allowLocalJson, setAllowLocalJson] = useState(false);
     const [r2PreciseReplay, setR2PreciseReplay] = useState(false);
     const [r2HostingEnabled, setR2HostingEnabled] = useState(true);
+    const [r2SliceEnabled, setR2SliceEnabled] = useState(true);
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
     const [glassSurfaces, setGlassSurfaces] = useState(DEFAULT_GLASS_SURFACES);
     const [glassmorphic, setGlassmorphic] = useState(DEFAULT_GLASSMORPHIC);
@@ -97,6 +98,9 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             if (typeof settings.r2HostingEnabled === 'boolean') {
                 setR2HostingEnabled(settings.r2HostingEnabled);
             }
+            if (typeof settings.r2SliceEnabled === 'boolean') {
+                setR2SliceEnabled(settings.r2SliceEnabled);
+            }
             if (typeof settings.r2PreciseReplay === 'boolean') {
                 setR2PreciseReplay(settings.r2PreciseReplay);
             }
@@ -151,6 +155,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         allowLocalJson, setAllowLocalJson,
         r2PreciseReplay, setR2PreciseReplay,
         r2HostingEnabled, setR2HostingEnabled,
+        r2SliceEnabled, setR2SliceEnabled,
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
         glassmorphic, setGlassmorphic,
@@ -167,7 +172,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         shouldOpenWhatsNew,
     }), [
         logDirectory, notificationType, embedStatSettings, mvpWeights,
-        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
+        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, r2SliceEnabled, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
         webhooks, selectedWebhookId, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         eiAnnouncementDismissed, setEiAnnouncementDismissed,

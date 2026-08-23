@@ -178,6 +178,7 @@ interface SettingsViewProps {
     onEiSettingsSaved?: (settings: IEiParserSettings) => void;
     onR2PreciseReplaySaved?: (enabled: boolean) => void;
     onR2HostingEnabledSaved?: (enabled: boolean) => void;
+    onR2SliceEnabledSaved?: (enabled: boolean) => void;
     /** Fired when a Cloudflare connect or disconnect changes whether R2 is usable. */
     onR2CredentialsChanged?: () => void;
     colorPalette?: ColorPalette;
@@ -265,7 +266,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onEiSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onEiSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [reportWebhooks, setReportWebhooks] = useState<IReportWebhook[]>([]);
@@ -337,6 +338,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [r2PublicUrl, setR2PublicUrl] = useState('');
     const [r2PreciseReplay, setR2PreciseReplay] = useState(false);
     const [r2HostingEnabled, setR2HostingEnabled] = useState(true);
+    const [r2SliceEnabled, setR2SliceEnabled] = useState(true);
     // Set by the connect panel. With a grant in place the connect flow has
     // already filled these in, and the three SigV4 fields are unused entirely —
     // OAuth authenticates with a bearer token. Bucket Name and Public URL do
@@ -641,6 +643,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         setR2PublicUrl(settings.r2PublicUrl || '');
         setR2PreciseReplay(settings.r2PreciseReplay ?? false);
         setR2HostingEnabled(settings.r2HostingEnabled ?? true);
+        setR2SliceEnabled(settings.r2SliceEnabled ?? true);
         if (Array.isArray(settings.reportWebhooks)) {
             setReportWebhooks(settings.reportWebhooks);
         }
@@ -1040,6 +1043,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             r2PublicUrl: r2PublicUrl.trim() || null,
             r2PreciseReplay,
             r2HostingEnabled,
+            r2SliceEnabled,
         });
         onEmbedStatSettingsSaved?.(embedStats);
         onMvpWeightsSaved?.(mvpWeights);
@@ -1089,6 +1093,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         r2PublicUrl,
         r2PreciseReplay,
         r2HostingEnabled,
+        r2SliceEnabled,
         hasLoaded
     ]);
 
@@ -2070,7 +2075,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         )}
                         {(r2OAuthConnected || (r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl)) && (
                             <>
-                                <p className="mt-3 text-xs text-emerald-400">R2 configured — replay and fight slice data will be stored in R2 on next upload, and published reports can be sliced by fight.</p>
+                                <p className="mt-3 text-xs text-emerald-400">R2 configured — choose which parts of a published report it stores.</p>
                                 <div className="mt-3">
                                     <Toggle
                                         enabled={r2HostingEnabled}
@@ -2080,7 +2085,19 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             onR2HostingEnabledSaved?.(v);
                                         }}
                                         label="Host replay data on R2"
-                                        description="Off keeps these credentials but publishes to GitHub Pages alone — no map replay and no per-fight slicing. Also available in Quick Settings on the dashboard."
+                                        description="Map replay positions. Off publishes them to GitHub Pages instead, where an oversized replay is dropped. Also available in Quick Settings on the dashboard."
+                                    />
+                                </div>
+                                <div className="mt-3">
+                                    <Toggle
+                                        enabled={r2SliceEnabled}
+                                        onChange={(v) => {
+                                            setR2SliceEnabled(v);
+                                            window.electronAPI?.saveSettings?.({ r2SliceEnabled: v });
+                                            onR2SliceEnabledSaved?.(v);
+                                        }}
+                                        label="Host fight slice data on R2"
+                                        description="Per-fight slice data, which lets a published report be filtered down to individual fights. Off publishes the report without the slicer — slice data is never written to GitHub Pages. Also available in Quick Settings on the dashboard."
                                     />
                                 </div>
                                 <div className="mt-3">

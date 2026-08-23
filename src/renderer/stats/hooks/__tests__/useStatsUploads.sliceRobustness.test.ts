@@ -45,7 +45,7 @@ describe('useStatsUploads: slice sidecar robustness', () => {
         originalElectronAPI = (window as any).electronAPI;
         (window as any).electronAPI = {
             ...originalElectronAPI,
-            isR2Configured: async () => ({ configured: true }),
+            isR2Configured: async () => ({ configured: true, sliceConfigured: true }),
         };
         warnSpy = vi.spyOn(console, 'warn');
     });

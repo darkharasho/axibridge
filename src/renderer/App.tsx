@@ -66,6 +66,7 @@ function App() {
         allowLocalJson, setAllowLocalJson,
         r2PreciseReplay, setR2PreciseReplay,
         r2HostingEnabled, setR2HostingEnabled,
+        r2SliceEnabled, setR2SliceEnabled,
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
         glassmorphic, setGlassmorphic,
@@ -114,6 +115,11 @@ function App() {
         handleUpdateSettings({ r2HostingEnabled: value });
     }, [setR2HostingEnabled, handleUpdateSettings]);
 
+    const setQuickR2SliceEnabled = useCallback((value: boolean) => {
+        setR2SliceEnabled(value);
+        handleUpdateSettings({ r2SliceEnabled: value });
+    }, [setR2SliceEnabled, handleUpdateSettings]);
+
     const quickSettingsContext = useMemo(() => ({
         eiSettings,
         setEiSetting,
@@ -121,9 +127,14 @@ function App() {
         setStatsViewSettings: setQuickStatsViewSettings,
         r2Hosting: r2CredentialsPresent === null
             ? null
-            : { credentialsPresent: r2CredentialsPresent, enabled: r2HostingEnabled },
-        setR2HostingEnabled: setQuickR2HostingEnabled,
-    }), [eiSettings, setEiSetting, statsViewSettings, setQuickStatsViewSettings, r2CredentialsPresent, r2HostingEnabled, setQuickR2HostingEnabled]);
+            : {
+                credentialsPresent: r2CredentialsPresent,
+                replayEnabled: r2HostingEnabled,
+                sliceEnabled: r2SliceEnabled,
+            },
+        setR2ReplayEnabled: setQuickR2HostingEnabled,
+        setR2SliceEnabled: setQuickR2SliceEnabled,
+    }), [eiSettings, setEiSetting, statsViewSettings, setQuickStatsViewSettings, r2CredentialsPresent, r2HostingEnabled, r2SliceEnabled, setQuickR2HostingEnabled, setQuickR2SliceEnabled]);
 
     // Upload Retry Queue
     const {
@@ -1116,7 +1127,7 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setR2HostingEnabled, refreshR2Status, setEiSettings, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setR2HostingEnabled, setR2SliceEnabled, refreshR2Status, setEiSettings, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, showEiBanner, eiAutoManageStatus, eiAutoManageProgress, handleEiBannerDismiss, handleEiBannerSetup, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,

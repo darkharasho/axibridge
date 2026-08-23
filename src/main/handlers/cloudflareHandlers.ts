@@ -155,7 +155,10 @@ export const finishConnect = async (
     store.set('r2BucketName', result.value.bucketName);
     store.set('r2PublicUrl', result.value.publicUrl);
     store.set('r2AuthMode', 'oauth');
+    // Connecting is an explicit "use R2" action, so both artifacts go on —
+    // including for a user who had switched one off before disconnecting.
     store.set('r2HostingEnabled', true);
+    store.set('r2SliceEnabled', true);
 
     return {
         success: true,

@@ -487,9 +487,30 @@ export const resolveR2Config = (store: any): { config: R2Config | null; missingF
 };
 
 // Hosting is opt-out rather than opt-in: a user who filled in credentials wants
-// them used. The flag exists so a publish can be sent to Pages alone without
+// them used. The flags exist so a publish can be sent to Pages alone without
 // tearing the credentials out and pasting them back afterwards.
-export const isR2HostingEnabled = (store: any): boolean => store.get('r2HostingEnabled') !== false;
+//
+// Replay and slice are two independent R2 objects produced by two independent
+// codepaths — the slice sidecar folds a fresh aggregator per fight and never
+// reads a replay position — so each gets its own switch.
+//
+// `r2HostingEnabled` is the replay switch. The key keeps its original name
+// because that is what it has always been labelled as in Settings, and renaming
+// it would cost a migration to change nothing a user can see.
+export const isR2ReplayEnabled = (store: any): boolean => store.get('r2HostingEnabled') !== false;
+
+/**
+ * Whether fight slice data goes to R2.
+ *
+ * An install that predates the split has no `r2SliceEnabled` at all, and back
+ * then `r2HostingEnabled` gated slices too. Reading the absent key as its own
+ * default would quietly take the web slicer away from everyone who had R2 on,
+ * so it inherits the replay switch until the user touches it.
+ */
+export const isR2SliceEnabled = (store: any): boolean => {
+    const raw = store.get('r2SliceEnabled');
+    return typeof raw === 'boolean' ? raw : isR2ReplayEnabled(store);
+};
 
 export const resolveR2AuthMode = (store: any): R2AuthMode =>
     store.get('r2AuthMode') === 'oauth' ? 'oauth' : 'manual';
@@ -548,8 +569,10 @@ const resolveR2Credentials = (store: any): R2UploaderResolution => {
 };
 
 export const resolveR2Uploader = (store: any): R2UploaderResolution => {
-    if (!isR2HostingEnabled(store)) {
-        log.info('[Main] R2 hosting is switched off — skipping R2 for this publish');
+    // Credentials are resolved when *either* artifact still wants R2. Which one
+    // actually gets uploaded is decided per artifact at the publish site.
+    if (!isR2ReplayEnabled(store) && !isR2SliceEnabled(store)) {
+        log.info('[Main] R2 hosting is switched off for both replay and slice data — skipping R2 for this publish');
         return { uploader: null, missingFields: [], partiallyConfigured: false };
     }
     return resolveR2Credentials(store);
@@ -564,11 +587,17 @@ export const resolveR2Uploader = (store: any): R2UploaderResolution => {
  */
 export const describeR2Status = (store: any) => {
     const credentials = resolveR2Credentials(store);
-    const hostingEnabled = isR2HostingEnabled(store);
+    const present = !!credentials.uploader;
+    const replayEnabled = isR2ReplayEnabled(store);
+    const sliceEnabled = isR2SliceEnabled(store);
     return {
-        configured: hostingEnabled && !!credentials.uploader,
-        credentialsPresent: !!credentials.uploader,
-        hostingEnabled,
+        /** R2 will be used for at least one artifact on the next publish. */
+        configured: present && (replayEnabled || sliceEnabled),
+        credentialsPresent: present,
+        replayEnabled,
+        sliceEnabled,
+        replayConfigured: present && replayEnabled,
+        sliceConfigured: present && sliceEnabled,
         mode: resolveR2AuthMode(store)
     };
 };
@@ -1737,6 +1766,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
 
             // R2: if configured, strip replayFights from the main payload and upload separately.
             const { uploader: r2, missingFields: r2MissingFields, partiallyConfigured } = resolveR2Uploader(store);
+            // One uploader, two independently switchable artifacts.
+            const r2ForReplay = isR2ReplayEnabled(store) ? r2 : null;
+            const r2ForSlice = isR2SliceEnabled(store) ? r2 : null;
             if (partiallyConfigured) {
                 // Partially configured: the user believes R2 is on, so say why it isn't.
                 sendWebUploadStatus(
@@ -1772,7 +1804,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 sourceStats = { ...sourceStats };
                 delete sourceStats.replayFights;
                 log.info(`[Main] ${rawReplayFights.length} replay fight(s) found (${formatBytes(replayBuffer.length)}) — splitting out of report.json.`);
-            } else if (r2) {
+            } else if (r2ForReplay) {
                 log.info('[Main] R2 configured but no replay fights found in stats — skipping R2 upload. Enable Combat Replay in Parser Settings and re-process logs.');
                 sendWebUploadStatus('Packaging', 'R2 configured — no replay data found (Combat Replay may be disabled in Parser Settings)', 39);
             }
@@ -1788,10 +1820,10 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             let replayHostedOnPages = false;
             if (replayBuffer) {
                 let r2Url: string | null = null;
-                if (r2) {
+                if (r2ForReplay) {
                     sendWebUploadStatus('Uploading', 'Uploading replay data to R2...', 38);
                     const r2Key = `reports/${reportMeta.id}/replay.json`;
-                    const r2Result = await r2.putObject(r2Key, replayBuffer, 'application/json');
+                    const r2Result = await r2ForReplay.putObject(r2Key, replayBuffer, 'application/json');
                     if (r2Result.success && r2Result.url) {
                         r2Url = r2Result.url;
                         log.info(`[Main] R2 replay upload succeeded: ${r2Result.url} (${formatBytes(replayBuffer.length)})`);
@@ -1834,13 +1866,13 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 // user who has already configured R2 to go configure it sends them
                 // looking in the wrong place.
                 let sliceUploadFailed = false;
-                if (r2) {
+                if (r2ForSlice) {
                     sendWebUploadStatus('Uploading', 'Uploading fight slice data to R2...', 39);
                     const sliceKey = `reports/${reportMeta.id}/slice.json.gz`;
                     // Content-Type only, no Content-Encoding: the viewer inflates
                     // these bytes itself with DecompressionStream('gzip'), so the
                     // browser must NOT transparently inflate them first.
-                    const sliceResult = await r2.putObject(sliceKey, sliceBuffer, 'application/gzip');
+                    const sliceResult = await r2ForSlice.putObject(sliceKey, sliceBuffer, 'application/gzip');
                     if (sliceResult.success && sliceResult.url) {
                         sliceR2Url = sliceResult.url;
                         log.info(`[Main] R2 slice upload succeeded: ${sliceResult.url} (${formatBytes(sliceBuffer.length)})`);
