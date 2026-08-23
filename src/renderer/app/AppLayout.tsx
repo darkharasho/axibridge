@@ -455,6 +455,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onEiSettingsSaved={setEiSettings}
                                 onR2PreciseReplaySaved={setR2PreciseReplay}
                                 onR2HostingEnabledSaved={setR2HostingEnabled}
+                                onR2CredentialsChanged={refreshR2Status}
                                 particlesEnabled={particlesEnabled}
                                 developerSettingsTrigger={developerSettingsTrigger}
                                 helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}

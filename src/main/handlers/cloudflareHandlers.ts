@@ -213,6 +213,21 @@ export function registerCloudflareHandlers({ store }: CloudflareHandlerOptions) 
     /** Lets a second sign-in, or leaving Settings, abandon the first one's listener. */
     let inFlight: AbortController | null = null;
 
+    /**
+     * Set CORS during provisioning rather than waiting for the first publish to
+     * do it, so a freshly connected bucket is already usable. The publish path
+     * still checks — the Pages URL may not exist yet at sign-in time.
+     */
+    const defaultCorsOrigin = (): string | undefined => {
+        const base = String(store.get('githubPagesBaseUrl') ?? '').trim();
+        if (!base) return undefined;
+        try {
+            return new URL(base).origin;
+        } catch {
+            return undefined;
+        }
+    };
+
     ipcMain.handle('get-cloudflare-status', async () => describeCloudflareStatus(store));
 
     ipcMain.handle('start-cloudflare-oauth', async (_event, payload?: { corsOrigin?: string }) => {
@@ -223,7 +238,7 @@ export function registerCloudflareHandlers({ store }: CloudflareHandlerOptions) 
             return await connectCloudflare({
                 store,
                 openExternal: (url) => shell.openExternal(url),
-                corsOrigin: payload?.corsOrigin,
+                corsOrigin: payload?.corsOrigin ?? defaultCorsOrigin(),
                 signal: controller.signal
             });
         } catch (err) {
@@ -244,7 +259,7 @@ export function registerCloudflareHandlers({ store }: CloudflareHandlerOptions) 
         }
         try {
             return await finishConnect(store, accountId, String(payload?.accountName ?? '').trim(), {
-                corsOrigin: payload?.corsOrigin
+                corsOrigin: payload?.corsOrigin ?? defaultCorsOrigin()
             });
         } catch (err) {
             log.error('[Main] Cloudflare provisioning threw', err);

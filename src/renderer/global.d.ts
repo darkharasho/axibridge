@@ -273,7 +273,7 @@ export const DEFAULT_GLASS_SURFACES = false;
 export const DEFAULT_GLASSMORPHIC = false;
 export const DEFAULT_PARTICLES_ENABLED = true;
 
-export export interface CloudflareStatus {
+export interface CloudflareStatus {
     connected: boolean;
     accountId: string;
     accountName: string;
@@ -293,7 +293,7 @@ export type CloudflareConnectResult =
     | { success: true; needsAccountChoice: true; accounts: CloudflareAccountOption[]; status?: undefined }
     | { success: false; error: string; helpUrl?: string; cancelled?: boolean };
 
-interface IElectronAPI {
+export interface IElectronAPI {
     selectDirectory: () => Promise<string | null>;
     startWatching: (path: string) => void;
     onLogDetected: (callback: (path: string) => void) => () => void;

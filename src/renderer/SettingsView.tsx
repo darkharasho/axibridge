@@ -19,6 +19,7 @@ import { ParticleHover } from './particles';
 import { TOP_STATS_CATALOG, CATEGORY_ORDER, CATEGORY_META, DEFAULT_ENABLED_TOP_STATS, normalizeEnabledTopStats, type TopStatCategory } from './stats/topStatsCatalog';
 import { BoonGlyph } from './ui/BoonGlyph';
 import { HistoryReparseCard } from './settings/HistoryReparseCard';
+import { CloudflareConnect } from './settings/CloudflareConnect';
 
 // Pure helpers — defined outside the component so they are never recreated on re-render.
 // Exported so they can be unit-tested independently.
@@ -177,6 +178,8 @@ interface SettingsViewProps {
     onEiSettingsSaved?: (settings: IEiParserSettings) => void;
     onR2PreciseReplaySaved?: (enabled: boolean) => void;
     onR2HostingEnabledSaved?: (enabled: boolean) => void;
+    /** Fired when a Cloudflare connect or disconnect changes whether R2 is usable. */
+    onR2CredentialsChanged?: () => void;
     colorPalette?: ColorPalette;
     glassSurfaces?: boolean;
     glassmorphic?: boolean;
@@ -262,7 +265,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onEiSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onEiSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [reportWebhooks, setReportWebhooks] = useState<IReportWebhook[]>([]);
@@ -334,6 +337,20 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [r2PublicUrl, setR2PublicUrl] = useState('');
     const [r2PreciseReplay, setR2PreciseReplay] = useState(false);
     const [r2HostingEnabled, setR2HostingEnabled] = useState(true);
+    // Set by the connect panel. With a grant in place the connect flow has
+    // already filled these in, and the three SigV4 fields are unused entirely —
+    // OAuth authenticates with a bearer token. Bucket Name and Public URL do
+    // still matter (both modes read the same two keys), so the block collapses
+    // behind a link rather than disappearing.
+    const [r2ManualOpen, setR2ManualOpen] = useState(false);
+    const [r2OAuthConnected, setR2OAuthConnected] = useState(false);
+    const refreshR2OAuth = useCallback(() => {
+        window.electronAPI?.getCloudflareStatus?.()
+            .then((status) => setR2OAuthConnected(Boolean(status?.connected)))
+            .catch(() => setR2OAuthConnected(false));
+    }, []);
+    useEffect(() => { refreshR2OAuth(); }, [refreshR2OAuth]);
+
     const [proofOfWorkOpen, setProofOfWorkOpen] = useState(false);
     const [githubLogoStatus, setGithubLogoStatus] = useState<string | null>(null);
     const [githubLogoStatusKind, setGithubLogoStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
@@ -1998,7 +2015,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <p className="text-sm text-gray-400 mb-4">
                             Without R2, map replays still publish to GitHub Pages and are dropped only when too large for it, but <span className="text-gray-300">fight slicing in the published report is unavailable</span> — slice data is never written to Pages, because it would cost more repository storage than the whole report. The report itself publishes normally either way.
                         </p>
-                        {!(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl) && (
+                        <CloudflareConnect
+                            onChanged={() => {
+                                refreshR2OAuth();
+                                onR2CredentialsChanged?.();
+                            }}
+                        />
+                        {!r2OAuthConnected && !(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl) && (
                             <div className="mb-4 rounded-[6px] border border-amber-400/25 bg-amber-400/5 px-3.5 py-3">
                                 <p className="text-xs font-semibold text-amber-400 mb-2">Setting up R2 requires a payment method on your Cloudflare account</p>
                                 <ol className="list-decimal pl-4 space-y-0.5 text-xs text-gray-400">
@@ -2013,7 +2036,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <p className="mt-2.5 text-[11px] text-gray-500">R2's free tier covers 10 GB of storage with no bandwidth charges, which is far more than published reports use. The card is Cloudflare's requirement to enable the service, not a charge from AxiBridge.</p>
                             </div>
                         )}
-                        <div className="space-y-3">
+                        {r2OAuthConnected && !r2ManualOpen && (
+                            <button
+                                type="button"
+                                onClick={() => setR2ManualOpen(true)}
+                                className="text-xs text-gray-400 underline underline-offset-2 hover:text-gray-200"
+                            >
+                                Enter R2 credentials manually instead
+                            </button>
+                        )}
+                        <div className={`space-y-3 ${r2OAuthConnected && !r2ManualOpen ? 'hidden' : ''}`}>
                             {([
                                 { label: 'Account ID', value: r2AccountId, set: setR2AccountId, placeholder: 'Found on the Cloudflare dashboard home page' },
                                 { label: 'Access Key ID', value: r2AccessKeyId, set: setR2AccessKeyId, placeholder: 'R2 → Manage R2 API Tokens → Create API Token' },
@@ -2033,10 +2065,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 </div>
                             ))}
                         </div>
-                        {(r2AccountId || r2AccessKeyId || r2SecretAccessKey || r2BucketName || r2PublicUrl) && !(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl) && (
+                        {!r2OAuthConnected && (r2AccountId || r2AccessKeyId || r2SecretAccessKey || r2BucketName || r2PublicUrl) && !(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl) && (
                             <p className="mt-3 text-xs text-amber-400">All five fields are required to enable R2 upload.</p>
                         )}
-                        {r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl && (
+                        {(r2OAuthConnected || (r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl)) && (
                             <>
                                 <p className="mt-3 text-xs text-emerald-400">R2 configured — replay and fight slice data will be stored in R2 on next upload, and published reports can be sliced by fight.</p>
                                 <div className="mt-3">
