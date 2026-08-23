@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('electron', () => ({
+    app: { isPackaged: false },
     ipcMain: { handle: vi.fn() },
     shell: { openExternal: vi.fn() },
     BrowserWindow: class {},
@@ -143,6 +144,26 @@ describe('connectCloudflare', () => {
         const store = makeStore({ r2BucketName: 'my-own-bucket' });
         await connectCloudflare(deps(store));
         expect(okProvision).toHaveBeenCalledWith(expect.objectContaining({ bucketName: 'my-own-bucket' }));
+    });
+
+    it('provisions the caller default bucket when the user has not named one', async () => {
+        const store = makeStore();
+        await connectCloudflare(deps(store, { defaultBucket: 'axibridge-reports-dev' }));
+        expect(okProvision).toHaveBeenCalledWith(
+            expect.objectContaining({ bucketName: 'axibridge-reports-dev' })
+        );
+    });
+
+    it('lets an explicit bucket name win over the caller default', async () => {
+        const store = makeStore({ r2BucketName: 'my-own-bucket' });
+        await connectCloudflare(deps(store, { defaultBucket: 'axibridge-reports-dev' }));
+        expect(okProvision).toHaveBeenCalledWith(expect.objectContaining({ bucketName: 'my-own-bucket' }));
+    });
+
+    it('falls back to the production bucket when no default is supplied', async () => {
+        const store = makeStore();
+        await connectCloudflare(deps(store));
+        expect(okProvision).toHaveBeenCalledWith(expect.objectContaining({ bucketName: 'axibridge-reports' }));
     });
 });
 

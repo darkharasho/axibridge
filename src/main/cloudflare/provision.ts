@@ -20,6 +20,16 @@ import { createOAuthUploader } from './uploader';
 
 export const DEFAULT_BUCKET_NAME = 'axibridge-reports';
 
+/**
+ * Dev builds provision their own bucket. A dev run enables public access, sets
+ * CORS and writes probe objects; pointing that at the bucket serving real
+ * published reports would let an experiment change what readers see.
+ */
+export const DEV_BUCKET_NAME = 'axibridge-reports-dev';
+
+export const defaultBucketName = (isDev: boolean): string =>
+    (isDev ? DEV_BUCKET_NAME : DEFAULT_BUCKET_NAME);
+
 /** Which step failed, so the UI can say what to do rather than just what broke. */
 export type ProvisionStep =
     | 'list-accounts'

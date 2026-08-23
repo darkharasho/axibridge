@@ -13,7 +13,7 @@ vi.mock('../restClient', async (importOriginal) => ({
 }));
 
 import { CF_ERR_BUCKET_EXISTS } from '../restClient';
-import { DEFAULT_BUCKET_NAME, ensureBucket, enablePublicDevUrl, listAccounts, provisionR2 } from '../provision';
+import { DEFAULT_BUCKET_NAME, defaultBucketName, ensureBucket, enablePublicDevUrl, listAccounts, provisionR2 } from '../provision';
 
 beforeEach(() => {
     cloudflareJson.mockReset();
@@ -150,5 +150,13 @@ describe('provisionR2', () => {
         cloudflareRequest.mockResolvedValue({ status: 200, body: '{}', headers: {} });
         const result = await runAll(provisionR2({ accessToken: 'tok', accountId: 'acct', bucketName: '  guild-reports ' }));
         expect(result).toMatchObject({ value: { bucketName: 'guild-reports' } });
+    });
+});
+
+describe('defaultBucketName', () => {
+    it('keeps dev provisioning off the bucket that serves real reports', () => {
+        expect(defaultBucketName(true)).toBe('axibridge-reports-dev');
+        expect(defaultBucketName(false)).toBe('axibridge-reports');
+        expect(defaultBucketName(true)).not.toBe(defaultBucketName(false));
     });
 });

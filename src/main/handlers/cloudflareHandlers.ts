@@ -1,4 +1,4 @@
-import { ipcMain, shell, BrowserWindow } from 'electron';
+import { app, ipcMain, shell, BrowserWindow } from 'electron';
 import log from 'electron-log';
 
 import { runAuthFlow } from '../cloudflare/authFlow';
@@ -7,7 +7,7 @@ import {
     type TokenSet
 } from '../cloudflare/oauth';
 import {
-    DEFAULT_BUCKET_NAME,
+    defaultBucketName,
     listAccounts,
     provisionR2,
     type CloudflareAccount,
@@ -110,6 +110,8 @@ export interface ConnectDeps {
     runAuth?: typeof runAuthFlow;
     list?: typeof listAccounts;
     provision?: typeof provisionR2;
+    /** Which bucket to create when the user has not named one. Dev uses its own. */
+    defaultBucket?: string;
 }
 
 type AuthFlowSignal = Parameters<typeof runAuthFlow>[0]['signal'];
@@ -123,7 +125,7 @@ export const finishConnect = async (
     store: StoreLike,
     accountId: string,
     accountName: string,
-    options: { corsOrigin?: string; provision?: typeof provisionR2 } = {}
+    options: { corsOrigin?: string; provision?: typeof provisionR2; defaultBucket?: string } = {}
 ): Promise<ConnectResult> => {
     const provision = options.provision ?? provisionR2;
 
@@ -137,7 +139,9 @@ export const finishConnect = async (
     const result = await provision({
         accessToken,
         accountId,
-        bucketName: String(store.get('r2BucketName') ?? '').trim() || DEFAULT_BUCKET_NAME,
+        bucketName: String(store.get('r2BucketName') ?? '').trim()
+            || options.defaultBucket
+            || defaultBucketName(false),
         corsOrigin: options.corsOrigin
     });
     if (!result.ok) {
@@ -199,7 +203,11 @@ export const connectCloudflare = async (deps: ConnectDeps): Promise<ConnectResul
     }
 
     const [account] = accounts.value;
-    return finishConnect(store, account.id, account.name, { corsOrigin, provision: deps.provision });
+    return finishConnect(store, account.id, account.name, {
+        corsOrigin,
+        provision: deps.provision,
+        defaultBucket: deps.defaultBucket
+    });
 };
 
 // ─── Handler registration ─────────────────────────────────────────────────────
@@ -212,6 +220,10 @@ export interface CloudflareHandlerOptions {
 export function registerCloudflareHandlers({ store }: CloudflareHandlerOptions) {
     /** Lets a second sign-in, or leaving Settings, abandon the first one's listener. */
     let inFlight: AbortController | null = null;
+
+    // `app.isPackaged` is the same signal that isolates dev userData, so a dev
+    // run gets its own bucket for the same reason it gets its own settings.
+    const bucketDefault = defaultBucketName(!app.isPackaged);
 
     /**
      * Set CORS during provisioning rather than waiting for the first publish to
@@ -239,7 +251,8 @@ export function registerCloudflareHandlers({ store }: CloudflareHandlerOptions) 
                 store,
                 openExternal: (url) => shell.openExternal(url),
                 corsOrigin: payload?.corsOrigin ?? defaultCorsOrigin(),
-                signal: controller.signal
+                signal: controller.signal,
+                defaultBucket: bucketDefault
             });
         } catch (err) {
             log.error('[Main] Cloudflare sign-in threw', err);
@@ -259,7 +272,8 @@ export function registerCloudflareHandlers({ store }: CloudflareHandlerOptions) 
         }
         try {
             return await finishConnect(store, accountId, String(payload?.accountName ?? '').trim(), {
-                corsOrigin: payload?.corsOrigin ?? defaultCorsOrigin()
+                corsOrigin: payload?.corsOrigin ?? defaultCorsOrigin(),
+                defaultBucket: bucketDefault
             });
         } catch (err) {
             log.error('[Main] Cloudflare provisioning threw', err);
