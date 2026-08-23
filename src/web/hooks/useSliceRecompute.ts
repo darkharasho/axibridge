@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { hashSliceSettings } from '../../renderer/stats/slice/sliceSettingsHash';
 import type { SliceSidecar } from '../../renderer/stats/slice/sliceTypes';
+
+/**
+ * What the caller renders instead of the slice when the recompute cannot be
+ * trusted. It must never fall back to the full-report aggregation while still
+ * claiming a slice is active — showing all seven fights' numbers under a
+ * "Sliced view — 3 of 7 fights" banner is the one outcome the spec forbids.
+ */
+export const SLICE_UNAVAILABLE_MESSAGE =
+    'Fight slicing is unavailable for this report — showing all fights.';
 
 /**
  * Recompute a slice in the stats worker.
@@ -33,9 +43,10 @@ export function useSliceRecompute({ sidecar, includedOrdinals, mvpWeights, stats
     mvpWeights: any;
     statsViewSettings: any;
     disruptionMethod: any;
-}): { stats: any | null; computing: boolean } {
+}): { stats: any | null; computing: boolean; error: string | null } {
     const [stats, setStats] = useState<any | null>(null);
     const [computing, setComputing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const workerRef = useRef<Worker | null>(null);
     const tokenRef = useRef(0);
 
@@ -55,9 +66,35 @@ export function useSliceRecompute({ sidecar, includedOrdinals, mvpWeights, stats
     const settingsKey = JSON.stringify({ mvpWeights, statsViewSettings, disruptionMethod });
 
     useEffect(() => {
-        if (!sidecar || !includedOrdinals || includedOrdinals.length === 0) {
+        // `includedOrdinals === null` means "no slice active" — the caller is
+        // rendering the full report and there is nothing to recompute.
+        // An EMPTY ARRAY is a different thing: a slice that selects no fights.
+        // That is a legitimate, representable state (the tray's None button
+        // reaches it in one click, and an empty bitmask decodes to it), and it
+        // must recompute to the real zero-fight aggregation. Collapsing the two
+        // used to make a 0-fight slice render the FULL report under a
+        // "Sliced view — 0 of N fights" banner. The worker handles `frames: []`
+        // correctly — it finalizes an aggregator that ingested nothing.
+        if (!sidecar || !includedOrdinals) {
             setStats(null);
             setComputing(false);
+            setError(null);
+            return;
+        }
+        // The viewer has no settings of its own in slice mode: it merges under
+        // the values the publisher wrote into report.json. Re-hashing them here
+        // and comparing against the sidecar's own hash is the only surviving
+        // check that the two actually agree — the worker's `mergeFrames`
+        // handler builds its aggregator from whatever settings it is handed and
+        // cannot verify anything. Without this, a report.json whose settings
+        // drifted from the sidecar (a partial re-publish, a hand-edited file, a
+        // future trim step that drops one of the three) would merge silently
+        // under the wrong settings and render numbers that do not match what
+        // was published. Costs ~1 ms.
+        if (hashSliceSettings(mvpWeights, statsViewSettings, disruptionMethod) !== sidecar.settingsHash) {
+            setStats(null);
+            setComputing(false);
+            setError(SLICE_UNAVAILABLE_MESSAGE);
             return;
         }
         if (!workerRef.current) {
@@ -69,11 +106,39 @@ export function useSliceRecompute({ sidecar, includedOrdinals, mvpWeights, stats
         const worker = workerRef.current;
         const token = ++tokenRef.current;
         setComputing(true);
+        setError(null);
         worker.onmessage = (event: MessageEvent) => {
             const data = event.data;
-            if (data?.type !== 'result' || data.token !== tokenRef.current) return;
-            setStats(data.result?.stats ?? null);
+            if (data?.token !== tokenRef.current) return;
+            if (data?.type === 'error') {
+                setStats(null);
+                setComputing(false);
+                setError(SLICE_UNAVAILABLE_MESSAGE);
+                return;
+            }
+            if (data?.type !== 'result') return;
+            const nextStats = data.result?.stats ?? null;
+            if (!nextStats) {
+                // `computeAndPost` posts `stats: null` when `finalize()` throws.
+                // Treating that as "no stats yet" would leave `computing` false
+                // and `stats` null forever, which the caller renders as the full
+                // report under a slice banner.
+                setStats(null);
+                setComputing(false);
+                setError(SLICE_UNAVAILABLE_MESSAGE);
+                return;
+            }
+            setStats(nextStats);
             setComputing(false);
+            setError(null);
+        };
+        // A throw inside `mergeFrame` that escapes the worker's own try/catch
+        // (a module-load failure, say) arrives here and nowhere else. Without
+        // this handler `computing` would stay true and `stats` null forever.
+        worker.onerror = () => {
+            setStats(null);
+            setComputing(false);
+            setError(SLICE_UNAVAILABLE_MESSAGE);
         };
         // See the JSDoc above: `reset` establishes the worker's currentToken
         // before `mergeFrames` is allowed to run under it.
@@ -92,5 +157,5 @@ export function useSliceRecompute({ sidecar, includedOrdinals, mvpWeights, stats
         // re-render triggered by `setComputing`/`setStats` below.
     }, [sidecar, key, settingsKey]);
 
-    return { stats, computing };
+    return { stats, computing, error };
 }

@@ -139,6 +139,19 @@ describe('FightSliceBanner', () => {
         expect(screen.getByText(/1 of 2 fights/i)).toBeInTheDocument();
     });
 
+    /**
+     * C1: when the published viewer's slice recompute fails or refuses, the
+     * tables under this banner are the FULL report. Claiming "Sliced view — 1
+     * of 2 fights" over them is the exact "degrade to wrong numbers" outcome
+     * the spec forbids, and it is invisible — the numbers look plausible.
+     */
+    it('says the slice is unavailable rather than claiming a subset when the recompute failed', () => {
+        useStatsStore.getState().setFightsExcluded(['b'], true);
+        render(<FightSliceBanner unavailable />);
+        expect(screen.getByText(/slice unavailable/i)).toBeInTheDocument();
+        expect(screen.queryByText(/1 of 2 fights/i)).not.toBeInTheDocument();
+    });
+
     it('clears the slice', () => {
         useStatsStore.getState().setFightsExcluded(['b'], true);
         render(<FightSliceBanner />);

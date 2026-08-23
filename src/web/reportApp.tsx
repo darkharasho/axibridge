@@ -706,11 +706,16 @@ export function ReportApp() {
     const includedOrdinals = useMemo(() => {
         const sidecar = sliceState.sidecar;
         if (!sidecar || excludedFightKeys.size === 0) return null;
-        const included = sidecar.fights
+        // An EMPTY array is returned deliberately. `null` here means "no slice
+        // active"; `[]` means "the slice selects no fights", which the tray's
+        // None button and an empty shared bitmask both reach. Folding `[]` into
+        // `null` used to make a zero-fight slice render the FULL report under a
+        // "Sliced view — 0 of N fights" banner. The recompute handles the empty
+        // selection and returns the real zero-fight aggregation.
+        return sidecar.fights
             .map((fight, ordinal) => ({ fight, ordinal }))
             .filter(({ fight }) => !excludedFightKeys.has(fight.id))
             .map(({ ordinal }) => ordinal);
-        return included.length > 0 ? included : null;
     }, [sliceState.sidecar, excludedFightKeys]);
 
     // Task 15 review round 2 (R15-6): the viewer has no settings of its own
@@ -719,7 +724,7 @@ export function ReportApp() {
     // publisher's. Merging 25 frames and running finalize() costs about what
     // a full aggregation costs, so — unlike Task 18's synchronous useMemo —
     // this now round-trips through the stats worker (Task 20).
-    const { stats: slicedStats, computing: sliceComputing } = useSliceRecompute({
+    const { stats: slicedStats, computing: sliceComputing, error: sliceError } = useSliceRecompute({
         sidecar: sliceState.sidecar,
         includedOrdinals,
         mvpWeights: (report?.stats as any)?.mvpWeights,
@@ -1890,9 +1895,9 @@ export function ReportApp() {
                     </div>
                     <div ref={statsWrapperRef} onWheelCapture={handleStatsWheel} className="flex-1 min-w-0">
                         <div id="stats-view-top">
-                            {(sliceLinkStatus || sliceState.message || sliceComputing) && (
+                            {(sliceLinkStatus || sliceError || sliceState.message || sliceComputing) && (
                                 <div className="mb-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300">
-                                    {sliceLinkStatus || sliceState.message || (sliceComputing ? 'Recomputing…' : null)}
+                                    {sliceLinkStatus || sliceError || sliceState.message || (sliceComputing ? 'Recomputing…' : null)}
                                 </div>
                             )}
                             <StatsView
@@ -1903,6 +1908,10 @@ export function ReportApp() {
                                 statsViewSettings={report.stats?.statsViewSettings}
                                 embedded
                                 sliceEnabled={Boolean((report.stats as any)?.sliceDataUrl)}
+                                // The recompute failed or refused, so the numbers
+                                // on screen are the full report's. Tell the banner,
+                                // so it says so instead of claiming a slice.
+                                sliceUnavailable={Boolean(sliceError)}
                                 onOpenSliceTray={loadSliceSidecar}
                                 onCopySliceLink={handleCopySliceLink}
                                 sectionVisibility={sectionVisibilityFn}

@@ -1,3 +1,11 @@
+/**
+ * NOT DEAD CODE. This is the synchronous oracle the production worker path
+ * (`statsWorker.ts`'s `mergeFrames` handler) is checked against: every merge
+ * equivalence assertion in `sliceSidecar.test.ts` runs through this module, and
+ * `workerMergeFrames.test.ts` proves the worker agrees with it. Its only
+ * "caller" is the test suite by design — deleting it would delete the proof of
+ * the branch's central invariant.
+ */
 import { IncrementalAggregator } from '../incrementalAggregation';
 import { hashSliceSettings } from './sliceSettingsHash';
 import type { SliceSidecar } from './sliceTypes';

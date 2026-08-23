@@ -54,9 +54,23 @@ export type MergeRule =
  * A field produced by a real log with no rule here is a test failure, not a
  * silent drop — see the coverage test in mergePlayerAggregation.test.ts.
  */
-const IS_PRODUCTION = typeof process !== 'undefined'
+/**
+ * True only under a test runner.
+ *
+ * The sense of this check matters and used to be inverted. It was
+ * `NODE_ENV === 'production'`, so it read FALSE in a browser worker (where
+ * `process` does not exist at all) — i.e. the unknown-field `throw` below fired
+ * in exactly the one environment its own comment promised to degrade in, and a
+ * single unmapped field added upstream would have stranded every *published*
+ * report's slice recompute on an uncaught throw. "Not production" is not a
+ * usable proxy for "somewhere a throw is safe" when the shipping target has no
+ * `process` object. So the condition is now positive and narrow: throw where a
+ * human is watching a test run and can fix the rule table, degrade everywhere
+ * else. Vitest sets both `NODE_ENV=test` and `VITEST`.
+ */
+const isTestRun = (): boolean => typeof process !== 'undefined'
     && typeof process.env === 'object'
-    && process.env?.NODE_ENV === 'production';
+    && (process.env?.NODE_ENV === 'test' || Boolean(process.env?.VITEST));
 
 export const PLAYER_STATS_MERGE_RULES: Readonly<Record<string, MergeRule>> = Object.freeze({
     name: 'first',
@@ -209,14 +223,15 @@ const mergePlayerStatsInto = (target: PlayerStats, source: PlayerStats): void =>
             // Defaulting to 'sum' would turn a string field added upstream into
             // NaN in every sliced report — the exact silent corruption the rule
             // table exists to prevent. Fail loudly wherever failing is safe.
-            if (!IS_PRODUCTION) {
+            if (isTestRun()) {
                 throw new Error(
                     `mergePlayerAggregationAccumulators: PlayerStats field "${key}" has no entry in `
                     + 'PLAYER_STATS_MERGE_RULES. Add one (see the coverage test in mergePlayerAggregation.test.ts).',
                 );
             }
-            // In a published report, degrade rather than blank the page: sum
-            // numbers, keep the first value for anything else.
+            // Anywhere else — a published report, a packaged desktop build —
+            // degrade rather than blank the page: sum numbers, keep the first
+            // value for anything else.
             (target as any)[key] = applyRule(typeof value === 'number' ? 'sum' : 'first', (target as any)[key], value);
             return;
         }

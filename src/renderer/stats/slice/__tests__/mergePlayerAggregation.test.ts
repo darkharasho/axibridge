@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
     createPlayerAggregationAccumulators,
     precomputeGlobalEnemySkillStats,
@@ -124,6 +124,44 @@ describe('player aggregation merge equivalence', () => {
         source.playerStats.set(key, { ...stats, someNewUpstreamField: 'Fresh Air' } as any);
         expect(() => mergePlayerAggregationAccumulators(target, source))
             .toThrow(/someNewUpstreamField/);
+    });
+
+    /**
+     * The companion to the test above, and the one that pins the SENSE of the
+     * guard. The unknown-field throw must fire only under a test runner and
+     * degrade everywhere else — because "everywhere else" includes the browser
+     * worker that recomputes a published report's slice, where `process` does
+     * not exist. A guard written as `NODE_ENV !== 'production'` reads
+     * "not production" as TRUE in that worker and throws there, stranding the
+     * viewer with no result at all; that is what this asserts cannot happen.
+     * The stub is `NODE_ENV=development`, NOT `production`, and that choice is
+     * the whole discriminator: the old guard was `!IS_PRODUCTION`, which
+     * degrades under `production` too, so a `production` stub would pass
+     * against the broken version as well. A browser worker has no `NODE_ENV`
+     * at all, which lands on exactly this branch — "neither test nor
+     * production" — and it is the branch the old guard got wrong.
+     * Stubbing the env is the only way to reach the non-test branch from
+     * inside a test, so the check is read at call time rather than at module
+     * load.
+     */
+    it('degrades instead of throwing on an unknown field when not under a test runner', () => {
+        vi.stubEnv('NODE_ENV', 'development');
+        vi.stubEnv('VITEST', '');
+        try {
+            const target = createPlayerAggregationAccumulators();
+            const source = createPlayerAggregationAccumulators();
+            const solo = soloAcc(LOGS[0]);
+            const [key, stats] = [...solo.playerStats.entries()][0];
+            target.playerStats.set(key, { ...stats, someNewUpstreamField: 7, someNewStringField: 'a' } as any);
+            source.playerStats.set(key, { ...stats, someNewUpstreamField: 5, someNewStringField: 'b' } as any);
+            expect(() => mergePlayerAggregationAccumulators(target, source)).not.toThrow();
+            const merged = target.playerStats.get(key) as any;
+            // Numbers sum, everything else keeps the value already present.
+            expect(merged.someNewUpstreamField).toBe(12);
+            expect(merged.someNewStringField).toBe('a');
+        } finally {
+            vi.unstubAllEnvs();
+        }
     });
 
     it('has real, non-empty state to compare', () => {

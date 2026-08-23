@@ -1,9 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { IncrementalAggregator, computeStatsSync } from '../../incrementalAggregation';
-import f1 from '../../../../../test-fixtures/native/20260117-175120.json';
-import f2 from '../../../../../test-fixtures/native/20260117-180135.json';
 
-const LOGS = [f1, f2].map((details, i) => ({ id: `log-${i}`, filePath: `t-${i}.zevtc`, details }));
+/**
+ * Read at runtime rather than `import`ed: a static import hands
+ * `tsc --noEmit` a multi-megabyte structural literal to infer, and these two
+ * fixtures alone are 6.3 MB. Enough of them together push `npm run typecheck`
+ * past its 8 GB heap (ledgered in Task 10). Every sibling slice test —
+ * `sliceSidecar.test.ts`, `sliceSidecarSize.test.ts`, `aggregatorFrames.test.ts`
+ * — uses this pattern for the same reason.
+ */
+const fixture = (name: string) => JSON.parse(
+    readFileSync(resolve(process.cwd(), `test-fixtures/native/${name}.json`), 'utf8'),
+);
+
+const LOGS = ['20260117-175120', '20260117-180135']
+    .map(fixture)
+    .map((details, i) => ({ id: `log-${i}`, filePath: `t-${i}.zevtc`, details }));
 
 // Warm-up: first pass over shared fixtures mutates players, so we need to initialize
 // the fixture state before running any comparisons.
@@ -94,10 +108,39 @@ describe('statsWorker mergeFrames', () => {
         expect(comparable(result.result.stats)).toEqual(comparable(computeStatsSync({ logs: [LOGS[1]] }).stats));
     });
 
-    it('posts a null-stats result for an empty selection rather than throwing', () => {
+    /**
+     * C2: an empty selection is a real zero-fight slice, not an error and not
+     * "no slice". The viewer renders whatever comes back here, so it has to be
+     * the genuine empty aggregation — the same thing a report with no logs
+     * shows — rather than a null the caller would replace with the full report.
+     */
+    it('posts the real zero-fight aggregation for an empty selection', () => {
         send({ type: 'mergeFrames', token: 0, frames: [], settings: {} });
         const result = posted.find((m) => m.type === 'result');
         expect(result).toBeTruthy();
+        expect(result.result.stats).toBeTruthy();
+        expect(comparable(result.result.stats)).toEqual(comparable(computeStatsSync({ logs: [] }).stats));
+    });
+
+    /**
+     * C1: `mergeFrame` has several reachable throw sites and this worker is the
+     * only thing between them and the published viewer. Posting nothing on a
+     * throw leaves the viewer's `computing` flag stuck true and its slice stats
+     * null forever — which renders as the FULL report under a "Sliced view — N
+     * of M fights" banner, with no error anywhere. An explicit `error` reply,
+     * carrying the token so the viewer can match it to its request, is what
+     * lets the viewer say the slice is unavailable instead.
+     */
+    it('posts an error carrying the current token when a frame fails to merge', () => {
+        send({ type: 'reset', token: 4, totalLogs: 0 });
+        posted.length = 0;
+        const exploding = new Proxy({}, { get() { throw new Error('frame is not mergeable'); } });
+        expect(() => send({ type: 'mergeFrames', token: 4, frames: [exploding], settings: {} })).not.toThrow();
+        const error = posted.find((m) => m.type === 'error');
+        expect(error).toBeTruthy();
+        expect(error.token).toBe(4);
+        expect(error.message).toMatch(/not mergeable/);
+        expect(posted.find((m) => m.type === 'result')).toBeUndefined();
     });
 
     it('ignores a mergeFrames message carrying a stale token', () => {
