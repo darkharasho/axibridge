@@ -77,6 +77,16 @@ export class CloudflareSessionError extends Error {
 const inFlightRefresh = new WeakMap<StoreLike, Promise<TokenSet>>();
 
 const performRefresh = async (store: StoreLike, clientId: string, tokens: TokenSet): Promise<TokenSet> => {
+    // Guard the build, not the session. Cloudflare rejects an empty client_id
+    // with an opaque invalid_request; surfacing that raw mid-publish sends the
+    // user off re-authorising, which cannot supply a client id either.
+    if (!clientId) {
+        throw new CloudflareSessionError(
+            'This build has no Cloudflare OAuth client configured, so the session cannot be renewed. '
+                + 'Signing in again will not help — the application itself needs the client id.',
+            false
+        );
+    }
     if (!tokens.refreshToken) {
         throw new CloudflareSessionError(
             'The Cloudflare session expired and cannot be renewed. Sign in to Cloudflare again.',

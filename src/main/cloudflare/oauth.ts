@@ -13,6 +13,20 @@ export const CLOUDFLARE_TOKEN_URL = 'https://dash.cloudflare.com/oauth2/token';
 export const CLOUDFLARE_REVOKE_URL = 'https://dash.cloudflare.com/oauth2/revoke';
 
 /**
+ * The registered OAuth client. Not a secret — it is a public client
+ * (`token_endpoint_auth_method: "none"`, PKCE S256) and the id already travels
+ * in the authorize URL, so there is nothing here to leak.
+ *
+ * It must be baked in, not left to the environment: a packaged build has no
+ * shell to export the variable, and an empty client id makes Cloudflare answer
+ * every token call with a generic "client credentials missing or malformed"
+ * that looks nothing like the misconfiguration it is. The env var still wins,
+ * for pointing a dev build at a client on another account.
+ */
+export const CLOUDFLARE_OAUTH_CLIENT_ID =
+    process.env.CLOUDFLARE_OAUTH_CLIENT_ID || '676540c5844fe8c89b6b9cb8482c304d';
+
+/**
  * `workers-r2.write` is account-wide R2 admin and **implies read** — verified in
  * probe 2, where an object GET succeeded on a grant containing no
  * `workers-r2.read`. It cannot be narrowed to a single bucket: the REST object
@@ -21,13 +35,6 @@ export const CLOUDFLARE_REVOKE_URL = 'https://dash.cloudflare.com/oauth2/revoke'
  *
  * Do not add scopes "to be safe". Each one widens what the consent screen asks for.
  */
-/**
- * The registered OAuth client. Not a secret — it travels in the authorize URL —
- * but it is environment-specific, so the env var wins during development against
- * a private client on the maintainer's own account.
- */
-export const CLOUDFLARE_OAUTH_CLIENT_ID = process.env.CLOUDFLARE_OAUTH_CLIENT_ID || '';
-
 export const CLOUDFLARE_OAUTH_SCOPES = ['workers-r2.write', 'memberships.read', 'offline_access'] as const;
 
 /**

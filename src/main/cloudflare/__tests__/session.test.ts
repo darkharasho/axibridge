@@ -128,3 +128,27 @@ describe('disconnectSession', () => {
         expect(store.data[CF_ACCOUNT_ID_KEY]).toBe('');
     });
 });
+
+describe('getAccessToken with no OAuth client id', () => {
+    // Cloudflare answers an empty client_id with a generic "client credentials
+    // missing or malformed" invalid_request, which reads like a dead session and
+    // sends users off re-authorising a problem re-authorising cannot fix.
+    it('fails before any network call and names the real cause', async () => {
+        const store = makeStore({ [CF_TOKEN_KEY]: stale });
+        await expect(getAccessToken(store, '', NOW)).rejects.toThrow(/no Cloudflare OAuth client configured/i);
+        expect(refreshAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('does not ask the user to sign in again — signing in cannot supply a client id', async () => {
+        const store = makeStore({ [CF_TOKEN_KEY]: stale });
+        await expect(getAccessToken(store, '', NOW)).rejects.toMatchObject({
+            name: 'CloudflareSessionError',
+            reauthRequired: false
+        });
+    });
+
+    it('still serves a token that is comfortably valid, which needs no client id', async () => {
+        const store = makeStore({ [CF_TOKEN_KEY]: live });
+        await expect(getAccessToken(store, '', NOW)).resolves.toBe('live');
+    });
+});

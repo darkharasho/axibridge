@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
     CLOUDFLARE_AUTHORIZE_URL,
+    CLOUDFLARE_OAUTH_CLIENT_ID,
     CLOUDFLARE_OAUTH_SCOPES,
     CLOUDFLARE_REDIRECT_PORTS,
     buildAuthorizeUrl,
@@ -115,5 +116,37 @@ describe('parseCallbackUrl', () => {
 
     it('ignores requests to any path other than the callback', () => {
         expect(parseCallbackUrl('/favicon.ico', state).ok).toBe(false);
+    });
+});
+
+describe('CLOUDFLARE_OAUTH_CLIENT_ID', () => {
+    const withEnv = async (value: string | undefined) => {
+        const previous = process.env.CLOUDFLARE_OAUTH_CLIENT_ID;
+        vi.resetModules();
+        if (value === undefined) delete process.env.CLOUDFLARE_OAUTH_CLIENT_ID;
+        else process.env.CLOUDFLARE_OAUTH_CLIENT_ID = value;
+        try {
+            return (await import('../oauth')).CLOUDFLARE_OAUTH_CLIENT_ID;
+        } finally {
+            if (previous === undefined) delete process.env.CLOUDFLARE_OAUTH_CLIENT_ID;
+            else process.env.CLOUDFLARE_OAUTH_CLIENT_ID = previous;
+            vi.resetModules();
+        }
+    };
+
+    // A packaged build has no shell to export the variable, so an empty fallback
+    // would ship a client id of '' and break sign-in for every user.
+    it('falls back to the registered public client when the environment is silent', async () => {
+        await expect(withEnv(undefined)).resolves.toBe('676540c5844fe8c89b6b9cb8482c304d');
+    });
+
+    it('lets the environment override the baked-in default', async () => {
+        await expect(withEnv('deadbeefdeadbeefdeadbeefdeadbeef')).resolves.toBe(
+            'deadbeefdeadbeefdeadbeefdeadbeef'
+        );
+    });
+
+    it('is never empty as loaded, whatever the ambient environment', () => {
+        expect(CLOUDFLARE_OAUTH_CLIENT_ID).not.toBe('');
     });
 });
