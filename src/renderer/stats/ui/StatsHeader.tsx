@@ -24,7 +24,7 @@ type StatsHeaderProps = {
     publishBlockedReason?: string | null;
     /** Opens the universal search palette. Desktop-only chrome, like the rest of this row. */
     onSearchClick?: () => void;
-    /** Toggles the fight-slice tray. Desktop-only chrome, like the rest of this row. */
+    /** Toggles the fight-slice tray. Unlike the rest of this row, this also renders when embedded. */
     onToggleSliceTray?: () => void;
 };
 
@@ -116,6 +116,15 @@ export const StatsHeader = ({
                 </p>
             </div>
         </div>
+        {/* A published report renders embedded, and the slice banner stays
+            hidden until a fight is excluded — so without this the pill, the
+            only way into the tray, has no entry point at all. The desktop row
+            below is left untouched. */}
+        {embedded && onToggleSliceTray && (
+            <div className="flex items-center gap-3">
+                <FightSlicePill onClick={onToggleSliceTray} />
+            </div>
+        )}
         {!embedded && (
             <div className="flex items-center gap-3">
                 {onSearchClick && (
