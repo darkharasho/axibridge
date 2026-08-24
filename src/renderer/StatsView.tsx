@@ -30,6 +30,7 @@ import type { PlayerSkillBreakdown, PlayerSkillDamageEntry, SkillUsageSummary } 
 import { getDefaultConditionIcon, normalizeConditionLabel } from '../shared/conditionsMetrics';
 import { DetailsCacheContext } from './cache/DetailsCacheContext';
 import { AxilogCoverageBanner } from './stats/ui/AxilogCoverageBanner';
+import { fetchReplayJson } from './stats/replay/fetchReplayJson';
 import { useAxilogHeal } from './stats/hooks/useAxilogHeal';
 import { EMPTY_AXILOG_COVERAGE, type AxilogCoverage } from './stats/utils/axilogCoverage';
 
@@ -390,18 +391,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
             ?? undefined;
         if (!replayDataUrl || r2ReplayFights !== null || r2ReplayStatus !== 'idle') return;
         setR2ReplayStatus('loading');
-        const fetchJson = async (): Promise<any> => {
-            // In Electron, proxy through the main process to avoid CORS restrictions.
-            if (window.electronAPI?.fetchR2Json) {
-                const result = await window.electronAPI.fetchR2Json(replayDataUrl);
-                if (!result.success) throw new Error(result.error ?? 'Fetch failed');
-                return result.json;
-            }
-            const res = await fetch(replayDataUrl, { cache: 'no-store' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res.json();
-        };
-        fetchJson()
+        fetchReplayJson(replayDataUrl)
             .then((data: any) => {
                 setR2ReplayFights(Array.isArray(data?.replayFights) ? data.replayFights : []);
                 setR2ReplayStatus('idle');

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { LEGACY_THEME_TO_PALETTE } from '../../shared/webThemes';
 import { DEFAULT_DISRUPTION_METHOD, type DisruptionMethod } from '../../shared/metricsSettings';
 import { isR2SliceEnabled } from './githubHandlers';
+import { parseMaybeGzippedJson } from '../cloudflare/replaySidecar';
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -375,12 +376,15 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         return new Promise((resolve) => {
             const lib = url.startsWith('https') ? https : http;
             lib.get(url, (res) => {
-                let data = '';
-                res.on('data', (chunk) => (data += chunk));
+                // Chunks are collected as Buffers, not concatenated onto a
+                // string: replay objects arrive gzipped, and decoding binary
+                // bytes as UTF-8 mangles them past recovery.
+                const chunks: Buffer[] = [];
+                res.on('data', (chunk: Buffer) => chunks.push(chunk));
                 res.on('end', () => {
                     if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
                         try {
-                            resolve({ success: true, json: JSON.parse(data) });
+                            resolve({ success: true, json: parseMaybeGzippedJson(Buffer.concat(chunks)) });
                         } catch {
                             resolve({ success: false, error: 'Response is not valid JSON.' });
                         }

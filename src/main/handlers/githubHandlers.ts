@@ -25,6 +25,12 @@ import {
 } from '../cloudflare/uploader';
 import { CLOUDFLARE_OAUTH_CLIENT_ID } from '../cloudflare/oauth';
 import {
+    REPLAY_SIDECAR_CONTENT_TYPE,
+    REPLAY_SIDECAR_FILENAME,
+    prepareReplaySidecar,
+    replayObjectKeys
+} from '../cloudflare/replaySidecar';
+import {
     CF_ACCOUNT_ID_KEY,
     getAccessToken as getCloudflareAccessToken,
     isSessionConnected
@@ -661,7 +667,7 @@ export const planSidecarHosting = ({ kind, bytes, r2Url, reportId, baseUrl }: {
                 `Configure Cloudflare R2 in Settings to keep replays on large sessions.`
         };
     }
-    const relativePath = `reports/${reportId}/replay.json`;
+    const relativePath = `reports/${reportId}/${REPLAY_SIDECAR_FILENAME}`;
     return {
         mode: 'pages',
         url: baseUrl ? `${baseUrl.replace(/\/$/, '')}/${relativePath}` : relativePath,
@@ -1359,7 +1365,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const { uploader: r2 } = resolveR2Uploader(store);
             if (r2) {
                 await Promise.allSettled(
-                    ids.map((id) => r2.deleteObject(`reports/${id}/replay.json`))
+                    ids.flatMap((id) => replayObjectKeys(id).map((key) => r2.deleteObject(key)))
                 );
             }
 
@@ -1800,10 +1806,17 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             let replayBuffer: Buffer | null = null;
             const rawReplayFights = Array.isArray(sourceStats.replayFights) ? sourceStats.replayFights : [];
             if (rawReplayFights.length > 0) {
-                replayBuffer = Buffer.from(JSON.stringify({ replayFights: rawReplayFights }), 'utf8');
+                // Compressed for both destinations: it is what R2 stores and what
+                // has to clear the Pages blob limit. The viewer inflates it.
+                const prepared = prepareReplaySidecar(rawReplayFights);
+                replayBuffer = prepared.buffer;
                 sourceStats = { ...sourceStats };
                 delete sourceStats.replayFights;
-                log.info(`[Main] ${rawReplayFights.length} replay fight(s) found (${formatBytes(replayBuffer.length)}) — splitting out of report.json.`);
+                log.info(
+                    `[Main] ${rawReplayFights.length} replay fight(s) found `
+                    + `(${formatBytes(prepared.rawBytes)} → ${formatBytes(replayBuffer.length)} gzipped) `
+                    + `— splitting out of report.json.`
+                );
             } else if (r2ForReplay) {
                 log.info('[Main] R2 configured but no replay fights found in stats — skipping R2 upload. Enable Combat Replay in Parser Settings and re-process logs.');
                 sendWebUploadStatus('Packaging', 'R2 configured — no replay data found (Combat Replay may be disabled in Parser Settings)', 39);
@@ -1822,8 +1835,8 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 let r2Url: string | null = null;
                 if (r2ForReplay) {
                     sendWebUploadStatus('Uploading', 'Uploading replay data to R2...', 38);
-                    const r2Key = `reports/${reportMeta.id}/replay.json`;
-                    const r2Result = await r2ForReplay.putObject(r2Key, replayBuffer, 'application/json');
+                    const r2Key = `reports/${reportMeta.id}/${REPLAY_SIDECAR_FILENAME}`;
+                    const r2Result = await r2ForReplay.putObject(r2Key, replayBuffer, REPLAY_SIDECAR_CONTENT_TYPE);
                     if (r2Result.success && r2Result.url) {
                         r2Url = r2Result.url;
                         log.info(`[Main] R2 replay upload succeeded: ${r2Result.url} (${formatBytes(replayBuffer.length)})`);
@@ -1921,8 +1934,8 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             fs.rmSync(stagingRoot, { recursive: true, force: true });
             fs.mkdirSync(stagingRoot, { recursive: true });
             if (replayBuffer && replayHostedOnPages) {
-                // Lands in reports/<id>/replay.json via the staging-dir upload below.
-                fs.writeFileSync(path.join(stagingRoot, 'replay.json'), replayBuffer);
+                // Lands in reports/<id>/replay.json.gz via the staging-dir upload below.
+                fs.writeFileSync(path.join(stagingRoot, REPLAY_SIDECAR_FILENAME), replayBuffer);
             }
             if (builtReport.trimmedSections.length > 0) {
                 console.warn(

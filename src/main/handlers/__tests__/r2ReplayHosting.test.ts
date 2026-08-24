@@ -83,10 +83,10 @@ describe('planSidecarHosting', () => {
         })).toEqual({ mode: 'r2', url: 'https://pub-x.r2.dev/reports/a/replay.json', warning: null });
     });
 
-    it('falls back to Pages for a replay with no R2', () => {
+    it('falls back to Pages for a replay with no R2, pointing at the gzipped object', () => {
         const plan = planSidecarHosting({ kind: 'replay', bytes: 1024, r2Url: null, reportId: 'a', baseUrl: BASE });
         expect(plan.mode).toBe('pages');
-        expect(plan.url).toBe(`${BASE}/reports/a/replay.json`);
+        expect(plan.url).toBe(`${BASE}/reports/a/replay.json.gz`);
     });
 
     it('drops an oversized Pages replay rather than failing the upload with a 422', () => {
