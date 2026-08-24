@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
 
@@ -9,19 +10,34 @@ const formatClock = (timestamp: number) => {
     } catch { return '--:--'; }
 };
 
-export const FightSlicePill = ({ onClick }: { onClick: () => void }) => {
+/**
+ * `prominent` is for the published report, where this pill is alone in the
+ * header rather than sitting in a row of buttons. The quiet resting style
+ * disappears there — under the glass palette `--bg-card` is
+ * rgba(255, 255, 255, 0.035), so the pill has no fill at all and reads as a
+ * caption. Promoted, it borrows the accent treatment plus a glyph.
+ *
+ * Only the resting state changes. The active state keeps `--accent-bg-strong`
+ * and, more importantly, its "Slice: N of M fights" label — that label, not the
+ * fill, is what tells the user a slice is applied.
+ */
+export const FightSlicePill = ({ onClick, prominent = false }: { onClick: () => void; prominent?: boolean }) => {
     const roster = useStatsStore((s) => s.fightRoster);
     const excluded = useStatsStore((s) => s.excludedFightKeys);
     const included = roster.length - roster.filter((f) => excluded.has(f.id)).length;
     const active = excluded.size > 0;
+    const resting = prominent
+        ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg)] text-[color:var(--text-primary)]'
+        : 'border-[color:var(--border-default)] bg-[var(--bg-card)] text-[color:var(--text-secondary)]';
     return (
         <button
             type="button"
             onClick={onClick}
-            className={`inline-flex h-[26px] items-center gap-2 rounded-full border px-3.5 text-[11px] font-semibold transition-colors ${active
+            className={`inline-flex items-center gap-2 rounded-full border px-3.5 font-semibold transition-colors ${prominent ? 'h-[28px] text-[11.5px]' : 'h-[26px] text-[11px]'} ${active
                 ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg-strong)] text-[color:var(--text-primary)]'
-                : 'border-[color:var(--border-default)] bg-[var(--bg-card)] text-[color:var(--text-secondary)]'}`}
+                : resting}`}
         >
+            {prominent && <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary)' }} aria-hidden="true" />}
             {active
                 ? `Slice: ${included} of ${roster.length} fights`
                 : 'Slice fights'}

@@ -122,7 +122,7 @@ export const StatsHeader = ({
             below is left untouched. */}
         {embedded && onToggleSliceTray && (
             <div className="flex items-center gap-3">
-                <FightSlicePill onClick={onToggleSliceTray} />
+                <FightSlicePill onClick={onToggleSliceTray} prominent />
             </div>
         )}
         {!embedded && (
