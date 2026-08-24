@@ -6,7 +6,7 @@ import { ShieldAlert, Eraser } from 'lucide-react';
 import { formatTopStatValue, formatWithCommas } from './stats/utils/dashboardUtils';
 import { sanitizeWvwLabel, buildFightLabelV2, computeFightAvgPosition } from './stats/utils/labelUtils';
 import { parseTimestamp } from './stats/utils/timestampUtils';
-import { NON_DAMAGING_CONDITIONS } from './stats/statsMetrics';
+import { NON_DAMAGING_CONDITIONS, type CleanseScope } from './stats/statsMetrics';
 import { normalizeEnabledTopStats } from './stats/topStatsCatalog';
 import { StatsSharedContext } from './stats/StatsViewContext';
 import { StatsGroupContainer } from './stats/ui/StatsGroupContainer';
@@ -1007,7 +1007,10 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const [defenseViewMode, setDefenseViewMode] = useState<'total' | 'per1s' | 'per60s'>('total');
     const [damageMitigationViewMode, setDamageMitigationViewMode] = useState<'total' | 'per1s' | 'per60s'>('total');
     const [supportViewMode, setSupportViewMode] = useState<'total' | 'per1s' | 'per60s'>('total');
-    const [cleanseScope, setCleanseScope] = useState<'squad' | 'all'>('all');
+    // Defaults to 'arcdps' so our number matches what players see on their own
+    // in-game meter. SupportSection degrades this to 'all' (Elite Insights
+    // parity) for datasets whose logs carry no pet/minion cleanse data.
+    const [cleanseScope, setCleanseScope] = useState<CleanseScope>('arcdps');
     const [timelineFriendlyScope, setTimelineFriendlyScope] = useState<'squad' | 'squadAllies'>('squad');
     const [damageMitigationScope, setDamageMitigationScope] = useState<'player' | 'minions'>('player');
     const [damageModSearch, setDamageModSearch] = useState('');

@@ -101,7 +101,16 @@ export const extractRunSummary = (report: unknown): RunSummary => {
     for (const row of Array.isArray(stats?.supportPlayers) ? stats.supportPlayers : []) {
         const p = ensure(row);
         if (!p) continue;
-        p.cleanses += num(row?.supportTotals?.condiCleanse);
+        // arcdps parity, matching the desktop Support table's default scope and
+        // the Discord embed: squad + self + conditions cleansed off squad
+        // pets/minions. This previously read `condiCleanse` alone, which both
+        // dropped self-cleanses (roughly a fifth of the total) and disagreed
+        // with every other cleanse number the app reports. Older published
+        // reports carry neither of the two extra keys, so they degrade to the
+        // same value this line produced before.
+        p.cleanses += num(row?.supportTotals?.condiCleanse)
+            + num(row?.supportTotals?.condiCleanseSelf)
+            + num(row?.supportTotals?.condiCleanseMinions);
         p.strips = Math.max(p.strips, num(row?.supportTotals?.boonStrips));
         p.resurrects += num(row?.supportTotals?.resurrects);
         p.logsJoined = Math.max(p.logsJoined, num(row?.logsJoined));

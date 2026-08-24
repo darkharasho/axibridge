@@ -9,7 +9,7 @@ import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
-import { SUPPORT_METRICS } from '../statsMetrics';
+import { SUPPORT_METRICS, CleanseScope, resolveCleanseTotal, hasMinionCleanseData, hasPartialMinionCleanseData } from '../statsMetrics';
 import { NoEgoMetricSection } from './NoEgoMetricSection';
 
 // All current support metrics are higher-is-better. Add metric ids here if any
@@ -23,8 +23,8 @@ type SupportSectionProps = {
     setActiveSupportStat: (value: string) => void;
     supportViewMode: 'total' | 'per1s' | 'per60s';
     setSupportViewMode: (value: 'total' | 'per1s' | 'per60s') => void;
-    cleanseScope: 'all' | 'squad';
-    setCleanseScope: (value: 'all' | 'squad') => void;
+    cleanseScope: CleanseScope;
+    setCleanseScope: (value: CleanseScope) => void;
     noEgoMode?: boolean;
 };
 
@@ -60,14 +60,39 @@ export const SupportSection = ({
     const isExpanded = expandedSection === 'support-detailed';
     const [detailOpen, setDetailOpen] = useState(false);
 
+    // The arcdps scope can only be answered by logs the axilog backend parsed
+    // locally — Elite-Insights-parsed logs and dps.report-hydrated details
+    // carry no `condiCleanseMinions`, and a missing key reads as 0. Rather
+    // than show an EI number under an arcdps label, hide the option and fall
+    // back to EI parity ('all') for this dataset.
+    const minionCleanseAvailable = hasMinionCleanseData(stats.supportPlayers);
+    const minionCleansePartial = hasPartialMinionCleanseData(stats.supportPlayers);
+    const effectiveCleanseScope: CleanseScope =
+        cleanseScope === 'arcdps' && !minionCleanseAvailable ? 'all' : cleanseScope;
+    const cleanseScopeOptions = [
+        ...(minionCleanseAvailable ? [{
+            value: 'arcdps' as const,
+            label: 'arcdps',
+            title: minionCleansePartial
+                ? 'Matches the in-game arcdps meter: squad + self + conditions cleansed off squad pets/minions. Only some logs in this range carry pet/minion data, so this is a lower bound.'
+                : 'Matches the in-game arcdps meter: squad + self + conditions cleansed off squad pets/minions.'
+        }] : []),
+        {
+            value: 'all' as const,
+            label: 'All',
+            title: 'Elite Insights parity: squad + self. Matches dps.report. Excludes pets/minions, which is why it reads a few percent below the in-game arcdps meter.'
+        },
+        {
+            value: 'squad' as const,
+            label: 'Squad',
+            title: 'Conditions cleansed off other squad members only — excludes self and pets/minions.'
+        }
+    ];
+
     // ── No Ego mode: sidebar + one large MetricDistributionCard for active metric ──
     if (noEgoMode && stats.supportPlayers.length > 0) {
         const resolveSupportTotalForMetric = (row: any, metricId: string) => {
-            if (metricId === 'condiCleanse') {
-                const squad = row.supportTotals?.condiCleanse || 0;
-                const self = row.supportTotals?.condiCleanseSelf || 0;
-                return cleanseScope === 'all' ? squad + self : squad;
-            }
+            if (metricId === 'condiCleanse') return resolveCleanseTotal(row, effectiveCleanseScope);
             return row.supportTotals?.[metricId] || 0;
         };
         return (
@@ -122,12 +147,9 @@ export const SupportSection = ({
             <div className="ml-auto flex items-center gap-2">
                 {!isExpanded && activeSupportStat === 'condiCleanse' && (
                     <PillToggleGroup
-                        value={cleanseScope}
+                        value={effectiveCleanseScope}
                         onChange={setCleanseScope}
-                        options={[
-                            { value: 'all', label: 'All' },
-                            { value: 'squad', label: 'Squad' }
-                        ]}
+                        options={cleanseScopeOptions}
                         activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
                         inactiveClassName="text-[color:var(--text-secondary)]"
                     />
@@ -219,12 +241,9 @@ export const SupportSection = ({
                         />
                         {activeSupportStat === 'condiCleanse' && (
                             <PillToggleGroup
-                                value={cleanseScope}
+                                value={effectiveCleanseScope}
                                 onChange={setCleanseScope}
-                                options={[
-                                    { value: 'all', label: 'All' },
-                                    { value: 'squad', label: 'Squad' }
-                                ]}
+                                options={cleanseScopeOptions}
                                 activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
                                 inactiveClassName="text-[color:var(--text-secondary)]"
                             />
@@ -280,9 +299,7 @@ export const SupportSection = ({
                         (() => {
                             const resolveSupportTotal = (row: any, metricId: string) => {
                                 if (metricId === 'condiCleanse') {
-                                    const squad = row.supportTotals?.condiCleanse || 0;
-                                    const self = row.supportTotals?.condiCleanseSelf || 0;
-                                    return cleanseScope === 'all' ? squad + self : squad;
+                                    return resolveCleanseTotal(row, effectiveCleanseScope);
                                 }
                                 return row.supportTotals?.[metricId] || 0;
                             };
@@ -406,9 +423,7 @@ export const SupportSection = ({
                             const metric = SUPPORT_METRICS.find((entry) => entry.id === activeSupportStat) || SUPPORT_METRICS[0];
                             const resolveSupportTotal = (row: any) => {
                                 if (metric.id === 'condiCleanse') {
-                                    const squad = row.supportTotals?.condiCleanse || 0;
-                                    const self = row.supportTotals?.condiCleanseSelf || 0;
-                                    return cleanseScope === 'all' ? squad + self : squad;
+                                    return resolveCleanseTotal(row, effectiveCleanseScope);
                                 }
                                 return row.supportTotals?.[metric.id] || 0;
                             };

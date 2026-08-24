@@ -261,6 +261,14 @@ export interface Support {
     condiCleanse: number;
     condiCleanseTime?: number;
     condiCleanseSelf: number;
+    /**
+     * axilog extension, absent on genuine Elite Insights exports: conditions
+     * cleansed off a MINION owned by a squad player. EI's cleanse count is
+     * `log.PlayerList`-scoped and omits these entirely; the in-game arcdps
+     * meter counts them, hence the ~3-4% gap between the two. Optional —
+     * treat a missing value as "unknown", never as zero.
+     */
+    condiCleanseMinions?: number;
     condiCleanseTimeSelf?: number;
     boonStrips: number;
     boonStripsTime?: number;

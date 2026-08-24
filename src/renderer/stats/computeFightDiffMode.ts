@@ -6,7 +6,7 @@ import { resolveFightTimestamp } from './utils/timestampUtils';
 import { resolveMapName, buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 import { formatDurationMs } from './utils/dashboardUtils';
 import {
-    getPlayerCleanses,
+    getPlayerCleansesArcdps,
     getPlayerStrips,
 } from '../../shared/dashboardMetrics';
 import {
@@ -197,7 +197,7 @@ export function ingestLogFightDiffMode(log: any, idx: number) {
     const squadRevivedPlayers = squadPlayers.reduce((sum: number, player: any) => (
         Number(player?.statsAll?.[0]?.saved || 0) > 0 ? sum + 1 : sum
     ), 0);
-    const squadCleanses = squadPlayers.reduce((sum: number, player: any) => sum + Number(getPlayerCleanses(player) || 0), 0);
+    const squadCleanses = squadPlayers.reduce((sum: number, player: any) => sum + Number(getPlayerCleansesArcdps(player) || 0), 0);
     const squadStrips = squadPlayers.reduce((sum: number, player: any) => sum + Number(getPlayerStrips(player) || 0), 0);
     const squadStability = squadPlayers.reduce((sum: number, player: any) => sum + Number(player?.stabGeneration || 0), 0);
     const squadHealing = squadPlayers.reduce((sum: number, player: any) => sum + Number(getPlayerSquadHealing(player) || 0), 0);

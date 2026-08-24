@@ -81,6 +81,53 @@ export const DAMAGE_MITIGATION_METRICS: Array<{
         { id: 'minMitigation', label: 'Min Damage Mitigation' }
     ];
 
+/**
+ * Which population a displayed cleanse count covers.
+ *
+ * - `squad`  — conditions removed from OTHER squad members only.
+ * - `all`    — the above plus self-cleanses. This is Elite Insights parity:
+ *              `condiCleanse + condiCleanseSelf` is exactly what dps.report
+ *              and every other GW2EI-derived tool reports.
+ * - `arcdps` — the above plus conditions cleansed off squad members' pets and
+ *              minions. Matches the in-game arcdps meter, which folds pets
+ *              into their master; EI's count is `log.PlayerList`-scoped and
+ *              omits them, which is why arcdps reads ~3-4% higher for the
+ *              same fight.
+ */
+export type CleanseScope = 'arcdps' | 'all' | 'squad';
+
+/** Cleanse total for one aggregation row under the given {@link CleanseScope}. */
+export const resolveCleanseTotal = (row: any, scope: CleanseScope): number => {
+    const squad = row?.supportTotals?.condiCleanse || 0;
+    if (scope === 'squad') return squad;
+    const all = squad + (row?.supportTotals?.condiCleanseSelf || 0);
+    if (scope === 'all') return all;
+    return all + (row?.supportTotals?.condiCleanseMinions || 0);
+};
+
+/**
+ * Whether the `arcdps` scope can be answered for these rows at all.
+ *
+ * `condiCleanseMinions` only exists on logs parsed locally by the axilog
+ * backend. Elite-Insights-parsed logs, dps.report-hydrated details, and
+ * reports published before the field existed all lack it — and a missing key
+ * reads as 0, which would silently render an EI number under an arcdps label.
+ * Gate the toggle on this.
+ */
+export const hasMinionCleanseData = (rows: Array<any> | undefined): boolean =>
+    (rows ?? []).some(r => (r?.supportTotals?.condiCleanseMinionsLogs || 0) > 0);
+
+/**
+ * True when only SOME of the aggregated logs carried minion data (a mixed
+ * axilog / Elite-Insights history). The arcdps total is then a floor, not an
+ * exact match for the in-game meter, and the UI should say so.
+ */
+export const hasPartialMinionCleanseData = (rows: Array<any> | undefined): boolean =>
+    (rows ?? []).some(r => {
+        const withData = r?.supportTotals?.condiCleanseMinionsLogs || 0;
+        return withData > 0 && withData < (r?.logsJoined || 0);
+    });
+
 export const SUPPORT_METRICS: Array<{
     id: string;
     label: string;
@@ -90,6 +137,7 @@ export const SUPPORT_METRICS: Array<{
         { id: 'condiCleanse', label: 'Condition Cleanses', field: 'condiCleanse' },
         { id: 'condiCleanseTime', label: 'Condition Cleanse Time', field: 'condiCleanseTime', isTime: true },
         { id: 'condiCleanseSelf', label: 'Condition Cleanse Self', field: 'condiCleanseSelf' },
+        { id: 'condiCleanseMinions', label: 'Condition Cleanse (Minions)', field: 'condiCleanseMinions' },
         { id: 'condiCleanseTimeSelf', label: 'Condition Cleanse Time Self', field: 'condiCleanseTimeSelf', isTime: true },
         { id: 'boonStrips', label: 'Boon Strips', field: 'boonStrips' },
         { id: 'boonStripsTime', label: 'Boon Strips Time', field: 'boonStripsTime', isTime: true },

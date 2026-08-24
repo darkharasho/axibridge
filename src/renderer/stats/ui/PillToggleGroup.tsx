@@ -3,6 +3,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 type PillToggleOption<T extends string> = {
     value: T;
     label: ReactNode;
+    /** Optional hover explanation, rendered as the button's native tooltip. */
+    title?: string;
 };
 
 type PillToggleGroupProps<T extends string> = {
@@ -61,6 +63,7 @@ export const PillToggleGroup = <T extends string>({
                         key={option.value}
                         type="button"
                         onClick={() => onChange(option.value)}
+                        title={option.title}
                         className={`pill-toggle-option relative px-2.5 py-1 rounded-sm z-[1] ${isActive ? `pill-toggle-option--active text-[color:var(--brand-primary)]` : inactiveClassName}`}
                     >
                         {option.label}

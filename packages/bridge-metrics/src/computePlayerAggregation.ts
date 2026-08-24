@@ -1,5 +1,5 @@
 
-import { getPlayerCleanses, getPlayerStrips, getPlayerOutgoingInterrupts, getPlayerDamageTaken, getPlayerBreakbarDamage, getPlayerBlocked, getPlayerEvaded, getPlayerMissed, getTargetStatTotal, createDistanceToTagResolver, getVindicatorDodgeCasts } from './dashboardMetrics';
+import { getPlayerCleansesArcdps, getPlayerStrips, getPlayerOutgoingInterrupts, getPlayerDamageTaken, getPlayerBreakbarDamage, getPlayerBlocked, getPlayerEvaded, getPlayerMissed, getTargetStatTotal, createDistanceToTagResolver, getVindicatorDodgeCasts } from './dashboardMetrics';
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeDownContribution as getPlayerDownContribution, computeSquadHealing as getPlayerSquadHealing, computeSquadBarrier as getPlayerSquadBarrier, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl } from './combatMetrics';
 import { Player } from './dpsReportTypes';
 import { DisruptionMethod } from './metricsSettings';
@@ -733,7 +733,7 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             s.logsJoined++;
         }
         s.downContrib += getPlayerDownContribution(p);
-        s.cleanses += getPlayerCleanses(p);
+        s.cleanses += getPlayerCleansesArcdps(p);
         s.strips += getPlayerStrips(p, method);
         s.healing += getPlayerSquadHealing(p);
         s.barrier += getPlayerSquadBarrier(p);
@@ -964,6 +964,18 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                     s.supportTotals[m.id] = (s.supportTotals[m.id] || 0) + val;
                 }
             });
+            // Availability counter for the arcdps-parity cleanse scope. The
+            // SUPPORT_METRICS loop above reads a MISSING `condiCleanseMinions`
+            // as 0, which is indistinguishable from a genuine zero — but the
+            // field only exists on logs parsed locally by axilog, not on
+            // Elite-Insights-parsed or dps.report-hydrated ones. Counting the
+            // logs that actually carried it lets the UI tell "no minion
+            // cleanses happened" from "this log can't answer the question",
+            // and lets it flag a mixed-backend aggregation as partial rather
+            // than quietly under-reporting.
+            if ('condiCleanseMinions' in (p.support[0] as any)) {
+                s.supportTotals.condiCleanseMinionsLogs = (s.supportTotals.condiCleanseMinionsLogs || 0) + 1;
+            }
             // Apply disruption method to support boonStrips for consistency
             s.supportTotals.boonStrips = (s.supportTotals.boonStrips || 0) + getPlayerStrips(p, method);
         }

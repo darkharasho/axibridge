@@ -12,6 +12,24 @@ export const getPlayerDps = (player: Player) =>
 export const getPlayerCleanses = (player: Player) =>
     (player.support?.[0]?.condiCleanse || 0) + (player.support?.[0]?.condiCleanseSelf || 0);
 
+// `condiCleanseMinions` is an axilog extension, NOT an Elite Insights field: EI's
+// ConditionCleanseCount loops `foreach (Player p in log.PlayerList)`, so a condition
+// cleansed off a ranger pet, necro minion, mesmer clone or revenant spirit is counted
+// zero times. The in-game arcdps meter folds pets into their master and does count
+// them, which is the whole reason arcdps reads ~3-4% higher than we do for the same
+// fight. Only logs parsed locally by the axilog backend carry it — logs parsed by
+// Elite Insights, hydrated from dps.report, or aggregated before this field existed
+// do not — so callers MUST test availability rather than reading a missing key as 0.
+export const hasMinionCleanseData = (player: Player): boolean =>
+    player.support?.[0] != null && 'condiCleanseMinions' in (player.support[0] as any);
+
+// Matches what the in-game arcdps meter reports. Falls back to the EI-parity number
+// when the log carries no minion data, so this is always safe to call — but a caller
+// choosing to SHOW it as "arcdps" should gate on `hasMinionCleanseData` first, or it
+// will silently present an EI number under an arcdps label.
+export const getPlayerCleansesArcdps = (player: Player): number =>
+    getPlayerCleanses(player) + ((player.support?.[0] as any)?.condiCleanseMinions || 0);
+
 export const getPlayerStrips = (player: Player, method: DisruptionMethod = DEFAULT_DISRUPTION_METHOD) => {
     const support = player.support?.[0] as any;
     const count = Number(support?.boonStrips ?? 0);
@@ -116,7 +134,7 @@ export const getPlayerOutgoingInterrupts = (player: Player): number =>
 
 export const getPlayerDashboardTotals = (player: Player, method: DisruptionMethod = DEFAULT_DISRUPTION_METHOD) => ({
     downContrib: computeDownContribution(player),
-    cleanses: getPlayerCleanses(player),
+    cleanses: getPlayerCleansesArcdps(player),
     strips: getPlayerStrips(player, method),
     healing: computeSquadHealing(player),
     barrier: computeSquadBarrier(player),

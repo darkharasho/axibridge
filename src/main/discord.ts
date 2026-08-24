@@ -5,7 +5,7 @@ import {
     getPlayerDps,
     getPlayerDownsTaken,
     getPlayerBreakbarDamage,
-    getPlayerCleanses,
+    getPlayerCleansesArcdps,
     getPlayerDamageTaken,
     getPlayerDeaths,
     createDistanceToTagResolver,
@@ -822,8 +822,8 @@ export class DiscordNotifier {
                             {
                                 enabled: settings.showCleanses,
                                 title: "Cleanses",
-                                sortFn: (a: any, b: any) => getPlayerCleanses(b) - getPlayerCleanses(a),
-                                valFn: (p: any) => getPlayerCleanses(p),
+                                sortFn: (a: any, b: any) => getPlayerCleansesArcdps(b) - getPlayerCleansesArcdps(a),
+                                valFn: (p: any) => getPlayerCleansesArcdps(p),
                         fmtVal: (v: any) => fmtInt(v)
                             },
                             {
