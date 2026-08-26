@@ -1,14 +1,12 @@
 # Release Notes
 
-Version v3.1.1 — August 24, 2026
+Version v3.1.2 — August 26, 2026
 
-## Faster, More Reliable Map Replays
+## QoL Improvements
+- Buff icons: icons now show for the vast majority of buffs; if the data source doesn’t have artwork for a specific buff, you’ll see it as missing rather than the whole UI breaking. This keeps reports readable even when art is incomplete.
+- Naming and symbol resolution: axilog updates (1.6.2 for symbol-name handling and 1.6.1 for skill-name resolution) help names line up more consistently in your reports.
 
-Replay data is now compressed before it's published, so bigger raid/WvW sessions that used to lose their map replay entirely (because the uncompressed file blew past GitHub's 50MB limit) now fit and publish normally. Compression happens on both Cloudflare and the GitHub Pages fallback, so this applies everywhere reports get published.
-
-NOTE: Old reports don't need to be republished — the viewer detects compressed vs. uncompressed replay data automatically and loads either one.
+NOTE: These changes apply to new uploads using the updated axilog; existing reports won’t be retroactively updated.
 
 ## Fixes
-
-- Fixed a bug where the desktop app could corrupt replay data while reading it from storage, since binary data was being handled as text instead of raw bytes.
-- Deleting a report now properly cleans up old replay files left over from before this change.
+- Tests were updated to reflect the new axilog behavior; no user-facing changes to how you interact with the app.
