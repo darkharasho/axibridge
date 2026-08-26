@@ -624,7 +624,20 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         const skillEntries = Object.values(details.skillMap) as any[];
         const withIcon = skillEntries.filter((s) => typeof s.icon === 'string' && s.icon).length;
         expect(withIcon).toBeGreaterThan(skillEntries.length * 0.75);
-        expect(Object.values(details.buffMap).every((b: any) => typeof b.icon === 'string' && b.icon)).toBe(true);
+        // Buffs were an `every` until axilog 1.6.1 routed indirect
+        // (healing-over-time) rows into the buff catalog as well as the skill
+        // one, which is the correct shape — GW2EI's own `BuildHealingDist`
+        // puts an indirect row's id in `buffMap`. It also means `buffMap` now
+        // carries ids whose art nothing has: `b30498` (Resolve) and `b78312`
+        // (Radiant Resolve) are absent from all three icon catalogs and from
+        // `/v2/skills`, so there is no source to backfill from and no amount
+        // of shim work would produce one. A named heal source with a blank
+        // icon beats it not appearing in the healing breakdown at all, so
+        // assert the same strong majority the skill side asserts rather than
+        // pretending the tail is closeable.
+        const buffEntries = Object.values(details.buffMap) as any[];
+        const buffsWithIcon = buffEntries.filter((b) => typeof b.icon === 'string' && b.icon).length;
+        expect(buffsWithIcon).toBeGreaterThan(buffEntries.length * 0.95);
         // Still absent, and still needs EI's bundled GW2 DB: native carries no
         // buff `classification`.
         expect(Object.values(details.buffMap).every((b: any) => b.classification === undefined)).toBe(true);

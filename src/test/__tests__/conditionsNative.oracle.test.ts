@@ -49,6 +49,14 @@ const EI_NAME_MISATTRIBUTION: Record<string, { hits: number; damage: number; ski
     Burning: { hits: 5, damage: 11669, skill: 'Burning Speed' },
     Chill: { hits: 3, damage: 60, skill: 'Chilled to the Bone!' },
     Bleeding: { hits: 3, damage: 0, skill: 'Bleeding Edge' },
+    // Added at axilog 1.6.1 for the same reason Poison joined the incoming
+    // table below: ids 12812/12831 ("Poison Blast Combo") were literally
+    // `Skill 12812`/`Skill 12831` until 1.6.1 named them, so EI's name
+    // tokenizer had nothing to match and silently under-credited itself.
+    // The count is 3 here and 7 on the incoming side because these are
+    // different scopes over the same fixture, not the same number twice.
+    // Damage stays 0: a blast combo applies the condition, it does not strike.
+    Poison: { hits: 3, damage: 0, skill: 'Poison Blast Combo' },
 };
 
 const buildEi = () => {
@@ -146,6 +154,20 @@ describe('unit 5c oracle — incoming conditions', () => {
         // the three hits landed for 73 and 82, and a third for another 73 that
         // the dedup collapsed away.
         Bleeding: { hits: 3, damage: 228, skill: 'Bleeding Edge' },
+        // Joined the list at axilog 1.6.1, which is a naming change and NOT a
+        // counting one: ids 12812/12831 are the "Poison Blast Combo" field
+        // blast, and until 1.6.1 neither had a name at all -- they arrived as
+        // `Skill 12812`/`Skill 12831`, which this heuristic could not
+        // name-match to a condition, so their 7 hits went uncounted on the EI
+        // side by accident. Now that they resolve, EI's name matching credits
+        // them to Poison exactly as it credits `Burning Speed` to Burning.
+        // Damage is 0, not a rounding artifact: a blast combo applies the
+        // condition and deals no strike damage itself, which is why only
+        // `applications` moved (70 -> 77) while `damage` stayed at 2265.
+        // The native side never counted them and still reads 70 -- it keys on
+        // the condition's own buff id, not on what a skill happens to be
+        // called, which is the entire point of this oracle.
+        Poison: { hits: 7, damage: 0, skill: 'Poison Blast Combo' },
     };
 
     const buildEi = () => {
@@ -209,12 +231,19 @@ describe('unit 5c oracle — incoming conditions', () => {
         expect(ei.Burning.damage - native.Burning.damage).toBe(74000);
         expect(native.Burning.damage).toBeLessThan(ei.Burning.damage * 0.2);
         expect(ei.Bleeding.damage - native.Bleeding.damage).toBe(228);
+        // Poison is the inverse shape and worth pinning as such: applications
+        // move, damage does not.
+        expect(ei.Poison.applications - native.Poison.applications).toBe(7);
+        expect(ei.Poison.damage - native.Poison.damage).toBe(0);
     });
 
     it('leaves conditions with no same-named strike skill untouched', () => {
         const ei = buildEi();
         const native = buildNative();
-        for (const name of ['Confusion', 'Poison', 'Torment']) {
+        // Poison left this list at axilog 1.6.1 -- it acquired a same-named
+        // strike skill (see EI_INCOMING_MISATTRIBUTION) the moment
+        // "Poison Blast Combo" became nameable.
+        for (const name of ['Confusion', 'Torment']) {
             expect(native[name], name).toEqual(ei[name]);
         }
     });
