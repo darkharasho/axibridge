@@ -13,6 +13,7 @@ import { PlayerRoleClassification } from './roles';
 import { normalizeAccountName, partitionSquadPlayers } from './playerIdentity';
 import { getEntityProfession, squadEntities } from './nativeRoster';
 import { getEntityConditionDamageTakenRows } from './nativeConditions';
+import { getBuffMeta } from './nativeBoons';
 
 export interface PlayerStats {
     name: string;
@@ -214,9 +215,36 @@ const supportTimeSanityFields = new Set(['boonStripsTime', 'condiCleanseTime', '
 // to `support[0]` so both old and new logs aggregate correctly.
 const supportFieldsMovedToDefenses = new Set(['stunBreak', 'removedStunDuration']);
 
-const isBoon = (meta?: { classification?: string }) => {
-    if (!meta?.classification) return true;
-    return meta.classification === 'Boon';
+/**
+ * Which bucket a buff falls in, asked of whichever backend parsed the log.
+ *
+ * EI states the bucket in a `classification` string; axilog never emits that
+ * field and states `kind` in `catalogs.buffs` instead. The old gate read only
+ * `classification` and defaulted a missing one to "boon", so under native
+ * every buff answered boon, the special-buff pre-filter dropped all of them,
+ * and the Special Buffs and Sigil/Relic Uptime sections rendered empty. Ask
+ * the catalog first, fall back to `classification` for logs parsed by EI, and
+ * keep the old default only when neither backend has an opinion.
+ */
+const makeBuffClassifier = (details: any) => {
+    const hasCatalog = Boolean(details?.native?.catalogs?.buffs);
+    return {
+        isBoon: (buffId: number | string, meta?: { classification?: string }) => {
+            if (hasCatalog) {
+                const kind = getBuffMeta(details, buffId)?.kind;
+                if (kind) return kind === 'boon';
+            }
+            if (!meta?.classification) return true;
+            return meta.classification === 'Boon';
+        },
+        isCondition: (buffId: number | string, meta?: { classification?: string }) => {
+            if (hasCatalog) {
+                const kind = getBuffMeta(details, buffId)?.kind;
+                if (kind) return kind === 'condition';
+            }
+            return !meta?.classification || meta.classification === 'Condition';
+        },
+    };
 };
 
 const createMitigationTotals = (): DamageMitigationTotals => ({
@@ -783,12 +811,13 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         s.healingActiveMs += activeMs;
 
         if (Array.isArray(p.buffUptimes) && p.buffUptimes.length > 0) {
+            const classifier = makeBuffClassifier(details);
             // OPTIMIZATION: Pre-filter to non-damaging buffs only to skip 30-40 of 50 buffs upfront
             const nonDamagingBuffs = p.buffUptimes.filter((buff: any) => {
                 if (typeof buff?.id !== 'number') return false;
                 const buffId = `b${buff.id}`;
                 const meta = details.buffMap?.[buffId] || details.buffMap?.[String(buff.id)];
-                if (!meta || isBoon(meta)) return false;
+                if (!meta || classifier.isBoon(buff.id, meta)) return false;
                 return true;
             });
 
@@ -810,7 +839,7 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 if (!hasTotalMs && !hasUptimeMs) return;
 
                 const conditionName = normalizeConditionLabel(meta?.name);
-                if (conditionName && NON_DAMAGING_CONDITIONS.has(conditionName) && (!meta?.classification || meta.classification === 'Condition')) {
+                if (conditionName && NON_DAMAGING_CONDITIONS.has(conditionName) && classifier.isCondition(buff.id, meta)) {
                     // buffUptimes on squad players = conditions ON the player = incoming from enemies.
                     // Outgoing non-damaging conditions are sourced from target.buffs.statesPerSource
                     // via computeOutgoingConditions() (applicationsFromBuffs / applicationsFromBuffsActive).

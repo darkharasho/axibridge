@@ -6,12 +6,31 @@ import { resolveProfessionLabel } from './computePlayerAggregation';
 import { partitionSquadPlayers } from '../../shared/playerIdentity';
 import { buildNativeMovement } from '../../shared/movementData';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
+import { getBuffMeta } from '@axiapps/bridge-metrics/nativeBoons';
 import { applyLabel, type FrameFightLabels } from './slice/frameLabels';
 
-const isBoon = (meta?: { classification?: string }) => {
-    if (!meta?.classification) return true;
-    return meta.classification === 'Boon';
+/**
+ * Is this buff a boon, asked of whichever backend parsed the log.
+ *
+ * EI says so in a `classification` string. axilog never emits that field and
+ * states `kind` in `catalogs.buffs` instead, so the old default-to-true test
+ * answered "boon" for every condition and effect the commander carried --
+ * padding `boonEntries` and diluting the boon-uptime average with things that
+ * are not boons. Ask the catalog first, fall back to `classification`.
+ */
+const makeIsBoon = (details: any) => {
+    const hasCatalog = Boolean(details?.native?.catalogs?.buffs);
+    return (buffId: number | string, meta?: { classification?: string }) => {
+        if (hasCatalog) {
+            const kind = getBuffMeta(details, buffId)?.kind;
+            if (kind) return kind === 'boon';
+        }
+        if (!meta?.classification) return true;
+        return meta.classification === 'Boon';
+    };
 };
+
+type IsBoon = ReturnType<typeof makeIsBoon>;
 
 const getFightDownsDeaths = (details: any) => {
     const players = details?.players || [];
@@ -53,14 +72,14 @@ const getFightOutcome = (details: any) => {
     return false;
 };
 
-const parseCommanderBoonUptime = (player: any, buffMap: Record<string, any>) => {
+const parseCommanderBoonUptime = (player: any, buffMap: Record<string, any>, isBoon: IsBoon) => {
     const uptimes = Array.isArray(player?.buffUptimes) ? player.buffUptimes : [];
     let weightedPercent = 0;
     let boonCount = 0;
     uptimes.forEach((buff: any) => {
         if (typeof buff?.id !== 'number') return;
         const meta = buffMap?.[`b${buff.id}`] || buffMap?.[String(buff.id)];
-        if (!isBoon(meta)) return;
+        if (!isBoon(buff.id, meta)) return;
         const stacking = Boolean(meta?.stacking);
         const uptime = Number(buff?.buffData?.[0]?.uptime ?? 0);
         const presence = Number(buff?.buffData?.[0]?.presence ?? 0);
@@ -213,7 +232,7 @@ const collectIncomingSkillRows = (
     return Array.from(rowsMap.values())
         .sort((a, b) => b.damage - a.damage || b.hits - a.hits || a.name.localeCompare(b.name));
 };
-const collectIncomingBoonRows = (player: any, buffMap: Record<string, any>, durationMs: number) => {
+const collectIncomingBoonRows = (player: any, buffMap: Record<string, any>, durationMs: number, isBoon: IsBoon) => {
     const rowsMap = new Map<string, {
         id: string;
         name: string;
@@ -229,7 +248,7 @@ const collectIncomingBoonRows = (player: any, buffMap: Record<string, any>, dura
         if (!Number.isFinite(boonIdNum)) return;
         const boonId = `b${boonIdNum}`;
         const meta = buffMap?.[boonId] || buffMap?.[String(boonIdNum)] || {};
-        if (!isBoon(meta)) return;
+        if (!isBoon(boonIdNum, meta)) return;
         const stacking = Boolean(meta?.stacking);
         const uptime = Number(buff?.buffData?.[0]?.uptime ?? 0);
         const presence = Number(buff?.buffData?.[0]?.presence ?? 0);
@@ -557,9 +576,10 @@ export function ingestLogCommanderStats(log: any, idx: number, commanders: Map<s
     const alliesDead = squadPlayers.reduce((sum: number, p: any) => sum + Math.max(0, Number(p?.defenses?.[0]?.deadCount || 0)), 0);
     const buffMap = details?.buffMap && typeof details?.buffMap === 'object' ? details.buffMap : {};
     const skillMap = details?.skillMap && typeof details?.skillMap === 'object' ? details.skillMap : {};
-    const { boonCount, boonUptimePct } = parseCommanderBoonUptime(commander, buffMap);
+    const isBoon = makeIsBoon(details);
+    const { boonCount, boonUptimePct } = parseCommanderBoonUptime(commander, buffMap, isBoon);
     const incomingDamageBySkill = collectIncomingSkillRows(commander?.totalDamageTaken, skillMap, buffMap);
-    const incomingBoonUptimes = collectIncomingBoonRows(commander, buffMap, durationMs);
+    const incomingBoonUptimes = collectIncomingBoonRows(commander, buffMap, durationMs, isBoon);
     const movementMetrics = computeMovementMetrics(commanderPositions, durationMs);
     const bucketCount = Math.max(1, Math.ceil(Math.max(1, durationMs) / 5000));
     const incomingDamageCumulative = extractCumulativeSeries(commander?.powerDamageTaken1S);

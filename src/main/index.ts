@@ -82,6 +82,7 @@ import { registerCloudflareHandlers } from './handlers/cloudflareHandlers';
 import { registerParserHandlers } from './handlers/parserHandlers';
 import { registerReparseHandlers } from './handlers/reparseHandlers';
 import { AxilogManager } from './axilogParser';
+import { getSkillNameCache, initSkillNameCache } from './skillNameCache';
 import { removeEliteInsights } from './eliteInsightsRemoval';
 import { DEFAULT_PARSER_SETTINGS, PARSER_SETTINGS_STORE_KEY, type ParserSettings } from './parserSettings';
 import { parseCliFlags } from './cliFlags';
@@ -213,6 +214,23 @@ const saveUploadRetryState = (state: UploadRetryRuntimeState) => saveUploadRetry
 
 const getLegacyDpsReportCacheDir = () => path.join(app.getPath('userData'), 'dps-report-cache');
 const getDpsReportCacheDir = () => path.join(app.getPath('temp'), 'axibridge-dps-report-cache');
+
+// ─── Learned skill-name cache ────────────────────────────────────────────────
+// Names arcdps omitted from one log, recovered from another that carried them.
+// Its own file rather than a `store` key: it holds thousands of entries and is
+// written from the parse path, and electron-store rewrites the whole settings
+// file on every `set`. See `skillNameCache.ts`.
+const SKILL_NAME_CACHE_FILE = 'skill-name-cache.json';
+const initSkillNameCacheFromDisk = () => {
+    const file = path.join(app.getPath('userData'), SKILL_NAME_CACHE_FILE);
+    const cache = initSkillNameCache({
+        read: () => JSON.parse(fs.readFileSync(file, 'utf8')),
+        write: (names) => {
+            fs.writeFileSync(file, JSON.stringify(names), 'utf8');
+        },
+    });
+    log.info(`[Main] Learned skill-name cache: ${cache.size} names`);
+};
 
 // Local wrappers bind the store- and dir-injected cache functions to this process context.
 const loadDpsReportCacheIndex = () => loadDpsReportCacheIndexFn(store);
@@ -1407,6 +1425,9 @@ app.on('activate', () => {
 app.on('before-quit', () => {
     isQuitting = true;
     axilogManager?.killActiveProcess();
+    // Autosave is debounced; a quit inside that window would otherwise drop
+    // names learned from the last few parses.
+    getSkillNameCache().flush();
 });
 
 app.on('open-url', (event) => {
@@ -1443,6 +1464,7 @@ if (!gotTheLock) {
         migrateLegacySettings();
         migrateLegacyInstallName();
         migrateArcBridgeInstallName();
+        initSkillNameCacheFromDisk();
         if (cliFlags.headless) {
             log.info('[Main] Starting in headless mode — watcher/uploader/publisher only.');
             initServices();

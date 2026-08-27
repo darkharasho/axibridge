@@ -18,6 +18,7 @@
 import type { ParserSettings } from './parserSettings';
 import { buildNativeCarrySet } from './nativeCarrySet';
 import { normalizeAccountName } from '@axiapps/bridge-metrics/playerIdentity';
+import { applyLearnedSkillNames, getSkillNameCache, learnSkillNames } from './skillNameCache';
 
 // ─── Settings mapping ─────────────────────────────────────────────────────────
 
@@ -127,6 +128,14 @@ const toStdTimestamp = (epochMs: number): string => {
  * native start is available the timestamps are now left undefined, so callers
  * fall back to `uploadTime` instead of to a fabricated date.
  */
+/**
+ * Elite Insights' placeholder for a skill it has no art for
+ * (`SkillImages.MonsterSkill`, used as `SkillItem.DefaultIcon`). Kept
+ * byte-identical to EI's own URL so a log parsed by either backend renders the
+ * same image for an unknown id.
+ */
+export const GENERIC_SKILL_ICON = 'https://render.guildwars2.com/file/1D55D34FB4EE20B1962E315245E40CA5E1042D0E/62248.png';
+
 export const applyEiCompatShims = (details: any, _logPath: string): any => {
     if (!details || typeof details !== 'object') return details;
 
@@ -174,17 +183,41 @@ export const applyEiCompatShims = (details: any, _logPath: string): any => {
     // Only ever FILLS a missing icon -- an entry that already has one keeps it,
     // so a real Elite Insights parse (which supplies its own) is untouched.
     // Reaches new parses only; re-parse history to backfill stored logs.
+    // The catalogs do not cover every id: `/v2/skills` 404s for a tail of ids
+    // an arcdps log carries (~17 of 508 on the WvW fixture, 87 across 40 real
+    // logs), and axilog honestly emits no icon for them rather than inventing
+    // one. Elite Insights had the identical gap and never rendered a blank
+    // cell -- `SkillItem` falls back to `SkillImages.MonsterSkill` -- so
+    // removing the EI backend turned "generic placeholder" into "empty
+    // square" for every one of those ids, including named skills like Rend.
+    // Substituting EI's own URL keeps a report parsed by either backend
+    // rendering the same image. Applied only after the catalog lookup, so
+    // real art always wins.
     const backfillIcons = (map: any, prefix: string, catalog: any) => {
-        if (!map || typeof map !== 'object' || !catalog) return;
+        if (!map || typeof map !== 'object') return;
         for (const [key, entry] of Object.entries<any>(map)) {
             if (!entry || typeof entry !== 'object' || entry.icon) continue;
             const id = String(key).replace(new RegExp(`^${prefix}`), '');
-            const icon = catalog[id]?.icon;
-            if (typeof icon === 'string' && icon) entry.icon = icon;
+            const icon = catalog?.[id]?.icon;
+            entry.icon = typeof icon === 'string' && icon ? icon : GENERIC_SKILL_ICON;
         }
     };
     backfillIcons(details.skillMap, 's', details.native?.catalogs?.skills);
     backfillIcons(details.buffMap, 'b', details.native?.catalogs?.buffs);
+
+    // Names: a `.zevtc` carries every skill's id but only the names the
+    // capturing client had loaded, so the same id reads "Rend" in one log and
+    // "Skill 80224" in the next -- same build, same parser. axilog cannot close
+    // that from inside one file; AxiBridge holds the whole log history and can.
+    // Learn first, then substitute, so a log that names an id teaches the cache
+    // before it is asked about it. See `skillNameCache.ts` for why this is safe
+    // (placeholder-only substitution, ids immutable in GW2) and for the corpus
+    // measurement behind it. Because this shim also runs on details re-read
+    // from the dps.report cache, names learned today reach logs parsed months
+    // ago on their next read -- no re-parse, no schema bump.
+    const nameCache = getSkillNameCache();
+    learnSkillNames(details, nameCache);
+    applyLearnedSkillNames(details, nameCache);
 
     const encounter = details.native?.encounter;
     const nativeMap = typeof encounter?.map === 'string' ? encounter.map.trim() : '';

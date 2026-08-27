@@ -4,6 +4,7 @@ import * as fs from 'node:fs';
 
 import {
     AxilogManager,
+    GENERIC_SKILL_ICON,
     applyEiCompatShims,
     formatEncounterDuration,
     mapParserSettingsToAxilogOptions,
@@ -586,26 +587,26 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         // the boon selector, skill usage, heal effectiveness, commander stats),
         // and every one of them rendered blank under the native engine.
         //
-        // Skills are 418 of 508 on this fixture, not all: `/v2/skills` does not
-        // list every id an arcdps log carries. Assert a strong majority rather
-        // than a hardcoded count, which would just churn on every axilog bump.
+        // `/v2/skills` does not list every id an arcdps log carries, so the
+        // catalogs cannot cover the whole map: ~17 of 508 skills here, and
+        // `b30498` (Resolve) / `b78312` (Radiant Resolve) on the buff side,
+        // have no art in any catalog and 404 on `/v2/skills`. Elite Insights
+        // had the same gap and never rendered a blank cell -- `SkillItem`
+        // falls back to `SkillImages.MonsterSkill` -- so the shim substitutes
+        // the same placeholder and EVERY entry ends up with an icon.
         const skillEntries = Object.values(details.skillMap) as any[];
-        const withIcon = skillEntries.filter((s) => typeof s.icon === 'string' && s.icon).length;
-        expect(withIcon).toBeGreaterThan(skillEntries.length * 0.75);
-        // Buffs were an `every` until axilog 1.6.1 routed indirect
-        // (healing-over-time) rows into the buff catalog as well as the skill
-        // one, which is the correct shape — GW2EI's own `BuildHealingDist`
-        // puts an indirect row's id in `buffMap`. It also means `buffMap` now
-        // carries ids whose art nothing has: `b30498` (Resolve) and `b78312`
-        // (Radiant Resolve) are absent from all three icon catalogs and from
-        // `/v2/skills`, so there is no source to backfill from and no amount
-        // of shim work would produce one. A named heal source with a blank
-        // icon beats it not appearing in the healing breakdown at all, so
-        // assert the same strong majority the skill side asserts rather than
-        // pretending the tail is closeable.
+        expect(skillEntries.every((s) => typeof s.icon === 'string' && s.icon)).toBe(true);
         const buffEntries = Object.values(details.buffMap) as any[];
-        const buffsWithIcon = buffEntries.filter((b) => typeof b.icon === 'string' && b.icon).length;
-        expect(buffsWithIcon).toBeGreaterThan(buffEntries.length * 0.95);
+        expect(buffEntries.every((b) => typeof b.icon === 'string' && b.icon)).toBe(true);
+        // The catalog art must still win wherever it exists; the placeholder is
+        // a floor, not a blanket.
+        expect(details.skillMap.s5491?.icon).not.toBe(GENERIC_SKILL_ICON);
+        expect(skillEntries.filter((s) => s.icon === GENERIC_SKILL_ICON).length)
+            .toBeLessThan(skillEntries.length * 0.25);
+        // The exact URL matters: it is what EI emitted, so a report parsed by
+        // either backend renders the same image for an unknown skill.
+        expect(GENERIC_SKILL_ICON)
+            .toBe('https://render.guildwars2.com/file/1D55D34FB4EE20B1962E315245E40CA5E1042D0E/62248.png');
         // Still absent, and still needs EI's bundled GW2 DB: native carries no
         // buff `classification`.
         expect(Object.values(details.buffMap).every((b: any) => b.classification === undefined)).toBe(true);
