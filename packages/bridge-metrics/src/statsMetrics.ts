@@ -88,21 +88,36 @@ export const DAMAGE_MITIGATION_METRICS: Array<{
  * - `all`    — the above plus self-cleanses. This is Elite Insights parity:
  *              `condiCleanse + condiCleanseSelf` is exactly what dps.report
  *              and every other GW2EI-derived tool reports.
- * - `arcdps` — the above plus conditions cleansed off squad members' pets and
- *              minions. Matches the in-game arcdps meter, which folds pets
- *              into their master; EI's count is `log.PlayerList`-scoped and
- *              omits them, which is why arcdps reads ~3-4% higher for the
- *              same fight.
+ * - `arcdps` — what the in-game arcdps meter shows. NOT an adjustment layered
+ *              on top of EI: axilog counts this with a transcription of the
+ *              meter's own source, which drops single-stack stability removals
+ *              and self-consumed blinds, subtracts the self-removal burst that
+ *              going down produces, and folds pets into their master. EI's
+ *              count is `log.PlayerList`-scoped and misses the pet population
+ *              entirely, which is the ~3-4% gap.
+ *
+ *              Older logs answer this the legacy way — EI parity plus
+ *              `condiCleanseMinions` — which gets the population right but not
+ *              the exclusions, so it reads a few percent high. Both paths are
+ *              gated on {@link hasMinionCleanseData}.
  */
 export type CleanseScope = 'arcdps' | 'all' | 'squad';
 
 /** Cleanse total for one aggregation row under the given {@link CleanseScope}. */
 export const resolveCleanseTotal = (row: any, scope: CleanseScope): number => {
-    const squad = row?.supportTotals?.condiCleanse || 0;
+    const totals = row?.supportTotals;
+    const squad = totals?.condiCleanse || 0;
     if (scope === 'squad') return squad;
-    const all = squad + (row?.supportTotals?.condiCleanseSelf || 0);
+    const all = squad + (totals?.condiCleanseSelf || 0);
     if (scope === 'all') return all;
-    return all + (row?.supportTotals?.condiCleanseMinions || 0);
+    // Prefer axilog's arcdps-methodology counters. Base bucket plus the "vs
+    // npcs" bucket — see `getPlayerCleansesArcdps` for why that pairing and
+    // not the other toggle. Fall back to the legacy minion approximation for
+    // rows aggregated before those counters existed.
+    if ((totals?.condiCleanseArcdpsLogs || 0) > 0) {
+        return (totals?.condiCleanseArcdps || 0) + (totals?.condiCleanseArcdpsOnMinion || 0);
+    }
+    return all + (totals?.condiCleanseMinions || 0);
 };
 
 /**
@@ -115,7 +130,19 @@ export const resolveCleanseTotal = (row: any, scope: CleanseScope): number => {
  * Gate the toggle on this.
  */
 export const hasMinionCleanseData = (rows: Array<any> | undefined): boolean =>
-    (rows ?? []).some(r => (r?.supportTotals?.condiCleanseMinionsLogs || 0) > 0);
+    (rows ?? []).some(r =>
+        (r?.supportTotals?.condiCleanseArcdpsLogs || 0) > 0
+        || (r?.supportTotals?.condiCleanseMinionsLogs || 0) > 0);
+
+/**
+ * True when the rows answer the arcdps scope with axilog's transcription of the
+ * meter's own counting code, rather than the legacy EI-plus-minions
+ * approximation. The legacy path is still shown as "arcdps" because it is much
+ * closer than EI parity, but it does not apply arcdps' exclusions and reads a
+ * few percent high — worth saying so in a tooltip.
+ */
+export const hasArcdpsMethodologyData = (rows: Array<any> | undefined): boolean =>
+    (rows ?? []).some(r => (r?.supportTotals?.condiCleanseArcdpsLogs || 0) > 0);
 
 /**
  * True when only SOME of the aggregated logs carried minion data (a mixed
@@ -124,7 +151,8 @@ export const hasMinionCleanseData = (rows: Array<any> | undefined): boolean =>
  */
 export const hasPartialMinionCleanseData = (rows: Array<any> | undefined): boolean =>
     (rows ?? []).some(r => {
-        const withData = r?.supportTotals?.condiCleanseMinionsLogs || 0;
+        const withData = (r?.supportTotals?.condiCleanseArcdpsLogs || 0)
+            || (r?.supportTotals?.condiCleanseMinionsLogs || 0);
         return withData > 0 && withData < (r?.logsJoined || 0);
     });
 

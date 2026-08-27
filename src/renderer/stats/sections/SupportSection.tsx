@@ -9,7 +9,7 @@ import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
-import { SUPPORT_METRICS, CleanseScope, resolveCleanseTotal, hasMinionCleanseData, hasPartialMinionCleanseData } from '../statsMetrics';
+import { SUPPORT_METRICS, CleanseScope, resolveCleanseTotal, hasMinionCleanseData, hasPartialMinionCleanseData, hasArcdpsMethodologyData } from '../statsMetrics';
 import { NoEgoMetricSection } from './NoEgoMetricSection';
 
 // All current support metrics are higher-is-better. Add metric ids here if any
@@ -62,20 +62,26 @@ export const SupportSection = ({
 
     // The arcdps scope can only be answered by logs the axilog backend parsed
     // locally — Elite-Insights-parsed logs and dps.report-hydrated details
-    // carry no `condiCleanseMinions`, and a missing key reads as 0. Rather
-    // than show an EI number under an arcdps label, hide the option and fall
-    // back to EI parity ('all') for this dataset.
+    // carry neither cleanse family, and a missing key reads as 0. Rather than
+    // show an EI number under an arcdps label, hide the option and fall back
+    // to EI parity ('all') for this dataset.
     const minionCleanseAvailable = hasMinionCleanseData(stats.supportPlayers);
     const minionCleansePartial = hasPartialMinionCleanseData(stats.supportPlayers);
+    // Newer logs answer the scope with a transcription of the arcdps meter's
+    // own counting code; older ones only with the EI-plus-minions
+    // approximation, which reads a few percent high. Both are labelled
+    // "arcdps"; only the tooltip distinguishes them.
+    const arcdpsMethodology = hasArcdpsMethodologyData(stats.supportPlayers);
     const effectiveCleanseScope: CleanseScope =
         cleanseScope === 'arcdps' && !minionCleanseAvailable ? 'all' : cleanseScope;
     const cleanseScopeOptions = [
         ...(minionCleanseAvailable ? [{
             value: 'arcdps' as const,
             label: 'arcdps',
-            title: minionCleansePartial
-                ? 'Matches the in-game arcdps meter: squad + self + conditions cleansed off squad pets/minions. Only some logs in this range carry pet/minion data, so this is a lower bound.'
-                : 'Matches the in-game arcdps meter: squad + self + conditions cleansed off squad pets/minions.'
+            title: (arcdpsMethodology
+                ? "Counted the way the in-game arcdps meter counts, from a transcription of its own source: pets folded into their master, single-stack stability removals and self-consumed blinds excluded, and the removal burst from going down subtracted."
+                : 'Approximates the in-game arcdps meter: squad + self + conditions cleansed off squad pets/minions. Logs in this range predate the arcdps-methodology counters, so the exclusions the meter applies are missing and this reads a few percent high.')
+                + (minionCleansePartial ? ' Only some logs in this range carry the data, so this is a lower bound.' : '')
         }] : []),
         {
             value: 'all' as const,

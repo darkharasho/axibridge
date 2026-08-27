@@ -269,6 +269,31 @@ export interface Support {
      * treat a missing value as "unknown", never as zero.
      */
     condiCleanseMinions?: number;
+    /**
+     * axilog extension: cleanses counted the way the in-game arcdps meter
+     * counts them, transcribed from the meter's own source. NOT the same
+     * population as `condiCleanse + condiCleanseSelf + condiCleanseMinions` —
+     * arcdps additionally drops single-stack stability removals, drops
+     * self-consumed blinds, and subtracts the self-removal burst that going
+     * down produces. Base bucket = player-on-player, both meter inclusion
+     * toggles off.
+     *
+     * There is no single "arcdps number": the meter's displayed total depends
+     * on that window's "vs npcs" / "from npcs" toggles, so the two buckets
+     * below are additive on top of the base rather than folded in.
+     * Optional — treat a missing value as "unknown", never as zero.
+     */
+    condiCleanseArcdps?: number;
+    /** Cleanses performed BY a minion, credited to its master ("from npcs"). */
+    condiCleanseArcdpsByMinion?: number;
+    /** Cleanses performed ON a minion ("vs npcs"). Matches `condiCleanseMinions`. */
+    condiCleanseArcdpsOnMinion?: number;
+    /** Boon strips under the same arcdps methodology. @see condiCleanseArcdps */
+    boonStripsArcdps?: number;
+    /** Strips performed BY a minion, credited to its master ("from npcs"). */
+    boonStripsArcdpsByMinion?: number;
+    /** Strips performed ON a minion ("vs npcs"). */
+    boonStripsArcdpsOnMinion?: number;
     condiCleanseTimeSelf?: number;
     boonStrips: number;
     boonStripsTime?: number;
