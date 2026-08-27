@@ -1,13 +1,19 @@
 # Release Notes
 
-Version v3.2.1 — August 27, 2026
+Version v3.2.2 — August 27, 2026
+
+## Elite Insights is gone
+
+There's no parser to install, update, or babysit anymore. Axilog ships inside the app and handles everything, so the Parse Engine picker and the whole install/update card are out of Settings.
+
+The old Elite Insights install gets deleted automatically the first time you launch this version, and Settings will tell you how much disk space that gave back. Nothing else to do on your end.
+
+NOTE: there's no fallback engine now. If you hit a log that won't parse, it's a bug worth reporting rather than something you can work around by switching engines.
+
+## Parser settings that actually do something
+
+Settings used to show twelve parser options. Nine of them were Elite Insights leftovers that stopped doing anything a while ago — flipping them changed nothing. Only the three that still matter are left: combat replay, damage modifiers, and raw timeline data.
 
 ## Fixes
-- **Damage Modifiers section is no longer blank for locally parsed logs.** Logs parsed natively (rather than fetched from dps.report) were missing the `personalDamageMods` catalog, which the app used to tell personal modifiers apart from shared ones. With that catalog empty, every modifier was treated as unclassified and hidden behind the "Hypothetical" toggle, leaving the section showing "No damage modifier data available".
-- An empty catalog is now treated as *unclassified* rather than as "nothing is personal": all modifiers are shown and the Hypothetical toggle is hidden when there is nothing to classify. This keeps older logs working even without the catalog.
 
-## Under the hood
-- Bumped `@axiapps/axilog` to 1.7.1, which emits the top-level `personalDamageMods` map. New parses get proper personal-vs-shared classification and the Hypothetical toggle returns.
-- Added `damageModifierSummaries` with unit coverage for the classification and toggle-visibility rules.
-
-NOTE: Logs already in your history keep whatever data they were parsed with. Re-parse or upload a log to pick up the full personal/shared split.
+- Removed the **Anonymize Players** toggle from the dashboard quick settings. It had quietly stopped working when the parser changed, so it was showing you a switch that did nothing.
