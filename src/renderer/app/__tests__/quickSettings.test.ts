@@ -1,26 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { QUICK_SETTINGS, type QuickSettingsContext } from '../quickSettings';
 import { DEFAULT_STATS_VIEW_SETTINGS } from '../../global.d';
-import type { IEiParserSettings } from '../../global.d';
+import type { IParserSettings } from '../../global.d';
 
-const EI_SETTINGS: IEiParserSettings = {
-    detailledWvW: true,
+const PARSER_SETTINGS: IParserSettings = {
     computeDamageModifiers: true,
-    parsePhases: true,
-    skipFailedTries: false,
-    anonymous: false,
-    customTooShort: 2200,
-    saveOutHTML: false,
     parseCombatReplay: true,
-    lightTheme: false,
     rawTimelineArrays: false,
-    singleThreaded: false,
-    memoryLimit: 0,
 };
 
 const makeContext = (overrides?: Partial<QuickSettingsContext>): QuickSettingsContext => ({
-    eiSettings: { ...EI_SETTINGS },
-    setEiSetting: vi.fn(),
+    parserSettings: { ...PARSER_SETTINGS },
+    setParserSetting: vi.fn(),
     statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS },
     setStatsViewSettings: vi.fn(),
     r2Hosting: null,
@@ -30,10 +21,9 @@ const makeContext = (overrides?: Partial<QuickSettingsContext>): QuickSettingsCo
 });
 
 describe('QUICK_SETTINGS registry', () => {
-    it('exposes the six dashboard toggles with stable ids', () => {
+    it('exposes the five dashboard toggles with stable ids', () => {
         expect(QUICK_SETTINGS.map((s) => s.id)).toEqual([
             'parseCombatReplay',
-            'anonymous',
             'noEgoMode',
             'splitPlayersByClass',
             'r2HostingEnabled',
@@ -50,14 +40,13 @@ describe('QUICK_SETTINGS registry', () => {
 
     it('reads current values out of the backing stores', () => {
         const ctx = makeContext({
-            eiSettings: { ...EI_SETTINGS, parseCombatReplay: false, anonymous: true },
+            parserSettings: { ...PARSER_SETTINGS, parseCombatReplay: false },
             statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, noEgoMode: true, splitPlayersByClass: false },
             r2Hosting: { credentialsPresent: true, replayEnabled: false, sliceEnabled: true },
         });
         const read = Object.fromEntries(QUICK_SETTINGS.map((s) => [s.id, s.read(ctx)]));
         expect(read).toEqual({
             parseCombatReplay: false,
-            anonymous: true,
             noEgoMode: true,
             splitPlayersByClass: false,
             r2HostingEnabled: false,
@@ -65,11 +54,11 @@ describe('QUICK_SETTINGS registry', () => {
         });
     });
 
-    it('routes EI-backed writes to setEiSetting only', () => {
+    it('routes parser-backed writes to setParserSetting only', () => {
         const ctx = makeContext();
         const combatReplay = QUICK_SETTINGS.find((s) => s.id === 'parseCombatReplay')!;
         combatReplay.write(ctx, false);
-        expect(ctx.setEiSetting).toHaveBeenCalledWith('parseCombatReplay', false);
+        expect(ctx.setParserSetting).toHaveBeenCalledWith('parseCombatReplay', false);
         expect(ctx.setStatsViewSettings).not.toHaveBeenCalled();
     });
 
@@ -77,7 +66,7 @@ describe('QUICK_SETTINGS registry', () => {
         const ctx = makeContext();
         const noEgo = QUICK_SETTINGS.find((s) => s.id === 'noEgoMode')!;
         noEgo.write(ctx, true);
-        expect(ctx.setEiSetting).not.toHaveBeenCalled();
+        expect(ctx.setParserSetting).not.toHaveBeenCalled();
         expect(ctx.setStatsViewSettings).toHaveBeenCalledWith({
             ...DEFAULT_STATS_VIEW_SETTINGS,
             noEgoMode: true,
@@ -91,8 +80,8 @@ describe('QUICK_SETTINGS registry', () => {
             const next = !setting.read(ctx);
             ctx = makeContext({
                 r2Hosting,
-                setEiSetting: vi.fn((key, value) => {
-                    ctx = { ...ctx, eiSettings: { ...ctx.eiSettings!, [key]: value } };
+                setParserSetting: vi.fn((key, value) => {
+                    ctx = { ...ctx, parserSettings: { ...ctx.parserSettings!, [key]: value } };
                 }),
                 setStatsViewSettings: vi.fn((value) => {
                     ctx = { ...ctx, statsViewSettings: value };
@@ -110,14 +99,14 @@ describe('QUICK_SETTINGS registry', () => {
     });
 
     it('reads false when EI settings have not loaded yet', () => {
-        const ctx = makeContext({ eiSettings: null });
+        const ctx = makeContext({ parserSettings: null });
         const combatReplay = QUICK_SETTINGS.find((s) => s.id === 'parseCombatReplay')!;
         expect(combatReplay.read(ctx)).toBe(false);
         expect(combatReplay.isReady(ctx)).toBe(false);
     });
 
     it('reports stats-view entries as ready even before EI settings load', () => {
-        const ctx = makeContext({ eiSettings: null });
+        const ctx = makeContext({ parserSettings: null });
         const noEgo = QUICK_SETTINGS.find((s) => s.id === 'noEgoMode')!;
         expect(noEgo.isReady(ctx)).toBe(true);
     });
@@ -183,7 +172,7 @@ describe('the R2 hosting toggles', () => {
         for (const setting of [r2, slice]) {
             const ctx = makeContext({ r2Hosting: { credentialsPresent: true, replayEnabled: true, sliceEnabled: true } });
             setting.write(ctx, false);
-            expect(ctx.setEiSetting).not.toHaveBeenCalled();
+            expect(ctx.setParserSetting).not.toHaveBeenCalled();
             expect(ctx.setStatsViewSettings).not.toHaveBeenCalled();
         }
     });

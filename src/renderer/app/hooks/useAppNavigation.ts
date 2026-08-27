@@ -2,8 +2,6 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type UIEv
 
 interface UseAppNavigationOptions {
     walkthroughSeen: boolean | null;
-    eiAnnouncementDismissed: boolean;
-    setEiAnnouncementDismissed: (v: boolean) => void;
     shouldOpenWhatsNew: boolean;
     whatsNewVersion: string;
     logsCount: number;
@@ -11,8 +9,6 @@ interface UseAppNavigationOptions {
 
 export function useAppNavigation({
     walkthroughSeen,
-    eiAnnouncementDismissed,
-    setEiAnnouncementDismissed,
     shouldOpenWhatsNew,
     whatsNewVersion,
     logsCount,
@@ -149,17 +145,15 @@ export function useAppNavigation({
 
     const handleWalkthroughClose = useCallback(() => {
         setWalkthroughOpen(false);
-        window.electronAPI?.saveSettings?.({ walkthroughSeen: true, eiAnnouncementDismissed: true });
-        setEiAnnouncementDismissed(true);
-    }, [setEiAnnouncementDismissed]);
+        window.electronAPI?.saveSettings?.({ walkthroughSeen: true });
+    }, []);
 
     const handleWalkthroughLearnMore = useCallback(() => {
         setWalkthroughOpen(false);
-        window.electronAPI?.saveSettings?.({ walkthroughSeen: true, eiAnnouncementDismissed: true });
-        setEiAnnouncementDismissed(true);
+        window.electronAPI?.saveSettings?.({ walkthroughSeen: true });
         setView('settings');
         setHowToTrigger((current) => current + 1);
-    }, [setEiAnnouncementDismissed]);
+    }, []);
 
     const handleHowToConsumed = useCallback((trigger: number) => {
         setHowToTrigger((current) => (current === trigger ? 0 : current));
@@ -172,54 +166,6 @@ export function useAppNavigation({
     const handleParserSettingsFocusConsumed = useCallback((trigger: number) => {
         setParserSettingsFocusTrigger((current) => (current === trigger ? 0 : current));
     }, []);
-
-    const [eiInstalled, setEiInstalled] = useState<boolean | null>(null);
-    const [autoManageEiEnabled, setAutoManageEiEnabled] = useState<boolean | null>(null);
-    const [eiAutoManageStatus, setEiAutoManageStatus] = useState<string | null>(null);
-    const [eiAutoManageProgress, setEiAutoManageProgress] = useState<{ percent: number; message: string } | null>(null);
-
-    useEffect(() => {
-        window.electronAPI?.getEiStatus?.().then((status) => {
-            setEiInstalled(status.installed);
-        }).catch(() => {
-            setEiInstalled(false);
-        });
-        window.electronAPI?.getEiAutoManage?.().then(setAutoManageEiEnabled).catch(() => setAutoManageEiEnabled(true));
-    }, []);
-
-    useEffect(() => {
-        const cleanupStatus = window.electronAPI.onEiStatusChanged((status) => {
-            setEiInstalled(status.installed);
-            if (status.installing) {
-                setEiAutoManageStatus(status.installed ? 'Updating Elite Insights...' : 'Installing Elite Insights...');
-            } else if (status.error) {
-                setEiAutoManageStatus(`EI: ${status.error}`);
-                setTimeout(() => setEiAutoManageStatus(null), 8000);
-                setEiAutoManageProgress(null);
-            } else {
-                setEiAutoManageStatus(null);
-                setEiAutoManageProgress(null);
-            }
-        });
-        const cleanupProgress = window.electronAPI.onEiDownloadProgress((data) => {
-            setEiAutoManageProgress(data);
-        });
-        return () => { cleanupStatus(); cleanupProgress(); };
-    }, []);
-
-    const showEiBanner = walkthroughSeen === true && !eiAnnouncementDismissed && eiInstalled === false && autoManageEiEnabled === false;
-
-    const handleEiBannerDismiss = useCallback(() => {
-        setEiAnnouncementDismissed(true);
-        window.electronAPI?.saveSettings?.({ eiAnnouncementDismissed: true });
-    }, [setEiAnnouncementDismissed]);
-
-    const handleEiBannerSetup = useCallback(() => {
-        setEiAnnouncementDismissed(true);
-        window.electronAPI?.saveSettings?.({ eiAnnouncementDismissed: true });
-        setView('settings');
-        setParserSettingsFocusTrigger((current) => current + 1);
-    }, [setEiAnnouncementDismissed]);
 
     return {
         view, setView,
@@ -245,10 +191,5 @@ export function useAppNavigation({
         handleParserSettingsFocusConsumed,
         howToTrigger,
         handleHowToConsumed,
-        showEiBanner,
-        handleEiBannerDismiss,
-        handleEiBannerSetup,
-        eiAutoManageStatus,
-        eiAutoManageProgress,
     };
 }

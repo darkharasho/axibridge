@@ -23,7 +23,6 @@ const renderBanner = (props: Partial<React.ComponentProps<typeof AxilogCoverageB
         <AxilogCoverageBanner
             embedded={false}
             coverage={coverageMissing([{ id: 'a', filePath: '/a.zevtc', parseSource: 'dps.report' }])}
-            parserBackend="axilog"
             healState={IDLE}
             onHeal={() => {}}
             {...props}
@@ -54,11 +53,6 @@ describe('AxilogCoverageBanner', () => {
         expect(screen.getByRole('button', { name: 'Re-parse 2' })).toBeTruthy();
     });
 
-    it('offers no re-parse on the Elite Insights engine, and says how to enable it', () => {
-        renderBanner({ parserBackend: 'elite-insights' });
-        expect(screen.queryByRole('button', { name: /Re-parse/ })).toBeNull();
-        expect(screen.getByText(/Switch to the Axilog engine/)).toBeTruthy();
-    });
 
     it('offers no re-parse when no source file survives, and says why', () => {
         renderBanner({ coverage: coverageMissing([{ id: 'a', filePath: '' }]) });

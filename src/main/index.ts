@@ -79,11 +79,11 @@ import {
 import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers } from './handlers/githubHandlers';
 import { registerCloudflareHandlers } from './handlers/cloudflareHandlers';
-import { registerEiHandlers } from './handlers/eiHandlers';
+import { registerParserHandlers } from './handlers/parserHandlers';
 import { registerReparseHandlers } from './handlers/reparseHandlers';
-import { EiManager, DEFAULT_EI_SETTINGS, EiParserSettings } from './eiParser';
-import { AxilogManager, normalizeParserBackend, type ParserBackend } from './axilogParser';
-import { migrateParserBackendToAxilog } from './parserBackendMigration';
+import { AxilogManager } from './axilogParser';
+import { removeEliteInsights } from './eliteInsightsRemoval';
+import { DEFAULT_PARSER_SETTINGS, PARSER_SETTINGS_STORE_KEY, type ParserSettings } from './parserSettings';
 import { parseCliFlags } from './cliFlags';
 
 const cliFlags = parseCliFlags(process.argv);
@@ -235,40 +235,17 @@ let isQuitting = false
 let watcher: LogWatcher | null = null
 let uploader: Uploader | null = null
 let discord: DiscordNotifier | null = null
-let eiManager: EiManager | null = null
 let axilogManager: AxilogManager | null = null
 
-// ─── Parser backend selection ───────────────────────────────────────────────
-// `axilog` (the default) parses in-process via the @axiapps/axilog bindings;
-// `elite-insights` is the opt-out that spawns the .NET CLI. It is also the only
-// engine that emits Axilog data, which the migrated stats readers need — an
-// explicit Elite Insights selection is honoured, but its logs render empty in
-// the migrated views and say so via the coverage banner. See
-// DEFAULT_PARSER_BACKEND's doc comment and docs/axilog-cutover-report.md.
-const getParserBackend = (): ParserBackend => normalizeParserBackend(store.get('parserBackend'));
-
 /**
- * The parser to use for local parses. Falls back to EI when the user selected
- * axilog but its native binding could not be loaded on this platform.
+ * The parser. `null` only until `app.whenReady`; after that a `null` binding is
+ * a hard failure, not a fallback — the Elite Insights backend it used to fall
+ * back to no longer exists.
  */
-const getActiveParser = (): EiManager | AxilogManager | null => {
-    if (getParserBackend() === 'axilog' && axilogManager?.isInstalled()) return axilogManager;
-    return eiManager;
-};
+const getActiveParser = (): AxilogManager | null => axilogManager;
 
-/** True when a local parse is possible right now with the selected backend. */
-const isLocalParserAvailable = (): boolean => Boolean(getActiveParser()?.isInstalled());
-
-/**
- * True when the EI CLI download/update machinery should run at all.
- *
- * It stands down while axilog is the *selected*, *available* backend — which
- * under the axilog default is a fresh install, so nobody pays for the ~90 MB
- * download by default any more. It resumes for a user who opts out to Elite
- * Insights, and on a platform with no axilog binary, where EI is the fallback.
- */
-const shouldAutoManageEi = (): boolean =>
-    Boolean(store.get('autoManageEi', true)) && !(getParserBackend() === 'axilog' && Boolean(axilogManager?.isInstalled()));
+/** True when a local parse is possible right now. */
+const isLocalParserAvailable = (): boolean => Boolean(axilogManager?.isInstalled());
 
 // We always parse combat replay (EI v3.24+ only emits the distToCom/stackDist
 // distance scalars when it does; axilog never emits them and axilogParser.ts
@@ -638,7 +615,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
 
         // Set up local parse progress callback
         getActiveParser()?.setParseProgressCallback((data: string) => {
-            win?.webContents.send('ei:parse-progress', { logId: fileId, filePath, data });
+            win?.webContents.send('parser:parse-progress', { logId: fileId, filePath, data });
         });
 
         // Start dps.report upload in parallel (for permalink only) — don't await yet
@@ -780,7 +757,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 status: hasUsableDetails ? 'calculating' : 'success',
                 detailsStatus: hasUsableDetails ? 'available' as const : 'idle' as const,
                 // Whichever engine actually ran. Only 'axilog' attaches native.
-                parseSource: getParserBackend(),
+                parseSource: 'axilog' as const,
                 playerCount,
                 dashboardSummary,
                 squadGuilds
@@ -1198,23 +1175,27 @@ function initServices() {
     uploader = new Uploader();
     discord = new DiscordNotifier();
 
-    eiManager = new EiManager(app.getPath('userData'));
     axilogManager = new AxilogManager();
-    const savedEiSettings = store.get('eiParserSettings') as EiParserSettings | undefined;
-    const resolvedParserSettings = { ...DEFAULT_EI_SETTINGS, ...(savedEiSettings ?? {}) };
-    if (savedEiSettings) {
-        eiManager.setSettings(resolvedParserSettings);
+    const savedParserSettings = store.get(PARSER_SETTINGS_STORE_KEY) as Partial<ParserSettings> | undefined;
+    // axilogParser maps this onto axilog's ParseOptions; see
+    // mapParserSettingsToAxilogOptions.
+    axilogManager.setSettings({ ...DEFAULT_PARSER_SETTINGS, ...(savedParserSettings ?? {}) });
+
+    // One-time cleanup for the removal of the Elite Insights backend: drops its
+    // store keys and deletes the ~90 MB install. Runs before any window exists,
+    // so the notice it returns is read back over IPC rather than pushed.
+    const removal = removeEliteInsights(store, app.getPath('userData'));
+    if (removal) {
+        console.log(`[Main] Elite Insights removed (was selected: ${removal.wasSelected}, reclaimed ${removal.reclaimedBytes} bytes).`);
     }
-    // Both backends read the same user-facing settings object; axilogParser maps
-    // it onto axilog's ParseOptions (see mapEiSettingsToAxilogOptions).
-    axilogManager.setSettings(resolvedParserSettings);
-    // Before anything reads the backend: move a pre-cutover Elite Insights
-    // selection onto Axilog, once. See parserBackendMigration.ts.
-    const migration = migrateParserBackendToAxilog(store, axilogManager.isInstalled());
-    if (migration === 'migrated') {
-        console.log('[Main] Parser backend migrated: elite-insights → axilog (one-time).');
+    if (!axilogManager.isInstalled()) {
+        // Per the migration spec's decision 4, this is a hard failure rather
+        // than a silent degradation: with Elite Insights gone there is no
+        // second engine, and a parser that cannot parse must say so.
+        console.error(`[Main] FATAL: no @axiapps/axilog native binding for ${process.platform}-${process.arch}.`);
+    } else {
+        console.log(`[Main] Parser: axilog ${axilogManager.getStatus().version ?? 'unknown'}.`);
     }
-    console.log(`[Main] Parser backend: ${getParserBackend()} (axilog binding ${axilogManager.isInstalled() ? 'available' : 'UNAVAILABLE'})`);
 
     // Initialize Discord config
     const webhookUrl = store.get('discordWebhookUrl');
@@ -1240,36 +1221,6 @@ function initServices() {
         await processLogFile(filePath);
     });
 
-    // Headless: auto-manage EI without a window to wait for did-finish-load
-    if (cliFlags.headless) {
-        if (shouldAutoManageEi()) {
-            const runAutoManage = async () => {
-                try {
-                    eiManager!.setProgressCallback((progress) => {
-                        win?.webContents.send('ei:download-progress', progress);
-                    });
-                    if (!eiManager!.isInstalled()) {
-                        win?.webContents.send('ei:status-changed', { installed: false, version: null, updateAvailable: null, installing: true, error: null });
-                        await eiManager!.install();
-                        const status = { ...eiManager!.getStatus(), installing: false, error: null };
-                        win?.webContents.send('ei:status-changed', status);
-                    } else {
-                        const updateVersion = await eiManager!.checkForUpdate();
-                        if (updateVersion) {
-                            win?.webContents.send('ei:status-changed', { ...eiManager!.getStatus(), updateAvailable: updateVersion, installing: true, error: null });
-                            await eiManager!.installCli();
-                            const status = { ...eiManager!.getStatus(), installing: false, error: null };
-                            win?.webContents.send('ei:status-changed', status);
-                        }
-                    }
-                } catch (err: any) {
-                    const status = { ...eiManager!.getStatus(), installing: false, error: err?.message || 'Auto-manage failed' };
-                    win?.webContents.send('ei:status-changed', status);
-                }
-            };
-            setTimeout(runAutoManage, 2000);
-        }
-    }
 }
 
 function createWindow() {
@@ -1329,39 +1280,6 @@ function createWindow() {
     });
 
     initServices();
-
-    // Auto-manage EI: install if missing, update if outdated. Skipped entirely
-    // when the axilog backend is active — there is nothing to download.
-    if (shouldAutoManageEi()) {
-        const runAutoManage = async () => {
-            try {
-                eiManager!.setProgressCallback((progress) => {
-                    win?.webContents.send('ei:download-progress', progress);
-                });
-                if (!eiManager!.isInstalled()) {
-                    win?.webContents.send('ei:status-changed', { installed: false, version: null, updateAvailable: null, installing: true, error: null });
-                    await eiManager!.install();
-                    const status = { ...eiManager!.getStatus(), installing: false, error: null };
-                    win?.webContents.send('ei:status-changed', status);
-                } else {
-                    const updateVersion = await eiManager!.checkForUpdate();
-                    if (updateVersion) {
-                        win?.webContents.send('ei:status-changed', { ...eiManager!.getStatus(), updateAvailable: updateVersion, installing: true, error: null });
-                        await eiManager!.installCli();
-                        const status = { ...eiManager!.getStatus(), installing: false, error: null };
-                        win?.webContents.send('ei:status-changed', status);
-                    }
-                }
-            } catch (err: any) {
-                const status = { ...eiManager!.getStatus(), installing: false, error: err?.message || 'Auto-manage failed' };
-                win?.webContents.send('ei:status-changed', status);
-            }
-        };
-        // Run after window loads so IPC events reach the renderer
-        win.webContents.on('did-finish-load', () => {
-            setTimeout(runAutoManage, 2000);
-        });
-    }
 
     win.webContents.on('did-finish-load', () => {
         win?.webContents.send('main-process-message', (new Date).toLocaleString())
@@ -1488,7 +1406,6 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
     isQuitting = true;
-    eiManager?.killActiveProcess();
     axilogManager?.killActiveProcess();
 });
 
@@ -1852,15 +1769,13 @@ if (!gotTheLock) {
             store,
             getWindow: () => win,
         });
-        registerEiHandlers({
+        registerParserHandlers({
             store,
             getWindow: () => win,
-            getEiManager: () => eiManager!,
             getAxilogManager: () => axilogManager,
         });
         registerReparseHandlers({
             getAxilogManager: () => axilogManager,
-            getBackend: () => getParserBackend(),
             getPruneOptions: statsPruneOptions,
             setBulkLogDetails,
         });

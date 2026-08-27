@@ -35,11 +35,8 @@ const needsReparse = (log: any): boolean => {
 };
 
 export function HistoryReparseCard({
-    backend,
     onLogsHealed,
 }: {
-    /** The selected parse engine; re-parsing needs Axilog to be the active one. */
-    backend: 'axilog' | 'elite-insights' | null;
     onLogsHealed?: (filePaths: string[]) => void;
 }) {
     const detailsCache = useContext(DetailsCacheContext);
@@ -62,7 +59,6 @@ export function HistoryReparseCard({
         }
     }, []);
 
-    const wrongBackend = backend === 'elite-insights';
     const busy = healState.running;
 
     return (
@@ -74,17 +70,11 @@ export function HistoryReparseCard({
                 <code className="mx-1 text-gray-300">.zevtc</code> files again and fills that back in.
             </p>
 
-            {wrongBackend && (
-                <div className="text-xs text-yellow-300 mb-3">
-                    Elite Insights is the selected engine, so re-parsing would produce the same gap. Pick Axilog
-                    above first.
-                </div>
-            )}
 
             <div className="flex flex-wrap gap-2">
                 <button
                     type="button"
-                    disabled={scanning || busy || wrongBackend}
+                    disabled={scanning || busy}
                     onClick={scan}
                     data-testid="history-reparse-scan"
                     className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
@@ -96,7 +86,7 @@ export function HistoryReparseCard({
                 {targets !== null && targets.length > 0 && (
                     <button
                         type="button"
-                        disabled={busy || wrongBackend}
+                        disabled={busy}
                         onClick={async () => { await heal(targets); await scan(); }}
                         data-testid="history-reparse-run"
                         className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-blue-500/10 text-blue-200 border-blue-500/30 hover:bg-blue-500/20 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"

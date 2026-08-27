@@ -4,13 +4,11 @@ import * as fs from 'node:fs';
 
 import {
     AxilogManager,
-    DEFAULT_PARSER_BACKEND,
     applyEiCompatShims,
     formatEncounterDuration,
-    mapEiSettingsToAxilogOptions,
-    normalizeParserBackend,
+    mapParserSettingsToAxilogOptions,
 } from '../axilogParser';
-import { DEFAULT_EI_SETTINGS } from '../eiParser';
+import { DEFAULT_PARSER_SETTINGS } from '../parserSettings';
 import { pruneDetailsForStats, buildDashboardSummaryFromDetails, hasUsableFightDetails } from '../detailsProcessing';
 import { getDistanceScalars, getPositionTracks, getArena } from '@axiapps/bridge-metrics/nativePositioning';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
@@ -43,41 +41,11 @@ const FIXTURE_CANDIDATES = [
 
 const FIXTURE = FIXTURE_CANDIDATES.find((p) => fs.existsSync(p)) ?? FIXTURE_CANDIDATES[1];
 
-// ─── Backend selection ────────────────────────────────────────────────────────
-
-describe('shipped default backend', () => {
-    it('defaults to axilog', () => {
-        expect(DEFAULT_PARSER_BACKEND).toBe('axilog');
-    });
-
-    it('resolves every unrecognized value to axilog', () => {
-        expect(normalizeParserBackend(undefined)).toBe('axilog');
-        expect(normalizeParserBackend(null)).toBe('axilog');
-        expect(normalizeParserBackend('')).toBe('axilog');
-        expect(normalizeParserBackend('Axilog')).toBe('axilog');
-        expect(normalizeParserBackend('elite insights')).toBe('axilog');
-    });
-
-    it('still honours an explicit elite-insights selection', () => {
-        expect(normalizeParserBackend('elite-insights')).toBe('elite-insights');
-    });
-
-    it('coerces anything that is not an exact id to the shipped default', () => {
-        // The hardening: a corrupt or hand-edited store can never land a user
-        // on an engine they did not pick. Mis-cased and whitespace-padded
-        // spellings of BOTH ids are rejected, so this test keeps its
-        // discriminating power whichever way DEFAULT_PARSER_BACKEND points.
-        for (const bad of ['AxiLog', ' axilog ', 'axi-log', 'Elite-Insights', ' elite-insights ', 'eliteinsights', 0, {}, []]) {
-            expect(normalizeParserBackend(bad)).toBe(DEFAULT_PARSER_BACKEND);
-        }
-    });
-});
-
 // ─── Settings mapping ─────────────────────────────────────────────────────────
 
-describe('mapEiSettingsToAxilogOptions', () => {
-    it('maps the default EI settings onto the full read surface', () => {
-        expect(mapEiSettingsToAxilogOptions(DEFAULT_EI_SETTINGS)).toEqual({
+describe('mapParserSettingsToAxilogOptions', () => {
+    it('maps the default parser settings onto the full read surface', () => {
+        expect(mapParserSettingsToAxilogOptions(DEFAULT_PARSER_SETTINGS)).toEqual({
             replay: true,
             skillDamage: true,
             timeseries: true,
@@ -86,30 +54,30 @@ describe('mapEiSettingsToAxilogOptions', () => {
         });
     });
 
-    it('always requests replay, mirroring generateEiConf hardcoding ParseCombatReplay=True', () => {
+    it('always requests replay, whatever the retention setting says', () => {
         // `parseCombatReplay` controls post-parse RETENTION, not parsing —
         // the positions are what the derived distToCom/stackDist are built from.
-        const off = mapEiSettingsToAxilogOptions({ ...DEFAULT_EI_SETTINGS, parseCombatReplay: false });
-        const on = mapEiSettingsToAxilogOptions({ ...DEFAULT_EI_SETTINGS, parseCombatReplay: true });
+        const off = mapParserSettingsToAxilogOptions({ ...DEFAULT_PARSER_SETTINGS, parseCombatReplay: false });
+        const on = mapParserSettingsToAxilogOptions({ ...DEFAULT_PARSER_SETTINGS, parseCombatReplay: true });
         expect(off.replay).toBe(true);
         expect(on.replay).toBe(true);
     });
 
     it('maps computeDamageModifiers -> modifiers and rawTimelineArrays -> timeseries', () => {
-        const opts = mapEiSettingsToAxilogOptions({
-            ...DEFAULT_EI_SETTINGS,
+        const opts = mapParserSettingsToAxilogOptions({
+            ...DEFAULT_PARSER_SETTINGS,
             computeDamageModifiers: false,
             rawTimelineArrays: false,
         });
         expect(opts.modifiers).toBe(false);
         expect(opts.timeseries).toBe(false);
-        // These have no EI conf counterpart (real EI always emits them).
+        // These have no user-facing counterpart; forced on for the read surface.
         expect(opts.skillDamage).toBe(true);
         expect(opts.rotation).toBe(true);
     });
 
     it('treats missing settings as the permissive default', () => {
-        expect(mapEiSettingsToAxilogOptions(undefined)).toEqual({
+        expect(mapParserSettingsToAxilogOptions(undefined)).toEqual({
             replay: true,
             skillDamage: true,
             timeseries: true,
@@ -279,7 +247,7 @@ describe('AxilogManager', () => {
                 return { durationMS: 1000, players: [], fightName: 'Detailed WvW - Somewhere' };
             },
         });
-        mgr.setSettings({ ...DEFAULT_EI_SETTINGS, computeDamageModifiers: false });
+        mgr.setSettings({ ...DEFAULT_PARSER_SETTINGS, computeDamageModifiers: false });
         mgr.setParseProgressCallback((line) => progress.push(line));
 
         const result: any = await mgr.parseLog('/tmp/fake.zevtc', 'log-1');
@@ -294,7 +262,7 @@ describe('AxilogManager', () => {
 
     it('round-trips settings', () => {
         const mgr = new AxilogManager(null);
-        mgr.setSettings({ ...DEFAULT_EI_SETTINGS, parseCombatReplay: true });
+        mgr.setSettings({ ...DEFAULT_PARSER_SETTINGS, parseCombatReplay: true });
         expect(mgr.getSettings().parseCombatReplay).toBe(true);
     });
 });
@@ -326,7 +294,7 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
 
     beforeAll(async () => {
         const mgr = new AxilogManager();
-        mgr.setSettings(DEFAULT_EI_SETTINGS);
+        mgr.setSettings(DEFAULT_PARSER_SETTINGS);
         details = await mgr.parseLog(FIXTURE, 'fixture');
     }, 120_000);
 

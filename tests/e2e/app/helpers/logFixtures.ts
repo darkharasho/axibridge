@@ -9,7 +9,7 @@ import { type Page } from '@playwright/test';
  * All three used to carry their own byte-identical copy of the id list, the
  * directory constant and the route handler below. That is how they came to
  * disagree with the app: they were all still pointed at `test-fixtures/boon/`,
- * which holds hosted Elite Insights JSON pulled from dps.report and therefore
+ * which holds hosted EI-shaped JSON pulled from dps.report and therefore
  * carries no `details.native`. Since the axilog cutover the replay reader is
  * native-only — `buildMovementData` returns null without it (see
  * `src/shared/movementData.ts`) — so those specs were feeding the app a shape

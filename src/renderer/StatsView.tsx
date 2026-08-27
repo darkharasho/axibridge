@@ -317,19 +317,6 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     // without Axilog data while it was already resolving their
     // details; this view is where that becomes visible and actionable.
     const axilogCoverage = externalAggregationResult?.axilogCoverage ?? EMPTY_AXILOG_COVERAGE;
-    const [parserBackend, setParserBackend] = useState<'axilog' | 'elite-insights' | null>(null);
-    useEffect(() => {
-        if (embedded) return;
-        let cancelled = false;
-        window.electronAPI?.getParserBackend?.()
-            .then((info: any) => {
-                if (!cancelled && (info?.backend === 'axilog' || info?.backend === 'elite-insights')) {
-                    setParserBackend(info.backend);
-                }
-            })
-            .catch(() => { /* leave null — the banner just omits the remedy */ });
-        return () => { cancelled = true; };
-    }, [embedded]);
     const { healState, heal } = useAxilogHeal({ detailsCache, onLogsHealed });
 
     const getDetails = (log: any): any => {
@@ -4374,7 +4361,6 @@ type SpikeFight = {
             <AxilogCoverageBanner
                 embedded={embedded}
                 coverage={axilogCoverage}
-                parserBackend={parserBackend}
                 healState={healState}
                 onHeal={() => heal(axilogCoverage.missingLogs)}
             />

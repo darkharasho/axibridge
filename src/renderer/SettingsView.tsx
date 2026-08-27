@@ -1,7 +1,7 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind } from 'lucide-react';
-import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IEiParserSettings, IEiStatus, IParserBackendInfo, ParserBackendId } from './global.d';
+import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IParserSettings, IParserStatus } from './global.d';
 import { normalizeMvpWeightProfiles } from './stats/mvpWeightProfiles';
 import { ReportWebhooksCard } from './ReportWebhooksCard';
 import type { IReportWebhook } from '../shared/reportWebhooks';
@@ -74,54 +74,6 @@ const SETTINGS_SECTIONS = [
     { id: 'legal', label: 'Legal' }
 ];
 
-/**
- * The parse engine this build ships selected when the user has expressed no
- * preference, and when the host exposes no parser IPC at all (the web build).
- *
- * Mirrors `DEFAULT_PARSER_BACKEND` in `src/main/axilogParser.ts` — the renderer
- * cannot import from the main process, so this is a hand-kept copy. It is only
- * ever a *pre-resolution* placeholder: `parser:get-backend` reports the real
- * default in its `default` field, and the card adopts that as soon as it lands.
- */
-const SHIPPED_DEFAULT_BACKEND: ParserBackendId = 'axilog';
-
-/**
- * The two parse engines, in the order they are offered.
- *
- * Axilog leads because it is the default and the only engine that produces the
- * data the stats views read. The `implications` lines are the user-visible
- * consequences, not a feature list — Elite Insights' cost is no longer just the
- * download and the wait, it is that logs parsed with it render empty in the
- * migrated views, and that is the first thing someone choosing it should know.
- */
-const PARSER_BACKEND_OPTIONS: Array<{
-    id: ParserBackendId;
-    label: string;
-    summary: string;
-    implications: string[];
-}> = [
-        {
-            id: 'axilog',
-            label: 'Axilog (default)',
-            summary: 'Parses in-process in under a second. Nothing to download.',
-            implications: [
-                'No .NET runtime or Elite Insights download — ships with the app',
-                'Seconds instead of minutes on large logs',
-                'A few per-target Offense Detailed columns read whole-fight totals or blank'
-            ]
-        },
-        {
-            id: 'elite-insights',
-            label: 'Elite Insights (legacy)',
-            summary: 'The original GW2 Elite Insights CLI, run as a separate process.',
-            implications: [
-                'Does not produce Axilog data — damage, positioning, boons and replay read empty',
-                'Downloads ~90 MB on first use and needs a .NET runtime',
-                'Noticeably slower — seconds to minutes per log'
-            ]
-        }
-    ];
-
 const IMPORT_SETTING_META: Array<{ key: string; label: string; description: string; section: string }> = [
     { key: 'logDirectory', label: 'Log Directory', description: 'Path to the ArcDPS log folder.', section: 'Logs & Uploads' },
     { key: 'dpsReportToken', label: 'dps.report Token', description: 'User token for uploads.', section: 'Logs & Uploads' },
@@ -175,7 +127,7 @@ interface SettingsViewProps {
     onParticlesEnabledSaved?: (enabled: boolean) => void;
     onAllowLocalJsonSaved?: (enabled: boolean) => void;
     /** Keeps App's copy (the dashboard Quick Settings card) in sync with edits made here. */
-    onEiSettingsSaved?: (settings: IEiParserSettings) => void;
+    onParserSettingsSaved?: (settings: IParserSettings) => void;
     onR2PreciseReplaySaved?: (enabled: boolean) => void;
     onR2HostingEnabledSaved?: (enabled: boolean) => void;
     onR2SliceEnabledSaved?: (enabled: boolean) => void;
@@ -266,7 +218,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onEiSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [reportWebhooks, setReportWebhooks] = useState<IReportWebhook[]>([]);
@@ -283,17 +235,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [glassmorphic, setGlassmorphic] = useState(glassmorphicProp ?? false);
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
-    const [eiStatus, setEiStatus] = useState<IEiStatus>({ installed: false, version: null, updateAvailable: null, installing: false, error: null });
-    const [eiSettings, setEiSettings] = useState<IEiParserSettings | null>(null);
-    const [eiDownloadProgress, setEiDownloadProgress] = useState<{ percent: number; message: string } | null>(null);
-    const [eiCheckingUpdate, setEiCheckingUpdate] = useState(false);
-    const [eiUpdateCheckResult, setEiUpdateCheckResult] = useState<'none' | null>(null);
-    const [eiReinstalling, setEiReinstalling] = useState(false);
-    const [eiUninstalling, setEiUninstalling] = useState(false);
-    const [autoManageEi, setAutoManageEi] = useState(true);
-    /** Bytes the Elite Insights install occupies, once main has walked it. */
-    const [eiDiskBytes, setEiDiskBytes] = useState<number | null>(null);
-    const [parserBackend, setParserBackend] = useState<IParserBackendInfo | null>(null);
+    const [parserSettings, setParserSettings] = useState<IParserSettings | null>(null);
+    const [parserStatus, setParserStatus] = useState<IParserStatus | null>(null);
     const [githubRepoName, setGithubRepoName] = useState('');
     const [githubRepoOwner, setGithubRepoOwner] = useState('');
     const [githubToken, setGithubToken] = useState('');
@@ -626,7 +569,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (loadedCommanderThresholds && typeof loadedCommanderThresholds === 'object') {
             setCommanderThresholds({ ...DEFAULT_COMMANDER_THRESHOLDS, ...loadedCommanderThresholds });
         }
-        window.electronAPI.getEiAutoManage().then(setAutoManageEi);
         setGithubRepoOwner(settings.githubRepoOwner || '');
         setGithubCreateOwner('');
         setGithubRepoName(settings.githubRepoName || '');
@@ -661,53 +603,22 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         };
         loadSettings();
 
-        if (window.electronAPI?.getEiStatus) {
-            window.electronAPI.getEiStatus().then(setEiStatus);
+        if (window.electronAPI?.getParserStatus) {
+            window.electronAPI.getParserStatus().then(setParserStatus);
         }
-        if (window.electronAPI?.getEiSettings) {
-            window.electronAPI.getEiSettings().then(setEiSettings);
-        }
-        if (window.electronAPI?.getParserBackend) {
-            window.electronAPI.getParserBackend().then(setParserBackend);
+        if (window.electronAPI?.getParserSettings) {
+            window.electronAPI.getParserSettings().then(setParserSettings);
         }
 
-        const unsubProgress = window.electronAPI?.onEiDownloadProgress?.(setEiDownloadProgress);
-        const unsubStatus = window.electronAPI?.onEiStatusChanged?.((status) => {
-            setEiStatus(status);
-            setEiDownloadProgress(null);
-        });
-        // The main process echoes every accepted change back (already
-        // normalized), so the card reflects what was actually persisted rather
-        // than what was clicked.
-        const unsubBackend = window.electronAPI?.onParserBackendChanged?.(({ backend }) => {
-            setParserBackend((prev) => (prev ? { ...prev, backend } : prev));
-        });
+        // Main echoes every accepted change back, so the card reflects what was
+        // actually persisted rather than what was clicked.
+        const unsubSettings = window.electronAPI?.onParserSettingsChanged?.(setParserSettings);
 
         return () => {
-            unsubProgress?.();
-            unsubStatus?.();
-            unsubBackend?.();
+            unsubSettings?.();
         };
     }, []);
 
-    /**
-     * How much disk the Elite Insights install is holding.
-     *
-     * Re-asked whenever the install state flips, because the number is only
-     * ever shown to justify uninstalling — after an uninstall it must go away,
-     * and after a fresh install it must appear.
-     */
-    useEffect(() => {
-        if (!eiStatus.installed || !window.electronAPI?.getEiDiskUsage) {
-            setEiDiskBytes(null);
-            return;
-        }
-        let cancelled = false;
-        window.electronAPI.getEiDiskUsage()
-            .then((result) => { if (!cancelled) setEiDiskBytes(result?.bytes ?? null); })
-            .catch(() => { if (!cancelled) setEiDiskBytes(null); });
-        return () => { cancelled = true; };
-    }, [eiStatus.installed]);
 
     useEffect(() => {
         if (!window.electronAPI?.onClearDpsReportCacheProgress) return;
@@ -832,12 +743,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     // Optimized: Removed manual wheel listener that was causing severe scroll lag and conflicts with overlay elements (Terminal)
     // The container uses standard CSS overflow-y-auto which handles scrolling natively and efficiently.
 
-    const saveEiSetting = (key: keyof IEiParserSettings, value: any) => {
-        if (!eiSettings) return;
-        const updated = { ...eiSettings, [key]: value };
-        setEiSettings(updated);
-        window.electronAPI.saveEiSettings({ [key]: value });
-        onEiSettingsSaved?.(updated);
+    const saveParserSetting = (key: keyof IParserSettings, value: any) => {
+        if (!parserSettings) return;
+        const updated = { ...parserSettings, [key]: value };
+        setParserSettings(updated);
+        window.electronAPI.saveParserSettings({ [key]: value });
+        onParserSettingsSaved?.(updated);
     };
 
     const handleExportSettings = async () => {
@@ -2864,34 +2775,36 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     <div ref={parserSettingsRef}>
                     <SettingsSection title="Parser Settings" icon={Zap} delay={0.2} sectionId="parser-settings" hidden={settingsSearchHidden.has('parser-settings')}>
                         <p className="text-sm text-gray-400 mb-4">
-                            Choose the engine that turns your combat logs into detailed statistics, and manage the
-                            Elite Insights install it can fall back to.
+                            Combat logs are parsed in-process by Axilog, which ships with the app. There is nothing
+                            to install, update or choose.
                         </p>
 
-                        {/* Parse engine selection */}
-                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4" data-testid="parser-backend-card">
+                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4" data-testid="parser-status-card">
                             <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Parse Engine</div>
                             {/*
-                              * The one-time migration changed a setting the user
-                              * had chosen by hand, so it says so where the setting
-                              * lives — and the picker below is the undo.
+                              * The removal deleted an install and, for some users, a
+                              * setting they had chosen by hand. It says so where that
+                              * setting used to live, once.
                               */}
-                            {parserBackend?.migratedFromEliteInsights && (
+                            {parserStatus?.eliteInsightsRemoval && (
                                 <div
-                                    data-testid="parser-backend-migration-notice"
+                                    data-testid="elite-insights-removal-notice"
                                     className="bg-blue-500/10 border border-blue-500/30 rounded-[4px] px-3 py-2.5 mb-3 flex items-start gap-3"
                                 >
                                     <div className="flex-1 text-xs text-blue-100 leading-snug">
-                                        <span className="font-semibold">Switched to Axilog.</span>{' '}
-                                        You had selected Elite Insights, which no longer produces the data the stats
-                                        views read — damage, positioning, boons and replay come out empty on logs it
-                                        parses. Pick Elite Insights below to switch back.
+                                        <span className="font-semibold">Elite Insights has been removed.</span>{' '}
+                                        {parserStatus.eliteInsightsRemoval.wasSelected
+                                            ? 'You had selected it as your parse engine; Axilog is now the only engine and parses everything in-process. '
+                                            : 'Axilog has been your engine for a while, so nothing about your parses changes. '}
+                                        {parserStatus.eliteInsightsRemoval.reclaimedBytes > 0
+                                            ? `Deleting the unused install and its .NET runtime freed ${formatDiskMb(parserStatus.eliteInsightsRemoval.reclaimedBytes)}.`
+                                            : ''}
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            setParserBackend((prev) => (prev ? { ...prev, migratedFromEliteInsights: false } : prev));
-                                            window.electronAPI?.ackParserMigrationNotice?.();
+                                            setParserStatus((prev: IParserStatus | null) => (prev ? { ...prev, eliteInsightsRemoval: null } : prev));
+                                            window.electronAPI?.ackEliteInsightsRemovalNotice?.();
                                         }}
                                         className="text-xs text-blue-300/70 hover:text-blue-100 flex-shrink-0"
                                     >
@@ -2899,320 +2812,46 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     </button>
                                 </div>
                             )}
-                            <div className="grid gap-3">
-                                {PARSER_BACKEND_OPTIONS.map((option) => {
-                                    // Before `getParserBackend` resolves (and in
-                                    // hosts that expose no such API, e.g. the web
-                                    // build) fall back to the shipped default so
-                                    // the card never renders with nothing selected.
-                                    const selected = parserBackend?.backend ?? SHIPPED_DEFAULT_BACKEND;
-                                    const isActive = selected === option.id;
-                                    const unavailable = option.id === 'axilog'
-                                        && parserBackend !== null
-                                        && !parserBackend.axilogAvailable;
-                                    return (
-                                        <button
-                                            key={option.id}
-                                            type="button"
-                                            role="radio"
-                                            aria-checked={isActive}
-                                            data-testid={`parser-backend-${option.id}`}
-                                            disabled={unavailable}
-                                            onClick={() => {
-                                                if (unavailable || isActive) return;
-                                                // Picking an engine by hand answers the migration
-                                                // notice, whichever way it goes — main does the same.
-                                                setParserBackend((prev) => (prev ? { ...prev, backend: option.id, migratedFromEliteInsights: false } : prev));
-                                                window.electronAPI?.setParserBackend?.(option.id);
-                                            }}
-                                            className={`text-left rounded-[4px] border px-4 py-3 transition-colors ${isActive
-                                                ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
-                                                : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
-                                                } ${unavailable ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm font-semibold">{option.label}</div>
-                                                <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
-                                                    {unavailable ? 'Unavailable' : isActive ? 'Selected' : 'Select'}
-                                                </div>
-                                            </div>
-                                            <div className="text-xs text-gray-400 mt-1">{option.summary}</div>
-                                            <ul className="mt-2 space-y-1 text-xs text-gray-500">
-                                                {option.implications.map((item, idx) => (
-                                                    <li key={`${option.id}-${idx}`}>• {item}</li>
-                                                ))}
-                                            </ul>
-                                        </button>
-                                    );
-                                })}
+                            <div className="text-sm text-gray-200">
+                                {parserStatus && !parserStatus.available
+                                    ? 'Axilog is unavailable on this platform'
+                                    : `Axilog${parserStatus?.version ? ` ${parserStatus.version}` : ''}`}
                             </div>
-                            {parserBackend && !parserBackend.axilogAvailable && (
-                                <div className="text-xs text-yellow-300 mt-3">
-                                    Axilog has no prebuilt binary for this platform, so Elite Insights is being used
-                                    regardless of the selection above.
+                            {parserStatus && !parserStatus.available && (
+                                <div className="text-xs text-red-400 mt-2" data-testid="parser-unavailable">
+                                    No prebuilt Axilog binary exists for this platform, so logs cannot be parsed
+                                    locally. Please report this — include your operating system and architecture.
                                 </div>
                             )}
                             <div className="text-xs text-gray-500 mt-3">
-                                Applies to the next log parsed — no restart needed. Logs already in your history keep
-                                the statistics they were parsed with; re-parse them to switch engines retroactively.
-                                {parserBackend?.backend === 'elite-insights' && !eiStatus.installed
-                                    ? ' Elite Insights is not installed yet — use Install below before your next parse.'
-                                    : ''}
-                                {parserBackend?.axilogVersion ? ` Axilog ${parserBackend.axilogVersion}.` : ''}
+                                Parses in-process in under a second — no download, no .NET runtime, no separate
+                                process.
                             </div>
                         </div>
 
-                        <HistoryReparseCard
-                            backend={parserBackend?.backend ?? null}
-                            onLogsHealed={onLogsHealed}
-                        />
-
-                        {/* Auto-manage toggle */}
-                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4">
-                            <Toggle
-                                label="Automatically install and update"
-                                description="Checks for updates on startup and installs automatically"
-                                enabled={autoManageEi}
-                                onChange={(v) => { setAutoManageEi(v); window.electronAPI.setEiAutoManage(v); }}
-                            />
-                        </div>
-
-                        {/* EI Management */}
-                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4">
-                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Elite Insights Installation</div>
-                            <div className="text-sm text-gray-200 mb-2">
-                                {eiStatus.installed && eiStatus.version
-                                    ? `Elite Insights v${eiStatus.version} installed`
-                                    : 'Not installed'}
-                            </div>
-                            {eiStatus.updateAvailable && (
-                                <div className="text-xs text-yellow-300 mb-2">
-                                    Update available: v{eiStatus.updateAvailable}
-                                </div>
-                            )}
-                            {/*
-                              * Axilog parses in-process, so a user on it is holding an
-                              * Elite Insights CLI and a private .NET runtime that nothing
-                              * calls any more. Uninstalling is theirs to decide — going
-                              * back to Elite Insights means re-downloading all of it — so
-                              * this names the cost rather than reclaiming it for them.
-                              */}
-                            {eiStatus.installed && parserBackend?.backend === 'axilog' && (
-                                <div className="text-xs text-gray-400 mb-2" data-testid="ei-unused-hint">
-                                    Axilog is the selected engine, so this install is no longer used for parsing.
-                                    Uninstalling frees{eiDiskBytes ? ` ${formatDiskMb(eiDiskBytes)}` : ' the space it holds'}.
-                                </div>
-                            )}
-                            {eiStatus.error && (
-                                <div className="text-xs text-red-400 mb-2">{eiStatus.error}</div>
-                            )}
-                            {eiDownloadProgress && (
-                                <div className="text-xs text-blue-300 mb-2">
-                                    {eiDownloadProgress.message}{!isNaN(eiDownloadProgress.percent) && ` (${Math.round(eiDownloadProgress.percent)}%)`}
-                                </div>
-                            )}
-                            <div className="flex flex-wrap gap-2 mt-3">
-                                {!eiStatus.installed && (
-                                    <ParticleHover className="rounded-[4px]" disabled={!particlesEnabled} color="#3b82f6">
-                                        <button
-                                            type="button"
-                                            disabled={eiStatus.installing}
-                                            onClick={() => window.electronAPI.installEi()}
-                                            className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-blue-500/10 text-blue-200 border-blue-500/30 hover:bg-blue-500/20 disabled:opacity-50 transition-colors"
-                                        >
-                                            {eiStatus.installing ? 'Installing...' : 'Install'}
-                                        </button>
-                                    </ParticleHover>
-                                )}
-                                {eiStatus.installed && eiStatus.updateAvailable && (
-                                    <ParticleHover className="rounded-[4px]" disabled={!particlesEnabled} color="#10b981">
-                                        <button
-                                            type="button"
-                                            disabled={eiStatus.installing}
-                                            onClick={() => window.electronAPI.updateEi()}
-                                            className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/10 text-emerald-200 border-emerald-500/30 hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
-                                        >
-                                            {eiStatus.installing ? 'Updating...' : 'Update'}
-                                        </button>
-                                    </ParticleHover>
-                                )}
-                                {eiStatus.installed && (
-                                    <ParticleHover className="rounded-[4px]" disabled={!particlesEnabled} color="#9ca3af">
-                                        <button
-                                            type="button"
-                                            disabled={eiStatus.installing || eiCheckingUpdate}
-                                            onClick={async () => {
-                                                setEiCheckingUpdate(true);
-                                                setEiUpdateCheckResult(null);
-                                                try {
-                                                    const result = await window.electronAPI.checkEiUpdate();
-                                                    if (result.updateAvailable) {
-                                                        setEiStatus((s) => ({ ...s, updateAvailable: result.updateAvailable }));
-                                                    } else {
-                                                        setEiUpdateCheckResult('none');
-                                                        setTimeout(() => setEiUpdateCheckResult(null), 4000);
-                                                    }
-                                                } finally {
-                                                    setEiCheckingUpdate(false);
-                                                }
-                                            }}
-                                            className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
-                                        >
-                                            <RefreshCw className={`w-3 h-3 ${eiCheckingUpdate ? 'animate-spin' : ''}`} style={eiCheckingUpdate ? { animationDuration: '2s' } : undefined} />
-                                            {eiCheckingUpdate ? 'Checking...' : 'Check for Updates'}
-                                        </button>
-                                    </ParticleHover>
-                                )}
-                                {eiStatus.installed && (
-                                    <ParticleHover className="rounded-[4px]" disabled={!particlesEnabled} color="#9ca3af">
-                                        <button
-                                            type="button"
-                                            disabled={eiStatus.installing || eiReinstalling}
-                                            onClick={async () => {
-                                                setEiReinstalling(true);
-                                                try {
-                                                    await window.electronAPI.reinstallEi();
-                                                } finally {
-                                                    setEiReinstalling(false);
-                                                }
-                                            }}
-                                            className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
-                                        >
-                                            <RefreshCw className={`w-3 h-3 ${eiReinstalling ? 'animate-spin' : ''}`} style={eiReinstalling ? { animationDuration: '2s' } : undefined} />
-                                            {eiReinstalling ? 'Reinstalling...' : 'Reinstall'}
-                                        </button>
-                                    </ParticleHover>
-                                )}
-                                {eiStatus.installed && (
-                                    <ParticleHover className="rounded-[4px]" disabled={!particlesEnabled} color="#ef4444">
-                                        <button
-                                            type="button"
-                                            disabled={eiStatus.installing || eiUninstalling}
-                                            onClick={async () => {
-                                                setEiUninstalling(true);
-                                                try {
-                                                    const status = await window.electronAPI.uninstallEi();
-                                                    if (status) setEiStatus(status);
-                                                } finally {
-                                                    setEiUninstalling(false);
-                                                }
-                                            }}
-                                            className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
-                                        >
-                                            <Trash2 className={`w-3 h-3 ${eiUninstalling ? 'animate-pulse' : ''}`} style={eiUninstalling ? { animationDuration: '2s' } : undefined} />
-                                            {eiUninstalling ? 'Uninstalling...' : 'Uninstall'}
-                                        </button>
-                                    </ParticleHover>
-                                )}
-                            </div>
-                            {eiUpdateCheckResult === 'none' && (
-                                <div className="text-xs text-gray-400 mt-2">No update available — you're on the latest version.</div>
-                            )}
-                        </div>
+                        <HistoryReparseCard onLogsHealed={onLogsHealed} />
 
                         {/* Parser Options */}
-                        {eiSettings && (
-                            <div className="space-y-4">
-                                <div className="bg-black/30 border border-white/10 rounded-[4px] p-4">
-                                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Analysis</div>
-                                    <div className="divide-y divide-white/5">
-                                        <Toggle
-                                            label="Detailed WvW Parse"
-                                            enabled={eiSettings.detailledWvW}
-                                            onChange={(v) => saveEiSetting('detailledWvW', v)}
-                                        />
-                                        <Toggle
-                                            label="Compute Damage Modifiers"
-                                            enabled={eiSettings.computeDamageModifiers}
-                                            onChange={(v) => saveEiSetting('computeDamageModifiers', v)}
-                                        />
-                                        <Toggle
-                                            label="Parse Phases"
-                                            enabled={eiSettings.parsePhases}
-                                            onChange={(v) => saveEiSetting('parsePhases', v)}
-                                        />
-                                        <Toggle
-                                            label="Skip Failed Tries"
-                                            enabled={eiSettings.skipFailedTries}
-                                            onChange={(v) => saveEiSetting('skipFailedTries', v)}
-                                        />
-                                        <Toggle
-                                            label="Anonymize Players"
-                                            enabled={eiSettings.anonymous}
-                                            onChange={(v) => saveEiSetting('anonymous', v)}
-                                        />
-                                        <div className="flex items-center justify-between py-3">
-                                            <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-200">Min Combat Duration</div>
-                                                <div className="text-xs text-gray-500 mt-0.5">Minimum milliseconds to count a fight (default: 2200)</div>
-                                            </div>
-                                            <input
-                                                type="text"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                value={eiSettings.customTooShort}
-                                                onChange={(e) => {
-                                                    const n = parseInt(e.target.value, 10);
-                                                    if (!isNaN(n) && n >= 0) saveEiSetting('customTooShort', n);
-                                                }}
-                                                className="w-20 bg-black/40 border border-white/10 rounded-[4px] px-2 py-1 text-xs text-gray-200 text-right focus:outline-none focus:border-cyan-400/50"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-black/30 border border-white/10 rounded-[4px] p-4">
-                                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Output</div>
-                                    <div className="divide-y divide-white/5">
-                                        <Toggle
-                                            label="Generate HTML Report"
-                                            enabled={eiSettings.saveOutHTML}
-                                            onChange={(v) => saveEiSetting('saveOutHTML', v)}
-                                        />
-                                        <Toggle
-                                            label="Detailed Combat Replay (required for Map Replay)"
-                                            enabled={eiSettings.parseCombatReplay}
-                                            onChange={(v) => saveEiSetting('parseCombatReplay', v)}
-                                        />
-                                        <Toggle
-                                            label="Light Theme for HTML"
-                                            enabled={eiSettings.lightTheme}
-                                            onChange={(v) => saveEiSetting('lightTheme', v)}
-                                        />
-                                        <Toggle
-                                            label="Include Timeline Arrays"
-                                            enabled={eiSettings.rawTimelineArrays}
-                                            onChange={(v) => saveEiSetting('rawTimelineArrays', v)}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="bg-black/30 border border-white/10 rounded-[4px] p-4">
-                                    <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Performance</div>
-                                    <div className="divide-y divide-white/5">
-                                        <Toggle
-                                            label="Single Threaded"
-                                            enabled={eiSettings.singleThreaded}
-                                            onChange={(v) => saveEiSetting('singleThreaded', v)}
-                                        />
-                                        <div className="flex items-center justify-between py-3">
-                                            <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-200">Memory Limit MB</div>
-                                                <div className="text-xs text-gray-500 mt-0.5">0 = auto</div>
-                                            </div>
-                                            <input
-                                                type="text"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                value={eiSettings.memoryLimit}
-                                                onChange={(e) => {
-                                                    const n = parseInt(e.target.value, 10);
-                                                    if (!isNaN(n) && n >= 0) saveEiSetting('memoryLimit', n);
-                                                }}
-                                                className="w-20 bg-black/40 border border-white/10 rounded-[4px] px-2 py-1 text-xs text-gray-200 text-right focus:outline-none focus:border-cyan-400/50"
-                                            />
-                                        </div>
-                                    </div>
+                        {parserSettings && (
+                            <div className="bg-black/30 border border-white/10 rounded-[4px] p-4">
+                                <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Analysis</div>
+                                <div className="divide-y divide-white/5">
+                                    <Toggle
+                                        label="Compute Damage Modifiers"
+                                        enabled={parserSettings.computeDamageModifiers}
+                                        onChange={(v) => saveParserSetting('computeDamageModifiers', v)}
+                                    />
+                                    <Toggle
+                                        label="Detailed Combat Replay (required for Map Replay)"
+                                        description="Keeps per-player position tracks. Off still computes distance-to-tag; it only drops the position arrays, which are the bulk of a report's size."
+                                        enabled={parserSettings.parseCombatReplay}
+                                        onChange={(v) => saveParserSetting('parseCombatReplay', v)}
+                                    />
+                                    <Toggle
+                                        label="Include Timeline Arrays"
+                                        enabled={parserSettings.rawTimelineArrays}
+                                        onChange={(v) => saveParserSetting('rawTimelineArrays', v)}
+                                    />
                                 </div>
                             </div>
                         )}

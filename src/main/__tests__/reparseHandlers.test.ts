@@ -40,7 +40,6 @@ const setup = (overrides: Partial<Parameters<typeof registerReparseHandlers>[0]>
     handlers.clear();
     registerReparseHandlers({
         getAxilogManager: () => ({ isInstalled: () => true, parseLog } as any),
-        getBackend: () => 'axilog',
         getPruneOptions: () => ({ keepReplayPositions: true }),
         setBulkLogDetails,
         ...overrides,
@@ -80,15 +79,6 @@ describe('log:reparse-axilog', () => {
         const { invoke } = setup({ getPruneOptions: () => ({ keepReplayPositions: false }) });
         await invoke({ filePath: '/logs/a.zevtc' });
         expect(prune).toHaveBeenCalledWith(expect.anything(), { keepReplayPositions: false });
-    });
-
-    it('refuses on the Elite Insights engine instead of switching parsers silently', async () => {
-        const { parseLog, invoke } = setup({ getBackend: () => 'elite-insights' });
-
-        const result = await invoke({ filePath: '/logs/a.zevtc' });
-
-        expect(result).toMatchObject({ success: false, reason: 'wrong-backend' });
-        expect(parseLog).not.toHaveBeenCalled();
     });
 
     it('refuses when axilog is not available on this platform', async () => {

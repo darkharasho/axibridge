@@ -3,26 +3,17 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import { QuickSettingsCard } from '../QuickSettingsCard';
 import { QUICK_SETTINGS, type QuickSettingsContext } from '../quickSettings';
-import { DEFAULT_STATS_VIEW_SETTINGS, type IEiParserSettings } from '../../global.d';
+import { DEFAULT_STATS_VIEW_SETTINGS, type IParserSettings } from '../../global.d';
 
-const EI_SETTINGS: IEiParserSettings = {
-    detailledWvW: true,
+const PARSER_SETTINGS: IParserSettings = {
     computeDamageModifiers: true,
-    parsePhases: true,
-    skipFailedTries: false,
-    anonymous: false,
-    customTooShort: 2200,
-    saveOutHTML: false,
     parseCombatReplay: true,
-    lightTheme: false,
     rawTimelineArrays: false,
-    singleThreaded: false,
-    memoryLimit: 0,
 };
 
 const makeContext = (overrides?: Partial<QuickSettingsContext>): QuickSettingsContext => ({
-    eiSettings: { ...EI_SETTINGS },
-    setEiSetting: vi.fn(),
+    parserSettings: { ...PARSER_SETTINGS },
+    setParserSetting: vi.fn(),
     statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS },
     setStatsViewSettings: vi.fn(),
     r2Hosting: null,
@@ -62,7 +53,7 @@ describe('QuickSettingsCard', () => {
 
     it('reflects each setting current value as aria-checked', () => {
         const context = makeContext({
-            eiSettings: { ...EI_SETTINGS, parseCombatReplay: false },
+            parserSettings: { ...PARSER_SETTINGS, parseCombatReplay: false },
             statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, noEgoMode: true },
         });
         render(<QuickSettingsCard context={context} />);
@@ -76,7 +67,7 @@ describe('QuickSettingsCard', () => {
         render(<QuickSettingsCard context={context} />);
 
         await user.click(screen.getByRole('switch', { name: /Combat Replay/i }));
-        expect(context.setEiSetting).toHaveBeenCalledWith('parseCombatReplay', false);
+        expect(context.setParserSetting).toHaveBeenCalledWith('parseCombatReplay', false);
 
         await user.click(screen.getByRole('switch', { name: /No Ego/i }));
         expect(context.setStatsViewSettings).toHaveBeenCalledWith({
@@ -87,13 +78,13 @@ describe('QuickSettingsCard', () => {
 
     it('disables EI-backed rows until EI settings load, leaving others usable', async () => {
         const user = userEvent.setup();
-        const context = makeContext({ eiSettings: null });
+        const context = makeContext({ parserSettings: null });
         render(<QuickSettingsCard context={context} />);
 
         const combatReplay = screen.getByRole('switch', { name: /Combat Replay/i });
         expect(combatReplay).toBeDisabled();
         await user.click(combatReplay);
-        expect(context.setEiSetting).not.toHaveBeenCalled();
+        expect(context.setParserSetting).not.toHaveBeenCalled();
 
         expect(screen.getByRole('switch', { name: /No Ego/i })).not.toBeDisabled();
     });

@@ -20,8 +20,6 @@ import type { AxilogManager } from '../axilogParser';
 import { pruneDetailsForStats, hasUsableFightDetails, attachConditionMetrics } from '../detailsProcessing';
 
 export type ReparseFailure =
-    /** The user is on the Elite Insights engine; re-parsing would switch engines behind their back. */
-    | 'wrong-backend'
     /** No axilog binding on this platform. */
     | 'axilog-unavailable'
     /** The original `.zevtc` is gone, so there is nothing left to parse. */
@@ -39,31 +37,18 @@ export interface ReparseResult {
 
 export interface ReparseHandlerOptions {
     getAxilogManager: () => AxilogManager | null;
-    /** The selected parser backend, read fresh on every call. */
-    getBackend: () => string;
     getPruneOptions: () => { keepReplayPositions: boolean };
     /** Writes the healed details back into the store `get-log-details` reads. */
     setBulkLogDetails: (filePath: string, details: any) => void;
 }
 
 export function registerReparseHandlers(opts: ReparseHandlerOptions) {
-    const { getAxilogManager, getBackend, getPruneOptions, setBulkLogDetails } = opts;
+    const { getAxilogManager, getPruneOptions, setBulkLogDetails } = opts;
 
     ipcMain.handle('log:reparse-axilog', async (_event, payload: { filePath?: string }): Promise<ReparseResult> => {
         const filePath = typeof payload?.filePath === 'string' ? payload.filePath.trim() : '';
         if (!filePath) {
             return { success: false, reason: 'source-missing', error: 'Missing filePath.' };
-        }
-
-        // Deliberately refuses rather than silently switching engines. A user on
-        // Elite Insights picked it; healing their logs with axilog would change
-        // the numbers under them. The renderer tells them to switch instead.
-        if (getBackend() !== 'axilog') {
-            return {
-                success: false,
-                reason: 'wrong-backend',
-                error: 'Re-parsing requires the axilog parse engine.',
-            };
         }
 
         const manager = getAxilogManager();
