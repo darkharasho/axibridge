@@ -161,7 +161,7 @@ sys.stdout.write(json.dumps({'content': '<summary of what was implemented>'}))
   -d @- 'https://discord.com/api/v10/channels/$ARGUMENTS/messages'
 ```
 
-**8b. Update tags to "Closed" and archive (close) the thread:**
+**8b. Add the "Closed" tag and archive (close) the thread:**
 
 First, fetch the parent forum channel's available tags to find the "Closed" tag ID:
 
@@ -172,12 +172,21 @@ curl -s -H "Authorization: Bot <token>" "https://discord.com/api/v10/channels/<p
 
 The `parent_id` comes from the thread metadata fetched in Step 3.
 
-Then PATCH the thread to set only the "Closed" tag (removing all others) and archive it:
+Then PATCH the thread to **add** the "Closed" tag and archive it.
+
+**Keep the thread's existing tags.** Bug/Idea and product tags (AxiBridge, AxiLog, etc.)
+are what make closed threads findable later — closing a thread must not strip them.
+Take `applied_tags` from the Step 3 metadata, append the "Closed" tag id if it isn't
+already there, and send the combined list. Drop only a conflicting status tag such as
+"Wont Do". Discord caps `applied_tags` at 5.
 
 ```bash
 python3 -c "
 import json, sys
-sys.stdout.write(json.dumps({'applied_tags': ['<closed_tag_id>'], 'archived': True}))
+existing = <applied_tags from Step 3 metadata>
+closed = '<closed_tag_id>'
+tags = existing + ([closed] if closed not in existing else [])
+sys.stdout.write(json.dumps({'applied_tags': tags, 'archived': True}))
 " | curl -s -w '\n%{http_code}' -X PATCH \
   -H 'Authorization: Bot <token>' \
   -H 'Content-Type: application/json' \
@@ -185,3 +194,14 @@ sys.stdout.write(json.dumps({'applied_tags': ['<closed_tag_id>'], 'archived': Tr
 ```
 
 If any call returns 403, report that the bot lacks permission for that action and move on to the next sub-step.
+
+If a PATCH returns 400 with `{"message": "Thread is archived", "code": 50083}`, the thread
+was already closed — an archived thread accepts no other edits. Unarchive it first, then
+re-send the tags and archive in one PATCH:
+
+```bash
+echo '{"archived": false}' | curl -s -X PATCH \
+  -H 'Authorization: Bot <token>' -H 'Content-Type: application/json' \
+  -d @- 'https://discord.com/api/v10/channels/$ARGUMENTS'
+# then re-run the applied_tags + archived:true PATCH above
+```
