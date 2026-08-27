@@ -6,6 +6,13 @@ import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDrop
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
+import {
+    buildModSummaries,
+    hasPersonalModClassification,
+    type ModMapEntry,
+    type ModSummary,
+    type ModTotals,
+} from './damageModifierSummaries';
 
 type DamageModifiersSectionProps = {
     search: string;
@@ -32,18 +39,6 @@ const SECTION_CONFIG = {
         accentBorder: 'border-[color:var(--accent-border)]',
         barGradientStyle: 'linear-gradient(to right, rgba(59,130,246,0.4), rgba(59,130,246,0.15))',
     },
-};
-
-type ModTotals = { damageGain: number; hitCount: number; totalHitCount: number; totalDamage: number };
-type ModMapEntry = { name: string; icon: string; description: string; incoming: boolean };
-
-type ModSummary = {
-    id: string;
-    name: string;
-    icon: string;
-    description: string;
-    squadDamageGain: number;
-    isPersonal: boolean;
 };
 
 export const DamageModifiersSection = ({
@@ -75,36 +70,15 @@ export const DamageModifiersSection = ({
     // --- Hypothetical toggle ---
     const [showHypothetical, setShowHypothetical] = useState(false);
 
+    // Native axilog logs carry no `personalDamageMods`, so there is nothing to
+    // separate personal modifiers from shared ones — hide the toggle rather
+    // than let it filter every modifier away.
+    const canFilterHypothetical = hasPersonalModClassification(personalModKeys);
+
     // --- Build sorted modifier list ---
-    const modSummaries = useMemo<ModSummary[]>(() => {
-        const summaryMap: Record<string, ModSummary> = {};
-        for (const row of playerRows) {
-            const modTotals: Record<string, ModTotals> = row[totalsKey] ?? {};
-            for (const [modId, vals] of Object.entries(modTotals)) {
-                const info = modMap[modId];
-                if (!info) continue;
-                // Filter: only show modifiers matching the incoming flag
-                if (info.incoming !== incoming) continue;
-                // Filter: hide hypothetical (shared) modifiers unless toggled
-                const isPersonal = personalModKeys.has(modId);
-                if (!isPersonal && !showHypothetical) continue;
-                if (!summaryMap[modId]) {
-                    summaryMap[modId] = {
-                        id: modId,
-                        name: info.name,
-                        icon: info.icon,
-                        description: info.description,
-                        squadDamageGain: 0,
-                        isPersonal,
-                    };
-                }
-                summaryMap[modId].squadDamageGain += vals.damageGain;
-            }
-        }
-        return Object.values(summaryMap).sort(
-            (a, b) => Math.abs(b.squadDamageGain) - Math.abs(a.squadDamageGain)
-        );
-    }, [playerRows, modMap, incoming, totalsKey, personalModKeys, showHypothetical]);
+    const modSummaries = useMemo<ModSummary[]>(() => buildModSummaries({
+        playerRows, totalsKey, modMap, personalModKeys, incoming, showHypothetical,
+    }), [playerRows, modMap, incoming, totalsKey, personalModKeys, showHypothetical]);
 
     // --- Filtered modifiers by search ---
     const filteredMods = useMemo(() => {
@@ -182,7 +156,7 @@ export const DamageModifiersSection = ({
                 }
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>{config.title}</h3>
                 <div className="ml-auto flex items-center gap-2">
-                    <button
+                    {canFilterHypothetical && <button
                         type="button"
                         onClick={() => setShowHypothetical((v) => !v)}
                         className={`px-2.5 py-1 rounded-[var(--radius-md)] border text-[10px] uppercase tracking-widest transition-colors ${
@@ -194,7 +168,16 @@ export const DamageModifiersSection = ({
                         title={showHypothetical ? 'Showing all modifiers including shared squad buffs (banners, spirits, etc.) that are attributed to every benefiting player — not just the provider' : 'Show hypothetical shared modifiers — squad-wide buffs where damage gain is attributed to all benefiting players, not the buff source'}
                     >
                         Hypothetical
-                    </button>
+                    </button>}
+                    {!canFilterHypothetical && modSummaries.length > 0 && (
+                        <span
+                            className="px-2.5 py-1 rounded-[var(--radius-md)] border text-[10px] uppercase tracking-widest"
+                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}
+                            title="This log set was parsed without a personal-modifier catalog, so personal and shared modifiers cannot be told apart — every modifier is listed, including squad-wide buffs whose damage gain is attributed to all benefiting players rather than to the buff source."
+                        >
+                            All
+                        </span>
+                    )}
                     <button
                         type="button"
                         onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(config.sectionId))}
