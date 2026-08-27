@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
+import { DEFAULT_PARSER_SETTINGS } from '../parserSettings';
 import { buildNativeCarrySet, CARRIED_PATHS } from '../nativeCarrySet';
 import { listConditionApplications, getEntityConditionDamageTakenRows } from '@axiapps/bridge-metrics/nativeConditions';
 import { computeOutgoingConditions } from '@axiapps/bridge-metrics/conditionsMetrics';
 import { AxilogManager } from '../axilogParser';
-import { DEFAULT_EI_SETTINGS } from '../eiParser';
 import {
     getEntitySkillRows,
     getEntityDamageTotal,
@@ -131,7 +131,7 @@ describe.runIf(binding && fs.existsSync(COMMITTED_FIXTURE))(
     () => {
         it('produces non-empty damage and boon output through AxilogManager.parseLog', async () => {
             const mgr = new AxilogManager();
-            mgr.setSettings(DEFAULT_EI_SETTINGS);
+            mgr.setSettings(DEFAULT_PARSER_SETTINGS);
             const details: any = await mgr.parseLog(COMMITTED_FIXTURE, 'carry-set-guard');
             expect(details.native).toBeTruthy();
 

@@ -146,38 +146,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importSettings: () => ipcRenderer.invoke('import-settings'),
     selectSettingsFile: () => ipcRenderer.invoke('select-settings-file'),
 
-    // Parser backend selection ('axilog' | 'elite-insights')
-    getParserBackend: () => ipcRenderer.invoke('parser:get-backend'),
-    setParserBackend: (backend: string) => ipcRenderer.send('parser:set-backend', backend),
-    ackParserMigrationNotice: () => ipcRenderer.send('parser:ack-migration-notice'),
-    onParserBackendChanged: (callback: (data: any) => void) => {
-        ipcRenderer.on('parser:backend-changed', (_event, value) => callback(value));
-        return () => { ipcRenderer.removeAllListeners('parser:backend-changed'); };
+    // Parser (axilog; the Elite Insights backend was removed)
+    getParserStatus: () => ipcRenderer.invoke('parser:get-status'),
+    ackEliteInsightsRemovalNotice: () => ipcRenderer.send('parser:ack-removal-notice'),
+    getParserSettings: () => ipcRenderer.invoke('parser:get-settings'),
+    saveParserSettings: (settings: any) => ipcRenderer.send('parser:save-settings', settings),
+    onParserSettingsChanged: (callback: (data: any) => void) => {
+        ipcRenderer.on('parser:settings-changed', (_event, value) => callback(value));
+        return () => { ipcRenderer.removeAllListeners('parser:settings-changed'); };
     },
-
-    // EI (Elite Insights) local parser
-    getEiStatus: () => ipcRenderer.invoke('ei:get-status'),
-    installEi: () => ipcRenderer.invoke('ei:install'),
-    updateEi: () => ipcRenderer.invoke('ei:update'),
-    reinstallEi: () => ipcRenderer.invoke('ei:reinstall'),
-    uninstallEi: () => ipcRenderer.invoke('ei:uninstall'),
-    getEiDiskUsage: () => ipcRenderer.invoke('ei:get-disk-usage'),
-    checkEiUpdate: () => ipcRenderer.invoke('ei:check-update'),
-    getEiSettings: () => ipcRenderer.invoke('ei:get-settings'),
-    saveEiSettings: (settings: any) => ipcRenderer.send('ei:save-settings', settings),
-    getEiAutoManage: () => ipcRenderer.invoke('ei:get-auto-manage'),
-    setEiAutoManage: (enabled: boolean) => ipcRenderer.send('ei:set-auto-manage', enabled),
-    onEiDownloadProgress: (callback: (data: any) => void) => {
-        ipcRenderer.on('ei:download-progress', (_event, value) => callback(value));
-        return () => { ipcRenderer.removeAllListeners('ei:download-progress'); };
-    },
-    onEiParseProgress: (callback: (data: any) => void) => {
-        ipcRenderer.on('ei:parse-progress', (_event, value) => callback(value));
-        return () => { ipcRenderer.removeAllListeners('ei:parse-progress'); };
-    },
-    onEiStatusChanged: (callback: (data: any) => void) => {
-        ipcRenderer.on('ei:status-changed', (_event, value) => callback(value));
-        return () => { ipcRenderer.removeAllListeners('ei:status-changed'); };
+    onParseProgress: (callback: (data: any) => void) => {
+        ipcRenderer.on('parser:parse-progress', (_event, value) => callback(value));
+        return () => { ipcRenderer.removeAllListeners('parser:parse-progress'); };
     },
 
     onMaximizedChange: (callback: (maximized: boolean) => void) => {

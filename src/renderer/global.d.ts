@@ -334,7 +334,6 @@ export interface IElectronAPI {
         githubFavoriteRepos?: string[] | null;
         walkthroughSeen?: boolean;
         allowLocalJson?: boolean;
-        eiAnnouncementDismissed?: boolean;
         r2AccountId?: string | null;
         r2AccessKeyId?: string | null;
         r2SecretAccessKey?: string | null;
@@ -385,7 +384,6 @@ export interface IElectronAPI {
         githubFavoriteRepos?: string[] | null;
         walkthroughSeen?: boolean;
         allowLocalJson?: boolean;
-        eiAnnouncementDismissed?: boolean;
         r2AccountId?: string | null;
         r2AccessKeyId?: string | null;
         r2SecretAccessKey?: string | null;
@@ -411,7 +409,7 @@ export interface IElectronAPI {
     reparseLogAxilog: (payload: { filePath: string }) => Promise<{
         success: boolean;
         details?: any;
-        reason?: 'wrong-backend' | 'axilog-unavailable' | 'source-missing' | 'unusable-details' | 'parse-failed';
+        reason?: 'axilog-unavailable' | 'source-missing' | 'unusable-details' | 'parse-failed';
         error?: string;
     }>;
     onDetailsPrewarm?: (callback: (data: any) => void) => (() => void);
@@ -479,71 +477,40 @@ export interface IElectronAPI {
     onRequestRendererDiagnostics: (callback: () => void) => () => void;
     sendRendererDiagnostics: (payload: { heapUsed: number; heapTotal: number; heapLimit: number; logCount: number }) => void;
 
-    // Parser backend selection
-    getParserBackend: () => Promise<IParserBackendInfo>;
-    setParserBackend: (backend: ParserBackendId) => void;
-    ackParserMigrationNotice: () => void;
-    onParserBackendChanged: (callback: (data: { backend: ParserBackendId }) => void) => () => void;
-
-    // Elite Insights parser
-    getEiStatus: () => Promise<IEiStatus>;
-    installEi: () => Promise<void>;
-    updateEi: () => Promise<void>;
-    reinstallEi: () => Promise<void>;
-    uninstallEi: () => Promise<IEiStatus>;
-    /** Bytes the Elite Insights CLI + private .NET runtime occupy; 0 when not installed. */
-    getEiDiskUsage?: () => Promise<{ bytes: number }>;
-    checkEiUpdate: () => Promise<{ updateAvailable: string | null }>;
-    getEiSettings: () => Promise<IEiParserSettings>;
-    saveEiSettings: (settings: Partial<IEiParserSettings>) => void;
-    getEiAutoManage: () => Promise<boolean>;
-    setEiAutoManage: (enabled: boolean) => void;
-    onEiDownloadProgress: (callback: (data: { percent: number; message: string }) => void) => () => void;
-    onEiParseProgress: (callback: (data: { logId: string; message: string }) => void) => () => void;
-    onEiStatusChanged: (callback: (status: IEiStatus) => void) => () => void;
+    // Parser (axilog; the Elite Insights backend was removed)
+    getParserStatus: () => Promise<IParserStatus>;
+    ackEliteInsightsRemovalNotice: () => void;
+    getParserSettings: () => Promise<IParserSettings>;
+    saveParserSettings: (settings: Partial<IParserSettings>) => void;
+    onParserSettingsChanged: (callback: (settings: IParserSettings) => void) => () => void;
+    onParseProgress: (callback: (data: { logId: string; message: string }) => void) => () => void;
 }
 
-/** Mirrors `ParserBackend` in `src/main/axilogParser.ts`. */
-export type ParserBackendId = 'axilog' | 'elite-insights';
-
-/** Payload of the `parser:get-backend` IPC handler. */
-export interface IParserBackendInfo {
-    /** The persisted selection, already normalized to a known id. */
-    backend: ParserBackendId;
-    /** What an unset/corrupt store resolves to — `'axilog'` since axilog 0.3.0. */
-    default: ParserBackendId;
+/** Payload of the `parser:get-status` IPC handler. */
+export interface IParserStatus {
     /** Whether axilog's native binding actually loaded on this platform. */
-    axilogAvailable: boolean;
-    axilogVersion: string | null;
-    /**
-     * True when the one-time migration moved this user off Elite Insights and
-     * they have not been told yet. Stays true across restarts until acknowledged
-     * or until they pick an engine by hand.
-     */
-    migratedFromEliteInsights?: boolean;
-}
-
-export interface IEiParserSettings {
-    detailledWvW: boolean;
-    computeDamageModifiers: boolean;
-    parsePhases: boolean;
-    skipFailedTries: boolean;
-    anonymous: boolean;
-    customTooShort: number;
-    saveOutHTML: boolean;
-    parseCombatReplay: boolean;
-    lightTheme: boolean;
-    rawTimelineArrays: boolean;
-    singleThreaded: boolean;
-    memoryLimit: number;
-}
-
-export interface IEiStatus {
-    installed: boolean;
+    available: boolean;
     version: string | null;
-    updateAvailable: string | null;
-    installing: boolean;
-    error: string | null;
+    /**
+     * Set once, on the first launch after the Elite Insights backend was
+     * removed, when the removal changed something the user could notice.
+     * Survives restarts until acknowledged.
+     */
+    eliteInsightsRemoval: IEliteInsightsRemoval | null;
+}
+
+export interface IEliteInsightsRemoval {
+    /** The user had explicitly selected Elite Insights as their engine. */
+    wasSelected: boolean;
+    /** Bytes freed by deleting the install. */
+    reclaimedBytes: number;
+}
+
+/** Mirrors `ParserSettings` in `src/main/parserSettings.ts`. */
+export interface IParserSettings {
+    parseCombatReplay: boolean;
+    computeDamageModifiers: boolean;
+    rawTimelineArrays: boolean;
 }
 
 type DetailsStatus = 'idle' | 'loading' | 'available' | 'loaded' | 'exhausted' | 'unavailable';

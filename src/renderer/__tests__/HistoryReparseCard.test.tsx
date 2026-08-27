@@ -44,7 +44,7 @@ describe('HistoryReparseCard', () => {
             ]),
         });
 
-        render(<HistoryReparseCard backend="axilog" />);
+        render(<HistoryReparseCard />);
         fireEvent.click(screen.getByTestId('history-reparse-scan'));
 
         await waitFor(() => {
@@ -58,7 +58,7 @@ describe('HistoryReparseCard', () => {
             getLogs: vi.fn().mockResolvedValue([log({ parseSource: 'axilog' })]),
         });
 
-        render(<HistoryReparseCard backend="axilog" />);
+        render(<HistoryReparseCard />);
         fireEvent.click(screen.getByTestId('history-reparse-scan'));
 
         await waitFor(() => {
@@ -80,7 +80,7 @@ describe('HistoryReparseCard', () => {
         });
         const onLogsHealed = vi.fn();
 
-        render(<HistoryReparseCard backend="axilog" onLogsHealed={onLogsHealed} />);
+        render(<HistoryReparseCard onLogsHealed={onLogsHealed} />);
         fireEvent.click(screen.getByTestId('history-reparse-scan'));
         await waitFor(() => screen.getByTestId('history-reparse-run'));
         fireEvent.click(screen.getByTestId('history-reparse-run'));
@@ -95,11 +95,4 @@ describe('HistoryReparseCard', () => {
         expect(screen.getByText(/Bravo — File is gone\./)).toBeTruthy();
     });
 
-    it('refuses to run while Elite Insights is the selected engine', () => {
-        setApi();
-        render(<HistoryReparseCard backend="elite-insights" />);
-
-        expect((screen.getByTestId('history-reparse-scan') as HTMLButtonElement).disabled).toBe(true);
-        expect(screen.getByText(/Pick Axilog above first/)).toBeTruthy();
-    });
 });

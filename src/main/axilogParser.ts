@@ -1,71 +1,23 @@
 /**
  * axilog-backed parser backend.
  *
- * Drop-in replacement for {@link EiManager.parseLog} that produces the same
- * "EI JSON" object shape the stats pipeline already consumes, but by calling
- * the native `@axiapps/axilog` Rust bindings in-process instead of spawning
- * the Elite Insights .NET CLI. No download, no dotnet runtime, no temp files,
- * ~0.3s instead of ~10s-10min per log.
+ * Produces the "EI JSON" object shape the stats pipeline consumes, by calling
+ * the native `@axiapps/axilog` Rust bindings in-process. No download, no dotnet
+ * runtime, no temp files, ~0.3s instead of ~10s-10min per log.
  *
- * This backend is **capability complete and the default** (see
- * {@link DEFAULT_PARSER_BACKEND}). Elite Insights is one setting away at
- * Settings → Parser Settings → Parse Engine. See
+ * This is now the **only** parser: the Elite Insights .NET CLI backend was
+ * removed ahead of the native-format migration, so there is no engine to pick
+ * and no fallback to fall back to. The EI *shape* this emits is a separate
+ * thing and outlives the binary — it dies at the migration's Step N. See
  * `docs/axilog-cutover-report.md` for the read-surface audit that decided which
  * `ParseOptions` flags have to be on, which EI fields axilog still does not
  * emit (and which of those are reconstructed here), and the two methodology
  * caveats behind numbers that are present but not EI-identical.
  */
 
-import type { EiParserSettings } from './eiParser';
+import type { ParserSettings } from './parserSettings';
 import { buildNativeCarrySet } from './nativeCarrySet';
 import { normalizeAccountName } from '@axiapps/bridge-metrics/playerIdentity';
-
-// ─── Backend selection ────────────────────────────────────────────────────────
-
-export type ParserBackend = 'axilog' | 'elite-insights';
-
-/**
- * The parser used when the user has expressed no preference.
- *
- * **`'axilog'`.** The Elite Insights backend remains selectable at
- * Settings → Parser Settings → Parse Engine and is removed only at the end of
- * the native migration (the spec's "Step N"), so an explicit
- * `'elite-insights'` selection is still honoured.
- *
- * A fresh install now parses in-process via the `@axiapps/axilog` napi
- * bindings: no ~90 MB `GW2EICLI.zip` download, no .NET 8 runtime, no `dotnet`
- * child process, ~0.4 s instead of ~10 s-10 min per log.
- * `shouldAutoManageEi()` in `src/main/index.ts` reads this constant rather than
- * hardcoding an engine, so the auto-install stands down on its own.
- *
- * The read-surface case is closed. The original cutover audit found 30 missing
- * paths and four features rendering blank; axilog's MEIGAP/MEIGAP2 work closed
- * all four, and 0.3.4 widened the per-target split from 8 to 23 fields, which
- * retired both remaining workarounds (the `statsAll` offense fallback and the
- * enemy-downs substitution). See `docs/axilog-cutover-report.md` §1 for the
- * audit and `docs/superpowers/specs/2026-08-16-axilog-native-format-migration-design.md`
- * for where this sits in the migration.
- *
- * Two accuracy caveats that are *not* absences, and so do not degrade visibly —
- * read §2 of the cutover report before trusting the numbers: per-skill
- * `downContribution` is axilog's arcdps-methodology figure under EI's field
- * name, and the mitigation aggregate's secondary `minMitigation` term is
- * roster-shape-sensitive.
- */
-export const DEFAULT_PARSER_BACKEND: ParserBackend = 'axilog';
-
-/**
- * Coerce a persisted/IPC value to a known backend id, falling back to
- * {@link DEFAULT_PARSER_BACKEND}.
- *
- * Only the two exact ids are honoured; everything else — unset, empty,
- * mis-cased, whitespace-padded, unknown — resolves to
- * {@link DEFAULT_PARSER_BACKEND}. The hardening is symmetric by construction:
- * it always lands on the shipped default, so a corrupt or hand-edited store can
- * never put a user on an engine they did not pick.
- */
-export const normalizeParserBackend = (value: unknown): ParserBackend =>
-    value === 'axilog' || value === 'elite-insights' ? value : DEFAULT_PARSER_BACKEND;
 
 // ─── Settings mapping ─────────────────────────────────────────────────────────
 
@@ -83,7 +35,7 @@ export interface AxilogParseOptions {
 }
 
 /**
- * Map the existing user-facing {@link EiParserSettings} onto axilog's flags.
+ * Map the existing user-facing {@link ParserSettings} onto axilog's flags.
  *
  * - `replay` is **unconditionally true**, exactly as `generateEiConf` hardcodes
  *   `ParseCombatReplay=True`: it is what produces `players[].combatReplayData
@@ -102,7 +54,7 @@ export interface AxilogParseOptions {
  *   marker, so turning it off makes cached details look stale).
  * - `rawTimelineArrays` -> `timeseries` (`damage1S`/`damageTaken1S`/
  *   `targetDamage1S`/`dpsTargets`), matching EI's own `RawTimelineArrays` conf.
- * - `skillDamage` and `rotation` have no `EiParserSettings` counterpart because
+ * - `skillDamage` and `rotation` have no `ParserSettings` counterpart because
  *   real EI always emits `totalDamageDist`/`targetDamageDist`/
  *   `totalDamageTaken`/`rotation`; axilog makes them opt-in for payload-size
  *   reasons, so they are forced on here to keep the read surface identical.
@@ -112,8 +64,8 @@ export interface AxilogParseOptions {
  * `memoryLimit` have no axilog counterpart (axilog is WvW-first, single-fight,
  * never writes HTML, and is not phase-aware) and are ignored.
  */
-export const mapEiSettingsToAxilogOptions = (
-    settings: Partial<EiParserSettings> | null | undefined,
+export const mapParserSettingsToAxilogOptions = (
+    settings: Partial<ParserSettings> | null | undefined,
 ): AxilogParseOptions => ({
     replay: true,
     skillDamage: true,
@@ -312,13 +264,12 @@ const loadBinding = (): AxilogBinding | null => {
 type ParseProgressCallback = (line: string) => void;
 
 /**
- * `EiManager`-shaped facade over `@axiapps/axilog`, so `index.ts` can swap
- * backends behind one `getActiveParser()` without branching at every call
- * site. The install/update surface is inert: the parser ships as an npm
- * dependency with prebuilt platform binaries, so there is nothing to download.
+ * The parser. Ships as an npm dependency with prebuilt platform binaries, so
+ * there is nothing to install, update or download — {@link isInstalled} reports
+ * whether this platform's binding loaded, and nothing more.
  */
 export class AxilogManager {
-    private settings: Partial<EiParserSettings> = {};
+    private settings: Partial<ParserSettings> = {};
     private parseProgressCallback: ParseProgressCallback | null = null;
     private binding: AxilogBinding | null;
 
@@ -341,11 +292,11 @@ export class AxilogManager {
         return { installed: this.isInstalled(), version, updateAvailable: null };
     }
 
-    setSettings(settings: Partial<EiParserSettings>): void {
+    setSettings(settings: Partial<ParserSettings>): void {
         this.settings = { ...settings };
     }
 
-    getSettings(): Partial<EiParserSettings> {
+    getSettings(): Partial<ParserSettings> {
         return { ...this.settings };
     }
 
@@ -353,22 +304,21 @@ export class AxilogManager {
         this.parseProgressCallback = cb;
     }
 
-    /** No external process to kill — kept for interface parity with `EiManager`. */
+    /** No external process to kill; callers still invoke it on shutdown. */
     killActiveProcess(): void {
         /* no-op */
     }
 
     /**
-     * Parse `logPath` and return an EI-JSON-shaped object, matching
-     * {@link EiManager.parseLog}'s contract (`logId` is only used for progress
-     * reporting, as it is there).
+     * Parse `logPath` and return an EI-JSON-shaped object. `logId` is used
+     * only for progress reporting.
      */
     async parseLog(logPath: string, logId: string): Promise<unknown> {
         const binding = this.binding;
         if (!binding) {
             throw new Error('axilog native binding is not available on this platform');
         }
-        const options = mapEiSettingsToAxilogOptions(this.settings);
+        const options = mapParserSettingsToAxilogOptions(this.settings);
         this.parseProgressCallback?.(`[axilog] parsing ${logId}\n`);
         const started = Date.now();
         // Synchronous native call; wrapped so callers keep the Promise contract.
@@ -376,7 +326,9 @@ export class AxilogManager {
         // Carry native alongside EI for the duration of the migration. Migrated
         // readers read `details.native`; unmigrated ones keep reading EI. Both
         // halves come from ONE axilog version, so they cannot disagree about
-        // anything except shape. The EI half is deleted at Step N.
+        // anything except shape. The EI half is deleted at Step N — removing the
+        // Elite Insights *binary* did not remove this, and it is the larger of
+        // the two costs: ~285ms and ~2.6MB per log of duplicate parse.
         //
         // A native failure must never fail the parse: EI-shaped compute is still
         // the majority of the app. It degrades the migrated readers only.

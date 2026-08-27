@@ -1,5 +1,13 @@
 # axilog parser cutover
 
+> **Historical.** This is the read-surface audit that decided the axilog cutover, kept as
+> the record of *why* each field was judged safe to move. It describes a world with two
+> selectable backends; the Elite Insights binary was removed on 2026-08-27 and there is
+> no `parserBackend` setting or Parse Engine card any more. Read it for the field-by-field
+> findings, not for how the app is wired today — see
+> `docs/superpowers/specs/2026-08-16-axilog-native-format-migration-design.md` §"Step N"
+> for that.
+
 axibridge can parse logs in-process with
 **[axilog](https://github.com/darkharasho/axilog)** (`@axiapps/axilog` 0.3.2, native Rust bindings)
 instead of spawning the Elite Insights .NET CLI. Both backends are fully wired behind one

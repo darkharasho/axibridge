@@ -431,85 +431,40 @@ export function createElectronAPIMock(overrides?: ElectronAPIMockOverrides): voi
             return noop
         },
 
-        // ── Parser backend & local Elite Insights ────────────────
+        // ── Parser ───────────────────────────────────────────────
         // The renderer calls these during Settings' mount effect. When one is
         // absent the effect throws, React unwinds the subtree, and every
         // interaction assertion below it fails for a reason that has nothing
         // to do with what it was testing.
-        getParserBackend: (...args: any[]) => {
-            log('getParserBackend', args)
+        getParserStatus: (...args: any[]) => {
+            log('getParserStatus', args)
+            return Promise.resolve({ available: true, version: '1.7.1', eliteInsightsRemoval: null })
+        },
+        ackEliteInsightsRemovalNotice: (...args: any[]) => {
+            log('ackEliteInsightsRemovalNotice', args)
+        },
+        getParserSettings: (...args: any[]) => {
+            log('getParserSettings', args)
             return Promise.resolve({
-                backend: 'axilog',
-                default: 'axilog',
-                axilogAvailable: true,
-                axilogVersion: '0.3.2',
-                migratedFromEliteInsights: false,
+                parseCombatReplay: false,
+                computeDamageModifiers: true,
+                rawTimelineArrays: true,
             })
         },
-        setParserBackend: (...args: any[]) => {
-            log('setParserBackend', args)
+        saveParserSettings: (...args: any[]) => {
+            log('saveParserSettings', args)
         },
-        ackParserMigrationNotice: (...args: any[]) => {
-            log('ackParserMigrationNotice', args)
+        onParserSettingsChanged: (...args: any[]) => {
+            log('onParserSettingsChanged', args)
+            return () => {}
+        },
+        onParseProgress: (...args: any[]) => {
+            log('onParseProgress', args)
+            return () => {}
         },
         reparseLogAxilog: (...args: any[]) => {
             log('reparseLogAxilog', args)
             return Promise.resolve({ success: false, error: 'not available in tests' })
-        },
-        getEiStatus: (...args: any[]) => {
-            log('getEiStatus', args)
-            return Promise.resolve({ installed: false, version: null, updateAvailable: null, installing: false, error: null })
-        },
-        installEi: (...args: any[]) => {
-            log('installEi', args)
-            return Promise.resolve({ installed: false, version: null, updateAvailable: null, installing: false, error: null })
-        },
-        updateEi: (...args: any[]) => {
-            log('updateEi', args)
-            return Promise.resolve({ installed: false, version: null, updateAvailable: null, installing: false, error: null })
-        },
-        reinstallEi: (...args: any[]) => {
-            log('reinstallEi', args)
-            return Promise.resolve({ installed: false, version: null, updateAvailable: null, installing: false, error: null })
-        },
-        uninstallEi: (...args: any[]) => {
-            log('uninstallEi', args)
-            return Promise.resolve({ installed: false, version: null, updateAvailable: null, installing: false, error: null })
-        },
-        getEiDiskUsage: (...args: any[]) => {
-            log('getEiDiskUsage', args)
-            return Promise.resolve({ bytes: 0 })
-        },
-        checkEiUpdate: (...args: any[]) => {
-            log('checkEiUpdate', args)
-            return Promise.resolve({ updateAvailable: false })
-        },
-        getEiSettings: (...args: any[]) => {
-            log('getEiSettings', args)
-            return Promise.resolve({
-                detailledWvW: true,
-                computeDamageModifiers: true,
-                parsePhases: true,
-                skipFailedTries: false,
-                anonymous: false,
-                customTooShort: 2200,
-                saveOutHTML: false,
-                parseCombatReplay: false,
-                lightTheme: false,
-                rawTimelineArrays: true,
-                singleThreaded: false,
-                memoryLimit: 0,
-            })
-        },
-        saveEiSettings: (...args: any[]) => {
-            log('saveEiSettings', args)
-        },
-        getEiAutoManage: (...args: any[]) => {
-            log('getEiAutoManage', args)
-            return Promise.resolve(true)
-        },
-        setEiAutoManage: (...args: any[]) => {
-            log('setEiAutoManage', args)
         },
 
         // ── R2 replay storage ────────────────────────────────────

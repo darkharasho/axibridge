@@ -114,6 +114,11 @@ oracle tests. Measured on the fixture:
 block it reads. The standing cost is therefore the second parse, +64% per log rather than
 2×, and it disappears at Step N.
 
+> **Stale as of 2026-08-27.** Both ratios in this table have inverted after units 3-5b.
+> EI is now the *more* expensive parse, and the carry-set is 78% of the full native
+> report rather than 0.9% of it. Re-measured figures are under Step N.2 below; the
+> conclusion that `CARRIED_PATHS` earns its keep no longer follows from them.
+
 ### `ReportV1` is read directly
 
 No axibridge wrapper type. A wrapper would reintroduce the third shape decision 1
@@ -286,16 +291,60 @@ treat it as a bucket, not a single task.
 
 ### Step N — removing Elite Insights
 
-After unit 10, delete `src/main/eiParser.ts`, the EI auto-install/auto-update machinery,
-`registerEiHandlers`, the Parse Engine settings card, `SHIPPED_DEFAULT_BACKEND` and its
-drift guard, and the `parserBackend` store key itself.
+**Split in two, and the first half shipped early (2026-08-27).** This step originally
+bundled two removals that turned out to be independent: the Elite Insights *binary* and
+the EI *JSON shape*. Only the second depends on units 6-10.
 
-Removed with them: the ~90 MB `GW2EICLI.zip` + .NET 8 runtime first-run download, and
-every `dotnet` child process.
+**Step N.1 — the binary. DONE.** `src/main/eiParser.ts`, `handlers/eiHandlers.ts` and its
+eleven `ei:*` install/update/uninstall/disk-usage channels, the matching `electronAPI`
+surface, the Parse Engine picker, `EiAnnouncementBanner`, `ParserBackend` /
+`normalizeParserBackend` / `DEFAULT_PARSER_BACKEND` / `SHIPPED_DEFAULT_BACKEND`, the
+`parserBackend` and `autoManageEi` store keys, and `parserBackendMigration.ts` are all
+deleted. Gone with them: the ~90 MB `GW2EICLI.zip` + .NET 8 runtime first-run download,
+and every `dotnet` child process.
 
-Per decision 4, `getActiveParser()`'s silent fallback goes too. A native binding that
-fails to load becomes a **first-run hard failure** that names the platform and links a
-report, rather than a silent degradation.
+Per decision 4, `getActiveParser()`'s silent fallback went too — it now returns the
+`AxilogManager` or nothing, and a binding that fails to load is logged as a fatal at
+startup and surfaced in the Parser Settings card, rather than silently degrading.
+
+Two things the split made visible that the bundled version would have hidden:
+
+- `EiParserSettings` had **twelve** fields and axilog reads **three**
+  (`parseCombatReplay`, `computeDamageModifiers`, `rawTimelineArrays`). The other nine
+  were Elite Insights `settings.conf` lines with no axilog counterpart, and had been
+  inert since the axilog default flipped — including an **Anonymize Players** toggle on
+  the dashboard Quick Settings card, which had been doing nothing. They are gone from the
+  UI; the type is now `ParserSettings` in `src/main/parserSettings.ts`. The store key
+  stays `eiParserSettings`, deliberately: renaming it costs a migration and no user sees
+  it.
+- `parserBackendMigration.ts` gave up its one chance on purpose so a user who re-picked
+  Elite Insights kept it. With no second engine that restraint is meaningless, so
+  `eliteInsightsRemoval.ts` replaces it: unconditional, and it deletes the install
+  directory rather than orphaning ~90 MB with no UI left to remove it. It reports what it
+  reclaimed through `parser:get-status`, and the card says so once.
+
+The cost of the split: no escape hatch. An axilog parse regression used to be one setting
+away from a working app and is now a hard outage until a fix ships.
+
+**Step N.2 — the EI JSON shape.** Still gated on units 6-10. `parseFileEi` is an *axilog*
+function and was untouched by N.1, so every log is still parsed twice. Measured on
+`testdata/20260117-180135.zevtc` (38 entities), with the flags
+`mapParserSettingsToAxilogOptions` actually sends:
+
+| | parse | payload |
+|---|---|---|
+| `parseFileEi` (EI half) | 285 ms | 2.633 MB |
+| `parseFile` (native half) | 170 ms | 1.697 MB full |
+| current `CARRIED_PATHS` subset | — | 1.324 MB |
+| **shipped per log today** | **455 ms** | **3.96 MB** |
+
+Two figures from the measurement table above have **inverted** since it was written. EI is
+now the *expensive* half of the parse, not the cheap incumbent — deleting it saves ~63% of
+parse wall time and ~66% of the per-log payload, against the "+64%, and it disappears at
+Step N" framing recorded there. And the carry-set is now **78% of the entire native
+report** (1.324 of 1.697 MB), not the 154x projection that justified building a whitelist:
+carrying the whole report costs +0.373 MB and would delete `CARRIED_PATHS`, which has
+silently shipped broken three times.
 
 ### History migration
 

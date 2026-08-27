@@ -20,7 +20,7 @@ import { getNativeReport } from '@axiapps/bridge-metrics';
 export type ParseSource =
     /** In-process Axilog parse — the only source that produces Axilog data. */
     | 'axilog'
-    /** The Elite Insights .NET CLI, still selectable at Settings → Parse Engine. */
+    /** The Elite Insights .NET CLI. Backend removed; persisted logs still say this. */
     | 'elite-insights'
     /**
      * dps.report's `getJson`. No longer reachable — dps.report is upload-only

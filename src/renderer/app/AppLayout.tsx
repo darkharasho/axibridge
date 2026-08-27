@@ -10,7 +10,6 @@ import { StatsErrorBoundary } from '../stats/StatsErrorBoundary';
 import { CategoryBar } from '../stats/CategoryBar';
 import { Terminal } from '../Terminal';
 import { UpdateErrorModal } from '../UpdateErrorModal';
-import { EiAnnouncementBanner } from '../EiAnnouncementBanner';
 import { WalkthroughModal } from '../WalkthroughModal';
 import { WebhookModal } from '../WebhookModal';
 import { WhatsNewModal } from '../WhatsNewModal';
@@ -74,11 +73,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
         handleParserSettingsFocusConsumed,
         howToTrigger,
         handleHowToConsumed,
-        showEiBanner,
-        handleEiBannerDismiss,
-        handleEiBannerSetup,
-        eiAutoManageStatus,
-        eiAutoManageProgress,
         setWalkthroughOpen,
         setWhatsNewOpen,
         activityPanel,
@@ -110,7 +104,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setR2HostingEnabled,
         setR2SliceEnabled,
         refreshR2Status,
-        setEiSettings,
+        setParserSettings,
     } = ctx;
 
     const [activeNavView, setActiveNavView] = useState(view);
@@ -291,25 +285,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             )
                         )}
                     </AnimatePresence>
-                    {eiAutoManageStatus && !updateAvailable && !updateDownloaded && (
-                        <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            className="flex items-center gap-2 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border"
-                            style={eiAutoManageStatus.includes('EI:')
-                                ? { background: 'var(--status-error-bg)', color: 'var(--status-error)', borderColor: 'var(--status-error-border)' }
-                                : { background: 'var(--accent-bg)', color: 'var(--brand-primary)', borderColor: 'var(--accent-border)' }
-                            }
-                        >
-                            <RefreshCw className={`w-3 h-3 ${!eiAutoManageStatus.includes('EI:') ? 'animate-spin' : ''}`} />
-                            <span>
-                                {eiAutoManageProgress && !isNaN(eiAutoManageProgress.percent)
-                                    ? `${eiAutoManageStatus} ${Math.round(eiAutoManageProgress.percent)}%`
-                                    : eiAutoManageStatus}
-                            </span>
-                        </motion.div>
-                    )}
                     {!autoUpdateSupported && (
                         <div
                             className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border"
@@ -365,11 +340,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 </div>
             </div>
 
-            <EiAnnouncementBanner
-                visible={showEiBanner}
-                onSetup={handleEiBannerSetup}
-                onDismiss={handleEiBannerDismiss}
-            />
 
             <div className={`app-content relative z-10 max-w-none flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history' || view === 'commander') ? 'pt-4 px-4 pb-2 overflow-hidden' : 'p-4 overflow-hidden'}`} style={{ background: 'var(--bg-elevated)' }}>
 
@@ -453,7 +423,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onGlassmorphicSaved={setGlassmorphic}
                                 onParticlesEnabledSaved={setParticlesEnabled}
                                 onAllowLocalJsonSaved={setAllowLocalJson}
-                                onEiSettingsSaved={setEiSettings}
+                                onParserSettingsSaved={setParserSettings}
                                 onR2PreciseReplaySaved={setR2PreciseReplay}
                                 onR2HostingEnabledSaved={setR2HostingEnabled}
                                 onR2SliceEnabledSaved={setR2SliceEnabled}

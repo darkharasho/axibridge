@@ -18,8 +18,6 @@ import type { AxilogHealState } from '../hooks/useAxilogHeal';
 type AxilogCoverageBannerProps = {
     embedded: boolean;
     coverage: AxilogCoverage;
-    /** The selected parse engine. Re-parsing is only offered on Axilog. */
-    parserBackend: 'axilog' | 'elite-insights' | null;
     healState: AxilogHealState;
     onHeal: () => void;
 };
@@ -27,7 +25,6 @@ type AxilogCoverageBannerProps = {
 export const AxilogCoverageBanner = ({
     embedded,
     coverage,
-    parserBackend,
     healState,
     onHeal,
 }: AxilogCoverageBannerProps) => {
@@ -40,7 +37,7 @@ export const AxilogCoverageBanner = ({
     if (missing.length === 0 && !healState.running && healState.healed === 0) return null;
 
     const healable = missing.filter(isHealable);
-    const canHeal = parserBackend === 'axilog' && healable.length > 0 && !healState.running;
+    const canHeal = healable.length > 0 && !healState.running;
 
     // Nothing left to warn about, but the run just finished — report and stop.
     if (missing.length === 0) {
@@ -56,13 +53,11 @@ export const AxilogCoverageBanner = ({
         );
     }
 
-    const remedy = parserBackend === 'elite-insights'
-        ? 'Switch to the Axilog engine at Settings → Parser Settings → Parse Engine, then re-parse.'
-        : healable.length === 0
-            ? 'The original .zevtc files are no longer on disk, so these logs cannot be repaired.'
-            : healable.length < missing.length
-                ? `${healable.length} of them can be repaired; the rest no longer have their .zevtc on disk.`
-                : '';
+    const remedy = healable.length === 0
+        ? 'The original .zevtc files are no longer on disk, so these logs cannot be repaired.'
+        : healable.length < missing.length
+            ? `${healable.length} of them can be repaired; the rest no longer have their .zevtc on disk.`
+            : '';
 
     return (
         <div

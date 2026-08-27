@@ -1,4 +1,4 @@
-import type { IEiParserSettings, IStatsViewSettings } from '../global.d';
+import type { IParserSettings, IStatsViewSettings } from '../global.d';
 
 /**
  * Everything a quick setting needs to read and write itself.
@@ -27,8 +27,8 @@ export interface QuickR2Hosting {
 
 export interface QuickSettingsContext {
     /** Null until `getEiSettings` resolves; EI-backed rows stay disabled meanwhile. */
-    eiSettings: IEiParserSettings | null;
-    setEiSetting: (key: keyof IEiParserSettings, value: boolean) => void;
+    parserSettings: IParserSettings | null;
+    setParserSetting: (key: keyof IParserSettings, value: boolean) => void;
     statsViewSettings: IStatsViewSettings;
     setStatsViewSettings: (next: IStatsViewSettings) => void;
     /** Null until the main process answers; the R2 rows stay hidden meanwhile. */
@@ -58,8 +58,8 @@ export interface QuickSetting {
     isRelevant?: (ctx: QuickSettingsContext) => boolean;
 }
 
-const eiToggle = (
-    key: Extract<keyof IEiParserSettings, 'parseCombatReplay' | 'anonymous'>,
+const parserToggle = (
+    key: Extract<keyof IParserSettings, 'parseCombatReplay'>,
     label: string,
     hint: string,
 ): QuickSetting => ({
@@ -67,9 +67,9 @@ const eiToggle = (
     label,
     hint,
     kind: 'boolean',
-    read: (ctx) => Boolean(ctx.eiSettings?.[key]),
-    write: (ctx, value) => ctx.setEiSetting(key, value),
-    isReady: (ctx) => ctx.eiSettings !== null,
+    read: (ctx) => Boolean(ctx.parserSettings?.[key]),
+    write: (ctx, value) => ctx.setParserSetting(key, value),
+    isReady: (ctx) => ctx.parserSettings !== null,
 });
 
 const statsViewToggle = (
@@ -94,15 +94,10 @@ const statsViewToggle = (
  * renders whatever this list holds and knows nothing about individual keys.
  */
 export const QUICK_SETTINGS: QuickSetting[] = [
-    eiToggle(
+    parserToggle(
         'parseCombatReplay',
         'Combat Replay',
         'Keep per-player position data. Required for Map Replay; off shrinks each log considerably.',
-    ),
-    eiToggle(
-        'anonymous',
-        'Anonymize Players',
-        'Replace account names with placeholders at parse time.',
     ),
     statsViewToggle(
         'noEgoMode',

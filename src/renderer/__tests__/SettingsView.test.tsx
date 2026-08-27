@@ -12,7 +12,6 @@ import { DEFAULT_MVP_WEIGHT_PROFILES } from '../global.d';
 // Drift guard for SHIPPED_DEFAULT_BACKEND, the renderer-side hand-kept mirror
 // of the main-process default. The renderer cannot import from main at RUNTIME,
 // but a test can — so an owner flip that misses the mirror fails here.
-import { DEFAULT_PARSER_BACKEND } from '../../main/axilogParser';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -32,16 +31,17 @@ function makeElectronApiMock(settingsOverrides: Record<string, unknown> = {}) {
         getGithubOrgs: vi.fn().mockResolvedValue({ success: true, orgs: [] }),
         clearDpsReportCache: vi.fn().mockResolvedValue({ success: true, clearedEntries: 0 }),
         ensureGithubTemplate: vi.fn().mockResolvedValue({ success: true }),
-        getEiAutoManage: vi.fn().mockResolvedValue(false),
-        getParserBackend: vi.fn().mockResolvedValue({
-            backend: 'axilog',
-            default: 'axilog',
-            axilogAvailable: true,
-            axilogVersion: '0.3.0',
+        getParserStatus: vi.fn().mockResolvedValue({
+            available: true,
+            version: '1.7.1',
+            eliteInsightsRemoval: null,
         }),
-        setParserBackend: vi.fn(),
-        ackParserMigrationNotice: vi.fn(),
-        onParserBackendChanged: vi.fn(() => () => {}),
+        ackEliteInsightsRemovalNotice: vi.fn(),
+        getParserSettings: vi.fn().mockResolvedValue({
+            parseCombatReplay: false, computeDamageModifiers: true, rawTimelineArrays: true,
+        }),
+        saveParserSettings: vi.fn(),
+        onParserSettingsChanged: vi.fn(() => () => {}),
     };
 }
 
@@ -741,215 +741,80 @@ describe('SettingsView', () => {
     // -----------------------------------------------------------------------
     // Parse engine (parser backend) selection
     // -----------------------------------------------------------------------
+    // The Elite Insights backend is gone, so the card no longer picks an
+    // engine. What is left has to say what the parser is, say so loudly when
+    // there is no binding for this platform, and tell a user once that an
+    // install they may never have known about was deleted.
+    describe('Parser status card', () => {
+        const findCard = () => screen.findByTestId('parser-status-card');
 
-    // Axilog parses in-process, so a user on it keeps an Elite Insights CLI and
-    // a private .NET runtime that nothing calls. Nothing deletes it for them —
-    // going back to Elite Insights means re-downloading the lot — so the card
-    // has to at least say it is dead weight, and how much of it there is.
-    describe('Unused Elite Insights install', () => {
-        const installedApi = (over: Record<string, unknown> = {}) => ({
-            getEiStatus: vi.fn().mockResolvedValue({
-                installed: true, version: '3.24', updateAvailable: null, installing: false, error: null,
-            }),
-            getEiDiskUsage: vi.fn().mockResolvedValue({ bytes: 94 * 1024 * 1024 }),
-            ...over,
+        it('names the parser and its version', async () => {
+            renderSettings();
+            const card = await findCard();
+            expect(card.textContent).toContain('Axilog 1.7.1');
+            expect(card.textContent).not.toContain('Elite Insights has been removed');
         });
 
-        it('names the reclaimable size when Axilog is the selected engine', async () => {
-            renderSettings({}, {}, installedApi());
-
-            const hint = await screen.findByTestId('ei-unused-hint');
-            expect(hint.textContent).toContain('no longer used for parsing');
-            expect(hint.textContent).toContain('94 MB');
-        });
-
-        it('still says the install is unused when the size cannot be read', async () => {
-            renderSettings({}, {}, installedApi({ getEiDiskUsage: undefined }));
-
-            const hint = await screen.findByTestId('ei-unused-hint');
-            expect(hint.textContent).toContain('the space it holds');
-        });
-
-        it('stays silent while Elite Insights is the engine actually in use', async () => {
-            renderSettings({}, {}, installedApi({
-                getParserBackend: vi.fn().mockResolvedValue({
-                    backend: 'elite-insights',
-                    default: 'axilog',
-                    axilogAvailable: true,
-                    axilogVersion: '0.3.0',
+        it('says so plainly when no native binding exists for this platform', async () => {
+            renderSettings({}, {}, {
+                getParserStatus: vi.fn().mockResolvedValue({
+                    available: false, version: null, eliteInsightsRemoval: null,
                 }),
-            }));
-            await screen.findByTestId('parser-backend-card');
+            });
+            const notice = await screen.findByTestId('parser-unavailable');
+            expect(notice.textContent).toContain('cannot be parsed');
+        });
 
-            await waitFor(() =>
-                expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'true'));
-            expect(screen.queryByTestId('ei-unused-hint')).toBeNull();
+        it('offers no way to pick an engine', async () => {
+            renderSettings();
+            await findCard();
+            expect(screen.queryByTestId('parser-backend-axilog')).toBeNull();
+            expect(screen.queryByTestId('parser-backend-elite-insights')).toBeNull();
         });
     });
 
-    describe('Parse engine selection', () => {
-        const findCard = () => screen.findByTestId('parser-backend-card');
-
-        it('reflects the persisted backend reported by the main process', async () => {
-            const { mock } = renderSettings({}, {}, {
-                getParserBackend: vi.fn().mockResolvedValue({
-                    backend: 'elite-insights',
-                    default: 'elite-insights',
-                    axilogAvailable: true,
-                    axilogVersion: '0.3.0',
-                }),
-            });
-            await findCard();
-
-            await waitFor(() => expect(mock.getParserBackend).toHaveBeenCalled());
-            await waitFor(() =>
-                expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'true'));
-            expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'false');
-        });
-
-        it('shows the persisted engine selected once the IPC resolves', async () => {
-            // The card must show what the store holds, not what the build
-            // ships — the two agree here, but the read is of the store.
-            renderSettings();
-            await findCard();
-
-            await waitFor(() =>
-                expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'true'));
-            expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'false');
-        });
-
-        it('persists a switch to Elite Insights over IPC and updates the selection', async () => {
-            const { mock } = renderSettings();
-            await findCard();
-            await waitFor(() =>
-                expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'true'));
-
-            fireEvent.click(screen.getByTestId('parser-backend-elite-insights'));
-
-            expect(mock.setParserBackend).toHaveBeenCalledWith('elite-insights');
-            await waitFor(() =>
-                expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'true'));
-        });
-
-        // The migration changed a setting the user had picked by hand, so the
-        // notice is the only place they are told. It must not appear for anyone
-        // who was never migrated, and it must be answerable both ways.
-        const migratedApi = {
-            getParserBackend: vi.fn().mockResolvedValue({
-                backend: 'axilog',
-                default: 'axilog',
-                axilogAvailable: true,
-                axilogVersion: '0.3.0',
-                migratedFromEliteInsights: true,
+    describe('Elite Insights removal notice', () => {
+        const withRemoval = (removal: Record<string, unknown>) => ({
+            getParserStatus: vi.fn().mockResolvedValue({
+                available: true, version: '1.7.1', eliteInsightsRemoval: removal,
             }),
-        };
-
-        it('tells a migrated user their engine changed, and offers the way back', async () => {
-            renderSettings({}, {}, { ...migratedApi });
-            await findCard();
-
-            const notice = await screen.findByTestId('parser-backend-migration-notice');
-            expect(notice).toHaveTextContent(/switched to axilog/i);
-            expect(notice).toHaveTextContent(/you had selected elite insights/i);
         });
 
-        it('stays quiet for a user who was never migrated', async () => {
-            renderSettings();
-            await findCard();
-            await waitFor(() =>
-                expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'true'));
+        it('tells a user who had selected Elite Insights that it is gone', async () => {
+            renderSettings({}, {}, withRemoval({ wasSelected: true, reclaimedBytes: 94 * 1024 * 1024 }));
+            const notice = await screen.findByTestId('elite-insights-removal-notice');
+            expect(notice.textContent).toContain('You had selected it');
+            expect(notice.textContent).toContain('94 MB');
+        });
 
-            expect(screen.queryByTestId('parser-backend-migration-notice')).not.toBeInTheDocument();
+        it('reassures a user who was already on Axilog that nothing changed', async () => {
+            renderSettings({}, {}, withRemoval({ wasSelected: false, reclaimedBytes: 94 * 1024 * 1024 }));
+            const notice = await screen.findByTestId('elite-insights-removal-notice');
+            expect(notice.textContent).toContain('nothing about your parses changes');
+        });
+
+        it('omits the reclaimed size when there was no install to delete', async () => {
+            renderSettings({}, {}, withRemoval({ wasSelected: true, reclaimedBytes: 0 }));
+            const notice = await screen.findByTestId('elite-insights-removal-notice');
+            expect(notice.textContent).not.toContain('freed');
+        });
+
+        it('stays quiet for a fresh install with nothing to report', async () => {
+            renderSettings();
+            await screen.findByTestId('parser-status-card');
+            expect(screen.queryByTestId('elite-insights-removal-notice')).toBeNull();
         });
 
         it('clears the notice on both sides when acknowledged', async () => {
-            const { mock } = renderSettings({}, {}, { ...migratedApi });
-            await screen.findByTestId('parser-backend-migration-notice');
+            const api = withRemoval({ wasSelected: true, reclaimedBytes: 0 });
+            renderSettings({}, {}, api);
+            const notice = await screen.findByTestId('elite-insights-removal-notice');
 
-            fireEvent.click(screen.getByText('Got it'));
-
-            expect(mock.ackParserMigrationNotice).toHaveBeenCalled();
-            await waitFor(() =>
-                expect(screen.queryByTestId('parser-backend-migration-notice')).not.toBeInTheDocument());
-        });
-
-        it('treats switching back to Elite Insights as answering the notice', async () => {
-            const { mock } = renderSettings({}, {}, { ...migratedApi });
-            await screen.findByTestId('parser-backend-migration-notice');
-
-            fireEvent.click(screen.getByTestId('parser-backend-elite-insights'));
-
-            expect(mock.setParserBackend).toHaveBeenCalledWith('elite-insights');
-            await waitFor(() =>
-                expect(screen.queryByTestId('parser-backend-migration-notice')).not.toBeInTheDocument());
-        });
-
-        it('does not re-send IPC when the already-selected engine is clicked', async () => {
-            const { mock } = renderSettings();
-            await findCard();
-            await waitFor(() =>
-                expect(screen.getByTestId('parser-backend-axilog')).toHaveAttribute('aria-checked', 'true'));
-
-            fireEvent.click(screen.getByTestId('parser-backend-axilog'));
-
-            expect(mock.setParserBackend).not.toHaveBeenCalled();
-        });
-
-        it('disables axilog and explains why when its native binding is unavailable', async () => {
-            // The main process silently falls back to EI in this case
-            // (getActiveParser), so the card must not imply the choice took.
-            const { mock } = renderSettings({}, {}, {
-                getParserBackend: vi.fn().mockResolvedValue({
-                    backend: 'elite-insights',
-                    default: 'elite-insights',
-                    axilogAvailable: false,
-                    axilogVersion: null,
-                }),
-            });
-            await findCard();
+            fireEvent.click(within(notice).getByText('Got it'));
 
             await waitFor(() =>
-                expect(screen.getByTestId('parser-backend-axilog')).toBeDisabled());
-            expect(screen.getByText(/no prebuilt binary for this platform/i)).toBeInTheDocument();
-
-            fireEvent.click(screen.getByTestId('parser-backend-axilog'));
-            expect(mock.setParserBackend).not.toHaveBeenCalled();
-        });
-
-        it('renders the shipped default when the host exposes no parser-backend API', async () => {
-            // The web build ships no electronAPI parser methods; the card must
-            // still render the shipped default rather than nothing selected
-            // (SHIPPED_DEFAULT_BACKEND, mirroring DEFAULT_PARSER_BACKEND in
-            // src/main/axilogParser.ts).
-            renderSettings({}, {}, {
-                getParserBackend: undefined,
-                setParserBackend: undefined,
-                onParserBackendChanged: undefined,
-            });
-            await findCard();
-
-            // Asserted against the main-process constant, not a literal: this
-            // is the drift guard. Flipping DEFAULT_PARSER_BACKEND without
-            // updating SHIPPED_DEFAULT_BACKEND fails right here.
-            const other = DEFAULT_PARSER_BACKEND === 'axilog' ? 'elite-insights' : 'axilog';
-            expect(screen.getByTestId(`parser-backend-${DEFAULT_PARSER_BACKEND}`)).toHaveAttribute('aria-checked', 'true');
-            expect(screen.getByTestId(`parser-backend-${other}`)).toHaveAttribute('aria-checked', 'false');
-            // Clicking must not throw through the optional-call chain.
-            fireEvent.click(screen.getByTestId(`parser-backend-${other}`));
-        });
-
-        it('adopts a backend change broadcast by the main process', async () => {
-            let broadcast: ((data: { backend: string }) => void) | null = null;
-            renderSettings({}, {}, {
-                onParserBackendChanged: vi.fn((cb: any) => { broadcast = cb; return () => {}; }),
-            });
-            await findCard();
-            await waitFor(() => expect(broadcast).not.toBeNull());
-
-            act(() => broadcast!({ backend: 'elite-insights' }));
-
-            await waitFor(() =>
-                expect(screen.getByTestId('parser-backend-elite-insights')).toHaveAttribute('aria-checked', 'true'));
+                expect(screen.queryByTestId('elite-insights-removal-notice')).not.toBeInTheDocument());
+            expect((window.electronAPI as any).ackEliteInsightsRemovalNotice).toHaveBeenCalled();
         });
     });
 });
