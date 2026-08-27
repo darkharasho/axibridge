@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getPlayerCleanses, getPlayerCleansesArcdps, hasMinionCleanseData } from '../dashboardMetrics';
+import { getPlayerCleanses, getPlayerCleansesArcdps, hasMinionCleanseData, hasArcdpsCleanseData } from '../dashboardMetrics';
 import {
     resolveCleanseTotal,
     hasMinionCleanseData as rowsHaveMinionData,
-    hasPartialMinionCleanseData
+    hasPartialMinionCleanseData,
+    hasArcdpsMethodologyData
 } from '../statsMetrics';
 
 // Elite Insights scopes its cleanse count to `log.PlayerList`, so a condition
@@ -64,6 +65,89 @@ describe('cleanse scopes', () => {
             expect(hasPartialMinionCleanseData([{ supportTotals: { condiCleanseMinionsLogs: 2 }, logsJoined: 5 }])).toBe(true);
             expect(hasPartialMinionCleanseData([{ supportTotals: { condiCleanseMinionsLogs: 5 }, logsJoined: 5 }])).toBe(false);
             expect(hasPartialMinionCleanseData([{ supportTotals: {}, logsJoined: 5 }])).toBe(false);
+        });
+    });
+
+    // axilog's arcdps-methodology counters are a transcription of the meter's
+    // own counting code, NOT `condiCleanse + condiCleanseSelf +
+    // condiCleanseMinions`. They apply exclusions EI has no notion of, so they
+    // must replace that sum rather than extend it.
+    describe('arcdps methodology counters', () => {
+        const arcdps: any = {
+            support: [{
+                condiCleanse: 400,
+                condiCleanseSelf: 50,
+                condiCleanseMinions: 18,
+                condiCleanseArcdps: 430,
+                condiCleanseArcdpsByMinion: 7,
+                condiCleanseArcdpsOnMinion: 18
+            }]
+        };
+
+        it('replaces the legacy sum instead of adding to it', () => {
+            // 430 + 18, NOT 450 + 18 and not 468 + anything.
+            expect(getPlayerCleansesArcdps(arcdps)).toBe(448);
+        });
+
+        it('omits the "from npcs" bucket, which needs the other meter toggle', () => {
+            expect(getPlayerCleansesArcdps(arcdps)).not.toBe(455);
+        });
+
+        it('leaves the Elite Insights number untouched', () => {
+            expect(getPlayerCleanses(arcdps)).toBe(450);
+        });
+
+        it('distinguishes the new family from the legacy one', () => {
+            expect(hasArcdpsCleanseData(arcdps)).toBe(true);
+            expect(hasArcdpsCleanseData(withMinions)).toBe(false);
+            expect(hasArcdpsCleanseData(eiOnly)).toBe(false);
+        });
+
+        // A genuine zero must stay distinguishable from an absent field here
+        // too, or a quiet fight renders as "unavailable".
+        it('treats a zero arcdps count as present', () => {
+            expect(hasArcdpsCleanseData({ support: [{ condiCleanseArcdps: 0 }] } as any)).toBe(true);
+        });
+
+        describe('resolveCleanseTotal', () => {
+            const row = {
+                supportTotals: {
+                    condiCleanse: 400,
+                    condiCleanseSelf: 50,
+                    condiCleanseMinions: 18,
+                    condiCleanseArcdps: 430,
+                    condiCleanseArcdpsOnMinion: 18,
+                    condiCleanseArcdpsLogs: 3
+                },
+                logsJoined: 3
+            };
+
+            it('prefers the methodology counters for the arcdps scope', () => {
+                expect(resolveCleanseTotal(row, 'arcdps')).toBe(448);
+            });
+
+            it('does not disturb the other two scopes', () => {
+                expect(resolveCleanseTotal(row, 'squad')).toBe(400);
+                expect(resolveCleanseTotal(row, 'all')).toBe(450);
+            });
+
+            // Rows aggregated before the counters existed must keep working.
+            it('falls back to the legacy approximation without the logs counter', () => {
+                const legacy = { supportTotals: { condiCleanse: 400, condiCleanseSelf: 50, condiCleanseMinions: 18 } };
+                expect(resolveCleanseTotal(legacy, 'arcdps')).toBe(468);
+            });
+        });
+
+        it('gates availability on either family', () => {
+            expect(rowsHaveMinionData([{ supportTotals: { condiCleanseArcdpsLogs: 2 }, logsJoined: 2 }])).toBe(true);
+            expect(hasArcdpsMethodologyData([{ supportTotals: { condiCleanseArcdpsLogs: 2 }, logsJoined: 2 }])).toBe(true);
+            // Legacy rows can answer "arcdps", but not with the methodology.
+            expect(hasArcdpsMethodologyData([{ supportTotals: { condiCleanseMinionsLogs: 2 }, logsJoined: 2 }])).toBe(false);
+        });
+
+        it('flags a partial aggregation on the new counter too', () => {
+            expect(hasPartialMinionCleanseData([{ supportTotals: { condiCleanseArcdpsLogs: 2 }, logsJoined: 5 }])).toBe(true);
+            expect(hasPartialMinionCleanseData([{ supportTotals: { condiCleanseArcdpsLogs: 5 }, logsJoined: 5 }])).toBe(false);
         });
     });
 });

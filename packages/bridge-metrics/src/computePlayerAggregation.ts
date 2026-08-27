@@ -976,6 +976,25 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             if ('condiCleanseMinions' in (p.support[0] as any)) {
                 s.supportTotals.condiCleanseMinionsLogs = (s.supportTotals.condiCleanseMinionsLogs || 0) + 1;
             }
+            // axilog's arcdps-methodology counters. Summed explicitly rather
+            // than through SUPPORT_METRICS so they stay a backing store for the
+            // cleanse-scope toggle instead of appearing as their own metric
+            // rows. Same availability problem as above, same counter shape.
+            const supportRow = p.support[0] as any;
+            if ('condiCleanseArcdps' in supportRow) {
+                s.supportTotals.condiCleanseArcdpsLogs = (s.supportTotals.condiCleanseArcdpsLogs || 0) + 1;
+                for (const field of [
+                    'condiCleanseArcdps',
+                    'condiCleanseArcdpsByMinion',
+                    'condiCleanseArcdpsOnMinion',
+                    'boonStripsArcdps',
+                    'boonStripsArcdpsByMinion',
+                    'boonStripsArcdpsOnMinion'
+                ]) {
+                    const val = Number(supportRow[field] ?? 0);
+                    if (Number.isFinite(val)) s.supportTotals[field] = (s.supportTotals[field] || 0) + val;
+                }
+            }
             // Apply disruption method to support boonStrips for consistency
             s.supportTotals.boonStrips = (s.supportTotals.boonStrips || 0) + getPlayerStrips(p, method);
         }

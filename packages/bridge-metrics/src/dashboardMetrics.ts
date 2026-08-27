@@ -23,12 +23,38 @@ export const getPlayerCleanses = (player: Player) =>
 export const hasMinionCleanseData = (player: Player): boolean =>
     player.support?.[0] != null && 'condiCleanseMinions' in (player.support[0] as any);
 
-// Matches what the in-game arcdps meter reports. Falls back to the EI-parity number
-// when the log carries no minion data, so this is always safe to call — but a caller
-// choosing to SHOW it as "arcdps" should gate on `hasMinionCleanseData` first, or it
-// will silently present an EI number under an arcdps label.
-export const getPlayerCleansesArcdps = (player: Player): number =>
-    getPlayerCleanses(player) + ((player.support?.[0] as any)?.condiCleanseMinions || 0);
+// True when the log carries axilog's arcdps-methodology cleanse counters, which are
+// a transcription of the in-game meter's own counting code rather than an adjustment
+// applied on top of EI's. Prefer this over `hasMinionCleanseData`: the minion field
+// only ever patched the population EI missed, while this family also reproduces the
+// exclusions EI has no notion of (single-stack stability, self-consumed blind, and
+// the self-removal burst that going down produces).
+export const hasArcdpsCleanseData = (player: Player): boolean =>
+    player.support?.[0] != null && 'condiCleanseArcdps' in (player.support[0] as any);
+
+// Matches what the in-game arcdps meter reports, in three tiers of fidelity:
+//
+//  1. axilog's arcdps-methodology counters, when present. Base bucket plus the
+//     "vs npcs" bucket — cleanses performed ON a minion. That combination is what
+//     the field reports we calibrated against actually showed; the meter's own
+//     default window inclusions decide this, so it is an empirical match rather
+//     than a derived one. The "from npcs" bucket is deliberately NOT added: it
+//     needs the other toggle, and adding both would double-count neither but
+//     over-report against the windows users described.
+//  2. Otherwise EI parity plus `condiCleanseMinions`, the older approximation.
+//     Right population, wrong exclusions — reads a few percent high.
+//  3. Otherwise plain EI parity.
+//
+// Always safe to call, but a caller choosing to SHOW it as "arcdps" should gate on
+// `hasArcdpsCleanseData` / `hasMinionCleanseData` first, or it will silently present
+// an EI number under an arcdps label.
+export const getPlayerCleansesArcdps = (player: Player): number => {
+    const support = player.support?.[0] as any;
+    if (support != null && 'condiCleanseArcdps' in support) {
+        return (support.condiCleanseArcdps || 0) + (support.condiCleanseArcdpsOnMinion || 0);
+    }
+    return getPlayerCleanses(player) + (support?.condiCleanseMinions || 0);
+};
 
 export const getPlayerStrips = (player: Player, method: DisruptionMethod = DEFAULT_DISRUPTION_METHOD) => {
     const support = player.support?.[0] as any;
