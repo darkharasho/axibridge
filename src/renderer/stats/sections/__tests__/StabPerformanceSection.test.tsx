@@ -61,4 +61,28 @@ describe('StabPerformanceSection heatmap overlay', () => {
         const { container } = render(<StabPerformanceSection {...props('none')} />);
         expect(container.querySelector('[data-overlay]')).toBeNull();
     });
+
+    it('surfaces absent strip data instead of a zero-intensity heatmap when the fight was not recorded', () => {
+        const { container, getByText } = render(
+            <StabPerformanceSection {...props('strips-taken')} stripsTakenRecorded={false} />
+        );
+        // "Absent is not zero": a pre-1.8.0 (or replay-array-off) fight must
+        // say so, not silently render a tint-free grid that reads as "no
+        // strips happened".
+        expect(getByText(/not recorded for this fight/i)).toBeInTheDocument();
+        // The chart (and therefore any strips-taken heat bar/cell) must not
+        // render at all in the absent-data branch.
+        const overlayWrapper = container.querySelector('[data-overlay="strips-taken"]');
+        expect(overlayWrapper).not.toBeNull();
+        expect(overlayWrapper!.querySelector('.recharts-responsive-container')).toBeNull();
+    });
+
+    it('renders the strips-taken overlay normally (zero intensity, no message) when recorded but all-zero', () => {
+        const zeroData = drilldownData.map((entry) => ({ ...entry, stripsTaken: 0, stripsTakenIntensity: 0 }));
+        const { container, queryByText } = render(
+            <StabPerformanceSection {...props('strips-taken')} drilldownData={zeroData} stripsTakenRecorded />
+        );
+        expect(queryByText(/not recorded for this fight/i)).toBeNull();
+        expect(container.querySelector('[data-overlay="strips-taken"]')).not.toBeNull();
+    });
 });
