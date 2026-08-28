@@ -34,6 +34,16 @@ export type ControlFightData = {
     bucketCount: number;
     durationMs: number;
     players: Record<string, ControlPlayerData>;
+    /**
+     * Per-fight sibling of the accumulator-level `recorded`. The top-level
+     * flag latches true dataset-wide the moment ANY ingested log carries
+     * lanes, which is too coarse for the sections: they render one fight at
+     * a time, so a fight from a log parsed before axilog 1.8.0 (or with
+     * rawTimelineArrays off) would otherwise draw as an all-zero grid
+     * indistinguishable from a genuinely quiet fight. This is set from that
+     * log's own lane check.
+     */
+    recorded: boolean;
 };
 
 export type ControlTimelineAccumulator = {
@@ -108,10 +118,13 @@ export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulat
     });
 
     if (sawLane) acc.recorded = true;
-    acc.fights.push({ id: fightId, bucketCount, durationMs, players: playersOut });
+    acc.fights.push({ id: fightId, bucketCount, durationMs, players: playersOut, recorded: sawLane });
 }
 
 export function extractControlTimelineFrame(acc: ControlTimelineAccumulator): ControlTimelineFrame {
+    if (acc.fights.length > 1) {
+        throw new Error(`extractControlTimelineFrame expects at most one fight, got ${acc.fights.length}`);
+    }
     return { fights: acc.fights, recorded: acc.recorded };
 }
 

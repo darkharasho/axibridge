@@ -74,4 +74,14 @@ describe('computeControlTimeline', () => {
 
         expect(finalizeControlTimeline(merged)).toEqual(finalizeControlTimeline(direct));
     });
+
+    it('reports recorded per-fight, not just dataset-wide', () => {
+        const acc = createControlTimelineAccumulator();
+        ingestLogControlTimeline(nativeLog({ cc_applied: [1, 0, 3, 0, 0] }), acc);
+        ingestLogControlTimeline({ ...nativeLog(null), id: 'log-2', filePath: 'fight-2.zevtc' }, acc);
+        const out = finalizeControlTimeline(acc);
+        expect(out.recorded).toBe(true);
+        expect(out.fights[0].recorded).toBe(true);
+        expect(out.fights[1].recorded).toBe(false);
+    });
 });
