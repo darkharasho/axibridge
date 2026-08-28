@@ -163,33 +163,44 @@ export const StabPerformanceSection = ({
             formatValue={(v) => formatWithCommas(v / 1000, 0)}
             selectedFightIndex={selectedFightIndex}
             setSelectedFightIndex={setSelectedFightIndex}
-            headerExtras={selectedFightIndex !== null ? <>
+            drilldownExtras={<>
                 <button
+                    type="button"
                     onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
-                    className={`text-[10px] uppercase tracking-wider transition-colors ${
-                        showIncomingHeatmap ? 'text-red-300 hover:text-red-200' : 'text-slate-500 hover:text-slate-300'
+                    title="Toggle party incoming damage intensity heatmap overlay"
+                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                        showIncomingHeatmap
+                            ? 'text-red-200 hover:text-red-100'
+                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
                     Party Damage
                 </button>
                 <button
+                    type="button"
                     onClick={() => setShowPartyDeaths(!showPartyDeaths)}
-                    className={`text-[10px] uppercase tracking-wider transition-colors ${
-                        showPartyDeaths ? 'text-red-400 hover:text-red-300' : 'text-slate-500 hover:text-slate-300'
+                    title="Mark party member deaths on the drilldown chart"
+                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                        showPartyDeaths
+                            ? 'text-red-300 hover:text-red-200'
+                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
                     Deaths
                 </button>
                 <button
+                    type="button"
                     onClick={() => setShowPartyDistance(!showPartyDistance)}
                     title="Flags party members who averaged more than 600 units from the commander during this fight"
-                    className={`text-[10px] uppercase tracking-wider transition-colors ${
-                        showPartyDistance ? 'text-yellow-300 hover:text-yellow-200' : 'text-slate-500 hover:text-slate-300'
+                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                        showPartyDistance
+                            ? 'text-yellow-200 hover:text-yellow-100'
+                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
                     Distance
                 </button>
-            </> : undefined}
+            </>}
             renderPlayerItem={(player, isSelected) => (
                 <>
                     {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4 flex-shrink-0')}

@@ -192,17 +192,21 @@ export const BoonTimelineSection = ({
                     activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
                     inactiveClassName="text-[color:var(--text-secondary)]"
                 />
-                {selectedFightIndex !== null && (
-                    <button
-                        onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
-                        className={`text-[10px] uppercase tracking-wider transition-colors ${
-                            showIncomingHeatmap ? 'text-red-300 hover:text-red-200' : 'text-slate-500 hover:text-slate-300'
-                        }`}
-                    >
-                        Squad Damage Heatmap
-                    </button>
-                )}
             </>}
+            drilldownExtras={
+                <button
+                    type="button"
+                    onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
+                    title="Toggle squad incoming damage intensity heatmap overlay"
+                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                        showIncomingHeatmap
+                            ? 'text-red-200 hover:text-red-100'
+                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                    }`}
+                >
+                    Squad Damage Heatmap
+                </button>
+            }
             renderTitleExtra={() => (
                 <div className="relative" ref={dropdownRef}>
                     <button

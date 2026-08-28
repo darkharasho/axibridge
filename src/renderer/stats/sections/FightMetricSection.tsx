@@ -64,6 +64,8 @@ type FightMetricSectionProps = {
     // Drilldown (shown when fight is selected and renderDrilldown is provided)
     drilldownTitle?: string;
     renderDrilldown?: () => ReactNode;
+    /** Controls for the drilldown chart. Rendered in the drilldown control row, beside Clear. */
+    drilldownExtras?: ReactNode;
 
     // Summary row override (replaces default Peak/Avg row)
     renderSummary?: () => ReactNode;
@@ -113,6 +115,7 @@ export const FightMetricSection = ({
     headerExtras,
     drilldownTitle = 'Fight Breakdown',
     renderDrilldown,
+    drilldownExtras,
     renderSummary,
     renderFooter,
     renderAbovePlayerList,
@@ -389,12 +392,15 @@ export const FightMetricSection = ({
                     <div className="px-4 py-3 border-t border-white/5">
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-[10px] uppercase tracking-wider text-slate-500">{drilldownTitle}</span>
-                            <button
-                                onClick={() => setSelectedFightIndex?.(null)}
-                                className="text-[10px] uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
-                            >
-                                Clear
-                            </button>
+                            <div className="flex items-center gap-3">
+                                {drilldownExtras}
+                                <button
+                                    onClick={() => setSelectedFightIndex?.(null)}
+                                    className="text-[10px] uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
+                                >
+                                    Clear
+                                </button>
+                            </div>
                         </div>
                         {renderDrilldown()}
                     </div>

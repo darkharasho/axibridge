@@ -277,16 +277,20 @@ export const BoonUptimeSection = ({
             referenceLineLabel={showStackCapLine ? '25' : undefined}
             selectedFightIndex={selectedFightIndex}
             setSelectedFightIndex={setSelectedFightIndex}
-            headerExtras={selectedFightIndex !== null ? (
+            drilldownExtras={
                 <button
+                    type="button"
                     onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
-                    className={`text-[10px] uppercase tracking-wider transition-colors ${
-                        showIncomingHeatmap ? 'text-red-300 hover:text-red-200' : 'text-slate-500 hover:text-slate-300'
+                    title="Toggle squad incoming damage intensity heatmap overlay"
+                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                        showIncomingHeatmap
+                            ? 'text-red-200 hover:text-red-100'
+                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
                     Squad Damage Heatmap
                 </button>
-            ) : undefined}
+            }
             renderTitleExtra={() => (
                 <div className="relative" ref={dropdownRef}>
                     <button
