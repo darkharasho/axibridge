@@ -3471,7 +3471,7 @@ type SpikeFight = {
     }, [stabPerfChartData]);
     const stabPerformanceDrilldown = (safeStats as any)?.stabPerformanceDrilldown;
     const controlTimelineDrilldown = (safeStats as any)?.controlTimelineDrilldown;
-    const controlTimelineFights: any[] = Array.isArray(controlTimelineDrilldown?.fights) ? controlTimelineDrilldown.fights : [];
+    const controlTimelineFights: any[] = Array.isArray(controlTimelineDrilldown?.fights) ? controlTimelineDrilldown.fights : EMPTY_ANY_ARRAY;
     const controlTimelineRecorded: boolean = Boolean(controlTimelineDrilldown?.recorded);
     const stabPerfDrilldown = useMemo(() => {
         const emptyResult = {
