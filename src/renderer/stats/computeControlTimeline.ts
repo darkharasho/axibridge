@@ -63,13 +63,21 @@ export function createControlTimelineAccumulator(): ControlTimelineAccumulator {
     return { fights: [], recorded: false };
 }
 
-/** Sum PER_BUCKET consecutive 1s values into each 5s bucket. */
+/**
+ * Sum PER_BUCKET consecutive 1s values into each 5s bucket.
+ *
+ * Clamps overflow into the last bucket (matching `sumTo5sBuckets` in
+ * `computeStabPerformance.ts`) rather than dropping it, so a native series
+ * slightly longer than `ceil(durationMs/5000)*5` seconds (e.g. an
+ * inclusive-endpoint `len`) still sums to the player's whole-fight total, as
+ * `metrics-spec.md` promises.
+ */
 const downsample = (native: number[] | null, bucketCount: number): number[] => {
     const out = new Array<number>(bucketCount).fill(0);
     if (!native) return out;
     for (let i = 0; i < native.length; i++) {
-        const b = Math.floor(i / PER_BUCKET);
-        if (b < bucketCount) out[b] += Number(native[i]) || 0;
+        const b = Math.min(bucketCount - 1, Math.floor(i / PER_BUCKET));
+        out[b] += Number(native[i]) || 0;
     }
     return out;
 };
@@ -106,14 +114,29 @@ export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulat
         const cc = key === null ? null : readEntitySeries(native, key, 'cc_applied');
         const stripsOut = key === null ? null : readEntitySeries(native, key, 'strips');
         const stripsIn = key === null ? null : readEntitySeries(native, key, 'strips_taken');
-        if (cc || stripsOut || stripsIn) sawLane = true;
+        if (cc?.length || stripsOut?.length || stripsIn?.length) sawLane = true;
+
+        const ccBuckets = downsample(cc, bucketCount);
+        const stripsOutBuckets = downsample(stripsOut, bucketCount);
+        const stripsInBuckets = downsample(stripsIn, bucketCount);
+
+        // Consumers (CcTimelineSection, StripTimelineSection) iterate
+        // `Object.entries(fight.players)` and already tolerate a missing key
+        // — omitting an all-zero player here roughly halves the payload on a
+        // real roster where most players never applied CC or stripped a
+        // boon, and `report.json`'s trim pass has no way to shrink a
+        // dense-zeros section after the fact.
+        const hasAnyValue = (arr: number[]) => arr.some((v) => v !== 0);
+        if (!hasAnyValue(ccBuckets) && !hasAnyValue(stripsOutBuckets) && !hasAnyValue(stripsInBuckets)) {
+            return;
+        }
 
         playersOut[account] = {
             group: Number(player?.group || 0),
             displayName: String(player?.name || account),
-            cc: downsample(cc, bucketCount),
-            stripsOut: downsample(stripsOut, bucketCount),
-            stripsIn: downsample(stripsIn, bucketCount),
+            cc: ccBuckets,
+            stripsOut: stripsOutBuckets,
+            stripsIn: stripsInBuckets,
         };
     });
 
