@@ -1,7 +1,7 @@
 import * as path from 'path';
 import { describe, expect, it } from 'vitest';
 import { parseFile } from '@axiapps/axilog';
-import { decodeSeries } from '../nativeSeries';
+import { decodeSeries, decodeCountSeries, readSquadSeries, readEntitySeries } from '../nativeSeries';
 
 describe('decodeSeries', () => {
     it('expands rle pairs into one value per interval', () => {
@@ -46,5 +46,60 @@ describe('decodeSeries', () => {
         // Cumulative: monotonic, and the last sample IS the entity total.
         for (let i = 1; i < decoded.length; i++) expect(decoded[i]).toBeGreaterThanOrEqual(decoded[i - 1]);
         expect(decoded[decoded.length - 1]).toBe(r.blocks.damage.by_entity[id].total);
+    });
+});
+
+describe('decodeCountSeries', () => {
+    it('pads a short rle run with zeros, not the last value', () => {
+        // Two CC applications at t=0, then nothing. `len` is 5 but the runs
+        // cover only the first 2 buckets.
+        const series = { enc: 'rle', interval_ms: 1000, len: 5, data: [[2, 1], [0, 1]] as Array<[number, number]> };
+        expect(decodeCountSeries(series)).toEqual([2, 0, 0, 0, 0]);
+    });
+
+    it('does not invent events when the trailing value is non-zero', () => {
+        const series = { enc: 'rle', interval_ms: 1000, len: 4, data: [[3, 1]] as Array<[number, number]> };
+        expect(decodeCountSeries(series)).toEqual([3, 0, 0, 0]);
+    });
+
+    it('passes raw encoding through', () => {
+        const series = { enc: 'raw', interval_ms: 1000, len: 3, data: [1, 0, 2] };
+        expect(decodeCountSeries(series)).toEqual([1, 0, 2]);
+    });
+});
+
+describe('readSquadSeries', () => {
+    const native = {
+        blocks: { series: { squad: { strips: { enc: 'raw', interval_ms: 1000, len: 3, data: [1, 0, 2] } }, by_entity: {} } },
+    };
+
+    it('decodes a present lane', () => {
+        expect(readSquadSeries(native, 'strips')).toEqual([1, 0, 2]);
+    });
+
+    it('returns null for a missing lane rather than an empty array', () => {
+        expect(readSquadSeries(native, 'cc_applied')).toBeNull();
+    });
+
+    it('returns null when there is no native report at all', () => {
+        expect(readSquadSeries(null, 'strips')).toBeNull();
+    });
+});
+
+describe('readEntitySeries', () => {
+    const native = {
+        blocks: { series: { squad: {}, by_entity: { 'e1': { cc_applied: { enc: 'raw', interval_ms: 1000, len: 2, data: [4, 1] } } } } },
+    };
+
+    it('decodes a present per-entity lane', () => {
+        expect(readEntitySeries(native, 'e1', 'cc_applied')).toEqual([4, 1]);
+    });
+
+    it('returns null for an ungated lane that was not emitted', () => {
+        expect(readEntitySeries(native, 'e1', 'strips')).toBeNull();
+    });
+
+    it('returns null for an unknown entity', () => {
+        expect(readEntitySeries(native, 'nope', 'cc_applied')).toBeNull();
     });
 });
