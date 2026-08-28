@@ -994,7 +994,7 @@ export class IncrementalAggregator {
     }
 
     /** Finalize aggregation and return the result. */
-    finalize(): { stats: any; skillUsageData: any; controlTimelineDrilldown?: any } {
+    finalize(): { stats: any; skillUsageData: any } {
         if (this.options.precomputedStats) {
             return {
                 stats: enrichPrecomputedStats(this.options.precomputedStats, this.precomputedLogs),
@@ -1634,7 +1634,7 @@ export class IncrementalAggregator {
             playerSkillBreakdowns,
             healingBreakdownPlayers,
             topSkillsMetric: this.topSkillsMetric,
-            mapData, timelineData, boonTables, boonLeaderboards, boonTimeline, boonUptimeTimeline, stabPerformanceDrilldown, incomingDamagePerSecondByFightId,
+            mapData, timelineData, boonTables, boonLeaderboards, boonTimeline, boonUptimeTimeline, stabPerformanceDrilldown, controlTimelineDrilldown, incomingDamagePerSecondByFightId,
             offensePlayers: Array.from(playerStats.values()).map(s => ({
                 account: s.account, profession: s.profession, professionList: s.professionList,
                 offenseTotals: s.offenseTotals, offenseRateWeights: s.offenseRateWeights, totalFightMs: s.totalFightMs
@@ -1717,7 +1717,7 @@ export class IncrementalAggregator {
             }))
         };
 
-        return { stats, skillUsageData, controlTimelineDrilldown };
+        return { stats, skillUsageData };
     }
 
     // ---- Private helpers ----
@@ -2039,7 +2039,7 @@ export const computeStatsSync = ({
     statsViewSettings?: IStatsViewSettings;
     disruptionMethod?: DisruptionMethod;
     includePlayerSkillMap?: boolean;
-}): { stats: any; skillUsageData: any; controlTimelineDrilldown?: any } => {
+}): { stats: any; skillUsageData: any } => {
     const aggregator = new IncrementalAggregator({
         precomputedStats,
         mvpWeights,

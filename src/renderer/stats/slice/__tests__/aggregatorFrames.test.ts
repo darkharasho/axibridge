@@ -250,13 +250,13 @@ describe('aggregator frame export/merge', () => {
 
     it('control timeline survives the frame round-trip', () => {
         const direct = computeStatsSync({ logs: LOGS });
-        expect(direct.controlTimelineDrilldown).toBeDefined();
+        expect(direct.stats.controlTimelineDrilldown).toBeDefined();
 
         const merged = new IncrementalAggregator();
         framesFor(LOGS).forEach((frame) => merged.mergeFrame(frame));
 
-        expect(merged.finalize().controlTimelineDrilldown)
-            .toEqual(direct.controlTimelineDrilldown);
+        expect(merged.finalize().stats.controlTimelineDrilldown)
+            .toEqual(direct.stats.controlTimelineDrilldown);
     });
 
     it('renumbers the commander fight-row shortLabel, which finalize never touches', () => {
