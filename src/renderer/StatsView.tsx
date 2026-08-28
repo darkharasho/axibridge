@@ -927,7 +927,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const [stabPerfPlayerFilter, setStabPerfPlayerFilter] = useState('');
     const [selectedStabPerfPlayerKey, setSelectedStabPerfPlayerKey] = useState<string | null>(null);
     const [selectedStabPerfFightIndex, setSelectedStabPerfFightIndex] = useState<number | null>(null);
-    const [showStabPerfHeatmap, setShowStabPerfHeatmap] = useState(false);
+    const [stabPerfOverlay, setStabPerfOverlay] = useState<'none' | 'incoming-damage' | 'strips-taken'>('none');
     const [showStabPerfDeaths, setShowStabPerfDeaths] = useState(true);
     const [showStabPerfDistance, setShowStabPerfDistance] = useState(true);
     const [allBoonsActiveBoonId, setAllBoonsActiveBoonId] = useState<string | null>(null);
@@ -3476,8 +3476,9 @@ type SpikeFight = {
     const stabPerfDrilldown = useMemo(() => {
         const emptyResult = {
             title: 'Fight Breakdown (5s Squad Stab Generation Buckets)',
-            data: [] as Array<{ label: string; value: number; incomingDamage: number; incomingIntensity: number; partyDeaths: number; partyDeathNames: string[]; partyAvgDistance: number; partyFarNames: string[]; [key: string]: any }>,
-            partyMembers: [] as Array<{ key: string; displayName: string }>
+            data: [] as Array<{ label: string; value: number; incomingDamage: number; incomingIntensity: number; stripsTaken: number; stripsTakenIntensity: number; partyDeaths: number; partyDeathNames: string[]; partyAvgDistance: number; partyFarNames: string[]; [key: string]: any }>,
+            partyMembers: [] as Array<{ key: string; displayName: string }>,
+            stripsTakenRecorded: false
         };
         const selectedPoint = selectedStabPerfFightIndex === null
             ? null
@@ -3534,6 +3535,22 @@ type SpikeFight = {
             : [];
         while (stabIncomingBuckets.length < bucketCount) stabIncomingBuckets.push(0);
         const incomingMax = stabIncomingBuckets.reduce((best: number, v: number) => Math.max(best, Number(v || 0)), 0);
+        // Strips-taken series comes from the CC/strip timeline accumulator
+        // (Task 3), which downsamples to the same CONTROL_BUCKET_MS = 5000ms
+        // buckets this grid already uses — no resampling needed, but the
+        // fight/player join is separate from the incoming-damage one above
+        // because it's a different accumulator with its own per-fight
+        // `recorded` flag.
+        const controlFight = controlTimelineFights.find((f) => String(f?.id || '') === selectedFightId)
+            || controlTimelineFights.find((f) => normPath(String(f?.id || '')) === normFightId)
+            || null;
+        const stripsTakenRecorded = Boolean(controlFight?.recorded);
+        const controlPlayerEntry = controlFight?.players?.[selectedStabPerfPlayerKey];
+        const stripsInBuckets: number[] = Array.isArray(controlPlayerEntry?.stripsIn)
+            ? controlPlayerEntry.stripsIn.slice(0, bucketCount)
+            : [];
+        while (stripsInBuckets.length < bucketCount) stripsInBuckets.push(0);
+        const stripsMax = stripsInBuckets.reduce((best: number, v: number) => Math.max(best, Number(v || 0)), 0);
         const partyMembers: Array<{ key: string; displayName: string }> = [];
         const partyData: Record<string, { stacks: number[]; deaths: number[]; distances: number[] }> = {};
         if (drilldownFight && selectedPlayerGroup > 0) {
@@ -3550,6 +3567,8 @@ type SpikeFight = {
         const dataWithOverlays = data.map((entry, i) => {
             const partyIncomingDamage = Number(stabIncomingBuckets[i] || 0);
             const intensity = incomingMax > 0 ? Math.max(0, Math.min(1, partyIncomingDamage / incomingMax)) : 0;
+            const stripsTaken = Number(stripsInBuckets[i] || 0);
+            const stripsTakenIntensity = stripsMax > 0 ? Math.max(0, Math.min(1, stripsTaken / stripsMax)) : 0;
             const overlay: Record<string, any> = {};
             partyMembers.forEach(({ key }) => {
                 const pd = partyData[key];
@@ -3561,15 +3580,18 @@ type SpikeFight = {
                 ...entry,
                 incomingDamage: partyIncomingDamage,
                 incomingIntensity: intensity,
+                stripsTaken,
+                stripsTakenIntensity,
                 ...overlay
             };
         });
         return {
             title: `Fight Breakdown - ${selectedPoint.shortLabel || 'Fight'} (5s Squad Stab Generation Buckets)`,
             data: dataWithOverlays,
-            partyMembers
+            partyMembers,
+            stripsTakenRecorded
         };
-    }, [stabBoon, stabPerfChartData, selectedStabPerfFightIndex, selectedStabPerfPlayerKey, stabPerformanceDrilldown]);
+    }, [stabBoon, stabPerfChartData, selectedStabPerfFightIndex, selectedStabPerfPlayerKey, stabPerformanceDrilldown, controlTimelineFights]);
 
     const boonUptimeSubgroupKeyPrefix = '__subgroup__:';
     const boonUptimeBoons = useMemo(() => {
@@ -4568,8 +4590,9 @@ type SpikeFight = {
                                 drilldownTitle={stabPerfDrilldown.title}
                                 drilldownData={stabPerfDrilldown.data}
                                 partyMembers={stabPerfDrilldown.partyMembers}
-                                showIncomingHeatmap={showStabPerfHeatmap}
-                                setShowIncomingHeatmap={setShowStabPerfHeatmap}
+                                heatmapOverlay={stabPerfOverlay}
+                                setHeatmapOverlay={setStabPerfOverlay}
+                                stripsTakenRecorded={stabPerfDrilldown.stripsTakenRecorded}
                                 showPartyDeaths={showStabPerfDeaths}
                                 setShowPartyDeaths={setShowStabPerfDeaths}
                                 showPartyDistance={showStabPerfDistance}
@@ -5208,8 +5231,9 @@ type SpikeFight = {
                                 drilldownTitle={stabPerfDrilldown.title}
                                 drilldownData={stabPerfDrilldown.data}
                                 partyMembers={stabPerfDrilldown.partyMembers}
-                                showIncomingHeatmap={showStabPerfHeatmap}
-                                setShowIncomingHeatmap={setShowStabPerfHeatmap}
+                                heatmapOverlay={stabPerfOverlay}
+                                setHeatmapOverlay={setStabPerfOverlay}
+                                stripsTakenRecorded={stabPerfDrilldown.stripsTakenRecorded}
                                 showPartyDeaths={showStabPerfDeaths}
                                 setShowPartyDeaths={setShowStabPerfDeaths}
                                 showPartyDistance={showStabPerfDistance}

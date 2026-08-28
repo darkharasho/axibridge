@@ -41,12 +41,16 @@ type StabPerfDrilldownEntry = {
     value: number;
     incomingDamage?: number;
     incomingIntensity?: number;
+    stripsTaken?: number;
+    stripsTakenIntensity?: number;
     partyDeaths?: number;
     partyDeathNames?: string[];
     partyAvgDistance?: number;
     partyFarNames?: string[];
     [key: string]: any;
 };
+
+type StabPerfHeatmapOverlay = 'none' | 'incoming-damage' | 'strips-taken';
 
 type StabPerformanceSectionProps = {
     playerFilter: string;
@@ -62,8 +66,24 @@ type StabPerformanceSectionProps = {
     drilldownTitle: string;
     drilldownData: StabPerfDrilldownEntry[];
     partyMembers: StabPerfPartyMember[];
-    showIncomingHeatmap: boolean;
-    setShowIncomingHeatmap: (v: boolean) => void;
+    /**
+     * Overlay tinting the grid cells. A mode rather than two booleans: both
+     * overlays paint the same cell background, so they cannot coexist and
+     * the exclusivity belongs in the type, not in a runtime rule. Unlike
+     * BoonTimelineSection/BoonUptimeSection, which keep the plain boolean.
+     */
+    heatmapOverlay: StabPerfHeatmapOverlay;
+    setHeatmapOverlay: (mode: StabPerfHeatmapOverlay) => void;
+    /**
+     * False (not just falsy/absent) means the selected fight's log predates
+     * axilog 1.8.0 or was parsed without raw timeline arrays — the
+     * strips-taken series was never captured. Absent is not zero: in that
+     * case the strips-taken overlay must say so instead of drawing an
+     * all-zero-intensity heatmap that reads as "no strips happened".
+     * Defaults to true so older data (or tests) that don't pass it keep the
+     * pre-existing zero-is-zero behaviour.
+     */
+    stripsTakenRecorded?: boolean;
     showPartyDeaths: boolean;
     setShowPartyDeaths: (v: boolean) => void;
     showPartyDistance: boolean;
@@ -84,8 +104,9 @@ export const StabPerformanceSection = ({
     drilldownTitle,
     drilldownData,
     partyMembers,
-    showIncomingHeatmap,
-    setShowIncomingHeatmap,
+    heatmapOverlay,
+    setHeatmapOverlay,
+    stripsTakenRecorded = true,
     showPartyDeaths,
     setShowPartyDeaths,
     showPartyDistance,
@@ -95,6 +116,9 @@ export const StabPerformanceSection = ({
 
     const selectedPlayerColor = getProfessionColor(selectedPlayer?.profession || '') || '#818cf8';
     const hasIncomingHeatData = drilldownData.some((entry) => Number(entry?.incomingDamage || 0) > 0);
+    const hasStripsTakenHeatData = drilldownData.some((entry) => Number(entry?.stripsTaken || 0) > 0);
+    const stripsTakenOverlayActive = heatmapOverlay === 'strips-taken';
+    const stripsTakenDataAbsent = stripsTakenOverlayActive && !stripsTakenRecorded;
 
     const drilldownHeatData = drilldownData.map((entry) => ({
         ...entry,
@@ -166,15 +190,23 @@ export const StabPerformanceSection = ({
             drilldownExtras={<>
                 <button
                     type="button"
-                    onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
-                    title="Toggle party incoming damage intensity heatmap overlay"
+                    onClick={() => setHeatmapOverlay(
+                        heatmapOverlay === 'none' ? 'incoming-damage'
+                        : heatmapOverlay === 'incoming-damage' ? 'strips-taken'
+                        : 'none',
+                    )}
+                    title={
+                        heatmapOverlay === 'none' ? 'Show party incoming damage intensity overlay'
+                        : heatmapOverlay === 'incoming-damage' ? 'Show boon strips taken intensity overlay'
+                        : 'Hide the intensity overlay'
+                    }
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
-                        showIncomingHeatmap
+                        heatmapOverlay !== 'none'
                             ? 'text-red-200 hover:text-red-100'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
-                    Party Damage
+                    {heatmapOverlay === 'strips-taken' ? 'Strips Taken' : 'Party Damage'}
                 </button>
                 <button
                     type="button"
@@ -225,10 +257,17 @@ export const StabPerformanceSection = ({
                             ))}
                         </div>
                     )}
-                    <div className="h-[220px] relative">
+                    <div
+                        className="h-[220px] relative"
+                        data-overlay={heatmapOverlay !== 'none' ? heatmapOverlay : undefined}
+                    >
                         {drilldownData.length === 0 ? (
                             <div className="h-full flex items-center justify-center text-xs text-slate-500">
                                 No detailed data available for this fight.
+                            </div>
+                        ) : stripsTakenDataAbsent ? (
+                            <div className="h-full flex items-center justify-center text-center text-xs text-[color:var(--text-secondary)] px-6">
+                                Strip data was not recorded for this fight (log predates axilog 1.8.0 or was parsed without raw timeline arrays).
                             </div>
                         ) : (
                             <ChartContainer width="100%" height="100%">
@@ -245,15 +284,21 @@ export const StabPerformanceSection = ({
                                             const point = payload[0]?.payload || {};
                                             const gen = Number(point?.value || 0);
                                             const damage = Number(point?.incomingDamage || 0);
+                                            const strips = Number(point?.stripsTaken || 0);
                                             return (
                                                 <div className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl">
                                                     <div className="text-slate-200 font-medium mb-1">
                                                         {String(label || '')}
                                                         {gen > 0 && <span className="text-violet-300">{` · Gen: ${formatWithCommas(gen / 1000, 0)}`}</span>}
                                                     </div>
-                                                    {showIncomingHeatmap && damage > 0 && (
+                                                    {heatmapOverlay === 'incoming-damage' && damage > 0 && (
                                                         <div className="text-red-300 mb-1">
                                                             Party Incoming Damage: {formatWithCommas(damage, 0)}
+                                                        </div>
+                                                    )}
+                                                    {heatmapOverlay === 'strips-taken' && !stripsTakenDataAbsent && strips > 0 && (
+                                                        <div className="text-red-300 mb-1">
+                                                            Boon Strips Taken: {formatWithCommas(strips, 0)}
                                                         </div>
                                                     )}
                                                     {[...partyMembers].sort((a, b) => a.displayName.localeCompare(b.displayName)).map((member) => {
@@ -282,7 +327,7 @@ export const StabPerformanceSection = ({
                                             );
                                         }}
                                     />
-                                    {showIncomingHeatmap && hasIncomingHeatData && (
+                                    {heatmapOverlay === 'incoming-damage' && hasIncomingHeatData && (
                                         <Bar
                                             yAxisId="incomingHeat"
                                             dataKey="incomingHeatBand"
@@ -296,6 +341,23 @@ export const StabPerformanceSection = ({
                                                 const intensity = Math.max(0, Math.min(1, Number(entry?.incomingIntensity || 0)));
                                                 const alpha = 0.06 + (0.52 * intensity);
                                                 return <Cell key={`stab-heat-${index}`} fill={`rgba(239, 68, 68, ${alpha.toFixed(3)})`} />;
+                                            })}
+                                        </Bar>
+                                    )}
+                                    {heatmapOverlay === 'strips-taken' && !stripsTakenDataAbsent && hasStripsTakenHeatData && (
+                                        <Bar
+                                            yAxisId="incomingHeat"
+                                            dataKey="incomingHeatBand"
+                                            name="Boon Strips Taken Heat"
+                                            barSize={24}
+                                            fill="rgba(248,113,113,0.35)"
+                                            stroke="none"
+                                            isAnimationActive={false}
+                                        >
+                                            {drilldownData.map((entry, index) => {
+                                                const intensity = Math.max(0, Math.min(1, Number(entry?.stripsTakenIntensity || 0)));
+                                                const alpha = 0.06 + (0.52 * intensity);
+                                                return <Cell key={`stab-strips-heat-${index}`} fill={`rgba(248, 113, 113, ${alpha.toFixed(3)})`} />;
                                             })}
                                         </Bar>
                                     )}
