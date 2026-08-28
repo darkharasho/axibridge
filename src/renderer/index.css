@@ -713,10 +713,21 @@ svg {
     -ms-user-select: none;
 }
 
-/* Chrome can clip stroke-based SVGs at small sizes when display:block (Tailwind preflight).
-   Force lucide icons to inline-block with visible overflow to prevent invisible strokes. */
-svg.lucide {
-    display: inline-block;
+/* Chrome (150.x) paints nothing at all for an <svg> under 16 CSS px while the UA
+   default `overflow: hidden` applies, so every icon at `w-3 h-3` (12px) or
+   `w-3.5 h-3.5` (14px) silently vanishes — expand buttons, warning badges, row
+   chevrons. `overflow: visible` restores them.
+
+   Matched by lucide's root-attribute signature rather than by `.lucide`, because
+   lucide-react 0.292 spreads `...rest` after its own className: any caller-supplied
+   class (`w-3 h-3`, ...) REPLACES `lucide`, so a `.lucide` selector matches
+   essentially nothing. Guarded by src/renderer/__tests__/lucideIconOverflow.test.tsx.
+
+   recharts legend swatches render at 14px and hit the same bug. Scoped to the
+   legend item so the chart canvases (`.recharts-wrapper > svg`) keep clipping. */
+svg.lucide,
+svg[viewBox="0 0 24 24"][stroke-linecap="round"][stroke-linejoin="round"],
+.recharts-legend-item svg {
     overflow: visible;
 }
 
