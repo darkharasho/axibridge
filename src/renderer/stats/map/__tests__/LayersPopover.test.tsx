@@ -44,4 +44,22 @@ describe('LayersPanel', () => {
         fireEvent.click(checkbox);
         expect(useStatsStore.getState().replayLayers.zoneBorders).toBe(false);
     });
+
+    it('renders the CC lane toggle checked by default and toggling it off removes the lane', () => {
+        render(<Wrapper />);
+        fireEvent.click(screen.getByTitle(/show layers/i));
+        const checkbox = screen.getByRole('checkbox', { name: /cc lane/i });
+        expect((checkbox as HTMLInputElement).checked).toBe(true);
+        fireEvent.click(checkbox);
+        expect(useStatsStore.getState().replayLayers.ccLane).toBe(false);
+    });
+
+    it('renders the Strip lane toggle checked by default and toggling it off removes the lane', () => {
+        render(<Wrapper />);
+        fireEvent.click(screen.getByTitle(/show layers/i));
+        const checkbox = screen.getByRole('checkbox', { name: /strip lane/i });
+        expect((checkbox as HTMLInputElement).checked).toBe(true);
+        fireEvent.click(checkbox);
+        expect(useStatsStore.getState().replayLayers.stripLane).toBe(false);
+    });
 });

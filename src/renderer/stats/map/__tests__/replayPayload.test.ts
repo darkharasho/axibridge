@@ -53,4 +53,36 @@ describe('buildReplayFightPayload', () => {
         const without = buildReplayFightPayload(basicFight, 0);
         expect(without?.sectorOwners).toBeNull();
     });
+
+    it('decodes ccSamples/stripSamples from native.blocks.series.squad, and reports null when the lane is absent', () => {
+        const fightWithSeries = {
+            ...basicFight,
+            details: {
+                ...basicFight.details,
+                native: {
+                    ...basicFight.details.native,
+                    blocks: {
+                        ...basicFight.details.native.blocks,
+                        series: {
+                            squad: {
+                                cc_applied: { data: [0, 2, 1], enc: 'raw', interval_ms: 1000, len: 3 },
+                                strips: { data: [[0, 2], [1, 1]], enc: 'rle', interval_ms: 1000, len: 3 },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        const payload = buildReplayFightPayload(fightWithSeries, 0);
+        expect(payload?.ccSamples).toEqual([0, 2, 1]);
+        expect(payload?.stripSamples).toEqual([0, 0, 1]);
+
+        // basicFight's native carry set has no `blocks.series` at all — a
+        // pre-1.8.0 axilog parse. Absent must read as null, never as a flat
+        // all-zero series (that would falsely claim "no CC/strips happened").
+        const withoutSeries = buildReplayFightPayload(basicFight, 0);
+        expect(withoutSeries?.ccSamples).toBeNull();
+        expect(withoutSeries?.stripSamples).toBeNull();
+    });
 });

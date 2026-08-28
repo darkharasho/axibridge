@@ -58,6 +58,10 @@ interface StatsStoreState {
         /** Also pulse ENEMY downs/deaths, not just the squad's. Off by
          *  default: on a real WvW log these outnumber squad events ~20:1. */
         enemyPulses: boolean;
+        /** Squad CC-applied lane under the DPS area. */
+        ccLane: boolean;
+        /** Squad boon-strip lane under the DPS area. */
+        stripLane: boolean;
         heatmap: 'off' | 'deaths' | 'time' | 'damage-taken';
     };
     replaySpotlightParty: number | null;
@@ -124,6 +128,8 @@ const initialState = {
         targetFocusLines: false,
         damagePulses: false,
         enemyPulses: false,
+        ccLane: true,
+        stripLane: true,
         heatmap: 'off' as const,
     },
     replaySpotlightParty: null,
@@ -192,6 +198,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
             centroidSpread: false, tagRangeRings: false,
             squadHealthStrip: false, partyHulls: false, phases: false,
             rallyRings: false, targetFocusLines: false, damagePulses: false, enemyPulses: false,
+            ccLane: true, stripLane: true,
             heatmap: 'off',
         },
         replaySpotlightParty: null,

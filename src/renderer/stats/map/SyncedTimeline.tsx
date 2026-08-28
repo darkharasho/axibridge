@@ -44,6 +44,23 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
         return { pathData: `M 0,100 L ${points} L 1000,100 Z`, maxDps: max };
     }, [fight.dpsSamples, fight.durationMs]);
 
+    /**
+     * CC and strips get their own normalized sub-lanes rather than sharing the
+     * DPS y-axis: squad DPS runs in the hundreds of thousands and CC counts in
+     * single digits, so a shared axis flattens the counts onto the baseline.
+     */
+    const subLane = useCallback((samples: number[] | null, top: number, height: number) => {
+        if (!samples || samples.length === 0 || fight.durationMs <= 0) return '';
+        const max = Math.max(1, ...samples);
+        const step = 1000 / samples.length;
+        return samples
+            .map((v, i) => `M ${(i * step).toFixed(1)},${top + height} V ${(top + height - (v / max) * height).toFixed(1)}`)
+            .join(' ');
+    }, [fight.durationMs]);
+
+    const ccPath = useMemo(() => subLane(fight.ccSamples, 104, 10), [subLane, fight.ccSamples]);
+    const stripPath = useMemo(() => subLane(fight.stripSamples, 118, 10), [subLane, fight.stripSamples]);
+
     const allyKillMarks = fight.killEvents.filter(e => e.isAlly);
     const enemyKillMarks = fight.killEvents.filter(e => !e.isAlly);
 
@@ -69,9 +86,9 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
             <svg
                 ref={svgRef}
                 className="replay-timeline"
-                viewBox="0 0 1000 120"
+                viewBox="0 0 1000 152"
                 preserveAspectRatio="none"
-                style={{ width: '100%', height: 100, display: 'block', cursor: 'col-resize', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
+                style={{ width: '100%', height: 132, display: 'block', cursor: 'col-resize', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
                 onClick={scrubFromEvent}
                 onMouseDown={(e) => { setDragging(true); scrubFromEvent(e); }}
                 onMouseMove={onMouseMove}
@@ -94,9 +111,19 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                 ))}
                 {allyKillMarks.map((m, i) => (
                     <line key={`d-${i}`} x1={(m.timeMs / fight.durationMs) * 1000} x2={(m.timeMs / fight.durationMs) * 1000}
-                          y1={108} y2={120} stroke="#ef4444" strokeWidth={2} />
+                          y1={132} y2={144} stroke="#ef4444" strokeWidth={2} />
                 ))}
-                <line x1={playheadX} x2={playheadX} y1={0} y2={120} stroke="#fbbf24" strokeWidth={1.5} />
+                {layersState.ccLane && ccPath && (
+                    <g data-testid="cc-lane">
+                        <path d={ccPath} stroke="#f59e0b" strokeWidth={2} fill="none" opacity={0.85} />
+                    </g>
+                )}
+                {layersState.stripLane && stripPath && (
+                    <g data-testid="strip-lane">
+                        <path d={stripPath} stroke="#e879f9" strokeWidth={2} fill="none" opacity={0.85} />
+                    </g>
+                )}
+                <line x1={playheadX} x2={playheadX} y1={0} y2={152} stroke="#fbbf24" strokeWidth={1.5} />
             </svg>
             {layersState.phases && derived.phases.length > 0 && (
                 <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>

@@ -50,4 +50,8 @@ export interface ReplayFightPayload {
     rallyEvents: RallyEvent[];
     targetFocusSamples: TargetFocusSample[];
     sectorOwners: Record<number, import('../../../shared/wvwSectors').WvwOwner> | null;
+    /** Squad CC applied per second, or null if the report predates axilog 1.8.0. */
+    ccSamples: number[] | null;
+    /** Squad boons stripped off enemies per second, or null if not recorded. */
+    stripSamples: number[] | null;
 }

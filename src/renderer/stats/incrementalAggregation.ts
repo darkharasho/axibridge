@@ -50,6 +50,7 @@ import { classifyPlayerRoles } from './classifyPlayerRoles';
 
 import { buildMovementData, type SquadMemberMovement } from '../../shared/movementData';
 import { getArena, replayCanvas } from '@axiapps/bridge-metrics/nativePositioning';
+import { readSquadSeries } from '@axiapps/bridge-metrics/nativeSeries';
 import { resolveMapFromZone, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
 import { findNearestLandmark } from '../../shared/wvwLandmarks';
 import { TRACKED_REPLAY_BUFF_IDS } from '../../shared/replayBuffs';
@@ -189,6 +190,8 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
     const deaths = squadMembers.filter(m => m.deadRanges.length > 0).length;
 
     const dpsSamples: ReplayDpsSample[] = computeSquadDpsSamples(details);
+    const ccSamples = readSquadSeries(details?.native ?? {}, 'cc_applied');
+    const stripSamples = readSquadSeries(details?.native ?? {}, 'strips');
     const killEvents: ReplayKillEvent[] = collectKillEvents(movement);
     const rallyEvents = computeRallyEvents(movement.members);
     const damageSpikeEvents = computeDamageSpikeEvents(details);
@@ -211,6 +214,8 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
         deaths,
         movementData: movement,
         dpsSamples,
+        ccSamples,
+        stripSamples,
         killEvents,
         damageSpikeEvents,
         rallyEvents,

@@ -12,6 +12,7 @@ const makeFight = (duration = 60_000): ReplayFightPayload => ({
     dpsSamples: [{ timeMs: 0, squadDps: 0 }, { timeMs: 30_000, squadDps: 5000 }, { timeMs: 60_000, squadDps: 10_000 }],
     killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
     sectorOwners: null,
+    ccSamples: null, stripSamples: null,
 });
 
 describe('SyncedTimeline', () => {
@@ -38,5 +39,50 @@ describe('SyncedTimeline', () => {
         const t = useStatsStore.getState().replayPlayhead.timeMs;
         expect(t).toBeGreaterThanOrEqual(29_000);
         expect(t).toBeLessThanOrEqual(31_000);
+    });
+});
+
+describe('SyncedTimeline CC and strip lanes', () => {
+    beforeEach(() => {
+        const initial = (useStatsStore as any).getInitialState();
+        useStatsStore.setState(initial);
+    });
+
+    it('renders a CC sub-lane when samples are present', () => {
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={{ ...fight, ccSamples: [0, 2, 1, 0] }} />);
+        expect(container.querySelector('[data-testid="cc-lane"]')).not.toBeNull();
+    });
+
+    it('renders no CC sub-lane when the series was not recorded', () => {
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={fight} />);
+        expect(container.querySelector('[data-testid="cc-lane"]')).toBeNull();
+    });
+
+    it('renders a strip sub-lane when samples are present', () => {
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={{ ...fight, stripSamples: [0, 3, 0, 1] }} />);
+        expect(container.querySelector('[data-testid="strip-lane"]')).not.toBeNull();
+    });
+
+    it('renders no strip sub-lane when the series was not recorded', () => {
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={fight} />);
+        expect(container.querySelector('[data-testid="strip-lane"]')).toBeNull();
+    });
+
+    it('does not render the CC lane when the ccLane layer is toggled off', () => {
+        useStatsStore.getState().setReplayLayer('ccLane', false);
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={{ ...fight, ccSamples: [0, 2, 1, 0] }} />);
+        expect(container.querySelector('[data-testid="cc-lane"]')).toBeNull();
+    });
+
+    it('does not render the strip lane when the stripLane layer is toggled off', () => {
+        useStatsStore.getState().setReplayLayer('stripLane', false);
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={{ ...fight, stripSamples: [0, 3, 0, 1] }} />);
+        expect(container.querySelector('[data-testid="strip-lane"]')).toBeNull();
     });
 });

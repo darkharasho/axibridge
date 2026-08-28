@@ -22,7 +22,7 @@ const mkFight = (members: SquadMemberMovement[]): ReplayFightPayload => ({
     movementData: { pollingRate: 1000, durationMs: 3000, pixelsPerInch: { x: 1, y: 1 }, members, boonIcons: {}, skillIcons: {}, groundMarkers: [] },
     dpsSamples: [], killEvents: [],
     damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
-    sectorOwners: null,
+    sectorOwners: null, ccSamples: null, stripSamples: null,
 });
 
 describe('SquadOverlay', () => {
