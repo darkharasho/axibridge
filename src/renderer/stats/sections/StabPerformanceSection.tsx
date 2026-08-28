@@ -5,6 +5,7 @@ import { useStatsSharedContext } from '../StatsViewContext';
 import { getProfessionColor } from '../../../shared/professionUtils';
 import { FightMetricSection } from './FightMetricSection';
 import type { FightMetricPlayer, FightMetricPoint } from './FightMetricSection';
+import { TIMELINE_NOT_RECORDED_MESSAGE } from './BucketGridTable';
 
 const PARTY_MEMBER_COLORS = [
     '#a78bfa', '#34d399', '#f59e0b', '#60a5fa', '#f472b6',
@@ -80,8 +81,9 @@ type StabPerformanceSectionProps = {
      * strips-taken series was never captured. Absent is not zero: in that
      * case the strips-taken overlay must say so instead of drawing an
      * all-zero-intensity heatmap that reads as "no strips happened".
-     * Defaults to true so older data (or tests) that don't pass it keep the
-     * pre-existing zero-is-zero behaviour.
+     * Defaults to false: absent is not recorded, matching this branch's
+     * principle everywhere else. The real caller (StatsView.tsx) always
+     * passes the resolved value explicitly.
      */
     stripsTakenRecorded?: boolean;
     showPartyDeaths: boolean;
@@ -106,7 +108,7 @@ export const StabPerformanceSection = ({
     partyMembers,
     heatmapOverlay,
     setHeatmapOverlay,
-    stripsTakenRecorded = true,
+    stripsTakenRecorded = false,
     showPartyDeaths,
     setShowPartyDeaths,
     showPartyDistance,
@@ -267,7 +269,7 @@ export const StabPerformanceSection = ({
                             </div>
                         ) : stripsTakenDataAbsent ? (
                             <div className="h-full flex items-center justify-center text-center text-xs text-[color:var(--text-secondary)] px-6">
-                                Strip data was not recorded for this fight (log predates axilog 1.8.0 or was parsed without raw timeline arrays).
+                                {TIMELINE_NOT_RECORDED_MESSAGE}
                             </div>
                         ) : (
                             <ChartContainer width="100%" height="100%">

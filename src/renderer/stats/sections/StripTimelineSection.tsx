@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { BucketGridTable, type BucketGridRow } from './BucketGridTable';
+import { BucketGridTable, FightPicker, TIMELINE_NOT_RECORDED_MESSAGE, type BucketGridRow } from './BucketGridTable';
 import { CONTROL_BUCKET_MS, type ControlFightData } from '../computeControlTimeline';
-import { formatDurationMs } from '../utils/dashboardUtils';
 
 type StripDirection = 'out' | 'in';
 
@@ -11,14 +10,6 @@ interface StripTimelineSectionProps {
     selectedFightId: string | null;
 }
 
-/** `fight.id` is a raw file path; strip directories and extension for a readable option label. */
-const fightPickerLabel = (fight: ControlFightData, index: number) => {
-    const raw = String(fight.id || '');
-    const file = raw.replace(/\\/g, '/').split('/').pop() || raw;
-    const name = file.replace(/\.(zevtc|evtc)(\.json)?$/i, '') || `Fight ${index + 1}`;
-    return `${name} (${formatDurationMs(fight.durationMs)})`;
-};
-
 /**
  * Boon strips per player per 5s bucket, in either direction.
  *
@@ -26,17 +17,17 @@ const fightPickerLabel = (fight: ControlFightData, index: number) => {
  * tracking and has no time axis inside a fight.
  *
  * Fight selection is owned entirely by this section (StatsView.tsx cannot
- * take on more useState). `selectedFightId` is an external override — when
- * null, the section falls back to its own internal picker state, and
- * finally to the first fight in the drilldown.
+ * take on more useState). `selectedFightId` only seeds the section's own
+ * picker state on mount — it is not a permanent override, so the picker
+ * keeps working for callers that pass a non-null value.
  */
 export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
     fights, recorded, selectedFightId,
 }) => {
     const [direction, setDirection] = useState<StripDirection>('out');
-    const [internalFightId, setInternalFightId] = useState<string | null>(null);
+    const [internalFightId, setInternalFightId] = useState<string | null>(selectedFightId);
 
-    const resolvedFightId = selectedFightId ?? internalFightId;
+    const resolvedFightId = internalFightId;
 
     const fight = useMemo(
         () => fights.find(f => f.id === resolvedFightId) || fights[0] || null,
@@ -90,17 +81,7 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                 >
                     Incoming
                 </button>
-                {fights.length > 1 && (
-                    <select
-                        value={fight?.id ?? ''}
-                        onChange={(event) => setInternalFightId(event.target.value)}
-                        className="bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] rounded-md px-2 py-1 text-xs text-[color:var(--text-primary)]"
-                    >
-                        {fights.map((f, i) => (
-                            <option key={f.id} value={f.id}>{fightPickerLabel(f, i)}</option>
-                        ))}
-                    </select>
-                )}
+                <FightPicker fights={fights} selectedId={fight?.id} onChange={setInternalFightId} />
             </div>
             <BucketGridTable
                 rows={rows}
@@ -108,7 +89,7 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                 bucketMs={CONTROL_BUCKET_MS}
                 accent={direction === 'out' ? '#e879f9' : '#f87171'}
                 recorded={effectiveRecorded}
-                notRecordedMessage="Per-player strip timelines need Raw timeline arrays enabled — re-parse these logs to populate."
+                notRecordedMessage={TIMELINE_NOT_RECORDED_MESSAGE}
             />
         </>
     );

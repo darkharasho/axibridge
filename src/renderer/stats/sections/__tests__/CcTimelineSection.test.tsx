@@ -26,7 +26,7 @@ describe('CcTimelineSection', () => {
         const { container } = render(
             <CcTimelineSection fights={unrecordedFights as any} recorded selectedFightId="f1" />,
         );
-        expect(screen.getByText(/Per-player CC timelines need Raw timeline arrays enabled/)).toBeTruthy();
+        expect(screen.getByText(/predates axilog 1.8.0/)).toBeTruthy();
         expect(container.querySelectorAll('[data-bucket-cell]')).toHaveLength(0);
     });
 
