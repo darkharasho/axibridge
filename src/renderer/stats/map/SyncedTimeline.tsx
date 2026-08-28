@@ -3,6 +3,7 @@ import { useStatsStore } from '../statsStore';
 import { formatDuration } from '../../../shared/mapUtils';
 import { useSquadDerived } from './hooks/useSquadDerived';
 import type { ReplayFightPayload } from './replayTypes';
+import { SERIES_INTERVAL_MS } from '@axiapps/bridge-metrics/nativeSeries';
 
 interface SyncedTimelineProps {
     fight: ReplayFightPayload;
@@ -52,9 +53,15 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
     const subLane = useCallback((samples: number[] | null, top: number, height: number) => {
         if (!samples || samples.length === 0 || fight.durationMs <= 0) return '';
         const max = Math.max(1, ...samples);
-        const step = 1000 / samples.length;
+        // These are native squad series stamped at SERIES_INTERVAL_MS (1s)
+        // per sample; `samples.length * SERIES_INTERVAL_MS` does not always
+        // equal `fight.durationMs` exactly. Positioning by
+        // `timeMs / fight.durationMs`, like the DPS area, kill marks and
+        // playhead do, keeps this lane aligned with the rest of the SVG
+        // instead of drifting by `index / samples.length`.
+        const stepPx = (SERIES_INTERVAL_MS / fight.durationMs) * 1000;
         return samples
-            .map((v, i) => `M ${(i * step).toFixed(1)},${top + height} V ${(top + height - (v / max) * height).toFixed(1)}`)
+            .map((v, i) => `M ${(i * stepPx).toFixed(1)},${top + height} V ${(top + height - (v / max) * height).toFixed(1)}`)
             .join(' ');
     }, [fight.durationMs]);
 
@@ -113,15 +120,38 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                     <line key={`d-${i}`} x1={(m.timeMs / fight.durationMs) * 1000} x2={(m.timeMs / fight.durationMs) * 1000}
                           y1={132} y2={144} stroke="#ef4444" strokeWidth={2} />
                 ))}
-                {layersState.ccLane && ccPath && (
-                    <g data-testid="cc-lane">
-                        <path d={ccPath} stroke="#f59e0b" strokeWidth={2} fill="none" opacity={0.85} />
-                    </g>
+                {layersState.ccLane && (
+                    fight.ccSamples ? (
+                        ccPath && (
+                            <g data-testid="cc-lane">
+                                <path d={ccPath} stroke="#f59e0b" strokeWidth={2} fill="none" opacity={0.85} />
+                            </g>
+                        )
+                    ) : (
+                        // `null` means "never captured" (log predates axilog
+                        // 1.8.0, or was parsed without raw timeline arrays) —
+                        // pixel-identical to a genuinely all-zero series
+                        // otherwise. A dashed baseline + muted label keeps
+                        // the two states visually distinct on the replay.
+                        <g data-testid="cc-lane-not-recorded">
+                            <line x1={0} x2={1000} y1={114} y2={114} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
+                            <text x={4} y={112} fontSize={7} fill="#f59e0b" opacity={0.6}>CC not recorded</text>
+                        </g>
+                    )
                 )}
-                {layersState.stripLane && stripPath && (
-                    <g data-testid="strip-lane">
-                        <path d={stripPath} stroke="#e879f9" strokeWidth={2} fill="none" opacity={0.85} />
-                    </g>
+                {layersState.stripLane && (
+                    fight.stripSamples ? (
+                        stripPath && (
+                            <g data-testid="strip-lane">
+                                <path d={stripPath} stroke="#e879f9" strokeWidth={2} fill="none" opacity={0.85} />
+                            </g>
+                        )
+                    ) : (
+                        <g data-testid="strip-lane-not-recorded">
+                            <line x1={0} x2={1000} y1={128} y2={128} stroke="#e879f9" strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
+                            <text x={4} y={126} fontSize={7} fill="#e879f9" opacity={0.6}>Strips not recorded</text>
+                        </g>
+                    )
                 )}
                 <line x1={playheadX} x2={playheadX} y1={0} y2={152} stroke="#fbbf24" strokeWidth={1.5} />
             </svg>

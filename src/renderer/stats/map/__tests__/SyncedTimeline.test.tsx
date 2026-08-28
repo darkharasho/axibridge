@@ -85,4 +85,47 @@ describe('SyncedTimeline CC and strip lanes', () => {
         const { container } = render(<SyncedTimeline fight={{ ...fight, stripSamples: [0, 3, 0, 1] }} />);
         expect(container.querySelector('[data-testid="strip-lane"]')).toBeNull();
     });
+
+    it('renders a distinct not-recorded affordance for CC when samples are null and the toggle is on, rather than nothing', () => {
+        // null (never captured) must not look pixel-identical to a
+        // genuinely all-zero series -- both used to render nothing at all.
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={fight} />);
+        expect(container.querySelector('[data-testid="cc-lane-not-recorded"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="cc-lane"]')).toBeNull();
+    });
+
+    it('renders a distinct not-recorded affordance for strips when samples are null and the toggle is on', () => {
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={fight} />);
+        expect(container.querySelector('[data-testid="strip-lane-not-recorded"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="strip-lane"]')).toBeNull();
+    });
+
+    it('does not render the not-recorded affordance for a genuinely all-zero series', () => {
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={{ ...fight, ccSamples: [0, 0, 0, 0] }} />);
+        expect(container.querySelector('[data-testid="cc-lane-not-recorded"]')).toBeNull();
+    });
+
+    it('positions the CC lane by timeMs / durationMs, matching the DPS area and playhead, not index / samples.length', () => {
+        // len=50 at a 1000ms-per-sample interval spans 50_000ms; a
+        // durationMs of 49_714ms (an inclusive-endpoint-style mismatch)
+        // must not skew the lane's x-axis against the rest of the SVG.
+        const durationMs = 49_714;
+        const samples = new Array(50).fill(0).map((_, i) => (i === 10 ? 5 : 0));
+        const fight = makeFight(durationMs);
+        const { container } = render(<SyncedTimeline fight={{ ...fight, ccSamples: samples }} />);
+        const path = container.querySelector('[data-testid="cc-lane"] path') as SVGPathElement;
+        expect(path).toBeTruthy();
+        const d = path.getAttribute('d') || '';
+        // Sample index 10 at 1000ms/sample -> timeMs = 10_000.
+        const expectedX = (10_000 / durationMs) * 1000;
+        const match = d.match(/M ([\d.]+),/g) || [];
+        const xs = match.map((m) => Number(m.replace('M ', '').replace(',', '')));
+        expect(xs[10]).toBeCloseTo(expectedX, 1);
+        // The stale index/samples.length formula would have placed it at
+        // (10 / 50) * 1000 = 200, which is measurably different here.
+        expect(xs[10]).not.toBeCloseTo((10 / 50) * 1000, 1);
+    });
 });
