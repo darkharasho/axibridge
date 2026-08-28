@@ -59,6 +59,11 @@ export const decodeCountSeries = (series: NativeSeries | null | undefined): numb
     if (!series || !Array.isArray(series.data)) return [];
     const len = Number(series.len);
     if (!Number.isFinite(len) || len <= 0) return [];
+    if (series.interval_ms !== SERIES_INTERVAL_MS) {
+        throw new Error(
+            `decodeCountSeries: expected interval_ms ${SERIES_INTERVAL_MS}, got ${series.interval_ms}`
+        );
+    }
 
     const out: number[] = [];
     if (series.enc === 'raw') {

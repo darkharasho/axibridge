@@ -66,6 +66,15 @@ describe('decodeCountSeries', () => {
         const series = { enc: 'raw', interval_ms: 1000, len: 3, data: [1, 0, 2] };
         expect(decodeCountSeries(series)).toEqual([1, 0, 2]);
     });
+
+    it('throws when interval_ms is not the expected 1000ms, naming the actual value', () => {
+        // Every downstream downsample (computeControlTimeline's PER_BUCKET,
+        // computeStabPerformance's sumTo5sBuckets) hardcodes a 1000ms native
+        // interval. If axilog ever emits a different cadence, buckets would
+        // silently misalign rather than fail -- so fail fast here instead.
+        const series = { enc: 'raw', interval_ms: 500, len: 3, data: [1, 0, 2] };
+        expect(() => decodeCountSeries(series)).toThrow(/interval_ms.*500/);
+    });
 });
 
 describe('readSquadSeries', () => {
