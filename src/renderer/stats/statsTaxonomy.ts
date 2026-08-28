@@ -93,6 +93,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
             { id: 'stab-performance', label: 'Stab Performance', icon: Shield, description: 'Stability coverage in the moments it matters.', keywords: ['stability', 'stab'] },
             { id: 'boon-strip-comparison', label: 'Boon Strips', icon: Eraser, description: 'Strips and corrupts — squad versus enemy.', keywords: ['strips', 'corrupts', 'removal'] },
             { id: 'strip-spikes', label: 'Strip Spikes', icon: Eraser, description: 'Strip burst windows and down contribution from strips.', keywords: ['strip burst'] },
+            { id: 'strip-timeline', label: 'Strip Timeline', icon: Eraser, description: 'Boon strips per player over the course of each fight, incoming or outgoing.', keywords: ['strips over time', 'strip timing', 'when stripped', 'strip timeline'] },
         ],
     },
     {

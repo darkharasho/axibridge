@@ -22,7 +22,7 @@ const EXPECTED_SECTION_IDS = [
     'defense-mitigation',
     // boons-strips
     'boon-output', 'boon-uptime', 'all-boons', 'boon-timeline', 'stab-performance',
-    'boon-strip-comparison', 'strip-spikes',
+    'boon-strip-comparison', 'strip-spikes', 'strip-timeline',
     // support-healing
     'support-detailed', 'healing-stats', 'healing-breakdown', 'heal-effectiveness',
     // squad-cohesion
@@ -112,5 +112,10 @@ describe('statsTaxonomy', () => {
     it('registers cc-timeline under offense', () => {
         const offense = STATS_CATEGORIES.find(c => c.id === 'offense');
         expect(offense?.sections.map(s => s.id)).toContain('cc-timeline');
+    });
+
+    it('registers strip-timeline under boons-strips', () => {
+        const boonsStrips = STATS_CATEGORIES.find(c => c.id === 'boons-strips');
+        expect(boonsStrips?.sections.map(s => s.id)).toContain('strip-timeline');
     });
 });

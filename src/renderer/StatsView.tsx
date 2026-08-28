@@ -71,6 +71,7 @@ import type { AllDamageData } from './stats/computeAllDamageData';
 import { FightMetricSection } from './stats/sections/FightMetricSection';
 import type { FightMetricPlayer, FightMetricPoint } from './stats/sections/FightMetricSection';
 import { CcTimelineSection } from './stats/sections/CcTimelineSection';
+import { StripTimelineSection } from './stats/sections/StripTimelineSection';
 import type { StripFight, StripPlayer } from './stats/computeStripSpikesData';
 import { AttendanceSection } from './stats/sections/AttendanceSection';
 import { CommanderPushTimingSection, CommanderStatsSection, CommanderTagDeathResponseSection, CommanderTagMovementSection, CommanderTargetConversionSection } from './stats/sections/CommanderStatsSection';
@@ -4675,6 +4676,12 @@ type SpikeFight = {
                                 valueSuffix={stripMode === 'strips' ? 'strips' : ''}
                             />)}
 
+                            {renderSectionWrap(<StripTimelineSection
+                                fights={controlTimelineFights}
+                                recorded={controlTimelineRecorded}
+                                selectedFightId={null}
+                            />)}
+
                             {renderSectionWrap(<ConditionsSection
                                 conditionSummary={conditionSummary}
                                 conditionPlayers={conditionPlayers}
@@ -5230,6 +5237,11 @@ type SpikeFight = {
                                 chartMaxY={stripChartMaxY}
                                 formatValue={(v: number) => formatWithCommas(v, 0)}
                                 valueSuffix={stripMode === 'strips' ? 'strips' : ''}
+                            /> },
+                            { id: 'strip-timeline', element: <StripTimelineSection
+                                fights={controlTimelineFights}
+                                recorded={controlTimelineRecorded}
+                                selectedFightId={null}
                             /> },
                         ])}
 
