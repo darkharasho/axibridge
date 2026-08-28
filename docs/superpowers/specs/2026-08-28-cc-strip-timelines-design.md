@@ -201,10 +201,12 @@ Cost: ~300 numbers per fight per lane.
 CC and strips have different homes in the existing taxonomy:
 
 - `cc-timeline` -> **Offense**, after `offense-detailed` (which already
-  owns CC).
+  owns CC). Outgoing only: no `cc_taken` lane is emitted, so there is no
+  direction toggle here. Incoming CC remains a scalar
+  (`defenses.received_cc_count`) and is out of scope.
 - `strip-timeline` -> **Boons & Strips**, immediately after `strip-spikes`.
-  Outgoing/incoming is a toggle within the section — same grid, different
-  lane.
+  Outgoing/incoming *is* a toggle within this section — same grid, backed
+  by the `strips` and `strips_taken` lanes respectively.
 
 `strip-spikes` is not duplicated by this: it holds per-fight totals per
 player (`strips`, `stripTime`, `stripDownContrib`, with peak-*fight*
