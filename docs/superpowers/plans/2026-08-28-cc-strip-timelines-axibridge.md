@@ -92,13 +92,32 @@ console.log('entity lanes:', ['cc_applied','strips','strips_taken'].map(k => k +
 
 Expected: `squad.strips: true <n>` and all three entity lanes `true`.
 
-- [ ] **Step 5: Regenerate fixtures**
+- [ ] **Step 5: Verify the lanes survive the carry set**
+
+Step 4 proves axilog emits the lanes; it does NOT prove they reach the renderer. `src/main/nativeCarrySet.ts` filters the native report down to `CARRIED_PATHS` before it travels, and `blocks.series` being whitelisted should carry the new sub-fields automatically — but that whitelist has previously shipped silently broken, so prove it rather than assume it:
+
+```bash
+node -e "
+const { parseFile } = require('@axiapps/axilog');
+const { buildNativeCarrySet } = require('./dist-electron/nativeCarrySet.js');
+const r = parseFile(process.argv[1], { timeseries: true, replay: true, skillDamage: true, rotation: true });
+const carried = buildNativeCarrySet(r);
+const s = carried.blocks.series;
+console.log('squad.strips carried:', !!s.squad.strips);
+const first = Object.values(s.by_entity)[0];
+console.log('entity lanes carried:', ['cc_applied','strips','strips_taken'].map(k => k + '=' + !!first[k]).join(' '));
+" testdata/wvw-small.anon.zevtc
+```
+
+Expected: all four `true`. Run `npm run build` first if `dist-electron/` is stale. If any lane is dropped, `CARRIED_PATHS` needs the path spelled out explicitly — fix that before continuing, or every downstream task will build against data the renderer never receives.
+
+- [ ] **Step 6: Regenerate fixtures**
 
 ```bash
 npm run generate:fixtures
 ```
 
-- [ ] **Step 6: Run the suite and triage the expected baseline failure**
+- [ ] **Step 7: Run the suite and triage the expected baseline failure**
 
 ```bash
 npx vitest run --maxWorkers=2
@@ -106,7 +125,7 @@ npx vitest run --maxWorkers=2
 
 Expected: the `facade_identity` / native-json baseline digest test FAILS. This is expected on every axilog bump — `axilog.version` is embedded in the report, so the digest necessarily moves. Re-digest the baseline per that test's own instructions. **Every other test must pass.** A failure anywhere else is a real regression.
 
-- [ ] **Step 7: Validate**
+- [ ] **Step 8: Validate**
 
 ```bash
 npm run validate
@@ -114,7 +133,7 @@ npm run validate
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add package.json package-lock.json test-fixtures/
@@ -357,20 +376,29 @@ import {
     finalizeControlTimeline,
 } from '../computeControlTimeline';
 
-/** A native report with one squad player and 10s of 1s CC buckets. */
+/**
+ * One squad player, 10s fight. Shapes mirror `computeStabPerformance`'s real
+ * inputs exactly: `details.native` for the carried report, `details.durationMS`
+ * (capital MS), and the account string as the player key.
+ */
 const nativeLog = (lanes: Record<string, number[]> | null) => ({
     id: 'log-1',
+    filePath: 'fight-1.zevtc',
     details: {
-        durationMs: 10_000,
+        durationMS: 10_000,
         players: [{ account: 'Alice.1234', name: 'Alice', group: 1, profession: 'Guardian' }],
-        __native: {
-            entities: { e1: { account: 'Alice.1234', role: 'Squad' } },
+        native: {
+            entities: [{ id: 7, account: 'Alice.1234', role: 'squad' }],
             blocks: {
                 series: {
                     squad: {},
-                    by_entity: lanes
-                        ? { e1: Object.fromEntries(Object.entries(lanes).map(([k, v]) => [k, { enc: 'raw', interval_ms: 1000, len: v.length, data: v }])) }
-                        : { e1: {} },
+                    by_entity: {
+                        '7': lanes
+                            ? Object.fromEntries(Object.entries(lanes).map(([k, v]) => [
+                                k, { enc: 'raw', interval_ms: 1000, len: v.length, data: v },
+                            ]))
+                            : {},
+                    },
                 },
             },
         },
@@ -418,7 +446,7 @@ describe('computeControlTimeline', () => {
 });
 ```
 
-The `nativeLog` shape above is a minimal stand-in. Before writing the implementation, open `src/renderer/stats/computeStabPerformance.ts` and read how it reaches the native report and the squad roster — use the identical access path (`squadEntities`, and whatever property holds the carried native report) rather than the `__native` placeholder above, and update the test fixture to match. The test must exercise the real access path or it proves nothing.
+If `squadEntities` rejects the `entities` literal above — it reads `role === 'squad'` off whatever container `NativeReportLike` declares — adjust the fixture to whatever `packages/bridge-metrics/src/nativeRoster.ts`'s `allEntities` actually walks. Everything else in this fixture is copied from `computeStabPerformance.ts:168-190` and is already correct.
 
 - [ ] **Step 2: Run to verify they fail**
 
@@ -500,33 +528,48 @@ const downsample = (native: number[] | null, bucketCount: number): number[] => {
 export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulator): void {
     const details = log?.details;
     if (!details) return;
-    const native = /* the carried native report, via the same accessor computeStabPerformance uses */ null as any;
-    if (!native) return;
-
-    const durationMs = Number(details.durationMs) || 0;
+    const players = Array.isArray(details.players) ? details.players : [];
+    const squadPlayers = players.filter((p: any) => !p?.notInSquad);
+    if (squadPlayers.length === 0) return;
+    const fightId = String(log?.filePath || log?.id || '');
+    if (!fightId) return;
+    const durationMs = Math.max(0, Number(details?.durationMS || 0));
     if (durationMs <= 0) return;
     const bucketCount = Math.max(1, Math.ceil(durationMs / CONTROL_BUCKET_MS));
 
-    const players: Record<string, ControlPlayerData> = {};
+    const native = details?.native ?? {};
+    // Series are keyed by native entity id; the EI player rows are keyed by
+    // account. Account is the only key both surfaces share — the same join
+    // `computeStabPerformance` makes for its distance scalars.
+    const entityByAccount = new Map<string, number>();
+    for (const e of squadEntities(native)) {
+        if (e.account) entityByAccount.set(e.account, e.id);
+    }
+
+    const playersOut: Record<string, ControlPlayerData> = {};
     let sawLane = false;
 
-    for (const entity of squadEntities(native)) {
-        const cc = readEntitySeries(native, entity.id, 'cc_applied');
-        const stripsOut = readEntitySeries(native, entity.id, 'strips');
-        const stripsIn = readEntitySeries(native, entity.id, 'strips_taken');
+    squadPlayers.forEach((player: any) => {
+        const account = String(player?.account || player?.name || 'Unknown');
+        const entityId = entityByAccount.get(account);
+        const key = entityId === undefined ? null : String(entityId);
+
+        const cc = key === null ? null : readEntitySeries(native, key, 'cc_applied');
+        const stripsOut = key === null ? null : readEntitySeries(native, key, 'strips');
+        const stripsIn = key === null ? null : readEntitySeries(native, key, 'strips_taken');
         if (cc || stripsOut || stripsIn) sawLane = true;
 
-        players[entity.key] = {
-            group: entity.group,
-            displayName: entity.displayName,
+        playersOut[account] = {
+            group: Number(player?.group || 0),
+            displayName: String(player?.name || account),
             cc: downsample(cc, bucketCount),
             stripsOut: downsample(stripsOut, bucketCount),
             stripsIn: downsample(stripsIn, bucketCount),
         };
-    }
+    });
 
     if (sawLane) acc.recorded = true;
-    acc.fights.push({ id: String(log.id ?? ''), bucketCount, durationMs, players });
+    acc.fights.push({ id: fightId, bucketCount, durationMs, players: playersOut });
 }
 
 export function extractControlTimelineFrame(acc: ControlTimelineAccumulator): ControlTimelineFrame {
@@ -549,7 +592,7 @@ export function finalizeControlTimeline(
 }
 ```
 
-Replace the `native` binding and the `squadEntities(native)` destructuring (`entity.id`, `entity.key`, `entity.group`, `entity.displayName`) with whatever `computeStabPerformance.ts` actually uses — read it and mirror it exactly. The property names above are the shape this module needs, not a claim about the roster helper's API.
+The join, the `details.durationMS` spelling, the `log.filePath` fight id and the `!p?.notInSquad` filter are all copied from `computeStabPerformance.ts:168-190` so the two accumulators produce fights with identical ids and identical bucket counts. That identity is what lets Task 9 overlay strip data onto the stab-perf grid — if these drift, the overlay joins nothing.
 
 - [ ] **Step 4: Run to verify they pass**
 
@@ -760,12 +803,14 @@ In `src/renderer/stats/map/replayTypes.ts`, inside `ReplayFightPayload` next to 
 
 - [ ] **Step 4: Populate them during aggregation**
 
-In `src/renderer/stats/incrementalAggregation.ts` next to line 190, using the same native-report accessor `computeStabPerformance` uses:
+In `src/renderer/stats/incrementalAggregation.ts` next to line 190:
 
 ```ts
-    const ccSamples = readSquadSeries(native, 'cc_applied');
-    const stripSamples = readSquadSeries(native, 'strips');
+    const ccSamples = readSquadSeries(details?.native ?? {}, 'cc_applied');
+    const stripSamples = readSquadSeries(details?.native ?? {}, 'strips');
 ```
+
+If the surrounding function binds the details object under a different name, use that name — line 190 already calls `computeSquadDpsSamples(details)`, so `details` is in scope there.
 
 and add `ccSamples,` and `stripSamples,` to the fight payload object at ~line 212. Import `readSquadSeries` from `@axiapps/bridge-metrics`.
 
@@ -1558,7 +1603,26 @@ npm run test:e2e:web
 
 Expected: PASS. This is the surface that proves the accumulator did its job — the web report has no log details at render time, so if the CC and Strip Timeline sections render there, the precomputed drilldown is complete.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Measure the report.json cost**
+
+The spec projects that the control-timeline drilldown roughly doubles the stab-perf slice and stays minor next to `replayFights` (~66% of `report.json`). Confirm it rather than assume it:
+
+```bash
+node -e "
+const r = JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'));
+const kb = (v) => Math.round(Buffer.byteLength(JSON.stringify(v)) / 1024);
+console.log('controlTimelineDrilldown:', kb(r.controlTimelineDrilldown), 'KB');
+console.log('stabPerformanceDrilldown:', kb(r.stabPerformanceDrilldown), 'KB');
+console.log('replayFights:', kb(r.replayFights), 'KB');
+console.log('total:', kb(r), 'KB');
+" dist-web/report.json
+```
+
+Use a `report.json` built from a real multi-fight session, not a single fixture — the arrays scale with roster size and fight count.
+
+Expected: `controlTimelineDrilldown` within roughly 2x `stabPerformanceDrilldown`. If it lands materially higher, apply the spec's stated mitigation — sparse-encode the three bucket arrays, which are overwhelmingly zero — as a follow-up task rather than shipping the growth silently. Record the measured numbers in the commit message either way.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/shared/metrics-spec.md docs/metrics-spec.md
