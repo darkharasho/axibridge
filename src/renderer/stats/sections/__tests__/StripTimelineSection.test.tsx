@@ -34,4 +34,31 @@ describe('StripTimelineSection', () => {
         expect(screen.getByText(/Per-player strip timelines need Raw timeline arrays enabled/)).toBeTruthy();
         expect(container.querySelectorAll('[data-bucket-cell]')).toHaveLength(0);
     });
+
+    it('renders no picker for a single-fight dataset', () => {
+        render(<StripTimelineSection fights={fights as any} recorded selectedFightId={null} />);
+        expect(screen.queryByRole('combobox')).toBeNull();
+    });
+
+    it('switches to the picked fight\'s data when the picker changes', () => {
+        const multiFights = [
+            {
+                id: 'logs/fight-one.zevtc', bucketCount: 2, durationMs: 10_000, recorded: true,
+                players: {
+                    a: { group: 1, displayName: 'Alice', cc: [0, 0], stripsOut: [3, 0], stripsIn: [0, 7] },
+                },
+            },
+            {
+                id: 'logs/fight-two.zevtc', bucketCount: 2, durationMs: 20_000, recorded: true,
+                players: {
+                    a: { group: 1, displayName: 'Alice', cc: [0, 0], stripsOut: [9, 0], stripsIn: [0, 11] },
+                },
+            },
+        ];
+        render(<StripTimelineSection fights={multiFights as any} recorded selectedFightId={null} />);
+        expect(screen.getByTitle(/Alice — 0:00: 3/)).toBeTruthy();
+        const picker = screen.getByRole('combobox') as HTMLSelectElement;
+        fireEvent.change(picker, { target: { value: 'logs/fight-two.zevtc' } });
+        expect(screen.getByTitle(/Alice — 0:00: 9/)).toBeTruthy();
+    });
 });
